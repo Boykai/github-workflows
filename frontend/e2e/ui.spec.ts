@@ -46,6 +46,22 @@ test.describe('Login Page UI', () => {
     const description = page.locator('p, .description');
     await expect(description.first()).toBeVisible();
   });
+
+  test('should display John Savill YouTube logo', async ({ page }) => {
+    await page.goto('/');
+    
+    // Logo should be visible
+    const logoLink = page.locator('a[href="https://www.youtube.com/@ntfaqguy"]');
+    await expect(logoLink).toBeVisible();
+    
+    // Logo image should have proper alt text
+    const logoImg = logoLink.locator('img');
+    await expect(logoImg).toHaveAttribute('alt', /John Savill/i);
+    
+    // Link should open in new tab
+    await expect(logoLink).toHaveAttribute('target', '_blank');
+    await expect(logoLink).toHaveAttribute('rel', 'noopener noreferrer');
+  });
 });
 
 test.describe('Interactive Elements', () => {
