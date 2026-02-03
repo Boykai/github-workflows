@@ -1,1 +1,37 @@
 # GitHub Workflows
+
+A web application demonstrating GitHub Workflows with an advanced dark theme implementation for improved accessibility and user comfort.
+
+## Features
+
+### Dark Theme System
+- **Toggle Control**: Quick theme switching via header button or settings panel
+- **System Preference Detection**: Automatically respects OS color scheme (prefers-color-scheme)
+- **Manual Override**: Choose Light, Dark, or Auto (System) mode
+- **Persistent Settings**: Theme preference saved across sessions using localStorage
+- **Smooth Transitions**: Animated theme changes for enhanced UX (0.3s duration)
+- **High Contrast**: WCAG-compliant contrast ratios for all text and interactive elements
+- **Accessibility**: Respects prefers-reduced-motion for users sensitive to animations
+
+## Quick Start
+
+1. Open `index.html` in a web browser
+2. Use the theme toggle button (🌙/☀️) in the header for quick switching
+3. Or visit the Settings section to choose your preferred theme mode
+
+## Testing
+
+Open `tests.html` to run the automated test suite that validates:
+- System theme detection
+- Theme preference storage and retrieval
+- Theme application logic
+- localStorage persistence
+
+All tests should pass (8/8).
+
+## Browser Support
+
+Works in all modern browsers that support:
+- CSS Custom Properties
+- localStorage API
+- matchMedia API (for system preference detection)
