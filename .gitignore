@@ -36,6 +36,15 @@ backend/dist/
 frontend/dist/
 *.log
 
+# TypeScript build info
+*.tsbuildinfo
+*.d.ts
+*.js
+!vite.config.ts
+!eslint.config.js
+!playwright.config.ts
+!vitest.config.ts
+
 # Environment
 .env
 .env.local
