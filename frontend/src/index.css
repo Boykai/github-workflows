@@ -1,6 +1,7 @@
 /* Base styles */
 :root {
   --color-primary: #0969da;
+  --color-primary-hover: #0860ca;
   --color-secondary: #6e7781;
   --color-success: #1a7f37;
   --color-warning: #9a6700;

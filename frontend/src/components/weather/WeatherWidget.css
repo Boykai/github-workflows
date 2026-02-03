@@ -205,7 +205,7 @@
 }
 
 .weather-search-button:hover:not(:disabled) {
-  background: #0860ca;
+  background: var(--color-primary-hover);
 }
 
 .weather-search-button:disabled {
@@ -248,5 +248,5 @@
 }
 
 .weather-retry-button:hover {
-  background: #0860ca;
+  background: var(--color-primary-hover);
 }
