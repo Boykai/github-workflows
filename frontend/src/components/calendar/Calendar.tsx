@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import { useEvents, getEventsForDate, hasEvents } from '@/hooks/useEvents';
 import { EventModal } from './EventModal';
-import type { CalendarEvent } from '@/types';
 import './Calendar.css';
 
 export function Calendar() {
