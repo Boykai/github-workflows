@@ -2,13 +2,15 @@
  * Smiley Face Logo component for the application header
  */
 
-interface SmileyLogoProps {
+import type { HTMLAttributes } from 'react';
+
+interface SmileyLogoProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-export function SmileyLogo({ size = 32 }: SmileyLogoProps) {
+export function SmileyLogo({ size = 32, ...props }: SmileyLogoProps) {
   return (
-    <div className="smiley-logo" title="Welcome!">
+    <div className="smiley-logo" title="Welcome!" {...props}>
       <svg
         width={size}
         height={size}

@@ -37,4 +37,11 @@ describe('SmileyLogo', () => {
     const svg = screen.getByLabelText('Smiley face logo');
     expect(svg.getAttribute('viewBox')).toBe('0 0 100 100');
   });
+
+  it('accepts and applies additional HTML attributes', () => {
+    render(<SmileyLogo data-testid="custom-logo" className="custom-class" />);
+    const logoContainer = screen.getByTestId('custom-logo');
+    expect(logoContainer).toBeTruthy();
+    expect(logoContainer.className).toContain('custom-class');
+  });
 });
