@@ -32,6 +32,19 @@
   text-align: center;
 }
 
+.app-logo-login {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .app-logo-login {
+    width: 48px;
+    height: 48px;
+  }
+}
+
 .app-login h1 {
   font-size: 32px;
   color: var(--color-text);
@@ -56,6 +69,25 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 768px) {
+  .app-logo {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 .app-header h1 {
