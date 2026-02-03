@@ -30,6 +30,13 @@
   height: 100vh;
   gap: 16px;
   text-align: center;
+  position: relative;
+}
+
+.login-theme-selector {
+  position: absolute;
+  top: 24px;
+  right: 24px;
 }
 
 .app-login h1 {
@@ -61,6 +68,12 @@
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .app-main {

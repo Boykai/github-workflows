@@ -14,6 +14,20 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Pink theme */
+:root.theme-pink {
+  --color-primary: #d1457f;
+  --color-secondary: #c9579e;
+  --color-success: #d1457f;
+  --color-warning: #e07aaa;
+  --color-danger: #b8315d;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #fff5f9;
+  --color-border: #ffc0dd;
+  --color-text: #24292f;
+  --color-text-secondary: #8b5a6f;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

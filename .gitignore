@@ -36,6 +36,11 @@ backend/dist/
 frontend/dist/
 *.log
 
+# TypeScript build info
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+
 # Environment
 .env
 .env.local

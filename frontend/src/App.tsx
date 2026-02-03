@@ -10,6 +10,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ThemeSelector } from '@/components/theme/ThemeSelector';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -63,6 +64,9 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
+        <div className="login-theme-selector">
+          <ThemeSelector />
+        </div>
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
@@ -80,7 +84,10 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="app-header-actions">
+          <ThemeSelector />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
