@@ -64,6 +64,8 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 coverage/
+frontend/test-results/
+frontend/e2e-report/
 
 # Misc
 *.tmp
