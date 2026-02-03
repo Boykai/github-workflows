@@ -1,0 +1,466 @@
+/* Chat interface styles */
+
+.chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.chat-empty h3 {
+  font-size: 18px;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.example-prompts {
+  margin-top: 24px;
+  background: var(--color-bg-secondary);
+  padding: 16px 24px;
+  border-radius: var(--radius);
+}
+
+.example-prompts p {
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.example-prompts ul {
+  list-style: none;
+  text-align: left;
+}
+
+.example-prompts li {
+  padding: 4px 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.example-prompts li::before {
+  content: '"';
+  color: var(--color-primary);
+}
+
+/* Message bubble */
+.message-bubble {
+  display: flex;
+  gap: 12px;
+  max-width: 80%;
+}
+
+.message-bubble.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-bubble.assistant,
+.message-bubble.system {
+  align-self: flex-start;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.message-text {
+  background: var(--color-bg-secondary);
+  padding: 12px 16px;
+  border-radius: 16px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.message-bubble.user .message-text {
+  background: var(--color-primary);
+  color: white;
+}
+
+.system-message {
+  font-size: 13px;
+  color: var(--color-success);
+  padding: 8px 0;
+}
+
+.message-time {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding: 0 4px;
+}
+
+.message-bubble.user .message-time {
+  text-align: right;
+}
+
+/* Task preview */
+.task-preview {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  max-width: 500px;
+  align-self: flex-start;
+  margin-left: 44px;
+}
+
+.preview-header {
+  background: var(--color-primary);
+  color: white;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.preview-content {
+  padding: 16px;
+}
+
+.preview-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.preview-description {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.reject-button {
+  flex: 1;
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.reject-button:hover {
+  background: var(--color-border);
+}
+
+.confirm-button {
+  flex: 1;
+  background: var(--color-success);
+  color: white;
+}
+
+.confirm-button:hover {
+  background: #15652d;
+}
+
+/* Loading indicator */
+.chat-loading {
+  align-self: flex-start;
+  margin-left: 44px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--color-bg-secondary);
+  border-radius: 16px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--color-text-secondary);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Chat input */
+.chat-input-form {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.chat-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  min-height: 44px;
+  max-height: 120px;
+}
+
+.chat-input:focus {
+  border-color: var(--color-primary);
+}
+
+.chat-input:disabled {
+  background: var(--color-bg-secondary);
+}
+
+.send-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-button:hover:not(:disabled) {
+  background: #0860ca;
+}
+
+.send-button:disabled {
+  background: var(--color-border);
+  cursor: not-allowed;
+}
+
+/* Issue Recommendation Preview */
+.issue-recommendation-preview {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 12px;
+  max-width: 600px;
+}
+
+.issue-recommendation-preview.success {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.issue-recommendation-preview.rejected {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  opacity: 0.7;
+}
+
+.recommendation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.recommendation-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.status-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--color-primary);
+  color: white;
+  text-transform: capitalize;
+}
+
+.recommendation-section {
+  margin-bottom: 12px;
+}
+
+.recommendation-section h5 {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0 0 4px 0;
+  font-weight: 600;
+}
+
+.recommendation-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.user-story,
+.ui-ux-description {
+  font-size: 14px;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.requirements-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.requirements-list li {
+  margin-bottom: 4px;
+}
+
+.requirements-list .more-items {
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.recommendation-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.confirm-button,
+.reject-button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-button {
+  background: #22c55e;
+  color: white;
+  border: none;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.reject-button {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.reject-button:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.confirm-button:disabled,
+.reject-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.result-header h4 {
+  margin: 0;
+}
+
+.success-icon {
+  font-size: 20px;
+  color: #22c55e;
+}
+
+.rejected-icon {
+  font-size: 20px;
+  color: #ef4444;
+}
+
+.result-details p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.issue-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.issue-link:hover {
+  text-decoration: underline;
+}
+
+.rejected-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
