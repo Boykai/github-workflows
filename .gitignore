@@ -36,6 +36,11 @@ backend/dist/
 frontend/dist/
 *.log
 
+# TypeScript
+*.tsbuildinfo
+*.d.ts
+*.js
+
 # Environment
 .env
 .env.local
