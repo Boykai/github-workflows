@@ -10,6 +10,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { WeatherWidget } from '@/components/weather/WeatherWidget';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -80,7 +81,10 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="app-header-actions">
+          <WeatherWidget />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
