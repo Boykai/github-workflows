@@ -168,6 +168,13 @@ export const chatApi = {
   },
 
   /**
+   * Clear all chat messages for current session.
+   */
+  clearMessages(): Promise<{ message: string }> {
+    return request<{ message: string }>('/chat/messages', { method: 'DELETE' });
+  },
+
+  /**
    * Send a chat message.
    */
   sendMessage(data: ChatMessageRequest): Promise<ChatMessage> {

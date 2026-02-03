@@ -140,3 +140,47 @@ async def logout(
 
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"message": "Logged out successfully"}
+
+
+@router.post("/dev-login")
+async def dev_login(
+    response: Response,
+    github_token: str = Query(..., description="GitHub Personal Access Token"),
+) -> UserResponse:
+    """
+    Development-only endpoint to login with a GitHub Personal Access Token.
+    
+    This bypasses OAuth and is only for testing/development purposes.
+    """
+    from src.config import get_settings
+    settings = get_settings()
+    
+    if not settings.debug:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dev login is only available in debug mode",
+        )
+    
+    try:
+        session = await github_auth_service.create_session_from_token(github_token)
+        
+        # Set the session cookie
+        response.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=str(session.session_id),
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=8 * 60 * 60,
+            path="/",
+        )
+        
+        logger.info("Dev login successful for user: %s", session.github_username)
+        return UserResponse.from_session(session)
+        
+    except Exception as e:
+        logger.error("Dev login failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid GitHub token: {e}",
+        )

@@ -292,22 +292,25 @@ class TestHandleInProgressStatus:
     async def test_handle_in_progress_pr_completed(
         self, orchestrator, workflow_context, workflow_config, mock_github_service
     ):
-        """Should transition to In Review when PR is completed."""
+        """Should transition to In Review when Copilot has finished (draft + has commits)."""
         workflow_context.config = workflow_config
         
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,
-            "is_draft": False,
+            "is_draft": True,  # Copilot leaves in draft when done
             "state": "OPEN",
             "author": "copilot-swe-agent[bot]",
+            "last_commit": {"sha": "abc123"},  # Has commits = finished
         }
+        mock_github_service.mark_pr_ready_for_review.return_value = True
         mock_github_service.update_item_status_by_name.return_value = True
 
         result = await orchestrator.handle_in_progress_status(workflow_context)
 
         assert result is True
         assert workflow_context.current_state == WorkflowState.IN_REVIEW
+        mock_github_service.mark_pr_ready_for_review.assert_called_once()
         mock_github_service.update_item_status_by_name.assert_called_once_with(
             access_token="test-token",
             project_id="PROJECT_123",
@@ -319,7 +322,7 @@ class TestHandleInProgressStatus:
     async def test_handle_in_progress_pr_still_draft(
         self, orchestrator, workflow_context, workflow_config, mock_github_service
     ):
-        """Should not transition when PR is still draft."""
+        """Should not transition when Copilot PR has no commits yet."""
         workflow_context.config = workflow_config
         
         mock_github_service.check_copilot_pr_completion.return_value = None
@@ -334,15 +337,16 @@ class TestHandleInProgressStatus:
     async def test_handle_in_progress_marks_draft_pr_ready(
         self, orchestrator, workflow_context, workflow_config, mock_github_service
     ):
-        """Should mark draft PR ready when completing."""
+        """Should mark draft PR ready when Copilot has finished work."""
         workflow_context.config = workflow_config
         
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,
-            "is_draft": True,  # Copilot marks ready but we still detect as draft
+            "is_draft": True,  # Copilot leaves in draft when done
             "state": "OPEN",
             "author": "copilot-swe-agent[bot]",
+            "last_commit": {"sha": "abc123"},  # Has commits = work is done
         }
         mock_github_service.mark_pr_ready_for_review.return_value = True
         mock_github_service.update_item_status_by_name.return_value = True
@@ -391,9 +395,11 @@ class TestHandleInProgressStatus:
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,
-            "is_draft": False,
+            "is_draft": True,  # Copilot leaves in draft
             "state": "OPEN",
+            "last_commit": {"sha": "abc123"},  # Has commits
         }
+        mock_github_service.mark_pr_ready_for_review.return_value = True
         mock_github_service.update_item_status_by_name.return_value = False
 
         result = await orchestrator.handle_in_progress_status(workflow_context)

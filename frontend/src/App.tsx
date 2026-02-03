@@ -44,6 +44,7 @@ function AppContent() {
     confirmStatusChange,
     rejectProposal,
     removePendingRecommendation,
+    clearChat,
   } = useChat();
 
   const {
@@ -115,6 +116,7 @@ function AppContent() {
                 await rejectRecommendation(recommendationId);
                 removePendingRecommendation(recommendationId);
               }}
+              onNewChat={clearChat}
             />
           ) : (
             <div className="chat-placeholder">

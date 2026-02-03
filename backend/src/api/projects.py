@@ -121,7 +121,7 @@ async def select_project(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> UserResponse:
-    """Select a project as the active project."""
+    """Select a project as the active project and start Copilot polling."""
     # Verify project exists and user has access
     await get_project(project_id, session)
 
@@ -133,7 +133,72 @@ async def select_project(
         "User %s selected project %s", session.github_username, project_id
     )
 
+    # Auto-start Copilot polling for this project
+    await _start_copilot_polling(session, project_id)
+
     return UserResponse.from_session(session)
+
+
+async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
+    """Start Copilot PR completion polling for the selected project."""
+    from src.services.copilot_polling import (
+        get_polling_status,
+        poll_for_copilot_completion,
+        stop_polling,
+    )
+    
+    # Stop any existing polling first
+    status = get_polling_status()
+    if status["is_running"]:
+        stop_polling()
+        # Wait for polling to stop
+        await asyncio.sleep(0.5)
+    
+    # Get repository info for the project
+    repo_info = await github_projects_service.get_project_repository(
+        session.access_token,
+        project_id,
+    )
+    
+    if not repo_info:
+        # Try to get from workflow config or settings
+        from src.api.workflow import get_workflow_config
+        from src.config import get_settings
+        
+        config = get_workflow_config(project_id)
+        if config and config.repository_owner and config.repository_name:
+            repo_info = (config.repository_owner, config.repository_name)
+        else:
+            settings = get_settings()
+            if settings.default_repo_owner and settings.default_repo_name:
+                repo_info = (settings.default_repo_owner, settings.default_repo_name)
+    
+    if not repo_info:
+        logger.warning(
+            "Could not determine repository for project %s, polling not started",
+            project_id,
+        )
+        return
+    
+    owner, repo = repo_info
+    
+    # Start polling as background task (15 second interval)
+    asyncio.create_task(
+        poll_for_copilot_completion(
+            access_token=session.access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            interval_seconds=15,
+        )
+    )
+    
+    logger.info(
+        "Auto-started Copilot PR polling for project %s (%s/%s)",
+        project_id,
+        owner,
+        repo,
+    )
 
 
 @router.websocket("/{project_id}/subscribe")
@@ -190,7 +255,7 @@ async def websocket_subscribe(
             await websocket.send_json({
                 "type": "initial_data",
                 "project_id": project_id,
-                "tasks": [task.model_dump() for task in tasks],
+                "tasks": [task.model_dump(mode="json") for task in tasks],
                 "count": len(tasks),
             })
             logger.info("Sent %d initial tasks to WebSocket for project %s", len(tasks), project_id)
@@ -221,7 +286,7 @@ async def websocket_subscribe(
                         await websocket.send_json({
                             "type": "refresh",
                             "project_id": project_id,
-                            "tasks": [task.model_dump() for task in tasks],
+                            "tasks": [task.model_dump(mode="json") for task in tasks],
                             "count": len(tasks),
                         })
                         logger.debug("Refreshed %d tasks for project %s", len(tasks), project_id)

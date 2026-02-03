@@ -597,8 +597,77 @@ class TestMarkPrReadyForReview:
             assert result is False
 
 
+class TestCheckCopilotFinishedEvents:
+    """Tests for _check_copilot_finished_events helper method."""
+
+    @pytest.fixture
+    def service(self):
+        """Create a GitHubProjectsService instance."""
+        return GitHubProjectsService()
+
+    def test_returns_true_for_copilot_work_finished_event(self, service):
+        """Should return True when copilot_work_finished event exists."""
+        events = [
+            {"event": "copilot_work_started"},
+            {"event": "committed"},
+            {"event": "copilot_work_finished"},
+        ]
+        assert service._check_copilot_finished_events(events) is True
+
+    def test_returns_true_for_review_requested_from_copilot(self, service):
+        """Should return True when review_requested event from Copilot exists."""
+        events = [
+            {"event": "copilot_work_started"},
+            {
+                "event": "review_requested",
+                "review_requester": {"login": "Copilot"},
+                "requested_reviewer": {"login": "some-user"},
+            },
+        ]
+        assert service._check_copilot_finished_events(events) is True
+
+    def test_returns_false_for_no_finish_events(self, service):
+        """Should return False when no finish events exist."""
+        events = [
+            {"event": "copilot_work_started"},
+            {"event": "committed"},
+            {"event": "assigned"},
+        ]
+        assert service._check_copilot_finished_events(events) is False
+
+    def test_returns_false_for_review_requested_not_from_copilot(self, service):
+        """Should return False when review_requested is from a user, not Copilot."""
+        events = [
+            {
+                "event": "review_requested",
+                "review_requester": {"login": "some-user"},  # Not Copilot
+                "requested_reviewer": {"login": "another-user"},
+            },
+        ]
+        assert service._check_copilot_finished_events(events) is False
+
+    def test_returns_false_for_empty_events(self, service):
+        """Should return False for empty events list."""
+        assert service._check_copilot_finished_events([]) is False
+
+    def test_handles_missing_login_gracefully(self, service):
+        """Should handle missing login field gracefully."""
+        events = [
+            {
+                "event": "review_requested",
+                "review_requester": {},  # Missing login
+            },
+        ]
+        assert service._check_copilot_finished_events(events) is False
+
+
 class TestCheckCopilotPrCompletion:
-    """Tests for checking Copilot PR completion."""
+    """Tests for checking Copilot PR completion.
+    
+    Copilot is detected as "finished work" when timeline has:
+    - 'copilot_work_finished' event, OR
+    - 'review_requested' event where review_requester is Copilot
+    """
 
     @pytest.fixture
     def service(self):
@@ -606,24 +675,134 @@ class TestCheckCopilotPrCompletion:
         return GitHubProjectsService()
 
     @pytest.mark.asyncio
-    async def test_copilot_pr_completed(self, service):
-        """Should detect completed Copilot PR (not draft)."""
+    async def test_copilot_draft_pr_with_commits_is_finished(self, service):
+        """Should detect finished Copilot PR (draft + has finish events)."""
         linked_prs = [
             {
                 "id": "PR_123",
                 "number": 42,
                 "title": "Fix issue",
                 "state": "OPEN",
-                "is_draft": False,  # Not draft = completed
+                "is_draft": True,  # Still draft (Copilot doesn't mark ready)
                 "url": "https://github.com/owner/repo/pull/42",
                 "author": "copilot-swe-agent[bot]",
+            }
+        ]
+        
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "last_commit": {"sha": "abc1234567890"},
+        }
+        
+        # Timeline events indicating Copilot finished work
+        timeline_events = [
+            {"event": "copilot_work_finished"}
+        ]
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr, patch.object(
+            service, "get_pr_timeline_events", new_callable=AsyncMock
+        ) as mock_get_timeline:
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            mock_get_timeline.return_value = timeline_events
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["number"] == 42
+            assert result["is_draft"] is True
+            assert result["copilot_finished"] is True
+
+    @pytest.mark.asyncio
+    async def test_copilot_finished_via_review_requested_event(self, service):
+        """Should detect Copilot finished when review_requested event from Copilot exists."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "Fix issue",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+        
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "last_commit": {"sha": "abc1234567890"},
+        }
+        
+        # Timeline events with review_requested from Copilot
+        timeline_events = [
+            {"event": "copilot_work_started"},
+            {
+                "event": "review_requested",
+                "review_requester": {"login": "Copilot"},
+                "requested_reviewer": {"login": "some-user"},
             }
         ]
 
         with patch.object(
             service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs:
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr, patch.object(
+            service, "get_pr_timeline_events", new_callable=AsyncMock
+        ) as mock_get_timeline:
             mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            mock_get_timeline.return_value = timeline_events
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["number"] == 42
+            assert result["copilot_finished"] is True
+
+    @pytest.mark.asyncio
+    async def test_copilot_pr_already_ready_is_finished(self, service):
+        """Should detect already-ready Copilot PR (edge case)."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "Fix issue",
+                "state": "OPEN",
+                "is_draft": False,  # Already marked ready (manual or edge case)
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+        
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+        }
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr:
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
 
             result = await service.check_copilot_pr_completion(
                 access_token="test-token",
@@ -635,35 +814,6 @@ class TestCheckCopilotPrCompletion:
             assert result is not None
             assert result["number"] == 42
             assert result["is_draft"] is False
-
-    @pytest.mark.asyncio
-    async def test_copilot_pr_still_in_progress(self, service):
-        """Should return None when Copilot PR is still draft."""
-        linked_prs = [
-            {
-                "id": "PR_123",
-                "number": 42,
-                "title": "WIP: Fix issue",
-                "state": "OPEN",
-                "is_draft": True,  # Still draft = in progress
-                "url": "https://github.com/owner/repo/pull/42",
-                "author": "copilot-swe-agent[bot]",
-            }
-        ]
-
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs:
-            mock_get_prs.return_value = linked_prs
-
-            result = await service.check_copilot_pr_completion(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_number=1,
-            )
-
-            assert result is None
 
     @pytest.mark.asyncio
     async def test_no_copilot_pr(self, service):
@@ -718,3 +868,229 @@ class TestCheckCopilotPrCompletion:
             )
 
             assert result is None
+
+    @pytest.mark.asyncio
+    async def test_copilot_draft_pr_no_commits_not_finished(self, service):
+        """Should return None when Copilot PR has no finish events yet."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "WIP: Fix issue",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+        
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "check_status": None,
+            "last_commit": None,
+        }
+        
+        # No finish events yet - Copilot still working
+        timeline_events = [
+            {"event": "copilot_work_started"},
+            {"event": "committed"},
+        ]
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr, patch.object(
+            service, "get_pr_timeline_events", new_callable=AsyncMock
+        ) as mock_get_timeline:
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            mock_get_timeline.return_value = timeline_events
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_copilot_with_alternative_bot_name(self, service):
+        """Should detect Copilot PR with 'copilot' in author name."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "Fix issue",
+                "state": "OPEN",
+                "is_draft": False,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot[bot]",  # Alternative Copilot bot name
+            }
+        ]
+        
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+        }
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr:
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["number"] == 42
+
+    @pytest.mark.asyncio
+    async def test_multiple_prs_finds_first_copilot_finished(self, service):
+        """Should find first finished Copilot PR when multiple PRs exist."""
+        linked_prs = [
+            {
+                "id": "PR_1",
+                "number": 10,
+                "state": "OPEN",
+                "is_draft": True,
+                "author": "human-user",  # Not Copilot
+            },
+            {
+                "id": "PR_2",
+                "number": 20,
+                "state": "MERGED",
+                "is_draft": False,
+                "author": "copilot-swe-agent[bot]",  # Merged, not processable
+            },
+            {
+                "id": "PR_3",
+                "number": 30,
+                "state": "OPEN",
+                "is_draft": True,
+                "author": "copilot-swe-agent[bot]",  # This is the one
+            },
+        ]
+        
+        pr_details = {
+            "id": "PR_3",
+            "number": 30,
+            "check_status": "SUCCESS",
+            "last_commit": {"sha": "abc123"},
+        }
+        
+        # Timeline events indicating Copilot finished work
+        timeline_events = [
+            {"event": "copilot_work_finished"}
+        ]
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr, patch.object(
+            service, "get_pr_timeline_events", new_callable=AsyncMock
+        ) as mock_get_timeline:
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            mock_get_timeline.return_value = timeline_events
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["number"] == 30
+            assert result["copilot_finished"] is True
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_no_linked_prs(self, service):
+        """Should return None when issue has no linked PRs."""
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs:
+            mock_get_prs.return_value = []
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_handles_exception_gracefully(self, service):
+        """Should return None when an exception occurs."""
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs:
+            mock_get_prs.side_effect = Exception("API Error")
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_handles_get_pull_request_returning_none(self, service):
+        """Should continue to next PR when get_pull_request returns None."""
+        linked_prs = [
+            {
+                "id": "PR_1",
+                "number": 10,
+                "state": "OPEN",
+                "is_draft": True,
+                "author": "copilot-swe-agent[bot]",
+            },
+            {
+                "id": "PR_2",
+                "number": 20,
+                "state": "OPEN",
+                "is_draft": False,  # Already ready
+                "author": "copilot-swe-agent[bot]",
+            },
+        ]
+        
+        pr_details_2 = {
+            "id": "PR_2",
+            "number": 20,
+        }
+
+        with patch.object(
+            service, "get_linked_pull_requests", new_callable=AsyncMock
+        ) as mock_get_prs, patch.object(
+            service, "get_pull_request", new_callable=AsyncMock
+        ) as mock_get_pr:
+            mock_get_prs.return_value = linked_prs
+            # First call returns None, second returns details
+            mock_get_pr.side_effect = [None, pr_details_2]
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            # Should still find the second PR which is already ready
+            assert result is not None
+            assert result["number"] == 20

@@ -67,6 +67,17 @@ async def get_messages(
     return ChatMessagesResponse(messages=messages)
 
 
+@router.delete("/messages")
+async def clear_messages(
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict[str, str]:
+    """Clear all chat messages for current session."""
+    key = str(session.session_id)
+    if key in _messages:
+        _messages[key] = []
+    return {"message": "Chat history cleared"}
+
+
 @router.post("/messages", response_model=ChatMessage)
 async def send_message(
     request: ChatMessageRequest,

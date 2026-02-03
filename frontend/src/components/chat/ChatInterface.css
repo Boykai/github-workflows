@@ -190,6 +190,44 @@
   background: #15652d;
 }
 
+/* Chat header with New Chat button */
+.chat-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.new-chat-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.new-chat-button:hover {
+  background: var(--color-border);
+  border-color: var(--color-text-secondary);
+}
+
+.new-chat-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.new-chat-button svg {
+  flex-shrink: 0;
+}
+
 /* Loading indicator */
 .chat-loading {
   align-self: flex-start;

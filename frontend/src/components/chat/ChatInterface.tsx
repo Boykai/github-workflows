@@ -33,6 +33,7 @@ interface ChatInterfaceProps {
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
   onRejectProposal: (proposalId: string) => void;
   onRejectRecommendation: (recommendationId: string) => Promise<void>;
+  onNewChat: () => void;
 }
 
 export function ChatInterface({
@@ -47,6 +48,7 @@ export function ChatInterface({
   onConfirmRecommendation,
   onRejectProposal,
   onRejectRecommendation,
+  onNewChat,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,21 @@ export function ChatInterface({
 
   return (
     <div className="chat-interface">
+      {messages.length > 0 && (
+        <div className="chat-header">
+          <button
+            type="button"
+            onClick={onNewChat}
+            className="new-chat-button"
+            disabled={isSending}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New Chat
+          </button>
+        </div>
+      )}
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">

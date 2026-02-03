@@ -201,6 +201,37 @@ class GitHubAuthService:
         logger.info("Refreshed token for user %s", session.github_username)
         return session
 
+    async def create_session_from_token(self, access_token: str) -> UserSession:
+        """
+        Create user session directly from a GitHub Personal Access Token.
+        
+        This is for development/testing purposes to bypass OAuth flow.
+        
+        Args:
+            access_token: GitHub Personal Access Token
+            
+        Returns:
+            Created user session
+        """
+        # Verify token by getting user info
+        user_data = await self.get_github_user(access_token)
+        
+        # Create session (PATs don't have refresh tokens or expiration)
+        session = UserSession(
+            github_user_id=str(user_data["id"]),
+            github_username=user_data["login"],
+            github_avatar_url=user_data.get("avatar_url"),
+            access_token=access_token,
+            refresh_token=None,
+            token_expires_at=None,  # PATs don't expire
+        )
+        
+        # Store session
+        _sessions[str(session.session_id)] = session
+        logger.info("Created session from PAT for user %s", session.github_username)
+        
+        return session
+
     def get_session(self, session_id: str | UUID) -> UserSession | None:
         """
         Get session by ID.
