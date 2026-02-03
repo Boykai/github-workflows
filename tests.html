@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Theme Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test {
+            margin: 1rem 0;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test.pass {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .test.fail {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #666;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dark Theme Implementation Tests</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Simple test framework
+        const tests = [];
+        const results = document.getElementById('test-results');
+
+        function test(name, fn) {
+            try {
+                fn();
+                tests.push({ name, passed: true });
+                displayTest(name, true);
+            } catch (error) {
+                tests.push({ name, passed: false, error: error.message });
+                displayTest(name, false, error.message);
+            }
+        }
+
+        function assert(condition, message) {
+            if (!condition) {
+                throw new Error(message || 'Assertion failed');
+            }
+        }
+
+        function displayTest(name, passed, error = '') {
+            const div = document.createElement('div');
+            div.className = `test ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <h2>${passed ? '✓' : '✗'} ${name}</h2>
+                ${error ? `<p>Error: ${error}</p>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        // Mock localStorage for testing
+        const mockStorage = {};
+        const originalLocalStorage = window.localStorage;
+        window.localStorage = {
+            getItem: (key) => mockStorage[key] || null,
+            setItem: (key, value) => { mockStorage[key] = value; },
+            removeItem: (key) => { delete mockStorage[key]; },
+            clear: () => { Object.keys(mockStorage).forEach(k => delete mockStorage[k]); }
+        };
+
+        // Load theme.js functions
+        const script = document.createElement('script');
+        script.src = 'theme.js';
+        script.onload = () => {
+            runTests();
+        };
+        document.head.appendChild(script);
+
+        function runTests() {
+            // Test 1: getSystemTheme returns valid theme
+            test('getSystemTheme returns valid theme', () => {
+                const theme = getSystemTheme();
+                assert(theme === 'light' || theme === 'dark', 
+                    `Expected 'light' or 'dark', got '${theme}'`);
+            });
+
+            // Test 2: getStoredTheme defaults to 'auto'
+            test('getStoredTheme defaults to auto when no preference stored', () => {
+                localStorage.clear();
+                const theme = getStoredTheme();
+                assert(theme === 'auto', 
+                    `Expected 'auto', got '${theme}'`);
+            });
+
+            // Test 3: getStoredTheme returns stored preference
+            test('getStoredTheme returns stored preference', () => {
+                localStorage.setItem('theme-preference', 'dark');
+                const theme = getStoredTheme();
+                assert(theme === 'dark', 
+                    `Expected 'dark', got '${theme}'`);
+            });
+
+            // Test 4: getEffectiveTheme with explicit theme
+            test('getEffectiveTheme returns explicit theme when not auto', () => {
+                const theme = getEffectiveTheme('dark');
+                assert(theme === 'dark', 
+                    `Expected 'dark', got '${theme}'`);
+            });
+
+            // Test 5: getEffectiveTheme with auto
+            test('getEffectiveTheme returns system theme when auto', () => {
+                const theme = getEffectiveTheme('auto');
+                const systemTheme = getSystemTheme();
+                assert(theme === systemTheme, 
+                    `Expected '${systemTheme}', got '${theme}'`);
+            });
+
+            // Test 6: saveTheme stores preference
+            test('saveTheme stores preference in localStorage', () => {
+                saveTheme('light');
+                const stored = localStorage.getItem('theme-preference');
+                assert(stored === 'light', 
+                    `Expected 'light' in storage, got '${stored}'`);
+            });
+
+            // Test 7: Theme constants are defined
+            test('Theme constants are properly defined', () => {
+                assert(THEMES.LIGHT === 'light', 'THEMES.LIGHT should be "light"');
+                assert(THEMES.DARK === 'dark', 'THEMES.DARK should be "dark"');
+                assert(THEMES.AUTO === 'auto', 'THEMES.AUTO should be "auto"');
+            });
+
+            // Test 8: applyTheme sets data-theme attribute
+            test('applyTheme sets data-theme attribute on document', () => {
+                applyTheme('dark');
+                const attr = document.documentElement.getAttribute('data-theme');
+                assert(attr === 'dark', 
+                    `Expected data-theme='dark', got '${attr}'`);
+            });
+
+            // Display summary
+            const summary = document.createElement('div');
+            summary.style.marginTop = '2rem';
+            summary.style.padding = '1rem';
+            summary.style.backgroundColor = '#f8f9fa';
+            summary.style.borderRadius = '4px';
+            const passed = tests.filter(t => t.passed).length;
+            const total = tests.length;
+            summary.innerHTML = `<h2>Test Summary: ${passed}/${total} tests passed</h2>`;
+            results.appendChild(summary);
+
+            // Restore localStorage
+            window.localStorage = originalLocalStorage;
+        }
+    </script>
+</body>
+</html>

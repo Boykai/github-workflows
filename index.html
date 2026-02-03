@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Theme Demo - GitHub Workflows</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <h1>GitHub Workflows</h1>
+                <div class="nav-links">
+                    <a href="#home">Home</a>
+                    <a href="#features">Features</a>
+                    <a href="#settings">Settings</a>
+                </div>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <h2>Welcome to GitHub Workflows</h2>
+            <p>Experience the power of automated workflows with our enhanced dark theme for improved accessibility and user comfort.</p>
+        </section>
+
+        <section id="features" class="features">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🎨</span>
+                    <h3>Dark Theme</h3>
+                    <p>Toggle between light and dark themes for optimal viewing in any environment.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">♿</span>
+                    <h3>Accessibility</h3>
+                    <p>High-contrast colors ensure readability and meet accessibility standards.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">⚙️</span>
+                    <h3>System Preference</h3>
+                    <p>Automatically respects your operating system's color scheme preference.</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">💾</span>
+                    <h3>Persistent Settings</h3>
+                    <p>Your theme preference is saved and remembered across sessions.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="settings" class="settings">
+            <h2>Settings</h2>
+            <div class="settings-panel">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <h3>Theme Preference</h3>
+                        <p>Choose your preferred color scheme. The system will respect your OS preference by default.</p>
+                    </div>
+                    <div class="theme-controls">
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="light" />
+                            <span>Light</span>
+                        </label>
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="dark" />
+                            <span>Dark</span>
+                        </label>
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="auto" checked />
+                            <span>Auto (System)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="demo">
+            <h2>Interactive Elements Demo</h2>
+            <div class="demo-container">
+                <button class="btn btn-primary">Primary Button</button>
+                <button class="btn btn-secondary">Secondary Button</button>
+                <input type="text" placeholder="Text input field" class="input-field" />
+                <div class="alert">
+                    <strong>Info:</strong> All interactive elements maintain sufficient contrast in both themes.
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 GitHub Workflows. Theme preference: <span id="current-theme">Loading...</span></p>
+    </footer>
+
+    <script src="theme.js"></script>
+</body>
+</html>
