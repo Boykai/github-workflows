@@ -5,6 +5,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-bg);
+  transition: background-color 0.2s ease;
 }
 
 .chat-messages {
@@ -102,6 +103,7 @@
   border-radius: 16px;
   line-height: 1.5;
   white-space: pre-wrap;
+  transition: background-color 0.2s ease;
 }
 
 .message-bubble.user .message-text {
@@ -134,6 +136,7 @@
   max-width: 500px;
   align-self: flex-start;
   margin-left: 44px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .preview-header {
@@ -236,6 +239,7 @@
   padding: 16px 24px;
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .chat-input {
@@ -249,6 +253,9 @@
   outline: none;
   min-height: 44px;
   max-height: 120px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
 .chat-input:focus {
