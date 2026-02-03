@@ -35,17 +35,13 @@
   padding: 0;
 }
 
-/* Smooth transitions for theme changes */
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-}
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg-secondary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 button {
@@ -55,7 +51,22 @@ button {
   font-size: 14px;
   font-weight: 500;
   padding: 8px 16px;
-  transition: background 0.15s ease;
+  transition: background-color 0.15s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Smooth theme transitions for common elements */
+.app-header,
+.app-login,
+.app-container,
+.project-sidebar,
+.chat-interface,
+.task-card,
+.status-badge,
+.message-bubble,
+.chat-input,
+.error-toast,
+.error-banner {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .sr-only {
