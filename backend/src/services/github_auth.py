@@ -147,6 +147,8 @@ class GitHubAuthService:
             github_user_id=str(user_data["id"]),
             github_username=user_data["login"],
             github_avatar_url=user_data.get("avatar_url"),
+            github_email=user_data.get("email"),
+            display_name=user_data.get("name"),
             access_token=access_token,
             refresh_token=refresh_token,
             token_expires_at=token_expires_at,

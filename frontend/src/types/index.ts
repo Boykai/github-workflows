@@ -21,7 +21,14 @@ export interface User {
   github_user_id: string;
   github_username: string;
   github_avatar_url?: string;
+  github_email?: string;
+  display_name?: string;
   selected_project_id?: string;
+}
+
+export interface ProfileUpdateRequest {
+  display_name?: string;
+  github_avatar_url?: string;
 }
 
 export interface AuthResponse {

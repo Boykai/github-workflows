@@ -140,3 +140,26 @@ async def logout(
 
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"message": "Logged out successfully"}
+
+
+@router.patch("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: "ProfileUpdateRequest",
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserResponse:
+    """Update user profile information."""
+    from src.models.user import ProfileUpdateRequest
+    
+    session = get_current_session(session_id)
+    
+    # Update session with new profile data
+    if profile_data.display_name is not None:
+        session.display_name = profile_data.display_name
+    if profile_data.github_avatar_url is not None:
+        session.github_avatar_url = profile_data.github_avatar_url
+    
+    # Save updated session
+    github_auth_service.update_session(session)
+    
+    logger.info("Updated profile for user: %s", session.github_username)
+    return UserResponse.from_session(session)

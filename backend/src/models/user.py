@@ -13,6 +13,8 @@ class UserSession(BaseModel):
     github_user_id: str = Field(..., description="GitHub user ID from OAuth")
     github_username: str = Field(..., description="GitHub username for display")
     github_avatar_url: str | None = Field(None, description="User's avatar URL")
+    github_email: str | None = Field(None, description="User's email from GitHub")
+    display_name: str | None = Field(None, description="User's display name")
     access_token: str = Field(..., description="Encrypted GitHub OAuth access token")
     refresh_token: str | None = Field(None, description="Encrypted OAuth refresh token")
     token_expires_at: datetime | None = Field(None, description="Token expiration timestamp")
@@ -45,6 +47,8 @@ class UserResponse(BaseModel):
     github_user_id: str
     github_username: str
     github_avatar_url: str | None = None
+    github_email: str | None = None
+    display_name: str | None = None
     selected_project_id: str | None = None
 
     @classmethod
@@ -54,5 +58,14 @@ class UserResponse(BaseModel):
             github_user_id=session.github_user_id,
             github_username=session.github_username,
             github_avatar_url=session.github_avatar_url,
+            github_email=session.github_email,
+            display_name=session.display_name,
             selected_project_id=session.selected_project_id,
         )
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Request model for updating user profile."""
+
+    display_name: str | None = None
+    github_avatar_url: str | None = None
