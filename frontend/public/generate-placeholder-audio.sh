@@ -1,6 +1,5 @@
 #!/bin/bash
-# Generate a simple silent audio file for testing
-# This requires ffmpeg which might not be available, so we'll create instructions instead
+# Creates documentation with instructions for adding theme music file
 
 cat > AUDIO_PLACEHOLDER.md << 'INNER_EOF'
 # Audio Placeholder

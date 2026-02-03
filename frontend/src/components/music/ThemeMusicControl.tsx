@@ -100,7 +100,7 @@ export function ThemeMusicControl({
                 min="0"
                 max="100"
                 value={volumePercentage}
-                onChange={(e) => onVolumeChange(parseInt(e.target.value) / 100)}
+                onChange={(e) => onVolumeChange(Number(e.target.value) / 100)}
                 className="volume-slider"
                 title={`Volume: ${volumePercentage}%`}
               />

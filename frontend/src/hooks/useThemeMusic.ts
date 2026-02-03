@@ -209,6 +209,9 @@ export function useThemeMusic(): UseThemeMusicReturn {
   }, [isPlaying]);
 
   // Auto-play on mount (after a short delay to respect browser policies)
+  // This intentionally runs only once on mount to auto-start music.
+  // Dependencies are captured at mount time and should not trigger re-runs
+  // to avoid restarting music when user manually pauses/mutes.
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!hasError && !isMuted) {
@@ -218,7 +221,7 @@ export function useThemeMusic(): UseThemeMusicReturn {
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []); // Intentionally empty - run once on mount only
 
   return {
     isPlaying,
