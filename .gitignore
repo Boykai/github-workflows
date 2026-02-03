@@ -35,6 +35,9 @@ pnpm-debug.log*
 backend/dist/
 frontend/dist/
 *.log
+*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
 
 # Environment
 .env
