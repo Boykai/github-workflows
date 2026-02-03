@@ -8,7 +8,13 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from src.config import get_settings
-from src.models.chat import IssueRecommendation, RecommendationStatus
+from src.models.chat import (
+    IssueRecommendation,
+    IssueMetadata,
+    IssuePriority,
+    IssueSize,
+    RecommendationStatus,
+)
 from src.prompts.task_generation import (
     create_task_generation_prompt,
     create_status_change_prompt,
@@ -220,6 +226,9 @@ class AIAgentService:
         if len(title) > 256:
             title = title[:253] + "..."
 
+        # Parse metadata with defaults
+        metadata = self._parse_issue_metadata(data.get("metadata", {}))
+
         return IssueRecommendation(
             session_id=session_id,
             original_input=original_input,
@@ -227,8 +236,121 @@ class AIAgentService:
             user_story=user_story,
             ui_ux_description=ui_ux_description or "No UI/UX description provided.",
             functional_requirements=functional_requirements,
+            metadata=metadata,
             status=RecommendationStatus.PENDING,
         )
+
+    def _parse_issue_metadata(self, metadata_data: dict) -> IssueMetadata:
+        """
+        Parse metadata from AI response with safe defaults.
+
+        Args:
+            metadata_data: Raw metadata dict from AI response
+
+        Returns:
+            IssueMetadata instance with validated values
+        """
+        from datetime import datetime, timedelta
+
+        # Parse priority with default
+        priority_str = metadata_data.get("priority", "P2").upper()
+        try:
+            priority = IssuePriority(priority_str)
+        except ValueError:
+            priority = IssuePriority.P2
+            logger.warning("Invalid priority '%s', defaulting to P2", priority_str)
+
+        # Parse size with default
+        size_str = metadata_data.get("size", "M").upper()
+        try:
+            size = IssueSize(size_str)
+        except ValueError:
+            size = IssueSize.M
+            logger.warning("Invalid size '%s', defaulting to M", size_str)
+
+        # Parse estimate hours with bounds
+        estimate_hours = metadata_data.get("estimate_hours", 4.0)
+        try:
+            estimate_hours = float(estimate_hours)
+            estimate_hours = max(0.5, min(40.0, estimate_hours))
+        except (ValueError, TypeError):
+            estimate_hours = 4.0
+
+        # Parse dates with defaults
+        today = datetime.now()
+        start_date = metadata_data.get("start_date", "")
+        target_date = metadata_data.get("target_date", "")
+
+        # Validate date format (YYYY-MM-DD)
+        if start_date and not self._is_valid_date(start_date):
+            start_date = today.strftime("%Y-%m-%d")
+        if not start_date:
+            start_date = today.strftime("%Y-%m-%d")
+
+        if target_date and not self._is_valid_date(target_date):
+            # Calculate based on size
+            target_date = self._calculate_target_date(today, size)
+        if not target_date:
+            target_date = self._calculate_target_date(today, size)
+
+        # Parse labels with default - validate against pre-defined labels
+        labels = metadata_data.get("labels", [])
+        if not isinstance(labels, list):
+            labels = ["ai-generated"]
+        
+        # Filter to only include valid pre-defined labels
+        from src.prompts.issue_generation import PREDEFINED_LABELS
+        validated_labels = []
+        for label in labels:
+            if isinstance(label, str):
+                label_lower = label.lower()
+                if label_lower in PREDEFINED_LABELS:
+                    validated_labels.append(label_lower)
+                else:
+                    logger.debug("Skipping invalid label: %s", label)
+        
+        # Ensure ai-generated is always present
+        if "ai-generated" not in validated_labels:
+            validated_labels.insert(0, "ai-generated")
+        
+        # If no type label was selected, default to "feature"
+        type_labels = ["feature", "bug", "enhancement", "refactor", "documentation", "testing", "infrastructure"]
+        has_type = any(lbl in validated_labels for lbl in type_labels)
+        if not has_type:
+            validated_labels.append("feature")
+
+        return IssueMetadata(
+            priority=priority,
+            size=size,
+            estimate_hours=estimate_hours,
+            start_date=start_date,
+            target_date=target_date,
+            labels=validated_labels,
+        )
+
+    def _is_valid_date(self, date_str: str) -> bool:
+        """Check if date string is valid YYYY-MM-DD format."""
+        try:
+            from datetime import datetime
+            datetime.strptime(date_str, "%Y-%m-%d")
+            return True
+        except ValueError:
+            return False
+
+    def _calculate_target_date(self, start: "datetime", size: IssueSize) -> str:
+        """Calculate target date based on size estimate."""
+        from datetime import timedelta
+
+        days_map = {
+            IssueSize.XS: 0,  # Same day
+            IssueSize.S: 0,   # Same day
+            IssueSize.M: 1,   # Next day
+            IssueSize.L: 2,   # 2 days
+            IssueSize.XL: 4,  # 4 days
+        }
+        days = days_map.get(size, 1)
+        target = start + timedelta(days=days)
+        return target.strftime("%Y-%m-%d")
 
     # ──────────────────────────────────────────────────────────────────
     # Existing Task Generation Methods

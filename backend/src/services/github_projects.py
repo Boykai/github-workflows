@@ -210,15 +210,15 @@ query($projectId: ID!) {
 # GraphQL mutation to assign Copilot to an issue with agent assignment config
 # Requires headers: GraphQL-Features: issues_copilot_assignment_api_support,coding_agent_model_selection
 ASSIGN_COPILOT_MUTATION = """
-mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!) {
+mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $customInstructions: String!, $customAgent: String!) {
   addAssigneesToAssignable(input: {
     assignableId: $issueId,
     assigneeIds: $assigneeIds,
     agentAssignment: {
       targetRepositoryId: $repoId,
       baseRef: $baseRef,
-      customInstructions: "",
-      customAgent: "",
+      customInstructions: $customInstructions,
+      customAgent: $customAgent,
       model: ""
     }
   }) {
@@ -229,6 +229,29 @@ mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!) {
           nodes {
             login
           }
+        }
+      }
+    }
+  }
+}
+"""
+
+# GraphQL query to get issue details including title, body, and comments
+GET_ISSUE_WITH_COMMENTS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      id
+      title
+      body
+      comments(first: 100) {
+        nodes {
+          id
+          author {
+            login
+          }
+          body
+          createdAt
         }
       }
     }
@@ -252,6 +275,208 @@ query($owner: String!, $name: String!) {
           id
         }
       }
+    }
+  }
+}
+"""
+
+# GraphQL query to get linked pull requests for an issue
+GET_ISSUE_LINKED_PRS_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      id
+      title
+      state
+      timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 50) {
+        nodes {
+          ... on ConnectedEvent {
+            subject {
+              ... on PullRequest {
+                id
+                number
+                title
+                state
+                isDraft
+                url
+                author {
+                  login
+                }
+                createdAt
+                updatedAt
+              }
+            }
+          }
+          ... on CrossReferencedEvent {
+            source {
+              ... on PullRequest {
+                id
+                number
+                title
+                state
+                isDraft
+                url
+                author {
+                  login
+                }
+                createdAt
+                updatedAt
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+# GraphQL mutation to mark a draft PR as ready for review
+MARK_PR_READY_FOR_REVIEW_MUTATION = """
+mutation($pullRequestId: ID!) {
+  markPullRequestReadyForReview(input: {pullRequestId: $pullRequestId}) {
+    pullRequest {
+      id
+      number
+      isDraft
+      state
+      url
+    }
+  }
+}
+"""
+
+# GraphQL query to get PR details by number
+GET_PULL_REQUEST_QUERY = """
+query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      id
+      number
+      title
+      body
+      state
+      isDraft
+      url
+      author {
+        login
+      }
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer {
+            ... on User {
+              login
+            }
+          }
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+}
+"""
+
+# Query to get all project fields (for setting metadata like Priority, Size, Estimate, dates)
+GET_PROJECT_FIELDS_QUERY = """
+query($projectId: ID!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      fields(first: 50) {
+        nodes {
+          ... on ProjectV2Field {
+            id
+            name
+            dataType
+          }
+          ... on ProjectV2SingleSelectField {
+            id
+            name
+            dataType
+            options {
+              id
+              name
+            }
+          }
+          ... on ProjectV2IterationField {
+            id
+            name
+            dataType
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+# Mutation to update a single select field value (Priority, Size, Status)
+UPDATE_SINGLE_SELECT_FIELD_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { singleSelectOptionId: $optionId }
+    }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}
+"""
+
+# Mutation to update a number field value (Estimate)
+UPDATE_NUMBER_FIELD_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $number: Float!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { number: $number }
+    }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}
+"""
+
+# Mutation to update a date field value (Start date, Target date)
+UPDATE_DATE_FIELD_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $date: Date!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { date: $date }
+    }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}
+"""
+
+# Mutation to update a text field value
+UPDATE_TEXT_FIELD_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $text: String!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { text: $text }
+    }
+  ) {
+    projectV2Item {
+      id
     }
   }
 }
@@ -775,25 +1000,208 @@ class GitHubProjectsService:
             logger.warning("Failed to get Copilot bot ID: %s", e)
             return None, None
 
+    async def get_issue_with_comments(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> dict:
+        """
+        Fetch issue details including title, body, and all comments.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            Dict with issue title, body, and comments list
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_ISSUE_WITH_COMMENTS_QUERY,
+                {"owner": owner, "name": repo, "number": issue_number},
+            )
+
+            issue = data.get("repository", {}).get("issue", {})
+            comments = issue.get("comments", {}).get("nodes", [])
+
+            return {
+                "title": issue.get("title", ""),
+                "body": issue.get("body", ""),
+                "comments": [
+                    {
+                        "author": c.get("author", {}).get("login", "unknown"),
+                        "body": c.get("body", ""),
+                        "created_at": c.get("createdAt", ""),
+                    }
+                    for c in comments
+                ],
+            }
+        except Exception as e:
+            logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
+            return {"title": "", "body": "", "comments": []}
+
+    def format_issue_context_as_prompt(self, issue_data: dict) -> str:
+        """
+        Format issue details (title, body, comments) as a prompt for the custom agent.
+
+        Args:
+            issue_data: Dict with title, body, and comments from get_issue_with_comments
+
+        Returns:
+            Formatted string suitable as custom instructions for the agent
+        """
+        parts = []
+
+        # Add title
+        title = issue_data.get("title", "")
+        if title:
+            parts.append(f"## Issue Title\n{title}")
+
+        # Add description/body
+        body = issue_data.get("body", "")
+        if body:
+            parts.append(f"## Issue Description\n{body}")
+
+        # Add comments/discussions
+        comments = issue_data.get("comments", [])
+        if comments:
+            parts.append("## Comments and Discussion")
+            for idx, comment in enumerate(comments, 1):
+                author = comment.get("author", "unknown")
+                comment_body = comment.get("body", "")
+                created_at = comment.get("created_at", "")
+                parts.append(f"### Comment {idx} by @{author} ({created_at})\n{comment_body}")
+
+        return "\n\n".join(parts)
+
     async def assign_copilot_to_issue(
         self,
         access_token: str,
         owner: str,
         repo: str,
         issue_node_id: str,
+        issue_number: int | None = None,
         base_ref: str = "main",
+        custom_agent: str = "",
+        custom_instructions: str = "",
     ) -> bool:
         """
-        Assign GitHub Copilot to an issue using GraphQL API with agent assignment.
+        Assign GitHub Copilot to an issue using REST API with agent assignment.
 
-        Requires the special header for Copilot assignment support.
+        Uses the REST API endpoint for adding assignees with agent_assignment
+        configuration for custom agents.
 
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
             repo: Repository name
-            issue_node_id: Issue node ID (not issue number)
+            issue_node_id: Issue node ID (for fallback GraphQL approach)
+            issue_number: Issue number (required for REST API)
             base_ref: Branch to base the PR on (default: main)
+            custom_agent: Custom agent name (e.g., 'speckit.specify')
+            custom_instructions: Custom instructions/prompt for the agent
+
+        Returns:
+            True if assignment succeeded
+        """
+        if not issue_number:
+            logger.warning("Cannot assign Copilot via REST - issue_number required")
+            return await self._assign_copilot_graphql(
+                access_token, owner, repo, issue_node_id, base_ref, custom_agent, custom_instructions
+            )
+
+        try:
+            # Use REST API for assignee addition with agent_assignment
+            # This is the documented approach from GitHub
+            payload = {
+                "assignees": ["copilot-swe-agent[bot]"],
+                "agent_assignment": {
+                    "target_repo": f"{owner}/{repo}",
+                    "base_branch": base_ref,
+                    "custom_instructions": custom_instructions,
+                    "custom_agent": custom_agent,
+                    "model": "",
+                },
+            }
+
+            logger.info(
+                "Attempting to assign Copilot to issue #%d with payload: assignees=%s, custom_agent='%s', target_repo='%s'",
+                issue_number,
+                payload["assignees"],
+                custom_agent,
+                payload["agent_assignment"]["target_repo"],
+            )
+
+            response = await self._client.post(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                    # Include preview headers that may be required for Copilot agent assignment
+                    "X-GitHub-Request-Id": f"copilot-assign-{issue_number}",
+                },
+            )
+
+            if response.status_code in (200, 201):
+                result = response.json()
+                assignees = [a.get("login", "") for a in result.get("assignees", [])]
+                
+                if custom_agent:
+                    logger.info(
+                        "Successfully assigned Copilot to issue #%d with custom agent '%s', assignees: %s",
+                        issue_number,
+                        custom_agent,
+                        assignees,
+                    )
+                else:
+                    logger.info("Successfully assigned Copilot to issue #%d, assignees: %s", issue_number, assignees)
+                return True
+            else:
+                logger.error(
+                    "REST API failed to assign Copilot to issue #%d - Status: %s, Response: %s, Headers: %s",
+                    issue_number,
+                    response.status_code,
+                    response.text[:500] if response.text else "empty",
+                    dict(response.headers),
+                )
+                # Fall back to GraphQL approach
+                logger.info("Falling back to GraphQL API for Copilot assignment")
+                return await self._assign_copilot_graphql(
+                    access_token, owner, repo, issue_node_id, base_ref, custom_agent, custom_instructions
+                )
+
+        except Exception as e:
+            logger.error("Failed to assign Copilot to issue #%d: %s", issue_number, e)
+            return False
+
+    async def _assign_copilot_graphql(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_node_id: str,
+        base_ref: str = "main",
+        custom_agent: str = "",
+        custom_instructions: str = "",
+    ) -> bool:
+        """
+        Fallback: Assign GitHub Copilot using GraphQL API.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_node_id: Issue node ID
+            base_ref: Branch to base the PR on
+            custom_agent: Custom agent name
+            custom_instructions: Custom instructions for the agent
 
         Returns:
             True if assignment succeeded
@@ -813,10 +1221,12 @@ class GitHubProjectsService:
                 access_token,
                 ASSIGN_COPILOT_MUTATION,
                 {
-                    "issueId": issue_node_id, 
+                    "issueId": issue_node_id,
                     "assigneeIds": [copilot_id],
                     "repoId": repo_id,
                     "baseRef": base_ref,
+                    "customInstructions": custom_instructions,
+                    "customAgent": custom_agent,
                 },
                 extra_headers={"GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"},
             )
@@ -828,11 +1238,20 @@ class GitHubProjectsService:
                 .get("nodes", [])
             )
             assigned_logins = [a.get("login", "") for a in assignees]
-            logger.info("Assigned Copilot to issue, current assignees: %s", assigned_logins)
+            
+            if custom_agent:
+                logger.info(
+                    "GraphQL: Assigned Copilot with custom agent '%s', assignees: %s",
+                    custom_agent,
+                    assigned_logins,
+                )
+            else:
+                logger.info("GraphQL: Assigned Copilot to issue, assignees: %s", assigned_logins)
+            
             return True
 
         except Exception as e:
-            logger.error("Failed to assign Copilot to issue: %s", e)
+            logger.error("GraphQL failed to assign Copilot to issue: %s", e)
             return False
 
     async def validate_assignee(
@@ -992,6 +1411,440 @@ class GitHubProjectsService:
         )
 
     # ──────────────────────────────────────────────────────────────────
+    # Project Field Management (Priority, Size, Estimate, Dates)
+    # ──────────────────────────────────────────────────────────────────
+
+    async def get_project_fields(
+        self,
+        access_token: str,
+        project_id: str,
+    ) -> dict[str, dict]:
+        """
+        Get all fields from a project.
+
+        Args:
+            access_token: GitHub OAuth access token
+            project_id: GitHub Project V2 node ID
+
+        Returns:
+            Dict mapping field names to field info (id, dataType, options if applicable)
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_PROJECT_FIELDS_QUERY,
+                {"projectId": project_id},
+            )
+
+            fields = {}
+            field_nodes = data.get("node", {}).get("fields", {}).get("nodes", [])
+
+            for field in field_nodes:
+                if not field:
+                    continue
+                name = field.get("name")
+                if name:
+                    fields[name] = {
+                        "id": field.get("id"),
+                        "dataType": field.get("dataType"),
+                        "options": field.get("options", []),
+                    }
+
+            logger.debug("Found %d project fields: %s", len(fields), list(fields.keys()))
+            return fields
+
+        except Exception as e:
+            logger.error("Failed to get project fields: %s", e)
+            return {}
+
+    async def update_project_item_field(
+        self,
+        access_token: str,
+        project_id: str,
+        item_id: str,
+        field_name: str,
+        value: str | float,
+        field_type: str = "auto",
+    ) -> bool:
+        """
+        Update a project item's field value.
+
+        Args:
+            access_token: GitHub OAuth access token
+            project_id: GitHub Project V2 node ID
+            item_id: Project item node ID
+            field_name: Name of the field to update
+            value: Value to set (string for select/text, float for number, date string for date)
+            field_type: Type hint: "select", "number", "date", "text", or "auto" to detect
+
+        Returns:
+            True if update succeeded
+        """
+        try:
+            # Get project fields
+            fields = await self.get_project_fields(access_token, project_id)
+            field_info = fields.get(field_name)
+
+            if not field_info:
+                logger.warning("Field '%s' not found in project %s", field_name, project_id)
+                return False
+
+            field_id = field_info["id"]
+            data_type = field_info.get("dataType", "")
+
+            # Determine mutation based on data type
+            if data_type == "SINGLE_SELECT" or field_type == "select":
+                # Find option ID for the value
+                options = field_info.get("options", [])
+                option_id = None
+                for opt in options:
+                    if opt.get("name", "").upper() == str(value).upper():
+                        option_id = opt.get("id")
+                        break
+
+                if not option_id:
+                    logger.warning(
+                        "Option '%s' not found for field '%s'", value, field_name
+                    )
+                    return False
+
+                await self._graphql(
+                    access_token,
+                    UPDATE_SINGLE_SELECT_FIELD_MUTATION,
+                    {
+                        "projectId": project_id,
+                        "itemId": item_id,
+                        "fieldId": field_id,
+                        "optionId": option_id,
+                    },
+                )
+
+            elif data_type == "NUMBER" or field_type == "number":
+                await self._graphql(
+                    access_token,
+                    UPDATE_NUMBER_FIELD_MUTATION,
+                    {
+                        "projectId": project_id,
+                        "itemId": item_id,
+                        "fieldId": field_id,
+                        "number": float(value),
+                    },
+                )
+
+            elif data_type == "DATE" or field_type == "date":
+                await self._graphql(
+                    access_token,
+                    UPDATE_DATE_FIELD_MUTATION,
+                    {
+                        "projectId": project_id,
+                        "itemId": item_id,
+                        "fieldId": field_id,
+                        "date": str(value),
+                    },
+                )
+
+            elif data_type == "TEXT" or field_type == "text":
+                await self._graphql(
+                    access_token,
+                    UPDATE_TEXT_FIELD_MUTATION,
+                    {
+                        "projectId": project_id,
+                        "itemId": item_id,
+                        "fieldId": field_id,
+                        "text": str(value),
+                    },
+                )
+
+            else:
+                logger.warning(
+                    "Unsupported field type '%s' for field '%s'", data_type, field_name
+                )
+                return False
+
+            logger.info("Updated field '%s' to '%s' for item %s", field_name, value, item_id)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to update field '%s': %s", field_name, e)
+            return False
+
+    async def set_issue_metadata(
+        self,
+        access_token: str,
+        project_id: str,
+        item_id: str,
+        metadata: dict,
+    ) -> dict[str, bool]:
+        """
+        Set multiple metadata fields on a project item.
+
+        Args:
+            access_token: GitHub OAuth access token
+            project_id: GitHub Project V2 node ID
+            item_id: Project item node ID
+            metadata: Dict with keys like priority, size, estimate_hours, start_date, target_date
+
+        Returns:
+            Dict mapping field names to success status
+        """
+        results = {}
+
+        # Standard field mappings (project field name -> metadata key)
+        field_mappings = {
+            "Priority": ("priority", "select"),
+            "Size": ("size", "select"),
+            "Estimate": ("estimate_hours", "number"),
+            "Start date": ("start_date", "date"),
+            "Target date": ("target_date", "date"),
+        }
+
+        for field_name, (meta_key, field_type) in field_mappings.items():
+            value = metadata.get(meta_key)
+            if value:
+                success = await self.update_project_item_field(
+                    access_token=access_token,
+                    project_id=project_id,
+                    item_id=item_id,
+                    field_name=field_name,
+                    value=value,
+                    field_type=field_type,
+                )
+                results[field_name] = success
+
+        logger.info("Set metadata fields: %s", results)
+        return results
+
+    # ──────────────────────────────────────────────────────────────────
+    # Pull Request Detection and Management
+    # ──────────────────────────────────────────────────────────────────
+
+    async def get_linked_pull_requests(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> list[dict]:
+        """
+        Get all pull requests linked to an issue.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            List of PR details with id, number, title, state, isDraft, url, author
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_ISSUE_LINKED_PRS_QUERY,
+                {"owner": owner, "name": repo, "number": issue_number},
+            )
+
+            prs = []
+            timeline_items = (
+                data.get("repository", {})
+                .get("issue", {})
+                .get("timelineItems", {})
+                .get("nodes", [])
+            )
+
+            for item in timeline_items:
+                # Check ConnectedEvent
+                pr = item.get("subject") if "subject" in item else item.get("source")
+                if pr and pr.get("__typename") == "PullRequest" or (pr and "number" in pr):
+                    prs.append({
+                        "id": pr.get("id"),
+                        "number": pr.get("number"),
+                        "title": pr.get("title"),
+                        "state": pr.get("state"),
+                        "is_draft": pr.get("isDraft", False),
+                        "url": pr.get("url"),
+                        "author": pr.get("author", {}).get("login", ""),
+                        "created_at": pr.get("createdAt"),
+                        "updated_at": pr.get("updatedAt"),
+                    })
+
+            # Remove duplicates by PR number
+            seen = set()
+            unique_prs = []
+            for pr in prs:
+                if pr["number"] and pr["number"] not in seen:
+                    seen.add(pr["number"])
+                    unique_prs.append(pr)
+
+            logger.info(
+                "Found %d linked PRs for issue #%d: %s",
+                len(unique_prs),
+                issue_number,
+                [pr["number"] for pr in unique_prs],
+            )
+            return unique_prs
+
+        except Exception as e:
+            logger.error("Failed to get linked PRs for issue #%d: %s", issue_number, e)
+            return []
+
+    async def get_pull_request(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> dict | None:
+        """
+        Get pull request details.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+
+        Returns:
+            PR details dict or None if not found
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_PULL_REQUEST_QUERY,
+                {"owner": owner, "name": repo, "number": pr_number},
+            )
+
+            pr = data.get("repository", {}).get("pullRequest")
+            if not pr:
+                return None
+
+            return {
+                "id": pr.get("id"),
+                "number": pr.get("number"),
+                "title": pr.get("title"),
+                "body": pr.get("body"),
+                "state": pr.get("state"),
+                "is_draft": pr.get("isDraft", False),
+                "url": pr.get("url"),
+                "author": pr.get("author", {}).get("login", ""),
+                "created_at": pr.get("createdAt"),
+                "updated_at": pr.get("updatedAt"),
+            }
+
+        except Exception as e:
+            logger.error("Failed to get PR #%d: %s", pr_number, e)
+            return None
+
+    async def mark_pr_ready_for_review(
+        self,
+        access_token: str,
+        pr_node_id: str,
+    ) -> bool:
+        """
+        Convert a draft PR to ready for review.
+
+        Args:
+            access_token: GitHub OAuth access token
+            pr_node_id: Pull request node ID (GraphQL ID)
+
+        Returns:
+            True if successfully marked ready
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                MARK_PR_READY_FOR_REVIEW_MUTATION,
+                {"pullRequestId": pr_node_id},
+            )
+
+            pr = data.get("markPullRequestReadyForReview", {}).get("pullRequest", {})
+            if pr and not pr.get("isDraft"):
+                logger.info(
+                    "Successfully marked PR #%d as ready for review: %s",
+                    pr.get("number"),
+                    pr.get("url"),
+                )
+                return True
+            else:
+                logger.warning("PR may not have been marked ready: %s", pr)
+                return False
+
+        except Exception as e:
+            logger.error("Failed to mark PR ready for review: %s", e)
+            return False
+
+    async def check_copilot_pr_completion(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> dict | None:
+        """
+        Check if GitHub Copilot has completed a PR for an issue.
+
+        Copilot completion is detected when:
+        - A linked PR exists created by copilot-swe-agent[bot]
+        - The PR state is OPEN (not CLOSED or MERGED)
+        - The PR either:
+          - Is not a draft anymore (Copilot marked it ready), OR
+          - Has review requests (Copilot requested review)
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            Dict with PR details if completed, None otherwise
+        """
+        try:
+            linked_prs = await self.get_linked_pull_requests(
+                access_token, owner, repo, issue_number
+            )
+
+            for pr in linked_prs:
+                author = pr.get("author", "").lower()
+                state = pr.get("state", "")
+                is_draft = pr.get("is_draft", True)
+
+                # Check if this is a Copilot-created PR
+                if "copilot" in author or author == "copilot-swe-agent[bot]":
+                    logger.info(
+                        "Found Copilot PR #%d for issue #%d: state=%s, is_draft=%s",
+                        pr["number"],
+                        issue_number,
+                        state,
+                        is_draft,
+                    )
+
+                    # Copilot marks PR as ready when done, or we check if it's no longer draft
+                    if state == "OPEN" and not is_draft:
+                        logger.info(
+                            "Copilot PR #%d is complete (ready for review)",
+                            pr["number"],
+                        )
+                        return pr
+
+                    # If still draft, Copilot might still be working
+                    if state == "OPEN" and is_draft:
+                        logger.info(
+                            "Copilot PR #%d is still in progress (draft)",
+                            pr["number"],
+                        )
+
+            return None
+
+        except Exception as e:
+            logger.error(
+                "Failed to check Copilot PR completion for issue #%d: %s",
+                issue_number,
+                e,
+            )
+            return None
+
+    # ──────────────────────────────────────────────────────────────────
     # Polling and Change Detection (T041, T046)
     # ──────────────────────────────────────────────────────────────────
 
@@ -1042,6 +1895,16 @@ class GitHubProjectsService:
                 # This is handled via labels/state, not status change
                 # Status-based completion detection would be In Progress → Done
                 # but spec says completion is via label or closed state
+
+        # Also check for tasks currently in "In Progress" that might have completed PRs
+        for task in current_tasks:
+            if task.status and task.status.lower() == in_progress_status.lower():
+                workflow_triggers.append({
+                    "trigger": "in_progress_check",
+                    "task_id": task.github_item_id,
+                    "title": task.title,
+                    "issue_id": task.github_issue_id,
+                })
 
         return {
             "changes": changes,

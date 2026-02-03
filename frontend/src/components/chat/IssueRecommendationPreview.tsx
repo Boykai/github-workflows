@@ -131,6 +131,54 @@ export function IssueRecommendationPreview({
         </ul>
       </div>
 
+      {recommendation.metadata && (
+        <div className="recommendation-section metadata-section">
+          <h5>📊 Metadata</h5>
+          <div className="metadata-grid">
+            <div className="metadata-item">
+              <span className="metadata-label">Priority</span>
+              <span className={`metadata-value priority-${recommendation.metadata.priority?.toLowerCase()}`}>
+                {recommendation.metadata.priority || 'P2'}
+              </span>
+            </div>
+            <div className="metadata-item">
+              <span className="metadata-label">Size</span>
+              <span className="metadata-value size-badge">
+                {recommendation.metadata.size || 'M'}
+              </span>
+            </div>
+            <div className="metadata-item">
+              <span className="metadata-label">Estimate</span>
+              <span className="metadata-value">
+                {recommendation.metadata.estimate_hours || 4}h
+              </span>
+            </div>
+            <div className="metadata-item">
+              <span className="metadata-label">Start</span>
+              <span className="metadata-value">
+                {recommendation.metadata.start_date || 'TBD'}
+              </span>
+            </div>
+            <div className="metadata-item">
+              <span className="metadata-label">Target</span>
+              <span className="metadata-value">
+                {recommendation.metadata.target_date || 'TBD'}
+              </span>
+            </div>
+            {recommendation.metadata.labels && recommendation.metadata.labels.length > 0 && (
+              <div className="metadata-item labels-item">
+                <span className="metadata-label">Labels</span>
+                <div className="labels-list">
+                  {recommendation.metadata.labels.map((label, idx) => (
+                    <span key={idx} className="label-badge">{label}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {error && <div className="error-message">{error}</div>}
 
       <div className="recommendation-actions">

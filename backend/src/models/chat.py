@@ -175,6 +175,90 @@ class TriggeredBy(str, Enum):
     DETECTION = "detection"
 
 
+class IssuePriority(str, Enum):
+    """Priority levels for issues."""
+
+    P0 = "P0"  # Critical - immediate attention
+    P1 = "P1"  # High - complete ASAP
+    P2 = "P2"  # Medium - standard priority
+    P3 = "P3"  # Low - nice to have
+
+
+class IssueSize(str, Enum):
+    """Size estimates for issues (T-shirt sizing)."""
+
+    XS = "XS"  # < 1 hour
+    S = "S"    # 1-4 hours
+    M = "M"    # 4-8 hours (1 day)
+    L = "L"    # 1-3 days
+    XL = "XL"  # 3-5 days
+
+
+class IssueLabel(str, Enum):
+    """Pre-defined labels for GitHub Issues."""
+
+    # Type labels
+    FEATURE = "feature"           # New functionality
+    BUG = "bug"                   # Bug fix
+    ENHANCEMENT = "enhancement"   # Improvement to existing feature
+    REFACTOR = "refactor"         # Code refactoring
+    DOCUMENTATION = "documentation"  # Documentation updates
+    TESTING = "testing"           # Test-related work
+    INFRASTRUCTURE = "infrastructure"  # DevOps, CI/CD, config
+    
+    # Scope labels
+    FRONTEND = "frontend"         # Frontend/UI work
+    BACKEND = "backend"           # Backend/API work
+    DATABASE = "database"         # Database changes
+    API = "api"                   # API changes
+    
+    # Status labels
+    AI_GENERATED = "ai-generated"  # Created by AI
+    GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
+    HELP_WANTED = "help wanted"   # Needs assistance
+    
+    # Domain labels
+    SECURITY = "security"         # Security-related
+    PERFORMANCE = "performance"   # Performance optimization
+    ACCESSIBILITY = "accessibility"  # A11y improvements
+    UX = "ux"                     # User experience
+
+
+# List of all available labels for AI reference
+AVAILABLE_LABELS = [label.value for label in IssueLabel]
+
+
+class IssueMetadata(BaseModel):
+    """AI-generated metadata for GitHub Issues."""
+
+    priority: IssuePriority = Field(
+        default=IssuePriority.P2,
+        description="Issue priority (P0=Critical, P1=High, P2=Medium, P3=Low)"
+    )
+    size: IssueSize = Field(
+        default=IssueSize.M,
+        description="Estimated size (XS=<1hr, S=1-4hrs, M=1day, L=1-3days, XL=3-5days)"
+    )
+    estimate_hours: float = Field(
+        default=4.0,
+        ge=0.5,
+        le=40.0,
+        description="Estimated hours to complete (0.5-40)"
+    )
+    start_date: str = Field(
+        default="",
+        description="Suggested start date (ISO format YYYY-MM-DD)"
+    )
+    target_date: str = Field(
+        default="",
+        description="Target completion date (ISO format YYYY-MM-DD)"
+    )
+    labels: list[str] = Field(
+        default_factory=lambda: ["ai-generated"],
+        description="Suggested labels for the issue"
+    )
+
+
 class IssueRecommendation(BaseModel):
     """AI-generated issue recommendation awaiting user confirmation."""
 
@@ -185,6 +269,10 @@ class IssueRecommendation(BaseModel):
     user_story: str = Field(..., description="User story in As a/I want/So that format")
     ui_ux_description: str = Field(..., description="UI/UX guidance for implementation")
     functional_requirements: list[str] = Field(..., description="List of testable requirements")
+    metadata: IssueMetadata = Field(
+        default_factory=IssueMetadata,
+        description="AI-generated issue metadata (priority, size, dates, labels)"
+    )
     status: RecommendationStatus = Field(
         default=RecommendationStatus.PENDING, description="Recommendation status"
     )
@@ -206,6 +294,14 @@ class IssueRecommendation(BaseModel):
                     "System MUST generate CSV with all user profile fields",
                     "System MUST include timestamps in ISO 8601 format",
                 ],
+                "metadata": {
+                    "priority": "P2",
+                    "size": "M",
+                    "estimate_hours": 4.0,
+                    "start_date": "2026-02-03",
+                    "target_date": "2026-02-04",
+                    "labels": ["ai-generated", "feature", "export"]
+                },
                 "status": "pending",
                 "created_at": "2026-02-02T10:00:00Z",
                 "confirmed_at": None,
@@ -221,6 +317,7 @@ class WorkflowConfiguration(BaseModel):
     repository_name: str = Field(..., description="Target repository name")
     copilot_assignee: str = Field(default="", description="Username for implementation (empty to skip assignment)")
     review_assignee: str | None = Field(None, description="Username for review (default: repo owner)")
+    custom_agent: str = Field(default="", description="Custom agent name (e.g., 'speckit.specify') for issue assignment")
     status_backlog: str = Field(default="Backlog", description="Backlog status column name")
     status_ready: str = Field(default="Ready", description="Ready status column name")
     status_in_progress: str = Field(default="In Progress", description="In Progress column name")

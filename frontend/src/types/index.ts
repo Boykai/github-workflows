@@ -154,6 +154,51 @@ export interface APIError {
 
 // ============ Issue Recommendation (T051) ============
 
+export type IssuePriority = 'P0' | 'P1' | 'P2' | 'P3';
+
+export type IssueSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
+
+// Pre-defined labels for GitHub Issues
+export type IssueLabel = 
+  // Type labels
+  | 'feature'
+  | 'bug'
+  | 'enhancement'
+  | 'refactor'
+  | 'documentation'
+  | 'testing'
+  | 'infrastructure'
+  // Scope labels
+  | 'frontend'
+  | 'backend'
+  | 'database'
+  | 'api'
+  // Status labels
+  | 'ai-generated'
+  | 'good first issue'
+  | 'help wanted'
+  // Domain labels
+  | 'security'
+  | 'performance'
+  | 'accessibility'
+  | 'ux';
+
+export const AVAILABLE_LABELS: IssueLabel[] = [
+  'feature', 'bug', 'enhancement', 'refactor', 'documentation', 'testing', 'infrastructure',
+  'frontend', 'backend', 'database', 'api',
+  'ai-generated', 'good first issue', 'help wanted',
+  'security', 'performance', 'accessibility', 'ux'
+];
+
+export interface IssueMetadata {
+  priority: IssuePriority;
+  size: IssueSize;
+  estimate_hours: number;
+  start_date: string;
+  target_date: string;
+  labels: IssueLabel[];
+}
+
 export interface IssueRecommendation {
   recommendation_id: string;
   session_id: string;
@@ -162,6 +207,7 @@ export interface IssueRecommendation {
   user_story: string;
   ui_ux_description: string;
   functional_requirements: string[];
+  metadata: IssueMetadata;
   status: RecommendationStatus;
   created_at: string;
   confirmed_at?: string;
@@ -173,6 +219,7 @@ export interface IssueCreateActionData {
   user_story: string;
   ui_ux_description: string;
   functional_requirements: string[];
+  metadata?: IssueMetadata;
   status: RecommendationStatus;
 }
 
