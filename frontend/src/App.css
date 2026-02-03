@@ -86,7 +86,7 @@
 }
 
 .youtube-logo {
-  height: 40px;
+  height: 44px;
   width: auto;
   display: block;
 }
@@ -98,7 +98,7 @@
   }
   
   .youtube-logo {
-    height: 32px;
+    height: 44px;  /* Maintain 44px minimum for touch targets */
   }
   
   .app-header h1 {
