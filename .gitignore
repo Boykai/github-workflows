@@ -38,6 +38,9 @@ frontend/dist/
 
 # TypeScript build artifacts
 *.tsbuildinfo
+# Generated from vite.config.ts during build
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Environment
 .env
