@@ -7,9 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
+import { useThemeMusic } from '@/hooks/useThemeMusic';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ThemeMusicControl } from '@/components/music/ThemeMusicControl';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -51,6 +53,9 @@ function AppContent() {
     rejectRecommendation,
   } = useWorkflow();
 
+  // Theme music hook
+  const themeMusic = useThemeMusic();
+
   if (authLoading) {
     return (
       <div className="app-loading">
@@ -80,7 +85,19 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="header-controls">
+          <ThemeMusicControl
+            isPlaying={themeMusic.isPlaying}
+            isMuted={themeMusic.isMuted}
+            volume={themeMusic.volume}
+            isLoading={themeMusic.isLoading}
+            hasError={themeMusic.hasError}
+            onTogglePlayPause={themeMusic.togglePlayPause}
+            onToggleMute={themeMusic.toggleMute}
+            onVolumeChange={themeMusic.setVolume}
+          />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
