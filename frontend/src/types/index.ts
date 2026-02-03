@@ -200,3 +200,36 @@ export interface WorkflowConfiguration {
   status_in_review: string;
   enabled: boolean;
 }
+
+// ============ Calendar Events ============
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: string; // ISO 8601 date string (YYYY-MM-DD)
+  startTime?: string; // HH:MM format
+  endTime?: string; // HH:MM format
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CalendarEventCreateRequest {
+  title: string;
+  description?: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface CalendarEventUpdateRequest {
+  title?: string;
+  description?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface CalendarEventsResponse {
+  events: CalendarEvent[];
+}

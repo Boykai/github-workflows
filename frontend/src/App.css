@@ -56,11 +56,43 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+  gap: 16px;
 }
 
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.header-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg-secondary);
+  padding: 4px;
+  border-radius: var(--radius);
+}
+
+.nav-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-tab:hover {
+  color: var(--color-text);
+  background: var(--color-border);
+}
+
+.nav-tab.active {
+  color: var(--color-text);
+  background: var(--color-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .app-main {
@@ -295,12 +327,19 @@
 }
 
 /* Chat section placeholder */
-.chat-section {
+.chat-section,
+.calendar-section {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
+  overflow: hidden;
+}
+
+.calendar-section {
+  align-items: stretch;
+  justify-content: stretch;
 }
 
 .chat-placeholder {

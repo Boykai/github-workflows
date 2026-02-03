@@ -3,6 +3,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
@@ -10,6 +11,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { Calendar } from '@/components/calendar/Calendar';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -51,6 +53,8 @@ function AppContent() {
     rejectRecommendation,
   } = useWorkflow();
 
+  const [activeView, setActiveView] = useState<'chat' | 'calendar'>('chat');
+
   if (authLoading) {
     return (
       <div className="app-loading">
@@ -80,6 +84,20 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
+        <div className="header-nav">
+          <button
+            className={`nav-tab ${activeView === 'chat' ? 'active' : ''}`}
+            onClick={() => setActiveView('chat')}
+          >
+            Chat
+          </button>
+          <button
+            className={`nav-tab ${activeView === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveView('calendar')}
+          >
+            Calendar
+          </button>
+        </div>
         <LoginButton />
       </header>
 
@@ -93,35 +111,41 @@ function AppContent() {
           onProjectSelect={selectProject}
         />
 
-        <section className="chat-section">
-          {selectedProject ? (
-            <ChatInterface
-              messages={messages}
-              pendingProposals={pendingProposals}
-              pendingStatusChanges={pendingStatusChanges}
-              pendingRecommendations={pendingRecommendations}
-              isSending={isSending}
-              onSendMessage={sendMessage}
-              onConfirmProposal={handleConfirmProposal}
-              onConfirmStatusChange={confirmStatusChange}
-              onConfirmRecommendation={async (recommendationId) => {
-                const result = await confirmRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-                refreshTasks();
-                return result;
-              }}
-              onRejectProposal={rejectProposal}
-              onRejectRecommendation={async (recommendationId) => {
-                await rejectRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-              }}
-            />
-          ) : (
-            <div className="chat-placeholder">
-              <p>Select a project from the sidebar to start chatting</p>
-            </div>
-          )}
-        </section>
+        {activeView === 'chat' ? (
+          <section className="chat-section">
+            {selectedProject ? (
+              <ChatInterface
+                messages={messages}
+                pendingProposals={pendingProposals}
+                pendingStatusChanges={pendingStatusChanges}
+                pendingRecommendations={pendingRecommendations}
+                isSending={isSending}
+                onSendMessage={sendMessage}
+                onConfirmProposal={handleConfirmProposal}
+                onConfirmStatusChange={confirmStatusChange}
+                onConfirmRecommendation={async (recommendationId) => {
+                  const result = await confirmRecommendation(recommendationId);
+                  removePendingRecommendation(recommendationId);
+                  refreshTasks();
+                  return result;
+                }}
+                onRejectProposal={rejectProposal}
+                onRejectRecommendation={async (recommendationId) => {
+                  await rejectRecommendation(recommendationId);
+                  removePendingRecommendation(recommendationId);
+                }}
+              />
+            ) : (
+              <div className="chat-placeholder">
+                <p>Select a project from the sidebar to start chatting</p>
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="calendar-section">
+            <Calendar />
+          </section>
+        )}
       </main>
     </div>
   );

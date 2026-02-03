@@ -16,6 +16,10 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  CalendarEvent,
+  CalendarEventCreateRequest,
+  CalendarEventUpdateRequest,
+  CalendarEventsResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -195,6 +199,60 @@ export const chatApi = {
    */
   cancelProposal(proposalId: string): Promise<void> {
     return request<void>(`/chat/proposals/${proposalId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============ Calendar Events API ============
+
+export const eventsApi = {
+  /**
+   * List all calendar events.
+   */
+  list(): Promise<CalendarEventsResponse> {
+    return request<CalendarEventsResponse>('/events');
+  },
+
+  /**
+   * Get events for a specific date.
+   */
+  getByDate(date: string): Promise<CalendarEventsResponse> {
+    return request<CalendarEventsResponse>(`/events/date/${date}`);
+  },
+
+  /**
+   * Get events for a date range.
+   */
+  getByDateRange(startDate: string, endDate: string): Promise<CalendarEventsResponse> {
+    return request<CalendarEventsResponse>(`/events?start_date=${startDate}&end_date=${endDate}`);
+  },
+
+  /**
+   * Create a new calendar event.
+   */
+  create(data: CalendarEventCreateRequest): Promise<CalendarEvent> {
+    return request<CalendarEvent>('/events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update a calendar event.
+   */
+  update(eventId: string, data: CalendarEventUpdateRequest): Promise<CalendarEvent> {
+    return request<CalendarEvent>(`/events/${eventId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a calendar event.
+   */
+  delete(eventId: string): Promise<void> {
+    return request<void>(`/events/${eventId}`, {
       method: 'DELETE',
     });
   },
