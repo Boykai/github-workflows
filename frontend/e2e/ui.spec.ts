@@ -105,3 +105,90 @@ test.describe('Accessibility', () => {
     }
   });
 });
+
+test.describe('Theme Toggle', () => {
+  test('should display theme toggle button', async ({ page }) => {
+    await page.goto('/');
+    
+    // Theme toggle should be visible
+    const themeToggle = page.locator('.theme-toggle');
+    await expect(themeToggle).toBeVisible();
+  });
+
+  test('should toggle between light and dark themes', async ({ page }) => {
+    await page.goto('/');
+    
+    // Check initial theme (should be light by default or based on system preference)
+    const html = page.locator('html');
+    
+    // Click theme toggle
+    const themeToggle = page.locator('.theme-toggle');
+    await themeToggle.click();
+    
+    // Wait for theme to change
+    await page.waitForTimeout(500);
+    
+    // Check that data-theme attribute has changed
+    const themeAttr = await html.getAttribute('data-theme');
+    expect(themeAttr).toBeTruthy();
+    expect(['light', 'dark']).toContain(themeAttr);
+    
+    // Click again to toggle back
+    await themeToggle.click();
+    await page.waitForTimeout(500);
+    
+    // Theme should have changed again
+    const newThemeAttr = await html.getAttribute('data-theme');
+    expect(newThemeAttr).not.toBe(themeAttr);
+  });
+
+  test('should persist theme preference', async ({ page, context }) => {
+    await page.goto('/');
+    
+    // Toggle to dark theme
+    const themeToggle = page.locator('.theme-toggle');
+    await themeToggle.click();
+    await page.waitForTimeout(500);
+    
+    const html = page.locator('html');
+    const themeAttr = await html.getAttribute('data-theme');
+    
+    // Create new page in same context (shares localStorage)
+    const newPage = await context.newPage();
+    await newPage.goto('/');
+    
+    // Wait for theme to be applied
+    await newPage.waitForTimeout(500);
+    
+    // Theme should persist in new page
+    const newHtml = newPage.locator('html');
+    const newThemeAttr = await newHtml.getAttribute('data-theme');
+    expect(newThemeAttr).toBe(themeAttr);
+    
+    await newPage.close();
+  });
+
+  test('should have accessible theme toggle button', async ({ page }) => {
+    await page.goto('/');
+    
+    const themeToggle = page.locator('.theme-toggle');
+    
+    // Should have aria-label
+    const ariaLabel = await themeToggle.getAttribute('aria-label');
+    expect(ariaLabel).toBeTruthy();
+    expect(ariaLabel).toMatch(/theme/i);
+    
+    // Should be keyboard accessible
+    await themeToggle.focus();
+    await expect(themeToggle).toBeFocused();
+    
+    // Should be activatable with Enter
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    
+    // Theme should have changed
+    const html = page.locator('html');
+    const themeAttr = await html.getAttribute('data-theme');
+    expect(themeAttr).toBeTruthy();
+  });
+});
