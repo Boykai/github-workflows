@@ -38,8 +38,6 @@ export function WeatherWidget() {
       await setLocation(searchInput.trim());
       setSearchInput('');
       setIsExpanded(false);
-    } catch (err) {
-      // Error is handled by the hook
     } finally {
       setIsSearching(false);
     }

@@ -2,7 +2,7 @@
  * Custom hook for managing weather data
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { WeatherData } from '@/types/weather';
 import {
   fetchWeatherByCoords,
@@ -26,11 +26,12 @@ export function useWeather(): UseWeatherReturn {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   /**
    * Fetch weather for user's current location
    */
-  const fetchWeatherForCurrentLocation = useCallback(async () => {
+  const fetchWeatherForCurrentLocation = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -38,45 +39,57 @@ export function useWeather(): UseWeatherReturn {
       const location = await getUserLocation();
       const data = await fetchWeatherByCoords(location.lat, location.lon);
       
-      setWeather(data);
-      // Clear saved location when using current location
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (err) {
-      if (err instanceof WeatherServiceError) {
-        setError(err.message);
-      } else {
-        setError('Failed to fetch weather data');
+      if (isMountedRef.current) {
+        setWeather(data);
+        // Clear saved location when using current location
+        localStorage.removeItem(STORAGE_KEY);
       }
-      console.error('Weather fetch error:', err);
+    } catch (err) {
+      if (isMountedRef.current) {
+        if (err instanceof WeatherServiceError) {
+          setError(err.message);
+        } else {
+          setError('Failed to fetch weather data');
+        }
+        console.error('Weather fetch error:', err);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, []);
+  };
 
   /**
    * Fetch weather for a specific city
    */
-  const fetchWeatherForCity = useCallback(async (city: string) => {
+  const fetchWeatherForCity = async (city: string) => {
     try {
       setIsLoading(true);
       setError(null);
       
       const data = await fetchWeatherByCity(city);
       
-      setWeather(data);
-      // Save the city name for future loads
-      localStorage.setItem(STORAGE_KEY, city);
-    } catch (err) {
-      if (err instanceof WeatherServiceError) {
-        setError(err.message);
-      } else {
-        setError('Failed to fetch weather data');
+      if (isMountedRef.current) {
+        setWeather(data);
+        // Save the city name for future loads
+        localStorage.setItem(STORAGE_KEY, city);
       }
-      console.error('Weather fetch error:', err);
+    } catch (err) {
+      if (isMountedRef.current) {
+        if (err instanceof WeatherServiceError) {
+          setError(err.message);
+        } else {
+          setError('Failed to fetch weather data');
+        }
+        console.error('Weather fetch error:', err);
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, []);
+  };
 
   /**
    * Refresh weather data based on current state
@@ -89,7 +102,7 @@ export function useWeather(): UseWeatherReturn {
     } else {
       await fetchWeatherForCurrentLocation();
     }
-  }, [fetchWeatherForCity, fetchWeatherForCurrentLocation]);
+  }, []);
 
   /**
    * Set a specific location
@@ -98,7 +111,7 @@ export function useWeather(): UseWeatherReturn {
     async (city: string) => {
       await fetchWeatherForCity(city);
     },
-    [fetchWeatherForCity]
+    []
   );
 
   // Initial load
@@ -114,6 +127,13 @@ export function useWeather(): UseWeatherReturn {
 
     return () => clearInterval(intervalId);
   }, [refreshWeather]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     weather,

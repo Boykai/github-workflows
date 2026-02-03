@@ -3,7 +3,7 @@
  * Uses OpenWeatherMap API
  */
 
-import type { WeatherData, WeatherError } from '@/types/weather';
+import type { WeatherData } from '@/types/weather';
 
 // Using OpenWeatherMap API - free tier available
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || 'demo';
