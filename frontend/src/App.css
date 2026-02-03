@@ -63,6 +63,32 @@
   font-weight: 600;
 }
 
+.app-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.nav-link {
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.nav-link.active {
+  background: var(--color-primary);
+  color: white;
+}
+
 .app-main {
   display: flex;
   flex: 1;

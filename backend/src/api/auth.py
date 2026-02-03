@@ -7,7 +7,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
 from src.exceptions import AuthenticationError
-from src.models.user import UserResponse, UserSession
+from src.models.user import UserResponse, UserSession, ProfileUpdateRequest
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
@@ -184,3 +184,32 @@ async def dev_login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid GitHub token: {e}",
         )
+
+
+@router.get("/profile", response_model=UserResponse)
+async def get_profile(
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserResponse:
+    """Get current user profile."""
+    session = get_current_session(session_id)
+    return UserResponse.from_session(session)
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_update: ProfileUpdateRequest,
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserResponse:
+    """Update current user profile."""
+    session = get_current_session(session_id)
+    
+    # Update session with new values
+    session.github_username = profile_update.github_username
+    if profile_update.github_avatar_url is not None:
+        session.github_avatar_url = profile_update.github_avatar_url
+    
+    # Save updated session
+    github_auth_service.update_session(session)
+    
+    logger.info("Profile updated for user: %s", session.github_username)
+    return UserResponse.from_session(session)
