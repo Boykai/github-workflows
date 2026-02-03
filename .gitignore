@@ -58,6 +58,12 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 coverage/
+frontend/test-results/
+frontend/e2e-report/
+frontend/playwright-report/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Misc
 *.tmp
