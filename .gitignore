@@ -35,6 +35,10 @@ pnpm-debug.log*
 backend/dist/
 frontend/dist/
 *.log
+*.tsbuildinfo
+frontend/*.d.ts
+frontend/*.js
+!frontend/*.config.js
 
 # Environment
 .env
