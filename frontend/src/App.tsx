@@ -65,6 +65,19 @@ function AppContent() {
       <div className="app-login">
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
+        <a 
+          href="https://www.youtube.com/@ntfaqguy" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="youtube-logo-link youtube-logo-login"
+          aria-label="Visit John Savill's YouTube channel"
+        >
+          <img 
+            src="/john-savill-youtube-logo.svg" 
+            alt="John Savill's Technical Training YouTube Channel" 
+            className="youtube-logo"
+          />
+        </a>
         <LoginButton />
       </div>
     );
@@ -79,7 +92,22 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>GitHub Projects Chat</h1>
+        <div className="header-left">
+          <h1>GitHub Projects Chat</h1>
+          <a 
+            href="https://www.youtube.com/@ntfaqguy" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="youtube-logo-link"
+            aria-label="Visit John Savill's YouTube channel"
+          >
+            <img 
+              src="/john-savill-youtube-logo.svg" 
+              alt="John Savill's Technical Training YouTube Channel" 
+              className="youtube-logo"
+            />
+          </a>
+        </div>
         <LoginButton />
       </header>
 

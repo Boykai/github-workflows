@@ -42,6 +42,10 @@
   margin-bottom: 16px;
 }
 
+.youtube-logo-login {
+  margin-bottom: 8px;
+}
+
 /* Main layout */
 .app-container {
   display: flex;
@@ -61,6 +65,45 @@
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.youtube-logo-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.youtube-logo-link:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+.youtube-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .header-left {
+    gap: 12px;
+  }
+  
+  .youtube-logo {
+    height: 32px;
+  }
+  
+  .app-header h1 {
+    font-size: 16px;
+  }
 }
 
 .app-main {

@@ -1,0 +1,9 @@
+<svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- YouTube play button background -->
+  <rect x="2" y="8" width="40" height="32" rx="8" fill="#FF0000"/>
+  <!-- Play icon -->
+  <path d="M19 16L30 24L19 32V16Z" fill="white"/>
+  <!-- John Savill text -->
+  <text x="50" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="600" fill="#24292f">John Savill's</text>
+  <text x="50" y="34" font-family="Arial, sans-serif" font-size="11" font-weight="400" fill="#57606a">Technical Training</text>
+</svg>
