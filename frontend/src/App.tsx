@@ -10,6 +10,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { SmileyLogo } from '@/components/common/SmileyLogo';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -79,7 +80,10 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>GitHub Projects Chat</h1>
+        <div className="header-left">
+          <SmileyLogo />
+          <h1>GitHub Projects Chat</h1>
+        </div>
         <LoginButton />
       </header>
 
