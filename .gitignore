@@ -33,8 +33,6 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
-vite.config.js
-vite.config.d.ts
 
 # Build outputs
 backend/dist/
