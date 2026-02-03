@@ -5,6 +5,7 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-bg);
+  transition: background 0.3s ease;
 }
 
 .chat-messages {
@@ -102,6 +103,7 @@
   border-radius: 16px;
   line-height: 1.5;
   white-space: pre-wrap;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .message-bubble.user .message-text {

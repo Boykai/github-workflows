@@ -10,6 +10,8 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -65,7 +67,10 @@ function AppContent() {
       <div className="app-login">
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
-        <LoginButton />
+        <div className="app-header-actions">
+          <ThemeToggle />
+          <LoginButton />
+        </div>
       </div>
     );
   }
@@ -80,7 +85,10 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="app-header-actions">
+          <ThemeToggle />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
@@ -129,8 +137,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppContent />
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppContent />
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

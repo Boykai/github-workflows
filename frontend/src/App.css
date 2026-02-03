@@ -42,6 +42,12 @@
   margin-bottom: 16px;
 }
 
+.app-login .app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 /* Main layout */
 .app-container {
   display: flex;
@@ -56,11 +62,37 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: background 0.2s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-secondary);
 }
 
 .app-main {
@@ -125,7 +157,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.2s ease;
+  transition: width 0.2s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 .project-sidebar.collapsed {
@@ -248,7 +280,7 @@
   border-radius: var(--radius);
   padding: 12px;
   cursor: pointer;
-  transition: box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 .task-card:hover {
@@ -273,14 +305,29 @@
   color: #0969da;
 }
 
+[data-theme='dark'] .status-badge.status-todo {
+  background: rgba(88, 166, 255, 0.15);
+  color: #58a6ff;
+}
+
 .status-badge.status-in-progress {
   background: #fff8c5;
   color: #9a6700;
 }
 
+[data-theme='dark'] .status-badge.status-in-progress {
+  background: rgba(210, 153, 34, 0.15);
+  color: #d29922;
+}
+
 .status-badge.status-done {
   background: #dafbe1;
   color: #1a7f37;
+}
+
+[data-theme='dark'] .status-badge.status-done {
+  background: rgba(63, 185, 80, 0.15);
+  color: #3fb950;
 }
 
 .task-title {
@@ -301,6 +348,7 @@
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
+  transition: background 0.3s ease;
 }
 
 .chat-placeholder {
