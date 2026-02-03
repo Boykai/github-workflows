@@ -2,7 +2,7 @@
  * User profile page component for viewing and editing personal information.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/services/api';
 import './ProfilePage.css';
@@ -18,6 +18,16 @@ export function ProfilePage() {
     display_name: user?.display_name || '',
     github_avatar_url: user?.github_avatar_url || '',
   });
+
+  // Sync form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        display_name: user.display_name || '',
+        github_avatar_url: user.github_avatar_url || '',
+      });
+    }
+  }, [user]);
 
   const handleEdit = () => {
     setFormData({

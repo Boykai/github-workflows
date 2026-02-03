@@ -7,7 +7,7 @@ from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
 from src.exceptions import AuthenticationError
-from src.models.user import UserResponse, UserSession
+from src.models.user import UserResponse, UserSession, ProfileUpdateRequest
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
@@ -144,12 +144,10 @@ async def logout(
 
 @router.patch("/profile", response_model=UserResponse)
 async def update_profile(
-    profile_data: "ProfileUpdateRequest",
+    profile_data: ProfileUpdateRequest,
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserResponse:
     """Update user profile information."""
-    from src.models.user import ProfileUpdateRequest
-    
     session = get_current_session(session_id)
     
     # Update session with new profile data
