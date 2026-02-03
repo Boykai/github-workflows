@@ -46,6 +46,7 @@ class UserResponse(BaseModel):
     github_username: str
     github_avatar_url: str | None = None
     selected_project_id: str | None = None
+    created_at: str | None = None
 
     @classmethod
     def from_session(cls, session: UserSession) -> "UserResponse":
@@ -55,4 +56,12 @@ class UserResponse(BaseModel):
             github_username=session.github_username,
             github_avatar_url=session.github_avatar_url,
             selected_project_id=session.selected_project_id,
+            created_at=session.created_at.isoformat() if session.created_at else None,
         )
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Request model for updating user profile."""
+
+    github_username: str = Field(..., min_length=1, max_length=39, description="GitHub username (1-39 characters)")
+    github_avatar_url: str | None = Field(None, description="User's avatar URL")
