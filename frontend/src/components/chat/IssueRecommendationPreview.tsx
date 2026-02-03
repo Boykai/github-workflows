@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import type { IssueCreateActionData, WorkflowResult } from '../../types';
+import { RainbowIndicator } from '../common/RainbowIndicator';
 import './ChatInterface.css';
 
 interface IssueRecommendationPreviewProps {
@@ -24,6 +25,7 @@ export function IssueRecommendationPreview({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WorkflowResult | null>(null);
+  const [showRainbow, setShowRainbow] = useState(false);
 
   const handleConfirm = async () => {
     setIsLoading(true);
@@ -31,6 +33,10 @@ export function IssueRecommendationPreview({
     try {
       const workflowResult = await onConfirm(recommendation.recommendation_id);
       setResult(workflowResult);
+      // Show rainbow indicator on success
+      if (workflowResult.success) {
+        setShowRainbow(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create issue');
     } finally {
@@ -53,28 +59,31 @@ export function IssueRecommendationPreview({
   // Show success result
   if (result?.success) {
     return (
-      <div className="issue-recommendation-preview success">
-        <div className="result-header">
-          <span className="success-icon">✓</span>
-          <h4>Issue Created Successfully</h4>
+      <>
+        <RainbowIndicator show={showRainbow} onDismiss={() => setShowRainbow(false)} />
+        <div className="issue-recommendation-preview success">
+          <div className="result-header">
+            <span className="success-icon">✓</span>
+            <h4>Issue Created Successfully</h4>
+          </div>
+          <div className="result-details">
+            <p>
+              <strong>Issue #{result.issue_number}</strong>: {recommendation.proposed_title}
+            </p>
+            <p>Status: {result.current_status}</p>
+            {result.issue_url && (
+              <a
+                href={result.issue_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="issue-link"
+              >
+                View on GitHub →
+              </a>
+            )}
+          </div>
         </div>
-        <div className="result-details">
-          <p>
-            <strong>Issue #{result.issue_number}</strong>: {recommendation.proposed_title}
-          </p>
-          <p>Status: {result.current_status}</p>
-          {result.issue_url && (
-            <a
-              href={result.issue_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="issue-link"
-            >
-              View on GitHub →
-            </a>
-          )}
-        </div>
-      </div>
+      </>
     );
   }
 

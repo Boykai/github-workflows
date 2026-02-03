@@ -2,6 +2,7 @@
  * Test setup for Vitest
  */
 import '@testing-library/react';
+import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 // Mock WebSocket

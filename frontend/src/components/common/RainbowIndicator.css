@@ -1,0 +1,172 @@
+/* Rainbow Indicator Styles */
+
+.rainbow-indicator {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 1s ease-out;
+  pointer-events: all;
+}
+
+.rainbow-indicator.fading {
+  opacity: 0;
+}
+
+.rainbow-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px 32px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.rainbow-graphic {
+  width: 200px;
+  height: 100px;
+  animation: rainbowPulse 2s ease-in-out infinite;
+}
+
+@keyframes rainbowPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Animated rainbow arcs with staggered timing */
+.rainbow-arc {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: drawArc 1s ease-out forwards;
+}
+
+.arc-1 {
+  animation-delay: 0s;
+}
+
+.arc-2 {
+  animation-delay: 0.1s;
+}
+
+.arc-3 {
+  animation-delay: 0.2s;
+}
+
+.arc-4 {
+  animation-delay: 0.3s;
+}
+
+.arc-5 {
+  animation-delay: 0.4s;
+}
+
+.arc-6 {
+  animation-delay: 0.5s;
+}
+
+@keyframes drawArc {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.success-message {
+  font-size: 20px;
+  font-weight: 600;
+  color: #16a34a;
+  text-align: center;
+  animation: fadeIn 0.5s ease-out 0.5s both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dismiss-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 50%;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.dismiss-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.dismiss-button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Accessibility - High contrast mode support */
+@media (prefers-contrast: high) {
+  .rainbow-content {
+    border: 3px solid #000;
+  }
+  
+  .success-message {
+    color: #000;
+    font-weight: 700;
+  }
+}
+
+/* Accessibility - Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-indicator,
+  .rainbow-graphic,
+  .rainbow-arc,
+  .success-message {
+    animation: none;
+  }
+  
+  .rainbow-content {
+    animation: none;
+    opacity: 1;
+  }
+  
+  .rainbow-arc {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
