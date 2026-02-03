@@ -63,6 +63,12 @@
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-main {
   display: flex;
   flex: 1;
@@ -273,14 +279,29 @@
   color: #0969da;
 }
 
+:root.dark .status-badge.status-todo {
+  background: rgba(88, 166, 255, 0.2);
+  color: #58a6ff;
+}
+
 .status-badge.status-in-progress {
   background: #fff8c5;
   color: #9a6700;
 }
 
+:root.dark .status-badge.status-in-progress {
+  background: rgba(210, 153, 34, 0.2);
+  color: #d29922;
+}
+
 .status-badge.status-done {
   background: #dafbe1;
   color: #1a7f37;
+}
+
+:root.dark .status-badge.status-done {
+  background: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
 }
 
 .task-title {
@@ -396,6 +417,11 @@
   max-width: 400px;
 }
 
+:root.dark .error-toast {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: #f85149;
+}
+
 .error-toast.visible {
   opacity: 1;
   transform: translateY(0);
@@ -411,12 +437,20 @@
   font-size: 14px;
 }
 
+:root.dark .error-toast-message {
+  color: #f85149;
+}
+
 .error-toast-dismiss {
   background: transparent;
   color: #cf222e;
   font-size: 20px;
   padding: 0 4px;
   line-height: 1;
+}
+
+:root.dark .error-toast-dismiss {
+  color: #f85149;
 }
 
 .error-banner {
@@ -428,6 +462,11 @@
   border: 1px solid #cf222e;
   border-radius: var(--radius);
   margin: 16px;
+}
+
+:root.dark .error-banner {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: #f85149;
 }
 
 .error-banner-icon {
@@ -446,9 +485,17 @@
   color: #cf222e;
 }
 
+:root.dark .error-banner-title {
+  color: #f85149;
+}
+
 .error-banner-message {
   font-size: 13px;
   color: #82071e;
+}
+
+:root.dark .error-banner-message {
+  color: #ffa198;
 }
 
 .error-banner-retry {
