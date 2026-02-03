@@ -5,6 +5,35 @@
   flex-direction: column;
   height: 100%;
   background: var(--color-bg);
+  position: relative;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.settings-button {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-button:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
 }
 
 .chat-messages {
@@ -14,6 +43,25 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
+}
+
+/* Overlay for readability when custom backgrounds are used */
+.chat-messages::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chat-messages > * {
+  position: relative;
+  z-index: 1;
 }
 
 .chat-empty {
