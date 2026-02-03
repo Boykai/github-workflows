@@ -39,8 +39,11 @@ test.describe('Login Page UI', () => {
   test('should have visible branding', async ({ page }) => {
     await page.goto('/');
     
+    // Should show welcome message
+    await expect(page.locator('h1')).toContainText('Welcome to TechConnect 2026');
+    
     // Should show app name
-    await expect(page.locator('h1')).toContainText('GitHub Projects Chat');
+    await expect(page.locator('.app-subtitle')).toContainText('GitHub Projects Chat');
     
     // Should have description text
     const description = page.locator('p, .description');

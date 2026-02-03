@@ -37,6 +37,42 @@
   color: var(--color-text);
 }
 
+.welcome-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.app-subtitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Responsive sizing for welcome title */
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 36px;
+  }
+  
+  .app-subtitle {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-title {
+    font-size: 28px;
+  }
+  
+  .app-subtitle {
+    font-size: 18px;
+  }
+}
+
 .app-login p {
   color: var(--color-text-secondary);
   margin-bottom: 16px;
