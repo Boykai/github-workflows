@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     # Default assignee for issues in "In Progress" status (empty to skip)
     default_assignee: str = ""
 
+    # GitHub Webhook secret for verifying webhook payloads
+    github_webhook_secret: str | None = None
+
+    # GitHub Personal Access Token for webhook operations (service account)
+    # This token is used when webhooks trigger actions that need GitHub API access
+    github_webhook_token: str | None = None
+
+    # Copilot PR polling interval in seconds (0 to disable polling)
+    copilot_polling_interval: int = 60
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""

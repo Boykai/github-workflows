@@ -32,6 +32,7 @@ interface UseChatReturn {
   confirmStatusChange: (proposalId: string) => Promise<void>;
   rejectProposal: (proposalId: string) => Promise<void>;
   removePendingRecommendation: (recommendationId: string) => void;
+  clearChat: () => Promise<void>;
 }
 
 export function useChat(): UseChatReturn {
@@ -202,6 +203,23 @@ export function useChat(): UseChatReturn {
     });
   }, []);
 
+  // Clear chat mutation
+  const clearChatMutation = useMutation({
+    mutationFn: chatApi.clearMessages,
+    onSuccess: () => {
+      // Clear all local state
+      setPendingProposals(new Map());
+      setPendingStatusChanges(new Map());
+      setPendingRecommendations(new Map());
+      // Refetch messages (will be empty)
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
+    },
+  });
+
+  const clearChat = useCallback(async () => {
+    await clearChatMutation.mutateAsync();
+  }, [clearChatMutation]);
+
   return {
     messages: messagesData?.messages ?? [],
     isLoading,
@@ -215,5 +233,6 @@ export function useChat(): UseChatReturn {
     confirmStatusChange,
     rejectProposal,
     removePendingRecommendation,
+    clearChat,
   };
 }

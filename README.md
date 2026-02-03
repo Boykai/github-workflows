@@ -1,6 +1,103 @@
 # GitHub Projects Chat Interface
 
-A web-based chat interface for managing GitHub Projects V2 through natural language interactions. Users can authenticate via GitHub OAuth, select projects, create tasks via conversational AI, and update task statuses - all through a simple chat interface.
+> **A new way of working with DevOps** — leveraging AI in a conversational web app to create, manage, and execute GitHub Issues on a GitHub Project Board.
+
+This application transforms how development teams interact with their project management workflow. Instead of manually navigating GitHub's UI to create issues, update statuses, or track progress, users can simply have a conversation with an AI-powered chat interface that handles all the complexity behind the scenes.
+
+## 🎯 The Vision
+
+Traditional DevOps workflows require developers to context-switch between their IDE, GitHub Issues, Project Boards, and PR reviews. This application consolidates that experience into a single conversational interface where you can:
+
+- **Describe what you want to build** in natural language
+- **Watch AI generate structured GitHub Issues** with proper formatting, labels, and details  
+- **Assign work to GitHub Copilot** with a single click
+- **Monitor automated progress** as Copilot codes, creates PRs, and requests reviews
+- **Track status changes** in real-time as work flows through your pipeline
+
+---
+
+## 🔄 Workflow: From Idea to Code Review
+
+The application orchestrates a seamless flow between you, Azure OpenAI, GitHub Issues, and GitHub Copilot:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                              THE CONVERSATIONAL DEVOPS FLOW                          │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                      │
+│  👤 USER                    🤖 AZURE OPENAI                   📋 GITHUB PROJECT     │
+│  ─────                      ──────────────                    ───────────────        │
+│    │                              │                                  │               │
+│    │  "Create an issue to         │                                  │               │
+│    │   add dark mode support"     │                                  │               │
+│    │─────────────────────────────▶                                  │               │
+│    │                              │                                  │               │
+│    │                              │  Generates structured issue:     │               │
+│    │                              │  • Title, description            │               │
+│    │                              │  • Acceptance criteria           │               │
+│    │                              │  • Technical approach            │               │
+│    │                              │──────────────────────────────────▶               │
+│    │                              │                                  │               │
+│    │                              │                    Issue created │               │
+│    │◀─────────────────────────────────────────────────── Status: 📝 Ready           │
+│    │                                                                 │               │
+│    │  "Assign to Copilot"                                            │               │
+│    │────────────────────────────────────────────────────────────────▶               │
+│    │                                                                 │               │
+│    │                                                   Status: 🔄 In Progress       │
+│    │                                                                 │               │
+│    │                                                                 │               │
+│    │                         🤖 GITHUB COPILOT                       │               │
+│    │                         ─────────────────                       │               │
+│    │                                │                                │               │
+│    │                                │  • Reads issue context         │               │
+│    │                                │  • Creates branch              │               │
+│    │                                │  • Writes code                 │               │
+│    │                                │  • Opens Draft PR              │               │
+│    │                                │  • Commits changes             │               │
+│    │                                │  • Marks PR ready              │               │
+│    │                                │  • Requests your review        │               │
+│    │                                │                                │               │
+│    │                                ▼                                │               │
+│    │                                                                 │               │
+│    │  ┌──────────────────────────────────────────────────────────────┤               │
+│    │  │  🔔 POLLING SERVICE DETECTS COMPLETION                       |              │
+│    │  │  ─────────────────────────────────────────                   │               │
+│    │  │  • Monitors "In Progress" issues every 15 seconds            │               │
+│    │  │  • Detects timeline events:                                  │               │
+│    │  │    - "copilot_work_finished"                                 │               │
+│    │  │    - "review_requested" from Copilot                         │               │
+│    │  │  • Converts Draft PR → Ready for Review                      │               │
+│    │  │  • Updates issue status                                      │               │
+│    │  │  • Requests Copilot code review on PR                        │               │
+│    │  └──────────────────────────────────────────────────────────────┤               │
+│    │                                                                 │               │
+│    │◀──────────────────────────────────────────────── Status: 👀 In Review          │
+│    │                                                                 │               │
+│    │  Ready for your review! PR link available in chat.              │               │
+│    │                                                                 │               │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Issue Status Flow
+
+| Status | Description | Triggered By |
+|--------|-------------|--------------|
+| 📝 **Ready** | Issue created, waiting to be picked up | AI generates issue from chat |
+| 🔄 **In Progress** | Work is actively being done | User assigns to Copilot or developer |
+| 👀 **In Review** | PR created and ready for review | Polling detects Copilot completion |
+| ✅ **Done** | Work completed and merged | Manual or webhook on PR merge |
+
+### Key Integrations
+
+| Component | Role |
+|-----------|------|
+| **Azure OpenAI** | Generates structured GitHub Issues from natural language descriptions |
+| **GitHub Projects V2** | Manages the kanban board with status columns |
+| **GitHub Copilot** | Autonomous coding agent that implements issues |
+| **Polling Service** | Monitors PRs for Copilot completion signals via timeline events |
+
+---
 
 ## Features
 
@@ -10,6 +107,7 @@ A web-based chat interface for managing GitHub Projects V2 through natural langu
 - **Status Updates via Chat**: Update task status using natural language commands
 - **Real-Time Sync**: Live updates via WebSocket with polling fallback
 - **Responsive UI**: Modern React interface with TanStack Query for state management
+- **Automated Copilot Integration**: Automatically update issue status when GitHub Copilot completes PRs
 
 ## Architecture
 
@@ -28,176 +126,185 @@ A web-based chat interface for managing GitHub Projects V2 through natural langu
 
 ## Prerequisites
 
-- Node.js 18+
-- Python 3.11+
-- GitHub OAuth App credentials (see [GitHub OAuth Setup](#github-oauth-setup))
-- Azure OpenAI API credentials (optional, for AI task generation)
+- Docker and Docker Compose (recommended) OR:
+  - Node.js 18+
+  - Python 3.11+
+- GitHub OAuth App credentials
+- Azure OpenAI API credentials (optional, for AI features)
 
-## GitHub OAuth Setup
+---
 
-To enable GitHub login, you need to create a GitHub OAuth App:
+## Quick Start with Docker (Recommended)
 
-1. Go to **GitHub Settings** → **Developer settings** → **OAuth Apps** → **New OAuth App**
-   (Direct link: https://github.com/settings/developers)
-
-2. Fill in the application details:
-   - **Application name**: `Projects Chat` (or any name you prefer)
-   - **Homepage URL**: `http://localhost:3003`
-   - **Authorization callback URL**: `http://localhost:8000/api/v1/auth/github/callback`
-
-3. Click **Register application**
-
-4. On the next page:
-   - Copy the **Client ID**
-   - Click **Generate a new client secret** and copy the secret
-
-5. Add these values to your `backend/.env` file:
-   ```
-   GITHUB_CLIENT_ID=your_client_id_here
-   GITHUB_CLIENT_SECRET=your_client_secret_here
-   ```
-
-> **Note:** Keep your client secret secure! Never commit it to version control.
-
-## Quick Start
-
-### 1. Clone and Setup
+### 1. Clone the Repository
 
 ```bash
 git clone <repository-url>
-cd codeagentworkflows
+cd github-workflows
 ```
 
-### 2. Configure Environment
-
-Copy the example environment files and fill in your credentials:
+### 2. Create Environment File
 
 ```bash
-# Backend
-cp backend/.env.example backend/.env
-
-# Frontend
-cp frontend/.env.example frontend/.env
+cp .env.example .env
 ```
 
-**Required Environment Variables:**
+### 3. Configure Required Environment Variables
 
-Backend (`backend/.env`):
+Edit `.env` and fill in the required values:
+
+#### GitHub OAuth Setup (Required)
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **OAuth Apps** → **New OAuth App**
+3. Fill in:
+   - **Application name**: `Projects Chat` (or any name)
+   - **Homepage URL**: `http://localhost:5173`
+   - **Authorization callback URL**: `http://localhost:5173/api/v1/auth/github/callback`
+4. Click **Register application**
+5. Copy the **Client ID**
+6. Click **Generate a new client secret** and copy it
+7. Add to `.env`:
+   ```env
+   GITHUB_CLIENT_ID=your_client_id
+   GITHUB_CLIENT_SECRET=your_client_secret
+   ```
+
+#### Session Secret (Required)
+
+Generate a secure session key:
+```bash
+openssl rand -hex 32
+```
+
+Add to `.env`:
 ```env
-# GitHub OAuth (Required - see GitHub OAuth Setup section)
-GITHUB_CLIENT_ID=your_github_oauth_client_id
-GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
-GITHUB_REDIRECT_URI=http://localhost:8000/api/v1/auth/github/callback
+SESSION_SECRET_KEY=your_generated_key
+```
 
-# Azure OpenAI (Optional - for AI task generation)
+#### Azure OpenAI (Optional - for AI features)
+
+If you want AI-powered task generation:
+```env
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
-AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+AZURE_OPENAI_KEY=your_api_key
 AZURE_OPENAI_DEPLOYMENT=gpt-4
-
-# Session configuration
-SESSION_SECRET_KEY=generate_a_random_32_char_string
-
-# Server configuration
-HOST=0.0.0.0
-PORT=8000
-DEBUG=true
-CORS_ORIGINS=http://localhost:3003,http://localhost:5173,http://localhost:3000
-FRONTEND_URL=http://localhost:3003
-
-# Cache configuration
-CACHE_TTL_SECONDS=300
 ```
 
-Frontend (`frontend/.env`) - Optional:
-```env
-VITE_API_BASE_URL=/api/v1
-VITE_BACKEND_URL=http://localhost:8000/api/v1
-```
+### 4. Start the Application
 
-### 3. Install Dependencies
-
-**Backend:**
 ```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-```
-
-### 4. Run Development Servers
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-source .venv/bin/activate
-uvicorn src.main:app --reload --port 8000
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd frontend
-npm run dev
+docker compose up --build -d
 ```
 
 ### 5. Access the Application
 
-Open http://localhost:3003 in your browser (or the port shown in the Vite output).
+Open **http://localhost:5173** in your browser.
 
-> **Note:** The frontend runs on port 3003 by default (configured in the Vite proxy). If port 3003 is busy, Vite will automatically use the next available port.
-
-## Docker Setup
-
-Build and run with Docker Compose:
+### 6. Verify It's Running
 
 ```bash
-docker-compose up --build
+docker ps
 ```
 
-Access at http://localhost:3003
+You should see:
+- `ghchat-backend` - Backend API (healthy)
+- `ghchat-frontend` - Frontend UI
 
-## Running Tests
+---
 
-### Backend Tests
+## GitHub Webhook Setup (Optional - for Copilot Integration)
+
+Enable automatic status updates when GitHub Copilot finishes work on PRs.
+
+### How It Works
+
+1. GitHub Copilot creates a draft PR for an issue
+2. When Copilot marks the PR as ready for review
+3. The webhook automatically updates the linked issue status to "In Review"
+
+### Setup Steps
+
+#### 1. Generate Webhook Secret
+
+```bash
+openssl rand -hex 32
+```
+
+Add to `.env`:
+```env
+GITHUB_WEBHOOK_SECRET=your_generated_secret
+```
+
+#### 2. Create GitHub Personal Access Token (Classic)
+
+1. Go to [GitHub Tokens](https://github.com/settings/tokens)
+2. Click **Generate new token** → **Generate new token (classic)**
+3. Select scopes:
+   - ✅ `repo` (Full control of private repositories)
+   - ✅ `project` (Full control of projects)
+   - ✅ `read:org` (if using organization projects)
+4. Click **Generate token** and copy it
+5. Add to `.env`:
+   ```env
+   GITHUB_WEBHOOK_TOKEN=ghp_your_token_here
+   ```
+
+> ⚠️ **Important**: Use **Tokens (classic)**, not Fine-grained tokens. Projects V2 API requires the `project` scope which is only available in classic tokens.
+
+#### 3. Configure GitHub Webhook
+
+1. Go to your repository → **Settings** → **Webhooks** → **Add webhook**
+2. Configure:
+   - **Payload URL**: `https://your-domain/api/v1/webhooks/github`
+   - **Content type**: `application/json`
+   - **Secret**: Same value as `GITHUB_WEBHOOK_SECRET`
+3. Under "Which events would you like to trigger this webhook?":
+   - Select **Let me select individual events**
+   - Check **Pull requests**
+4. Click **Add webhook**
+
+#### 4. Restart the Application
+
+```bash
+docker compose down
+docker compose up --build -d
+```
+
+---
+
+## Local Development Setup (Without Docker)
+
+### Backend Setup
+
 ```bash
 cd backend
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pytest tests/ -v
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+
+# Copy environment file (use parent .env or create backend/.env)
+cp ../.env .env  # or configure separately
+
+# Run the server
+uvicorn src.main:app --reload --port 8000
 ```
 
-### Frontend E2E Tests
+### Frontend Setup
+
 ```bash
 cd frontend
-npm run test:e2e          # Run all E2E tests
-npm run test:e2e:headed   # Run with browser visible
-npm run test:e2e:report   # View test report
+npm install
+
+# Run the dev server
+npm run dev
 ```
 
-## API Documentation
+### Access
 
-When running in development mode, API documentation is available at:
-- Swagger UI: http://localhost:8000/api/docs
-- ReDoc: http://localhost:8000/api/redoc
-
-## Usage
-
-### Authentication Flow
-1. Click "Login with GitHub"
-2. Authorize the OAuth app
-3. You'll be redirected back, logged in
-
-### Creating Tasks
-1. Select a project from the dropdown
-2. Type a task description in the chat, e.g.:
-   - "Create a task to fix the login bug on mobile"
-   - "Add a task for implementing dark mode"
-3. Review the AI-generated task proposal
-4. Click "Confirm" to create the task in GitHub
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/api/docs (when DEBUG=true)
 
 ### Updating Task Status
 1. Type a status change command, e.g.:
@@ -205,15 +312,79 @@ When running in development mode, API documentation is available at:
    - "Mark 'Implement dark mode' as Done"
 2. Confirm the status change proposal
 
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GITHUB_CLIENT_ID` | ✅ Yes | GitHub OAuth App Client ID |
+| `GITHUB_CLIENT_SECRET` | ✅ Yes | GitHub OAuth App Client Secret |
+| `GITHUB_REDIRECT_URI` | ✅ Yes | OAuth callback URL (default: `http://localhost:5173/api/v1/auth/github/callback`) |
+| `SESSION_SECRET_KEY` | ✅ Yes | Random hex string for session encryption (generate with `openssl rand -hex 32`) |
+| `AZURE_OPENAI_ENDPOINT` | ❌ No | Azure OpenAI endpoint URL |
+| `AZURE_OPENAI_KEY` | ❌ No | Azure OpenAI API key |
+| `AZURE_OPENAI_DEPLOYMENT` | ❌ No | Azure OpenAI deployment name (default: `gpt-4`) |
+| `GITHUB_WEBHOOK_SECRET` | ❌ No | Secret for webhook signature verification |
+| `GITHUB_WEBHOOK_TOKEN` | ❌ No | GitHub PAT (classic) for webhook operations |
+| `DEFAULT_REPOSITORY` | ❌ No | Default repo for issue creation (`owner/repo`) |
+| `DEFAULT_ASSIGNEE` | ❌ No | Default assignee for "In Progress" issues |
+| `FRONTEND_URL` | ❌ No | Frontend URL (default: `http://localhost:5173`) |
+| `CORS_ORIGINS` | ❌ No | Allowed CORS origins (comma-separated) |
+| `DEBUG` | ❌ No | Enable debug mode (default: `false`) |
+| `CACHE_TTL_SECONDS` | ❌ No | Cache TTL in seconds (default: `300`) |
+
+---
+
+## Running Tests
+
+### Backend Tests
+```bash
+cd backend
+source .venv/bin/activate
+pytest tests/ -v
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npm test                  # Unit tests
+npm run test:e2e          # E2E tests
+npm run test:e2e:headed   # E2E with browser visible
+```
+
+---
+
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/health` | GET | Health check |
+| `/api/v1/auth/github` | GET | Start OAuth flow |
+| `/api/v1/auth/me` | GET | Get current user |
+| `/api/v1/projects` | GET | List user's projects |
+| `/api/v1/projects/{id}/select` | POST | Select active project |
+| `/api/v1/chat/messages` | GET | Get chat history |
+| `/api/v1/chat/messages` | POST | Send chat message |
+| `/api/v1/chat/messages` | DELETE | Clear chat history |
+| `/api/v1/webhooks/github` | POST | GitHub webhook endpoint |
+
+API documentation available at http://localhost:8000/api/docs when `DEBUG=true`.
+
+---
+
 ## Project Structure
 
 ```
-codeagentworkflows/
+github-workflows/
+├── .env.example          # Environment template
+├── docker-compose.yml    # Docker orchestration
+├── README.md
 ├── backend/
 │   ├── src/
-│   │   ├── api/          # API endpoints
+│   │   ├── api/          # API endpoints (auth, chat, projects, webhooks)
 │   │   ├── models/       # Pydantic models
-│   │   ├── services/     # Business logic
+│   │   ├── services/     # Business logic (GitHub, AI, cache)
 │   │   ├── prompts/      # AI prompt templates
 │   │   ├── config.py     # Configuration
 │   │   └── main.py       # FastAPI app
@@ -227,79 +398,79 @@ codeagentworkflows/
 │   │   └── types/        # TypeScript types
 │   ├── package.json      # NPM dependencies
 │   └── vite.config.ts    # Vite configuration
-├── specs/                # Feature specifications
-└── docker-compose.yml    # Docker orchestration
+└── specs/                # Feature specifications
 ```
 
-## Development
-
-### Running Tests
-
-```bash
-# Backend
-cd backend
-pytest
-
-# Frontend
-cd frontend
-npm test
-```
-
-### Linting and Formatting
-
-```bash
-# Backend
-cd backend
-ruff check .
-black .
-
-# Frontend
-cd frontend
-npm run lint
-npm run format
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Run tests and linting
-4. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
 **OAuth callback fails / Login doesn't work:**
-- Verify you have created a GitHub OAuth App (see [GitHub OAuth Setup](#github-oauth-setup))
-- Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correctly set in `backend/.env`
-- Verify `GITHUB_REDIRECT_URI` matches your GitHub OAuth app settings exactly
-- Check that `FRONTEND_URL` in `.env` matches your frontend URL (e.g., `http://localhost:3003`)
-- Ensure cookies are enabled in your browser
-- Restart the backend server after updating `.env`
+- Verify you created a GitHub OAuth App (not a GitHub App)
+- Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correctly set
+- Verify the callback URL matches exactly: `http://localhost:5173/api/v1/auth/github/callback`
+- Check that `FRONTEND_URL` is set to `http://localhost:5173`
+- Restart containers after updating `.env`: `docker compose down && docker compose up -d`
 
 **"401 Unauthorized" after GitHub login:**
-- The session cookie may not be set correctly
-- Check browser developer tools → Application → Cookies for `session_id`
-- Ensure the backend `CORS_ORIGINS` includes your frontend URL
+- Check browser dev tools → Application → Cookies for `session_id`
+- Ensure `CORS_ORIGINS` includes your frontend URL
+- Verify `SESSION_SECRET_KEY` is set
 
 **Azure OpenAI errors:**
-- Check your `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_API_KEY` are correct
-- Verify the deployment name matches your Azure configuration
+- Verify `AZURE_OPENAI_ENDPOINT` format: `https://your-resource.openai.azure.com`
+- Check `AZURE_OPENAI_KEY` is correct
+- Ensure the deployment name matches your Azure configuration
 - Azure OpenAI is optional - the app works without it (AI features disabled)
 
-**Rate limiting:**
-- GitHub API has rate limits; the app tracks remaining calls
-- If limits are hit, wait for the reset window
+**Webhook not triggering:**
+- Verify `GITHUB_WEBHOOK_SECRET` matches the secret in GitHub webhook settings
+- Check `GITHUB_WEBHOOK_TOKEN` has `repo` and `project` scopes
+- Ensure webhook is configured for "Pull requests" events
+- Check webhook delivery logs in GitHub: Repo → Settings → Webhooks → Recent Deliveries
 
-**WebSocket connection issues:**
-- The app automatically falls back to polling
-- Check browser console for connection errors
+**Projects not showing:**
+- Ensure your GitHub token has `project` scope
+- Projects V2 requires the user to have access to the project
+- Organization projects need `read:org` scope
+
+**Rate limiting:**
+- GitHub API has rate limits (5000 requests/hour for authenticated users)
+- The app tracks remaining calls; wait for reset if limits are hit
 
 **Port already in use:**
-- Kill existing processes: `lsof -ti:8000 | xargs kill -9` (backend) or `lsof -ti:3003 | xargs kill -9` (frontend)
-- Or let Vite automatically use the next available port
+```bash
+# Kill process on port 8000 (backend)
+lsof -ti:8000 | xargs kill -9
+
+# Kill process on port 5173 (frontend)
+lsof -ti:5173 | xargs kill -9
+```
+
+### Viewing Logs
+
+```bash
+# All containers
+docker compose logs -f
+
+# Backend only
+docker compose logs -f backend
+
+# Frontend only
+docker compose logs -f frontend
+```
+
+---
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Run tests: `cd backend && pytest && cd ../frontend && npm test`
+4. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details.

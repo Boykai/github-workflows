@@ -102,13 +102,27 @@ query($projectId: ID!, $first: Int!, $after: String) {
             }
             ... on Issue {
               id
+              number
               title
               body
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
             }
             ... on PullRequest {
               id
+              number
               title
               body
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
             }
           }
         }
@@ -346,7 +360,20 @@ mutation($pullRequestId: ID!) {
 }
 """
 
-# GraphQL query to get PR details by number
+# GraphQL mutation to request Copilot code review on a PR
+REQUEST_COPILOT_REVIEW_MUTATION = """
+mutation($pullRequestId: ID!) {
+  requestReviewsByLogin(input: {pullRequestId: $pullRequestId, botLogins: ["copilot"]}) {
+    pullRequest {
+      id
+      number
+      url
+    }
+  }
+}
+"""
+
+# GraphQL query to get PR details by number (with commit status for completion detection)
 GET_PULL_REQUEST_QUERY = """
 query($owner: String!, $name: String!, $number: Int!) {
   repository(owner: $owner, name: $name) {
@@ -366,6 +393,27 @@ query($owner: String!, $name: String!, $number: Int!) {
           requestedReviewer {
             ... on User {
               login
+            }
+          }
+        }
+      }
+      reviews(first: 50) {
+        nodes {
+          author {
+            login
+          }
+          state
+          body
+          createdAt
+        }
+      }
+      commits(last: 1) {
+        nodes {
+          commit {
+            oid
+            committedDate
+            statusCheckRollup {
+              state
             }
           }
         }
@@ -758,12 +806,21 @@ class GitHubProjectsService:
                     continue
 
                 status_value = item.get("fieldValueByName", {})
+                
+                # Extract repository info if available
+                repo_info = content.get("repository", {})
+                repo_owner = repo_info.get("owner", {}).get("login") if repo_info else None
+                repo_name = repo_info.get("name") if repo_info else None
 
                 all_tasks.append(
                     Task(
                         project_id=project_id,
                         github_item_id=item["id"],
                         github_content_id=content.get("id"),
+                        github_issue_id=content.get("id") if content.get("number") else None,
+                        issue_number=content.get("number"),
+                        repository_owner=repo_owner,
+                        repository_name=repo_name,
                         title=content.get("title", "Untitled"),
                         description=content.get("body"),
                         status=status_value.get("name", "Todo") if status_value else "Todo",
@@ -826,6 +883,9 @@ class GitHubProjectsService:
         Returns:
             True if update succeeded
         """
+        # Add 2 second delay before status update (rate limiting / UX improvement)
+        await asyncio.sleep(2)
+        
         data = await self._graphql(
             access_token,
             UPDATE_ITEM_STATUS_MUTATION,
@@ -1718,6 +1778,20 @@ class GitHubProjectsService:
             if not pr:
                 return None
 
+            # Extract last commit info for completion detection
+            last_commit = None
+            check_status = None
+            commits_data = pr.get("commits", {}).get("nodes", [])
+            if commits_data and len(commits_data) > 0:
+                commit_node = commits_data[0].get("commit", {})
+                last_commit = {
+                    "sha": commit_node.get("oid"),
+                    "committed_date": commit_node.get("committedDate"),
+                }
+                status_rollup = commit_node.get("statusCheckRollup")
+                if status_rollup:
+                    check_status = status_rollup.get("state")
+
             return {
                 "id": pr.get("id"),
                 "number": pr.get("number"),
@@ -1729,6 +1803,8 @@ class GitHubProjectsService:
                 "author": pr.get("author", {}).get("login", ""),
                 "created_at": pr.get("createdAt"),
                 "updated_at": pr.get("updatedAt"),
+                "last_commit": last_commit,
+                "check_status": check_status,  # SUCCESS, FAILURE, PENDING, etc.
             }
 
         except Exception as e:
@@ -1773,6 +1849,171 @@ class GitHubProjectsService:
             logger.error("Failed to mark PR ready for review: %s", e)
             return False
 
+    async def request_copilot_review(
+        self,
+        access_token: str,
+        pr_node_id: str,
+        pr_number: int | None = None,
+    ) -> bool:
+        """
+        Request a code review from GitHub Copilot on a pull request.
+
+        Args:
+            access_token: GitHub OAuth access token
+            pr_node_id: Pull request node ID (GraphQL ID)
+            pr_number: Optional PR number for logging
+
+        Returns:
+            True if review was successfully requested
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                REQUEST_COPILOT_REVIEW_MUTATION,
+                {"pullRequestId": pr_node_id},
+                # Include Copilot code review feature flag
+                extra_headers={"GraphQL-Features": "copilot_code_review"},
+            )
+
+            pr = data.get("requestReviewsByLogin", {}).get("pullRequest", {})
+            if pr:
+                logger.info(
+                    "Successfully requested Copilot review for PR #%d: %s",
+                    pr.get("number") or pr_number,
+                    pr.get("url", ""),
+                )
+                return True
+            else:
+                logger.warning("Copilot review request may have failed: %s", data)
+                return False
+
+        except Exception as e:
+            logger.error("Failed to request Copilot review for PR #%d: %s", pr_number or 0, e)
+            return False
+
+    async def has_copilot_reviewed_pr(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> bool:
+        """
+        Check if GitHub Copilot has already reviewed a pull request.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+
+        Returns:
+            True if Copilot has submitted a review
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_PULL_REQUEST_QUERY,
+                {"owner": owner, "name": repo, "number": pr_number},
+            )
+
+            pr = data.get("repository", {}).get("pullRequest", {})
+            if not pr:
+                return False
+
+            reviews = pr.get("reviews", {}).get("nodes", [])
+            
+            # Check if any review was submitted by copilot
+            for review in reviews:
+                author = review.get("author", {})
+                if author and author.get("login", "").lower() == "copilot":
+                    logger.info(
+                        "Found existing Copilot review on PR #%d (state: %s)",
+                        pr_number,
+                        review.get("state"),
+                    )
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error("Failed to check Copilot review status for PR #%d: %s", pr_number, e)
+            return False
+
+    async def get_pr_timeline_events(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> list[dict]:
+        """
+        Get timeline events for a PR/issue using the GitHub REST API.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue/PR number
+
+        Returns:
+            List of timeline events
+        """
+        url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/timeline"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPError as e:
+            logger.error(
+                "Failed to get timeline events for issue #%d: %s",
+                issue_number,
+                e,
+            )
+            return []
+
+    def _check_copilot_finished_events(self, events: list[dict]) -> bool:
+        """
+        Check if Copilot has finished work based on timeline events.
+
+        Copilot is considered finished when one of these events exists:
+        - 'copilot_work_finished' event
+        - 'review_requested' event where review_requester is Copilot
+
+        Args:
+            events: List of timeline events
+
+        Returns:
+            True if Copilot has finished work
+        """
+        for event in events:
+            event_type = event.get("event", "")
+
+            # Check for copilot_work_finished event
+            if event_type == "copilot_work_finished":
+                logger.info("Found 'copilot_work_finished' timeline event")
+                return True
+
+            # Check for review_requested event from Copilot
+            if event_type == "review_requested":
+                review_requester = event.get("review_requester", {})
+                requester_login = review_requester.get("login", "").lower()
+                if requester_login == "copilot":
+                    logger.info(
+                        "Found 'review_requested' event from Copilot for reviewer: %s",
+                        event.get("requested_reviewer", {}).get("login"),
+                    )
+                    return True
+
+        return False
+
     async def check_copilot_pr_completion(
         self,
         access_token: str,
@@ -1781,14 +2022,14 @@ class GitHubProjectsService:
         issue_number: int,
     ) -> dict | None:
         """
-        Check if GitHub Copilot has completed a PR for an issue.
+        Check if GitHub Copilot has finished work on a PR for an issue.
 
         Copilot completion is detected when:
         - A linked PR exists created by copilot-swe-agent[bot]
         - The PR state is OPEN (not CLOSED or MERGED)
-        - The PR either:
-          - Is not a draft anymore (Copilot marked it ready), OR
-          - Has review requests (Copilot requested review)
+        - The PR timeline has one of these events:
+          - 'copilot_work_finished' event
+          - 'review_requested' event where review_requester is Copilot
 
         Args:
             access_token: GitHub OAuth access token
@@ -1797,7 +2038,7 @@ class GitHubProjectsService:
             issue_number: Issue number
 
         Returns:
-            Dict with PR details if completed, None otherwise
+            Dict with PR details if Copilot has finished work, None otherwise
         """
         try:
             linked_prs = await self.get_linked_pull_requests(
@@ -1808,31 +2049,75 @@ class GitHubProjectsService:
                 author = pr.get("author", "").lower()
                 state = pr.get("state", "")
                 is_draft = pr.get("is_draft", True)
+                pr_number = pr.get("number")
 
                 # Check if this is a Copilot-created PR
                 if "copilot" in author or author == "copilot-swe-agent[bot]":
                     logger.info(
                         "Found Copilot PR #%d for issue #%d: state=%s, is_draft=%s",
-                        pr["number"],
+                        pr_number,
                         issue_number,
                         state,
                         is_draft,
                     )
 
-                    # Copilot marks PR as ready when done, or we check if it's no longer draft
-                    if state == "OPEN" and not is_draft:
+                    # PR must be OPEN to be processable
+                    if state != "OPEN":
                         logger.info(
-                            "Copilot PR #%d is complete (ready for review)",
-                            pr["number"],
+                            "Copilot PR #%d is not open (state=%s), skipping",
+                            pr_number,
+                            state,
                         )
-                        return pr
+                        continue
 
-                    # If still draft, Copilot might still be working
-                    if state == "OPEN" and is_draft:
-                        logger.info(
-                            "Copilot PR #%d is still in progress (draft)",
-                            pr["number"],
+                    # Get PR details for node ID
+                    pr_details = await self.get_pull_request(
+                        access_token, owner, repo, pr_number
+                    )
+
+                    if not pr_details:
+                        logger.warning(
+                            "Could not get details for PR #%d",
+                            pr_number,
                         )
+                        continue
+
+                    # If PR is already not a draft, it's ready (maybe manually marked)
+                    if not is_draft:
+                        logger.info(
+                            "Copilot PR #%d is already ready for review",
+                            pr_number,
+                        )
+                        return {
+                            **pr,
+                            "id": pr_details.get("id"),
+                            "copilot_finished": True,
+                        }
+
+                    # PR is still draft - check timeline events for Copilot finish signal
+                    timeline_events = await self.get_pr_timeline_events(
+                        access_token, owner, repo, pr_number
+                    )
+
+                    copilot_finished = self._check_copilot_finished_events(timeline_events)
+
+                    if copilot_finished:
+                        logger.info(
+                            "Copilot PR #%d has finished work (timeline events indicate completion)",
+                            pr_number,
+                        )
+                        return {
+                            **pr,
+                            "id": pr_details.get("id"),
+                            "last_commit": pr_details.get("last_commit"),
+                            "copilot_finished": True,
+                        }
+
+                    # No finish events yet - Copilot is still working
+                    logger.info(
+                        "Copilot PR #%d has no finish events yet, still in progress",
+                        pr_number,
+                    )
 
             return None
 
