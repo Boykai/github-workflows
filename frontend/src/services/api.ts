@@ -16,6 +16,7 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  WeatherData,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -197,5 +198,39 @@ export const chatApi = {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============ Weather API ============
+
+// For demo purposes, we'll use a mock weather service
+// In production, this would use OpenWeatherMap or similar API
+export const weatherApi = {
+  /**
+   * Get current weather for user's location.
+   * Uses browser geolocation and OpenWeatherMap API.
+   */
+  async getCurrentWeather(): Promise<WeatherData> {
+    // For demo purposes, return mock data
+    // In production, this would:
+    // 1. Get user's location via geolocation API
+    // 2. Call OpenWeatherMap API with coordinates
+    // 3. Parse and return weather data
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock weather data
+    const mockWeather: WeatherData = {
+      location: 'San Francisco',
+      temperature: 18,
+      condition: 'Clear',
+      description: 'Clear sky',
+      icon: '01d', // OpenWeatherMap icon code for clear sky day
+      humidity: 65,
+      windSpeed: 12,
+    };
+    
+    return mockWeather;
   },
 };
