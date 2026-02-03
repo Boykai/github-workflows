@@ -63,6 +63,31 @@
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-secondary);
+}
+
 .app-main {
   display: flex;
   flex: 1;
@@ -79,7 +104,7 @@
 }
 
 .login-button:hover {
-  background: #32383f;
+  background: var(--color-text-secondary);
 }
 
 .login-button.loading {
@@ -269,18 +294,18 @@
 }
 
 .status-badge.status-todo {
-  background: #ddf4ff;
-  color: #0969da;
+  background: rgba(9, 105, 218, 0.15);
+  color: var(--color-primary);
 }
 
 .status-badge.status-in-progress {
-  background: #fff8c5;
-  color: #9a6700;
+  background: rgba(154, 103, 0, 0.15);
+  color: var(--color-warning);
 }
 
 .status-badge.status-done {
-  background: #dafbe1;
-  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.15);
+  color: var(--color-success);
 }
 
 .task-title {
@@ -326,21 +351,21 @@
 }
 
 .sync-status--connected .sync-indicator {
-  background: #2da44e;
-  box-shadow: 0 0 4px #2da44e;
+  background: var(--color-success);
+  box-shadow: 0 0 4px var(--color-success);
 }
 
 .sync-status--connecting .sync-indicator {
-  background: #bf8700;
+  background: var(--color-warning);
   animation: pulse 1s ease-in-out infinite;
 }
 
 .sync-status--polling .sync-indicator {
-  background: #0969da;
+  background: var(--color-primary);
 }
 
 .sync-status--disconnected .sync-indicator {
-  background: #cf222e;
+  background: var(--color-danger);
 }
 
 @keyframes pulse {
@@ -365,9 +390,9 @@
 
 @keyframes highlight-pulse {
   0% {
-    background: #dafbe1;
-    border-color: #2da44e;
-    box-shadow: 0 0 0 4px rgba(45, 164, 78, 0.2);
+    background: rgba(26, 127, 55, 0.2);
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 4px rgba(26, 127, 55, 0.2);
   }
   100% {
     background: var(--color-bg);
@@ -385,8 +410,8 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #fff1f0;
-  border: 1px solid #cf222e;
+  background: rgba(207, 34, 46, 0.15);
+  border: 1px solid var(--color-danger);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   z-index: 1000;
@@ -407,13 +432,13 @@
 
 .error-toast-message {
   flex: 1;
-  color: #cf222e;
+  color: var(--color-danger);
   font-size: 14px;
 }
 
 .error-toast-dismiss {
   background: transparent;
-  color: #cf222e;
+  color: var(--color-danger);
   font-size: 20px;
   padding: 0 4px;
   line-height: 1;
@@ -424,8 +449,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #fff1f0;
-  border: 1px solid #cf222e;
+  background: rgba(207, 34, 46, 0.15);
+  border: 1px solid var(--color-danger);
   border-radius: var(--radius);
   margin: 16px;
 }
@@ -443,21 +468,22 @@
 
 .error-banner-title {
   font-weight: 600;
-  color: #cf222e;
+  color: var(--color-danger);
 }
 
 .error-banner-message {
   font-size: 13px;
-  color: #82071e;
+  color: var(--color-danger);
 }
 
 .error-banner-retry {
-  background: #cf222e;
+  background: var(--color-danger);
   color: white;
 }
 
 .error-banner-retry:hover {
-  background: #a40e26;
+  background: var(--color-danger);
+  opacity: 0.8;
 }
 
 /* Rate Limit Indicator */
@@ -479,16 +505,16 @@
 
 .rate-limit-fill {
   height: 100%;
-  background: #2da44e;
+  background: var(--color-success);
   transition: width 0.3s ease;
 }
 
 .rate-limit-indicator.low .rate-limit-fill {
-  background: #bf8700;
+  background: var(--color-warning);
 }
 
 .rate-limit-indicator.critical .rate-limit-fill {
-  background: #cf222e;
+  background: var(--color-danger);
 }
 
 .rate-limit-text {
@@ -501,7 +527,7 @@
 }
 
 .rate-limit-warning {
-  color: #cf222e;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
