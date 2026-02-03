@@ -63,6 +63,9 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
+        <div className="smiley-container">
+          <span className="smiley-icon" role="img" aria-label="Smiley face">😊</span>
+        </div>
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
@@ -82,6 +85,10 @@ function AppContent() {
         <h1>GitHub Projects Chat</h1>
         <LoginButton />
       </header>
+
+      <div className="smiley-container">
+        <span className="smiley-icon" role="img" aria-label="Smiley face">😊</span>
+      </div>
 
       <main className="app-main">
         <ProjectSidebar

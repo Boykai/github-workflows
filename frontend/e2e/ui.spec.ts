@@ -27,6 +27,10 @@ test.describe('Login Page UI', () => {
     
     await expect(page.locator('h1')).toBeVisible();
     
+    // Smiley face should be visible on mobile
+    const smileyIconMobile = page.locator('.smiley-icon');
+    await expect(smileyIconMobile).toBeVisible();
+    
     // Test tablet viewport
     await page.setViewportSize({ width: 768, height: 1024 });
     await expect(page.locator('h1')).toBeVisible();
@@ -45,6 +49,25 @@ test.describe('Login Page UI', () => {
     // Should have description text
     const description = page.locator('p, .description');
     await expect(description.first()).toBeVisible();
+  });
+
+  test('should display smiley face icon', async ({ page }) => {
+    await page.goto('/');
+    
+    // Wait for page to load
+    await expect(page.locator('h1')).toBeVisible();
+    
+    // Check that smiley face icon is visible
+    const smileyIcon = page.locator('.smiley-icon');
+    await expect(smileyIcon).toBeVisible();
+    
+    // Verify accessibility attributes
+    const ariaLabel = await smileyIcon.getAttribute('aria-label');
+    expect(ariaLabel).toBe('Smiley face');
+    
+    // Verify the icon has role="img" for screen readers
+    const role = await smileyIcon.getAttribute('role');
+    expect(role).toBe('img');
   });
 });
 

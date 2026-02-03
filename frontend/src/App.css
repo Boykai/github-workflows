@@ -32,6 +32,11 @@
   text-align: center;
 }
 
+.app-login .smiley-container {
+  border-bottom: none;
+  padding: 0 0 16px 0;
+}
+
 .app-login h1 {
   font-size: 32px;
   color: var(--color-text);
@@ -61,6 +66,28 @@
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+/* Smiley face icon */
+.smiley-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.smiley-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+/* Responsive sizing for mobile */
+@media (max-width: 768px) {
+  .smiley-icon {
+    font-size: 36px;
+  }
 }
 
 .app-main {
