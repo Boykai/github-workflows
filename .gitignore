@@ -35,10 +35,10 @@ pnpm-debug.log*
 backend/dist/
 frontend/dist/
 *.log
-*.d.ts
-*.js
-!*.config.js
-!eslint.config.js
+**/dist/**/*.d.ts
+**/dist/**/*.js
+**/build/**/*.d.ts
+**/build/**/*.js
 
 # Environment
 .env

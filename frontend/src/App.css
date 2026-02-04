@@ -56,7 +56,6 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
-  position: relative;
 }
 
 .app-header h1 {
