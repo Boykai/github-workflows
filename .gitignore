@@ -35,10 +35,10 @@ pnpm-debug.log*
 backend/dist/
 frontend/dist/
 *.log
-**/dist/**/*.d.ts
-**/dist/**/*.js
-**/build/**/*.d.ts
-**/build/**/*.js
+*.tsbuildinfo
+# Generated TypeScript declaration files (not hand-written ones)
+vite.config.d.ts
+tsconfig.*.d.ts
 
 # Environment
 .env
