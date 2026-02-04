@@ -10,6 +10,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { Logo } from '@/components/common/Logo';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
+        <Logo />
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
@@ -80,6 +82,7 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
+        <Logo />
         <h1>GitHub Projects Chat</h1>
         <LoginButton />
       </header>
