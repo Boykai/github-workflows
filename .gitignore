@@ -35,6 +35,10 @@ pnpm-debug.log*
 backend/dist/
 frontend/dist/
 *.log
+*.d.ts
+*.js
+!*.config.js
+!eslint.config.js
 
 # Environment
 .env
@@ -58,6 +62,10 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 coverage/
+test-results/
+e2e-report/
+playwright-report/
+*.tsbuildinfo
 
 # Misc
 *.tmp
