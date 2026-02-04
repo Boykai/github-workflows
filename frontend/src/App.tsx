@@ -7,9 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
+import { useTheme } from '@/hooks/useTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -23,6 +25,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const {
     projects,
     selectedProject,
@@ -64,9 +67,12 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
-        <h1>GitHub Projects Chat</h1>
+        <h1>Welcome to TechConnect 2026!</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
+        <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
       </div>
     );
   }
@@ -80,8 +86,11 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <h1>Welcome to TechConnect 2026!</h1>
+        <div className="header-actions">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">

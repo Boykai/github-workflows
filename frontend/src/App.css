@@ -63,6 +63,31 @@
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
 .app-main {
   display: flex;
   flex: 1;
@@ -273,14 +298,29 @@
   color: #0969da;
 }
 
+[data-theme='dark'] .status-badge.status-todo {
+  background: #1f6feb;
+  color: #c9d1d9;
+}
+
 .status-badge.status-in-progress {
   background: #fff8c5;
   color: #9a6700;
 }
 
+[data-theme='dark'] .status-badge.status-in-progress {
+  background: #d29922;
+  color: #0d1117;
+}
+
 .status-badge.status-done {
   background: #dafbe1;
   color: #1a7f37;
+}
+
+[data-theme='dark'] .status-badge.status-done {
+  background: #3fb950;
+  color: #0d1117;
 }
 
 .task-title {
@@ -396,6 +436,11 @@
   max-width: 400px;
 }
 
+[data-theme='dark'] .error-toast {
+  background: #490202;
+  border-color: #f85149;
+}
+
 .error-toast.visible {
   opacity: 1;
   transform: translateY(0);
@@ -411,12 +456,20 @@
   font-size: 14px;
 }
 
+[data-theme='dark'] .error-toast-message {
+  color: #ffa198;
+}
+
 .error-toast-dismiss {
   background: transparent;
   color: #cf222e;
   font-size: 20px;
   padding: 0 4px;
   line-height: 1;
+}
+
+[data-theme='dark'] .error-toast-dismiss {
+  color: #ffa198;
 }
 
 .error-banner {
@@ -428,6 +481,11 @@
   border: 1px solid #cf222e;
   border-radius: var(--radius);
   margin: 16px;
+}
+
+[data-theme='dark'] .error-banner {
+  background: #490202;
+  border-color: #f85149;
 }
 
 .error-banner-icon {
@@ -446,9 +504,17 @@
   color: #cf222e;
 }
 
+[data-theme='dark'] .error-banner-title {
+  color: #ffa198;
+}
+
 .error-banner-message {
   font-size: 13px;
   color: #82071e;
+}
+
+[data-theme='dark'] .error-banner-message {
+  color: #ffa198;
 }
 
 .error-banner-retry {
@@ -456,8 +522,16 @@
   color: white;
 }
 
+[data-theme='dark'] .error-banner-retry {
+  background: #f85149;
+}
+
 .error-banner-retry:hover {
   background: #a40e26;
+}
+
+[data-theme='dark'] .error-banner-retry:hover {
+  background: #da3633;
 }
 
 /* Rate Limit Indicator */
