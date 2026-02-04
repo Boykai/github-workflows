@@ -65,11 +65,22 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
+    // Temporary: Show settings page for testing
     return (
-      <div className="app-login">
-        <h1>GitHub Projects Chat</h1>
-        <p>Manage your GitHub Projects with natural language</p>
-        <LoginButton />
+      <div className="app-container">
+        <header className="app-header">
+          <h1>GitHub Projects Chat</h1>
+          <nav className="app-nav">
+            <button className="nav-button">Chat</button>
+            <button className="nav-button active">Settings</button>
+          </nav>
+          <LoginButton />
+        </header>
+        <main className="app-main">
+          <div className="settings-view">
+            <Settings />
+          </div>
+        </main>
       </div>
     );
   }
