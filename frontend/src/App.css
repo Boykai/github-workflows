@@ -30,6 +30,7 @@
   height: 100vh;
   gap: 16px;
   text-align: center;
+  position: relative;
 }
 
 .app-login h1 {
@@ -40,6 +41,12 @@
 .app-login p {
   color: var(--color-text-secondary);
   margin-bottom: 16px;
+}
+
+.login-theme-toggle {
+  position: absolute;
+  top: 24px;
+  right: 24px;
 }
 
 /* Main layout */

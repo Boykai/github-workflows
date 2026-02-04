@@ -70,7 +70,7 @@ function AppContent() {
         <h1>Welcome to TechConnect 2026!</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
-        <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+        <div className="login-theme-toggle">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </div>
