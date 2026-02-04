@@ -65,5 +65,5 @@ coverage/
 
 # TypeScript build artifacts
 *.tsbuildinfo
-*.d.ts
-*.js
+frontend/src/**/*.d.ts
+!frontend/src/vite-env.d.ts
