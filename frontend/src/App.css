@@ -56,11 +56,38 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+  gap: 24px;
 }
 
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.app-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button {
+  padding: 6px 16px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.nav-button:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.nav-button.active {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .app-main {
@@ -306,6 +333,12 @@
 .chat-placeholder {
   text-align: center;
   color: var(--color-text-secondary);
+}
+
+.settings-view {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--color-bg-secondary);
 }
 
 /* Sync Status Indicator */
