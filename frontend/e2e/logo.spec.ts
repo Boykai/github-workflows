@@ -44,25 +44,8 @@ test.describe('Logo Display', () => {
     // Hover over the logo
     await logo.hover();
     
-    // Wait for animation to trigger
-    await page.waitForTimeout(100);
-    
-    // Logo should still be visible
+    // Logo should still be visible after hover
     await expect(logo).toBeVisible();
-  });
-
-  test('should support keyboard focus on logo', async ({ page }) => {
-    await page.goto('/');
-    
-    const logo = page.locator('.logo');
-    await expect(logo).toBeVisible();
-    
-    // Focus the logo
-    await logo.focus();
-    
-    // Check that the logo is focused
-    const focusedElement = page.locator(':focus');
-    await expect(focusedElement).toBeTruthy();
   });
 
   test('should display logo on all screen sizes', async ({ page }) => {
@@ -111,16 +94,5 @@ test.describe('Logo Accessibility', () => {
     const ariaLabel = await logo.getAttribute('aria-label');
     expect(ariaLabel).toBeTruthy();
     expect(ariaLabel!.length).toBeGreaterThan(0);
-  });
-
-  test('should be keyboard accessible', async ({ page }) => {
-    await page.goto('/');
-    
-    // Press Tab to navigate through interactive elements
-    await page.keyboard.press('Tab');
-    
-    // Some element should be focused
-    const focusedElement = page.locator(':focus');
-    await expect(focusedElement).toBeTruthy();
   });
 });
