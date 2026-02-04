@@ -27,6 +27,14 @@ export function Settings() {
     loadSettings();
   }, []);
 
+  // Auto-dismiss success message after 3 seconds
+  useEffect(() => {
+    if (success) {
+      const timeoutId = setTimeout(() => setSuccess(false), 3000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [success]);
+
   const loadSettings = async () => {
     try {
       setIsLoading(true);
@@ -53,7 +61,9 @@ export function Settings() {
     }
 
     if (formData.default_repository && formData.default_repository.trim()) {
-      const repoPattern = /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_.-]+$/;
+      // GitHub allows alphanumeric chars, hyphens, underscores, and periods
+      // Format: owner/repo (both parts can contain .-_)
+      const repoPattern = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
       if (!repoPattern.test(formData.default_repository.trim())) {
         errors.default_repository = 'Repository must be in format "owner/repo"';
       }
@@ -103,9 +113,6 @@ export function Settings() {
       setSettings(updatedSettings);
       setFormData(updatedSettings);
       setSuccess(true);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {

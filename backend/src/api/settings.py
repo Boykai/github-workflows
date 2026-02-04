@@ -26,6 +26,7 @@ async def update_settings(
     session: Annotated[UserSession, Depends(get_current_session)],
 ) -> UserSettings:
     """Update user settings."""
+    # Import here to avoid circular dependency with auth module
     from src.services.github_auth import github_auth_service
 
     # Update only the fields that were provided

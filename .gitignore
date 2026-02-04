@@ -36,8 +36,6 @@ backend/dist/
 frontend/dist/
 *.log
 *.tsbuildinfo
-vite.config.js
-vite.config.d.ts
 
 # Environment
 .env
