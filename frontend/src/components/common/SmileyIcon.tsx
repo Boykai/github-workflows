@@ -13,8 +13,12 @@ export function SmileyIcon() {
       className="smiley-icon-container"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
+      onFocus={() => setShowTooltip(true)}
+      onBlur={() => setShowTooltip(false)}
       role="img"
       aria-label="Have a nice day!"
+      aria-describedby={showTooltip ? 'smiley-tooltip' : undefined}
+      tabIndex={0}
     >
       <svg
         className="smiley-icon"
@@ -46,7 +50,7 @@ export function SmileyIcon() {
       </svg>
       
       {showTooltip && (
-        <div className="smiley-tooltip" role="tooltip">
+        <div id="smiley-tooltip" className="smiley-tooltip" role="tooltip">
           Have a nice day!
         </div>
       )}
