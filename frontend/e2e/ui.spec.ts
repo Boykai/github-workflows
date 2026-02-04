@@ -104,4 +104,20 @@ test.describe('Accessibility', () => {
       expect(buttonText!.length).toBeGreaterThan(0);
     }
   });
+
+  test('should display smiley face icon with proper accessibility', async ({ page }) => {
+    await page.goto('/');
+    
+    // Check for smiley face icon in the header
+    const smileyIcon = page.locator('.smiley-icon');
+    
+    // Icon should be visible
+    await expect(smileyIcon).toBeVisible();
+    
+    // Icon should have proper ARIA label
+    await expect(smileyIcon).toHaveAttribute('aria-label', 'Smiley face');
+    
+    // Icon should have role="img"
+    await expect(smileyIcon).toHaveAttribute('role', 'img');
+  });
 });
