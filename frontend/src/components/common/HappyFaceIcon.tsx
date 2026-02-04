@@ -3,22 +3,17 @@
  * with hover animation and tooltip.
  */
 
-import { useState } from 'react';
 import './HappyFaceIcon.css';
 
 export function HappyFaceIcon() {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <div
       className="happy-face-container"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       role="img"
       aria-label="Happy face - Have a great day!"
     >
       <svg
-        className={`happy-face-icon ${isHovered ? 'hovered' : ''}`}
+        className="happy-face-icon"
         width="32"
         height="32"
         viewBox="0 0 32 32"
