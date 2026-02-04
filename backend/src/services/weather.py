@@ -64,16 +64,27 @@ class WeatherService:
                 
                 data = response.json()
                 
-                return {
-                    "temperature": round(data["main"]["temp"], 1),
-                    "condition": data["weather"][0]["main"],
-                    "description": data["weather"][0]["description"],
-                    "icon": data["weather"][0]["icon"],
-                    "location": f"{data['name']}, {data['sys']['country']}",
-                    "humidity": data["main"]["humidity"],
-                    "wind_speed": round(data["wind"]["speed"], 1),
-                    "timestamp": data["dt"]
-                }
+                # Safely extract data with validation
+                try:
+                    main_data = data.get("main", {})
+                    weather_data = data.get("weather", [{}])[0]
+                    sys_data = data.get("sys", {})
+                    wind_data = data.get("wind", {})
+                    
+                    return {
+                        "temperature": round(main_data.get("temp", 0), 1),
+                        "condition": weather_data.get("main", "Unknown"),
+                        "description": weather_data.get("description", "N/A"),
+                        "icon": weather_data.get("icon", "01d"),
+                        "location": f"{data.get('name', city)}, {sys_data.get('country', country)}",
+                        "humidity": main_data.get("humidity", 0),
+                        "wind_speed": round(wind_data.get("speed", 0), 1),
+                        "timestamp": data.get("dt")
+                    }
+                except (KeyError, IndexError, TypeError) as e:
+                    logger.error("Error parsing weather API response: %s", e)
+                    # Fall back to mock data if response is malformed
+                    return self._get_mock_weather(city, country)
                 
         except httpx.HTTPStatusError as e:
             logger.error("HTTP error fetching weather: %s", e)

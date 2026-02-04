@@ -1,5 +1,9 @@
 /* Weather Widget Styles */
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .weather-widget {
   display: flex;
   flex-direction: column;
