@@ -25,6 +25,12 @@ describe('useTheme', () => {
     expect(result.current.theme).toBe('light');
   });
 
+  it('should default to light theme when invalid value is in localStorage', () => {
+    localStorage.setItem(STORAGE_KEY, 'invalid-theme');
+    const { result } = renderHook(() => useTheme());
+    expect(result.current.theme).toBe('light');
+  });
+
   it('should load saved theme from localStorage', () => {
     localStorage.setItem(STORAGE_KEY, 'dark');
     const { result } = renderHook(() => useTheme());
