@@ -1,13 +1,14 @@
 """Authentication API endpoints - OAuth flow."""
 
 import logging
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
 from src.exceptions import AuthenticationError
-from src.models.user import UserResponse, UserSession
+from src.models.user import ProfileUpdateRequest, UserResponse, UserSession
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
@@ -184,3 +185,43 @@ async def dev_login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid GitHub token: {e}",
         )
+
+
+@router.patch("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: ProfileUpdateRequest,
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserResponse:
+    """
+    Update user profile information.
+    
+    Validates and updates user profile fields like name, email, bio, and location.
+    """
+    session = get_current_session(session_id)
+    
+    # Validate email format if provided
+    if profile_data.email is not None:
+        email = profile_data.email.strip()
+        if email:  # Only validate if not empty
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, email):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid email format",
+                )
+    
+    # Update session with new profile data
+    if profile_data.name is not None:
+        session.name = profile_data.name.strip() or None
+    if profile_data.email is not None:
+        session.email = profile_data.email.strip() or None
+    if profile_data.bio is not None:
+        session.bio = profile_data.bio.strip() or None
+    if profile_data.location is not None:
+        session.location = profile_data.location.strip() or None
+    
+    # Save updated session
+    github_auth_service.update_session(session)
+    
+    logger.info("Updated profile for user: %s", session.github_username)
+    return UserResponse.from_session(session)

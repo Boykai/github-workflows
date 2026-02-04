@@ -96,6 +96,21 @@ export const authApi = {
   logout(): Promise<{ message: string }> {
     return request<{ message: string }>('/auth/logout', { method: 'POST' });
   },
+
+  /**
+   * Update user profile.
+   */
+  updateProfile(data: {
+    name?: string;
+    email?: string;
+    bio?: string;
+    location?: string;
+  }): Promise<User> {
+    return request<User>('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // ============ Projects API ============

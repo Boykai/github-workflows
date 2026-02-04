@@ -2,6 +2,7 @@
  * Main application component.
  */
 
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -10,6 +11,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ProfilePage } from '@/components/profile/ProfilePage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -23,6 +25,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
   const {
     projects,
     selectedProject,
@@ -81,7 +84,12 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="header-actions">
+          <button className="profile-button" onClick={() => setShowProfile(true)}>
+            Profile
+          </button>
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
@@ -125,6 +133,8 @@ function AppContent() {
           )}
         </section>
       </main>
+
+      {showProfile && <ProfilePage onClose={() => setShowProfile(false)} />}
     </div>
   );
 }

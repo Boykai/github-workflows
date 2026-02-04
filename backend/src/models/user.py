@@ -13,6 +13,10 @@ class UserSession(BaseModel):
     github_user_id: str = Field(..., description="GitHub user ID from OAuth")
     github_username: str = Field(..., description="GitHub username for display")
     github_avatar_url: str | None = Field(None, description="User's avatar URL")
+    name: str | None = Field(None, description="User's display name")
+    email: str | None = Field(None, description="User's email address")
+    bio: str | None = Field(None, description="User's bio/about text")
+    location: str | None = Field(None, description="User's location")
     access_token: str = Field(..., description="Encrypted GitHub OAuth access token")
     refresh_token: str | None = Field(None, description="Encrypted OAuth refresh token")
     token_expires_at: datetime | None = Field(None, description="Token expiration timestamp")
@@ -45,6 +49,10 @@ class UserResponse(BaseModel):
     github_user_id: str
     github_username: str
     github_avatar_url: str | None = None
+    name: str | None = None
+    email: str | None = None
+    bio: str | None = None
+    location: str | None = None
     selected_project_id: str | None = None
 
     @classmethod
@@ -54,5 +62,18 @@ class UserResponse(BaseModel):
             github_user_id=session.github_user_id,
             github_username=session.github_username,
             github_avatar_url=session.github_avatar_url,
+            name=session.name,
+            email=session.email,
+            bio=session.bio,
+            location=session.location,
             selected_project_id=session.selected_project_id,
         )
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Request model for updating user profile."""
+
+    name: str | None = Field(None, description="User's display name", max_length=100)
+    email: str | None = Field(None, description="User's email address", max_length=200)
+    bio: str | None = Field(None, description="User's bio/about text", max_length=500)
+    location: str | None = Field(None, description="User's location", max_length=100)

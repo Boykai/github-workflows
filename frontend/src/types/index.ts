@@ -21,6 +21,10 @@ export interface User {
   github_user_id: string;
   github_username: string;
   github_avatar_url?: string;
+  name?: string;
+  email?: string;
+  bio?: string;
+  location?: string;
   selected_project_id?: string;
 }
 
