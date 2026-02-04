@@ -65,7 +65,6 @@ coverage/
 test-results/
 e2e-report/
 playwright-report/
-*.tsbuildinfo
 
 # Misc
 *.tmp
