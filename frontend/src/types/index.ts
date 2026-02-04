@@ -29,6 +29,24 @@ export interface AuthResponse {
   message: string;
 }
 
+export interface UserSettings {
+  notifications_enabled: boolean;
+  email_notifications: boolean;
+  theme: string;
+  language: string;
+  default_repository?: string;
+  auto_assign_copilot: boolean;
+}
+
+export interface UserSettingsUpdate {
+  notifications_enabled?: boolean;
+  email_notifications?: boolean;
+  theme?: string;
+  language?: string;
+  default_repository?: string;
+  auto_assign_copilot?: boolean;
+}
+
 // ============ Projects ============
 
 export interface StatusColumn {

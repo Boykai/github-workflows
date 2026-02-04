@@ -16,6 +16,8 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  UserSettings,
+  UserSettingsUpdate,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -203,6 +205,27 @@ export const chatApi = {
   cancelProposal(proposalId: string): Promise<void> {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// ============ Settings API ============
+
+export const settingsApi = {
+  /**
+   * Get current user settings.
+   */
+  get(): Promise<UserSettings> {
+    return request<UserSettings>('/settings');
+  },
+
+  /**
+   * Update user settings.
+   */
+  update(settings: UserSettingsUpdate): Promise<UserSettings> {
+    return request<UserSettings>('/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
     });
   },
 };
