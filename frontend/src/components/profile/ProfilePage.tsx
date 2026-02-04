@@ -8,6 +8,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/services/api';
 import './ProfilePage.css';
 
+// Email validation pattern - matches backend validation
+const EMAIL_VALIDATION_PATTERN = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 interface ProfileFormData {
   name: string;
   email: string;
@@ -48,8 +51,7 @@ export function ProfilePage({ onClose }: ProfilePageProps) {
 
     // Validate email format if provided
     if (formData.email.trim()) {
-      const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!emailPattern.test(formData.email.trim())) {
+      if (!EMAIL_VALIDATION_PATTERN.test(formData.email.trim())) {
         newErrors.email = 'Invalid email format';
       }
     }

@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 SESSION_COOKIE_NAME = "session_id"
+EMAIL_VALIDATION_PATTERN = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 
 
 def get_current_session(session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)) -> UserSession:
@@ -203,8 +204,7 @@ async def update_profile(
     if profile_data.email is not None:
         email = profile_data.email.strip()
         if email:  # Only validate if not empty
-            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-            if not re.match(email_pattern, email):
+            if not re.match(EMAIL_VALIDATION_PATTERN, email):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid email format",
