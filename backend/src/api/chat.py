@@ -5,9 +5,10 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends
+from fastapi import APIRouter, Depends
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_session_dep
+from src.constants import DEFAULT_STATUS_COLUMNS
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
     AITaskProposal,
@@ -36,13 +37,6 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007)
 _recommendations: dict[str, IssueRecommendation] = {}
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
@@ -217,7 +211,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=project_columns if project_columns else ["Todo", "In Progress", "Done"],
+        available_statuses=project_columns if project_columns else DEFAULT_STATUS_COLUMNS,
     )
 
     if status_change:

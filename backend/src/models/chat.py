@@ -54,10 +54,8 @@ class ChatMessage(BaseModel):
     action_data: dict[str, Any] | None = Field(None, description="Action-specific payload")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Message timestamp")
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "message_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -68,6 +66,7 @@ class ChatMessage(BaseModel):
                 "timestamp": "2026-01-30T10:00:00Z",
             }
         }
+    }
 
 
 class AITaskProposal(BaseModel):
@@ -106,10 +105,8 @@ class AITaskProposal(BaseModel):
         """Get final description (edited or proposed)."""
         return self.edited_description or self.proposed_description
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "proposal_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -123,6 +120,7 @@ class AITaskProposal(BaseModel):
                 "expires_at": "2026-01-30T10:10:00Z",
             }
         }
+    }
 
 
 class ChatMessageRequest(BaseModel):
@@ -279,10 +277,8 @@ class IssueRecommendation(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     confirmed_at: datetime | None = Field(None, description="Confirmation timestamp")
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "recommendation_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -307,6 +303,7 @@ class IssueRecommendation(BaseModel):
                 "confirmed_at": None,
             }
         }
+    }
 
 
 class WorkflowConfiguration(BaseModel):

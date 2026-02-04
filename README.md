@@ -134,6 +134,61 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 
 ---
 
+## Quick Start with GitHub Codespaces (Easiest)
+
+The fastest way to get started! Launch a fully configured development environment in your browser.
+
+### 1. Open in Codespaces
+
+Click the button below or go to **Code** → **Codespaces** → **Create codespace on main**:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/YOUR_USERNAME/YOUR_REPO)
+
+### 2. Wait for Setup
+
+The dev container will automatically:
+- Install Python 3.12 and Node.js 22
+- Set up the backend virtual environment
+- Install all dependencies (backend + frontend)
+- Install Playwright browsers for testing
+
+### 3. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your credentials:
+- `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from your [GitHub OAuth App](https://github.com/settings/developers)
+- `SESSION_SECRET_KEY` (generate with `openssl rand -hex 32`)
+- Azure OpenAI credentials (optional)
+
+### 4. Update GitHub OAuth App
+
+**Important**: Update your GitHub OAuth App callback URL to match your Codespaces URL:
+
+1. The `post-start.sh` script will print your callback URL when the Codespace starts
+2. Go to [GitHub Developer Settings](https://github.com/settings/developers) → OAuth Apps → Your App
+3. Update **Authorization callback URL** to:
+   ```
+   https://YOUR-CODESPACE-NAME-8000.app.github.dev/api/v1/auth/github/callback
+   ```
+
+### 5. Start the Application
+
+The ports will be automatically forwarded. Open the forwarded port 3003 to access the app.
+
+To run services manually:
+```bash
+# Terminal 1: Backend
+cd backend && source .venv/bin/activate && uvicorn src.main:app --reload
+
+# Terminal 2: Frontend  
+cd frontend && npm run dev
+```
+
+---
+
 ## Quick Start with Docker (Recommended)
 
 ### 1. Clone the Repository
@@ -283,8 +338,8 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-# Copy environment file (use parent .env or create backend/.env)
-cp ../.env .env  # or configure separately
+# Configure environment in root .env (backend loads from ../.env)
+# See root .env.example for all available options
 
 # Run the server
 uvicorn src.main:app --reload --port 8000

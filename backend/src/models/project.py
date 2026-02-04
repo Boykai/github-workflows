@@ -41,10 +41,8 @@ class GitHubProject(BaseModel):
         default_factory=datetime.utcnow, description="When this data was fetched"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "project_id": "PVT_kwDOABCD1234",
                 "owner_id": "O_kgDOBcdef",
@@ -77,6 +75,7 @@ class GitHubProject(BaseModel):
                 "cached_at": "2026-01-30T10:00:00Z",
             }
         }
+    }
 
 
 class ProjectListResponse(BaseModel):

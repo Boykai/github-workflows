@@ -3,17 +3,16 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
+from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-SESSION_COOKIE_NAME = "session_id"
 
 
 def get_current_session(session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)) -> UserSession:
@@ -26,6 +25,13 @@ def get_current_session(session_id: str | None = Cookie(None, alias=SESSION_COOK
         raise AuthenticationError("Invalid or expired session")
 
     return session
+
+
+async def get_session_dep(
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserSession:
+    """Dependency for getting current session from cookie."""
+    return get_current_session(session_id)
 
 
 @router.get("/github")
@@ -58,8 +64,8 @@ async def github_callback(
         # Create session
         session = await github_auth_service.create_session(code)
 
-        # Get frontend URL from settings or default
-        frontend_url = getattr(settings, 'frontend_url', 'http://localhost:3003')
+        # Get frontend URL from settings (default: http://localhost:5173)
+        frontend_url = settings.frontend_url
         
         # Redirect to frontend with session token in URL
         # Frontend will call /auth/session to set the cookie via the proxy

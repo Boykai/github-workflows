@@ -109,11 +109,18 @@ cache = InMemoryCache()
 
 
 # Convenience functions for project caching
+def get_cache_key(prefix: str, identifier: str) -> str:
+    """Generate a cache key with consistent format."""
+    return f"{prefix}:{identifier}"
+
+
 def get_user_projects_cache_key(user_id: str) -> str:
     """Get cache key for user's projects list."""
-    return f"projects:user:{user_id}"
+    from src.constants import CACHE_PREFIX_PROJECTS
+    return get_cache_key(CACHE_PREFIX_PROJECTS, user_id)
 
 
 def get_project_items_cache_key(project_id: str) -> str:
     """Get cache key for project items."""
-    return f"project:items:{project_id}"
+    from src.constants import CACHE_PREFIX_PROJECT_ITEMS
+    return get_cache_key(CACHE_PREFIX_PROJECT_ITEMS, project_id)

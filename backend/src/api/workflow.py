@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
@@ -38,13 +38,6 @@ router = APIRouter(prefix="/workflow", tags=["Workflow"])
 # Maps hash of original_input to (timestamp, recommendation_id)
 _recent_requests: dict[str, tuple[datetime, str]] = {}
 DUPLICATE_WINDOW_MINUTES = 5
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 def _check_duplicate(original_input: str, recommendation_id: str) -> bool:

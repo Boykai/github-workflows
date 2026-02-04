@@ -25,10 +25,8 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Task creation time")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last modification time")
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "task_id": "550e8400-e29b-41d4-a716-446655440000",
                 "project_id": "PVT_kwDOABCD1234",
@@ -43,6 +41,7 @@ class Task(BaseModel):
                 "updated_at": "2026-01-30T11:00:00Z",
             }
         }
+    }
 
 
 class TaskCreateRequest(BaseModel):

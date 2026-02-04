@@ -1,7 +1,7 @@
 """Unit tests for GitHub authentication service."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -53,7 +53,7 @@ class TestGitHubAuthServiceOAuth:
         
         service = GitHubAuthService()
         state = "test_state_12345"
-        _oauth_states[state] = datetime.utcnow()
+        _oauth_states[state] = datetime.now(timezone.utc)
         
         assert service.validate_state(state) is True
         assert state not in _oauth_states  # Should be consumed
@@ -74,7 +74,7 @@ class TestGitHubAuthServiceOAuth:
         
         service = GitHubAuthService()
         state = "expired_state"
-        _oauth_states[state] = datetime.utcnow() - timedelta(minutes=15)
+        _oauth_states[state] = datetime.now(timezone.utc) - timedelta(minutes=15)
         
         assert service.validate_state(state) is False
 

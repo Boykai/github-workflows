@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -41,7 +41,7 @@ class GitHubAuthService:
             Tuple of (authorization_url, state)
         """
         state = secrets.token_urlsafe(32)
-        _oauth_states[state] = datetime.utcnow()
+        _oauth_states[state] = datetime.now(timezone.utc)
 
         params = {
             "client_id": self.settings.github_client_id,
@@ -68,7 +68,7 @@ class GitHubAuthService:
 
         created_at = _oauth_states.pop(state)
         # State expires after 10 minutes
-        return datetime.utcnow() - created_at < timedelta(minutes=10)
+        return datetime.now(timezone.utc) - created_at < timedelta(minutes=10)
 
     async def exchange_code_for_token(self, code: str) -> dict:
         """
@@ -140,7 +140,7 @@ class GitHubAuthService:
         # Calculate token expiration
         token_expires_at = None
         if expires_in:
-            token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+            token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
         # Create session
         session = UserSession(
@@ -251,7 +251,7 @@ class GitHubAuthService:
         Args:
             session: Session to update
         """
-        session.updated_at = datetime.utcnow()
+        session.updated_at = datetime.now(timezone.utc)
         _sessions[str(session.session_id)] = session
 
     def revoke_session(self, session_id: str | UUID) -> bool:

@@ -741,10 +741,10 @@ class GitHubProjectsService:
 
             # Default status columns if none found
             if not status_columns:
+                from src.constants import DEFAULT_STATUS_COLUMNS
                 status_columns = [
-                    StatusColumn(field_id="", name="Todo", option_id=""),
-                    StatusColumn(field_id="", name="In Progress", option_id=""),
-                    StatusColumn(field_id="", name="Done", option_id=""),
+                    StatusColumn(field_id="", name=name, option_id="")
+                    for name in DEFAULT_STATUS_COLUMNS
                 ]
 
             projects.append(

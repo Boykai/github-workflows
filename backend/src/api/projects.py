@@ -4,10 +4,10 @@ import asyncio
 import logging
 from typing import Annotated, AsyncGenerator
 
-from fastapi import APIRouter, Cookie, Depends, Query, WebSocket, WebSocketDisconnect, Request
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import StreamingResponse
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_current_session, get_session_dep
 from src.exceptions import NotFoundError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
@@ -19,13 +19,6 @@ from src.services.websocket import connection_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 @router.get("", response_model=ProjectListResponse)
@@ -84,7 +77,6 @@ async def get_project(
         if project.project_id == project_id:
             return project
 
-    from src.main import NotFoundError
     raise NotFoundError(f"Project not found: {project_id}")
 
 
@@ -298,47 +290,6 @@ async def websocket_subscribe(
         logger.error("WebSocket error for project %s: %s", project_id, e)
     finally:
         connection_manager.disconnect(websocket)
-
-
-@router.post("/webhooks/github")
-async def github_webhook(request: Request):
-    """
-    Webhook endpoint for GitHub events (future GitHub App integration).
-    
-    This endpoint will receive events when:
-    - Issues are created, updated, deleted
-    - Project items are moved between columns
-    - Labels are added/removed
-    
-    Note: Requires GitHub App setup and webhook configuration.
-    """
-    # Get event type from header
-    event_type = request.headers.get("X-GitHub-Event", "unknown")
-    
-    # TODO: Verify webhook signature with X-Hub-Signature-256
-    # signature = request.headers.get("X-Hub-Signature-256")
-    
-    try:
-        payload = await request.json()
-    except Exception:
-        return {"status": "error", "message": "Invalid JSON payload"}
-    
-    logger.info("Received GitHub webhook: %s", event_type)
-    
-    # Handle project item events
-    if event_type == "projects_v2_item":
-        action = payload.get("action")
-        project_id = payload.get("projects_v2_item", {}).get("project_node_id")
-        
-        if project_id:
-            # Broadcast update to subscribed clients
-            await connection_manager.broadcast_to_project(project_id, {
-                "type": f"task_{action}",
-                "source": "github_webhook",
-                "data": payload,
-            })
-    
-    return {"status": "ok", "event": event_type}
 
 
 @router.get("/{project_id}/events")
