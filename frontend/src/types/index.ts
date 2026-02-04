@@ -247,3 +247,17 @@ export interface WorkflowConfiguration {
   status_in_review: string;
   enabled: boolean;
 }
+
+// ============ Weather ============
+
+export interface Weather {
+  temperature: number;
+  condition: string;
+  description: string;
+  icon: string;
+  location: string;
+  humidity: number;
+  wind_speed: number;
+  timestamp: number | null;
+  mock?: boolean;
+}

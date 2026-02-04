@@ -16,6 +16,7 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  Weather,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -204,5 +205,20 @@ export const chatApi = {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============ Weather API ============
+
+export const weatherApi = {
+  /**
+   * Get current weather for a location.
+   */
+  getCurrent(city?: string, country?: string): Promise<Weather> {
+    const params = new URLSearchParams();
+    if (city) params.append('city', city);
+    if (country) params.append('country', country);
+    const queryString = params.toString();
+    return request<Weather>(`/weather/current${queryString ? '?' + queryString : ''}`);
   },
 };
