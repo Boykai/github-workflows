@@ -1,0 +1,61 @@
+/* Happy Face Icon Styles */
+
+.happy-face-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.happy-face-icon {
+  transition: transform 0.3s ease;
+}
+
+.happy-face-icon.hovered {
+  transform: scale(1.2);
+}
+
+.happy-face-tooltip {
+  position: absolute;
+  bottom: -35px;
+  right: 0;
+  background: var(--color-text);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.happy-face-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: 12px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 4px solid var(--color-text);
+}
+
+.happy-face-container:hover .happy-face-tooltip {
+  opacity: 1;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .happy-face-icon {
+    transition: none;
+  }
+  
+  .happy-face-icon.hovered {
+    transform: scale(1.1);
+  }
+}

@@ -10,6 +10,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { HappyFaceIcon } from '@/components/common/HappyFaceIcon';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -81,7 +82,10 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <h1>GitHub Projects Chat</h1>
-        <LoginButton />
+        <div className="header-right">
+          <HappyFaceIcon />
+          <LoginButton />
+        </div>
       </header>
 
       <main className="app-main">
