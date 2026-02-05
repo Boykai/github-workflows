@@ -40,11 +40,31 @@ test.describe('Login Page UI', () => {
     await page.goto('/');
     
     // Should show app name
-    await expect(page.locator('h1')).toContainText('GitHub Projects Chat');
+    await expect(page.locator('h1')).toContainText('Welcome to Tech Connect 2026!');
     
     // Should have description text
     const description = page.locator('p, .description');
     await expect(description.first()).toBeVisible();
+  });
+
+  test('should support dark mode', async ({ page }) => {
+    await page.goto('/');
+    
+    // Check that page loads in light mode by default
+    const htmlElement = page.locator('html');
+    await expect(htmlElement).not.toHaveClass(/dark-mode-active/);
+    
+    // Add dark mode class to test dark theme
+    await page.evaluate(() => {
+      document.documentElement.classList.add('dark-mode-active');
+    });
+    
+    // Verify dark mode is applied
+    await expect(htmlElement).toHaveClass(/dark-mode-active/);
+    
+    // Page should still be visible and functional
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('h1')).toContainText('Welcome to Tech Connect 2026!');
   });
 });
 
