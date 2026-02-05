@@ -12,10 +12,12 @@ type EmojiDef = {
 class ChatEmojiRegistry {
   private positiveEmojis: Map<string, EmojiDef> = new Map();
   private actionEmojis: Map<string, EmojiDef> = new Map();
+  private shortcodeLookup: Map<string, string> = new Map();
 
   constructor() {
     this.initializePositiveEmojis();
     this.initializeActionEmojis();
+    this.buildShortcodeLookup();
   }
 
   private initializePositiveEmojis() {
@@ -71,6 +73,19 @@ class ChatEmojiRegistry {
     });
   }
 
+  private buildShortcodeLookup() {
+    // Preprocess shortcodes for faster lookup
+    this.positiveEmojis.forEach((def) => {
+      const normalized = def.shortcode.toLowerCase().replace(/:/g, '');
+      this.shortcodeLookup.set(normalized, def.symbol);
+    });
+    
+    this.actionEmojis.forEach((def) => {
+      const normalized = def.shortcode.toLowerCase().replace(/:/g, '');
+      this.shortcodeLookup.set(normalized, def.symbol);
+    });
+  }
+
   getAllForPicker(): Array<EmojiDef & { category: string; key: string }> {
     const results: Array<EmojiDef & { category: string; key: string }> = [];
     
@@ -87,20 +102,7 @@ class ChatEmojiRegistry {
 
   findByShortcode(code: string): string | null {
     const normalized = code.toLowerCase().replace(/:/g, '');
-    
-    for (const [, def] of this.positiveEmojis) {
-      if (def.shortcode.replace(/:/g, '') === normalized) {
-        return def.symbol;
-      }
-    }
-    
-    for (const [, def] of this.actionEmojis) {
-      if (def.shortcode.replace(/:/g, '') === normalized) {
-        return def.symbol;
-      }
-    }
-    
-    return null;
+    return this.shortcodeLookup.get(normalized) || null;
   }
 }
 

@@ -82,8 +82,26 @@ export function ChatInterface({
   };
 
   const handleEmojiSelect = (emoji: string) => {
-    setInput(prev => prev + emoji);
-    inputRef.current?.focus();
+    const textarea = inputRef.current;
+    if (!textarea) {
+      setInput(prev => prev + emoji);
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentValue = textarea.value;
+    
+    // Insert emoji at cursor position
+    const newValue = currentValue.substring(0, start) + emoji + currentValue.substring(end);
+    setInput(newValue);
+    
+    // Set cursor position after the inserted emoji
+    setTimeout(() => {
+      const newPosition = start + emoji.length;
+      textarea.setSelectionRange(newPosition, newPosition);
+      textarea.focus();
+    }, 0);
   };
 
   return (
