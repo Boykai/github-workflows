@@ -297,6 +297,12 @@
   background: var(--color-bg-secondary);
 }
 
+.chat-input-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .send-button {
   width: 44px;
   height: 44px;
