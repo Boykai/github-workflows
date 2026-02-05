@@ -117,10 +117,12 @@ def get_cache_key(prefix: str, identifier: str) -> str:
 def get_user_projects_cache_key(user_id: str) -> str:
     """Get cache key for user's projects list."""
     from src.constants import CACHE_PREFIX_PROJECTS
+
     return get_cache_key(CACHE_PREFIX_PROJECTS, user_id)
 
 
 def get_project_items_cache_key(project_id: str) -> str:
     """Get cache key for project items."""
     from src.constants import CACHE_PREFIX_PROJECT_ITEMS
+
     return get_cache_key(CACHE_PREFIX_PROJECT_ITEMS, project_id)

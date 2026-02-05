@@ -37,7 +37,6 @@ export function ProjectSidebar({
   // Track task changes for highlighting
   useEffect(() => {
     const previousIds = new Set(previousTasksRef.current.map((t) => t.task_id));
-    const newIds = new Set(tasks.map((t) => t.task_id));
 
     // Find new or changed tasks
     const updated = new Set<string>();

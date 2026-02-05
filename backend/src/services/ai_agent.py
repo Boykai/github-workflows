@@ -4,22 +4,23 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 from src.config import get_settings
 from src.models.chat import (
-    IssueRecommendation,
     IssueMetadata,
     IssuePriority,
+    IssueRecommendation,
     IssueSize,
     RecommendationStatus,
 )
-from src.prompts.task_generation import (
-    create_task_generation_prompt,
-    create_status_change_prompt,
-)
 from src.prompts.issue_generation import (
-    create_issue_generation_prompt,
     create_feature_request_detection_prompt,
+    create_issue_generation_prompt,
+)
+from src.prompts.task_generation import (
+    create_status_change_prompt,
+    create_task_generation_prompt,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ class StatusChangeIntent:
 
 class AIAgentService:
     """Service for AI-powered task generation and intent detection.
-    
+
     Supports both Azure OpenAI and Azure AI Foundry (Azure AI Inference SDK).
     """
 
@@ -56,10 +57,11 @@ class AIAgentService:
         self._deployment = settings.azure_openai_deployment
         self._client = None
         self._use_azure_inference = False
-        
+
         # Try Azure OpenAI SDK first (openai package)
         try:
             from openai import AzureOpenAI
+
             self._client = AzureOpenAI(
                 azure_endpoint=settings.azure_openai_endpoint,
                 api_key=settings.azure_openai_key,
@@ -71,7 +73,7 @@ class AIAgentService:
             # Fall back to Azure AI Inference SDK
             from azure.ai.inference import ChatCompletionsClient
             from azure.core.credentials import AzureKeyCredential
-            
+
             self._client = ChatCompletionsClient(
                 endpoint=settings.azure_openai_endpoint,
                 credential=AzureKeyCredential(settings.azure_openai_key),
@@ -79,14 +81,21 @@ class AIAgentService:
             self._use_azure_inference = True
             logger.info("Initialized Azure AI Inference client for model: %s", self._deployment)
 
-    def _call_completion(self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1000) -> str:
+    def _call_completion(
+        self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1000
+    ) -> str:
         """Call the completion API using the appropriate SDK."""
         if self._use_azure_inference:
             from azure.ai.inference.models import SystemMessage, UserMessage
+
             response = self._client.complete(
                 model=self._deployment,
                 messages=[
-                    SystemMessage(content=messages[0]["content"]) if messages[0]["role"] == "system" else UserMessage(content=messages[0]["content"]),
+                    (
+                        SystemMessage(content=messages[0]["content"])
+                        if messages[0]["role"] == "system"
+                        else UserMessage(content=messages[0]["content"])
+                    ),
                     UserMessage(content=messages[1]["content"]),
                 ],
                 temperature=temperature,
@@ -99,7 +108,7 @@ class AIAgentService:
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-        
+
         return response.choices[0].message.content
 
     # ──────────────────────────────────────────────────────────────────
@@ -169,9 +178,7 @@ class AIAgentService:
             content = self._call_completion(messages, temperature=0.7, max_tokens=2000)
             logger.debug("Issue recommendation response: %s", content[:500])
 
-            return self._parse_issue_recommendation_response(
-                content, user_input, session_id
-            )
+            return self._parse_issue_recommendation_response(content, user_input, session_id)
 
         except Exception as e:
             error_msg = str(e)
@@ -180,13 +187,11 @@ class AIAgentService:
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "Azure OpenAI authentication failed. Please verify your API key."
-                )
+                ) from e
             elif "404" in error_msg or "Resource not found" in error_msg:
-                raise ValueError(
-                    f"Azure OpenAI deployment '{self._deployment}' not found."
-                )
+                raise ValueError(f"Azure OpenAI deployment '{self._deployment}' not found.") from e
             else:
-                raise ValueError(f"Failed to generate recommendation: {error_msg}")
+                raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
 
     def _parse_issue_recommendation_response(
         self, content: str, original_input: str, session_id: str
@@ -295,9 +300,10 @@ class AIAgentService:
         labels = metadata_data.get("labels", [])
         if not isinstance(labels, list):
             labels = ["ai-generated"]
-        
+
         # Filter to only include valid pre-defined labels
         from src.prompts.issue_generation import PREDEFINED_LABELS
+
         validated_labels = []
         for label in labels:
             if isinstance(label, str):
@@ -306,13 +312,21 @@ class AIAgentService:
                     validated_labels.append(label_lower)
                 else:
                     logger.debug("Skipping invalid label: %s", label)
-        
+
         # Ensure ai-generated is always present
         if "ai-generated" not in validated_labels:
             validated_labels.insert(0, "ai-generated")
-        
+
         # If no type label was selected, default to "feature"
-        type_labels = ["feature", "bug", "enhancement", "refactor", "documentation", "testing", "infrastructure"]
+        type_labels = [
+            "feature",
+            "bug",
+            "enhancement",
+            "refactor",
+            "documentation",
+            "testing",
+            "infrastructure",
+        ]
         has_type = any(lbl in validated_labels for lbl in type_labels)
         if not has_type:
             validated_labels.append("feature")
@@ -330,20 +344,21 @@ class AIAgentService:
         """Check if date string is valid YYYY-MM-DD format."""
         try:
             from datetime import datetime
+
             datetime.strptime(date_str, "%Y-%m-%d")
             return True
         except ValueError:
             return False
 
-    def _calculate_target_date(self, start: "datetime", size: IssueSize) -> str:
+    def _calculate_target_date(self, start: datetime, size: IssueSize) -> str:
         """Calculate target date based on size estimate."""
         from datetime import timedelta
 
         days_map = {
             IssueSize.XS: 0,  # Same day
-            IssueSize.S: 0,   # Same day
-            IssueSize.M: 1,   # Next day
-            IssueSize.L: 2,   # 2 days
+            IssueSize.S: 0,  # Same day
+            IssueSize.M: 1,  # Next day
+            IssueSize.L: 2,  # 2 days
             IssueSize.XL: 4,  # 4 days
         }
         days = days_map.get(size, 1)
@@ -377,7 +392,7 @@ class AIAgentService:
                 {"role": "system", "content": prompt_messages[0]["content"]},
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
-            
+
             content = self._call_completion(messages, temperature=0.7, max_tokens=1000)
             logger.debug("AI response: %s", content[:200] if content else "None")
 
@@ -388,21 +403,21 @@ class AIAgentService:
         except Exception as e:
             error_msg = str(e)
             logger.error("Failed to generate task: %s", error_msg)
-            
+
             # Provide helpful error messages
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "Azure OpenAI authentication failed. Please verify your API key and endpoint in .env file. "
                     f"Original error: {error_msg}"
-                )
+                ) from e
             elif "404" in error_msg or "Resource not found" in error_msg:
                 raise ValueError(
                     f"Azure OpenAI deployment '{self._deployment}' not found. "
                     "Please verify the AZURE_OPENAI_DEPLOYMENT name matches your Azure resource. "
                     f"Original error: {error_msg}"
-                )
+                ) from e
             else:
-                raise ValueError(f"Failed to generate task: {error_msg}")
+                raise ValueError(f"Failed to generate task: {error_msg}") from e
 
     async def parse_status_change_request(
         self,
@@ -430,7 +445,7 @@ class AIAgentService:
                 {"role": "system", "content": prompt_messages[0]["content"]},
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
-            
+
             content = self._call_completion(messages, temperature=0.3, max_tokens=200)
             logger.debug("Status intent response: %s", content)
 
@@ -454,9 +469,7 @@ class AIAgentService:
             logger.warning("Failed to parse status change intent: %s", e)
             return None
 
-    def identify_target_task(
-        self, task_reference: str, available_tasks: list[dict]
-    ) -> dict | None:
+    def identify_target_task(self, task_reference: str, available_tasks: list[dict]) -> dict | None:
         """
         Find the best matching task for a reference string.
 
@@ -561,7 +574,7 @@ class AIAgentService:
             return json.loads(content)
         except json.JSONDecodeError as e:
             logger.error("Failed to parse JSON: %s\nContent: %s", e, content[:500])
-            raise ValueError(f"Invalid JSON response: {e}")
+            raise ValueError(f"Invalid JSON response: {e}") from e
 
     def _validate_generated_task(self, data: dict) -> GeneratedTask:
         """Validate and create GeneratedTask from parsed data."""

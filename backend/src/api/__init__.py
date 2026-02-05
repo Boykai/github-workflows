@@ -3,11 +3,11 @@
 from fastapi import APIRouter
 
 from src.api.auth import router as auth_router
+from src.api.chat import router as chat_router
 from src.api.projects import router as projects_router
 from src.api.tasks import router as tasks_router
-from src.api.chat import router as chat_router
-from src.api.workflow import router as workflow_router
 from src.api.webhooks import router as webhooks_router
+from src.api.workflow import router as workflow_router
 
 router = APIRouter()
 

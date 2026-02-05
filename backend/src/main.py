@@ -3,8 +3,8 @@
 import logging
 import time
 from collections import defaultdict
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,8 +39,7 @@ class RateLimiter:
 
         # Clean old entries
         self._requests[session_id] = [
-            (ts, count) for ts, count in self._requests[session_id]
-            if ts > window_start
+            (ts, count) for ts, count in self._requests[session_id] if ts > window_start
         ]
 
         # Count requests in window
@@ -121,6 +120,7 @@ def create_app() -> FastAPI:
 
     # Include API routes (imported here to avoid circular import)
     from src.api import router as api_router
+
     app.include_router(api_router, prefix="/api/v1")
 
     return app

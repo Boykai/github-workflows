@@ -134,7 +134,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
       // WebSocket not supported or blocked, use polling
       startPolling();
     }
-  }, [projectId, handleMessage, startPolling, stopPolling]);
+  }, [projectId, handleMessage, startPolling]);
 
   // Connect when project changes
   useEffect(() => {

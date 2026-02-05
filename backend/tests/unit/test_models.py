@@ -1,10 +1,11 @@
 """Unit tests for user models."""
 
-import pytest
 from datetime import datetime
 from uuid import UUID
 
-from src.models.user import UserSession, UserResponse
+import pytest
+
+from src.models.user import UserResponse, UserSession
 
 
 class TestUserSession:
@@ -17,7 +18,7 @@ class TestUserSession:
             github_username="testuser",
             access_token="gho_test_token_12345",
         )
-        
+
         assert session.github_user_id == "12345678"
         assert session.github_username == "testuser"
         assert session.access_token == "gho_test_token_12345"
@@ -30,7 +31,7 @@ class TestUserSession:
     def test_create_session_with_all_fields(self):
         """Should create a session with all fields."""
         expires_at = datetime(2026, 12, 31, 23, 59, 59)
-        
+
         session = UserSession(
             github_user_id="12345678",
             github_username="testuser",
@@ -40,7 +41,7 @@ class TestUserSession:
             token_expires_at=expires_at,
             selected_project_id="PVT_kwDOABCD1234",
         )
-        
+
         assert session.github_avatar_url == "https://avatars.githubusercontent.com/u/12345678"
         assert session.refresh_token == "ghr_refresh_token_12345"
         assert session.token_expires_at == expires_at
@@ -53,7 +54,7 @@ class TestUserSession:
             github_username="testuser",
             access_token="gho_test_token",
         )
-        
+
         assert isinstance(session.created_at, datetime)
         assert isinstance(session.updated_at, datetime)
 
@@ -69,7 +70,7 @@ class TestUserSession:
             github_username="testuser",
             access_token="gho_test_token",
         )
-        
+
         assert session1.session_id != session2.session_id
 
 
@@ -82,7 +83,7 @@ class TestUserResponse:
             github_user_id="12345678",
             github_username="testuser",
         )
-        
+
         assert response.github_user_id == "12345678"
         assert response.github_username == "testuser"
         assert response.github_avatar_url is None
@@ -97,9 +98,9 @@ class TestUserResponse:
             access_token="gho_test_token",
             selected_project_id="PVT_kwDOABCD1234",
         )
-        
+
         response = UserResponse.from_session(session)
-        
+
         assert response.github_user_id == session.github_user_id
         assert response.github_username == session.github_username
         assert response.github_avatar_url == session.github_avatar_url
@@ -113,13 +114,13 @@ class TestUserResponse:
             access_token="gho_sensitive_token",
             refresh_token="ghr_sensitive_refresh",
         )
-        
+
         response = UserResponse.from_session(session)
-        
+
         # Verify sensitive fields are not in the response
-        assert not hasattr(response, 'access_token')
-        assert not hasattr(response, 'refresh_token')
-        assert not hasattr(response, 'session_id')
+        assert not hasattr(response, "access_token")
+        assert not hasattr(response, "refresh_token")
+        assert not hasattr(response, "session_id")
 
 
 class TestIssueMetadata:
@@ -161,7 +162,6 @@ class TestIssueMetadata:
     def test_estimate_hours_bounds(self):
         """Should enforce bounds on estimate_hours."""
         from src.models.chat import IssueMetadata
-        import pytest
 
         # Valid values should work
         metadata = IssueMetadata(estimate_hours=0.5)
@@ -183,14 +183,15 @@ class TestIssueRecommendation:
 
     def test_create_recommendation_with_metadata(self):
         """Should create recommendation with metadata."""
+        from uuid import uuid4
+
         from src.models.chat import (
-            IssueRecommendation,
             IssueMetadata,
             IssuePriority,
+            IssueRecommendation,
             IssueSize,
             RecommendationStatus,
         )
-        from uuid import uuid4
 
         metadata = IssueMetadata(
             priority=IssuePriority.P1,
@@ -219,8 +220,9 @@ class TestIssueRecommendation:
 
     def test_recommendation_with_default_metadata(self):
         """Should use default metadata when not provided."""
-        from src.models.chat import IssueRecommendation, IssuePriority, IssueSize
         from uuid import uuid4
+
+        from src.models.chat import IssuePriority, IssueRecommendation, IssueSize
 
         recommendation = IssueRecommendation(
             session_id=uuid4(),

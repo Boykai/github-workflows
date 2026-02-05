@@ -12,7 +12,9 @@ class Task(BaseModel):
     task_id: UUID = Field(default_factory=uuid4, description="Internal task identifier")
     project_id: str = Field(..., description="Parent project ID (FK)")
     github_item_id: str = Field(..., description="GitHub Project item node ID")
-    github_content_id: str | None = Field(None, description="Linked issue/PR node ID (if not draft)")
+    github_content_id: str | None = Field(
+        None, description="Linked issue/PR node ID (if not draft)"
+    )
     github_issue_id: str | None = Field(None, description="GitHub Issue node ID")
     issue_number: int | None = Field(None, description="GitHub Issue number")
     repository_owner: str | None = Field(None, description="Repository owner")
@@ -23,7 +25,9 @@ class Task(BaseModel):
     status_option_id: str = Field(..., description="Status field option ID")
     assignees: list[str] | None = Field(None, description="List of assigned user logins")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Task creation time")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last modification time")
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Last modification time"
+    )
 
     model_config = {
         "json_schema_extra": {

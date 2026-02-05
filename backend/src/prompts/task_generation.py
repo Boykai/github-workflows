@@ -77,7 +77,9 @@ def create_task_generation_prompt(user_input: str, project_name: str) -> list[di
     ]
 
 
-def create_status_change_prompt(user_input: str, available_tasks: list[str], available_statuses: list[str]) -> list[dict]:
+def create_status_change_prompt(
+    user_input: str, available_tasks: list[str], available_statuses: list[str]
+) -> list[dict]:
     """Create messages for status change intent detection."""
     context = f"""Available tasks in the project:
 {chr(10).join(f'- {task}' for task in available_tasks[:20])}

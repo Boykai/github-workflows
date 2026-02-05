@@ -1,12 +1,13 @@
 """Unit tests for GitHub webhooks."""
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from src.api.webhooks import (
-    verify_webhook_signature,
     extract_issue_number_from_pr,
     handle_pull_request_event,
+    verify_webhook_signature,
 )
 
 
@@ -17,13 +18,14 @@ class TestWebhookSignatureVerification:
         """Test that valid signature passes verification."""
         payload = b'{"test": "payload"}'
         secret = "test-secret"
-        
+
         # Generate valid signature
-        import hmac
         import hashlib
+        import hmac
+
         expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
         signature = f"sha256={expected}"
-        
+
         assert verify_webhook_signature(payload, signature, secret) is True
 
     def test_verify_invalid_signature(self):
@@ -31,14 +33,14 @@ class TestWebhookSignatureVerification:
         payload = b'{"test": "payload"}'
         secret = "test-secret"
         signature = "sha256=invalid"
-        
+
         assert verify_webhook_signature(payload, signature, secret) is False
 
     def test_verify_missing_signature(self):
         """Test that missing signature fails verification."""
         payload = b'{"test": "payload"}'
         secret = "test-secret"
-        
+
         assert verify_webhook_signature(payload, None, secret) is False
 
     def test_verify_wrong_prefix(self):
@@ -46,7 +48,7 @@ class TestWebhookSignatureVerification:
         payload = b'{"test": "payload"}'
         secret = "test-secret"
         signature = "sha1=somehash"
-        
+
         assert verify_webhook_signature(payload, signature, secret) is False
 
 
@@ -141,9 +143,9 @@ class TestPullRequestEventHandling:
                 "name": "test-repo",
             },
         }
-        
+
         result = await handle_pull_request_event(payload)
-        
+
         assert result["status"] == "ignored"
         assert result["reason"] == "not_copilot_ready_event"
 
@@ -162,9 +164,9 @@ class TestPullRequestEventHandling:
                 "name": "test-repo",
             },
         }
-        
+
         result = await handle_pull_request_event(payload)
-        
+
         assert result["status"] == "ignored"
         assert result["reason"] == "not_copilot_ready_event"
 
@@ -173,7 +175,7 @@ class TestPullRequestEventHandling:
     async def test_detects_copilot_pr_ready_no_token(self, mock_settings):
         """Test detection of Copilot PR ready for review without webhook token."""
         mock_settings.return_value.github_webhook_token = None
-        
+
         payload = {
             "action": "ready_for_review",
             "pull_request": {
@@ -188,9 +190,9 @@ class TestPullRequestEventHandling:
                 "name": "test-repo",
             },
         }
-        
+
         result = await handle_pull_request_event(payload)
-        
+
         assert result["status"] == "detected"
         assert result["event"] == "copilot_pr_ready"
         assert result["pr_number"] == 42
@@ -202,7 +204,7 @@ class TestPullRequestEventHandling:
     async def test_detects_copilot_opened_non_draft(self, mock_settings):
         """Test detection of Copilot opening a non-draft PR."""
         mock_settings.return_value.github_webhook_token = None
-        
+
         payload = {
             "action": "opened",
             "pull_request": {
@@ -217,9 +219,9 @@ class TestPullRequestEventHandling:
                 "name": "test-repo",
             },
         }
-        
+
         result = await handle_pull_request_event(payload)
-        
+
         assert result["status"] == "detected"
         assert result["event"] == "copilot_pr_ready"
         assert result["pr_number"] == 55
@@ -240,8 +242,8 @@ class TestPullRequestEventHandling:
                 "name": "test-repo",
             },
         }
-        
+
         result = await handle_pull_request_event(payload)
-        
+
         assert result["status"] == "ignored"
         assert result["reason"] == "not_copilot_ready_event"

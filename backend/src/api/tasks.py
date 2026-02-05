@@ -63,7 +63,7 @@ async def create_task(
             "type": "task_created",
             "task_id": item_id,
             "title": request.title,
-        }
+        },
     )
 
     logger.info("Created task %s in project %s", task.task_id, project_id)
@@ -123,7 +123,7 @@ async def update_task_status(
             "type": "task_update",
             "task_id": task_id,
             "status": status,
-        }
+        },
     )
 
     return target_task

@@ -1,7 +1,6 @@
 """WebSocket connection manager for real-time updates."""
 
 import logging
-from typing import Set
 
 from fastapi import WebSocket
 
@@ -13,7 +12,7 @@ class ConnectionManager:
 
     def __init__(self):
         # Map project_id -> set of connected websockets
-        self._connections: dict[str, Set[WebSocket]] = {}
+        self._connections: dict[str, set[WebSocket]] = {}
         # Map websocket -> project_id for cleanup
         self._socket_projects: dict[WebSocket, str] = {}
 
@@ -54,9 +53,7 @@ class ConnectionManager:
 
             logger.info("WebSocket disconnected from project %s", project_id)
 
-    async def broadcast_to_project(
-        self, project_id: str, message: dict
-    ) -> None:
+    async def broadcast_to_project(self, project_id: str, message: dict) -> None:
         """
         Broadcast a message to all connections for a project.
 

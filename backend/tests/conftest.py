@@ -6,7 +6,6 @@ import pytest
 
 from src.models.user import UserSession
 
-
 # =============================================================================
 # Shared Test Constants
 # =============================================================================
@@ -30,7 +29,7 @@ def anyio_backend():
 @pytest.fixture
 def mock_session() -> UserSession:
     """Create a mock user session for testing.
-    
+
     Use this fixture instead of creating UserSession instances directly
     to ensure consistent test data across all tests.
     """

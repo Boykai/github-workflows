@@ -1,14 +1,12 @@
 """Unit tests for GitHub Projects service - Copilot custom agent assignment."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from datetime import datetime
-import httpx
 
-from src.services.github_projects import GitHubProjectsService
-from src.models.project import GitHubProject, ProjectType, StatusColumn
+from src.models.project import ProjectType
 from src.models.task import Task
-
+from src.services.github_projects import GitHubProjectsService
 
 # =============================================================================
 # Core GraphQL and HTTP Tests
@@ -29,9 +27,7 @@ class TestGraphQLMethod:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {
-            "data": {"user": {"id": "123", "name": "Test"}}
-        }
+        mock_response.json.return_value = {"data": {"user": {"id": "123", "name": "Test"}}}
 
         with patch.object(service, "_client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
@@ -73,9 +69,7 @@ class TestGraphQLMethod:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {
-            "errors": [{"message": "Field not found"}]
-        }
+        mock_response.json.return_value = {"errors": [{"message": "Field not found"}]}
 
         with patch.object(service, "_client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
@@ -122,9 +116,9 @@ class TestListUserProjects:
                                 "options": [
                                     {"id": "OPT_1", "name": "Todo", "color": "gray"},
                                     {"id": "OPT_2", "name": "Done", "color": "green"},
-                                ]
+                                ],
                             },
-                            "items": {"totalCount": 10}
+                            "items": {"totalCount": 10},
                         }
                     ]
                 }
@@ -173,7 +167,7 @@ class TestListUserProjects:
                             "url": "https://github.com/users/u/projects/1",
                             "closed": False,
                             "field": None,
-                            "items": {"totalCount": 5}
+                            "items": {"totalCount": 5},
                         },
                         {
                             "id": "PVT_2",
@@ -181,8 +175,8 @@ class TestListUserProjects:
                             "url": "https://github.com/users/u/projects/2",
                             "closed": True,
                             "field": None,
-                            "items": {"totalCount": 3}
-                        }
+                            "items": {"totalCount": 3},
+                        },
                     ]
                 }
             }
@@ -225,9 +219,9 @@ class TestListOrgProjects:
                                 "id": "FIELD_1",
                                 "options": [
                                     {"id": "OPT_1", "name": "Backlog"},
-                                ]
+                                ],
                             },
-                            "items": {"totalCount": 20}
+                            "items": {"totalCount": 20},
                         }
                     ]
                 }
@@ -265,7 +259,7 @@ class TestParseProjects:
                 "url": "https://github.com/users/u/projects/1",
                 "closed": False,
                 "field": None,  # No status field
-                "items": {"totalCount": 0}
+                "items": {"totalCount": 0},
             }
         ]
 
@@ -283,7 +277,17 @@ class TestParseProjects:
 
     def test_parse_projects_skips_null_nodes(self, service):
         """Should skip null nodes in response."""
-        nodes = [None, {"id": "PVT_1", "title": "Valid", "url": "url", "closed": False, "field": None, "items": {"totalCount": 0}}]
+        nodes = [
+            None,
+            {
+                "id": "PVT_1",
+                "title": "Valid",
+                "url": "url",
+                "closed": False,
+                "field": None,
+                "items": {"totalCount": 0},
+            },
+        ]
 
         projects = service._parse_projects(
             nodes=nodes,
@@ -323,13 +327,10 @@ class TestGetProjectItems:
                                 "number": 42,
                                 "title": "Test Issue",
                                 "body": "Description here",
-                                "repository": {
-                                    "owner": {"login": "owner"},
-                                    "name": "repo"
-                                }
-                            }
+                                "repository": {"owner": {"login": "owner"}, "name": "repo"},
+                            },
                         }
-                    ]
+                    ],
                 }
             }
         }
@@ -362,9 +363,9 @@ class TestGetProjectItems:
                         {
                             "id": "ITEM_1",
                             "fieldValueByName": {"name": "Todo", "optionId": "OPT_1"},
-                            "content": {"title": "Task 1", "body": ""}
+                            "content": {"title": "Task 1", "body": ""},
                         }
-                    ]
+                    ],
                 }
             }
         }
@@ -377,9 +378,9 @@ class TestGetProjectItems:
                         {
                             "id": "ITEM_2",
                             "fieldValueByName": {"name": "Done", "optionId": "OPT_2"},
-                            "content": {"title": "Task 2", "body": ""}
+                            "content": {"title": "Task 2", "body": ""},
                         }
-                    ]
+                    ],
                 }
             }
         }
@@ -414,11 +415,7 @@ class TestCreateDraftItem:
     @pytest.mark.asyncio
     async def test_create_draft_item_success(self, service):
         """Should create draft item and return ID."""
-        mock_response = {
-            "addProjectV2DraftIssue": {
-                "projectItem": {"id": "ITEM_NEW"}
-            }
-        }
+        mock_response = {"addProjectV2DraftIssue": {"projectItem": {"id": "ITEM_NEW"}}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -447,11 +444,7 @@ class TestUpdateItemStatus:
     @pytest.mark.asyncio
     async def test_update_item_status_success(self, service):
         """Should update item status and return True."""
-        mock_response = {
-            "updateProjectV2ItemFieldValue": {
-                "projectV2Item": {"id": "ITEM_1"}
-            }
-        }
+        mock_response = {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "ITEM_1"}}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -470,11 +463,7 @@ class TestUpdateItemStatus:
     @pytest.mark.asyncio
     async def test_update_item_status_failure(self, service):
         """Should return False on failure."""
-        mock_response = {
-            "updateProjectV2ItemFieldValue": {
-                "projectV2Item": None
-            }
-        }
+        mock_response = {"updateProjectV2ItemFieldValue": {"projectV2Item": None}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -509,7 +498,7 @@ class TestUpdateItemStatusByName:
                     "options": [
                         {"id": "OPT_1", "name": "Todo"},
                         {"id": "OPT_2", "name": "Done"},
-                    ]
+                    ],
                 }
             }
         }
@@ -540,12 +529,7 @@ class TestUpdateItemStatusByName:
     async def test_update_status_by_name_not_found(self, service):
         """Should return False when status not found."""
         mock_field_response = {
-            "node": {
-                "field": {
-                    "id": "FIELD_1",
-                    "options": [{"id": "OPT_1", "name": "Todo"}]
-                }
-            }
+            "node": {"field": {"id": "FIELD_1", "options": [{"id": "OPT_1", "name": "Todo"}]}}
         }
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
@@ -602,7 +586,7 @@ class TestCreateIssue:
 
             assert result["number"] == 42
             assert result["node_id"] == "I_123"
-            
+
             call_args = mock_client.post.call_args
             assert call_args.kwargs["json"]["title"] == "Test Issue"
             assert call_args.kwargs["json"]["labels"] == ["bug", "enhancement"]
@@ -619,11 +603,7 @@ class TestAddIssueToProject:
     @pytest.mark.asyncio
     async def test_add_issue_to_project_success(self, service):
         """Should add issue to project and return item ID."""
-        mock_response = {
-            "addProjectV2ItemById": {
-                "item": {"id": "ITEM_NEW"}
-            }
-        }
+        mock_response = {"addProjectV2ItemById": {"item": {"id": "ITEM_NEW"}}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -751,9 +731,7 @@ class TestGetRepositoryOwner:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {
-            "owner": {"login": "repo-owner"}
-        }
+        mock_response.json.return_value = {"owner": {"login": "repo-owner"}}
 
         with patch.object(service, "_client") as mock_client:
             mock_client.get = AsyncMock(return_value=mock_response)
@@ -786,7 +764,7 @@ class TestGetProjectRepository:
                             "content": {
                                 "repository": {
                                     "owner": {"login": "found-owner"},
-                                    "name": "found-repo"
+                                    "name": "found-repo",
                                 }
                             }
                         }
@@ -808,13 +786,7 @@ class TestGetProjectRepository:
     @pytest.mark.asyncio
     async def test_get_project_repository_not_found(self, service):
         """Should return None when no repository found."""
-        mock_response = {
-            "node": {
-                "items": {
-                    "nodes": []
-                }
-            }
-        }
+        mock_response = {"node": {"items": {"nodes": []}}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -851,19 +823,15 @@ class TestGetProjectFields:
                             "id": "FIELD_1",
                             "name": "Status",
                             "dataType": "SINGLE_SELECT",
-                            "options": [{"id": "OPT_1", "name": "Todo"}]
+                            "options": [{"id": "OPT_1", "name": "Todo"}],
                         },
                         {
                             "id": "FIELD_2",
                             "name": "Priority",
                             "dataType": "SINGLE_SELECT",
-                            "options": [{"id": "OPT_P1", "name": "High"}]
+                            "options": [{"id": "OPT_P1", "name": "High"}],
                         },
-                        {
-                            "id": "FIELD_3",
-                            "name": "Estimate",
-                            "dataType": "NUMBER"
-                        }
+                        {"id": "FIELD_3", "name": "Estimate", "dataType": "NUMBER"},
                     ]
                 }
             }
@@ -917,7 +885,7 @@ class TestUpdateProjectItemField:
                     "options": [
                         {"id": "OPT_1", "name": "P1"},
                         {"id": "OPT_2", "name": "P2"},
-                    ]
+                    ],
                 }
             }
 
@@ -941,11 +909,7 @@ class TestUpdateProjectItemField:
         """Should update number field."""
         with patch.object(service, "get_project_fields", new_callable=AsyncMock) as mock_get_fields:
             mock_get_fields.return_value = {
-                "Estimate": {
-                    "id": "FIELD_1",
-                    "dataType": "NUMBER",
-                    "options": []
-                }
+                "Estimate": {"id": "FIELD_1", "dataType": "NUMBER", "options": []}
             }
 
             with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
@@ -1015,11 +979,11 @@ class TestGetPullRequest:
                                 "commit": {
                                     "oid": "abc123",
                                     "committedDate": "2026-01-02T09:00:00Z",
-                                    "statusCheckRollup": {"state": "SUCCESS"}
+                                    "statusCheckRollup": {"state": "SUCCESS"},
                                 }
                             }
                         ]
-                    }
+                    },
                 }
             }
         }
@@ -1043,11 +1007,7 @@ class TestGetPullRequest:
     @pytest.mark.asyncio
     async def test_get_pull_request_not_found(self, service):
         """Should return None when PR not found."""
-        mock_response = {
-            "repository": {
-                "pullRequest": None
-            }
-        }
+        mock_response = {"repository": {"pullRequest": None}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -1078,7 +1038,7 @@ class TestRequestCopilotReview:
                 "pullRequest": {
                     "id": "PR_123",
                     "number": 42,
-                    "url": "https://github.com/owner/repo/pull/42"
+                    "url": "https://github.com/owner/repo/pull/42",
                 }
             }
         }
@@ -1097,11 +1057,7 @@ class TestRequestCopilotReview:
     @pytest.mark.asyncio
     async def test_request_copilot_review_failure(self, service):
         """Should return False on failure."""
-        mock_response = {
-            "requestReviewsByLogin": {
-                "pullRequest": None
-            }
-        }
+        mock_response = {"requestReviewsByLogin": {"pullRequest": None}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -1328,8 +1284,10 @@ class TestPollProjectChanges:
 
             assert len(result["changes"]) == 1
             assert result["changes"][0]["type"] == "status_changed"
-            
-            ready_triggers = [t for t in result["workflow_triggers"] if t["trigger"] == "ready_detected"]
+
+            ready_triggers = [
+                t for t in result["workflow_triggers"] if t["trigger"] == "ready_detected"
+            ]
             assert len(ready_triggers) == 1
 
 
@@ -1516,9 +1474,7 @@ class TestAssignCopilotToIssue:
         """Should successfully assign Copilot via REST API."""
         mock_response = Mock()
         mock_response.status_code = 201
-        mock_response.json.return_value = {
-            "assignees": [{"login": "copilot-swe-agent[bot]"}]
-        }
+        mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
 
         with patch.object(service, "_client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
@@ -1545,9 +1501,7 @@ class TestAssignCopilotToIssue:
         """Should include custom instructions in payload."""
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "assignees": [{"login": "copilot-swe-agent[bot]"}]
-        }
+        mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
 
         with patch.object(service, "_client") as mock_client:
             mock_client.post = AsyncMock(return_value=mock_response)
@@ -1564,7 +1518,10 @@ class TestAssignCopilotToIssue:
 
             call_args = mock_client.post.call_args
             payload = call_args.kwargs["json"]
-            assert payload["agent_assignment"]["custom_instructions"] == "## Issue Title\nTest\n\n## Description\nContent"
+            assert (
+                payload["agent_assignment"]["custom_instructions"]
+                == "## Issue Title\nTest\n\n## Description\nContent"
+            )
             assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
 
     @pytest.mark.asyncio
@@ -1627,17 +1584,13 @@ class TestAssignCopilotGraphQL:
     @pytest.mark.asyncio
     async def test_graphql_assign_success(self, service):
         """Should successfully assign via GraphQL."""
-        with patch.object(
-            service, "get_copilot_bot_id", new_callable=AsyncMock
-        ) as mock_get_bot:
+        with patch.object(service, "get_copilot_bot_id", new_callable=AsyncMock) as mock_get_bot:
             mock_get_bot.return_value = ("BOT_ID_123", "REPO_ID_456")
 
             with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
                 mock_graphql.return_value = {
                     "addAssigneesToAssignable": {
-                        "assignable": {
-                            "assignees": {"nodes": [{"login": "copilot-swe-agent"}]}
-                        }
+                        "assignable": {"assignees": {"nodes": [{"login": "copilot-swe-agent"}]}}
                     }
                 }
 
@@ -1655,9 +1608,7 @@ class TestAssignCopilotGraphQL:
     @pytest.mark.asyncio
     async def test_graphql_assign_no_bot_available(self, service):
         """Should return False when Copilot bot is not available."""
-        with patch.object(
-            service, "get_copilot_bot_id", new_callable=AsyncMock
-        ) as mock_get_bot:
+        with patch.object(service, "get_copilot_bot_id", new_callable=AsyncMock) as mock_get_bot:
             mock_get_bot.return_value = (None, "REPO_ID_456")
 
             result = await service._assign_copilot_graphql(
@@ -1672,9 +1623,7 @@ class TestAssignCopilotGraphQL:
     @pytest.mark.asyncio
     async def test_graphql_assign_no_repo_id(self, service):
         """Should return False when repository ID is not found."""
-        with patch.object(
-            service, "get_copilot_bot_id", new_callable=AsyncMock
-        ) as mock_get_bot:
+        with patch.object(service, "get_copilot_bot_id", new_callable=AsyncMock) as mock_get_bot:
             mock_get_bot.return_value = ("BOT_ID_123", None)
 
             result = await service._assign_copilot_graphql(
@@ -1994,7 +1943,7 @@ class TestCheckCopilotFinishedEvents:
 
 class TestCheckCopilotPrCompletion:
     """Tests for checking Copilot PR completion.
-    
+
     Copilot is detected as "finished work" when timeline has:
     - 'copilot_work_finished' event, OR
     - 'review_requested' event where review_requester is Copilot
@@ -2019,25 +1968,25 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",
             }
         ]
-        
+
         pr_details = {
             "id": "PR_123",
             "number": 42,
             "last_commit": {"sha": "abc1234567890"},
         }
-        
-        # Timeline events indicating Copilot finished work
-        timeline_events = [
-            {"event": "copilot_work_finished"}
-        ]
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr, patch.object(
-            service, "get_pr_timeline_events", new_callable=AsyncMock
-        ) as mock_get_timeline:
+        # Timeline events indicating Copilot finished work
+        timeline_events = [{"event": "copilot_work_finished"}]
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
             mock_get_timeline.return_value = timeline_events
@@ -2068,13 +2017,13 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",
             }
         ]
-        
+
         pr_details = {
             "id": "PR_123",
             "number": 42,
             "last_commit": {"sha": "abc1234567890"},
         }
-        
+
         # Timeline events with review_requested from Copilot
         timeline_events = [
             {"event": "copilot_work_started"},
@@ -2082,16 +2031,18 @@ class TestCheckCopilotPrCompletion:
                 "event": "review_requested",
                 "review_requester": {"login": "Copilot"},
                 "requested_reviewer": {"login": "some-user"},
-            }
+            },
         ]
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr, patch.object(
-            service, "get_pr_timeline_events", new_callable=AsyncMock
-        ) as mock_get_timeline:
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
             mock_get_timeline.return_value = timeline_events
@@ -2121,17 +2072,18 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",
             }
         ]
-        
+
         pr_details = {
             "id": "PR_123",
             "number": 42,
         }
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr:
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
 
@@ -2214,27 +2166,29 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",
             }
         ]
-        
+
         pr_details = {
             "id": "PR_123",
             "number": 42,
             "check_status": None,
             "last_commit": None,
         }
-        
+
         # No finish events yet - Copilot still working
         timeline_events = [
             {"event": "copilot_work_started"},
             {"event": "committed"},
         ]
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr, patch.object(
-            service, "get_pr_timeline_events", new_callable=AsyncMock
-        ) as mock_get_timeline:
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
             mock_get_timeline.return_value = timeline_events
@@ -2262,17 +2216,18 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot[bot]",  # Alternative Copilot bot name
             }
         ]
-        
+
         pr_details = {
             "id": "PR_123",
             "number": 42,
         }
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr:
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
 
@@ -2312,26 +2267,26 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",  # This is the one
             },
         ]
-        
+
         pr_details = {
             "id": "PR_3",
             "number": 30,
             "check_status": "SUCCESS",
             "last_commit": {"sha": "abc123"},
         }
-        
-        # Timeline events indicating Copilot finished work
-        timeline_events = [
-            {"event": "copilot_work_finished"}
-        ]
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr, patch.object(
-            service, "get_pr_timeline_events", new_callable=AsyncMock
-        ) as mock_get_timeline:
+        # Timeline events indicating Copilot finished work
+        timeline_events = [{"event": "copilot_work_finished"}]
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
             mock_get_prs.return_value = linked_prs
             mock_get_pr.return_value = pr_details
             mock_get_timeline.return_value = timeline_events
@@ -2400,17 +2355,18 @@ class TestCheckCopilotPrCompletion:
                 "author": "copilot-swe-agent[bot]",
             },
         ]
-        
+
         pr_details_2 = {
             "id": "PR_2",
             "number": 20,
         }
 
-        with patch.object(
-            service, "get_linked_pull_requests", new_callable=AsyncMock
-        ) as mock_get_prs, patch.object(
-            service, "get_pull_request", new_callable=AsyncMock
-        ) as mock_get_pr:
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+        ):
             mock_get_prs.return_value = linked_prs
             # First call returns None, second returns details
             mock_get_pr.side_effect = [None, pr_details_2]

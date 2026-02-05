@@ -1,13 +1,14 @@
 """Unit tests for the AI agent service (Azure OpenAI integration)."""
 
 import sys
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 # Mock the openai module before importing ai_agent
 mock_openai = MagicMock()
 mock_openai.AzureOpenAI = MagicMock()
-sys.modules['openai'] = mock_openai
+sys.modules["openai"] = mock_openai
 
 from src.services.ai_agent import (
     AIAgentService,
@@ -70,9 +71,7 @@ class TestGenerateTaskFromDescription:
             return_value='```json\n{"title": "Markdown Task", "description": "With code block"}\n```'
         )
 
-        result = await mock_service.generate_task_from_description(
-            "Create a task", "Project"
-        )
+        result = await mock_service.generate_task_from_description("Create a task", "Project")
 
         assert result.title == "Markdown Task"
         assert result.description == "With code block"
@@ -149,7 +148,7 @@ class TestParseStatusChangeRequest:
         result = await mock_service.parse_status_change_request(
             "Mark login feature as done",
             ["Login feature", "Dashboard"],
-            ["Todo", "In Progress", "Done"]
+            ["Todo", "In Progress", "Done"],
         )
 
         assert isinstance(result, StatusChangeIntent)
@@ -352,7 +351,7 @@ class TestParseJsonResponse:
 
 class TestAzureOpenAIIntegration:
     """Integration tests for Azure OpenAI connection (requires valid credentials).
-    
+
     These tests are skipped by default. Run with: pytest -m integration
     """
 
@@ -361,11 +360,13 @@ class TestAzureOpenAIIntegration:
         """Create a service using real settings (if available)."""
         # Skip if running with mocked openai module (no real credentials)
         import sys
-        if 'openai' in sys.modules and hasattr(sys.modules['openai'], '_mock_name'):
+
+        if "openai" in sys.modules and hasattr(sys.modules["openai"], "_mock_name"):
             pytest.skip("Running with mocked openai - no real credentials available")
-        
+
         try:
             from src.config import get_settings
+
             settings = get_settings()
             # Check if we have real credentials
             if not settings.azure_openai_endpoint or not settings.azure_openai_key:
@@ -373,7 +374,7 @@ class TestAzureOpenAIIntegration:
             # This will use actual .env settings
             service = AIAgentService()
             # Verify the client is not a mock
-            if hasattr(service._client, '_mock_name') or isinstance(service._client, MagicMock):
+            if hasattr(service._client, "_mock_name") or isinstance(service._client, MagicMock):
                 pytest.skip("Azure OpenAI client is mocked - no real credentials")
             return service
         except Exception as e:
@@ -383,14 +384,13 @@ class TestAzureOpenAIIntegration:
     @pytest.mark.integration
     async def test_live_task_generation(self, live_service):
         """Test actual task generation with Azure OpenAI.
-        
+
         This test requires valid Azure OpenAI credentials and deployment.
         Skipped if the API returns an error (invalid credentials or deployment).
         """
         try:
             result = await live_service.generate_task_from_description(
-                "Create a login page with email and password fields",
-                "Web App Project"
+                "Create a login page with email and password fields", "Web App Project"
             )
 
             assert isinstance(result, GeneratedTask)
@@ -398,7 +398,10 @@ class TestAzureOpenAIIntegration:
             assert len(result.description) > 0
         except ValueError as e:
             error_msg = str(e)
-            if any(code in error_msg for code in ["404", "401", "403", "Resource not found", "Access denied"]):
+            if any(
+                code in error_msg
+                for code in ["404", "401", "403", "Resource not found", "Access denied"]
+            ):
                 pytest.skip(f"Azure OpenAI not available or credentials invalid: {e}")
             raise
 
@@ -406,7 +409,7 @@ class TestAzureOpenAIIntegration:
     @pytest.mark.integration
     async def test_live_status_change_detection(self, live_service):
         """Test actual status change detection with Azure OpenAI.
-        
+
         This test requires valid Azure OpenAI credentials and deployment.
         Skipped if the API returns an error.
         """
@@ -414,7 +417,7 @@ class TestAzureOpenAIIntegration:
             result = await live_service.parse_status_change_request(
                 "Mark the login feature task as completed",
                 ["Login feature", "Dashboard", "Settings page"],
-                ["Todo", "In Progress", "Done"]
+                ["Todo", "In Progress", "Done"],
             )
 
             # Should detect status change intent
@@ -423,7 +426,10 @@ class TestAzureOpenAIIntegration:
                 assert result.confidence >= 0.5
         except Exception as e:
             error_msg = str(e)
-            if any(code in error_msg for code in ["404", "401", "403", "Resource not found", "Access denied"]):
+            if any(
+                code in error_msg
+                for code in ["404", "401", "403", "Resource not found", "Access denied"]
+            ):
                 pytest.skip(f"Azure OpenAI not available or credentials invalid: {e}")
             # For status change, we return None on errors, so this shouldn't happen
             raise

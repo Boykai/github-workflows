@@ -2,7 +2,7 @@
 
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -41,7 +41,7 @@ class GitHubAuthService:
             Tuple of (authorization_url, state)
         """
         state = secrets.token_urlsafe(32)
-        _oauth_states[state] = datetime.now(timezone.utc)
+        _oauth_states[state] = datetime.now(UTC)
 
         params = {
             "client_id": self.settings.github_client_id,
@@ -68,7 +68,7 @@ class GitHubAuthService:
 
         created_at = _oauth_states.pop(state)
         # State expires after 10 minutes
-        return datetime.now(timezone.utc) - created_at < timedelta(minutes=10)
+        return datetime.now(UTC) - created_at < timedelta(minutes=10)
 
     async def exchange_code_for_token(self, code: str) -> dict:
         """
@@ -128,7 +128,9 @@ class GitHubAuthService:
         token_data = await self.exchange_code_for_token(code)
 
         if "error" in token_data:
-            raise ValueError(f"OAuth error: {token_data.get('error_description', token_data['error'])}")
+            raise ValueError(
+                f"OAuth error: {token_data.get('error_description', token_data['error'])}"
+            )
 
         access_token = token_data["access_token"]
         refresh_token = token_data.get("refresh_token")
@@ -140,7 +142,7 @@ class GitHubAuthService:
         # Calculate token expiration
         token_expires_at = None
         if expires_in:
-            token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+            token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
 
         # Create session
         session = UserSession(
@@ -185,7 +187,9 @@ class GitHubAuthService:
         token_data = response.json()
 
         if "error" in token_data:
-            raise ValueError(f"Token refresh error: {token_data.get('error_description', token_data['error'])}")
+            raise ValueError(
+                f"Token refresh error: {token_data.get('error_description', token_data['error'])}"
+            )
 
         # Update session
         session.access_token = token_data["access_token"]
@@ -204,18 +208,18 @@ class GitHubAuthService:
     async def create_session_from_token(self, access_token: str) -> UserSession:
         """
         Create user session directly from a GitHub Personal Access Token.
-        
+
         This is for development/testing purposes to bypass OAuth flow.
-        
+
         Args:
             access_token: GitHub Personal Access Token
-            
+
         Returns:
             Created user session
         """
         # Verify token by getting user info
         user_data = await self.get_github_user(access_token)
-        
+
         # Create session (PATs don't have refresh tokens or expiration)
         session = UserSession(
             github_user_id=str(user_data["id"]),
@@ -225,11 +229,11 @@ class GitHubAuthService:
             refresh_token=None,
             token_expires_at=None,  # PATs don't expire
         )
-        
+
         # Store session
         _sessions[str(session.session_id)] = session
         logger.info("Created session from PAT for user %s", session.github_username)
-        
+
         return session
 
     def get_session(self, session_id: str | UUID) -> UserSession | None:
@@ -251,7 +255,7 @@ class GitHubAuthService:
         Args:
             session: Session to update
         """
-        session.updated_at = datetime.now(timezone.utc)
+        session.updated_at = datetime.now(UTC)
         _sessions[str(session.session_id)] = session
 
     def revoke_session(self, session_id: str | UUID) -> bool:
