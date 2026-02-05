@@ -84,6 +84,10 @@ function AppContent() {
         <LoginButton />
       </header>
 
+      <div className="hello-world-banner">
+        <h2>Hello World</h2>
+      </div>
+
       <main className="app-main">
         <ProjectSidebar
           projects={projects}
