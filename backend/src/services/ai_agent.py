@@ -2,10 +2,8 @@
 
 import json
 import logging
-import os
 import re
 from dataclasses import dataclass
-from uuid import uuid4
 
 from src.config import get_settings
 from src.models.chat import (
@@ -250,7 +248,7 @@ class AIAgentService:
         Returns:
             IssueMetadata instance with validated values
         """
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         # Parse priority with default
         priority_str = metadata_data.get("priority", "P2").upper()

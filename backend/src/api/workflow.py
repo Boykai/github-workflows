@@ -4,15 +4,13 @@ import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
-    IssueRecommendation,
     RecommendationStatus,
     WorkflowConfiguration,
     WorkflowResult,
@@ -24,7 +22,6 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
-    WorkflowOrchestrator,
     get_transitions,
     get_workflow_config,
     get_workflow_orchestrator,

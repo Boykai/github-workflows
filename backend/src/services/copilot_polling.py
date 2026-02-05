@@ -17,7 +17,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from src.config import get_settings
 from src.services.github_projects import github_projects_service
 
 logger = logging.getLogger(__name__)

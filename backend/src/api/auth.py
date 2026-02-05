@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
 from src.constants import SESSION_COOKIE_NAME

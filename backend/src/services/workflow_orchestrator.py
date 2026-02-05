@@ -16,16 +16,13 @@ TRANSITIONS:
 """
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
-from uuid import UUID, uuid4
 
 from src.models.chat import (
     IssueRecommendation,
     IssueMetadata,
-    RecommendationStatus,
     TriggeredBy,
     WorkflowConfiguration,
     WorkflowResult,

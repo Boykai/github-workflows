@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Annotated, AsyncGenerator
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect, Request
+from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
 from src.api.auth import get_current_session, get_session_dep

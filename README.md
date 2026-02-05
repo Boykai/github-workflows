@@ -84,8 +84,8 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 | Status | Description | Triggered By |
 |--------|-------------|--------------|
 | 📝 **Ready** | Issue created, waiting to be picked up | AI generates issue from chat |
-| 🔄 **In Progress** | Work is actively being done | User assigns to Copilot or developer |
-| 👀 **In Review** | PR created and ready for review | Polling detects Copilot completion |
+| 🔄 **In Progress** | Work is actively being done | App assigns to Copilot or developer |
+| 👀 **In Review** | PR created and ready for review | Polling detects Copilot code completion |
 | ✅ **Done** | Work completed and merged | Manual or webhook on PR merge |
 
 ### Key Integrations
@@ -126,6 +126,7 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 
 ## Prerequisites
 - ⚠️ [Fork repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) before starting
+- [Create GitHub Project](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) and have a repository available
 - [Visual Studio Code](https://code.visualstudio.com/download) or [GitHub Codespaces](https://github.com/features/codespaces)
 - Docker and Docker Compose (recommended) OR:
   - Node.js 18+

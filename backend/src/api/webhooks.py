@@ -402,7 +402,6 @@ async def update_issue_status_for_copilot_pr(
     # Get the project ID for this repository
     # We need to find which project contains this issue
     try:
-        from src.services.cache import cache, get_user_projects_cache_key
         
         # Try to find the project for this repository
         # First, list user's projects to find the matching one

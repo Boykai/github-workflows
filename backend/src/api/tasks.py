@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
 from src.exceptions import NotFoundError, ValidationError
-from src.models.task import Task, TaskCreateRequest, TaskListResponse
+from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
 from src.services.cache import cache, get_project_items_cache_key
 from src.services.github_projects import github_projects_service

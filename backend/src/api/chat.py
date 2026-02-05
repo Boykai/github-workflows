@@ -1,7 +1,6 @@
 """Chat API endpoints."""
 
 import logging
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -22,7 +21,6 @@ from src.models.chat import (
     RecommendationStatus,
     SenderType,
 )
-from src.models.task import Task
 from src.models.user import UserSession
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import cache, get_project_items_cache_key, get_user_projects_cache_key

@@ -2,7 +2,6 @@
 
 import logging
 from typing import Set
-from uuid import UUID
 
 from fastapi import WebSocket
 
