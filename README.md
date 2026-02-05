@@ -127,6 +127,7 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 ## Prerequisites
 - ⚠️ [Fork repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) before starting
 - [Create GitHub Project (Kanban) ](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) and have a repository available
+- Sign-Up for [GitHub Copilot](https://github.com/features/copilot)
 - [Visual Studio Code](https://code.visualstudio.com/download) or [GitHub Codespaces](https://github.com/features/codespaces)
 - Docker and Docker Compose (recommended) OR:
   - Node.js 18+
