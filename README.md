@@ -149,7 +149,7 @@ Click the button below or go to **Code** → **Codespaces** → **Create codespa
 ### 2. Wait for Setup
 
 The dev container will automatically:
-- Install Python 3.12 and Node.js 22
+- Install Python 3.12 and Node.js 20
 - Set up the backend virtual environment
 - Install all dependencies (backend + frontend)
 - Install Playwright browsers for testing
