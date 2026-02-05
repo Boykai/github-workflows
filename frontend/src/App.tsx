@@ -65,6 +65,9 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
+        <div className="app-login-music">
+          <MusicPlayer />
+        </div>
         <h1>GitHub Projects Chat</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
