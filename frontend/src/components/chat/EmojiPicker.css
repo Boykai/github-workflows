@@ -1,0 +1,128 @@
+/* Emoji picker styling */
+
+.emoji-picker-container {
+  position: relative;
+  display: inline-block;
+}
+
+.emoji-picker-trigger {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.emoji-picker-trigger:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.emoji-picker-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emoji-picker-panel {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  min-width: 240px;
+  max-width: 280px;
+  z-index: 1000;
+  animation: slideUp 0.15s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.emoji-category {
+  margin-bottom: 12px;
+}
+
+.emoji-category:last-child {
+  margin-bottom: 0;
+}
+
+.emoji-category-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.emoji-option {
+  background: none;
+  border: none;
+  padding: 8px;
+  font-size: 24px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+}
+
+.emoji-option:hover {
+  background-color: #f3f4f6;
+  transform: scale(1.1);
+}
+
+.emoji-option:active {
+  transform: scale(0.95);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .emoji-picker-trigger {
+    color: #9ca3af;
+  }
+
+  .emoji-picker-trigger:hover {
+    background-color: #374151;
+    color: #d1d5db;
+  }
+
+  .emoji-picker-panel {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .emoji-category-label {
+    color: #9ca3af;
+  }
+
+  .emoji-option:hover {
+    background-color: #374151;
+  }
+}
