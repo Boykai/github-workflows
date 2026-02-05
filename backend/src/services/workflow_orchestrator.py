@@ -16,16 +16,13 @@ TRANSITIONS:
 """
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
-from uuid import UUID, uuid4
 
 from src.models.chat import (
-    IssueRecommendation,
     IssueMetadata,
-    RecommendationStatus,
+    IssueRecommendation,
     TriggeredBy,
     WorkflowConfiguration,
     WorkflowResult,
@@ -119,12 +116,14 @@ class WorkflowOrchestrator:
         Returns:
             Formatted markdown string
         """
-        requirements_list = "\n".join(
-            f"- {req}" for req in recommendation.functional_requirements
-        )
+        requirements_list = "\n".join(f"- {req}" for req in recommendation.functional_requirements)
 
         # Format metadata section
-        metadata = recommendation.metadata if hasattr(recommendation, 'metadata') and recommendation.metadata else None
+        metadata = (
+            recommendation.metadata
+            if hasattr(recommendation, "metadata") and recommendation.metadata
+            else None
+        )
         metadata_section = ""
         if metadata:
             metadata_section = f"""## Metadata
@@ -278,7 +277,7 @@ class WorkflowOrchestrator:
         ctx.current_state = WorkflowState.BACKLOG
 
         # Set metadata fields if recommendation has metadata
-        if recommendation and hasattr(recommendation, 'metadata') and recommendation.metadata:
+        if recommendation and hasattr(recommendation, "metadata") and recommendation.metadata:
             await self._set_issue_metadata(ctx, recommendation.metadata)
 
         # Log the transition
@@ -293,9 +292,7 @@ class WorkflowOrchestrator:
         logger.info("Added to project, item_id: %s", item_id)
         return item_id
 
-    async def _set_issue_metadata(
-        self, ctx: WorkflowContext, metadata: "IssueMetadata"
-    ) -> None:
+    async def _set_issue_metadata(self, ctx: WorkflowContext, metadata: "IssueMetadata") -> None:
         """
         Set metadata fields on a project item.
 
@@ -406,10 +403,12 @@ class WorkflowOrchestrator:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
-        logger.info("Issue %s is Ready, assigning Copilot and transitioning to In Progress", ctx.issue_id)
+        logger.info(
+            "Issue %s is Ready, assigning Copilot and transitioning to In Progress", ctx.issue_id
+        )
 
         # Prepare custom agent configuration
-        custom_agent = config.custom_agent if hasattr(config, 'custom_agent') else ""
+        custom_agent = config.custom_agent if hasattr(config, "custom_agent") else ""
         custom_instructions = ""
 
         # If a custom agent is configured, fetch issue details for the prompt
@@ -449,8 +448,11 @@ class WorkflowOrchestrator:
             else:
                 logger.info("Successfully assigned GitHub Copilot to issue #%d", ctx.issue_number)
         else:
-            logger.warning("Could not assign GitHub Copilot to issue #%d - Copilot may not be available", ctx.issue_number)
-            
+            logger.warning(
+                "Could not assign GitHub Copilot to issue #%d - Copilot may not be available",
+                ctx.issue_number,
+            )
+
             # Fall back to configured assignee if Copilot assignment failed
             assignee = config.copilot_assignee
             if assignee:
@@ -470,9 +472,13 @@ class WorkflowOrchestrator:
                         assignees=[assignee],
                     )
                     if assign_success:
-                        logger.info("Fallback: Assigned %s to issue #%d", assignee, ctx.issue_number)
+                        logger.info(
+                            "Fallback: Assigned %s to issue #%d", assignee, ctx.issue_number
+                        )
                     else:
-                        logger.warning("Fallback: Failed to assign %s to issue #%d", assignee, ctx.issue_number)
+                        logger.warning(
+                            "Fallback: Failed to assign %s to issue #%d", assignee, ctx.issue_number
+                        )
 
         # Update status to In Progress
         status_success = await self.github.update_item_status_by_name(
@@ -494,7 +500,7 @@ class WorkflowOrchestrator:
             return False
 
         ctx.current_state = WorkflowState.IN_PROGRESS
-        
+
         # Log which agent was used
         assigned_agent = custom_agent if custom_agent and copilot_assigned else None
         self.log_transition(
@@ -503,7 +509,11 @@ class WorkflowOrchestrator:
             to_status=config.status_in_progress,
             triggered_by=TriggeredBy.AUTOMATIC,
             success=True,
-            assigned_user=f"copilot:{custom_agent}" if assigned_agent else ("copilot" if copilot_assigned else config.copilot_assignee),
+            assigned_user=(
+                f"copilot:{custom_agent}"
+                if assigned_agent
+                else ("copilot" if copilot_assigned else config.copilot_assignee)
+            ),
         )
 
         return True
@@ -542,7 +552,9 @@ class WorkflowOrchestrator:
         )
 
         if not completed_pr:
-            logger.info("No completed Copilot PR found for issue #%d - still in progress", ctx.issue_number)
+            logger.info(
+                "No completed Copilot PR found for issue #%d - still in progress", ctx.issue_number
+            )
             return False
 
         logger.info(
@@ -562,7 +574,9 @@ class WorkflowOrchestrator:
                 if mark_success:
                     logger.info("Marked PR #%d as ready for review", completed_pr["number"])
                 else:
-                    logger.warning("Failed to mark PR #%d as ready for review", completed_pr["number"])
+                    logger.warning(
+                        "Failed to mark PR #%d as ready for review", completed_pr["number"]
+                    )
 
         # Update status to In Review
         status_success = await self.github.update_item_status_by_name(
@@ -755,7 +769,7 @@ class WorkflowOrchestrator:
         """
         try:
             # Step 1: Create issue
-            issue = await self.create_issue_from_recommendation(ctx, recommendation)
+            await self.create_issue_from_recommendation(ctx, recommendation)
 
             # Step 2: Add to project with metadata
             await self.add_to_project_with_backlog(ctx, recommendation)

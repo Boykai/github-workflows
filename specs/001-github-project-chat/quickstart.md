@@ -35,27 +35,28 @@ pip install -r requirements.txt
 
 ### Configure Environment
 
-Create `backend/.env`:
+Create a `.env` file in the **root** directory (the backend loads from `../.env`):
+
+```bash
+cp .env.example .env
+# Edit .env with your values
+```
+
+Key configuration values:
 
 ```env
 # GitHub OAuth
 GITHUB_CLIENT_ID=your_github_oauth_client_id
 GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
-GITHUB_REDIRECT_URI=http://localhost:8000/api/v1/auth/github/callback
+GITHUB_REDIRECT_URI=http://localhost:5173/api/v1/auth/github/callback
 
 # Azure OpenAI
-AZURE_AI_ENDPOINT=https://your-resource.openai.azure.com
-AZURE_AI_KEY=your_azure_openai_api_key
-AZURE_AI_DEPLOYMENT_NAME=gpt-4o
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+AZURE_OPENAI_KEY=your_azure_openai_api_key
+AZURE_OPENAI_DEPLOYMENT=gpt-4
 
 # Session
 SESSION_SECRET_KEY=generate_a_secure_random_key_here
-SESSION_EXPIRE_HOURS=8
-
-# Server
-HOST=0.0.0.0
-PORT=8000
-CORS_ORIGINS=http://localhost:5173
 ```
 
 ### Create GitHub OAuth App
@@ -88,11 +89,7 @@ npm install
 
 ### Configure Environment
 
-Create `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:8000/api/v1
-```
+The `VITE_API_URL` is already configured in the root `.env.example` file. No separate frontend `.env` is needed.
 
 ### Run Frontend
 

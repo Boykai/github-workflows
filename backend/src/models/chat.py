@@ -54,10 +54,8 @@ class ChatMessage(BaseModel):
     action_data: dict[str, Any] | None = Field(None, description="Action-specific payload")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Message timestamp")
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "message_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -68,6 +66,7 @@ class ChatMessage(BaseModel):
                 "timestamp": "2026-01-30T10:00:00Z",
             }
         }
+    }
 
 
 class AITaskProposal(BaseModel):
@@ -80,12 +79,12 @@ class AITaskProposal(BaseModel):
     proposed_description: str = Field(
         ..., max_length=65535, description="AI-generated task description"
     )
-    status: ProposalStatus = Field(
-        default=ProposalStatus.PENDING, description="Proposal status"
-    )
+    status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(None, description="User-modified title")
     edited_description: str | None = Field(None, description="User-modified description")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Proposal creation time")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Proposal creation time"
+    )
     expires_at: datetime = Field(
         default_factory=lambda: datetime.utcnow() + timedelta(minutes=10),
         description="Auto-expiration time",
@@ -106,10 +105,8 @@ class AITaskProposal(BaseModel):
         """Get final description (edited or proposed)."""
         return self.edited_description or self.proposed_description
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "proposal_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -123,6 +120,7 @@ class AITaskProposal(BaseModel):
                 "expires_at": "2026-01-30T10:10:00Z",
             }
         }
+    }
 
 
 class ChatMessageRequest(BaseModel):
@@ -130,22 +128,22 @@ class ChatMessageRequest(BaseModel):
 
     content: str = Field(..., max_length=10000, description="Message content")
 
-    @field_validator('content')
+    @field_validator("content")
     @classmethod
     def sanitize_content(cls, v: str) -> str:
         """Sanitize message content to prevent injection attacks."""
         if not v or not v.strip():
             raise ValueError("Message content cannot be empty")
-        
+
         # Strip leading/trailing whitespace
         v = v.strip()
-        
+
         # Remove any null bytes
-        v = v.replace('\x00', '')
-        
+        v = v.replace("\x00", "")
+
         # Limit consecutive newlines to prevent formatting abuse
-        v = re.sub(r'\n{4,}', '\n\n\n', v)
-        
+        v = re.sub(r"\n{4,}", "\n\n\n", v)
+
         return v
 
 
@@ -188,9 +186,9 @@ class IssueSize(str, Enum):
     """Size estimates for issues (T-shirt sizing)."""
 
     XS = "XS"  # < 1 hour
-    S = "S"    # 1-4 hours
-    M = "M"    # 4-8 hours (1 day)
-    L = "L"    # 1-3 days
+    S = "S"  # 1-4 hours
+    M = "M"  # 4-8 hours (1 day)
+    L = "L"  # 1-3 days
     XL = "XL"  # 3-5 days
 
 
@@ -198,30 +196,30 @@ class IssueLabel(str, Enum):
     """Pre-defined labels for GitHub Issues."""
 
     # Type labels
-    FEATURE = "feature"           # New functionality
-    BUG = "bug"                   # Bug fix
-    ENHANCEMENT = "enhancement"   # Improvement to existing feature
-    REFACTOR = "refactor"         # Code refactoring
+    FEATURE = "feature"  # New functionality
+    BUG = "bug"  # Bug fix
+    ENHANCEMENT = "enhancement"  # Improvement to existing feature
+    REFACTOR = "refactor"  # Code refactoring
     DOCUMENTATION = "documentation"  # Documentation updates
-    TESTING = "testing"           # Test-related work
+    TESTING = "testing"  # Test-related work
     INFRASTRUCTURE = "infrastructure"  # DevOps, CI/CD, config
-    
+
     # Scope labels
-    FRONTEND = "frontend"         # Frontend/UI work
-    BACKEND = "backend"           # Backend/API work
-    DATABASE = "database"         # Database changes
-    API = "api"                   # API changes
-    
+    FRONTEND = "frontend"  # Frontend/UI work
+    BACKEND = "backend"  # Backend/API work
+    DATABASE = "database"  # Database changes
+    API = "api"  # API changes
+
     # Status labels
     AI_GENERATED = "ai-generated"  # Created by AI
     GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
-    HELP_WANTED = "help wanted"   # Needs assistance
-    
+    HELP_WANTED = "help wanted"  # Needs assistance
+
     # Domain labels
-    SECURITY = "security"         # Security-related
-    PERFORMANCE = "performance"   # Performance optimization
+    SECURITY = "security"  # Security-related
+    PERFORMANCE = "performance"  # Performance optimization
     ACCESSIBILITY = "accessibility"  # A11y improvements
-    UX = "ux"                     # User experience
+    UX = "ux"  # User experience
 
 
 # List of all available labels for AI reference
@@ -233,29 +231,21 @@ class IssueMetadata(BaseModel):
 
     priority: IssuePriority = Field(
         default=IssuePriority.P2,
-        description="Issue priority (P0=Critical, P1=High, P2=Medium, P3=Low)"
+        description="Issue priority (P0=Critical, P1=High, P2=Medium, P3=Low)",
     )
     size: IssueSize = Field(
         default=IssueSize.M,
-        description="Estimated size (XS=<1hr, S=1-4hrs, M=1day, L=1-3days, XL=3-5days)"
+        description="Estimated size (XS=<1hr, S=1-4hrs, M=1day, L=1-3days, XL=3-5days)",
     )
     estimate_hours: float = Field(
-        default=4.0,
-        ge=0.5,
-        le=40.0,
-        description="Estimated hours to complete (0.5-40)"
+        default=4.0, ge=0.5, le=40.0, description="Estimated hours to complete (0.5-40)"
     )
-    start_date: str = Field(
-        default="",
-        description="Suggested start date (ISO format YYYY-MM-DD)"
-    )
+    start_date: str = Field(default="", description="Suggested start date (ISO format YYYY-MM-DD)")
     target_date: str = Field(
-        default="",
-        description="Target completion date (ISO format YYYY-MM-DD)"
+        default="", description="Target completion date (ISO format YYYY-MM-DD)"
     )
     labels: list[str] = Field(
-        default_factory=lambda: ["ai-generated"],
-        description="Suggested labels for the issue"
+        default_factory=lambda: ["ai-generated"], description="Suggested labels for the issue"
     )
 
 
@@ -271,7 +261,7 @@ class IssueRecommendation(BaseModel):
     functional_requirements: list[str] = Field(..., description="List of testable requirements")
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
-        description="AI-generated issue metadata (priority, size, dates, labels)"
+        description="AI-generated issue metadata (priority, size, dates, labels)",
     )
     status: RecommendationStatus = Field(
         default=RecommendationStatus.PENDING, description="Recommendation status"
@@ -279,10 +269,8 @@ class IssueRecommendation(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     confirmed_at: datetime | None = Field(None, description="Confirmation timestamp")
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "recommendation_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -300,13 +288,14 @@ class IssueRecommendation(BaseModel):
                     "estimate_hours": 4.0,
                     "start_date": "2026-02-03",
                     "target_date": "2026-02-04",
-                    "labels": ["ai-generated", "feature", "export"]
+                    "labels": ["ai-generated", "feature", "export"],
                 },
                 "status": "pending",
                 "created_at": "2026-02-02T10:00:00Z",
                 "confirmed_at": None,
             }
         }
+    }
 
 
 class WorkflowConfiguration(BaseModel):
@@ -315,9 +304,15 @@ class WorkflowConfiguration(BaseModel):
     project_id: str = Field(..., description="GitHub Project node ID")
     repository_owner: str = Field(..., description="Target repository owner")
     repository_name: str = Field(..., description="Target repository name")
-    copilot_assignee: str = Field(default="", description="Username for implementation (empty to skip assignment)")
-    review_assignee: str | None = Field(None, description="Username for review (default: repo owner)")
-    custom_agent: str = Field(default="", description="Custom agent name (e.g., 'speckit.specify') for issue assignment")
+    copilot_assignee: str = Field(
+        default="", description="Username for implementation (empty to skip assignment)"
+    )
+    review_assignee: str | None = Field(
+        None, description="Username for review (default: repo owner)"
+    )
+    custom_agent: str = Field(
+        default="", description="Custom agent name (e.g., 'speckit.specify') for issue assignment"
+    )
     status_backlog: str = Field(default="Backlog", description="Backlog status column name")
     status_ready: str = Field(default="Ready", description="Ready status column name")
     status_in_progress: str = Field(default="In Progress", description="In Progress column name")

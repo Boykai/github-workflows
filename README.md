@@ -84,8 +84,8 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 | Status | Description | Triggered By |
 |--------|-------------|--------------|
 | 📝 **Ready** | Issue created, waiting to be picked up | AI generates issue from chat |
-| 🔄 **In Progress** | Work is actively being done | User assigns to Copilot or developer |
-| 👀 **In Review** | PR created and ready for review | Polling detects Copilot completion |
+| 🔄 **In Progress** | Work is actively being done | App assigns to Copilot or developer |
+| 👀 **In Review** | PR created and ready for review | Polling detects Copilot code completion |
 | ✅ **Done** | Work completed and merged | Manual or webhook on PR merge |
 
 ### Key Integrations
@@ -125,12 +125,69 @@ The application orchestrates a seamless flow between you, Azure OpenAI, GitHub I
 ```
 
 ## Prerequisites
-
+- ⚠️ [Fork repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) before starting
+- [Create GitHub Project (Kanban) ](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) and have a repository available
+- Sign-Up for [GitHub Copilot](https://github.com/features/copilot)
+- [Visual Studio Code](https://code.visualstudio.com/download) or [GitHub Codespaces](https://github.com/features/codespaces)
 - Docker and Docker Compose (recommended) OR:
   - Node.js 18+
   - Python 3.11+
 - GitHub OAuth App credentials
 - Azure OpenAI API credentials (optional, for AI features)
+
+---
+
+## Quick Start with GitHub Codespaces (Easiest)
+
+The fastest way to get started! Launch a fully configured development environment in your browser.
+
+### 1. Open in Codespaces
+
+Click the button below or go to **Code** → **Codespaces** → **Create codespace on main**:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/OWNER/REPO)
+
+### 2. Wait for Setup
+
+The dev container will automatically:
+- Install Python 3.12 and Node.js 20
+- Set up the backend virtual environment
+- Install all dependencies (backend + frontend)
+- Install Playwright browsers for testing
+
+### 3. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your credentials (see [.env.example](./.env.example) for details):
+- `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from your [GitHub OAuth App](https://github.com/settings/developers)
+- [Azure OpenAI credentials](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/deploy-foundry-models) (optional)
+
+### 4. Update GitHub OAuth App
+
+**Important**: Update your GitHub OAuth App callback URL to match your Codespaces URL:
+
+1. The `post-start.sh` script will print your callback URL when the Codespace starts
+2. Go to [GitHub Developer Settings](https://github.com/settings/developers) → OAuth Apps → Your App
+3. Update **Authorization callback URL** to:
+   ```
+   https://YOUR-CODESPACE-NAME-8000.app.github.dev/api/v1/auth/github/callback
+   ```
+
+### 5. Start the Application
+
+The ports will be automatically forwarded. Open the forwarded port 5173 to access the app.
+
+To run services manually:
+```bash
+# Terminal 1: Backend
+cd backend && source .venv/bin/activate && uvicorn src.main:app --reload
+
+# Terminal 2: Frontend  
+cd frontend && npm run dev
+```
 
 ---
 
@@ -170,7 +227,7 @@ Edit `.env` and fill in the required values:
    GITHUB_CLIENT_SECRET=your_client_secret
    ```
 
-#### Session Secret (Required)
+#### Session Secret (Optional)
 
 Generate a secure session key:
 ```bash
@@ -188,7 +245,7 @@ If you want AI-powered task generation:
 ```env
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
 AZURE_OPENAI_KEY=your_api_key
-AZURE_OPENAI_DEPLOYMENT=gpt-4
+AZURE_OPENAI_DEPLOYMENT=gpt-5
 ```
 
 ### 4. Start the Application
@@ -283,8 +340,8 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
-# Copy environment file (use parent .env or create backend/.env)
-cp ../.env .env  # or configure separately
+# Configure environment in root .env (backend loads from ../.env)
+# See root .env.example for all available options
 
 # Run the server
 uvicorn src.main:app --reload --port 8000
@@ -321,7 +378,7 @@ npm run dev
 | `GITHUB_CLIENT_ID` | ✅ Yes | GitHub OAuth App Client ID |
 | `GITHUB_CLIENT_SECRET` | ✅ Yes | GitHub OAuth App Client Secret |
 | `GITHUB_REDIRECT_URI` | ✅ Yes | OAuth callback URL (default: `http://localhost:5173/api/v1/auth/github/callback`) |
-| `SESSION_SECRET_KEY` | ✅ Yes | Random hex string for session encryption (generate with `openssl rand -hex 32`) |
+| `SESSION_SECRET_KEY` | ❌ No | Random hex string for session encryption (generate with `openssl rand -hex 32`) |
 | `AZURE_OPENAI_ENDPOINT` | ❌ No | Azure OpenAI endpoint URL |
 | `AZURE_OPENAI_KEY` | ❌ No | Azure OpenAI API key |
 | `AZURE_OPENAI_DEPLOYMENT` | ❌ No | Azure OpenAI deployment name (default: `gpt-4`) |
@@ -440,6 +497,26 @@ github-workflows/
 - GitHub API has rate limits (5000 requests/hour for authenticated users)
 - The app tracks remaining calls; wait for reset if limits are hit
 
+**GitHub Copilot agent fails to start / Repository ruleset violation:**
+If you see the error:
+> "The agent encountered an error and was unable to start working on this issue: This may be caused by a repository ruleset violation."
+
+This occurs when GitHub Copilot doesn't have permission to bypass branch protection rules. To fix:
+
+1. Go to your repository → **Settings** → **Rules** → **Rulesets**
+2. Click on the ruleset protecting your default branch
+3. Provide the ruleset a name if it doesn't have one
+4. **Active** enforcement status
+5. Under **Bypass list**, click **Add bypass**
+6. Search for and add **Copilot** (the GitHub Copilot app)
+7. Set bypass mode to **Always Allow** (or **Pull requests only** if preferred)
+8. Set target branches to **Include all branches**
+9. Save the ruleset
+
+Alternatively, if using legacy branch protection rules:
+1. Go to **Settings** → **Branches** → Edit the protection rule
+2. Under "Allow specified actors to bypass required pull requests", add the Copilot app
+
 **Port already in use:**
 ```bash
 # Kill process on port 8000 (backend)
@@ -463,13 +540,6 @@ docker compose logs -f frontend
 ```
 
 ---
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Run tests: `cd backend && pytest && cd ../frontend && npm test`
-4. Submit a pull request
 
 ## License
 

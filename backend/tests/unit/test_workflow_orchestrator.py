@@ -1,17 +1,15 @@
 """Unit tests for Workflow Orchestrator - Custom agent assignment on Ready status."""
 
-import pytest
-from unittest.mock import AsyncMock, Mock, patch, MagicMock
-from uuid import uuid4
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+
+from src.models.chat import WorkflowConfiguration
 from src.services.workflow_orchestrator import (
-    WorkflowOrchestrator,
     WorkflowContext,
+    WorkflowOrchestrator,
     WorkflowState,
-    get_workflow_config,
-    set_workflow_config,
 )
-from src.models.chat import WorkflowConfiguration, TriggeredBy
 
 
 class TestHandleReadyStatusWithCustomAgent:
@@ -88,7 +86,7 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should fetch issue details when custom agent is configured."""
         workflow_context.config = workflow_config_with_custom_agent
-        
+
         mock_github_service.get_issue_with_comments.return_value = {
             "title": "Test Issue",
             "body": "Issue body",
@@ -115,13 +113,15 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should pass custom agent name and instructions to assign_copilot_to_issue."""
         workflow_context.config = workflow_config_with_custom_agent
-        
+
         mock_github_service.get_issue_with_comments.return_value = {
             "title": "Feature Request",
             "body": "Add new feature",
             "comments": [],
         }
-        mock_github_service.format_issue_context_as_prompt.return_value = "## Issue Title\nFeature Request"
+        mock_github_service.format_issue_context_as_prompt.return_value = (
+            "## Issue Title\nFeature Request"
+        )
         mock_github_service.assign_copilot_to_issue.return_value = True
         mock_github_service.update_item_status_by_name.return_value = True
 
@@ -143,7 +143,7 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should not fetch issue details when no custom agent is configured."""
         workflow_context.config = workflow_config_no_custom_agent
-        
+
         mock_github_service.assign_copilot_to_issue.return_value = True
         mock_github_service.update_item_status_by_name.return_value = True
 
@@ -166,9 +166,11 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should transition issue to In Progress status."""
         workflow_context.config = workflow_config_with_custom_agent
-        
+
         mock_github_service.get_issue_with_comments.return_value = {
-            "title": "Test", "body": "Body", "comments": []
+            "title": "Test",
+            "body": "Body",
+            "comments": [],
         }
         mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
         mock_github_service.assign_copilot_to_issue.return_value = True
@@ -191,9 +193,11 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should still transition status even if Copilot assignment fails."""
         workflow_context.config = workflow_config_with_custom_agent
-        
+
         mock_github_service.get_issue_with_comments.return_value = {
-            "title": "Test", "body": "Body", "comments": []
+            "title": "Test",
+            "body": "Body",
+            "comments": [],
         }
         mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
         mock_github_service.assign_copilot_to_issue.return_value = False  # Assignment fails
@@ -212,9 +216,11 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should return False when status update fails."""
         workflow_context.config = workflow_config_with_custom_agent
-        
+
         mock_github_service.get_issue_with_comments.return_value = {
-            "title": "Test", "body": "Body", "comments": []
+            "title": "Test",
+            "body": "Body",
+            "comments": [],
         }
         mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
         mock_github_service.assign_copilot_to_issue.return_value = True
@@ -230,7 +236,7 @@ class TestHandleReadyStatusWithCustomAgent:
     ):
         """Should return False when no workflow config exists."""
         workflow_context.config = None
-        
+
         # Clear any global config
         with patch("src.services.workflow_orchestrator.get_workflow_config", return_value=None):
             result = await orchestrator.handle_ready_status(workflow_context)
@@ -294,7 +300,7 @@ class TestHandleInProgressStatus:
     ):
         """Should transition to In Review when Copilot has finished (draft + has commits)."""
         workflow_context.config = workflow_config
-        
+
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,
@@ -324,7 +330,7 @@ class TestHandleInProgressStatus:
     ):
         """Should not transition when Copilot PR has no commits yet."""
         workflow_context.config = workflow_config
-        
+
         mock_github_service.check_copilot_pr_completion.return_value = None
 
         result = await orchestrator.handle_in_progress_status(workflow_context)
@@ -339,7 +345,7 @@ class TestHandleInProgressStatus:
     ):
         """Should mark draft PR ready when Copilot has finished work."""
         workflow_context.config = workflow_config
-        
+
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,
@@ -364,7 +370,7 @@ class TestHandleInProgressStatus:
     ):
         """Should return False when no workflow config exists."""
         workflow_context.config = None
-        
+
         with patch("src.services.workflow_orchestrator.get_workflow_config", return_value=None):
             result = await orchestrator.handle_in_progress_status(workflow_context)
 
@@ -377,7 +383,7 @@ class TestHandleInProgressStatus:
     ):
         """Should return False when no linked PRs found."""
         workflow_context.config = workflow_config
-        
+
         mock_github_service.check_copilot_pr_completion.return_value = None
 
         result = await orchestrator.handle_in_progress_status(workflow_context)
@@ -391,7 +397,7 @@ class TestHandleInProgressStatus:
     ):
         """Should return False when status update fails."""
         workflow_context.config = workflow_config
-        
+
         mock_github_service.check_copilot_pr_completion.return_value = {
             "id": "PR_123",
             "number": 99,

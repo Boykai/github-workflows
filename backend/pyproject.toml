@@ -33,6 +33,8 @@ packages = ["src"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -46,7 +48,10 @@ ignore = [
     "E501",  # line too long (handled by black)
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.per-file-ignores]
+"tests/unit/test_ai_agent.py" = ["E402"]  # Allow late imports for mocking
+
+[tool.ruff.lint.isort]
 known-first-party = ["src"]
 
 [tool.black]

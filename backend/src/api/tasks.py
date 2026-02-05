@@ -3,11 +3,11 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends
+from fastapi import APIRouter, Depends
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_session_dep
 from src.exceptions import NotFoundError, ValidationError
-from src.models.task import Task, TaskCreateRequest, TaskListResponse
+from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
 from src.services.cache import cache, get_project_items_cache_key
 from src.services.github_projects import github_projects_service
@@ -15,13 +15,6 @@ from src.services.websocket import connection_manager
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 @router.post("", response_model=Task)
@@ -70,7 +63,7 @@ async def create_task(
             "type": "task_created",
             "task_id": item_id,
             "title": request.title,
-        }
+        },
     )
 
     logger.info("Created task %s in project %s", task.task_id, project_id)
@@ -130,7 +123,7 @@ async def update_task_status(
             "type": "task_update",
             "task_id": task_id,
             "status": status,
-        }
+        },
     )
 
     return target_task

@@ -1,17 +1,17 @@
 """Chat API endpoints."""
 
 import logging
-from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends
+from fastapi import APIRouter, Depends
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_session_dep
+from src.constants import DEFAULT_STATUS_COLUMNS
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
-    AITaskProposal,
     ActionType,
+    AITaskProposal,
     ChatMessage,
     ChatMessageRequest,
     ChatMessagesResponse,
@@ -21,7 +21,6 @@ from src.models.chat import (
     RecommendationStatus,
     SenderType,
 )
-from src.models.task import Task
 from src.models.user import UserSession
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import cache, get_project_items_cache_key, get_user_projects_cache_key
@@ -36,13 +35,6 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007)
 _recommendations: dict[str, IssueRecommendation] = {}
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
@@ -87,14 +79,14 @@ async def send_message(
     # Require project selection
     if not session.selected_project_id:
         raise ValidationError("Please select a project first")
-    
+
     # T058: Input validation for maximum content length
     MAX_FEATURE_REQUEST_LENGTH = 4000
     if len(request.content) > MAX_FEATURE_REQUEST_LENGTH:
         raise ValidationError(
             f"Message too long. Maximum length is {MAX_FEATURE_REQUEST_LENGTH} characters."
         )
-    
+
     # Try to get AI service (optional)
     try:
         ai_service = get_ai_agent_service()
@@ -131,12 +123,12 @@ async def send_message(
     # Get current tasks for context
     tasks_cache_key = get_project_items_cache_key(session.selected_project_id)
     current_tasks = cache.get(tasks_cache_key) or []
-    
+
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
     # ──────────────────────────────────────────────────────────────────
     ai_service = get_ai_agent_service()
-    
+
     try:
         is_feature_request = await ai_service.detect_feature_request_intent(request.content)
     except Exception as e:
@@ -151,17 +143,19 @@ async def send_message(
                 project_name=project_name,
                 session_id=str(session.session_id),
             )
-            
+
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
-            
+
             # Format requirements for display
             requirements_preview = "\n".join(
                 f"- {req}" for req in recommendation.functional_requirements[:3]
             )
             if len(recommendation.functional_requirements) > 3:
-                requirements_preview += f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
-            
+                requirements_preview += (
+                    f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
+                )
+
             # Create assistant response with issue_create action (T015)
             assistant_message = ChatMessage(
                 session_id=session.session_id,
@@ -191,15 +185,15 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 },
             )
             add_message(session.session_id, assistant_message)
-            
+
             logger.info(
                 "Generated issue recommendation %s: %s",
                 recommendation.recommendation_id,
                 recommendation.title,
             )
-            
+
             return assistant_message
-            
+
         except Exception as e:
             # T017: Error handling for AI generation failures
             logger.error("Failed to generate issue recommendation: %s", e)
@@ -217,7 +211,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=project_columns if project_columns else ["Todo", "In Progress", "Done"],
+        available_statuses=project_columns if project_columns else DEFAULT_STATUS_COLUMNS,
     )
 
     if status_change:
@@ -226,10 +220,10 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             query=status_change.get("task_query", ""),
             tasks=current_tasks,
         )
-        
+
         if target_task:
             target_status = status_change.get("target_status", "")
-            
+
             # Find the status column info
             status_option_id = ""
             status_field_id = ""
@@ -384,7 +378,7 @@ async def confirm_proposal(
                 "type": "task_created",
                 "task_id": item_id,
                 "title": proposal.final_title,
-            }
+            },
         )
 
         # Add confirmation message
@@ -407,7 +401,7 @@ async def confirm_proposal(
 
     except Exception as e:
         logger.error("Failed to create task from proposal: %s", e)
-        raise ValidationError(f"Failed to create task: {e}")
+        raise ValidationError(f"Failed to create task: {e}") from e
 
 
 @router.delete("/proposals/{proposal_id}")

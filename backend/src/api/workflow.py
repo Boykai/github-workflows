@@ -4,15 +4,13 @@ import hashlib
 import logging
 from datetime import datetime, timedelta
 from typing import Annotated
-from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
-from src.api.auth import SESSION_COOKIE_NAME, get_current_session
+from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
-    IssueRecommendation,
     RecommendationStatus,
     WorkflowConfiguration,
     WorkflowResult,
@@ -24,7 +22,6 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
-    WorkflowOrchestrator,
     get_transitions,
     get_workflow_config,
     get_workflow_orchestrator,
@@ -38,13 +35,6 @@ router = APIRouter(prefix="/workflow", tags=["Workflow"])
 # Maps hash of original_input to (timestamp, recommendation_id)
 _recent_requests: dict[str, tuple[datetime, str]] = {}
 DUPLICATE_WINDOW_MINUTES = 5
-
-
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session."""
-    return get_current_session(session_id)
 
 
 def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
@@ -135,9 +125,7 @@ async def confirm_recommendation(
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
     if recommendation.status != RecommendationStatus.PENDING:
-        raise ValidationError(
-            f"Recommendation already {recommendation.status.value}"
-        )
+        raise ValidationError(f"Recommendation already {recommendation.status.value}")
 
     # Check for duplicates (T029)
     if _check_duplicate(recommendation.original_input, recommendation_id):
@@ -165,6 +153,7 @@ async def confirm_recommendation(
         else:
             # Fall back to default repository from settings
             from src.config import get_settings
+
             settings = get_settings()
             if settings.default_repo_owner and settings.default_repo_name:
                 owner, repo = settings.default_repo_owner, settings.default_repo_name
@@ -185,6 +174,7 @@ async def confirm_recommendation(
 
     # Get settings for default assignee
     from src.config import get_settings
+
     settings = get_settings()
 
     # Get or create workflow config
@@ -284,9 +274,7 @@ async def reject_recommendation(
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
     if recommendation.status != RecommendationStatus.PENDING:
-        raise ValidationError(
-            f"Recommendation already {recommendation.status.value}"
-        )
+        raise ValidationError(f"Recommendation already {recommendation.status.value}")
 
     recommendation.status = RecommendationStatus.REJECTED
     logger.info("Recommendation %s rejected", recommendation_id)
@@ -393,12 +381,14 @@ async def notify_in_review(
 # Copilot PR Polling Endpoints
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @router.get("/polling/status")
 async def get_polling_status(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Get the current status of the Copilot PR polling service."""
     from src.services.copilot_polling import get_polling_status
+
     return get_polling_status()
 
 
@@ -409,35 +399,36 @@ async def check_issue_copilot_completion(
 ) -> dict:
     """
     Manually check a specific issue for Copilot PR completion.
-    
+
     If a Copilot PR is found ready (not draft), the issue status
     will be updated to "In Review".
     """
     if not session.selected_project_id:
         raise ValidationError("No project selected")
-    
+
     # Get repository info
     repo_info = await github_projects_service.get_project_repository(
         session.access_token,
         session.selected_project_id,
     )
-    
+
     if not repo_info:
         config = get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
             from src.config import get_settings
+
             settings = get_settings()
             if settings.default_repo_owner and settings.default_repo_name:
                 repo_info = (settings.default_repo_owner, settings.default_repo_name)
             else:
                 raise ValidationError("No repository configured for this project")
-    
+
     owner, repo = repo_info
-    
+
     from src.services.copilot_polling import check_issue_for_copilot_completion
-    
+
     result = await check_issue_for_copilot_completion(
         access_token=session.access_token,
         project_id=session.selected_project_id,
@@ -445,7 +436,7 @@ async def check_issue_copilot_completion(
         repo=repo,
         issue_number=issue_number,
     )
-    
+
     # Broadcast WebSocket notification if status was updated
     if result.get("status") == "success":
         await connection_manager.broadcast_to_project(
@@ -460,7 +451,7 @@ async def check_issue_copilot_completion(
                 "triggered_by": "polling",
             },
         )
-    
+
     return result
 
 
@@ -472,44 +463,46 @@ async def start_copilot_polling(
 ) -> dict:
     """
     Start background polling for Copilot PR completions.
-    
+
     Args:
         interval_seconds: Polling interval in seconds (default: 15)
     """
     if not session.selected_project_id:
         raise ValidationError("No project selected")
-    
+
     from src.services.copilot_polling import (
         get_polling_status,
         poll_for_copilot_completion,
     )
-    
+
     status = get_polling_status()
     if status["is_running"]:
         return {"message": "Polling is already running", "status": status}
-    
+
     # Get repository info
     repo_info = await github_projects_service.get_project_repository(
         session.access_token,
         session.selected_project_id,
     )
-    
+
     if not repo_info:
         config = get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
             from src.config import get_settings
+
             settings = get_settings()
             if settings.default_repo_owner and settings.default_repo_name:
                 repo_info = (settings.default_repo_owner, settings.default_repo_name)
             else:
                 raise ValidationError("No repository configured for this project")
-    
+
     owner, repo = repo_info
-    
+
     # Start polling as background task
     import asyncio
+
     asyncio.create_task(
         poll_for_copilot_completion(
             access_token=session.access_token,
@@ -519,13 +512,13 @@ async def start_copilot_polling(
             interval_seconds=interval_seconds,
         )
     )
-    
+
     logger.info(
         "Started Copilot PR polling for project %s (interval: %ds)",
         session.selected_project_id,
         interval_seconds,
     )
-    
+
     return {
         "message": "Polling started",
         "interval_seconds": interval_seconds,
@@ -539,16 +532,16 @@ async def stop_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Stop the background Copilot PR polling."""
-    from src.services.copilot_polling import stop_polling, get_polling_status
-    
+    from src.services.copilot_polling import get_polling_status, stop_polling
+
     status = get_polling_status()
     if not status["is_running"]:
         return {"message": "Polling is not running", "status": status}
-    
+
     stop_polling()
-    
+
     logger.info("Stopped Copilot PR polling")
-    
+
     return {"message": "Polling stopped", "status": get_polling_status()}
 
 
@@ -558,41 +551,42 @@ async def check_all_in_progress_issues(
 ) -> dict:
     """
     Check all issues in "In Progress" status for Copilot PR completion.
-    
+
     This triggers a one-time scan of all in-progress issues.
     """
     if not session.selected_project_id:
         raise ValidationError("No project selected")
-    
+
     # Get repository info
     repo_info = await github_projects_service.get_project_repository(
         session.access_token,
         session.selected_project_id,
     )
-    
+
     if not repo_info:
         config = get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
             from src.config import get_settings
+
             settings = get_settings()
             if settings.default_repo_owner and settings.default_repo_name:
                 repo_info = (settings.default_repo_owner, settings.default_repo_name)
             else:
                 raise ValidationError("No repository configured for this project")
-    
+
     owner, repo = repo_info
-    
+
     from src.services.copilot_polling import check_in_progress_issues
-    
+
     results = await check_in_progress_issues(
         access_token=session.access_token,
         project_id=session.selected_project_id,
         owner=owner,
         repo=repo,
     )
-    
+
     # Broadcast WebSocket notifications for any updated issues
     for result in results:
         if result.get("status") == "success":
@@ -608,9 +602,8 @@ async def check_all_in_progress_issues(
                     "triggered_by": "polling",
                 },
             )
-    
+
     return {
         "checked_count": len(results),
         "results": results,
     }
-

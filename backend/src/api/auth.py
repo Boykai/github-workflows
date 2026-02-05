@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
 
+from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
@@ -13,10 +14,10 @@ from src.services.github_auth import github_auth_service
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-SESSION_COOKIE_NAME = "session_id"
 
-
-def get_current_session(session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)) -> UserSession:
+def get_current_session(
+    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)
+) -> UserSession:
     """Get current user session from cookie."""
     if not session_id:
         raise AuthenticationError("No session cookie")
@@ -26,6 +27,13 @@ def get_current_session(session_id: str | None = Cookie(None, alias=SESSION_COOK
         raise AuthenticationError("Invalid or expired session")
 
     return session
+
+
+async def get_session_dep(
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserSession:
+    """Dependency for getting current session from cookie."""
+    return get_current_session(session_id)
 
 
 @router.get("/github")
@@ -44,8 +52,9 @@ async def github_callback(
 ) -> RedirectResponse:
     """Handle GitHub OAuth callback and create session."""
     from src.config import get_settings
+
     settings = get_settings()
-    
+
     # Validate state
     if not github_auth_service.validate_state(state):
         logger.warning("Invalid OAuth state: %s", state[:20])
@@ -58,19 +67,21 @@ async def github_callback(
         # Create session
         session = await github_auth_service.create_session(code)
 
-        # Get frontend URL from settings or default
-        frontend_url = getattr(settings, 'frontend_url', 'http://localhost:3003')
-        
+        # Get frontend URL from settings (default: http://localhost:5173)
+        frontend_url = settings.frontend_url
+
         # Redirect to frontend with session token in URL
         # Frontend will call /auth/session to set the cookie via the proxy
         redirect_url = f"{frontend_url}?session_token={session.session_id}"
-        
+
         redirect = RedirectResponse(
             url=redirect_url,
             status_code=status.HTTP_302_FOUND,
         )
 
-        logger.info("Created session for user: %s, redirecting to frontend", session.github_username)
+        logger.info(
+            "Created session for user: %s, redirecting to frontend", session.github_username
+        )
         return redirect
 
     except ValueError as e:
@@ -78,13 +89,13 @@ async def github_callback(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
-        )
+        ) from e
     except Exception as e:
         logger.exception("Failed to create session: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to complete authentication",
-        )
+        ) from e
 
 
 @router.post("/session")
@@ -94,7 +105,7 @@ async def set_session_cookie(
 ) -> UserResponse:
     """
     Set session cookie from token.
-    
+
     Called by frontend after OAuth callback to set cookie via proxy.
     This ensures the cookie is associated with the frontend's origin.
     """
@@ -104,7 +115,7 @@ async def set_session_cookie(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session token",
         )
-    
+
     # Set the session cookie
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
@@ -115,7 +126,7 @@ async def set_session_cookie(
         max_age=8 * 60 * 60,  # 8 hours
         path="/",
     )
-    
+
     logger.info("Set session cookie for user: %s", session.github_username)
     return UserResponse.from_session(session)
 
@@ -149,21 +160,22 @@ async def dev_login(
 ) -> UserResponse:
     """
     Development-only endpoint to login with a GitHub Personal Access Token.
-    
+
     This bypasses OAuth and is only for testing/development purposes.
     """
     from src.config import get_settings
+
     settings = get_settings()
-    
+
     if not settings.debug:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Dev login is only available in debug mode",
         )
-    
+
     try:
         session = await github_auth_service.create_session_from_token(github_token)
-        
+
         # Set the session cookie
         response.set_cookie(
             key=SESSION_COOKIE_NAME,
@@ -174,13 +186,13 @@ async def dev_login(
             max_age=8 * 60 * 60,
             path="/",
         )
-        
+
         logger.info("Dev login successful for user: %s", session.github_username)
         return UserResponse.from_session(session)
-        
+
     except Exception as e:
         logger.error("Dev login failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid GitHub token: {e}",
-        )
+        ) from e

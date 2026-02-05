@@ -5,28 +5,25 @@ from datetime import datetime, timedelta
 # Pre-defined labels that can be assigned to issues
 PREDEFINED_LABELS = [
     # Type labels (pick ONE primary type)
-    "feature",        # New functionality
-    "bug",            # Bug fix
-    "enhancement",    # Improvement to existing feature
-    "refactor",       # Code refactoring
+    "feature",  # New functionality
+    "bug",  # Bug fix
+    "enhancement",  # Improvement to existing feature
+    "refactor",  # Code refactoring
     "documentation",  # Documentation updates
-    "testing",        # Test-related work
-    "infrastructure", # DevOps, CI/CD, config
-    
+    "testing",  # Test-related work
+    "infrastructure",  # DevOps, CI/CD, config
     # Scope labels (pick all that apply)
-    "frontend",       # Frontend/UI work
-    "backend",        # Backend/API work
-    "database",       # Database changes
-    "api",            # API changes
-    
+    "frontend",  # Frontend/UI work
+    "backend",  # Backend/API work
+    "database",  # Database changes
+    "api",  # API changes
     # Domain labels (pick if relevant)
-    "security",       # Security-related
-    "performance",    # Performance optimization
+    "security",  # Security-related
+    "performance",  # Performance optimization
     "accessibility",  # A11y improvements
-    "ux",             # User experience
-    
+    "ux",  # User experience
     # Auto-applied
-    "ai-generated",   # Always included - marks AI-created issues
+    "ai-generated",  # Always included - marks AI-created issues
 ]
 
 ISSUE_GENERATION_SYSTEM_PROMPT = """You are an expert product manager helping structure feature requests into well-organized GitHub issues.
@@ -46,7 +43,7 @@ When given a feature request, generate a structured GitHub issue with the follow
 PRE-DEFINED LABELS (select from this list ONLY):
 Type labels (pick ONE primary type):
 - "feature" - New functionality
-- "bug" - Bug fix  
+- "bug" - Bug fix
 - "enhancement" - Improvement to existing feature
 - "refactor" - Code refactoring
 - "documentation" - Documentation updates

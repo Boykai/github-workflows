@@ -1,6 +1,6 @@
 """User session model for OAuth tokens and preferences."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -16,14 +16,20 @@ class UserSession(BaseModel):
     access_token: str = Field(..., description="Encrypted GitHub OAuth access token")
     refresh_token: str | None = Field(None, description="Encrypted OAuth refresh token")
     token_expires_at: datetime | None = Field(None, description="Token expiration timestamp")
-    selected_project_id: str | None = Field(None, description="Currently selected GitHub Project ID")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Session creation time")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last activity time")
+    selected_project_id: str | None = Field(
+        None, description="Currently selected GitHub Project ID"
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="Session creation time",
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        description="Last activity time",
+    )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "session_id": "550e8400-e29b-41d4-a716-446655440000",
                 "github_user_id": "12345678",
@@ -37,6 +43,7 @@ class UserSession(BaseModel):
                 "updated_at": "2026-01-30T11:00:00Z",
             }
         }
+    }
 
 
 class UserResponse(BaseModel):

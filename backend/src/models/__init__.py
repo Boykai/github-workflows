@@ -1,22 +1,22 @@
 """Pydantic models for the application."""
 
-from src.models.user import UserSession
-from src.models.project import GitHubProject, StatusColumn
-from src.models.task import Task
 from src.models.chat import (
-    ChatMessage,
-    AITaskProposal,
-    SenderType,
+    AVAILABLE_LABELS,
     ActionType,
-    ProposalStatus,
-    IssueRecommendation,
+    AITaskProposal,
+    ChatMessage,
+    IssueLabel,
     IssueMetadata,
     IssuePriority,
+    IssueRecommendation,
     IssueSize,
-    IssueLabel,
-    AVAILABLE_LABELS,
+    ProposalStatus,
     RecommendationStatus,
+    SenderType,
 )
+from src.models.project import GitHubProject, StatusColumn
+from src.models.task import Task
+from src.models.user import UserSession
 
 __all__ = [
     "UserSession",

@@ -586,7 +586,7 @@ class GitHubProjectsService:
                         reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
                         wait_seconds = max(reset_time - int(datetime.utcnow().timestamp()), backoff)
                         wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
-                        
+
                         logger.warning(
                             "Rate limited. Waiting %d seconds before retry %d/%d",
                             wait_seconds,
@@ -620,7 +620,9 @@ class GitHubProjectsService:
             response=None,
         )
 
-    async def _graphql(self, access_token: str, query: str, variables: dict, extra_headers: dict | None = None) -> dict:
+    async def _graphql(
+        self, access_token: str, query: str, variables: dict, extra_headers: dict | None = None
+    ) -> dict:
         """
         Execute GraphQL query against GitHub API.
 
@@ -741,10 +743,11 @@ class GitHubProjectsService:
 
             # Default status columns if none found
             if not status_columns:
+                from src.constants import DEFAULT_STATUS_COLUMNS
+
                 status_columns = [
-                    StatusColumn(field_id="", name="Todo", option_id=""),
-                    StatusColumn(field_id="", name="In Progress", option_id=""),
-                    StatusColumn(field_id="", name="Done", option_id=""),
+                    StatusColumn(field_id="", name=name, option_id="")
+                    for name in DEFAULT_STATUS_COLUMNS
                 ]
 
             projects.append(
@@ -806,7 +809,7 @@ class GitHubProjectsService:
                     continue
 
                 status_value = item.get("fieldValueByName", {})
-                
+
                 # Extract repository info if available
                 repo_info = content.get("repository", {})
                 repo_owner = repo_info.get("owner", {}).get("login") if repo_info else None
@@ -885,7 +888,7 @@ class GitHubProjectsService:
         """
         # Add 2 second delay before status update (rate limiting / UX improvement)
         await asyncio.sleep(2)
-        
+
         data = await self._graphql(
             access_token,
             UPDATE_ITEM_STATUS_MUTATION,
@@ -1038,13 +1041,15 @@ class GitHubProjectsService:
                 access_token,
                 GET_SUGGESTED_ACTORS_QUERY,
                 {"owner": owner, "name": repo},
-                extra_headers={"GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"},
+                extra_headers={
+                    "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
+                },
             )
 
             repository = data.get("repository", {})
             repo_id = repository.get("id")
             actors = repository.get("suggestedActors", {}).get("nodes", [])
-            
+
             # Look for the Copilot SWE agent bot
             for actor in actors:
                 login = actor.get("login", "")
@@ -1054,7 +1059,12 @@ class GitHubProjectsService:
                     logger.info("Found Copilot bot: %s (ID: %s)", login, bot_id)
                     return bot_id, repo_id
 
-            logger.warning("Copilot bot not available for %s/%s (actors: %s)", owner, repo, [a.get("login") for a in actors])
+            logger.warning(
+                "Copilot bot not available for %s/%s (actors: %s)",
+                owner,
+                repo,
+                [a.get("login") for a in actors],
+            )
             return None, repo_id
         except Exception as e:
             logger.warning("Failed to get Copilot bot ID: %s", e)
@@ -1172,7 +1182,13 @@ class GitHubProjectsService:
         if not issue_number:
             logger.warning("Cannot assign Copilot via REST - issue_number required")
             return await self._assign_copilot_graphql(
-                access_token, owner, repo, issue_node_id, base_ref, custom_agent, custom_instructions
+                access_token,
+                owner,
+                repo,
+                issue_node_id,
+                base_ref,
+                custom_agent,
+                custom_instructions,
             )
 
         try:
@@ -1212,7 +1228,7 @@ class GitHubProjectsService:
             if response.status_code in (200, 201):
                 result = response.json()
                 assignees = [a.get("login", "") for a in result.get("assignees", [])]
-                
+
                 if custom_agent:
                     logger.info(
                         "Successfully assigned Copilot to issue #%d with custom agent '%s', assignees: %s",
@@ -1221,7 +1237,11 @@ class GitHubProjectsService:
                         assignees,
                     )
                 else:
-                    logger.info("Successfully assigned Copilot to issue #%d, assignees: %s", issue_number, assignees)
+                    logger.info(
+                        "Successfully assigned Copilot to issue #%d, assignees: %s",
+                        issue_number,
+                        assignees,
+                    )
                 return True
             else:
                 logger.error(
@@ -1234,7 +1254,13 @@ class GitHubProjectsService:
                 # Fall back to GraphQL approach
                 logger.info("Falling back to GraphQL API for Copilot assignment")
                 return await self._assign_copilot_graphql(
-                    access_token, owner, repo, issue_node_id, base_ref, custom_agent, custom_instructions
+                    access_token,
+                    owner,
+                    repo,
+                    issue_node_id,
+                    base_ref,
+                    custom_agent,
+                    custom_instructions,
                 )
 
         except Exception as e:
@@ -1288,7 +1314,9 @@ class GitHubProjectsService:
                     "customInstructions": custom_instructions,
                     "customAgent": custom_agent,
                 },
-                extra_headers={"GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"},
+                extra_headers={
+                    "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
+                },
             )
 
             assignees = (
@@ -1298,7 +1326,7 @@ class GitHubProjectsService:
                 .get("nodes", [])
             )
             assigned_logins = [a.get("login", "") for a in assignees]
-            
+
             if custom_agent:
                 logger.info(
                     "GraphQL: Assigned Copilot with custom agent '%s', assignees: %s",
@@ -1307,7 +1335,7 @@ class GitHubProjectsService:
                 )
             else:
                 logger.info("GraphQL: Assigned Copilot to issue, assignees: %s", assigned_logins)
-            
+
             return True
 
         except Exception as e:
@@ -1563,9 +1591,7 @@ class GitHubProjectsService:
                         break
 
                 if not option_id:
-                    logger.warning(
-                        "Option '%s' not found for field '%s'", value, field_name
-                    )
+                    logger.warning("Option '%s' not found for field '%s'", value, field_name)
                     return False
 
                 await self._graphql(
@@ -1616,9 +1642,7 @@ class GitHubProjectsService:
                 )
 
             else:
-                logger.warning(
-                    "Unsupported field type '%s' for field '%s'", data_type, field_name
-                )
+                logger.warning("Unsupported field type '%s' for field '%s'", data_type, field_name)
                 return False
 
             logger.info("Updated field '%s' to '%s' for item %s", field_name, value, item_id)
@@ -1716,17 +1740,19 @@ class GitHubProjectsService:
                 # Check ConnectedEvent
                 pr = item.get("subject") if "subject" in item else item.get("source")
                 if pr and pr.get("__typename") == "PullRequest" or (pr and "number" in pr):
-                    prs.append({
-                        "id": pr.get("id"),
-                        "number": pr.get("number"),
-                        "title": pr.get("title"),
-                        "state": pr.get("state"),
-                        "is_draft": pr.get("isDraft", False),
-                        "url": pr.get("url"),
-                        "author": pr.get("author", {}).get("login", ""),
-                        "created_at": pr.get("createdAt"),
-                        "updated_at": pr.get("updatedAt"),
-                    })
+                    prs.append(
+                        {
+                            "id": pr.get("id"),
+                            "number": pr.get("number"),
+                            "title": pr.get("title"),
+                            "state": pr.get("state"),
+                            "is_draft": pr.get("isDraft", False),
+                            "url": pr.get("url"),
+                            "author": pr.get("author", {}).get("login", ""),
+                            "created_at": pr.get("createdAt"),
+                            "updated_at": pr.get("updatedAt"),
+                        }
+                    )
 
             # Remove duplicates by PR number
             seen = set()
@@ -1922,7 +1948,7 @@ class GitHubProjectsService:
                 return False
 
             reviews = pr.get("reviews", {}).get("nodes", [])
-            
+
             # Check if any review was submitted by copilot
             for review in reviews:
                 author = review.get("author", {})
@@ -2071,9 +2097,7 @@ class GitHubProjectsService:
                         continue
 
                     # Get PR details for node ID
-                    pr_details = await self.get_pull_request(
-                        access_token, owner, repo, pr_number
-                    )
+                    pr_details = await self.get_pull_request(access_token, owner, repo, pr_number)
 
                     if not pr_details:
                         logger.warning(
@@ -2165,16 +2189,17 @@ class GitHubProjectsService:
 
         for change in changes:
             if change.get("type") == "status_changed":
-                old_status = change.get("old_status", "")
                 new_status = change.get("new_status", "")
 
                 # Detect Ready status (trigger In Progress + Copilot assignment)
                 if new_status.lower() == ready_status.lower():
-                    workflow_triggers.append({
-                        "trigger": "ready_detected",
-                        "task_id": change.get("task_id"),
-                        "title": change.get("title"),
-                    })
+                    workflow_triggers.append(
+                        {
+                            "trigger": "ready_detected",
+                            "task_id": change.get("task_id"),
+                            "title": change.get("title"),
+                        }
+                    )
 
                 # T046: Detect completion signals (In Progress → closed or labeled)
                 # This is handled via labels/state, not status change
@@ -2184,12 +2209,14 @@ class GitHubProjectsService:
         # Also check for tasks currently in "In Progress" that might have completed PRs
         for task in current_tasks:
             if task.status and task.status.lower() == in_progress_status.lower():
-                workflow_triggers.append({
-                    "trigger": "in_progress_check",
-                    "task_id": task.github_item_id,
-                    "title": task.title,
-                    "issue_id": task.github_issue_id,
-                })
+                workflow_triggers.append(
+                    {
+                        "trigger": "in_progress_check",
+                        "task_id": task.github_item_id,
+                        "title": task.title,
+                        "issue_id": task.github_issue_id,
+                    }
+                )
 
         return {
             "changes": changes,
@@ -2197,9 +2224,7 @@ class GitHubProjectsService:
             "workflow_triggers": workflow_triggers,
         }
 
-    def _detect_changes(
-        self, old_tasks: list[Task], new_tasks: list[Task]
-    ) -> list[dict]:
+    def _detect_changes(self, old_tasks: list[Task], new_tasks: list[Task]) -> list[dict]:
         """
         Compare two task lists and detect changes.
 
@@ -2219,21 +2244,25 @@ class GitHubProjectsService:
         # Detect new tasks
         for item_id, task in new_map.items():
             if item_id not in old_map:
-                changes.append({
-                    "type": "task_created",
-                    "task_id": item_id,
-                    "title": task.title,
-                    "status": task.status,
-                })
+                changes.append(
+                    {
+                        "type": "task_created",
+                        "task_id": item_id,
+                        "title": task.title,
+                        "status": task.status,
+                    }
+                )
 
         # Detect deleted tasks
         for item_id, task in old_map.items():
             if item_id not in new_map:
-                changes.append({
-                    "type": "task_deleted",
-                    "task_id": item_id,
-                    "title": task.title,
-                })
+                changes.append(
+                    {
+                        "type": "task_deleted",
+                        "task_id": item_id,
+                        "title": task.title,
+                    }
+                )
 
         # Detect status changes
         for item_id in old_map.keys() & new_map.keys():
@@ -2241,21 +2270,25 @@ class GitHubProjectsService:
             new_task = new_map[item_id]
 
             if old_task.status != new_task.status:
-                changes.append({
-                    "type": "status_changed",
-                    "task_id": item_id,
-                    "title": new_task.title,
-                    "old_status": old_task.status,
-                    "new_status": new_task.status,
-                })
+                changes.append(
+                    {
+                        "type": "status_changed",
+                        "task_id": item_id,
+                        "title": new_task.title,
+                        "old_status": old_task.status,
+                        "new_status": new_task.status,
+                    }
+                )
 
             if old_task.title != new_task.title:
-                changes.append({
-                    "type": "title_changed",
-                    "task_id": item_id,
-                    "old_title": old_task.title,
-                    "new_title": new_task.title,
-                })
+                changes.append(
+                    {
+                        "type": "title_changed",
+                        "task_id": item_id,
+                        "old_title": old_task.title,
+                        "new_title": new_task.title,
+                    }
+                )
 
         return changes
 
