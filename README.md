@@ -144,7 +144,7 @@ The fastest way to get started! Launch a fully configured development environmen
 
 Click the button below or go to **Code** → **Codespaces** → **Create codespace on main**:
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/YOUR_USERNAME/YOUR_REPO)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/OWNER/REPO)
 
 ### 2. Wait for Setup
 
