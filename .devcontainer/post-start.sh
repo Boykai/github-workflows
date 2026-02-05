@@ -13,8 +13,8 @@ source /workspace/.venv/bin/activate 2>/dev/null || true
 if [ -n "$CODESPACE_NAME" ]; then
     echo "☁️  Running in GitHub Codespaces: $CODESPACE_NAME"
     
-    # Get the Codespaces forwarded URL for port 3003
-    FRONTEND_URL="https://${CODESPACE_NAME}-3003.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+    # Get the Codespaces forwarded URL for port 5173
+    FRONTEND_URL="https://${CODESPACE_NAME}-5173.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
     CALLBACK_URL="${FRONTEND_URL}/api/v1/auth/github/callback"
     
     echo "📍 Frontend URL: $FRONTEND_URL"

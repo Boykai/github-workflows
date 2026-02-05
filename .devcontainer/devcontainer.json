@@ -50,19 +50,15 @@
     }
   },
 
-  "forwardPorts": [8000, 3003, 5173],
+  "forwardPorts": [8000, 5173],
   "portsAttributes": {
     "8000": {
       "label": "Backend API",
       "onAutoForward": "notify"
     },
-    "3003": {
+    "5173": {
       "label": "Frontend Dev",
       "onAutoForward": "openBrowser"
-    },
-    "5173": {
-      "label": "Frontend (Docker)",
-      "onAutoForward": "notify"
     }
   },
 

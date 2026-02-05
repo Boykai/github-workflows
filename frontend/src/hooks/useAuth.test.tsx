@@ -56,8 +56,8 @@ describe('useAuth', () => {
     Object.defineProperty(window, 'location', {
       value: {
         protocol: 'http:',
-        host: 'localhost:3003',
-        href: 'http://localhost:3003/',
+        host: 'localhost:5173',
+        href: 'http://localhost:5173/',
         pathname: '/',
         search: '',
         hash: '',
