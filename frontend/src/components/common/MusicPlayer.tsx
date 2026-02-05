@@ -12,36 +12,21 @@ export function MusicPlayer() {
 
   useEffect(() => {
     const audioElement = playerRef.current;
-    if (audioElement) {
-      const cleanup = attachAudioElement(audioElement);
-      
-      if (!soundSilenced) {
-        const startPlayback = async () => {
-          try {
-            await audioElement.play();
-          } catch {
-            console.info('Background audio autoplay prevented by browser');
-          }
-        };
-        startPlayback();
-      }
+    if (!audioElement) return;
 
-      return cleanup;
+    const cleanup = attachAudioElement(audioElement);
+    
+    // Control playback based on silenced state
+    if (soundSilenced) {
+      audioElement.pause();
+    } else {
+      audioElement.play().catch(() => {
+        // Silently handle autoplay restrictions
+      });
     }
+
+    return cleanup;
   }, [attachAudioElement, soundSilenced]);
-
-  useEffect(() => {
-    const audioElement = playerRef.current;
-    if (audioElement) {
-      if (soundSilenced) {
-        audioElement.pause();
-      } else {
-        audioElement.play().catch(() => {
-          // Silently handle autoplay restrictions
-        });
-      }
-    }
-  }, [soundSilenced]);
 
   const buttonLabel = soundSilenced ? 'Enable Background Music' : 'Disable Background Music';
   const statusIcon = soundSilenced ? '🔇' : (playbackActive ? '🎵' : '🔊');
