@@ -74,7 +74,7 @@ export function ProjectSidebar({
   return (
     <aside className={`project-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <h2>Project Board</h2>
+        <h2>Welcome to Tech Connect 2026 - Project Board</h2>
         <button
           className="collapse-button"
           onClick={() => setIsCollapsed(!isCollapsed)}
