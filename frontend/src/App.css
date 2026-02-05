@@ -63,6 +63,12 @@
   font-weight: 600;
 }
 
+.app-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .app-main {
   display: flex;
   flex: 1;
