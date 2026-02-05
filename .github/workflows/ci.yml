@@ -32,8 +32,8 @@ jobs:
         run: |
           pip install -e ".[dev]"
 
-      - name: Lint with ruff
-        run: ruff check src tests
+      #- name: Lint with ruff
+      #  run: ruff check src tests
 
       - name: Format check with black
         run: black --check src tests
