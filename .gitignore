@@ -62,3 +62,10 @@ coverage/
 # Misc
 *.tmp
 *.bak
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Generated Vite config
+frontend/vite.config.js
+frontend/vite.config.d.ts
