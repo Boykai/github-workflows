@@ -34,16 +34,16 @@ describe('App Component', () => {
     },
   });
 
-  const mockUseAuth = useAuthHook.useAuth as ReturnType<typeof vi.fn>;
-  const mockUseProjects = useProjectsHook.useProjects as ReturnType<typeof vi.fn>;
-  const mockUseChat = useChatHook.useChat as ReturnType<typeof vi.fn>;
-  const mockUseWorkflow = useWorkflowHook.useWorkflow as ReturnType<typeof vi.fn>;
+  const useAuthMock = useAuthHook.useAuth as ReturnType<typeof vi.fn>;
+  const useProjectsMock = useProjectsHook.useProjects as ReturnType<typeof vi.fn>;
+  const useChatMock = useChatHook.useChat as ReturnType<typeof vi.fn>;
+  const useWorkflowMock = useWorkflowHook.useWorkflow as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Default mock implementations
-    mockUseChat.mockReturnValue({
+    useChatMock.mockReturnValue({
       messages: [],
       pendingProposals: [],
       pendingStatusChanges: [],
@@ -57,12 +57,12 @@ describe('App Component', () => {
       clearChat: vi.fn(),
     });
 
-    mockUseWorkflow.mockReturnValue({
+    useWorkflowMock.mockReturnValue({
       confirmRecommendation: vi.fn(),
       rejectRecommendation: vi.fn(),
     });
 
-    mockUseProjects.mockReturnValue({
+    useProjectsMock.mockReturnValue({
       projects: [],
       selectedProject: null,
       tasks: [],
@@ -75,7 +75,7 @@ describe('App Component', () => {
 
   it('should render Hello World message when authenticated', () => {
     // Mock authenticated state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
       user: { id: '1', username: 'testuser', selected_project_id: '123' },
@@ -94,7 +94,7 @@ describe('App Component', () => {
 
   it('should not render Hello World message when not authenticated', () => {
     // Mock unauthenticated state
-    mockUseAuth.mockReturnValue({
+    useAuthMock.mockReturnValue({
       isAuthenticated: false,
       isLoading: false,
       user: null,
