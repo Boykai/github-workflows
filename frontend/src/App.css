@@ -63,6 +63,25 @@
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle-btn {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--color-border);
+  transform: scale(1.05);
+}
+
 .app-main {
   display: flex;
   flex: 1;
@@ -269,18 +288,18 @@
 }
 
 .status-badge.status-todo {
-  background: #ddf4ff;
-  color: #0969da;
+  background: rgba(9, 105, 218, 0.1);
+  color: var(--color-primary);
 }
 
 .status-badge.status-in-progress {
-  background: #fff8c5;
-  color: #9a6700;
+  background: rgba(154, 103, 0, 0.1);
+  color: var(--color-warning);
 }
 
 .status-badge.status-done {
-  background: #dafbe1;
-  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.1);
+  color: var(--color-success);
 }
 
 .task-title {
