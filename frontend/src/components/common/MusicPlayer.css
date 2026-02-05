@@ -1,0 +1,36 @@
+/* Background music player controls */
+
+.bgm-controller {
+  display: flex;
+  align-items: center;
+}
+
+.bgm-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.bgm-toggle-btn:hover {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.bgm-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.bgm-icon {
+  line-height: 1;
+  user-select: none;
+}

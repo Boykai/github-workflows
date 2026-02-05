@@ -30,6 +30,13 @@
   height: 100vh;
   gap: 16px;
   text-align: center;
+  position: relative;
+}
+
+.app-login-music {
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
 
 .app-login h1 {
@@ -61,6 +68,12 @@
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.app-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-main {
