@@ -63,6 +63,21 @@
   font-weight: 600;
 }
 
+.hello-world-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hello-world-banner h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 .app-main {
   display: flex;
   flex: 1;
