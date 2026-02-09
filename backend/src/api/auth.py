@@ -1,6 +1,7 @@
 """Authentication API endpoints - OAuth flow."""
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
@@ -161,18 +162,19 @@ async def update_profile(
     """Update current user profile information."""
     session = get_current_session(session_id)
     
-    # Update profile fields
-    if profile_data.email is not None:
-        session.email = profile_data.email
-    if profile_data.bio is not None:
-        session.bio = profile_data.bio
-    if profile_data.contact_phone is not None:
-        session.contact_phone = profile_data.contact_phone
-    if profile_data.contact_location is not None:
-        session.contact_location = profile_data.contact_location
+    # Update profile fields dynamically
+    update_fields = {
+        'email': profile_data.email,
+        'bio': profile_data.bio,
+        'contact_phone': profile_data.contact_phone,
+        'contact_location': profile_data.contact_location,
+    }
+    
+    for field, value in update_fields.items():
+        if value is not None:
+            setattr(session, field, value)
     
     # Update session timestamp
-    from datetime import UTC, datetime
     session.updated_at = datetime.now(UTC)
     
     # Persist updated session

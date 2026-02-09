@@ -3,7 +3,7 @@
  * Displays and allows editing of user profile information.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { authApi } from '@/services/api';
 import type { ProfileUpdateRequest } from '@/types';
@@ -30,6 +30,17 @@ export function Profile() {
     contact_phone: user?.contact_phone || '',
     contact_location: user?.contact_location || '',
   });
+
+  // Auto-clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   if (!user) {
     return null;
@@ -98,11 +109,6 @@ export function Profile() {
       await refetch();
       setIsEditing(false);
       setSuccessMessage('Profile updated successfully!');
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (error) {
       setErrors({
         email: error instanceof Error ? error.message : 'Failed to update profile',
