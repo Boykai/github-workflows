@@ -63,6 +63,33 @@
   font-weight: 600;
 }
 
+.app-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: none;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.nav-button:hover {
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+}
+
+.nav-button.active {
+  color: var(--color-primary);
+  background: transparent;
+  border-bottom: 2px solid var(--color-primary);
+  border-radius: 0;
+}
+
 .app-main {
   display: flex;
   flex: 1;

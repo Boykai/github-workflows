@@ -16,6 +16,7 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  ProfileUpdateRequest,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -95,6 +96,16 @@ export const authApi = {
    */
   logout(): Promise<{ message: string }> {
     return request<{ message: string }>('/auth/logout', { method: 'POST' });
+  },
+
+  /**
+   * Update current user profile.
+   */
+  updateProfile(data: ProfileUpdateRequest): Promise<User> {
+    return request<User>('/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   },
 };
 

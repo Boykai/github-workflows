@@ -22,11 +22,24 @@ export interface User {
   github_username: string;
   github_avatar_url?: string;
   selected_project_id?: string;
+  email?: string;
+  bio?: string;
+  contact_phone?: string;
+  contact_location?: string;
 }
 
 export interface AuthResponse {
   user: User;
   message: string;
+}
+
+// ============ Profile Update ============
+
+export interface ProfileUpdateRequest {
+  email?: string;
+  bio?: string;
+  contact_phone?: string;
+  contact_location?: string;
 }
 
 // ============ Projects ============

@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
-from src.models.user import UserResponse, UserSession
+from src.models.user import UserResponse, UserSession, UserProfileUpdateRequest
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
@@ -151,6 +151,35 @@ async def logout(
 
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"message": "Logged out successfully"}
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserProfileUpdateRequest,
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
+) -> UserResponse:
+    """Update current user profile information."""
+    session = get_current_session(session_id)
+    
+    # Update profile fields
+    if profile_data.email is not None:
+        session.email = profile_data.email
+    if profile_data.bio is not None:
+        session.bio = profile_data.bio
+    if profile_data.contact_phone is not None:
+        session.contact_phone = profile_data.contact_phone
+    if profile_data.contact_location is not None:
+        session.contact_location = profile_data.contact_location
+    
+    # Update session timestamp
+    from datetime import UTC, datetime
+    session.updated_at = datetime.now(UTC)
+    
+    # Persist updated session
+    github_auth_service.update_session(session)
+    
+    logger.info("Updated profile for user: %s", session.github_username)
+    return UserResponse.from_session(session)
 
 
 @router.post("/dev-login")
