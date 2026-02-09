@@ -176,6 +176,81 @@ class TestAuthEndpoints:
         # Should return OK even without session
         assert response.status_code in [200, 401]
 
+    @pytest.mark.asyncio
+    async def test_update_profile_requires_auth(self, client):
+        """Profile update endpoint should require authentication."""
+        response = await client.patch(
+            "/api/v1/auth/me",
+            json={"email": "test@example.com", "bio": "Test bio"},
+        )
+
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_update_profile_with_valid_session(self, client):
+        """Profile update should work with valid session."""
+        # Create a test session
+        session = UserSession(
+            github_user_id="12345",
+            github_username="testuser",
+            access_token="test_token",
+        )
+        _sessions[str(session.session_id)] = session
+
+        try:
+            response = await client.patch(
+                "/api/v1/auth/me",
+                json={
+                    "email": "newemail@example.com",
+                    "bio": "Updated bio",
+                    "contact_phone": "+1-555-0123",
+                    "contact_location": "San Francisco, CA",
+                },
+                cookies={"session_id": str(session.session_id)},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["email"] == "newemail@example.com"
+            assert data["bio"] == "Updated bio"
+            assert data["contact_phone"] == "+1-555-0123"
+            assert data["contact_location"] == "San Francisco, CA"
+
+            # Verify session was updated
+            updated_session = _sessions[str(session.session_id)]
+            assert updated_session.email == "newemail@example.com"
+            assert updated_session.bio == "Updated bio"
+        finally:
+            _sessions.pop(str(session.session_id), None)
+
+    @pytest.mark.asyncio
+    async def test_update_profile_partial_update(self, client):
+        """Profile update should allow partial updates."""
+        # Create a test session with existing data
+        session = UserSession(
+            github_user_id="12345",
+            github_username="testuser",
+            access_token="test_token",
+            email="old@example.com",
+            bio="Old bio",
+        )
+        _sessions[str(session.session_id)] = session
+
+        try:
+            # Only update email
+            response = await client.patch(
+                "/api/v1/auth/me",
+                json={"email": "new@example.com"},
+                cookies={"session_id": str(session.session_id)},
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["email"] == "new@example.com"
+            assert data["bio"] == "Old bio"  # Should remain unchanged
+        finally:
+            _sessions.pop(str(session.session_id), None)
+
 
 class TestProjectsEndpoints:
     """Tests for projects endpoints."""
