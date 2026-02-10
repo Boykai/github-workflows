@@ -80,6 +80,26 @@ export function ChatInterface({
     }
   };
 
+  const handleEmojiInsert = () => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+
+    const emoji = '😊';
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+
+    // Insert emoji at cursor position
+    const newText = text.substring(0, start) + emoji + text.substring(end);
+    setInput(newText);
+
+    // Set cursor position after the emoji
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
+  };
+
   return (
     <div className="chat-interface">
       {messages.length > 0 && (
@@ -178,6 +198,16 @@ export function ChatInterface({
           rows={1}
           className="chat-input"
         />
+        <button
+          type="button"
+          onClick={handleEmojiInsert}
+          disabled={isSending}
+          className="emoji-button"
+          aria-label="Insert smiley face emoji"
+          title="Insert smiley face emoji"
+        >
+          😊
+        </button>
         <button
           type="submit"
           disabled={!input.trim() || isSending}
