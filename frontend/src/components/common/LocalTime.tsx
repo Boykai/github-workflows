@@ -9,13 +9,27 @@ export function LocalTime() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // Update time every minute (60000ms)
-    const intervalId = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
+    // Calculate milliseconds until the next minute boundary
+    const now = new Date();
+    const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
 
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    // Set initial timeout to align with minute boundary
+    const initialTimeout = setTimeout(() => {
+      setCurrentTime(new Date());
+
+      // After aligning to minute boundary, update every 60 seconds
+      intervalId = setInterval(() => {
+        setCurrentTime(new Date());
+      }, 60000);
+    }, msUntilNextMinute);
+
+    // Cleanup timeout and interval on unmount
+    return () => {
+      clearTimeout(initialTimeout);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   // Format time as HH:mm
