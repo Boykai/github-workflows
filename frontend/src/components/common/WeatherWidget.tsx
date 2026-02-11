@@ -92,10 +92,10 @@ export function WeatherWidget() {
           className="weather-icon"
         />
         <div className="weather-info">
-          <div className="weather-temp" aria-label="Temperature">
+          <div className="weather-temp">
             {weather.temperature}°C
           </div>
-          <div className="weather-city" aria-label="Location">
+          <div className="weather-city">
             {weather.city}
           </div>
         </div>

@@ -15,6 +15,9 @@ vi.mock('@/services/weather', () => ({
   getWeatherIconUrl: vi.fn((code) => `https://openweathermap.org/img/wn/${code}@2x.png`),
 }));
 
+// Mock environment variable
+vi.stubEnv('VITE_WEATHER_API_KEY', 'test-api-key');
+
 const mockWeatherData = {
   temperature: 20,
   condition: 'Clear',

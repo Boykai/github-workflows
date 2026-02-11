@@ -17,8 +17,15 @@ export interface GeolocationCoords {
   longitude: number;
 }
 
-const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || 'demo'; // Demo key for development
+const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
+
+// Check if API key is configured
+function checkApiKey() {
+  if (!WEATHER_API_KEY || WEATHER_API_KEY === 'demo') {
+    throw new Error('Weather API key not configured. Please set VITE_WEATHER_API_KEY in your environment.');
+  }
+}
 
 /**
  * Get current weather by coordinates.
@@ -26,6 +33,7 @@ const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5';
 export async function getWeatherByCoords(
   coords: GeolocationCoords
 ): Promise<WeatherData> {
+  checkApiKey();
   const { latitude, longitude } = coords;
   const url = `${WEATHER_API_BASE}/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${WEATHER_API_KEY}`;
 
@@ -51,6 +59,7 @@ export async function getWeatherByCoords(
  * Get current weather by city name.
  */
 export async function getWeatherByCity(city: string): Promise<WeatherData> {
+  checkApiKey();
   const url = `${WEATHER_API_BASE}/weather?q=${encodeURIComponent(city)}&units=metric&appid=${WEATHER_API_KEY}`;
 
   const response = await fetch(url);

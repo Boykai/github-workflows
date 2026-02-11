@@ -150,11 +150,16 @@ export function useWeather(): UseWeatherReturn {
 
     // Set up auto-refresh interval
     const intervalId = setInterval(() => {
-      refresh();
+      const city = localStorage.getItem(WEATHER_CITY_KEY);
+      if (city) {
+        fetchWeatherByCity(city);
+      } else {
+        fetchWeatherByLocation();
+      }
     }, WEATHER_REFRESH_INTERVAL);
 
     return () => clearInterval(intervalId);
-  }, [loadCache, fetchWeatherByCity, fetchWeatherByLocation, refresh]);
+  }, [loadCache, fetchWeatherByCity, fetchWeatherByLocation]);
 
   return {
     weather,
