@@ -114,8 +114,8 @@ describe('useWeather', () => {
   });
 
   it('should handle geolocation denial and show error', async () => {
-    const locationError = new Error('Location access denied. Please enter your city manually.');
-    (locationError as any).code = 'LOCATION_DENIED';
+    const locationError = new Error('Location access denied. Please enter your city manually.') as weatherService.WeatherError;
+    locationError.code = 'LOCATION_DENIED';
     mockWeatherService.getCurrentPosition.mockRejectedValue(locationError);
 
     const { result } = renderHook(() => useWeather());
@@ -191,8 +191,8 @@ describe('useWeather', () => {
   });
 
   it('should handle API errors gracefully', async () => {
-    const apiError = new Error('Weather API request failed: 500 Internal Server Error');
-    (apiError as any).code = 'API_ERROR';
+    const apiError = new Error('Weather API request failed: 500 Internal Server Error') as weatherService.WeatherError;
+    apiError.code = 'API_ERROR';
     mockWeatherService.fetchWeatherByCoords.mockRejectedValue(apiError);
 
     const { result } = renderHook(() => useWeather());
@@ -239,21 +239,24 @@ describe('useWeather', () => {
 
     const { result } = renderHook(() => useWeather());
 
-    await waitFor(() => {
-      expect(result.current.weather).toEqual(mockWeatherData);
+    // Wait for initial fetch
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
     });
+
+    expect(result.current.weather).toEqual(mockWeatherData);
 
     // Clear the initial fetch call
     vi.clearAllMocks();
 
-    // Fast-forward 30 minutes
-    act(() => {
+    // Fast-forward 30 minutes and run timers
+    await act(async () => {
       vi.advanceTimersByTime(30 * 60 * 1000);
+      await vi.runOnlyPendingTimersAsync();
     });
 
-    await waitFor(() => {
-      expect(mockWeatherService.fetchWeatherByCoords).toHaveBeenCalled();
-    });
+    // Should trigger a refresh
+    expect(mockWeatherService.fetchWeatherByCoords).toHaveBeenCalled();
 
     vi.useRealTimers();
   });
