@@ -11,6 +11,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { WeatherWidget } from '@/components/common/WeatherWidget';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -84,6 +85,7 @@ function AppContent() {
       <header className="app-header">
         <h1>Welcome to Tech Connect 2026!</h1>
         <div className="header-actions">
+          <WeatherWidget />
           <button 
             className="theme-toggle-btn"
             onClick={toggleTheme}
