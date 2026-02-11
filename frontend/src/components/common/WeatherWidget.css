@@ -1,0 +1,205 @@
+/**
+ * Styles for WeatherWidget component
+ */
+
+.weather-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 8px;
+  min-width: 180px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.weather-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666);
+}
+
+.weather-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--text-secondary, #666);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: weather-spin 0.6s linear infinite;
+}
+
+@keyframes weather-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.weather-error {
+  background: var(--error-bg, #fee);
+}
+
+.weather-error-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--error-text, #c33);
+}
+
+.weather-error-icon {
+  font-size: 1.25rem;
+}
+
+.weather-error-message {
+  max-width: 200px;
+  line-height: 1.3;
+}
+
+.weather-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.weather-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.weather-temp {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  line-height: 1;
+}
+
+.weather-condition {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #666);
+  text-transform: capitalize;
+}
+
+.weather-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color, #ddd);
+}
+
+.weather-location-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+}
+
+.weather-change-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.weather-change-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.weather-city-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color, #007bff);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.weather-city-btn:hover {
+  background: var(--primary-hover, #0056b3);
+}
+
+.weather-city-form {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.weather-city-input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: var(--bg-primary, white);
+  color: var(--text-primary, #333);
+}
+
+.weather-city-input:focus {
+  outline: none;
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.weather-city-submit,
+.weather-city-cancel {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background 0.2s;
+  min-width: 32px;
+}
+
+.weather-city-submit {
+  background: var(--success-bg, #28a745);
+  color: white;
+}
+
+.weather-city-submit:hover {
+  background: var(--success-hover, #218838);
+}
+
+.weather-city-cancel {
+  background: var(--cancel-bg, #6c757d);
+  color: white;
+}
+
+.weather-city-cancel:hover {
+  background: var(--cancel-hover, #5a6268);
+}
+
+/* Dark mode support */
+html.dark-mode-active .weather-widget {
+  --bg-primary: #2d2d2d;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: #444;
+  --primary-color: #4a9eff;
+  --primary-hover: #357abd;
+  --error-bg: #2d1a1a;
+  --error-text: #ff6b6b;
+  --success-bg: #2d5016;
+  --success-hover: #234010;
+  --cancel-bg: #3a3a3a;
+  --cancel-hover: #505050;
+}
