@@ -112,12 +112,14 @@ export function useWeather(): UseWeatherReturn {
     setError(null);
   }, []);
 
-  const fetchWeather = useCallback(async () => {
-    // Check cache first
-    const cached = loadCachedWeather();
-    if (cached) {
-      setWeather(cached);
-      return;
+  const fetchWeather = useCallback(async (skipCache = false) => {
+    // Check cache first unless explicitly skipped
+    if (!skipCache) {
+      const cached = loadCachedWeather();
+      if (cached) {
+        setWeather(cached);
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -158,7 +160,7 @@ export function useWeather(): UseWeatherReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // No dependencies - function is stable
 
   // Initial fetch on mount
   useEffect(() => {
@@ -168,7 +170,7 @@ export function useWeather(): UseWeatherReturn {
   // Auto-refresh every 30 minutes
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchWeather();
+      fetchWeather(true); // Skip cache on auto-refresh
     }, CACHE_DURATION);
 
     return () => clearInterval(interval);
@@ -201,7 +203,7 @@ export function useWeather(): UseWeatherReturn {
     error,
     manualCity,
     setManualCity,
-    fetchWeather,
+    fetchWeather: () => fetchWeather(true), // Public API always skips cache
     clearError,
   };
 }
