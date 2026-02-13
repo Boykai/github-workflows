@@ -1,0 +1,325 @@
+openapi: 3.1.0
+info:
+  title: Profile Picture API
+  description: API endpoints for uploading, retrieving, and removing user profile pictures
+  version: 1.0.0
+  contact:
+    name: GitHub Projects Chat API
+    
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api.example.com/api/v1
+    description: Production server
+
+tags:
+  - name: profile
+    description: User profile management operations
+
+paths:
+  /profile/picture:
+    post:
+      tags:
+        - profile
+      summary: Upload profile picture
+      description: |
+        Upload a new profile picture or replace an existing one. The image must be JPEG or PNG format 
+        and cannot exceed 5MB. The uploaded image will be validated, processed, and stored securely.
+        Any existing profile picture will be replaced.
+      operationId: uploadProfilePicture
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image file to upload (JPEG or PNG, max 5MB)
+              required:
+                - file
+            encoding:
+              file:
+                contentType: image/jpeg, image/png
+      responses:
+        '200':
+          description: Profile picture uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfilePictureResponse'
+              example:
+                profile_picture_url: "/storage/profile-pictures/12345678_1707840000.jpg"
+                message: "Profile picture uploaded successfully"
+        '400':
+          description: Bad request - invalid file format or size
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidFormat:
+                  summary: Invalid file format
+                  value:
+                    detail: "Invalid file format. Only JPEG and PNG images are allowed."
+                fileTooLarge:
+                  summary: File too large
+                  value:
+                    detail: "File size exceeds 5MB limit. Please upload a smaller image."
+                notAnImage:
+                  summary: File is not a valid image
+                  value:
+                    detail: "Uploaded file is not a valid image."
+        '401':
+          description: Unauthorized - user not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Not authenticated"
+        '413':
+          description: Payload too large - file exceeds size limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Request entity too large"
+        '500':
+          description: Internal server error - upload failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Failed to save profile picture"
+        '507':
+          description: Insufficient storage - server out of disk space
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Insufficient storage space"
+
+    delete:
+      tags:
+        - profile
+      summary: Remove profile picture
+      description: |
+        Remove the current user's profile picture. After removal, the user's avatar will fall back 
+        to their GitHub avatar or a default placeholder. The profile picture file will be permanently 
+        deleted from storage.
+      operationId: removeProfilePicture
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Profile picture removed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Profile picture removed successfully"
+        '401':
+          description: Unauthorized - user not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Not authenticated"
+        '404':
+          description: Not found - user has no profile picture to remove
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "No profile picture found"
+        '500':
+          description: Internal server error - removal failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Failed to remove profile picture"
+
+    get:
+      tags:
+        - profile
+      summary: Get current profile picture info
+      description: |
+        Get information about the current user's profile picture, including the URL and metadata.
+        Returns null values if no profile picture is set.
+      operationId: getProfilePictureInfo
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Profile picture information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfilePictureInfoResponse'
+              examples:
+                withPicture:
+                  summary: User has profile picture
+                  value:
+                    profile_picture_url: "/storage/profile-pictures/12345678_1707840000.jpg"
+                    github_avatar_url: "https://avatars.githubusercontent.com/u/12345678"
+                    has_profile_picture: true
+                noPicture:
+                  summary: User has no profile picture
+                  value:
+                    profile_picture_url: null
+                    github_avatar_url: "https://avatars.githubusercontent.com/u/12345678"
+                    has_profile_picture: false
+        '401':
+          description: Unauthorized - user not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Not authenticated"
+
+  /storage/profile-pictures/{filename}:
+    get:
+      tags:
+        - profile
+      summary: Serve profile picture file
+      description: |
+        Serve a profile picture file directly. This endpoint is used to retrieve the actual image 
+        file for display in the UI. The file is served with appropriate caching headers.
+      operationId: serveProfilePicture
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          description: The filename of the profile picture to serve
+          schema:
+            type: string
+            pattern: '^[0-9]+_[0-9]+\.(jpg|png)$'
+          example: "12345678_1707840000.jpg"
+      responses:
+        '200':
+          description: Profile picture file
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Cache-Control:
+              description: Cache control header
+              schema:
+                type: string
+                example: "public, max-age=31536000"
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Profile picture not found"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session_id
+      description: Session cookie obtained after GitHub OAuth authentication
+
+  schemas:
+    ProfilePictureResponse:
+      type: object
+      properties:
+        profile_picture_url:
+          type: string
+          description: Relative URL to the uploaded profile picture
+          example: "/storage/profile-pictures/12345678_1707840000.jpg"
+        message:
+          type: string
+          description: Success message
+          example: "Profile picture uploaded successfully"
+      required:
+        - profile_picture_url
+        - message
+
+    ProfilePictureInfoResponse:
+      type: object
+      properties:
+        profile_picture_url:
+          type: string
+          nullable: true
+          description: Relative URL to the user's profile picture, or null if not set
+          example: "/storage/profile-pictures/12345678_1707840000.jpg"
+        github_avatar_url:
+          type: string
+          nullable: true
+          description: URL to the user's GitHub avatar
+          example: "https://avatars.githubusercontent.com/u/12345678"
+        has_profile_picture:
+          type: boolean
+          description: Whether the user has uploaded a custom profile picture
+          example: true
+      required:
+        - profile_picture_url
+        - github_avatar_url
+        - has_profile_picture
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Success or informational message
+          example: "Profile picture removed successfully"
+      required:
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message describing what went wrong
+          example: "Invalid file format. Only JPEG and PNG images are allowed."
+      required:
+        - detail
+
+  examples:
+    UploadSuccess:
+      summary: Successful upload
+      value:
+        profile_picture_url: "/storage/profile-pictures/12345678_1707840000.jpg"
+        message: "Profile picture uploaded successfully"
+
+    RemoveSuccess:
+      summary: Successful removal
+      value:
+        message: "Profile picture removed successfully"
+
+    ValidationError:
+      summary: File validation error
+      value:
+        detail: "Invalid file format. Only JPEG and PNG images are allowed."
+
+    AuthError:
+      summary: Authentication error
+      value:
+        detail: "Not authenticated"
