@@ -12,8 +12,8 @@ Enable users to upload, update, and remove profile pictures (JPEG/PNG, max 5MB) 
 ## Technical Context
 
 **Language/Version**: Python 3.11+ (backend), TypeScript 5.4+ (frontend)  
-**Primary Dependencies**: FastAPI, Pydantic, React 18, TanStack Query, Vite  
-**Storage**: NEEDS CLARIFICATION (file system vs cloud storage for profile pictures)  
+**Primary Dependencies**: FastAPI, Pydantic, Pillow (image processing), React 18, TanStack Query, Vite  
+**Storage**: Local file system (`/backend/storage/profile-pictures/`) with future cloud migration path  
 **Testing**: pytest (backend), vitest (frontend unit), Playwright (frontend E2E)  
 **Target Platform**: Web application (Linux/Docker server backend, browser frontend)  
 **Project Type**: Web (frontend + backend)  
