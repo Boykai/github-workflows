@@ -1,0 +1,154 @@
+openapi: 3.0.3
+info:
+  title: Chat Document Upload API
+  version: 1.0.0
+  description: API endpoints for uploading and accessing documents in chat conversations
+
+paths:
+  /api/chat/upload:
+    post:
+      summary: Upload a document to a chat conversation
+      description: |
+        Uploads a document (PDF, DOCX, or TXT) to a chat conversation.
+        Returns document metadata including a unique document ID for later access.
+      operationId: uploadDocument
+      tags:
+        - Chat Documents
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - conversation_id
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file to upload (max 20MB)
+                conversation_id:
+                  type: string
+                  description: ID of the conversation to attach the document to
+                message_content:
+                  type: string
+                  description: Optional text content to include with the document
+      responses:
+        '200':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message_id:
+                    type: string
+                    description: ID of the created chat message
+                  document:
+                    $ref: '#/components/schemas/DocumentMetadata'
+        '400':
+          description: Invalid file (unsupported type or size exceeds limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: User not authenticated
+        '403':
+          description: User not authorized to upload to this conversation
+        '413':
+          description: File size exceeds 20MB limit
+        '500':
+          description: Upload failed due to server error
+
+  /api/chat/document/{document_id}:
+    get:
+      summary: Download a document from chat
+      description: |
+        Downloads a document that was previously uploaded to a chat conversation.
+        Access is restricted to participants in the conversation.
+      operationId: downloadDocument
+      tags:
+        - Chat Documents
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the document to download
+      responses:
+        '200':
+          description: Document file stream
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'attachment; filename="{original_filename}"'
+        '401':
+          description: User not authenticated
+        '403':
+          description: User not authorized to access this document
+        '404':
+          description: Document not found
+
+components:
+  schemas:
+    DocumentMetadata:
+      type: object
+      properties:
+        document_id:
+          type: string
+          description: Unique identifier for the document
+        filename:
+          type: string
+          description: Original filename
+        file_size:
+          type: integer
+          description: File size in bytes
+        file_type:
+          type: string
+          enum:
+            - application/pdf
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            - text/plain
+          description: MIME type of the document
+        upload_timestamp:
+          type: string
+          format: date-time
+          description: When the document was uploaded
+        storage_path:
+          type: string
+          description: Internal storage path (not exposed to clients in production)
+      required:
+        - document_id
+        - filename
+        - file_size
+        - file_type
+        - upload_timestamp
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        detail:
+          type: string
+          description: Additional error details
+      required:
+        - error
