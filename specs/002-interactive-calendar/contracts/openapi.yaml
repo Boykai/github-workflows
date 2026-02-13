@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: Calendar Events API
+  description: |
+    API for managing calendar events in the GitHub Projects Chat Interface.
+    Supports creating, reading, updating, and deleting events with month/week/day view support.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: events
+    description: Calendar event operations
+
+paths:
+  /api/calendar/events:
+    get:
+      tags:
+        - events
+      summary: Get calendar events
+      description: |
+        Retrieve all events within a specified date range. 
+        Returns events that overlap with the given range (start <= event.end AND end >= event.start).
+        Used by calendar component to fetch events for month/week/day views.
+      operationId: getCalendarEvents
+      parameters:
+        - name: start
+          in: query
+          required: true
+          description: Start date of range (ISO 8601 format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2026-02-01"
+        - name: end
+          in: query
+          required: true
+          description: End date of range (ISO 8601 format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            example: "2026-02-29"
+      responses:
+        '200':
+          description: Successfully retrieved events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CalendarEvent'
+                  count:
+                    type: integer
+                    description: Total number of events returned
+                    example: 12
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Invalid date format. Expected YYYY-MM-DD"
+        '401':
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - events
+      summary: Create a new calendar event
+      description: |
+        Create a new event on the calendar. The event will be associated with the authenticated user.
+        All datetime fields should be in ISO 8601 format with timezone information.
+      operationId: createCalendarEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarEventCreate'
+            examples:
+              timed_event:
+                summary: Regular timed event
+                value:
+                  title: "Team Standup"
+                  description: "Daily sync meeting"
+                  start: "2026-02-14T10:00:00Z"
+                  end: "2026-02-14T10:30:00Z"
+                  allDay: false
+              all_day_event:
+                summary: All-day event
+                value:
+                  title: "Company Holiday"
+                  start: "2026-02-14T00:00:00Z"
+                  end: "2026-02-15T00:00:00Z"
+                  allDay: true
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                detail: "Validation failed"
+                errors:
+                  - field: "title"
+                    message: "Title must be between 1 and 200 characters"
+                  - field: "end"
+                    message: "End date must be after start date"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+  /api/calendar/events/{eventId}:
+    get:
+      tags:
+        - events
+      summary: Get a specific calendar event
+      description: Retrieve details of a single event by its ID
+      operationId: getCalendarEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Unique identifier of the event (UUID)
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Event not found"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - user does not own this event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+    put:
+      tags:
+        - events
+      summary: Update a calendar event
+      description: |
+        Update an existing event. Only the event owner can update.
+        All fields are optional - only provided fields will be updated.
+      operationId: updateCalendarEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Unique identifier of the event (UUID)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarEventUpdate'
+            examples:
+              update_title:
+                summary: Update only title
+                value:
+                  title: "Updated Meeting Title"
+              update_time:
+                summary: Update time
+                value:
+                  start: "2026-02-14T11:00:00Z"
+                  end: "2026-02-14T12:00:00Z"
+              full_update:
+                summary: Update all fields
+                value:
+                  title: "Revised Team Standup"
+                  description: "Updated description"
+                  start: "2026-02-14T11:00:00Z"
+                  end: "2026-02-14T11:30:00Z"
+                  allDay: false
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - user does not own this event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+    delete:
+      tags:
+        - events
+      summary: Delete a calendar event
+      description: Permanently delete an event. Only the event owner can delete.
+      operationId: deleteCalendarEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Unique identifier of the event (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Event deleted successfully (no content)
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - user does not own this event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    CalendarEvent:
+      type: object
+      description: Complete calendar event with all metadata
+      required:
+        - id
+        - title
+        - start
+        - end
+        - allDay
+        - userId
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier (auto-generated)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Event title/summary
+          example: "Team Standup"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed event description (optional)
+          example: "Daily sync meeting to discuss progress and blockers"
+        start:
+          type: string
+          format: date-time
+          description: Event start datetime (ISO 8601 with timezone)
+          example: "2026-02-14T10:00:00Z"
+        end:
+          type: string
+          format: date-time
+          description: Event end datetime (ISO 8601 with timezone, must be after start)
+          example: "2026-02-14T10:30:00Z"
+        allDay:
+          type: boolean
+          description: Whether event spans entire day(s)
+          default: false
+          example: false
+        userId:
+          type: string
+          description: ID of user who created the event
+          example: "user123"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when event was created (auto-generated)
+          example: "2026-02-13T15:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of last update (auto-updated)
+          example: "2026-02-13T15:30:00Z"
+
+    CalendarEventCreate:
+      type: object
+      description: Data required to create a new event
+      required:
+        - title
+        - start
+        - end
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Event title/summary
+          example: "Doctor Appointment"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed event description (optional)
+          example: "Annual checkup at the clinic"
+        start:
+          type: string
+          format: date-time
+          description: Event start datetime (ISO 8601)
+          example: "2026-02-15T14:00:00Z"
+        end:
+          type: string
+          format: date-time
+          description: Event end datetime (must be after start)
+          example: "2026-02-15T15:00:00Z"
+        allDay:
+          type: boolean
+          description: Whether event spans entire day(s)
+          default: false
+          example: false
+
+    CalendarEventUpdate:
+      type: object
+      description: Data to update an event (all fields optional, only provided fields updated)
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Event title/summary
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed event description
+        start:
+          type: string
+          format: date-time
+          description: Event start datetime
+        end:
+          type: string
+          format: date-time
+          description: Event end datetime
+        allDay:
+          type: boolean
+          description: Whether event spans entire day(s)
+
+    Error:
+      type: object
+      description: Standard error response
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Event not found"
+
+    ValidationError:
+      type: object
+      description: Validation error with field-specific details
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: General error message
+          example: "Validation failed"
+        errors:
+          type: array
+          description: List of field-specific validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name that failed validation
+                example: "title"
+              message:
+                type: string
+                description: Specific validation error message
+                example: "Title must be between 1 and 200 characters"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from authentication endpoint.
+        Include in Authorization header as: `Bearer <token>`
+
+security:
+  - bearerAuth: []
