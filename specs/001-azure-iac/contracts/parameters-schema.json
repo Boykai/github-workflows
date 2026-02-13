@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Azure IaC Deployment Parameters",
+  "description": "Required parameters for deploying Tech Connect infrastructure to Azure",
+  "type": "object",
+  "required": [
+    "environment",
+    "location",
+    "resourcePrefix",
+    "githubClientId",
+    "githubClientSecret",
+    "azureOpenAIEndpoint",
+    "azureOpenAIKey",
+    "sessionSecretKey"
+  ],
+  "properties": {
+    "environment": {
+      "type": "string",
+      "enum": ["dev", "staging", "production"],
+      "description": "Target environment for deployment"
+    },
+    "location": {
+      "type": "string",
+      "description": "Azure region for resources",
+      "examples": ["eastus", "westus2", "centralus", "eastus2"],
+      "pattern": "^[a-z0-9]+$"
+    },
+    "resourcePrefix": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 10,
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Prefix for resource naming (e.g., 'techcon')",
+      "default": "techcon"
+    },
+    "appServiceSku": {
+      "type": "string",
+      "enum": ["B1", "B2", "B3", "S1", "S2", "S3", "P1V2", "P2V2", "P3V2"],
+      "default": "B1",
+      "description": "App Service Plan SKU (Basic, Standard, or Premium V2)"
+    },
+    "backendDockerImage": {
+      "type": "string",
+      "description": "Docker image for backend application",
+      "examples": [
+        "ghcr.io/org/backend:latest",
+        "username/repo:v1.0.0",
+        "myregistry.azurecr.io/backend:dev"
+      ],
+      "pattern": "^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$"
+    },
+    "frontendDockerImage": {
+      "type": "string",
+      "description": "Docker image for frontend application",
+      "examples": [
+        "ghcr.io/org/frontend:latest",
+        "username/repo:v1.0.0",
+        "myregistry.azurecr.io/frontend:dev"
+      ],
+      "pattern": "^[a-zA-Z0-9._/-]+:[a-zA-Z0-9._-]+$"
+    },
+    "githubClientId": {
+      "type": "string",
+      "description": "GitHub OAuth Application Client ID",
+      "minLength": 20,
+      "pattern": "^[a-fA-F0-9]+$"
+    },
+    "githubClientSecret": {
+      "type": "string",
+      "description": "GitHub OAuth Application Client Secret (secure parameter)",
+      "minLength": 40,
+      "writeOnly": true
+    },
+    "githubRedirectUri": {
+      "type": "string",
+      "format": "uri",
+      "description": "GitHub OAuth callback URL",
+      "examples": [
+        "https://techcon-dev-frontend.azurewebsites.net/api/v1/auth/github/callback"
+      ]
+    },
+    "azureOpenAIEndpoint": {
+      "type": "string",
+      "format": "uri",
+      "description": "Azure OpenAI service endpoint URL",
+      "pattern": "^https://[a-zA-Z0-9-]+\\.openai\\.azure\\.com/?$",
+      "examples": ["https://my-openai.openai.azure.com"]
+    },
+    "azureOpenAIKey": {
+      "type": "string",
+      "description": "Azure OpenAI API key (secure parameter)",
+      "minLength": 32,
+      "writeOnly": true
+    },
+    "azureOpenAIDeployment": {
+      "type": "string",
+      "description": "Azure OpenAI model deployment name",
+      "default": "gpt-5",
+      "examples": ["gpt-4", "gpt-5", "gpt-35-turbo"]
+    },
+    "sessionSecretKey": {
+      "type": "string",
+      "description": "Backend session encryption secret (64-character hex string)",
+      "minLength": 32,
+      "maxLength": 128,
+      "pattern": "^[a-fA-F0-9]+$",
+      "writeOnly": true
+    },
+    "frontendUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Frontend base URL for backend CORS configuration",
+      "examples": [
+        "https://techcon-dev-frontend.azurewebsites.net",
+        "http://localhost:5173"
+      ]
+    },
+    "corsOrigins": {
+      "type": "array",
+      "description": "Additional CORS allowed origins (optional)",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "default": [],
+      "examples": [
+        ["http://localhost:5173", "http://localhost:80"]
+      ]
+    },
+    "defaultRepository": {
+      "type": "string",
+      "description": "Default GitHub repository for issues (format: owner/repo)",
+      "pattern": "^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$",
+      "examples": ["octocat/Hello-World"]
+    },
+    "defaultAssignee": {
+      "type": "string",
+      "description": "Default GitHub username for issue assignment",
+      "pattern": "^[a-zA-Z0-9-]+$",
+      "examples": ["octocat"]
+    },
+    "copilotPollingInterval": {
+      "type": "integer",
+      "description": "Interval in seconds for polling GitHub Copilot PR status",
+      "minimum": 30,
+      "maximum": 600,
+      "default": 60
+    },
+    "tags": {
+      "type": "object",
+      "description": "Additional resource tags",
+      "properties": {
+        "CostCenter": {
+          "type": "string",
+          "description": "Cost center identifier"
+        },
+        "Owner": {
+          "type": "string",
+          "description": "Resource owner email or team name"
+        }
+      },
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 512
+      }
+    }
+  },
+  "additionalProperties": false
+}
