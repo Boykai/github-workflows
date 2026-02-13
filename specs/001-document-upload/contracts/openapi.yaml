@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: Document Upload API
+  description: API endpoints for document upload, management, and download in GitHub Projects Chat
+  version: 1.0.0
+  contact:
+    name: GitHub Projects Chat Team
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.example.com/api/v1
+    description: Production server
+
+paths:
+  /documents/upload:
+    post:
+      summary: Upload a document
+      description: Upload a document file (PDF, DOCX, TXT, XLSX, PPTX) up to 25MB. File is validated, stored securely, and a document message is created in the chat.
+      operationId: uploadDocument
+      tags:
+        - documents
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          description: GitHub project ID to associate document with
+          schema:
+            type: integer
+            example: 456789
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file to upload
+                message_text:
+                  type: string
+                  description: Optional text message accompanying the document
+                  example: "Here's the Q4 report for review"
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentUploadResponse'
+        '400':
+          description: Bad request (invalid file type, size exceeded, missing parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidType:
+                  value:
+                    error: "File type not supported. Please upload PDF, DOCX, TXT, XLSX, or PPTX files."
+                sizeExceeded:
+                  value:
+                    error: "File size exceeds 25MB limit. Please select a smaller file."
+        '401':
+          description: Unauthorized (no valid session)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/{document_id}:
+    get:
+      summary: Get document metadata
+      description: Retrieve metadata for a specific document (without downloading the file)
+      operationId: getDocumentMetadata
+      tags:
+        - documents
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          description: UUID of the document
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        '200':
+          description: Document metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /documents/{document_id}/download-url:
+    post:
+      summary: Request download URL
+      description: Generate a temporary, time-limited download token for accessing a document
+      operationId: requestDownloadUrl
+      tags:
+        - documents
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          description: UUID of the document to download
+          schema:
+            type: string
+            format: uuid
+            example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      responses:
+        '200':
+          description: Download token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /downloads:
+    get:
+      summary: Download document file
+      description: Download a document file using a temporary token. Token is validated and marked as used.
+      operationId: downloadDocument
+      tags:
+        - downloads
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Temporary download token
+          schema:
+            type: string
+            example: "x7Y2mK9pQwE8RtL4sN6vH3jF1dC5aZ0b"
+      responses:
+        '200':
+          description: Document file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.presentationml.presentation:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized or invalid/expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Token does not belong to current session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Document file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /projects/{project_id}/documents:
+    get:
+      summary: List documents in project
+      description: Get all documents uploaded to a specific project
+      operationId: listProjectDocuments
+      tags:
+        - documents
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          description: GitHub project ID
+          schema:
+            type: integer
+            example: 456789
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of documents to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          required: false
+          description: Offset for pagination
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: List of documents in project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+      description: Session-based authentication using HTTP-only cookie
+
+  schemas:
+    Document:
+      type: object
+      required:
+        - document_id
+        - original_filename
+        - file_size
+        - mime_type
+        - file_extension
+        - upload_timestamp
+        - uploader_user_id
+        - project_id
+      properties:
+        document_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the document
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        original_filename:
+          type: string
+          description: Original name of the uploaded file
+          example: "Q4_Report.pdf"
+        file_size:
+          type: integer
+          description: Size in bytes
+          example: 2457600
+        mime_type:
+          type: string
+          description: MIME type of the file
+          example: "application/pdf"
+          enum:
+            - application/pdf
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            - text/plain
+            - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+            - application/vnd.openxmlformats-officedocument.presentationml.presentation
+        file_extension:
+          type: string
+          description: File extension
+          example: ".pdf"
+          enum:
+            - .pdf
+            - .docx
+            - .txt
+            - .xlsx
+            - .pptx
+        upload_timestamp:
+          type: string
+          format: date-time
+          description: When file was uploaded (ISO 8601 UTC)
+          example: "2026-02-13T15:30:00Z"
+        uploader_user_id:
+          type: string
+          description: GitHub user ID of uploader
+          example: "github_user_123"
+        project_id:
+          type: integer
+          description: GitHub project ID
+          example: 456789
+
+    DocumentUploadResponse:
+      type: object
+      required:
+        - document
+        - message
+      properties:
+        document:
+          $ref: '#/components/schemas/Document'
+        message:
+          $ref: '#/components/schemas/DocumentMessage'
+
+    DocumentMessage:
+      type: object
+      required:
+        - message_id
+        - document_id
+        - sender_user_id
+        - project_id
+        - message_timestamp
+        - message_type
+      properties:
+        message_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the message
+          example: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+        document_id:
+          type: string
+          format: uuid
+          description: Reference to document
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        sender_user_id:
+          type: string
+          description: GitHub user ID of sender
+          example: "github_user_123"
+        project_id:
+          type: integer
+          description: GitHub project ID
+          example: 456789
+        message_timestamp:
+          type: string
+          format: date-time
+          description: When message was sent (ISO 8601 UTC)
+          example: "2026-02-13T15:30:05Z"
+        message_text:
+          type: string
+          nullable: true
+          description: Optional text accompanying the document
+          example: "Here's the Q4 report for review"
+        message_type:
+          type: string
+          description: Type of message
+          example: "document"
+          enum:
+            - document
+
+    DownloadUrlResponse:
+      type: object
+      required:
+        - download_url
+        - expires_at
+      properties:
+        download_url:
+          type: string
+          format: uri
+          description: URL to download the document
+          example: "http://localhost:8000/api/v1/downloads?token=x7Y2mK9pQwE8RtL4sN6vH3jF1dC5aZ0b"
+        expires_at:
+          type: string
+          format: date-time
+          description: When the download URL expires (ISO 8601 UTC)
+          example: "2026-02-13T16:00:00Z"
+
+    DocumentListResponse:
+      type: object
+      required:
+        - documents
+        - total
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        total:
+          type: integer
+          description: Total number of documents in project
+          example: 15
+        limit:
+          type: integer
+          description: Limit used for pagination
+          example: 50
+        offset:
+          type: integer
+          description: Offset used for pagination
+          example: 0
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "File type not supported. Please upload PDF, DOCX, TXT, XLSX, or PPTX files."
+        details:
+          type: string
+          description: Additional error details (optional)
+          example: "MIME type 'application/zip' not in allowed list"
+
+tags:
+  - name: documents
+    description: Document upload and management operations
+  - name: downloads
+    description: Secure document download operations
