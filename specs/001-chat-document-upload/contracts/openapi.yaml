@@ -1,0 +1,362 @@
+openapi: 3.0.3
+info:
+  title: Chat Document Upload API
+  description: API endpoints for uploading and downloading documents in chat conversations
+  version: 1.0.0
+  contact:
+    name: Tech Connect API
+    
+servers:
+  - url: http://localhost:8000/api
+    description: Local development server
+  - url: https://api.techconnect.example.com/api
+    description: Production server
+
+paths:
+  /chat/upload:
+    post:
+      summary: Upload a document to a chat conversation
+      description: |
+        Uploads a document (PDF, DOCX, or TXT) to the current chat session.
+        Maximum file size is 20MB. Returns the created chat message with attachment metadata.
+      operationId: uploadDocument
+      tags:
+        - Chat
+        - Documents
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The document file to upload (PDF, DOCX, or TXT)
+                message_content:
+                  type: string
+                  description: Optional text message to accompany the document
+                  maxLength: 1000
+            encoding:
+              file:
+                contentType: application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/plain
+      responses:
+        '200':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: '#/components/schemas/ChatMessage'
+                  attachment:
+                    $ref: '#/components/schemas/DocumentAttachment'
+              example:
+                message:
+                  message_id: "550e8400-e29b-41d4-a716-446655440001"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+                  sender_type: "user"
+                  content: "Shared a document: project_proposal.pdf"
+                  action_type: "document_upload"
+                  action_data:
+                    attachment_id: "550e8400-e29b-41d4-a716-446655440002"
+                    filename: "project_proposal.pdf"
+                    file_size: 2457600
+                    file_type: "application/pdf"
+                    uploaded_at: "2026-02-13T21:50:00Z"
+                    download_url: "/api/chat/documents/550e8400-e29b-41d4-a716-446655440002"
+                  timestamp: "2026-02-13T21:50:00Z"
+                  has_attachment: true
+                attachment:
+                  attachment_id: "550e8400-e29b-41d4-a716-446655440002"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+                  message_id: "550e8400-e29b-41d4-a716-446655440001"
+                  filename: "project_proposal.pdf"
+                  file_size: 2457600
+                  file_type: "application/pdf"
+                  storage_path: "uploads/550e8400-e29b-41d4-a716-446655440000/550e8400-e29b-41d4-a716-446655440002_project_proposal.pdf"
+                  uploaded_at: "2026-02-13T21:50:00Z"
+                  upload_status: "completed"
+        '400':
+          description: Invalid request (missing file or invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "No file provided"
+        '401':
+          description: Unauthorized - missing or invalid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Not authenticated"
+        '413':
+          description: Payload too large - file exceeds 20MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "File size exceeds 20MB limit. Please select a smaller file"
+        '415':
+          description: Unsupported media type - file type not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "File type not supported. Please upload PDF, DOCX, or TXT files"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Failed to save file to storage"
+
+  /chat/documents/{attachment_id}:
+    get:
+      summary: Download a document from chat
+      description: |
+        Downloads a previously uploaded document. Access is restricted to users
+        who are participants in the conversation where the document was shared.
+      operationId: downloadDocument
+      tags:
+        - Chat
+        - Documents
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: attachment_id
+          in: path
+          required: true
+          description: UUID of the document attachment to download
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+      responses:
+        '200':
+          description: Document file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Indicates the file should be downloaded with original filename
+              schema:
+                type: string
+              example: 'attachment; filename="project_proposal.pdf"'
+            Content-Length:
+              description: Size of the file in bytes
+              schema:
+                type: integer
+              example: 2457600
+        '401':
+          description: Unauthorized - missing or invalid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Not authenticated"
+        '403':
+          description: Forbidden - user does not have access to this document
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Access denied - document belongs to a different session"
+        '404':
+          description: Document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Document not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Failed to read file from storage"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie for authentication
+
+  schemas:
+    ChatMessage:
+      type: object
+      required:
+        - message_id
+        - session_id
+        - sender_type
+        - content
+        - timestamp
+      properties:
+        message_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the message
+        session_id:
+          type: string
+          format: uuid
+          description: Session this message belongs to
+        sender_type:
+          type: string
+          enum: [user, assistant, system]
+          description: Type of message sender
+        content:
+          type: string
+          maxLength: 10000
+          description: Message text content
+        action_type:
+          type: string
+          enum: [task_create, status_update, issue_create, project_select, document_upload]
+          description: Type of action associated with this message
+        action_data:
+          type: object
+          description: Action-specific data (structure varies by action_type)
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when message was created
+        has_attachment:
+          type: boolean
+          description: Flag indicating if message has a document attachment
+          default: false
+
+    DocumentAttachment:
+      type: object
+      required:
+        - attachment_id
+        - session_id
+        - message_id
+        - filename
+        - file_size
+        - file_type
+        - storage_path
+        - uploaded_at
+        - upload_status
+      properties:
+        attachment_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attachment
+        session_id:
+          type: string
+          format: uuid
+          description: Session that owns this document
+        message_id:
+          type: string
+          format: uuid
+          description: Chat message this document is attached to
+        filename:
+          type: string
+          maxLength: 255
+          description: Original filename from user's device
+          example: "project_proposal.pdf"
+        file_size:
+          type: integer
+          minimum: 1
+          maximum: 20971520
+          description: File size in bytes (max 20MB)
+          example: 2457600
+        file_type:
+          type: string
+          enum:
+            - application/pdf
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            - text/plain
+          description: MIME type of the document
+        storage_path:
+          type: string
+          description: Relative path to file in storage system
+          example: "uploads/550e8400-e29b-41d4-a716-446655440000/550e8400-e29b-41d4-a716-446655440002_project_proposal.pdf"
+        uploaded_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when upload completed
+        upload_status:
+          type: string
+          enum: [uploading, completed, failed]
+          description: Current status of the upload
+          default: uploading
+
+    DocumentAttachmentData:
+      type: object
+      description: Action data structure for document_upload messages
+      required:
+        - attachment_id
+        - filename
+        - file_size
+        - file_type
+        - uploaded_at
+        - download_url
+      properties:
+        attachment_id:
+          type: string
+          format: uuid
+          description: Unique identifier for the attachment
+        filename:
+          type: string
+          description: Original filename
+        file_size:
+          type: integer
+          description: File size in bytes
+        file_type:
+          type: string
+          description: MIME type of the document
+        uploaded_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when upload completed
+        download_url:
+          type: string
+          description: API endpoint to download the document
+          example: "/api/chat/documents/550e8400-e29b-41d4-a716-446655440002"
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "File size exceeds 20MB limit"
+
+tags:
+  - name: Chat
+    description: Chat messaging and conversation management
+  - name: Documents
+    description: Document upload and download operations
