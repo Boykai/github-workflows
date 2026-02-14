@@ -29,9 +29,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 003-silver-background: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 002-blue-background: Added TypeScript 5.4 (frontend), Python (backend - not impacted) + React 18.3, Vite 5.4, CSS custom properties for theming
 - 001-app-title-update: Added TypeScript 5.4, HTML5 + React 18.3, Vite 5.4
-- 001-github-project-workflow: Added Python 3.11 + FastAPI, httpx, azure-ai-inference, pydantic
 
 
 <!-- MANUAL ADDITIONS START -->
