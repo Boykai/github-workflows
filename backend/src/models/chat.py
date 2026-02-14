@@ -298,6 +298,14 @@ class IssueRecommendation(BaseModel):
     }
 
 
+# Default agent mappings: status name → ordered list of Spec Kit agents
+DEFAULT_AGENT_MAPPINGS: dict[str, list[str]] = {
+    "Backlog": ["speckit.specify"],
+    "Ready": ["speckit.plan", "speckit.tasks"],
+    "In Progress": ["speckit.implement"],
+}
+
+
 class WorkflowConfiguration(BaseModel):
     """Configuration for the workflow orchestrator."""
 
@@ -310,8 +318,9 @@ class WorkflowConfiguration(BaseModel):
     review_assignee: str | None = Field(
         None, description="Username for review (default: repo owner)"
     )
-    custom_agent: str = Field(
-        default="", description="Custom agent name (e.g., 'speckit.specify') for issue assignment"
+    agent_mappings: dict[str, list[str]] = Field(
+        default_factory=lambda: dict(DEFAULT_AGENT_MAPPINGS),
+        description="Status name → ordered list of Spec Kit agent names to assign sequentially",
     )
     status_backlog: str = Field(default="Backlog", description="Backlog status column name")
     status_ready: str = Field(default="Ready", description="Ready status column name")

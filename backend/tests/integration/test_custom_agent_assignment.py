@@ -1,8 +1,8 @@
 """
-Integration test for GitHub Copilot Custom Agent Assignment.
+Integration test for GitHub Copilot Custom Agent Assignment via Agent Mappings.
 
 This script tests assigning a GitHub Issue to the 'speckit.specify' custom agent
-when the issue status is updated to "Ready".
+using the agent_mappings configuration instead of the deprecated custom_agent field.
 
 Requirements:
 - GITHUB_TOKEN environment variable with repo scope
@@ -22,18 +22,22 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from src.models.chat import DEFAULT_AGENT_MAPPINGS
 from src.services.github_projects import GitHubProjectsService
 
 
 async def test_custom_agent_assignment():
-    """Test assigning an issue to a custom agent."""
+    """Test assigning an issue to a custom agent via agent_mappings."""
 
     # Configuration - update these values for your test
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
     OWNER = os.environ.get("GITHUB_OWNER", "Boykai")
     REPO = os.environ.get("GITHUB_REPO", "github-workflows")
     ISSUE_NUMBER = int(os.environ.get("GITHUB_ISSUE_NUMBER", "1"))
-    CUSTOM_AGENT = os.environ.get("CUSTOM_AGENT", "speckit.specify")
+    # Default to the first Backlog agent from DEFAULT_AGENT_MAPPINGS
+    CUSTOM_AGENT = os.environ.get(
+        "CUSTOM_AGENT", DEFAULT_AGENT_MAPPINGS.get("Backlog", ["speckit.specify"])[0]
+    )
 
     if not GITHUB_TOKEN:
         print("ERROR: GITHUB_TOKEN environment variable is required")
@@ -41,11 +45,12 @@ async def test_custom_agent_assignment():
         return False
 
     print("=" * 60)
-    print("GitHub Copilot Custom Agent Assignment Test")
+    print("GitHub Copilot Agent Mapping Assignment Test")
     print("=" * 60)
     print(f"Repository: {OWNER}/{REPO}")
     print(f"Issue Number: {ISSUE_NUMBER}")
-    print(f"Custom Agent: {CUSTOM_AGENT}")
+    print(f"Agent (from mappings): {CUSTOM_AGENT}")
+    print(f"Default mappings: {DEFAULT_AGENT_MAPPINGS}")
     print("=" * 60)
 
     service = GitHubProjectsService()
@@ -86,7 +91,7 @@ async def test_custom_agent_assignment():
 
         # Step 3: Format prompt
         print("\n[3/4] Formatting issue context as prompt...")
-        prompt = service.format_issue_context_as_prompt(issue_data)
+        prompt = service.format_issue_context_as_prompt(issue_data, agent_name=CUSTOM_AGENT)
         print(f"✅ Prompt length: {len(prompt)} chars")
         print(f"   Preview: {prompt[:100]}...")
 

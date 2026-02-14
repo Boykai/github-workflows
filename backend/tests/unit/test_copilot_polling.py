@@ -1,16 +1,20 @@
 """Unit tests for Copilot PR polling service."""
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from src.services.copilot_polling import (
     _processed_issue_prs,
+    _posted_agent_outputs,
     check_in_progress_issues,
     check_issue_for_copilot_completion,
     get_polling_status,
+    post_agent_outputs_from_pr,
     process_in_progress_issue,
 )
+from src.services.workflow_orchestrator import PipelineState
 
 
 @pytest.fixture
@@ -227,6 +231,106 @@ class TestCheckInProgressIssues:
         )
 
         assert len(results) == 2
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_skips_issues_with_active_pipeline_for_other_status(
+        self, mock_get_pipeline, mock_process, mock_service, mock_task
+    ):
+        """Issues managed by a pipeline for a different status should be skipped."""
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+
+        # Simulate a pipeline for Backlog status (not In Progress)
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+            completed_agents=[],
+            started_at=datetime.utcnow(),
+        )
+
+        results = await check_in_progress_issues(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        # Issue should be skipped — pipeline is for Backlog, not In Progress
+        mock_process.assert_not_called()
+        assert len(results) == 0
+        # Should attempt to restore status
+        mock_service.update_item_status_by_name.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_processes_issues_with_in_progress_pipeline(
+        self, mock_get_pipeline, mock_process, mock_service, mock_task
+    ):
+        """Issues with an active pipeline for In Progress status should be processed normally."""
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+        mock_process.return_value = {"status": "success"}
+
+        # Pipeline IS for In Progress — should not skip
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=0,
+            completed_agents=[],
+            started_at=datetime.utcnow(),
+        )
+
+        results = await check_in_progress_issues(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        # Should be processed normally
+        mock_process.assert_called_once()
+        assert len(results) == 1
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_processes_issues_with_completed_pipeline(
+        self, mock_get_pipeline, mock_process, mock_service, mock_task
+    ):
+        """Issues with a completed pipeline (any status) should be processed normally."""
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+        mock_process.return_value = {"status": "success"}
+
+        # Pipeline is complete (current_agent_index >= len(agents))
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=1,  # At end
+            completed_agents=["speckit.specify"],
+            started_at=datetime.utcnow(),
+        )
+
+        results = await check_in_progress_issues(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        mock_process.assert_called_once()
+        assert len(results) == 1
 
 
 class TestProcessInProgressIssue:
@@ -512,3 +616,203 @@ class TestCheckIssueForCopilotCompletion:
 
         assert result["status"] == "no_action"
         assert result["issue_number"] == 42
+
+
+class TestPostAgentOutputsFromPr:
+    """Tests for posting agent .md outputs from completed PRs as issue comments."""
+
+    @pytest.fixture(autouse=True)
+    def clear_cache(self):
+        """Clear the posted agent outputs cache between tests."""
+        _posted_agent_outputs.clear()
+        yield
+        _posted_agent_outputs.clear()
+
+    @pytest.fixture
+    def mock_task_backlog(self):
+        task = MagicMock()
+        task.github_item_id = "PVTI_1"
+        task.github_content_id = "I_1"
+        task.issue_number = 10
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Feature Issue"
+        task.status = "Backlog"
+        return task
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_posts_md_files_and_done_marker(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Should post .md file content and Done! marker as issue comments."""
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+        )
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "state": "open"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"head_ref": "feature-branch", "number": 5}
+        )
+        mock_service.get_pr_changed_files = AsyncMock(
+            return_value=[
+                {"filename": "specs/spec.md", "status": "added"},
+                {"filename": "src/main.py", "status": "modified"},
+            ]
+        )
+        mock_service.get_file_content_from_ref = AsyncMock(
+            return_value="# Spec\n\nThis is the spec."
+        )
+        mock_service.create_issue_comment = AsyncMock(
+            return_value={"id": 1, "body": "ok"}
+        )
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 1
+        assert results[0]["status"] == "success"
+        assert results[0]["files_posted"] == 1
+        assert results[0]["agent_name"] == "speckit.specify"
+
+        # Should have called create_issue_comment twice:
+        # 1 for the spec.md content, 1 for the Done! marker
+        assert mock_service.create_issue_comment.call_count == 2
+
+        # Verify Done! marker was posted
+        done_call_body = mock_service.create_issue_comment.call_args_list[-1].kwargs.get(
+            "body"
+        ) or mock_service.create_issue_comment.call_args_list[-1][1].get("body", "")
+        assert "speckit.specify: Done!" in done_call_body
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_skips_when_done_marker_already_exists(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Should skip posting if Done! marker is already present."""
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+        )
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=True)
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 0
+        mock_service.check_copilot_pr_completion.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_skips_implement_agent(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Should skip speckit.implement since it doesn't produce .md outputs."""
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=0,
+        )
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 0
+        mock_service.check_agent_completion_comment.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_skips_when_no_pr_found(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Should skip when no completed PR is found for the issue."""
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+        )
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(return_value=None)
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 0
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_deduplicates_via_cache(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Should not re-post outputs for the same issue/agent/PR."""
+        _posted_agent_outputs.add("10:speckit.specify:5")
+
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+        )
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 0
+        mock_service.check_copilot_pr_completion.assert_not_called()

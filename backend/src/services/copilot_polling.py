@@ -568,10 +568,13 @@ async def _merge_agent_pr_before_next(
     completed_agent: str,
 ) -> bool:
     """
-    Merge the completed agent's PR before assigning the next agent.
+    Merge the completed agent's PR into the original PR's branch.
 
-    This implements the "chain model" where each agent's PR is merged
-    so subsequent agents work on top of main with all previous work.
+    This implements a model where:
+    1. The first agent creates PR #1 targeting main
+    2. Subsequent agents create PRs targeting PR #1's branch
+    3. Each agent's PR is merged INTO PR #1's branch (not main)
+    4. Only PR #1 eventually merges to main with all agent work
 
     Args:
         access_token: GitHub access token
@@ -584,15 +587,23 @@ async def _merge_agent_pr_before_next(
         True if PR was merged successfully
     """
     try:
-        # Find the PR created by the completed agent
-        finished_pr = await github_projects_service.check_copilot_pr_completion(
+        # Find the ORIGINAL PR (first one, targeting main)
+        original_pr = await github_projects_service.find_original_pr_for_issue(
             access_token=access_token,
             owner=owner,
             repo=repo,
             issue_number=issue_number,
         )
 
-        if not finished_pr:
+        # Find the CURRENT agent's PR (most recent completed one)
+        current_pr = await github_projects_service.check_copilot_pr_completion(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        if not current_pr:
             logger.warning(
                 "No completed PR found for agent '%s' on issue #%d — cannot auto-merge",
                 completed_agent,
@@ -600,50 +611,88 @@ async def _merge_agent_pr_before_next(
             )
             return False
 
-        pr_number = finished_pr.get("number")
-        pr_id = finished_pr.get("id")
-        is_draft = finished_pr.get("is_draft", False)
+        current_pr_number = current_pr.get("number")
+        current_pr_id = current_pr.get("id")
+        is_draft = current_pr.get("is_draft", False)
 
-        if not pr_id:
-            logger.warning("PR #%d missing node ID — cannot merge", pr_number)
+        if not current_pr_id:
+            logger.warning("PR #%d missing node ID — cannot merge", current_pr_number)
+            return False
+
+        # If this IS the original PR (or no original found), don't merge yet
+        # The original PR should only merge to main after ALL agents complete
+        if not original_pr or original_pr.get("number") == current_pr_number:
+            logger.info(
+                "PR #%d is the original PR for issue #%d — not merging (will merge to main later)",
+                current_pr_number,
+                issue_number,
+            )
+            return True  # Return True to continue pipeline
+
+        original_branch = original_pr.get("head_ref", "")
+        if not original_branch:
+            logger.warning(
+                "Original PR #%d missing head_ref — cannot retarget current PR",
+                original_pr.get("number"),
+            )
             return False
 
         logger.info(
-            "Auto-merging PR #%d (agent '%s') before assigning next agent",
-            pr_number,
+            "Merging PR #%d (agent '%s') into original PR #%d's branch '%s'",
+            current_pr_number,
             completed_agent,
+            original_pr.get("number"),
+            original_branch,
         )
+
+        # Retarget current PR to merge into original PR's branch (not main)
+        retarget_success = await github_projects_service.update_pr_base_branch(
+            access_token=access_token,
+            pr_node_id=current_pr_id,
+            new_base_branch=original_branch,
+            pr_number=current_pr_number,
+        )
+
+        if not retarget_success:
+            logger.warning(
+                "Failed to retarget PR #%d to '%s' — attempting merge anyway",
+                current_pr_number,
+                original_branch,
+            )
 
         # Mark ready for review if still draft
         if is_draft:
             ready_success = await github_projects_service.mark_pr_ready_for_review(
                 access_token=access_token,
-                pr_node_id=pr_id,
+                pr_node_id=current_pr_id,
             )
             if not ready_success:
                 logger.warning(
                     "Failed to mark PR #%d ready — attempting merge anyway",
-                    pr_number,
+                    current_pr_number,
                 )
 
-        # Merge the PR
+        # Merge the current PR into the original PR's branch
         merge_success = await github_projects_service.merge_pull_request(
             access_token=access_token,
-            pr_node_id=pr_id,
-            pr_number=pr_number,
+            pr_node_id=current_pr_id,
+            pr_number=current_pr_number,
             merge_method="SQUASH",
         )
 
         if merge_success:
             logger.info(
-                "Successfully merged PR #%d for issue #%d — next agent will work on main",
-                pr_number,
+                "Successfully merged PR #%d into PR #%d's branch '%s' for issue #%d",
+                current_pr_number,
+                original_pr.get("number"),
+                original_branch,
                 issue_number,
             )
         else:
             logger.error(
-                "Failed to merge PR #%d for issue #%d — next agent may create duplicate work",
-                pr_number,
+                "Failed to merge PR #%d into '%s' for issue #%d",
+                current_pr_number,
+                original_branch,
                 issue_number,
             )
 
