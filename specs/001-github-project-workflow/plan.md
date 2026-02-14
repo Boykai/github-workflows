@@ -9,7 +9,7 @@ Implement an AI-assisted workflow that transforms chat-based feature requests in
 
 ## Technical Context
 
-**Language/Version**: Python 3.11  
+**Language/Version**: Python 3.12  
 **Primary Dependencies**: FastAPI, httpx, azure-ai-inference, pydantic  
 **Storage**: In-memory (MVP) with session-based caching  
 **Testing**: pytest, pytest-asyncio  

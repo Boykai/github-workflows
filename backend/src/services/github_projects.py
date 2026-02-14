@@ -375,29 +375,24 @@ mutation($pullRequestId: ID!) {
 }
 """
 
-# GraphQL mutation to merge a pull request
+# GraphQL mutation to merge a pull request into its base branch
+# Used to merge child PR branches into the parent/main branch for an issue
 MERGE_PULL_REQUEST_MUTATION = """
-mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
-  mergePullRequest(input: {pullRequestId: $pullRequestId, mergeMethod: $mergeMethod}) {
+mutation($pullRequestId: ID!, $commitHeadline: String, $mergeMethod: PullRequestMergeMethod) {
+  mergePullRequest(input: {
+    pullRequestId: $pullRequestId,
+    commitHeadline: $commitHeadline,
+    mergeMethod: $mergeMethod
+  }) {
     pullRequest {
       id
       number
       state
       merged
-      url
-    }
-  }
-}
-"""
-
-# GraphQL mutation to update a PR's base branch (retarget PR)
-UPDATE_PR_BASE_BRANCH_MUTATION = """
-mutation($pullRequestId: ID!, $baseRefName: String!) {
-  updatePullRequest(input: {pullRequestId: $pullRequestId, baseRefName: $baseRefName}) {
-    pullRequest {
-      id
-      number
-      baseRefName
+      mergedAt
+      mergeCommit {
+        oid
+      }
       url
     }
   }
@@ -2378,187 +2373,128 @@ class GitHubProjectsService:
         access_token: str,
         pr_node_id: str,
         pr_number: int | None = None,
+        commit_headline: str | None = None,
         merge_method: str = "SQUASH",
-    ) -> bool:
+    ) -> dict | None:
         """
-        Merge a pull request.
+        Merge a pull request into its base branch.
 
-        Used to auto-merge intermediate agent PRs so subsequent agents
-        can build on the merged base.
+        Used to merge child PR branches into the parent/main branch for an issue
+        when an agent completes work.
 
         Args:
             access_token: GitHub OAuth access token
             pr_node_id: Pull request node ID (GraphQL ID)
             pr_number: Optional PR number for logging
-            merge_method: MERGE, SQUASH, or REBASE (default: SQUASH)
+            commit_headline: Optional custom commit message headline
+            merge_method: Merge method - MERGE, SQUASH, or REBASE (default: SQUASH)
 
         Returns:
-            True if merge succeeded
+            Dict with merge details if successful, None otherwise
         """
         try:
+            variables = {
+                "pullRequestId": pr_node_id,
+                "mergeMethod": merge_method,
+            }
+            if commit_headline:
+                variables["commitHeadline"] = commit_headline
+
             data = await self._graphql(
                 access_token,
                 MERGE_PULL_REQUEST_MUTATION,
-                {"pullRequestId": pr_node_id, "mergeMethod": merge_method},
+                variables,
             )
 
-            pr = data.get("mergePullRequest", {}).get("pullRequest", {})
-            if pr and pr.get("merged"):
+            result = data.get("mergePullRequest", {}).get("pullRequest", {})
+            if result and result.get("merged"):
                 logger.info(
-                    "Successfully merged PR #%d: %s",
-                    pr.get("number") or pr_number,
-                    pr.get("url", ""),
+                    "Successfully merged PR #%d (state=%s, merged_at=%s, commit=%s)",
+                    result.get("number") or pr_number,
+                    result.get("state"),
+                    result.get("mergedAt"),
+                    result.get("mergeCommit", {}).get("oid", "")[:8],
                 )
-                return True
+                return {
+                    "number": result.get("number"),
+                    "state": result.get("state"),
+                    "merged": result.get("merged"),
+                    "merged_at": result.get("mergedAt"),
+                    "merge_commit": result.get("mergeCommit", {}).get("oid"),
+                    "url": result.get("url"),
+                }
             else:
                 logger.warning(
                     "PR #%d may not have been merged: %s",
                     pr_number or 0,
-                    pr,
+                    result,
                 )
-                return False
+                return None
 
         except Exception as e:
             logger.error("Failed to merge PR #%d: %s", pr_number or 0, e)
-            return False
+            return None
 
-    async def update_pr_base_branch(
-        self,
-        access_token: str,
-        pr_node_id: str,
-        new_base_branch: str,
-        pr_number: int | None = None,
-    ) -> bool:
-        """
-        Update a PR's base branch (retarget the PR).
-
-        Used to retarget agent PRs to merge into the original PR's branch
-        instead of main.
-
-        Args:
-            access_token: GitHub OAuth access token
-            pr_node_id: Pull request node ID (GraphQL ID)
-            new_base_branch: New base branch name (e.g., "copilot/fix-42")
-            pr_number: Optional PR number for logging
-
-        Returns:
-            True if update succeeded
-        """
-        try:
-            data = await self._graphql(
-                access_token,
-                UPDATE_PR_BASE_BRANCH_MUTATION,
-                {"pullRequestId": pr_node_id, "baseRefName": new_base_branch},
-            )
-
-            pr = data.get("updatePullRequest", {}).get("pullRequest", {})
-            if pr and pr.get("baseRefName") == new_base_branch:
-                logger.info(
-                    "Successfully retargeted PR #%d to base branch '%s'",
-                    pr.get("number") or pr_number,
-                    new_base_branch,
-                )
-                return True
-            else:
-                logger.warning(
-                    "PR #%d may not have been retargeted: %s",
-                    pr_number or 0,
-                    pr,
-                )
-                return False
-
-        except Exception as e:
-            logger.error(
-                "Failed to retarget PR #%d to '%s': %s",
-                pr_number or 0,
-                new_base_branch,
-                e,
-            )
-            return False
-
-    async def find_original_pr_for_issue(
+    async def delete_branch(
         self,
         access_token: str,
         owner: str,
         repo: str,
-        issue_number: int,
-    ) -> dict | None:
+        branch_name: str,
+    ) -> bool:
         """
-        Find the original/first PR for an issue (the one targeting main).
+        Delete a branch from a repository.
 
-        When multiple agents create PRs for the same issue, this finds the
-        first PR that targets main - which should receive all subsequent
-        agent work via merges.
+        Used to clean up child PR branches after they are merged into the
+        parent/main branch for an issue.
 
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
             repo: Repository name
-            issue_number: Issue number
+            branch_name: Name of the branch to delete (without refs/heads/ prefix)
 
         Returns:
-            Dict with PR details (number, id, head_ref, url) or None
+            True if branch was deleted successfully
         """
         try:
-            linked_prs = await self.get_linked_pull_requests(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=issue_number,
+            # Use REST API to delete the branch reference
+            response = await self._client.delete(
+                f"https://api.github.com/repos/{owner}/{repo}/git/refs/heads/{branch_name}",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
             )
 
-            if not linked_prs:
-                return None
-
-            # Sort by created_at ascending to find the first/oldest PR
-            sorted_prs = sorted(
-                [pr for pr in linked_prs if pr.get("state") == "OPEN"],
-                key=lambda p: p.get("created_at", ""),
-            )
-
-            # Find the first PR that targets main
-            for pr in sorted_prs:
-                pr_details = await self.get_pull_request(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                    pr_number=pr["number"],
+            if response.status_code == 204:
+                logger.info(
+                    "Successfully deleted branch '%s' from %s/%s",
+                    branch_name,
+                    owner,
+                    repo,
                 )
-
-                if not pr_details:
-                    continue
-
-                # Check if this PR targets main (not another feature branch)
-                # PRs targeting main are the "original" PRs
-                base_ref = pr_details.get("base_ref", "")
-                if base_ref == "main" or base_ref == "master":
-                    logger.info(
-                        "Found original PR #%d (branch: %s) for issue #%d",
-                        pr_details["number"],
-                        pr_details.get("head_ref", ""),
-                        issue_number,
-                    )
-                    return {
-                        "number": pr_details["number"],
-                        "id": pr_details.get("id"),
-                        "head_ref": pr_details.get("head_ref", ""),
-                        "url": pr_details.get("url", ""),
-                        "is_draft": pr_details.get("is_draft", False),
-                    }
-
-            logger.info(
-                "No original PR (targeting main) found for issue #%d",
-                issue_number,
-            )
-            return None
+                return True
+            elif response.status_code == 422:
+                # Branch doesn't exist or already deleted
+                logger.debug(
+                    "Branch '%s' does not exist or was already deleted",
+                    branch_name,
+                )
+                return True
+            else:
+                logger.warning(
+                    "Failed to delete branch '%s': %d %s",
+                    branch_name,
+                    response.status_code,
+                    response.text,
+                )
+                return False
 
         except Exception as e:
-            logger.error(
-                "Error finding original PR for issue #%d: %s",
-                issue_number,
-                e,
-            )
-            return None
+            logger.error("Failed to delete branch '%s': %s", branch_name, e)
+            return False
 
     async def has_copilot_reviewed_pr(
         self,
@@ -2700,10 +2636,6 @@ class GitHubProjectsService:
           - 'copilot_work_finished' event
           - 'review_requested' event where review_requester is Copilot
 
-        When multiple PRs exist (from multiple agents), this returns the most
-        recently created completed PR, preferring PRs that don't target main
-        (those are subsequent agent PRs that need to be merged into the original).
-
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
@@ -2718,9 +2650,6 @@ class GitHubProjectsService:
                 access_token, owner, repo, issue_number
             )
 
-            # Collect all completed PRs
-            completed_prs = []
-
             for pr in linked_prs:
                 author = pr.get("author", "").lower()
                 state = pr.get("state", "")
@@ -2728,99 +2657,72 @@ class GitHubProjectsService:
                 pr_number = pr.get("number")
 
                 # Check if this is a Copilot-created PR
-                if not ("copilot" in author or author == "copilot-swe-agent[bot]"):
-                    continue
-
-                logger.debug(
-                    "Found Copilot PR #%d for issue #%d: state=%s, is_draft=%s",
-                    pr_number,
-                    issue_number,
-                    state,
-                    is_draft,
-                )
-
-                # PR must be OPEN to be processable
-                if state != "OPEN":
-                    logger.debug(
-                        "Copilot PR #%d is not open (state=%s), skipping",
+                if "copilot" in author or author == "copilot-swe-agent[bot]":
+                    logger.info(
+                        "Found Copilot PR #%d for issue #%d: state=%s, is_draft=%s",
                         pr_number,
+                        issue_number,
                         state,
+                        is_draft,
                     )
-                    continue
 
-                # Get PR details for node ID and base_ref
-                pr_details = await self.get_pull_request(access_token, owner, repo, pr_number)
+                    # PR must be OPEN to be processable
+                    if state != "OPEN":
+                        logger.info(
+                            "Copilot PR #%d is not open (state=%s), skipping",
+                            pr_number,
+                            state,
+                        )
+                        continue
 
-                if not pr_details:
-                    logger.warning(
-                        "Could not get details for PR #%d",
-                        pr_number,
+                    # Get PR details for node ID
+                    pr_details = await self.get_pull_request(access_token, owner, repo, pr_number)
+
+                    if not pr_details:
+                        logger.warning(
+                            "Could not get details for PR #%d",
+                            pr_number,
+                        )
+                        continue
+
+                    # If PR is already not a draft, it's ready (maybe manually marked)
+                    if not is_draft:
+                        logger.info(
+                            "Copilot PR #%d is already ready for review",
+                            pr_number,
+                        )
+                        return {
+                            **pr,
+                            "id": pr_details.get("id"),
+                            "copilot_finished": True,
+                        }
+
+                    # PR is still draft - check timeline events for Copilot finish signal
+                    timeline_events = await self.get_pr_timeline_events(
+                        access_token, owner, repo, pr_number
                     )
-                    continue
 
-                # If PR is already not a draft, it's ready (maybe manually marked)
-                if not is_draft:
+                    copilot_finished = self._check_copilot_finished_events(timeline_events)
+
+                    if copilot_finished:
+                        logger.info(
+                            "Copilot PR #%d has finished work (timeline events indicate completion)",
+                            pr_number,
+                        )
+                        return {
+                            **pr,
+                            "id": pr_details.get("id"),
+                            "last_commit": pr_details.get("last_commit"),
+                            "copilot_finished": True,
+                        }
+
+                    # No finish events yet - Copilot is still working
                     logger.info(
-                        "Copilot PR #%d is already ready for review",
-                        pr_number,
-                    )
-                    completed_prs.append({
-                        **pr,
-                        "id": pr_details.get("id"),
-                        "base_ref": pr_details.get("base_ref", ""),
-                        "created_at": pr_details.get("created_at", ""),
-                        "copilot_finished": True,
-                    })
-                    continue
-
-                # PR is still draft - check timeline events for Copilot finish signal
-                timeline_events = await self.get_pr_timeline_events(
-                    access_token, owner, repo, pr_number
-                )
-
-                copilot_finished = self._check_copilot_finished_events(timeline_events)
-
-                if copilot_finished:
-                    logger.info(
-                        "Copilot PR #%d has finished work (timeline events indicate completion)",
-                        pr_number,
-                    )
-                    completed_prs.append({
-                        **pr,
-                        "id": pr_details.get("id"),
-                        "base_ref": pr_details.get("base_ref", ""),
-                        "created_at": pr_details.get("created_at", ""),
-                        "last_commit": pr_details.get("last_commit"),
-                        "copilot_finished": True,
-                    })
-                else:
-                    logger.debug(
                         "Copilot PR #%d has no finish events yet, still in progress",
                         pr_number,
                     )
 
-            if not completed_prs:
-                return None
-
-            # Prefer PRs that don't target main (subsequent agent PRs)
-            # These need to be merged into the original PR's branch
-            non_main_prs = [
-                pr for pr in completed_prs
-                if pr.get("base_ref", "main") not in ("main", "master")
-            ]
-
-            # Sort by created_at descending to get most recent
-            target_prs = non_main_prs if non_main_prs else completed_prs
-            target_prs.sort(key=lambda p: p.get("created_at", ""), reverse=True)
-
-            result = target_prs[0]
-            logger.info(
-                "Selected PR #%d (base: %s) as most recent completed PR for issue #%d",
-                result.get("number"),
-                result.get("base_ref", "unknown"),
-                issue_number,
-            )
-            return result
+            return None
 
         except Exception as e:
             logger.error(

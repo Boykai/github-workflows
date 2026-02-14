@@ -5,11 +5,11 @@
 
 ## Summary
 
-Replace the single `custom_agent` field in workflow configuration with a per-status agent mapping that orchestrates Spec Kit custom agents across the full issue lifecycle. When an issue enters Backlog, assign `speckit.specify`; on Ready, run `speckit.plan` then `speckit.tasks` sequentially; on In Progress, assign `speckit.implement`. Extend the existing polling service to detect comment-based completion markers (`<agent-name>: All done!>`) for specify/plan/tasks agents and use existing PR-based detection for implement. Pipeline state is held in-memory and reconstructed from GitHub Issue comments on restart.
+Replace the single `custom_agent` field in workflow configuration with a per-status agent mapping that orchestrates Spec Kit custom agents across the full issue lifecycle. When an issue enters Backlog, assign `speckit.specify`; on Ready, run `speckit.plan` then `speckit.tasks` sequentially; on In Progress, assign `speckit.implement`. Each agent creates its own PR branch from the issue's main branch (established by the first PR). The polling service extracts `.md` outputs from completed PRs, posts them as issue comments with `Done!` markers, then squash-merges child PRs into the main branch and deletes child branches. Pipeline state is held in-memory and reconstructed from GitHub Issue comments on restart.
 
 ## Technical Context
 
-**Language/Version**: Python 3.11  
+**Language/Version**: Python 3.12  
 **Primary Dependencies**: FastAPI, httpx, Pydantic 2.x, pydantic-settings  
 **Storage**: In-memory (dicts/lists); GitHub Issue comments as durable source of truth  
 **Testing**: pytest, pytest-asyncio, ruff, black  

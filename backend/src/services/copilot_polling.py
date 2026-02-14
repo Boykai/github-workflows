@@ -23,10 +23,12 @@ from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
     WorkflowState,
+    get_issue_main_branch,
     get_pipeline_state,
     get_workflow_config,
     get_workflow_orchestrator,
     remove_pipeline_state,
+    set_issue_main_branch,
     set_pipeline_state,
 )
 
@@ -172,6 +174,17 @@ async def post_agent_outputs_from_pr(
                 logger.warning(
                     "Could not determine head ref for PR #%d, trying file list",
                     pr_number,
+                )
+
+            # Track the "main" branch for this issue (first PR's branch)
+            # All subsequent agent branches will be created from and merged into this branch
+            if head_ref and not get_issue_main_branch(task.issue_number):
+                set_issue_main_branch(task.issue_number, head_ref, pr_number)
+                logger.info(
+                    "Captured main branch '%s' (PR #%d) for issue #%d",
+                    head_ref,
+                    pr_number,
+                    task.issue_number,
                 )
 
             # Get changed files from the PR
@@ -560,152 +573,191 @@ async def check_ready_issues(
     return results
 
 
-async def _merge_agent_pr_before_next(
+async def _merge_child_pr_if_applicable(
     access_token: str,
     owner: str,
     repo: str,
     issue_number: int,
+    main_branch: str,
+    main_pr_number: int | None,
     completed_agent: str,
-) -> bool:
+) -> dict[str, Any] | None:
     """
-    Merge the completed agent's PR into the original PR's branch.
+    Merge a child PR into the issue's main branch if applicable.
 
-    This implements a model where:
-    1. The first agent creates PR #1 targeting main
-    2. Subsequent agents create PRs targeting PR #1's branch
-    3. Each agent's PR is merged INTO PR #1's branch (not main)
-    4. Only PR #1 eventually merges to main with all agent work
+    Child PRs are those created by subsequent agents that target the first
+    PR's branch (the "main branch" for the issue). When an agent completes,
+    we check if their PR targets the main branch and merge it automatically.
 
     Args:
         access_token: GitHub access token
         owner: Repository owner
         repo: Repository name
-        issue_number: Issue number
+        issue_number: GitHub issue number
+        main_branch: The first PR's branch name (target for child PRs)
+        main_pr_number: The first PR's number (to exclude from merging)
         completed_agent: Name of the agent that just completed
 
     Returns:
-        True if PR was merged successfully
+        Result dict if a PR was merged, None otherwise
     """
     try:
-        # Find the ORIGINAL PR (first one, targeting main)
-        original_pr = await github_projects_service.find_original_pr_for_issue(
+        # Get all linked PRs for this issue
+        linked_prs = await github_projects_service.get_linked_pull_requests(
             access_token=access_token,
             owner=owner,
             repo=repo,
             issue_number=issue_number,
         )
 
-        # Find the CURRENT agent's PR (most recent completed one)
-        current_pr = await github_projects_service.check_copilot_pr_completion(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-        )
-
-        if not current_pr:
-            logger.warning(
-                "No completed PR found for agent '%s' on issue #%d — cannot auto-merge",
-                completed_agent,
+        if not linked_prs:
+            logger.debug(
+                "No linked PRs found for issue #%d, nothing to merge",
                 issue_number,
             )
-            return False
+            return None
 
-        current_pr_number = current_pr.get("number")
-        current_pr_id = current_pr.get("id")
-        is_draft = current_pr.get("is_draft", False)
+        # Find a child PR that targets the main branch
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
 
-        if not current_pr_id:
-            logger.warning("PR #%d missing node ID — cannot merge", current_pr_number)
-            return False
+            # Skip the main PR itself
+            if pr_number == main_pr_number:
+                continue
 
-        # If this IS the original PR (or no original found), don't merge yet
-        # The original PR should only merge to main after ALL agents complete
-        if not original_pr or original_pr.get("number") == current_pr_number:
-            logger.info(
-                "PR #%d is the original PR for issue #%d — not merging (will merge to main later)",
-                current_pr_number,
-                issue_number,
-            )
-            return True  # Return True to continue pipeline
+            # Skip non-Copilot PRs
+            if "copilot" not in pr_author:
+                continue
 
-        original_branch = original_pr.get("head_ref", "")
-        if not original_branch:
-            logger.warning(
-                "Original PR #%d missing head_ref — cannot retarget current PR",
-                original_pr.get("number"),
-            )
-            return False
+            # Only consider OPEN PRs
+            if pr_state != "OPEN":
+                logger.debug(
+                    "PR #%d is %s (not OPEN), skipping",
+                    pr_number,
+                    pr_state,
+                )
+                continue
 
-        logger.info(
-            "Merging PR #%d (agent '%s') into original PR #%d's branch '%s'",
-            current_pr_number,
-            completed_agent,
-            original_pr.get("number"),
-            original_branch,
-        )
-
-        # Retarget current PR to merge into original PR's branch (not main)
-        retarget_success = await github_projects_service.update_pr_base_branch(
-            access_token=access_token,
-            pr_node_id=current_pr_id,
-            new_base_branch=original_branch,
-            pr_number=current_pr_number,
-        )
-
-        if not retarget_success:
-            logger.warning(
-                "Failed to retarget PR #%d to '%s' — attempting merge anyway",
-                current_pr_number,
-                original_branch,
-            )
-
-        # Mark ready for review if still draft
-        if is_draft:
-            ready_success = await github_projects_service.mark_pr_ready_for_review(
+            # Get full PR details to check base_ref and get node ID
+            pr_details = await github_projects_service.get_pull_request(
                 access_token=access_token,
-                pr_node_id=current_pr_id,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
             )
-            if not ready_success:
+
+            if not pr_details:
                 logger.warning(
-                    "Failed to mark PR #%d ready — attempting merge anyway",
-                    current_pr_number,
+                    "Could not get details for PR #%d, skipping",
+                    pr_number,
+                )
+                continue
+
+            pr_base = pr_details.get("base_ref", "")  # The branch this PR targets
+
+            # Skip PRs not targeting the main branch
+            if pr_base != main_branch:
+                logger.debug(
+                    "PR #%d targets '%s' not main branch '%s', skipping",
+                    pr_number,
+                    pr_base,
+                    main_branch,
+                )
+                continue
+
+            pr_node_id = pr_details.get("id")
+            if not pr_node_id:
+                logger.warning(
+                    "No node ID for PR #%d, skipping merge",
+                    pr_number,
+                )
+                continue
+
+            # Check if PR is mergeable (not draft, no conflicts)
+            is_draft = pr_details.get("is_draft", False)
+            if is_draft:
+                logger.info(
+                    "PR #%d is still a draft, marking ready before merge",
+                    pr_number,
+                )
+                await github_projects_service.mark_pr_ready_for_review(
+                    access_token=access_token,
+                    pr_node_id=pr_node_id,
                 )
 
-        # Merge the current PR into the original PR's branch
-        merge_success = await github_projects_service.merge_pull_request(
-            access_token=access_token,
-            pr_node_id=current_pr_id,
-            pr_number=current_pr_number,
-            merge_method="SQUASH",
-        )
-
-        if merge_success:
+            # Merge the child PR into the main branch
             logger.info(
-                "Successfully merged PR #%d into PR #%d's branch '%s' for issue #%d",
-                current_pr_number,
-                original_pr.get("number"),
-                original_branch,
-                issue_number,
-            )
-        else:
-            logger.error(
-                "Failed to merge PR #%d into '%s' for issue #%d",
-                current_pr_number,
-                original_branch,
+                "Merging child PR #%d (by %s) into main branch '%s' for issue #%d",
+                pr_number,
+                completed_agent,
+                main_branch,
                 issue_number,
             )
 
-        return merge_success
+            merge_result = await github_projects_service.merge_pull_request(
+                access_token=access_token,
+                pr_node_id=pr_node_id,
+                pr_number=pr_number,
+                commit_headline=f"Merge {completed_agent} changes into {main_branch}",
+                merge_method="SQUASH",
+            )
+
+            if merge_result:
+                # Get the child branch name to delete after merge
+                child_branch = pr_details.get("head_ref", "")
+
+                logger.info(
+                    "Successfully merged child PR #%d into '%s' (commit: %s)",
+                    pr_number,
+                    main_branch,
+                    merge_result.get("merge_commit", "")[:8] if merge_result.get("merge_commit") else "N/A",
+                )
+
+                # Clean up: delete the child branch after successful merge
+                if child_branch:
+                    logger.info(
+                        "Cleaning up child branch '%s' after merge",
+                        child_branch,
+                    )
+                    deleted = await github_projects_service.delete_branch(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        branch_name=child_branch,
+                    )
+                    if deleted:
+                        logger.info(
+                            "Deleted child branch '%s' for issue #%d",
+                            child_branch,
+                            issue_number,
+                        )
+
+                return {
+                    "status": "merged",
+                    "pr_number": pr_number,
+                    "main_branch": main_branch,
+                    "agent": completed_agent,
+                    "merge_commit": merge_result.get("merge_commit"),
+                    "branch_deleted": child_branch if child_branch else None,
+                }
+            else:
+                logger.warning(
+                    "Failed to merge child PR #%d into '%s'",
+                    pr_number,
+                    main_branch,
+                )
+
+        return None
 
     except Exception as e:
         logger.error(
-            "Error auto-merging PR for issue #%d (agent '%s'): %s",
+            "Error merging child PR for issue #%d: %s",
             issue_number,
-            completed_agent,
             e,
         )
-        return False
+        return None
 
 
 async def _reconstruct_pipeline_state(
@@ -828,6 +880,20 @@ async def _advance_pipeline(
         len(pipeline.agents),
     )
 
+    # Merge child PR into the main branch if applicable
+    # Child PRs are those that target the issue's main branch (first PR's branch), not `main`
+    main_branch_info = get_issue_main_branch(issue_number)
+    if main_branch_info:
+        await _merge_child_pr_if_applicable(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            main_branch=main_branch_info["branch"],
+            main_pr_number=main_branch_info.get("pr_number"),
+            completed_agent=completed_agent,
+        )
+
     # Send agent_completed WebSocket notification
     await connection_manager.broadcast_to_project(
         project_id,
@@ -857,16 +923,6 @@ async def _advance_pipeline(
             task_title=task_title,
         )
     else:
-        # More agents to run → merge current PR before assigning next agent
-        # This ensures each agent starts from main with all previous work
-        await _merge_agent_pr_before_next(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-            completed_agent=completed_agent,
-        )
-
         # Assign next agent
         next_agent = pipeline.current_agent
         pipeline.started_at = datetime.utcnow()
@@ -957,21 +1013,6 @@ async def _transition_after_pipeline_complete(
         to_status,
     )
 
-    # Get config to check if there are agents for the next status
-    config = get_workflow_config(project_id)
-    new_status_agents = config.agent_mappings.get(to_status, []) if config else []
-
-    # Chain model: merge current PR before transitioning IF there are more agents
-    # Don't merge if transitioning to "In Review" — that's for human review
-    if new_status_agents and to_status.lower() != "in review":
-        await _merge_agent_pr_before_next(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-            completed_agent=f"final-{from_status.lower().replace(' ', '-')}",
-        )
-
     # Transition the status
     success = await github_projects_service.update_item_status_by_name(
         access_token=access_token,
@@ -1010,8 +1051,40 @@ async def _transition_after_pipeline_complete(
         },
     )
 
-    # Assign the first agent for the new status (config/new_status_agents already fetched above)
+    # Assign the first agent for the new status
+    config = get_workflow_config(project_id)
+    new_status_agents = config.agent_mappings.get(to_status, []) if config else []
+
     if new_status_agents:
+        # Ensure we have the main branch captured before assigning the next agent
+        # This is especially important for speckit.implement which needs to branch from the main PR
+        main_branch_info = get_issue_main_branch(issue_number)
+        if not main_branch_info:
+            # Try to find and capture the main branch from existing PRs
+            logger.info(
+                "No main branch cached for issue #%d, attempting to discover from linked PRs",
+                issue_number,
+            )
+            existing_pr = await github_projects_service.find_existing_pr_for_issue(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+            if existing_pr:
+                set_issue_main_branch(
+                    issue_number,
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                )
+                logger.info(
+                    "Captured main branch '%s' (PR #%d) for issue #%d before assigning %s",
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                    issue_number,
+                    new_status_agents[0],
+                )
+
         orchestrator = get_workflow_orchestrator()
         ctx = WorkflowContext(
             session_id="polling",
@@ -1025,6 +1098,12 @@ async def _transition_after_pipeline_complete(
         )
         ctx.config = config
 
+        logger.info(
+            "Assigning agent '%s' to issue #%d after transition to '%s'",
+            new_status_agents[0],
+            issue_number,
+            to_status,
+        )
         await orchestrator.assign_agent_for_status(ctx, to_status, agent_index=0)
 
     return {
@@ -1422,6 +1501,27 @@ async def process_in_progress_issue(
                 }
 
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
+
+        # Step 1.5: Merge child PR into main branch if applicable
+        # This handles cases where speckit.implement created a child branch targeting the
+        # issue's main branch (first PR's branch). We merge it before transitioning to In Review.
+        main_branch_info = get_issue_main_branch(issue_number)
+        if main_branch_info:
+            merge_result = await _merge_child_pr_if_applicable(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+                main_branch=str(main_branch_info["branch"]),
+                main_pr_number=main_branch_info.get("pr_number"),
+                completed_agent="speckit.implement",
+            )
+            if merge_result:
+                logger.info(
+                    "Merged speckit.implement child PR into main branch '%s' for issue #%d",
+                    main_branch_info["branch"],
+                    issue_number,
+                )
 
         # Step 2: Update issue status to "In Review"
         logger.info(

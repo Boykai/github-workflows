@@ -112,6 +112,11 @@ _workflow_configs: dict[str, WorkflowConfiguration] = {}
 # In-memory storage for pipeline states (per issue number)
 _pipeline_states: dict[int, PipelineState] = {}
 
+# In-memory storage for the "main" PR branch per issue
+# The first PR's branch becomes the base for all subsequent agent branches
+# Maps issue_number -> {branch: str, pr_number: int}
+_issue_main_branches: dict[int, dict[str, str | int]] = {}
+
 
 def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
     """Get workflow configuration for a project."""
@@ -149,6 +154,52 @@ def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
 def remove_pipeline_state(issue_number: int) -> None:
     """Remove pipeline state for an issue (e.g., after status transition)."""
     _pipeline_states.pop(issue_number, None)
+
+
+def get_issue_main_branch(issue_number: int) -> dict[str, str | int] | None:
+    """
+    Get the main PR branch for an issue.
+
+    The first PR's branch becomes the "main" branch for all subsequent
+    agent work on that issue.
+
+    Returns:
+        Dict with 'branch' and 'pr_number' keys, or None if not set.
+    """
+    return _issue_main_branches.get(issue_number)
+
+
+def set_issue_main_branch(issue_number: int, branch: str, pr_number: int) -> None:
+    """
+    Set the main PR branch for an issue.
+
+    This should only be called once when the first PR is created for an issue.
+    All subsequent agents will branch from and merge back into this branch.
+
+    Args:
+        issue_number: GitHub issue number
+        branch: The first PR's head branch name (e.g., copilot/update-app-title-workflows)
+        pr_number: The first PR's number
+    """
+    if issue_number in _issue_main_branches:
+        logger.debug(
+            "Issue #%d already has main branch set to '%s', not overwriting",
+            issue_number,
+            _issue_main_branches[issue_number].get("branch"),
+        )
+        return
+    _issue_main_branches[issue_number] = {"branch": branch, "pr_number": pr_number}
+    logger.info(
+        "Set main branch for issue #%d: '%s' (PR #%d)",
+        issue_number,
+        branch,
+        pr_number,
+    )
+
+
+def clear_issue_main_branch(issue_number: int) -> None:
+    """Clear the main branch tracking for an issue (e.g., when issue is closed)."""
+    _issue_main_branches.pop(issue_number, None)
 
 
 class WorkflowOrchestrator:
@@ -505,27 +556,53 @@ class WorkflowOrchestrator:
             ctx.issue_number,
         )
 
-        # Check for an existing PR linked to this issue (single PR per issue)
+        # Determine the base branch for this agent
+        # Strategy: The first PR's branch becomes the "main" branch for the issue.
+        # All subsequent agents branch FROM and merge INTO this main branch.
         existing_pr = None
         base_ref = "main"
+        is_first_agent = False  # Track if this is the first agent for this issue
+
         if ctx.issue_number:
-            try:
-                existing_pr = await self.github.find_existing_pr_for_issue(
-                    access_token=ctx.access_token,
-                    owner=ctx.repository_owner,
-                    repo=ctx.repository_name,
-                    issue_number=ctx.issue_number,
+            # Check if we already have a "main branch" stored for this issue
+            main_branch_info = get_issue_main_branch(ctx.issue_number)
+
+            if main_branch_info:
+                # Use the stored main branch for all subsequent agents
+                base_ref = str(main_branch_info["branch"])
+                logger.info(
+                    "Using issue #%d main branch '%s' (from PR #%d) as base for agent '%s'",
+                    ctx.issue_number,
+                    base_ref,
+                    main_branch_info.get("pr_number"),
+                    agent_name,
                 )
-                if existing_pr:
-                    base_ref = existing_pr["head_ref"]
-                    logger.info(
-                        "Reusing existing PR #%d (branch: %s) for issue #%s",
-                        existing_pr["number"],
-                        base_ref,
-                        ctx.issue_number,
+            else:
+                # First agent - check for existing PR to establish main branch
+                is_first_agent = True
+                try:
+                    existing_pr = await self.github.find_existing_pr_for_issue(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=ctx.issue_number,
                     )
-            except Exception as e:
-                logger.warning("Failed to check for existing PR: %s", e)
+                    if existing_pr:
+                        # Store this as the main branch for the issue
+                        base_ref = existing_pr["head_ref"]
+                        set_issue_main_branch(
+                            ctx.issue_number,
+                            existing_pr["head_ref"],
+                            existing_pr["number"],
+                        )
+                        logger.info(
+                            "Established main branch for issue #%s: '%s' (PR #%d)",
+                            ctx.issue_number,
+                            base_ref,
+                            existing_pr["number"],
+                        )
+                except Exception as e:
+                    logger.warning("Failed to check for existing PR: %s", e)
 
         # Fetch issue context for the agent's custom instructions
         custom_instructions = ""
@@ -554,6 +631,12 @@ class WorkflowOrchestrator:
                 )
 
         # Assign the agent
+        logger.info(
+            "Assigning agent '%s' to issue #%s with base_ref='%s'",
+            agent_name,
+            ctx.issue_number,
+            base_ref,
+        )
         success = await self.github.assign_copilot_to_issue(
             access_token=ctx.access_token,
             owner=ctx.repository_owner,
@@ -567,9 +650,10 @@ class WorkflowOrchestrator:
 
         if success:
             logger.info(
-                "Successfully assigned agent '%s' to issue #%s",
+                "Successfully assigned agent '%s' to issue #%s (base_ref='%s')",
                 agent_name,
                 ctx.issue_number,
+                base_ref,
             )
         else:
             logger.warning(
