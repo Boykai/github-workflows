@@ -375,6 +375,21 @@ mutation($pullRequestId: ID!) {
 }
 """
 
+# GraphQL mutation to merge a pull request
+MERGE_PULL_REQUEST_MUTATION = """
+mutation($pullRequestId: ID!, $mergeMethod: PullRequestMergeMethod!) {
+  mergePullRequest(input: {pullRequestId: $pullRequestId, mergeMethod: $mergeMethod}) {
+    pullRequest {
+      id
+      number
+      state
+      merged
+      url
+    }
+  }
+}
+"""
+
 # GraphQL query to get PR details by number (with commit status for completion detection)
 GET_PULL_REQUEST_QUERY = """
 query($owner: String!, $name: String!, $number: Int!) {
@@ -2340,6 +2355,55 @@ class GitHubProjectsService:
 
         except Exception as e:
             logger.error("Failed to request Copilot review for PR #%d: %s", pr_number or 0, e)
+            return False
+
+    async def merge_pull_request(
+        self,
+        access_token: str,
+        pr_node_id: str,
+        pr_number: int | None = None,
+        merge_method: str = "SQUASH",
+    ) -> bool:
+        """
+        Merge a pull request.
+
+        Used to auto-merge intermediate agent PRs so subsequent agents
+        can build on the merged base.
+
+        Args:
+            access_token: GitHub OAuth access token
+            pr_node_id: Pull request node ID (GraphQL ID)
+            pr_number: Optional PR number for logging
+            merge_method: MERGE, SQUASH, or REBASE (default: SQUASH)
+
+        Returns:
+            True if merge succeeded
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                MERGE_PULL_REQUEST_MUTATION,
+                {"pullRequestId": pr_node_id, "mergeMethod": merge_method},
+            )
+
+            pr = data.get("mergePullRequest", {}).get("pullRequest", {})
+            if pr and pr.get("merged"):
+                logger.info(
+                    "Successfully merged PR #%d: %s",
+                    pr.get("number") or pr_number,
+                    pr.get("url", ""),
+                )
+                return True
+            else:
+                logger.warning(
+                    "PR #%d may not have been merged: %s",
+                    pr_number or 0,
+                    pr,
+                )
+                return False
+
+        except Exception as e:
+            logger.error("Failed to merge PR #%d: %s", pr_number or 0, e)
             return False
 
     async def has_copilot_reviewed_pr(
