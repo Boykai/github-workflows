@@ -385,6 +385,7 @@ query($owner: String!, $name: String!, $number: Int!) {
       state
       isDraft
       url
+      headRefName
       author {
         login
       }
@@ -1115,18 +1116,51 @@ class GitHubProjectsService:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
             return {"title": "", "body": "", "comments": []}
 
-    def format_issue_context_as_prompt(self, issue_data: dict) -> str:
+    def format_issue_context_as_prompt(
+        self,
+        issue_data: dict,
+        agent_name: str = "",
+        existing_pr: dict | None = None,
+    ) -> str:
         """
         Format issue details (title, body, comments) as a prompt for the custom agent.
 
+        When ``existing_pr`` is provided, instructions tell the agent to push
+        commits to the existing PR branch instead of creating a new PR.
+        The existing PR instructions are placed FIRST so the agent prioritises
+        branch reuse over creating a new pull request.
+
         Args:
             issue_data: Dict with title, body, and comments from get_issue_with_comments
+            agent_name: Name of the custom agent (e.g., 'speckit.specify')
+            existing_pr: Optional dict with ``number``, ``head_ref``, ``url``
+                         of an existing PR to reuse
 
         Returns:
             Formatted string suitable as custom instructions for the agent
         """
         parts = []
 
+        # ── Existing PR instructions FIRST (highest priority) ────────────
+        if existing_pr:
+            branch = existing_pr.get("head_ref", "")
+            pr_num = existing_pr.get("number", "")
+            pr_url = existing_pr.get("url", "")
+            parts.append(
+                "## ⚠️  CRITICAL — USE EXISTING PULL REQUEST (DO NOT CREATE A NEW ONE)\n\n"
+                f"A pull request already exists for this issue:\n"
+                f"- **PR:** #{pr_num} — {pr_url}\n"
+                f"- **Branch:** `{branch}`\n\n"
+                "### Rules you MUST follow\n"
+                f"1. **Check out the existing branch `{branch}`** — do NOT create a new branch.\n"
+                f"2. **Commit and push all your changes to `{branch}`** so they appear on PR #{pr_num}.\n"
+                "3. **Do NOT open a new pull request.** The PR already exists and targets `main`.\n"
+                "4. If you are tempted to create a new branch or PR, STOP — re-read these rules.\n\n"
+                f"The previous agent's work is already on branch `{branch}`. "
+                "Build on top of those commits."
+            )
+
+        # ── Issue context ────────────────────────────────────────────────
         # Add title
         title = issue_data.get("title", "")
         if title:
@@ -1147,7 +1181,103 @@ class GitHubProjectsService:
                 created_at = comment.get("created_at", "")
                 parts.append(f"### Comment {idx} by @{author} ({created_at})\n{comment_body}")
 
+        # ── Output instructions ──────────────────────────────────────────
+        if agent_name:
+            # Map each agent to the specific .md file(s) it produces
+            agent_files = {
+                "speckit.specify": ["spec.md"],
+                "speckit.plan": ["plan.md"],
+                "speckit.tasks": ["tasks.md"],
+            }
+            files = agent_files.get(agent_name, [])
+
+            if files:
+                file_list = ", ".join(f"`{f}`" for f in files)
+                branch_note = (
+                    f" on branch `{existing_pr['head_ref']}`" if existing_pr else ""
+                )
+                parts.append(
+                    "## Output Instructions\n"
+                    "IMPORTANT: When you are done generating your output, ensure the following "
+                    f"file(s) are committed to the PR branch{branch_note}: {file_list}.\n\n"
+                    "The system will automatically detect your PR completion, extract the "
+                    "markdown file content, and post it as an issue comment. You do NOT need to "
+                    "post comments yourself — just commit the files and complete your PR work."
+                )
+            else:
+                branch_note = (
+                    f" (`{existing_pr['head_ref']}`)" if existing_pr else ""
+                )
+                parts.append(
+                    "## Output Instructions\n"
+                    f"IMPORTANT: Complete your work and commit all changes to the PR branch{branch_note}.\n\n"
+                    "The system will automatically detect your PR completion and advance "
+                    "the workflow. You do NOT need to post any completion comments."
+                )
+
         return "\n\n".join(parts)
+
+    async def check_agent_completion_comment(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        agent_name: str,
+    ) -> bool:
+        """
+        Check if an agent has posted a completion comment on the issue.
+
+        Scans issue comments for a comment body containing the pattern:
+        ``<agent_name>: Done!``
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: GitHub issue number
+            agent_name: Agent name to look for (e.g., 'speckit.specify')
+
+        Returns:
+            True if a completion comment from the agent was found
+        """
+        try:
+            issue_data = await self.get_issue_with_comments(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+
+            if not issue_data:
+                logger.warning(
+                    "Could not fetch issue #%d for agent completion check", issue_number
+                )
+                return False
+
+            comments = issue_data.get("comments", [])
+            marker = f"{agent_name}: Done!"
+
+            # Scan comments in reverse chronological order for the most recent marker
+            for comment in reversed(comments):
+                body = comment.get("body", "")
+                if marker in body:
+                    logger.info(
+                        "Found completion marker for agent '%s' on issue #%d",
+                        agent_name,
+                        issue_number,
+                    )
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error(
+                "Error checking agent completion comment for issue #%d: %s",
+                issue_number,
+                e,
+            )
+            return False
 
     async def assign_copilot_to_issue(
         self,
@@ -1161,17 +1291,18 @@ class GitHubProjectsService:
         custom_instructions: str = "",
     ) -> bool:
         """
-        Assign GitHub Copilot to an issue using REST API with agent assignment.
+        Assign GitHub Copilot to an issue using GraphQL API with agent assignment.
 
-        Uses the REST API endpoint for adding assignees with agent_assignment
-        configuration for custom agents.
+        Uses the GraphQL ``addAssigneesToAssignable`` mutation with the
+        ``agentAssignment`` input which explicitly supports ``customAgent``.
+        Falls back to the REST API if GraphQL fails.
 
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
             repo: Repository name
-            issue_node_id: Issue node ID (for fallback GraphQL approach)
-            issue_number: Issue number (required for REST API)
+            issue_node_id: Issue node ID (for GraphQL approach)
+            issue_number: Issue number (used for REST fallback and logging)
             base_ref: Branch to base the PR on (default: main)
             custom_agent: Custom agent name (e.g., 'speckit.specify')
             custom_instructions: Custom instructions/prompt for the agent
@@ -1179,21 +1310,70 @@ class GitHubProjectsService:
         Returns:
             True if assignment succeeded
         """
-        if not issue_number:
-            logger.warning("Cannot assign Copilot via REST - issue_number required")
-            return await self._assign_copilot_graphql(
-                access_token,
-                owner,
-                repo,
-                issue_node_id,
-                base_ref,
-                custom_agent,
-                custom_instructions,
-            )
+        logger.info(
+            "Assigning Copilot to issue #%s (node=%s) with custom_agent='%s'",
+            issue_number,
+            issue_node_id,
+            custom_agent,
+        )
 
+        # Prefer GraphQL — it explicitly supports customAgent in the schema
+        graphql_success = await self._assign_copilot_graphql(
+            access_token,
+            owner,
+            repo,
+            issue_node_id,
+            base_ref,
+            custom_agent,
+            custom_instructions,
+        )
+
+        if graphql_success:
+            return True
+
+        # Fall back to REST API if GraphQL failed
+        if not issue_number:
+            logger.warning(
+                "GraphQL assignment failed and no issue_number for REST fallback"
+            )
+            return False
+
+        return await self._assign_copilot_rest(
+            access_token,
+            owner,
+            repo,
+            issue_number,
+            base_ref,
+            custom_agent,
+            custom_instructions,
+        )
+
+    async def _assign_copilot_rest(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        base_ref: str = "main",
+        custom_agent: str = "",
+        custom_instructions: str = "",
+    ) -> bool:
+        """
+        Fallback: Assign GitHub Copilot using REST API.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+            base_ref: Branch to base the PR on
+            custom_agent: Custom agent name
+            custom_instructions: Custom instructions for the agent
+
+        Returns:
+            True if assignment succeeded
+        """
         try:
-            # Use REST API for assignee addition with agent_assignment
-            # This is the documented approach from GitHub
             payload = {
                 "assignees": ["copilot-swe-agent[bot]"],
                 "agent_assignment": {
@@ -1206,11 +1386,9 @@ class GitHubProjectsService:
             }
 
             logger.info(
-                "Attempting to assign Copilot to issue #%d with payload: assignees=%s, custom_agent='%s', target_repo='%s'",
+                "REST fallback: Assigning Copilot to issue #%d with custom_agent='%s'",
                 issue_number,
-                payload["assignees"],
                 custom_agent,
-                payload["agent_assignment"]["target_repo"],
             )
 
             response = await self._client.post(
@@ -1220,51 +1398,30 @@ class GitHubProjectsService:
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/vnd.github+json",
                     "X-GitHub-Api-Version": "2022-11-28",
-                    # Include preview headers that may be required for Copilot agent assignment
-                    "X-GitHub-Request-Id": f"copilot-assign-{issue_number}",
                 },
             )
 
             if response.status_code in (200, 201):
                 result = response.json()
                 assignees = [a.get("login", "") for a in result.get("assignees", [])]
-
-                if custom_agent:
-                    logger.info(
-                        "Successfully assigned Copilot to issue #%d with custom agent '%s', assignees: %s",
-                        issue_number,
-                        custom_agent,
-                        assignees,
-                    )
-                else:
-                    logger.info(
-                        "Successfully assigned Copilot to issue #%d, assignees: %s",
-                        issue_number,
-                        assignees,
-                    )
+                logger.info(
+                    "REST: Assigned Copilot to issue #%d with custom agent '%s', assignees: %s",
+                    issue_number,
+                    custom_agent,
+                    assignees,
+                )
                 return True
             else:
                 logger.error(
-                    "REST API failed to assign Copilot to issue #%d - Status: %s, Response: %s, Headers: %s",
+                    "REST API failed to assign Copilot to issue #%d - Status: %s, Response: %s",
                     issue_number,
                     response.status_code,
                     response.text[:500] if response.text else "empty",
-                    dict(response.headers),
                 )
-                # Fall back to GraphQL approach
-                logger.info("Falling back to GraphQL API for Copilot assignment")
-                return await self._assign_copilot_graphql(
-                    access_token,
-                    owner,
-                    repo,
-                    issue_node_id,
-                    base_ref,
-                    custom_agent,
-                    custom_instructions,
-                )
+                return False
 
         except Exception as e:
-            logger.error("Failed to assign Copilot to issue #%d: %s", issue_number, e)
+            logger.error("REST fallback failed for issue #%d: %s", issue_number, e)
             return False
 
     async def _assign_copilot_graphql(
@@ -1278,7 +1435,11 @@ class GitHubProjectsService:
         custom_instructions: str = "",
     ) -> bool:
         """
-        Fallback: Assign GitHub Copilot using GraphQL API.
+        Primary: Assign GitHub Copilot using GraphQL API.
+
+        Uses the ``addAssigneesToAssignable`` mutation with ``agentAssignment``
+        input which explicitly supports the ``customAgent`` field in the schema.
+        This is preferred over the REST API to ensure custom agent routing.
 
         Args:
             access_token: GitHub OAuth access token
@@ -1702,6 +1863,229 @@ class GitHubProjectsService:
     # Pull Request Detection and Management
     # ──────────────────────────────────────────────────────────────────
 
+    async def _search_open_prs_for_issue_rest(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> list[dict]:
+        """
+        Search for open PRs related to an issue using the REST API.
+
+        This is a fallback when GraphQL timeline events don't capture the
+        PR link. Searches for open PRs whose title or body references the
+        issue number (e.g., "Fixes #42", "Closes #42", "#42").
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number to search for
+
+        Returns:
+            List of PR dicts with number, state, is_draft, url, author, title
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls",
+                params={"state": "open", "per_page": 30, "sort": "created", "direction": "desc"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code != 200:
+                logger.warning(
+                    "REST PR search failed with status %d for issue #%d",
+                    response.status_code,
+                    issue_number,
+                )
+                return []
+
+            all_prs = response.json()
+            issue_ref = f"#{issue_number}"
+            matched_prs = []
+
+            for pr in all_prs:
+                title = pr.get("title", "")
+                body = pr.get("body", "") or ""
+                head_branch = pr.get("head", {}).get("ref", "")
+
+                # Match if issue number appears in title, body, or branch name
+                if (
+                    issue_ref in title
+                    or issue_ref in body
+                    or f"-{issue_number}" in head_branch
+                    or f"/{issue_number}-" in head_branch
+                ):
+                    matched_prs.append({
+                        "id": pr.get("node_id"),
+                        "number": pr.get("number"),
+                        "title": title,
+                        "state": "OPEN",
+                        "is_draft": pr.get("draft", False),
+                        "url": pr.get("html_url", ""),
+                        "author": pr.get("user", {}).get("login", ""),
+                        "head_ref": pr.get("head", {}).get("ref", ""),
+                    })
+
+            logger.info(
+                "REST fallback found %d open PRs referencing issue #%d",
+                len(matched_prs),
+                issue_number,
+            )
+            return matched_prs
+
+        except Exception as e:
+            logger.error(
+                "REST PR search error for issue #%d: %s", issue_number, e
+            )
+            return []
+
+    async def find_existing_pr_for_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> dict | None:
+        """
+        Find an existing open PR linked to an issue (created by Copilot).
+
+        Used to ensure only one PR per issue. When a subsequent agent is
+        assigned, we reuse the existing PR's branch as the ``baseRef``
+        so the new agent pushes commits to the same branch and PR.
+
+        Searches first via GraphQL timeline events, then falls back to
+        the REST API to catch PRs not captured by timeline events.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            Dict with ``number``, ``head_ref``, ``url`` of the existing PR,
+            or None if no existing PR is found.
+        """
+        try:
+            # Strategy 1: GraphQL timeline events (CONNECTED_EVENT / CROSS_REFERENCED_EVENT)
+            linked_prs = await self.get_linked_pull_requests(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+
+            # Strategy 2: REST API fallback — search open PRs referencing the issue
+            if not linked_prs:
+                logger.info(
+                    "No linked PRs found via timeline for issue #%d, trying REST fallback",
+                    issue_number,
+                )
+                rest_prs = await self._search_open_prs_for_issue_rest(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                if rest_prs:
+                    # REST results already have head_ref, pick the best one
+                    copilot_prs = [
+                        pr for pr in rest_prs
+                        if "copilot" in (pr.get("author", "") or "").lower()
+                    ]
+                    target_pr = (copilot_prs or rest_prs)[0]
+                    result = {
+                        "number": target_pr["number"],
+                        "head_ref": target_pr["head_ref"],
+                        "url": target_pr.get("url", ""),
+                    }
+                    logger.info(
+                        "REST fallback found existing PR #%d (branch: %s) for issue #%d",
+                        result["number"],
+                        result["head_ref"],
+                        issue_number,
+                    )
+                    return result
+                return None
+
+            # Find the first OPEN PR (preferring Copilot-authored ones)
+            copilot_prs = [
+                pr for pr in linked_prs
+                if pr.get("state") == "OPEN"
+                and "copilot" in (pr.get("author", "") or "").lower()
+            ]
+
+            open_prs = [
+                pr for pr in linked_prs
+                if pr.get("state") == "OPEN"
+            ]
+
+            target_pr = (copilot_prs or open_prs or [None])[0]
+            if not target_pr:
+                # All linked PRs are closed/merged — try REST fallback for open PRs
+                rest_prs = await self._search_open_prs_for_issue_rest(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                if rest_prs:
+                    copilot_rest = [
+                        pr for pr in rest_prs
+                        if "copilot" in (pr.get("author", "") or "").lower()
+                    ]
+                    target_rest = (copilot_rest or rest_prs)[0]
+                    result = {
+                        "number": target_rest["number"],
+                        "head_ref": target_rest["head_ref"],
+                        "url": target_rest.get("url", ""),
+                    }
+                    logger.info(
+                        "REST fallback found existing PR #%d (branch: %s) for issue #%d",
+                        result["number"],
+                        result["head_ref"],
+                        issue_number,
+                    )
+                    return result
+                return None
+
+            # Fetch full PR details to get head_ref
+            pr_details = await self.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=target_pr["number"],
+            )
+
+            if not pr_details or not pr_details.get("head_ref"):
+                return None
+
+            result = {
+                "number": pr_details["number"],
+                "head_ref": pr_details["head_ref"],
+                "url": pr_details.get("url", ""),
+            }
+
+            logger.info(
+                "Found existing PR #%d (branch: %s) for issue #%d",
+                result["number"],
+                result["head_ref"],
+                issue_number,
+            )
+            return result
+
+        except Exception as e:
+            logger.error(
+                "Error finding existing PR for issue #%d: %s", issue_number, e
+            )
+            return None
+
     async def get_linked_pull_requests(
         self,
         access_token: str,
@@ -1826,6 +2210,7 @@ class GitHubProjectsService:
                 "state": pr.get("state"),
                 "is_draft": pr.get("isDraft", False),
                 "url": pr.get("url"),
+                "head_ref": pr.get("headRefName", ""),
                 "author": pr.get("author", {}).get("login", ""),
                 "created_at": pr.get("createdAt"),
                 "updated_at": pr.get("updatedAt"),
@@ -2223,6 +2608,160 @@ class GitHubProjectsService:
             "current_tasks": current_tasks,
             "workflow_triggers": workflow_triggers,
         }
+
+    # ──────────────────────────────────────────────────────────────────
+    # Issue Comments and PR File Content
+    # ──────────────────────────────────────────────────────────────────
+
+    async def create_issue_comment(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        body: str,
+    ) -> dict | None:
+        """
+        Create a comment on a GitHub Issue.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+            body: Comment body (markdown)
+
+        Returns:
+            Dict with comment details if successful, None otherwise
+        """
+        try:
+            response = await self._client.post(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
+                json={"body": body},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code in (200, 201):
+                result = response.json()
+                logger.info(
+                    "Created comment on issue #%d (id=%s)",
+                    issue_number,
+                    result.get("id"),
+                )
+                return result
+            else:
+                logger.error(
+                    "Failed to create comment on issue #%d: %s %s",
+                    issue_number,
+                    response.status_code,
+                    response.text[:300] if response.text else "",
+                )
+                return None
+
+        except Exception as e:
+            logger.error("Error creating comment on issue #%d: %s", issue_number, e)
+            return None
+
+    async def get_pr_changed_files(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> list[dict]:
+        """
+        Get the list of files changed in a pull request.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+
+        Returns:
+            List of dicts with filename, status, additions, deletions, etc.
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                params={"per_page": 100},
+            )
+
+            if response.status_code == 200:
+                files = response.json()
+                logger.info(
+                    "PR #%d has %d changed files",
+                    pr_number,
+                    len(files),
+                )
+                return files
+            else:
+                logger.error(
+                    "Failed to get files for PR #%d: %s",
+                    pr_number,
+                    response.status_code,
+                )
+                return []
+
+        except Exception as e:
+            logger.error("Error getting PR #%d files: %s", pr_number, e)
+            return []
+
+    async def get_file_content_from_ref(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+        ref: str,
+    ) -> str | None:
+        """
+        Get the content of a file from a specific branch/ref.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            path: File path within the repository
+            ref: Git ref (branch name, commit SHA, etc.)
+
+        Returns:
+            File content as a string, or None if not found
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github.raw+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                params={"ref": ref},
+            )
+
+            if response.status_code == 200:
+                return response.text
+            else:
+                logger.warning(
+                    "Failed to get file %s@%s: %s",
+                    path,
+                    ref,
+                    response.status_code,
+                )
+                return None
+
+        except Exception as e:
+            logger.error("Error getting file %s@%s: %s", path, ref, e)
+            return None
 
     def _detect_changes(self, old_tasks: list[Task], new_tasks: list[Task]) -> list[dict]:
         """

@@ -1,6 +1,6 @@
 """Unit tests for GitHub Projects service - Copilot custom agent assignment."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
@@ -1460,6 +1460,245 @@ class TestFormatIssueContextAsPrompt:
         assert "## Issue Description" in result
         assert "## Comments and Discussion" not in result
 
+    def test_format_includes_output_instructions_with_agent_name(self, service):
+        """Should include output instructions with specific file for known agent."""
+        issue_data = {
+            "title": "Feature request",
+            "body": "Build it",
+            "comments": [],
+        }
+
+        result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.specify")
+
+        assert "## Output Instructions" in result
+        assert "`spec.md`" in result
+        assert "committed to the PR branch" in result
+        assert "system will automatically detect" in result
+
+    def test_format_includes_correct_file_per_agent(self, service):
+        """Should map each agent to its specific output file."""
+        issue_data = {"title": "Test", "body": "", "comments": []}
+
+        plan_result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.plan"
+        )
+        assert "`plan.md`" in plan_result
+
+        tasks_result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.tasks"
+        )
+        assert "`tasks.md`" in tasks_result
+
+    def test_format_unknown_agent_gets_done_only_instructions(self, service):
+        """Unknown agents should get completion-only instructions (no file posting)."""
+        issue_data = {"title": "Test", "body": "", "comments": []}
+
+        result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.implement"
+        )
+
+        assert "## Output Instructions" in result
+        assert "commit all changes to the PR branch" in result
+        assert "system will automatically detect" in result
+        assert "`spec.md`" not in result
+        assert "`plan.md`" not in result
+
+    def test_format_omits_output_instructions_without_agent_name(self, service):
+        """Should not include output instructions when agent_name is empty."""
+        issue_data = {
+            "title": "Feature request",
+            "body": "Build it",
+            "comments": [],
+        }
+
+        result = service.format_issue_context_as_prompt(issue_data)
+
+        assert "## Output Instructions" not in result
+
+    def test_format_includes_existing_pr_instructions_at_top(self, service):
+        """Should include existing PR instructions FIRST when existing_pr is provided."""
+        issue_data = {"title": "Test", "body": "Build it", "comments": []}
+        existing_pr = {
+            "number": 42,
+            "head_ref": "copilot/fix-123",
+            "url": "https://github.com/owner/repo/pull/42",
+        }
+
+        result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.plan", existing_pr=existing_pr
+        )
+
+        assert "CRITICAL" in result
+        assert "USE EXISTING PULL REQUEST" in result
+        assert "#42" in result
+        assert "`copilot/fix-123`" in result
+        assert "Do NOT open a new pull request" in result
+        assert "do NOT create a new branch" in result
+        assert "`plan.md`" in result
+        assert "on branch `copilot/fix-123`" in result
+        # Existing PR section should come before issue title
+        critical_pos = result.index("CRITICAL")
+        title_pos = result.index("## Issue Title")
+        assert critical_pos < title_pos, "Existing PR instructions must appear before Issue Title"
+
+    def test_format_no_existing_pr_section_when_none(self, service):
+        """Should not include existing PR section when no existing PR."""
+        issue_data = {"title": "Test", "body": "Build it", "comments": []}
+
+        result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.specify"
+        )
+
+        assert "CRITICAL" not in result
+        assert "USE EXISTING PULL REQUEST" not in result
+
+
+class TestFindExistingPrForIssue:
+    """Tests for finding an existing PR linked to an issue."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_returns_existing_copilot_pr(self, service):
+        """Should return the existing Copilot PR details."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "get_pull_request", new_callable=AsyncMock
+            ) as mock_pr,
+        ):
+            mock_linked.return_value = [
+                {
+                    "number": 5,
+                    "state": "OPEN",
+                    "author": "copilot-swe-agent[bot]",
+                    "url": "https://github.com/o/r/pull/5",
+                }
+            ]
+            mock_pr.return_value = {
+                "number": 5,
+                "head_ref": "copilot/fix-abc",
+                "url": "https://github.com/o/r/pull/5",
+            }
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is not None
+            assert result["number"] == 5
+            assert result["head_ref"] == "copilot/fix-abc"
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_no_linked_prs_and_no_rest_results(self, service):
+        """Should return None when no PRs found via timeline or REST."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "_search_open_prs_for_issue_rest", new_callable=AsyncMock
+            ) as mock_rest,
+        ):
+            mock_linked.return_value = []
+            mock_rest.return_value = []
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is None
+            mock_rest.assert_called_once()  # REST fallback was attempted
+
+    @pytest.mark.asyncio
+    async def test_rest_fallback_when_timeline_empty(self, service):
+        """Should use REST fallback when timeline returns no PRs."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "_search_open_prs_for_issue_rest", new_callable=AsyncMock
+            ) as mock_rest,
+        ):
+            mock_linked.return_value = []
+            mock_rest.return_value = [
+                {
+                    "number": 8,
+                    "state": "OPEN",
+                    "author": "copilot-swe-agent[bot]",
+                    "head_ref": "copilot/fix-10",
+                    "url": "https://github.com/o/r/pull/8",
+                }
+            ]
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is not None
+            assert result["number"] == 8
+            assert result["head_ref"] == "copilot/fix-10"
+
+    @pytest.mark.asyncio
+    async def test_rest_fallback_when_all_prs_closed(self, service):
+        """Should try REST fallback when all timeline PRs are closed."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "_search_open_prs_for_issue_rest", new_callable=AsyncMock
+            ) as mock_rest,
+        ):
+            mock_linked.return_value = [
+                {"number": 5, "state": "CLOSED", "author": "copilot-swe-agent[bot]"},
+                {"number": 6, "state": "MERGED", "author": "copilot-swe-agent[bot]"},
+            ]
+            mock_rest.return_value = []
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is None
+            mock_rest.assert_called_once()  # REST fallback was attempted
+
+    @pytest.mark.asyncio
+    async def test_prefers_copilot_authored_pr(self, service):
+        """Should prefer Copilot-authored PRs over other open PRs."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "get_pull_request", new_callable=AsyncMock
+            ) as mock_pr,
+        ):
+            mock_linked.return_value = [
+                {"number": 5, "state": "OPEN", "author": "human-dev"},
+                {"number": 7, "state": "OPEN", "author": "copilot-swe-agent[bot]"},
+            ]
+            mock_pr.return_value = {
+                "number": 7,
+                "head_ref": "copilot/fix-xyz",
+                "url": "https://github.com/o/r/pull/7",
+            }
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is not None
+            assert result["number"] == 7
+            mock_pr.assert_called_once_with(
+                access_token="token", owner="o", repo="r", pr_number=7
+            )
+
 
 class TestAssignCopilotToIssue:
     """Tests for assigning Copilot with custom agents."""
@@ -1470,14 +1709,12 @@ class TestAssignCopilotToIssue:
         return GitHubProjectsService()
 
     @pytest.mark.asyncio
-    async def test_assign_copilot_rest_api_success(self, service):
-        """Should successfully assign Copilot via REST API."""
-        mock_response = Mock()
-        mock_response.status_code = 201
-        mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
-
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+    async def test_assign_copilot_graphql_primary_success(self, service):
+        """Should successfully assign Copilot via GraphQL (preferred path)."""
+        with patch.object(
+            service, "_assign_copilot_graphql", new_callable=AsyncMock
+        ) as mock_graphql:
+            mock_graphql.return_value = True
 
             result = await service.assign_copilot_to_issue(
                 access_token="test-token",
@@ -1490,55 +1727,30 @@ class TestAssignCopilotToIssue:
             )
 
             assert result is True
-            mock_client.post.assert_called_once()
-            call_args = mock_client.post.call_args
-            assert "assignees" in call_args.kwargs["json"]
-            assert call_args.kwargs["json"]["assignees"] == ["copilot-swe-agent[bot]"]
-            assert call_args.kwargs["json"]["agent_assignment"]["custom_agent"] == "speckit.specify"
+            mock_graphql.assert_called_once_with(
+                "test-token",
+                "test-owner",
+                "test-repo",
+                "I_123",
+                "main",
+                "speckit.specify",
+                "Test instructions",
+            )
 
     @pytest.mark.asyncio
-    async def test_assign_copilot_rest_api_with_custom_instructions(self, service):
-        """Should include custom instructions in payload."""
+    async def test_assign_copilot_falls_back_to_rest_on_graphql_failure(self, service):
+        """Should fall back to REST API when GraphQL fails."""
         mock_response = Mock()
-        mock_response.status_code = 200
+        mock_response.status_code = 201
         mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        with patch.object(
+            service, "_assign_copilot_graphql", new_callable=AsyncMock
+        ) as mock_graphql:
+            mock_graphql.return_value = False
 
-            await service.assign_copilot_to_issue(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_node_id="I_123",
-                issue_number=1,
-                custom_agent="speckit.specify",
-                custom_instructions="## Issue Title\nTest\n\n## Description\nContent",
-            )
-
-            call_args = mock_client.post.call_args
-            payload = call_args.kwargs["json"]
-            assert (
-                payload["agent_assignment"]["custom_instructions"]
-                == "## Issue Title\nTest\n\n## Description\nContent"
-            )
-            assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
-
-    @pytest.mark.asyncio
-    async def test_assign_copilot_falls_back_to_graphql_on_rest_failure(self, service):
-        """Should fall back to GraphQL when REST API fails."""
-        mock_rest_response = Mock()
-        mock_rest_response.status_code = 422
-        mock_rest_response.text = "Validation failed"
-        mock_rest_response.headers = {"X-Request-Id": "123"}
-
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_rest_response)
-
-            with patch.object(
-                service, "_assign_copilot_graphql", new_callable=AsyncMock
-            ) as mock_graphql:
-                mock_graphql.return_value = True
+            with patch.object(service, "_client") as mock_client:
+                mock_client.post = AsyncMock(return_value=mock_response)
 
                 result = await service.assign_copilot_to_issue(
                     access_token="test-token",
@@ -1551,25 +1763,62 @@ class TestAssignCopilotToIssue:
 
                 assert result is True
                 mock_graphql.assert_called_once()
+                mock_client.post.assert_called_once()
+                call_args = mock_client.post.call_args
+                assert call_args.kwargs["json"]["assignees"] == ["copilot-swe-agent[bot]"]
+                assert call_args.kwargs["json"]["agent_assignment"]["custom_agent"] == "speckit.specify"
 
     @pytest.mark.asyncio
-    async def test_assign_copilot_without_issue_number_uses_graphql(self, service):
-        """Should use GraphQL directly when issue_number is not provided."""
+    async def test_assign_copilot_rest_fallback_with_custom_instructions(self, service):
+        """Should include custom instructions in REST fallback payload."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
+
         with patch.object(
             service, "_assign_copilot_graphql", new_callable=AsyncMock
         ) as mock_graphql:
-            mock_graphql.return_value = True
+            mock_graphql.return_value = False
+
+            with patch.object(service, "_client") as mock_client:
+                mock_client.post = AsyncMock(return_value=mock_response)
+
+                await service.assign_copilot_to_issue(
+                    access_token="test-token",
+                    owner="owner",
+                    repo="repo",
+                    issue_node_id="I_123",
+                    issue_number=1,
+                    custom_agent="speckit.specify",
+                    custom_instructions="## Issue Title\nTest\n\n## Description\nContent",
+                )
+
+                call_args = mock_client.post.call_args
+                payload = call_args.kwargs["json"]
+                assert (
+                    payload["agent_assignment"]["custom_instructions"]
+                    == "## Issue Title\nTest\n\n## Description\nContent"
+                )
+                assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
+
+    @pytest.mark.asyncio
+    async def test_assign_copilot_no_issue_number_no_rest_fallback(self, service):
+        """Should not attempt REST fallback when issue_number is missing."""
+        with patch.object(
+            service, "_assign_copilot_graphql", new_callable=AsyncMock
+        ) as mock_graphql:
+            mock_graphql.return_value = False
 
             result = await service.assign_copilot_to_issue(
                 access_token="test-token",
                 owner="owner",
                 repo="repo",
                 issue_node_id="I_123",
-                issue_number=None,  # No issue number
+                issue_number=None,
                 custom_agent="speckit.specify",
             )
 
-            assert result is True
+            assert result is False
             mock_graphql.assert_called_once()
 
 
@@ -2381,3 +2630,303 @@ class TestCheckCopilotPrCompletion:
             # Should still find the second PR which is already ready
             assert result is not None
             assert result["number"] == 20
+
+
+class TestCreateIssueComment:
+    """Tests for creating issue comments via REST API."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_create_issue_comment_success(self, service):
+        """Should successfully create an issue comment."""
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.json.return_value = {
+            "id": 123,
+            "body": "Hello world",
+            "html_url": "https://github.com/owner/repo/issues/1#issuecomment-123",
+        }
+
+        service._client = AsyncMock()
+        service._client.post = AsyncMock(return_value=mock_response)
+
+        result = await service.create_issue_comment(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            issue_number=1,
+            body="Hello world",
+        )
+
+        assert result is not None
+        assert result["id"] == 123
+        assert result["body"] == "Hello world"
+        service._client.post.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_issue_comment_failure(self, service):
+        """Should return None on HTTP error."""
+        mock_response = MagicMock()
+        mock_response.status_code = 422
+        mock_response.text = "Validation failed"
+
+        service._client = AsyncMock()
+        service._client.post = AsyncMock(return_value=mock_response)
+
+        result = await service.create_issue_comment(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            issue_number=1,
+            body="Hello",
+        )
+
+        assert result is None
+
+
+class TestGetPrChangedFiles:
+    """Tests for getting files changed in a PR."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_get_pr_changed_files_success(self, service):
+        """Should return list of changed files."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {"filename": "specs/spec.md", "status": "added", "additions": 50},
+            {"filename": "README.md", "status": "modified", "additions": 2},
+        ]
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service.get_pr_changed_files(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            pr_number=42,
+        )
+
+        assert len(result) == 2
+        assert result[0]["filename"] == "specs/spec.md"
+
+    @pytest.mark.asyncio
+    async def test_get_pr_changed_files_failure(self, service):
+        """Should return empty list on error."""
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_response.text = "Not found"
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service.get_pr_changed_files(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            pr_number=42,
+        )
+
+        assert result == []
+
+
+class TestGetFileContentFromRef:
+    """Tests for getting file content from a specific branch/ref."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_get_file_content_success(self, service):
+        """Should return raw file content."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = "# Spec\n\nThis is the spec content."
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service.get_file_content_from_ref(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            path="specs/spec.md",
+            ref="feature-branch",
+        )
+
+        assert result == "# Spec\n\nThis is the spec content."
+
+    @pytest.mark.asyncio
+    async def test_get_file_content_failure(self, service):
+        """Should return empty string on error."""
+        mock_response = MagicMock()
+        mock_response.status_code = 404
+        mock_response.text = "Not found"
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service.get_file_content_from_ref(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            path="specs/spec.md",
+            ref="feature-branch",
+        )
+
+        assert result is None
+
+
+class TestSearchOpenPrsForIssueRest:
+    """Tests for REST API fallback PR search."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_finds_pr_by_issue_ref_in_title(self, service):
+        """Should find PRs that reference the issue number in the title."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {
+                "node_id": "PR_1",
+                "number": 5,
+                "title": "Fixes #42 — add auth",
+                "body": "Some body",
+                "draft": False,
+                "html_url": "https://github.com/o/r/pull/5",
+                "user": {"login": "copilot-swe-agent[bot]"},
+                "head": {"ref": "copilot/fix-42"},
+            },
+            {
+                "node_id": "PR_2",
+                "number": 6,
+                "title": "Unrelated PR",
+                "body": "Unrelated body",
+                "draft": False,
+                "html_url": "https://github.com/o/r/pull/6",
+                "user": {"login": "human"},
+                "head": {"ref": "feature/unrelated"},
+            },
+        ]
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service._search_open_prs_for_issue_rest(
+            access_token="token", owner="o", repo="r", issue_number=42
+        )
+
+        assert len(result) == 1
+        assert result[0]["number"] == 5
+        assert result[0]["head_ref"] == "copilot/fix-42"
+
+    @pytest.mark.asyncio
+    async def test_finds_pr_by_issue_ref_in_body(self, service):
+        """Should find PRs that reference the issue number in the body."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {
+                "node_id": "PR_1",
+                "number": 7,
+                "title": "Auth feature",
+                "body": "Closes #42\n\nImplement auth flow",
+                "draft": True,
+                "html_url": "https://github.com/o/r/pull/7",
+                "user": {"login": "copilot-swe-agent[bot]"},
+                "head": {"ref": "copilot/fix-abc"},
+            },
+        ]
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service._search_open_prs_for_issue_rest(
+            access_token="token", owner="o", repo="r", issue_number=42
+        )
+
+        assert len(result) == 1
+        assert result[0]["number"] == 7
+        assert result[0]["is_draft"] is True
+
+    @pytest.mark.asyncio
+    async def test_finds_pr_by_branch_name(self, service):
+        """Should find PRs whose branch name contains the issue number."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {
+                "node_id": "PR_1",
+                "number": 9,
+                "title": "Some work",
+                "body": None,
+                "draft": False,
+                "html_url": "https://github.com/o/r/pull/9",
+                "user": {"login": "copilot-swe-agent[bot]"},
+                "head": {"ref": "copilot/fix-42-auth"},
+            },
+        ]
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service._search_open_prs_for_issue_rest(
+            access_token="token", owner="o", repo="r", issue_number=42
+        )
+
+        assert len(result) == 1
+        assert result[0]["number"] == 9
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_api_error(self, service):
+        """Should return empty list on HTTP error."""
+        mock_response = MagicMock()
+        mock_response.status_code = 403
+        mock_response.json.return_value = {"message": "Forbidden"}
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service._search_open_prs_for_issue_rest(
+            access_token="token", owner="o", repo="r", issue_number=42
+        )
+
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_when_no_matching_prs(self, service):
+        """Should return empty when no PRs reference the issue."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = [
+            {
+                "node_id": "PR_1",
+                "number": 10,
+                "title": "Unrelated work",
+                "body": "Something else",
+                "draft": False,
+                "html_url": "https://github.com/o/r/pull/10",
+                "user": {"login": "dev"},
+                "head": {"ref": "feature/other"},
+            },
+        ]
+
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(return_value=mock_response)
+
+        result = await service._search_open_prs_for_issue_rest(
+            access_token="token", owner="o", repo="r", issue_number=42
+        )
+
+        assert result == []
