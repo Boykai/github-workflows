@@ -313,6 +313,7 @@ query($owner: String!, $name: String!, $number: Int!) {
                 state
                 isDraft
                 url
+                headRefName
                 author {
                   login
                 }
@@ -330,6 +331,7 @@ query($owner: String!, $name: String!, $number: Int!) {
                 state
                 isDraft
                 url
+                headRefName
                 author {
                   login
                 }
@@ -1146,18 +1148,25 @@ class GitHubProjectsService:
             branch = existing_pr.get("head_ref", "")
             pr_num = existing_pr.get("number", "")
             pr_url = existing_pr.get("url", "")
+            is_draft = existing_pr.get("is_draft", True)
+            draft_label = " (Draft / Work In Progress)" if is_draft else ""
             parts.append(
-                "## ⚠️  CRITICAL — USE EXISTING PULL REQUEST (DO NOT CREATE A NEW ONE)\n\n"
-                f"A pull request already exists for this issue:\n"
+                "## ⚠️  CRITICAL — REUSE EXISTING PULL REQUEST\n\n"
+                f"An open pull request{draft_label} already exists for this issue.\n"
                 f"- **PR:** #{pr_num} — {pr_url}\n"
                 f"- **Branch:** `{branch}`\n\n"
-                "### Rules you MUST follow\n"
-                f"1. **Check out the existing branch `{branch}`** — do NOT create a new branch.\n"
-                f"2. **Commit and push all your changes to `{branch}`** so they appear on PR #{pr_num}.\n"
-                "3. **Do NOT open a new pull request.** The PR already exists and targets `main`.\n"
-                "4. If you are tempted to create a new branch or PR, STOP — re-read these rules.\n\n"
-                f"The previous agent's work is already on branch `{branch}`. "
-                "Build on top of those commits."
+                "### MANDATORY RULES — READ BEFORE DOING ANYTHING\n\n"
+                f"1. **Checkout the existing branch:** `git fetch origin && git checkout {branch}`\n"
+                f"2. **Make all commits on `{branch}`.** Do NOT create a new branch.\n"
+                f"3. **Push to the existing branch:** `git push origin {branch}`\n"
+                f"4. **Do NOT open a new pull request.** PR #{pr_num} already targets `main`.\n"
+                "5. Do NOT run `git checkout -b`, `git switch -c`, or any command that creates a new branch.\n"
+                "6. Do NOT run any command that opens or creates a pull request.\n\n"
+                f"The pull request is{draft_label}. This is intentional — multiple agents "
+                f"contribute to it sequentially. Just push your commits to `{branch}`.\n\n"
+                f"Previous agent work already exists on `{branch}`. "
+                "Build on top of those commits.\n\n"
+                "---"
             )
 
         # ── Issue context ────────────────────────────────────────────────
@@ -1907,6 +1916,7 @@ class GitHubProjectsService:
 
             all_prs = response.json()
             issue_ref = f"#{issue_number}"
+            issue_num_str = str(issue_number)
             matched_prs = []
 
             for pr in all_prs:
@@ -1915,11 +1925,17 @@ class GitHubProjectsService:
                 head_branch = pr.get("head", {}).get("ref", "")
 
                 # Match if issue number appears in title, body, or branch name
+                # Branch patterns: copilot/fix-42, copilot/issue-42-desc, feature/42-fix
+                branch_match = (
+                    f"-{issue_number}" in head_branch
+                    or f"/{issue_number}-" in head_branch
+                    or f"/{issue_number}" == head_branch[-len(f"/{issue_number}"):]
+                    or head_branch.endswith(f"-{issue_number}")
+                )
                 if (
                     issue_ref in title
                     or issue_ref in body
-                    or f"-{issue_number}" in head_branch
-                    or f"/{issue_number}-" in head_branch
+                    or branch_match
                 ):
                     matched_prs.append({
                         "id": pr.get("node_id"),
@@ -2004,11 +2020,13 @@ class GitHubProjectsService:
                         "number": target_pr["number"],
                         "head_ref": target_pr["head_ref"],
                         "url": target_pr.get("url", ""),
+                        "is_draft": target_pr.get("is_draft", False),
                     }
                     logger.info(
-                        "REST fallback found existing PR #%d (branch: %s) for issue #%d",
+                        "REST fallback found existing PR #%d (branch: %s, draft: %s) for issue #%d",
                         result["number"],
                         result["head_ref"],
+                        result["is_draft"],
                         issue_number,
                     )
                     return result
@@ -2045,17 +2063,36 @@ class GitHubProjectsService:
                         "number": target_rest["number"],
                         "head_ref": target_rest["head_ref"],
                         "url": target_rest.get("url", ""),
+                        "is_draft": target_rest.get("is_draft", False),
                     }
                     logger.info(
-                        "REST fallback found existing PR #%d (branch: %s) for issue #%d",
+                        "REST fallback found existing PR #%d (branch: %s, draft: %s) for issue #%d",
                         result["number"],
                         result["head_ref"],
+                        result["is_draft"],
                         issue_number,
                     )
                     return result
                 return None
 
-            # Fetch full PR details to get head_ref
+            # Use head_ref directly from timeline if available (avoids extra API call)
+            if target_pr.get("head_ref"):
+                result = {
+                    "number": target_pr["number"],
+                    "head_ref": target_pr["head_ref"],
+                    "url": target_pr.get("url", ""),
+                    "is_draft": target_pr.get("is_draft", False),
+                }
+                logger.info(
+                    "Found existing PR #%d (branch: %s, draft: %s) for issue #%d",
+                    result["number"],
+                    result["head_ref"],
+                    result["is_draft"],
+                    issue_number,
+                )
+                return result
+
+            # Fallback: fetch full PR details to get head_ref
             pr_details = await self.get_pull_request(
                 access_token=access_token,
                 owner=owner,
@@ -2070,12 +2107,14 @@ class GitHubProjectsService:
                 "number": pr_details["number"],
                 "head_ref": pr_details["head_ref"],
                 "url": pr_details.get("url", ""),
+                "is_draft": pr_details.get("is_draft", False),
             }
 
             logger.info(
-                "Found existing PR #%d (branch: %s) for issue #%d",
+                "Found existing PR #%d (branch: %s, draft: %s) for issue #%d",
                 result["number"],
                 result["head_ref"],
+                result["is_draft"],
                 issue_number,
             )
             return result
@@ -2132,6 +2171,7 @@ class GitHubProjectsService:
                             "state": pr.get("state"),
                             "is_draft": pr.get("isDraft", False),
                             "url": pr.get("url"),
+                            "head_ref": pr.get("headRefName", ""),
                             "author": pr.get("author", {}).get("login", ""),
                             "created_at": pr.get("createdAt"),
                             "updated_at": pr.get("updatedAt"),

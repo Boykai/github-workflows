@@ -16,11 +16,13 @@ TRANSITIONS:
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING
 
 from src.models.chat import (
+    DEFAULT_AGENT_MAPPINGS,
     IssueMetadata,
     IssueRecommendation,
     TriggeredBy,
@@ -67,11 +69,48 @@ class WorkflowContext:
     config: WorkflowConfiguration | None = None
 
 
+@dataclass
+class PipelineState:
+    """Tracks per-issue pipeline progress through sequential agents."""
+
+    issue_number: int
+    project_id: str
+    status: str
+    agents: list[str]
+    current_agent_index: int = 0
+    completed_agents: list[str] = field(default_factory=list)
+    started_at: datetime | None = None
+    error: str | None = None
+
+    @property
+    def current_agent(self) -> str | None:
+        """Get the currently active agent, or None if pipeline is complete."""
+        if self.current_agent_index < len(self.agents):
+            return self.agents[self.current_agent_index]
+        return None
+
+    @property
+    def is_complete(self) -> bool:
+        """Check if all agents in the pipeline have completed."""
+        return self.current_agent_index >= len(self.agents)
+
+    @property
+    def next_agent(self) -> str | None:
+        """Get the next agent after the current one, or None if last."""
+        next_idx = self.current_agent_index + 1
+        if next_idx < len(self.agents):
+            return self.agents[next_idx]
+        return None
+
+
 # In-memory storage for workflow transitions (audit log)
 _transitions: list[WorkflowTransition] = []
 
 # In-memory storage for workflow configurations (per project)
 _workflow_configs: dict[str, WorkflowConfiguration] = {}
+
+# In-memory storage for pipeline states (per issue number)
+_pipeline_states: dict[int, PipelineState] = {}
 
 
 def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
@@ -90,6 +129,26 @@ def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[Workfl
         filtered = [t for t in _transitions if t.issue_id == issue_id]
         return filtered[-limit:]
     return _transitions[-limit:]
+
+
+def get_pipeline_state(issue_number: int) -> PipelineState | None:
+    """Get pipeline state for a specific issue."""
+    return _pipeline_states.get(issue_number)
+
+
+def get_all_pipeline_states() -> dict[int, PipelineState]:
+    """Get all pipeline states."""
+    return dict(_pipeline_states)
+
+
+def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
+    """Set or update pipeline state for an issue."""
+    _pipeline_states[issue_number] = state
+
+
+def remove_pipeline_state(issue_number: int) -> None:
+    """Remove pipeline state for an issue (e.g., after status transition)."""
+    _pipeline_states.pop(issue_number, None)
 
 
 class WorkflowOrchestrator:
@@ -276,6 +335,20 @@ class WorkflowOrchestrator:
         ctx.project_item_id = item_id
         ctx.current_state = WorkflowState.BACKLOG
 
+        # Explicitly set the Backlog status on the project item
+        config = ctx.config or get_workflow_config(ctx.project_id)
+        backlog_status = config.status_backlog if config else "Backlog"
+        status_set = await self.github.update_item_status_by_name(
+            access_token=ctx.access_token,
+            project_id=ctx.project_id,
+            item_id=item_id,
+            status_name=backlog_status,
+        )
+        if status_set:
+            logger.info("Set project item status to '%s'", backlog_status)
+        else:
+            logger.warning("Failed to set project item status to '%s'", backlog_status)
+
         # Set metadata fields if recommendation has metadata
         if recommendation and hasattr(recommendation, "metadata") and recommendation.metadata:
             await self._set_issue_metadata(ctx, recommendation.metadata)
@@ -381,16 +454,165 @@ class WorkflowOrchestrator:
         return success
 
     # ──────────────────────────────────────────────────────────────────
+    # HELPER: Assign Agent for Status
+    # ──────────────────────────────────────────────────────────────────
+    async def assign_agent_for_status(
+        self,
+        ctx: WorkflowContext,
+        status: str,
+        agent_index: int = 0,
+    ) -> bool:
+        """
+        Look up agent_mappings for the given status and assign the agent
+        at the specified index to the issue.
+
+        Creates or updates a PipelineState to track progress.
+
+        Args:
+            ctx: Workflow context with issue info
+            status: Workflow status name (e.g., "Backlog", "Ready")
+            agent_index: Index into the agent list for this status (default: 0 = first agent)
+
+        Returns:
+            True if agent assignment succeeded
+        """
+        config = ctx.config or get_workflow_config(ctx.project_id)
+        if not config:
+            logger.warning("No workflow config for project %s", ctx.project_id)
+            return False
+
+        agents = config.agent_mappings.get(status, [])
+        if not agents:
+            logger.info("No agents configured for status '%s'", status)
+            return True  # No agents to assign is not an error
+
+        if agent_index >= len(agents):
+            logger.info(
+                "Agent index %d out of range for status '%s' (has %d agents)",
+                agent_index,
+                status,
+                len(agents),
+            )
+            return True  # All agents already processed
+
+        agent_name = agents[agent_index]
+        logger.info(
+            "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
+            agent_name,
+            agent_index + 1,
+            len(agents),
+            status,
+            ctx.issue_number,
+        )
+
+        # Check for an existing PR linked to this issue (single PR per issue)
+        existing_pr = None
+        base_ref = "main"
+        if ctx.issue_number:
+            try:
+                existing_pr = await self.github.find_existing_pr_for_issue(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
+                if existing_pr:
+                    base_ref = existing_pr["head_ref"]
+                    logger.info(
+                        "Reusing existing PR #%d (branch: %s) for issue #%s",
+                        existing_pr["number"],
+                        base_ref,
+                        ctx.issue_number,
+                    )
+            except Exception as e:
+                logger.warning("Failed to check for existing PR: %s", e)
+
+        # Fetch issue context for the agent's custom instructions
+        custom_instructions = ""
+        if ctx.issue_number:
+            try:
+                issue_data = await self.github.get_issue_with_comments(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
+                custom_instructions = self.github.format_issue_context_as_prompt(
+                    issue_data,
+                    agent_name=agent_name,
+                    existing_pr=existing_pr,
+                )
+                logger.info(
+                    "Prepared custom instructions for agent '%s' (length: %d chars, existing_pr: %s)",
+                    agent_name,
+                    len(custom_instructions),
+                    f"#{existing_pr['number']}" if existing_pr else "None",
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to fetch issue context for agent '%s': %s", agent_name, e
+                )
+
+        # Assign the agent
+        success = await self.github.assign_copilot_to_issue(
+            access_token=ctx.access_token,
+            owner=ctx.repository_owner,
+            repo=ctx.repository_name,
+            issue_node_id=ctx.issue_id,
+            issue_number=ctx.issue_number,
+            base_ref=base_ref,
+            custom_agent=agent_name,
+            custom_instructions=custom_instructions,
+        )
+
+        if success:
+            logger.info(
+                "Successfully assigned agent '%s' to issue #%s",
+                agent_name,
+                ctx.issue_number,
+            )
+        else:
+            logger.warning(
+                "Failed to assign agent '%s' to issue #%s",
+                agent_name,
+                ctx.issue_number,
+            )
+
+        # Create / update pipeline state
+        pipeline_state = PipelineState(
+            issue_number=ctx.issue_number,
+            project_id=ctx.project_id,
+            status=status,
+            agents=list(agents),
+            current_agent_index=agent_index,
+            completed_agents=list(agents[:agent_index]),
+            started_at=datetime.utcnow(),
+            error=None if success else f"Failed to assign agent '{agent_name}'",
+        )
+        set_pipeline_state(ctx.issue_number, pipeline_state)
+
+        # Log the transition
+        self.log_transition(
+            ctx=ctx,
+            from_status=status,
+            to_status=status,
+            triggered_by=TriggeredBy.AUTOMATIC,
+            success=success,
+            assigned_user=f"copilot:{agent_name}" if success else None,
+            error_message=None if success else f"Failed to assign agent '{agent_name}'",
+        )
+
+        return success
+
+    # ──────────────────────────────────────────────────────────────────
     # STEP 4: Handle Ready Status (T038, T042)
     # ──────────────────────────────────────────────────────────────────
     async def handle_ready_status(self, ctx: WorkflowContext) -> bool:
         """
-        When Ready status detected: assign GitHub Copilot (with optional custom agent)
-        and transition to In Progress.
+        When Ready status detected: assign first In Progress agent and transition.
 
-        If a custom_agent is configured (e.g., 'speckit.specify'), the issue title,
-        description, and all comments/discussions are fetched and passed as the
-        prompt/custom instructions to the agent.
+        Delegates to ``assign_agent_for_status`` so there is a single code path
+        for PR detection, instruction formatting, and Copilot assignment.
 
         Args:
             ctx: Workflow context
@@ -404,55 +626,22 @@ class WorkflowOrchestrator:
             return False
 
         logger.info(
-            "Issue %s is Ready, assigning Copilot and transitioning to In Progress", ctx.issue_id
+            "Issue %s is Ready, assigning agent and transitioning to In Progress", ctx.issue_id
         )
 
-        # Prepare custom agent configuration
-        custom_agent = config.custom_agent if hasattr(config, "custom_agent") else ""
-        custom_instructions = ""
+        # Get agents for In Progress status from agent_mappings
+        in_progress_agents = config.agent_mappings.get(config.status_in_progress, [])
 
-        # If a custom agent is configured, fetch issue details for the prompt
-        if custom_agent and ctx.issue_number:
-            logger.info("Fetching issue details for custom agent '%s'", custom_agent)
-            issue_data = await self.github.get_issue_with_comments(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-                issue_number=ctx.issue_number,
-            )
-            custom_instructions = self.github.format_issue_context_as_prompt(issue_data)
-            logger.info(
-                "Prepared custom instructions for agent '%s' (length: %d chars)",
-                custom_agent,
-                len(custom_instructions),
-            )
-
-        # Try to assign GitHub Copilot Agent (with custom agent if configured)
-        copilot_assigned = await self.github.assign_copilot_to_issue(
-            access_token=ctx.access_token,
-            owner=ctx.repository_owner,
-            repo=ctx.repository_name,
-            issue_node_id=ctx.issue_id,
-            issue_number=ctx.issue_number,
-            custom_agent=custom_agent,
-            custom_instructions=custom_instructions,
+        # Assign the first In Progress agent (reuses PR detection + instruction logic)
+        copilot_assigned = await self.assign_agent_for_status(
+            ctx, config.status_in_progress, agent_index=0
         )
 
-        if copilot_assigned:
-            if custom_agent:
-                logger.info(
-                    "Successfully assigned GitHub Copilot with custom agent '%s' to issue #%d",
-                    custom_agent,
-                    ctx.issue_number,
-                )
-            else:
-                logger.info("Successfully assigned GitHub Copilot to issue #%d", ctx.issue_number)
-        else:
+        if not copilot_assigned:
             logger.warning(
-                "Could not assign GitHub Copilot to issue #%d - Copilot may not be available",
+                "Could not assign agent to issue #%d - attempting fallback",
                 ctx.issue_number,
             )
-
             # Fall back to configured assignee if Copilot assignment failed
             assignee = config.copilot_assignee
             if assignee:
@@ -502,7 +691,7 @@ class WorkflowOrchestrator:
         ctx.current_state = WorkflowState.IN_PROGRESS
 
         # Log which agent was used
-        assigned_agent = custom_agent if custom_agent and copilot_assigned else None
+        agent_name = in_progress_agents[0] if in_progress_agents else ""
         self.log_transition(
             ctx=ctx,
             from_status=config.status_ready,
@@ -510,8 +699,8 @@ class WorkflowOrchestrator:
             triggered_by=TriggeredBy.AUTOMATIC,
             success=True,
             assigned_user=(
-                f"copilot:{custom_agent}"
-                if assigned_agent
+                f"copilot:{agent_name}"
+                if agent_name and copilot_assigned
                 else ("copilot" if copilot_assigned else config.copilot_assignee)
             ),
         )
@@ -753,12 +942,15 @@ class WorkflowOrchestrator:
         self, ctx: WorkflowContext, recommendation: IssueRecommendation
     ) -> WorkflowResult:
         """
-        Execute the complete workflow from confirmation to Ready status.
+        Execute the workflow from confirmation to Backlog status with first agent assigned.
 
         This orchestrates:
         1. Create GitHub Issue from recommendation
         2. Add issue to project with Backlog status
-        3. Transition to Ready status
+        3. Assign the first Backlog agent (e.g., speckit.specify)
+
+        Subsequent transitions (Backlog→Ready→In Progress) are handled by the polling
+        service as agents complete their work.
 
         Args:
             ctx: Workflow context
@@ -774,11 +966,10 @@ class WorkflowOrchestrator:
             # Step 2: Add to project with metadata
             await self.add_to_project_with_backlog(ctx, recommendation)
 
-            # Step 3: Transition to Ready
-            await self.transition_to_ready(ctx)
-
-            # Step 4: Assign GitHub Copilot and transition to In Progress
-            await self.handle_ready_status(ctx)
+            # Step 3: Assign the first agent for Backlog status
+            config = ctx.config or get_workflow_config(ctx.project_id)
+            status_name = config.status_backlog if config else "Backlog"
+            await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 
             return WorkflowResult(
                 success=True,
@@ -786,8 +977,11 @@ class WorkflowOrchestrator:
                 issue_number=ctx.issue_number,
                 issue_url=ctx.issue_url,
                 project_item_id=ctx.project_item_id,
-                current_status=ctx.current_state.value if ctx.current_state else "In Progress",
-                message=f"Issue #{ctx.issue_number} created, added to project, and assigned to {ctx.config.copilot_assignee if ctx.config else 'Copilot'}",
+                current_status="Backlog",
+                message=(
+                    f"Issue #{ctx.issue_number} created, added to project (Backlog), "
+                    f"and assigned to first agent"
+                ),
             )
 
         except Exception as e:

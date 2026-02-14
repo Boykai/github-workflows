@@ -1522,6 +1522,7 @@ class TestFormatIssueContextAsPrompt:
             "number": 42,
             "head_ref": "copilot/fix-123",
             "url": "https://github.com/owner/repo/pull/42",
+            "is_draft": True,
         }
 
         result = service.format_issue_context_as_prompt(
@@ -1529,11 +1530,14 @@ class TestFormatIssueContextAsPrompt:
         )
 
         assert "CRITICAL" in result
-        assert "USE EXISTING PULL REQUEST" in result
+        assert "REUSE EXISTING PULL REQUEST" in result
         assert "#42" in result
         assert "`copilot/fix-123`" in result
         assert "Do NOT open a new pull request" in result
-        assert "do NOT create a new branch" in result
+        assert "Do NOT create a new branch" in result.replace("do NOT", "Do NOT")
+        assert "git checkout copilot/fix-123" in result
+        assert "git push origin copilot/fix-123" in result
+        assert "Draft" in result  # WIP/draft label
         assert "`plan.md`" in result
         assert "on branch `copilot/fix-123`" in result
         # Existing PR section should come before issue title
@@ -1561,8 +1565,8 @@ class TestFindExistingPrForIssue:
         return GitHubProjectsService()
 
     @pytest.mark.asyncio
-    async def test_returns_existing_copilot_pr(self, service):
-        """Should return the existing Copilot PR details."""
+    async def test_returns_existing_copilot_pr_with_head_ref_from_timeline(self, service):
+        """Should return PR details using head_ref from timeline (no extra API call)."""
         with (
             patch.object(
                 service, "get_linked_pull_requests", new_callable=AsyncMock
@@ -1575,14 +1579,50 @@ class TestFindExistingPrForIssue:
                 {
                     "number": 5,
                     "state": "OPEN",
+                    "is_draft": True,
                     "author": "copilot-swe-agent[bot]",
                     "url": "https://github.com/o/r/pull/5",
+                    "head_ref": "copilot/fix-abc",
+                }
+            ]
+
+            result = await service.find_existing_pr_for_issue(
+                access_token="token", owner="o", repo="r", issue_number=10
+            )
+
+            assert result is not None
+            assert result["number"] == 5
+            assert result["head_ref"] == "copilot/fix-abc"
+            assert result["is_draft"] is True
+            # Should NOT need to call get_pull_request since head_ref was in timeline
+            mock_pr.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_get_pull_request_when_no_head_ref_in_timeline(self, service):
+        """Should fetch PR details when timeline doesn't include head_ref."""
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_linked,
+            patch.object(
+                service, "get_pull_request", new_callable=AsyncMock
+            ) as mock_pr,
+        ):
+            mock_linked.return_value = [
+                {
+                    "number": 5,
+                    "state": "OPEN",
+                    "is_draft": True,
+                    "author": "copilot-swe-agent[bot]",
+                    "url": "https://github.com/o/r/pull/5",
+                    "head_ref": "",  # empty - not available
                 }
             ]
             mock_pr.return_value = {
                 "number": 5,
                 "head_ref": "copilot/fix-abc",
                 "url": "https://github.com/o/r/pull/5",
+                "is_draft": True,
             }
 
             result = await service.find_existing_pr_for_issue(
@@ -1592,6 +1632,8 @@ class TestFindExistingPrForIssue:
             assert result is not None
             assert result["number"] == 5
             assert result["head_ref"] == "copilot/fix-abc"
+            assert result["is_draft"] is True
+            mock_pr.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_returns_none_when_no_linked_prs_and_no_rest_results(self, service):
@@ -1675,19 +1717,13 @@ class TestFindExistingPrForIssue:
             patch.object(
                 service, "get_linked_pull_requests", new_callable=AsyncMock
             ) as mock_linked,
-            patch.object(
-                service, "get_pull_request", new_callable=AsyncMock
-            ) as mock_pr,
         ):
             mock_linked.return_value = [
-                {"number": 5, "state": "OPEN", "author": "human-dev"},
-                {"number": 7, "state": "OPEN", "author": "copilot-swe-agent[bot]"},
+                {"number": 5, "state": "OPEN", "author": "human-dev",
+                 "head_ref": "feature/manual", "is_draft": False},
+                {"number": 7, "state": "OPEN", "author": "copilot-swe-agent[bot]",
+                 "head_ref": "copilot/fix-xyz", "is_draft": True},
             ]
-            mock_pr.return_value = {
-                "number": 7,
-                "head_ref": "copilot/fix-xyz",
-                "url": "https://github.com/o/r/pull/7",
-            }
 
             result = await service.find_existing_pr_for_issue(
                 access_token="token", owner="o", repo="r", issue_number=10
@@ -1695,9 +1731,8 @@ class TestFindExistingPrForIssue:
 
             assert result is not None
             assert result["number"] == 7
-            mock_pr.assert_called_once_with(
-                access_token="token", owner="o", repo="r", pr_number=7
-            )
+            assert result["head_ref"] == "copilot/fix-xyz"
+            assert result["is_draft"] is True
 
 
 class TestAssignCopilotToIssue:
