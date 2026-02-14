@@ -1,37 +1,49 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Blue Background Color
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `002-blue-background` | **Date**: 2026-02-14 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/002-blue-background/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a blue background color (#2196F3) to the main app layout and all core screens, ensuring WCAG AA contrast compliance (4.5:1 for text, 3:1 for interactive elements) across both light and dark modes. The implementation leverages the existing CSS custom properties theme system with class-based theming on document root element.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4 (frontend), Python (backend - not impacted)  
+**Primary Dependencies**: React 18.3, Vite 5.4, CSS custom properties for theming  
+**Storage**: localStorage for theme persistence (existing useAppTheme hook)  
+**Testing**: Vitest for unit tests, Playwright for E2E tests, @testing-library/react for component tests  
+**Target Platform**: Web browsers (Chrome, Firefox, Safari, Edge)  
+**Project Type**: Web application (frontend React SPA + Python backend)  
+**Performance Goals**: Instant CSS theme application (<16ms), no layout shift  
+**Constraints**: WCAG AA contrast ratios (4.5:1 text, 3:1 interactive), maintain existing dark mode functionality  
+**Scale/Scope**: Single-page app with core screens (login, dashboard, chat, projects), ~3-5 CSS files impacted
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Design Check
+
+- ✅ **Specification-First Development**: Complete spec.md exists with 3 prioritized user stories (P1-P3), Given-When-Then acceptance scenarios, and clear scope boundaries
+- ✅ **Template-Driven Workflow**: Spec follows spec-template.md, plan follows plan-template.md
+- ✅ **Agent-Orchestrated Execution**: Using /speckit.plan agent with clear outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md)
+- ✅ **Test Optionality**: Tests not explicitly required by spec; existing E2E tests may need updates for visual validation
+- ✅ **Simplicity and DRY**: Extends existing CSS custom properties system rather than introducing new theming framework; no new abstractions needed
+
+**Status**: ✅ PASS - All principles satisfied, ready for Phase 0 research
+
+### Post-Design Check
+
+- ✅ **Specification-First Development**: All design artifacts (research.md, data-model.md, contracts/, quickstart.md) reference and fulfill spec.md requirements
+- ✅ **Template-Driven Workflow**: Research follows decision/rationale/alternatives format; data-model follows entity/validation structure; contracts organized by type; quickstart follows step-by-step format
+- ✅ **Agent-Orchestrated Execution**: Design phase complete; ready for /speckit.tasks to generate implementation tasks
+- ✅ **Test Optionality**: Testing strategy defined in research.md (Playwright visual + axe-core accessibility); tests remain optional per constitution; quickstart includes optional test steps
+- ✅ **Simplicity and DRY**: Reuses existing CSS custom properties system with zero new abstractions; no new React hooks or state management; pure CSS implementation
+
+**Status**: ✅ PASS - All principles maintained through design phase. No complexity added beyond spec requirements.
 
 ## Project Structure
 
@@ -48,57 +60,40 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
+│   ├── index.css          # Primary: CSS custom properties for blue background
+│   ├── App.css            # Secondary: Component-specific styles 
+│   ├── App.tsx            # Theme toggle and layout
+│   ├── hooks/
+│   │   └── useAppTheme.ts # Existing theme state management (no changes needed)
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   │   ├── auth/
+│   │   ├── chat/
+│   │   ├── sidebar/
+│   │   └── [others]/      # Text/button contrast validation
+│   └── test/
+│       └── [unit tests]   # Optional: contrast validation tests
+├── e2e/
+│   └── ui.spec.ts         # Optional: visual regression for blue background
+└── package.json
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+backend/
+└── [not impacted by this feature]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with React frontend. The blue background is purely a frontend CSS change. Primary modifications in `frontend/src/index.css` to update CSS custom properties `--color-bg` and `--color-bg-secondary` for both `:root` (light mode) and `html.dark-mode-active` (dark mode) selectors. Component-level styles in `App.css` and other component files may need text/button color adjustments for WCAG AA contrast compliance.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+**No violations to justify** - All constitution principles satisfied without compromises.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+Design decisions maintain simplicity:
+- Reuses existing `useAppTheme` hook (no modifications)
+- Extends existing CSS custom properties pattern (no new patterns)
+- No new state management or abstractions
+- Purely declarative CSS changes
+
+All complexity is inherent to the requirement (WCAG AA compliance, dark mode support) rather than introduced by the solution.
