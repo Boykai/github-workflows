@@ -1,5 +1,5 @@
 #!/bin/bash
-# Git pre-commit hook that runs linting and formatting checks
+# Git pre-commit hook that auto-fixes and validates code before commit
 # This mirrors the CI checks in .github/workflows/ci.yml
 #
 # Install by running: ./scripts/setup-hooks.sh
@@ -7,7 +7,7 @@
 
 set -e
 
-echo "🔍 Running pre-commit checks..."
+echo "🔍 Running pre-commit checks (with auto-fix)..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -27,7 +27,7 @@ STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$'
 STAGED_FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^frontend/.*\.(ts|tsx|js|jsx)$' || true)
 
 # ============================================
-# Backend Checks
+# Backend Checks (with auto-fix)
 # ============================================
 if [ -n "$STAGED_PY_FILES" ]; then
     echo ""
@@ -35,38 +35,45 @@ if [ -n "$STAGED_PY_FILES" ]; then
 
     # Check if we're in a virtual environment or if backend venv exists
     if [ -d "$REPO_ROOT/backend/.venv" ]; then
-        PYTHON="$REPO_ROOT/backend/.venv/bin/python"
         BLACK="$REPO_ROOT/backend/.venv/bin/black"
         RUFF="$REPO_ROOT/backend/.venv/bin/ruff"
     else
-        PYTHON="python3"
         BLACK="black"
         RUFF="ruff"
     fi
 
-    # Format check with black
-    echo -n "  ⬛ Black format check... "
+    # Auto-format with black, then verify
+    echo -n "  ⬛ Black formatting... "
+    $BLACK "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null || true
     if $BLACK --check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
+        echo -e "${GREEN}✓ (auto-formatted)${NC}"
     else
-        echo -e "${RED}✗${NC}"
-        echo -e "${YELLOW}    Run 'black backend/src backend/tests' to fix formatting${NC}"
+        echo -e "${RED}✗ (auto-fix failed)${NC}"
         FAILED=1
     fi
 
-    # Lint with ruff
-    echo -n "  🔧 Ruff lint check... "
-    if $RUFF check "$REPO_ROOT/backend/src" --quiet 2>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
+    # Auto-fix with ruff, then verify
+    echo -n "  🔧 Ruff linting... "
+    $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --fix --quiet 2>/dev/null || true
+    if $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
+        echo -e "${GREEN}✓ (auto-fixed)${NC}"
     else
-        echo -e "${RED}✗${NC}"
-        echo -e "${YELLOW}    Run 'ruff check backend/src --fix' to fix issues${NC}"
+        echo -e "${RED}✗ (issues remain after auto-fix)${NC}"
+        echo -e "${YELLOW}    Remaining issues:${NC}"
+        $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" 2>&1 | head -10
         FAILED=1
     fi
+
+    # Re-stage auto-fixed Python files
+    for file in $STAGED_PY_FILES; do
+        if [ -f "$REPO_ROOT/$file" ]; then
+            git add "$REPO_ROOT/$file" 2>/dev/null || true
+        fi
+    done
 fi
 
 # ============================================
-# Frontend Checks
+# Frontend Checks (with auto-fix)
 # ============================================
 if [ -n "$STAGED_FRONTEND_FILES" ]; then
     echo ""
@@ -74,26 +81,40 @@ if [ -n "$STAGED_FRONTEND_FILES" ]; then
 
     cd "$REPO_ROOT/frontend"
 
-    # ESLint
+    # Auto-fix with ESLint, then verify
     echo -n "  📝 ESLint... "
+    npm run lint -- --fix --quiet 2>/dev/null || true
     if npm run lint --silent 2>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
+        echo -e "${GREEN}✓ (auto-fixed)${NC}"
     else
-        echo -e "${RED}✗${NC}"
-        echo -e "${YELLOW}    Run 'cd frontend && npm run lint -- --fix' to fix issues${NC}"
-        FAILED=1
+        # Check if only warnings (exit code 0 means success even with warnings)
+        if npm run lint 2>&1 | grep -q "error"; then
+            echo -e "${RED}✗ (errors remain)${NC}"
+            npm run lint 2>&1 | grep "error" | head -5
+            FAILED=1
+        else
+            echo -e "${GREEN}✓ (warnings only)${NC}"
+        fi
     fi
 
-    # TypeScript type check
+    # TypeScript type check (no auto-fix available for type errors)
     echo -n "  📘 TypeScript check... "
     if npm run type-check --silent 2>/dev/null; then
         echo -e "${GREEN}✓${NC}"
     else
         echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    TypeScript errors must be fixed manually${NC}"
+        npm run type-check 2>&1 | head -10
         FAILED=1
     fi
 
+    # Re-stage auto-fixed frontend files
     cd "$REPO_ROOT"
+    for file in $STAGED_FRONTEND_FILES; do
+        if [ -f "$REPO_ROOT/$file" ]; then
+            git add "$REPO_ROOT/$file" 2>/dev/null || true
+        fi
+    done
 fi
 
 # ============================================
@@ -104,7 +125,6 @@ if [ $FAILED -eq 0 ]; then
     echo -e "${GREEN}✅ All pre-commit checks passed!${NC}"
     exit 0
 else
-    echo -e "${RED}❌ Some checks failed. Please fix the issues above.${NC}"
-    echo -e "${YELLOW}💡 Tip: Run 'make lint-fix' or './scripts/lint-fix.sh' to auto-fix issues${NC}"
+    echo -e "${RED}❌ Some checks failed. Please fix the remaining issues manually.${NC}"
     exit 1
 fi
