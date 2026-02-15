@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from src.models.chat import (
     IssueMetadata,
@@ -111,10 +111,18 @@ _workflow_configs: dict[str, WorkflowConfiguration] = {}
 # In-memory storage for pipeline states (per issue number)
 _pipeline_states: dict[int, PipelineState] = {}
 
+
+class MainBranchInfo(TypedDict):
+    """Typed info for an issue's main PR branch."""
+
+    branch: str
+    pr_number: int
+
+
 # In-memory storage for the "main" PR branch per issue
 # The first PR's branch becomes the base for all subsequent agent branches
 # Maps issue_number -> {branch: str, pr_number: int}
-_issue_main_branches: dict[int, dict[str, str | int]] = {}
+_issue_main_branches: dict[int, MainBranchInfo] = {}
 
 
 def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
@@ -127,9 +135,7 @@ def set_workflow_config(project_id: str, config: WorkflowConfiguration) -> None:
     _workflow_configs[project_id] = config
 
 
-def get_transitions(
-    issue_id: str | None = None, limit: int = 50
-) -> list[WorkflowTransition]:
+def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:
     """Get workflow transitions, optionally filtered by issue_id."""
     if issue_id:
         filtered = [t for t in _transitions if t.issue_id == issue_id]
@@ -157,7 +163,7 @@ def remove_pipeline_state(issue_number: int) -> None:
     _pipeline_states.pop(issue_number, None)
 
 
-def get_issue_main_branch(issue_number: int) -> dict[str, str | int] | None:
+def get_issue_main_branch(issue_number: int) -> MainBranchInfo | None:
     """
     Get the main PR branch for an issue.
 
@@ -227,9 +233,7 @@ class WorkflowOrchestrator:
         Returns:
             Formatted markdown string
         """
-        requirements_list = "\n".join(
-            f"- {req}" for req in recommendation.functional_requirements
-        )
+        requirements_list = "\n".join(f"- {req}" for req in recommendation.functional_requirements)
 
         # Format metadata section
         metadata = (
@@ -404,11 +408,7 @@ class WorkflowOrchestrator:
             logger.warning("Failed to set project item status to '%s'", backlog_status)
 
         # Set metadata fields if recommendation has metadata
-        if (
-            recommendation
-            and hasattr(recommendation, "metadata")
-            and recommendation.metadata
-        ):
+        if recommendation and hasattr(recommendation, "metadata") and recommendation.metadata:
             await self._set_issue_metadata(ctx, recommendation.metadata)
 
         # Log the transition
@@ -423,9 +423,7 @@ class WorkflowOrchestrator:
         logger.info("Added to project, item_id: %s", item_id)
         return item_id
 
-    async def _set_issue_metadata(
-        self, ctx: WorkflowContext, metadata: "IssueMetadata"
-    ) -> None:
+    async def _set_issue_metadata(self, ctx: WorkflowContext, metadata: "IssueMetadata") -> None:
         """
         Set metadata fields on a project item.
 
@@ -541,6 +539,9 @@ class WorkflowOrchestrator:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
+        assert ctx.issue_id is not None, "issue_id required for agent assignment"
+        assert ctx.issue_number is not None, "issue_number required for agent assignment"
+
         agents = config.agent_mappings.get(status, [])
         if not agents:
             logger.info("No agents configured for status '%s'", status)
@@ -582,7 +583,7 @@ class WorkflowOrchestrator:
                     "Using issue #%d main branch '%s' (from PR #%d) as base for agent '%s'",
                     ctx.issue_number,
                     base_ref,
-                    main_branch_info.get("pr_number"),
+                    main_branch_info["pr_number"],
                     agent_name,
                 )
             else:
@@ -633,9 +634,7 @@ class WorkflowOrchestrator:
                     f"#{existing_pr['number']}" if existing_pr else "None",
                 )
             except Exception as e:
-                logger.warning(
-                    "Failed to fetch issue context for agent '%s': %s", agent_name, e
-                )
+                logger.warning("Failed to fetch issue context for agent '%s': %s", agent_name, e)
 
         # Assign the agent
         logger.info(
@@ -711,6 +710,9 @@ class WorkflowOrchestrator:
         Returns:
             True if transition succeeded (assignment failures are logged but don't fail the transition)
         """
+        assert ctx.issue_number is not None, "issue_number required"
+        assert ctx.project_item_id is not None, "project_item_id required"
+
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
@@ -821,14 +823,15 @@ class WorkflowOrchestrator:
         Returns:
             True if PR completion detected and handled, False if still in progress
         """
+        assert ctx.issue_number is not None, "issue_number required"
+        assert ctx.project_item_id is not None, "project_item_id required"
+
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
-        logger.info(
-            "Checking if Copilot has completed PR for issue #%d", ctx.issue_number
-        )
+        logger.info("Checking if Copilot has completed PR for issue #%d", ctx.issue_number)
 
         # Check for completed Copilot PR
         completed_pr = await self.github.check_copilot_pr_completion(
@@ -860,9 +863,7 @@ class WorkflowOrchestrator:
                     pr_node_id=pr_node_id,
                 )
                 if mark_success:
-                    logger.info(
-                        "Marked PR #%d as ready for review", completed_pr["number"]
-                    )
+                    logger.info("Marked PR #%d as ready for review", completed_pr["number"])
                 else:
                     logger.warning(
                         "Failed to mark PR #%d as ready for review",
@@ -974,6 +975,9 @@ class WorkflowOrchestrator:
         Returns:
             True if transition and assignment succeeded
         """
+        assert ctx.issue_number is not None, "issue_number required"
+        assert ctx.project_item_id is not None, "project_item_id required"
+
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)

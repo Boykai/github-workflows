@@ -20,7 +20,7 @@ class StatusColumn(BaseModel):
     field_id: str = Field(..., description="Status field node ID")
     name: str = Field(..., description="Column display name (e.g., 'Todo')")
     option_id: str = Field(..., description="Option ID for this status value")
-    color: str | None = Field(None, description="Display color")
+    color: str | None = Field(default=None, description="Display color")
 
 
 class GitHubProject(BaseModel):
@@ -32,11 +32,11 @@ class GitHubProject(BaseModel):
     name: str = Field(..., description="Project display name")
     type: ProjectType = Field(..., description="Project type: organization, user, or repository")
     url: str = Field(..., description="GitHub web URL for the project")
-    description: str | None = Field(None, description="Project description")
+    description: str | None = Field(default=None, description="Project description")
     status_columns: list[StatusColumn] = Field(
         ..., min_length=1, description="List of StatusColumn objects"
     )
-    item_count: int | None = Field(None, description="Total items in project")
+    item_count: int | None = Field(default=None, description="Total items in project")
     cached_at: datetime = Field(
         default_factory=datetime.utcnow, description="When this data was fetched"
     )

@@ -38,6 +38,9 @@ jobs:
       - name: Format check with ruff
         run: ruff format --check src tests
 
+      - name: Type check with pyright
+        run: pyright src
+
       #- name: Run tests
       #  run: pytest --cov=src --cov-report=term-missing
 

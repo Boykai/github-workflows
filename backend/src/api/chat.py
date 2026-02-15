@@ -50,16 +50,21 @@ _recommendations: dict[str, IssueRecommendation] = {}
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
+    if not session.selected_project_id:
+        raise ValidationError("No project selected")
+
+    project_id = session.selected_project_id
+
     # Try project items first
     repo_info = await github_projects_service.get_project_repository(
         session.access_token,
-        session.selected_project_id,
+        project_id,
     )
     if repo_info:
         return repo_info
 
     # Try workflow config
-    config = get_workflow_config(session.selected_project_id)
+    config = get_workflow_config(project_id)
     if config and config.repository_owner and config.repository_name:
         return config.repository_owner, config.repository_name
 
@@ -119,6 +124,8 @@ async def send_message(
     if not session.selected_project_id:
         raise ValidationError("Please select a project first")
 
+    selected_project_id = session.selected_project_id
+
     # T058: Input validation for maximum content length
     MAX_FEATURE_REQUEST_LENGTH = 4000
     if len(request.content) > MAX_FEATURE_REQUEST_LENGTH:
@@ -154,13 +161,13 @@ async def send_message(
     cached_projects = cache.get(cache_key)
     if cached_projects:
         for p in cached_projects:
-            if p.project_id == session.selected_project_id:
+            if p.project_id == selected_project_id:
                 project_name = p.name
                 project_columns = [col.name for col in p.status_columns]
                 break
 
     # Get current tasks for context
-    tasks_cache_key = get_project_items_cache_key(session.selected_project_id)
+    tasks_cache_key = get_project_items_cache_key(selected_project_id)
     current_tasks = cache.get(tasks_cache_key) or []
 
     # ──────────────────────────────────────────────────────────────────
@@ -169,9 +176,7 @@ async def send_message(
     ai_service = get_ai_agent_service()
 
     try:
-        is_feature_request = await ai_service.detect_feature_request_intent(
-            request.content
-        )
+        is_feature_request = await ai_service.detect_feature_request_intent(request.content)
     except Exception as e:
         logger.warning("Feature request detection failed: %s", e)
         is_feature_request = False
@@ -193,7 +198,9 @@ async def send_message(
                 f"- {req}" for req in recommendation.functional_requirements[:3]
             )
             if len(recommendation.functional_requirements) > 3:
-                requirements_preview += f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
+                requirements_preview += (
+                    f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
+                )
 
             # Create assistant response with issue_create action (T015)
             assistant_message = ChatMessage(
@@ -250,27 +257,25 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=(
-            project_columns if project_columns else DEFAULT_STATUS_COLUMNS
-        ),
+        available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
     )
 
     if status_change:
         # This is a status change request - identify target task and status
         target_task = ai_service.identify_target_task(
-            query=status_change.get("task_query", ""),
-            tasks=current_tasks,
+            task_reference=status_change.task_reference,
+            available_tasks=current_tasks,
         )
 
         if target_task:
-            target_status = status_change.get("target_status", "")
+            target_status = status_change.target_status
 
             # Find the status column info
             status_option_id = ""
             status_field_id = ""
             if cached_projects:
                 for p in cached_projects:
-                    if p.project_id == session.selected_project_id:
+                    if p.project_id == selected_project_id:
                         for col in p.status_columns:
                             if col.name.lower() == target_status.lower():
                                 status_option_id = col.option_id
@@ -313,7 +318,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content=f"I couldn't find a task matching '{status_change.get('task_query', '')}'. Please try again with a more specific task name.",
+                content=f"I couldn't find a task matching '{status_change.task_reference}'. Please try again with a more specific task name.",
             )
             add_message(session.session_id, error_message)
 
@@ -401,6 +406,10 @@ async def confirm_proposal(
     # Resolve repository info for issue creation
     owner, repo = await _resolve_repository(session)
 
+    # Narrowed: _resolve_repository validates selected_project_id is not None
+    project_id = session.selected_project_id
+    assert project_id is not None
+
     # Create the issue in GitHub
     try:
         # Step 1: Create a real GitHub Issue via REST API
@@ -419,18 +428,18 @@ async def confirm_proposal(
         # Step 2: Add the issue to the project
         item_id = await github_projects_service.add_issue_to_project(
             access_token=session.access_token,
-            project_id=session.selected_project_id,
+            project_id=project_id,
             issue_node_id=issue_node_id,
         )
 
         proposal.status = ProposalStatus.CONFIRMED
 
         # Invalidate cache
-        cache.delete(get_project_items_cache_key(session.selected_project_id))
+        cache.delete(get_project_items_cache_key(project_id))
 
         # Broadcast WebSocket message to connected clients
         await connection_manager.broadcast_to_project(
-            session.selected_project_id,
+            project_id,
             {
                 "type": "task_created",
                 "task_id": item_id,
@@ -469,15 +478,15 @@ async def confirm_proposal(
 
             settings = get_settings()
 
-            config = get_workflow_config(session.selected_project_id)
+            config = get_workflow_config(project_id)
             if not config:
                 config = WorkflowConfiguration(
-                    project_id=session.selected_project_id,
+                    project_id=project_id,
                     repository_owner=owner,
                     repository_name=repo,
                     copilot_assignee=settings.default_assignee,
                 )
-                set_workflow_config(session.selected_project_id, config)
+                set_workflow_config(project_id, config)
             else:
                 config.repository_owner = owner
                 config.repository_name = repo
@@ -488,7 +497,7 @@ async def confirm_proposal(
             backlog_status = config.status_backlog
             await github_projects_service.update_item_status_by_name(
                 access_token=session.access_token,
-                project_id=session.selected_project_id,
+                project_id=project_id,
                 item_id=item_id,
                 status_name=backlog_status,
             )
@@ -501,7 +510,7 @@ async def confirm_proposal(
             # Assign the first Backlog agent
             ctx = WorkflowContext(
                 session_id=str(session.session_id),
-                project_id=session.selected_project_id,
+                project_id=project_id,
                 access_token=session.access_token,
                 repository_owner=owner,
                 repository_name=repo,
@@ -512,15 +521,13 @@ async def confirm_proposal(
             ctx.project_item_id = item_id
 
             orchestrator = get_workflow_orchestrator()
-            await orchestrator.assign_agent_for_status(
-                ctx, backlog_status, agent_index=0
-            )
+            await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
             # Send agent_assigned WebSocket notification
             backlog_agents = config.agent_mappings.get(backlog_status, [])
             if backlog_agents:
                 await connection_manager.broadcast_to_project(
-                    session.selected_project_id,
+                    project_id,
                     {
                         "type": "agent_assigned",
                         "issue_number": issue_number,

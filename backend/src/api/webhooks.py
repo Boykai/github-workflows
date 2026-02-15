@@ -21,9 +21,7 @@ _processed_delivery_ids: set[str] = set()
 MAX_DELIVERY_IDS = 1000
 
 
-def verify_webhook_signature(
-    payload: bytes, signature: str | None, secret: str
-) -> bool:
+def verify_webhook_signature(payload: bytes, signature: str | None, secret: str) -> bool:
     """
     Verify GitHub webhook signature.
 
@@ -216,9 +214,7 @@ async def github_webhook(
 
     # Verify signature if secret is configured
     if settings.github_webhook_secret:
-        if not verify_webhook_signature(
-            body, x_hub_signature_256, settings.github_webhook_secret
-        ):
+        if not verify_webhook_signature(body, x_hub_signature_256, settings.github_webhook_secret):
             logger.warning("Invalid webhook signature")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -295,9 +291,7 @@ async def handle_pull_request_event(payload: dict) -> dict[str, Any]:
     )
 
     # Check if this is a Copilot PR being marked ready for review
-    is_copilot_pr = (
-        "copilot" in pr_author.lower() or pr_author == "copilot-swe-agent[bot]"
-    )
+    is_copilot_pr = "copilot" in pr_author.lower() or pr_author == "copilot-swe-agent[bot]"
 
     # Detect when a draft PR becomes ready for review
     # action="ready_for_review" is sent when a draft is converted to ready
@@ -428,8 +422,10 @@ async def update_issue_status_for_copilot_pr(
             }
 
         # Get projects for the repository owner
-        projects = await github_projects_service.get_user_projects(
-            settings.github_webhook_token
+        webhook_user = projects_response.json()
+        webhook_username: str = webhook_user.get("login", repo_owner)
+        projects = await github_projects_service.list_user_projects(
+            settings.github_webhook_token, webhook_username
         )
 
         # Find the project that contains this repository
@@ -446,9 +442,7 @@ async def update_issue_status_for_copilot_pr(
 
                 for item in items:
                     # Check if this item matches our issue
-                    if item.github_item_id and str(issue_number) in str(
-                        item.github_item_id
-                    ):
+                    if item.github_item_id and str(issue_number) in str(item.github_item_id):
                         target_project = project
                         target_item_id = item.github_item_id
                         break
@@ -462,9 +456,7 @@ async def update_issue_status_for_copilot_pr(
                     break
 
             except Exception as e:
-                logger.warning(
-                    "Failed to get items for project %s: %s", project.project_id, e
-                )
+                logger.warning("Failed to get items for project %s: %s", project.project_id, e)
                 continue
 
         if not target_project or not target_item_id:

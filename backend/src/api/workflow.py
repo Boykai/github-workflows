@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
@@ -535,7 +535,6 @@ async def check_issue_copilot_completion(
 async def start_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
     interval_seconds: int = 15,
-    background_tasks: BackgroundTasks = None,
 ) -> dict:
     """
     Start background polling for Copilot PR completions.

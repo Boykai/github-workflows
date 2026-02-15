@@ -644,8 +644,8 @@ class GitHubProjectsService:
 
         raise httpx.HTTPStatusError(
             "Max retries exceeded",
-            request=None,
-            response=None,
+            request=httpx.Request("GET", ""),  # type: ignore[arg-type]
+            response=httpx.Response(500),
         )
 
     async def _graphql(
@@ -2647,7 +2647,10 @@ class GitHubProjectsService:
                 author = pr.get("author", "").lower()
                 state = pr.get("state", "")
                 is_draft = pr.get("is_draft", True)
-                pr_number = pr.get("number")
+                raw_pr_number = pr.get("number")
+                if raw_pr_number is None:
+                    continue
+                pr_number = int(raw_pr_number)
 
                 # Check if this is a Copilot-created PR
                 if "copilot" in author or author == "copilot-swe-agent[bot]":

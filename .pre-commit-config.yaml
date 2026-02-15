@@ -15,6 +15,15 @@ repos:
         files: ^backend/
         args: [--fix]
 
+  - repo: local
+    hooks:
+      - id: backend-pyright
+        name: Type Check Backend (pyright)
+        entry: bash -c 'cd backend && source .venv/bin/activate 2>/dev/null || true && pyright src'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+
   # Frontend hooks
   - repo: local
     hooks:

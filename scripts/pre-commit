@@ -68,6 +68,23 @@ if [ -n "$STAGED_PY_FILES" ]; then
             git add "$REPO_ROOT/$file" 2>/dev/null || true
         fi
     done
+
+    # Type check with pyright (no auto-fix available for type errors)
+    echo -n "  🐍 Pyright type check... "
+    if [ -d "$REPO_ROOT/backend/.venv" ]; then
+        PYRIGHT="$REPO_ROOT/backend/.venv/bin/pyright"
+    else
+        PYRIGHT="pyright"
+    fi
+
+    if $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" --quiet 2>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Type errors must be fixed manually${NC}"
+        $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" 2>&1 | tail -10
+        FAILED=1
+    fi
 fi
 
 # ============================================

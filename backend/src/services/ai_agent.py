@@ -5,6 +5,8 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
+from uuid import UUID
 
 from src.config import get_settings
 from src.models.chat import (
@@ -55,8 +57,14 @@ class AIAgentService:
     def __init__(self):
         settings = get_settings()
         self._deployment = settings.azure_openai_deployment
-        self._client = None
+        self._client: Any = None
         self._use_azure_inference = False
+
+        if not settings.azure_openai_endpoint or not settings.azure_openai_key:
+            raise ValueError(
+                "Azure OpenAI credentials not configured. "
+                "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY."
+            )
 
         # Try Azure OpenAI SDK first (openai package)
         try:
@@ -75,8 +83,8 @@ class AIAgentService:
             from azure.core.credentials import AzureKeyCredential
 
             self._client = ChatCompletionsClient(
-                endpoint=settings.azure_openai_endpoint,
-                credential=AzureKeyCredential(settings.azure_openai_key),
+                endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
+                credential=AzureKeyCredential(settings.azure_openai_key),  # type: ignore[arg-type]
             )
             self._use_azure_inference = True
             logger.info("Initialized Azure AI Inference client for model: %s", self._deployment)
@@ -109,7 +117,7 @@ class AIAgentService:
                 max_tokens=max_tokens,
             )
 
-        return response.choices[0].message.content
+        return response.choices[0].message.content or ""
 
     # ──────────────────────────────────────────────────────────────────
     # Issue Recommendation Methods (T011, T012, T013)
@@ -233,7 +241,7 @@ class AIAgentService:
         metadata = self._parse_issue_metadata(data.get("metadata", {}))
 
         return IssueRecommendation(
-            session_id=session_id,
+            session_id=UUID(session_id),
             original_input=original_input,
             title=title,
             user_story=user_story,
@@ -469,16 +477,16 @@ class AIAgentService:
             logger.warning("Failed to parse status change intent: %s", e)
             return None
 
-    def identify_target_task(self, task_reference: str, available_tasks: list[dict]) -> dict | None:
+    def identify_target_task(self, task_reference: str, available_tasks: list[Any]) -> Any | None:
         """
         Find the best matching task for a reference string.
 
         Args:
             task_reference: Reference string from AI (partial title/description)
-            available_tasks: List of task dicts with 'title' and 'task_id'
+            available_tasks: List of task objects with a 'title' attribute
 
         Returns:
-            Best matching task dict or None
+            Best matching task or None
         """
         if not task_reference or not available_tasks:
             return None
@@ -487,13 +495,13 @@ class AIAgentService:
 
         # Exact match
         for task in available_tasks:
-            if task["title"].lower() == reference_lower:
+            if task.title.lower() == reference_lower:
                 return task
 
         # Partial match
         matches = []
         for task in available_tasks:
-            title_lower = task["title"].lower()
+            title_lower = task.title.lower()
             if reference_lower in title_lower or title_lower in reference_lower:
                 matches.append(task)
 
@@ -506,7 +514,7 @@ class AIAgentService:
         best_score = 0
 
         for task in available_tasks:
-            title_words = set(task["title"].lower().split())
+            title_words = set(task.title.lower().split())
             overlap = len(ref_words & title_words)
             if overlap > best_score:
                 best_score = overlap

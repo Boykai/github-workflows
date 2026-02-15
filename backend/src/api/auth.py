@@ -102,9 +102,7 @@ async def github_callback(
 @router.post("/session")
 async def set_session_cookie(
     response: Response,
-    session_token: Annotated[
-        str, Query(description="Session token from OAuth callback")
-    ],
+    session_token: Annotated[str, Query(description="Session token from OAuth callback")],
 ) -> UserResponse:
     """
     Set session cookie from token.

@@ -12,12 +12,14 @@ class UserSession(BaseModel):
     session_id: UUID = Field(default_factory=uuid4, description="Unique session identifier")
     github_user_id: str = Field(..., description="GitHub user ID from OAuth")
     github_username: str = Field(..., description="GitHub username for display")
-    github_avatar_url: str | None = Field(None, description="User's avatar URL")
+    github_avatar_url: str | None = Field(default=None, description="User's avatar URL")
     access_token: str = Field(..., description="Encrypted GitHub OAuth access token")
-    refresh_token: str | None = Field(None, description="Encrypted OAuth refresh token")
-    token_expires_at: datetime | None = Field(None, description="Token expiration timestamp")
+    refresh_token: str | None = Field(default=None, description="Encrypted OAuth refresh token")
+    token_expires_at: datetime | None = Field(
+        default=None, description="Token expiration timestamp"
+    )
     selected_project_id: str | None = Field(
-        None, description="Currently selected GitHub Project ID"
+        default=None, description="Currently selected GitHub Project ID"
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),

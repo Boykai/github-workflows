@@ -13,17 +13,19 @@ class Task(BaseModel):
     project_id: str = Field(..., description="Parent project ID (FK)")
     github_item_id: str = Field(..., description="GitHub Project item node ID")
     github_content_id: str | None = Field(
-        None, description="Linked issue/PR node ID (if not draft)"
+        default=None, description="Linked issue/PR node ID (if not draft)"
     )
-    github_issue_id: str | None = Field(None, description="GitHub Issue node ID")
-    issue_number: int | None = Field(None, description="GitHub Issue number")
-    repository_owner: str | None = Field(None, description="Repository owner")
-    repository_name: str | None = Field(None, description="Repository name")
+    github_issue_id: str | None = Field(default=None, description="GitHub Issue node ID")
+    issue_number: int | None = Field(default=None, description="GitHub Issue number")
+    repository_owner: str | None = Field(default=None, description="Repository owner")
+    repository_name: str | None = Field(default=None, description="Repository name")
     title: str = Field(..., max_length=256, description="Task title")
-    description: str | None = Field(None, max_length=65535, description="Task body/description")
+    description: str | None = Field(
+        default=None, max_length=65535, description="Task body/description"
+    )
     status: str = Field(..., description="Current status column name")
     status_option_id: str = Field(..., description="Status field option ID")
-    assignees: list[str] | None = Field(None, description="List of assigned user logins")
+    assignees: list[str] | None = Field(default=None, description="List of assigned user logins")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Task creation time")
     updated_at: datetime = Field(
         default_factory=datetime.utcnow, description="Last modification time"

@@ -212,49 +212,49 @@ class TestIdentifyTargetTask:
     def test_identify_task_exact_match(self, service):
         """Should find exact title match."""
         tasks = [
-            {"task_id": "1", "title": "Login Feature"},
-            {"task_id": "2", "title": "Dashboard"},
+            Mock(task_id="1", title="Login Feature"),
+            Mock(task_id="2", title="Dashboard"),
         ]
 
         result = service.identify_target_task("Login Feature", tasks)
 
-        assert result["task_id"] == "1"
+        assert result.task_id == "1"
 
     def test_identify_task_case_insensitive(self, service):
         """Should match case-insensitively."""
-        tasks = [{"task_id": "1", "title": "Login Feature"}]
+        tasks = [Mock(task_id="1", title="Login Feature")]
 
         result = service.identify_target_task("login feature", tasks)
 
-        assert result["task_id"] == "1"
+        assert result.task_id == "1"
 
     def test_identify_task_partial_match(self, service):
         """Should match partial references."""
         tasks = [
-            {"task_id": "1", "title": "Implement Login Feature"},
-            {"task_id": "2", "title": "Dashboard Widget"},
+            Mock(task_id="1", title="Implement Login Feature"),
+            Mock(task_id="2", title="Dashboard Widget"),
         ]
 
         result = service.identify_target_task("Login Feature", tasks)
 
-        assert result["task_id"] == "1"
+        assert result.task_id == "1"
 
     def test_identify_task_word_overlap(self, service):
         """Should match by word overlap when no partial match."""
         tasks = [
-            {"task_id": "1", "title": "Create user authentication system"},
-            {"task_id": "2", "title": "Build dashboard"},
+            Mock(task_id="1", title="Create user authentication system"),
+            Mock(task_id="2", title="Build dashboard"),
         ]
 
         result = service.identify_target_task("user authentication", tasks)
 
-        assert result["task_id"] == "1"
+        assert result.task_id == "1"
 
     def test_identify_task_returns_none_for_empty(self, service):
         """Should return None for empty inputs."""
         assert service.identify_target_task("", []) is None
         assert service.identify_target_task("task", []) is None
-        assert service.identify_target_task("", [{"task_id": "1", "title": "Task"}]) is None
+        assert service.identify_target_task("", [Mock(task_id="1", title="Task")]) is None
 
 
 class TestIdentifyTargetStatus:
