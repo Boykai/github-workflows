@@ -293,14 +293,16 @@ async def post_agent_outputs_from_pr(
                     task.issue_number,
                     posted_count,
                 )
-                results.append({
-                    "status": "success",
-                    "issue_number": task.issue_number,
-                    "agent_name": current_agent,
-                    "pr_number": pr_number,
-                    "files_posted": posted_count,
-                    "action": "agent_outputs_posted",
-                })
+                results.append(
+                    {
+                        "status": "success",
+                        "issue_number": task.issue_number,
+                        "agent_name": current_agent,
+                        "pr_number": pr_number,
+                        "files_posted": posted_count,
+                        "action": "agent_outputs_posted",
+                    }
+                )
             else:
                 logger.error(
                     "Failed to post Done! marker on issue #%d",
@@ -485,9 +487,7 @@ async def check_ready_issues(
         ready_tasks = [
             task
             for task in tasks
-            if task.status
-            and task.status.lower() == status_ready
-            and task.issue_number is not None
+            if task.status and task.status.lower() == status_ready and task.issue_number is not None
         ]
 
         if not ready_tasks:
@@ -712,7 +712,11 @@ async def _merge_child_pr_if_applicable(
                     "Successfully merged child PR #%d into '%s' (commit: %s)",
                     pr_number,
                     main_branch,
-                    merge_result.get("merge_commit", "")[:8] if merge_result.get("merge_commit") else "N/A",
+                    (
+                        merge_result.get("merge_commit", "")[:8]
+                        if merge_result.get("merge_commit")
+                        else "N/A"
+                    ),
                 )
 
                 # Clean up: delete the child branch after successful merge
@@ -951,9 +955,7 @@ async def _reconstruct_pipeline_state(
                 break
 
     except Exception as e:
-        logger.warning(
-            "Could not reconstruct pipeline state for issue #%d: %s", issue_number, e
-        )
+        logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
 
     pipeline = PipelineState(
         issue_number=issue_number,
@@ -1071,9 +1073,7 @@ async def _advance_pipeline(
         pipeline.started_at = datetime.utcnow()
         set_pipeline_state(issue_number, pipeline)
 
-        logger.info(
-            "Assigning next agent '%s' to issue #%d", next_agent, issue_number
-        )
+        logger.info("Assigning next agent '%s' to issue #%d", next_agent, issue_number)
 
         orchestrator = get_workflow_orchestrator()
         ctx = WorkflowContext(
@@ -1725,7 +1725,10 @@ async def process_in_progress_issue(
                             pr_number=main_pr_number,
                         )
                         if review_requested:
-                            logger.info("Copilot code review requested for main PR #%d", main_pr_number)
+                            logger.info(
+                                "Copilot code review requested for main PR #%d",
+                                main_pr_number,
+                            )
 
                     return {
                         "status": "success",
@@ -1946,7 +1949,10 @@ async def poll_for_copilot_completion(
             _polling_state.last_poll_time = datetime.utcnow()
             _polling_state.poll_count += 1
 
-            logger.debug("Polling for Copilot PR completions (poll #%d)", _polling_state.poll_count)
+            logger.debug(
+                "Polling for Copilot PR completions (poll #%d)",
+                _polling_state.poll_count,
+            )
 
             # Fetch all project items once per poll cycle
             all_tasks = await github_projects_service.get_project_items(access_token, project_id)

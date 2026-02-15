@@ -1,0 +1,53 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Backend Python hooks
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        name: Format Python (black)
+        files: ^backend/
+        args: [--check]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        name: Lint Python (ruff)
+        files: ^backend/
+        args: [--fix]
+
+  # Frontend hooks
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: Lint Frontend (ESLint)
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: frontend-typecheck
+        name: Type Check Frontend (TypeScript)
+        entry: bash -c 'cd frontend && npm run type-check'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+
+      - id: frontend-test
+        name: Test Frontend (Vitest)
+        entry: bash -c 'cd frontend && npm test'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: backend-test
+        name: Test Backend (pytest)
+        entry: bash -c 'cd backend && source .venv/bin/activate 2>/dev/null || true && python -m pytest tests/ -q --tb=short'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [pre-push]  # Run tests only on push, not every commit

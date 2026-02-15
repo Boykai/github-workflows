@@ -89,7 +89,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_fetches_issue_details_for_agent(
-        self, orchestrator, workflow_context, workflow_config_with_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_with_agents,
+        mock_github_service,
     ):
         """Should fetch issue details when agent_mappings has In Progress agents."""
         workflow_context.config = workflow_config_with_agents
@@ -116,7 +120,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_passes_agent_from_mappings(
-        self, orchestrator, workflow_context, workflow_config_with_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_with_agents,
+        mock_github_service,
     ):
         """Should pass agent name from agent_mappings to assign_copilot_to_issue."""
         workflow_context.config = workflow_config_with_agents
@@ -143,7 +151,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_no_agents_skips_issue_fetch(
-        self, orchestrator, workflow_context, workflow_config_no_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_no_agents,
+        mock_github_service,
     ):
         """Should not fetch issue details when no agents configured for In Progress."""
         workflow_context.config = workflow_config_no_agents
@@ -159,7 +171,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_transitions_to_in_progress(
-        self, orchestrator, workflow_context, workflow_config_with_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_with_agents,
+        mock_github_service,
     ):
         """Should transition issue to In Progress status."""
         workflow_context.config = workflow_config_with_agents
@@ -186,7 +202,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_assignment_failure_still_transitions(
-        self, orchestrator, workflow_context, workflow_config_with_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_with_agents,
+        mock_github_service,
     ):
         """Should still transition status even if Copilot assignment fails."""
         workflow_context.config = workflow_config_with_agents
@@ -209,7 +229,11 @@ class TestHandleReadyStatusWithAgentMappings:
 
     @pytest.mark.asyncio
     async def test_handle_ready_status_update_failure_returns_false(
-        self, orchestrator, workflow_context, workflow_config_with_agents, mock_github_service
+        self,
+        orchestrator,
+        workflow_context,
+        workflow_config_with_agents,
+        mock_github_service,
     ):
         """Should return False when status update fails."""
         workflow_context.config = workflow_config_with_agents
@@ -329,9 +353,7 @@ class TestAssignAgentForStatus:
         self, orchestrator, workflow_context, mock_github_service
     ):
         """Should return True when no agents configured for status."""
-        result = await orchestrator.assign_agent_for_status(
-            workflow_context, "In Review", 0
-        )
+        result = await orchestrator.assign_agent_for_status(workflow_context, "In Review", 0)
 
         assert result is True
         mock_github_service.assign_copilot_to_issue.assert_not_called()
@@ -341,9 +363,7 @@ class TestAssignAgentForStatus:
         self, orchestrator, workflow_context, mock_github_service
     ):
         """Should return True when agent index is beyond the list."""
-        result = await orchestrator.assign_agent_for_status(
-            workflow_context, "Backlog", 5
-        )
+        result = await orchestrator.assign_agent_for_status(workflow_context, "Backlog", 5)
 
         assert result is True
         mock_github_service.assign_copilot_to_issue.assert_not_called()

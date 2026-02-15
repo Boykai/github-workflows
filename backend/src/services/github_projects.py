@@ -649,7 +649,11 @@ class GitHubProjectsService:
         )
 
     async def _graphql(
-        self, access_token: str, query: str, variables: dict, extra_headers: dict | None = None
+        self,
+        access_token: str,
+        query: str,
+        variables: dict,
+        extra_headers: dict | None = None,
     ) -> dict:
         """
         Execute GraphQL query against GitHub API.
@@ -848,14 +852,14 @@ class GitHubProjectsService:
                         project_id=project_id,
                         github_item_id=item["id"],
                         github_content_id=content.get("id"),
-                        github_issue_id=content.get("id") if content.get("number") else None,
+                        github_issue_id=(content.get("id") if content.get("number") else None),
                         issue_number=content.get("number"),
                         repository_owner=repo_owner,
                         repository_name=repo_name,
                         title=content.get("title", "Untitled"),
                         description=content.get("body"),
-                        status=status_value.get("name", "Todo") if status_value else "Todo",
-                        status_option_id=status_value.get("optionId", "") if status_value else "",
+                        status=(status_value.get("name", "Todo") if status_value else "Todo"),
+                        status_option_id=(status_value.get("optionId", "") if status_value else ""),
                     )
                 )
 
@@ -870,7 +874,11 @@ class GitHubProjectsService:
         return all_tasks
 
     async def create_draft_item(
-        self, access_token: str, project_id: str, title: str, description: str | None = None
+        self,
+        access_token: str,
+        project_id: str,
+        title: str,
+        description: str | None = None,
     ) -> str:
         """
         Create a draft issue item in a project.
@@ -1227,9 +1235,7 @@ class GitHubProjectsService:
 
             if files:
                 file_list = ", ".join(f"`{f}`" for f in files)
-                branch_note = (
-                    f" on branch `{existing_pr['head_ref']}`" if existing_pr else ""
-                )
+                branch_note = f" on branch `{existing_pr['head_ref']}`" if existing_pr else ""
                 parts.append(
                     "## Output Instructions\n"
                     "IMPORTANT: When you are done generating your output, ensure the following "
@@ -1239,9 +1245,7 @@ class GitHubProjectsService:
                     "post comments yourself — just commit the files and complete your PR work."
                 )
             else:
-                branch_note = (
-                    f" (`{existing_pr['head_ref']}`)" if existing_pr else ""
-                )
+                branch_note = f" (`{existing_pr['head_ref']}`)" if existing_pr else ""
                 parts.append(
                     "## Output Instructions\n"
                     f"IMPORTANT: Complete your work and commit all changes to the PR branch{branch_note}.\n\n"
@@ -1284,9 +1288,7 @@ class GitHubProjectsService:
             )
 
             if not issue_data:
-                logger.warning(
-                    "Could not fetch issue #%d for agent completion check", issue_number
-                )
+                logger.warning("Could not fetch issue #%d for agent completion check", issue_number)
                 return False
 
             comments = issue_data.get("comments", [])
@@ -1367,9 +1369,7 @@ class GitHubProjectsService:
 
         # Fall back to REST API if GraphQL failed
         if not issue_number:
-            logger.warning(
-                "GraphQL assignment failed and no issue_number for REST fallback"
-            )
+            logger.warning("GraphQL assignment failed and no issue_number for REST fallback")
             return False
 
         return await self._assign_copilot_rest(
@@ -1923,7 +1923,12 @@ class GitHubProjectsService:
         try:
             response = await self._client.get(
                 f"https://api.github.com/repos/{owner}/{repo}/pulls",
-                params={"state": "open", "per_page": 30, "sort": "created", "direction": "desc"},
+                params={
+                    "state": "open",
+                    "per_page": 30,
+                    "sort": "created",
+                    "direction": "desc",
+                },
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/vnd.github+json",
@@ -1953,24 +1958,22 @@ class GitHubProjectsService:
                 branch_match = (
                     f"-{issue_number}" in head_branch
                     or f"/{issue_number}-" in head_branch
-                    or f"/{issue_number}" == head_branch[-len(f"/{issue_number}"):]
+                    or f"/{issue_number}" == head_branch[-len(f"/{issue_number}") :]
                     or head_branch.endswith(f"-{issue_number}")
                 )
-                if (
-                    issue_ref in title
-                    or issue_ref in body
-                    or branch_match
-                ):
-                    matched_prs.append({
-                        "id": pr.get("node_id"),
-                        "number": pr.get("number"),
-                        "title": title,
-                        "state": "OPEN",
-                        "is_draft": pr.get("draft", False),
-                        "url": pr.get("html_url", ""),
-                        "author": pr.get("user", {}).get("login", ""),
-                        "head_ref": pr.get("head", {}).get("ref", ""),
-                    })
+                if issue_ref in title or issue_ref in body or branch_match:
+                    matched_prs.append(
+                        {
+                            "id": pr.get("node_id"),
+                            "number": pr.get("number"),
+                            "title": title,
+                            "state": "OPEN",
+                            "is_draft": pr.get("draft", False),
+                            "url": pr.get("html_url", ""),
+                            "author": pr.get("user", {}).get("login", ""),
+                            "head_ref": pr.get("head", {}).get("ref", ""),
+                        }
+                    )
 
             logger.info(
                 "REST fallback found %d open PRs referencing issue #%d",
@@ -1980,9 +1983,7 @@ class GitHubProjectsService:
             return matched_prs
 
         except Exception as e:
-            logger.error(
-                "REST PR search error for issue #%d: %s", issue_number, e
-            )
+            logger.error("REST PR search error for issue #%d: %s", issue_number, e)
             return []
 
     async def find_existing_pr_for_issue(
@@ -2036,8 +2037,7 @@ class GitHubProjectsService:
                 if rest_prs:
                     # REST results already have head_ref, pick the best one
                     copilot_prs = [
-                        pr for pr in rest_prs
-                        if "copilot" in (pr.get("author", "") or "").lower()
+                        pr for pr in rest_prs if "copilot" in (pr.get("author", "") or "").lower()
                     ]
                     target_pr = (copilot_prs or rest_prs)[0]
                     result = {
@@ -2058,15 +2058,12 @@ class GitHubProjectsService:
 
             # Find the first OPEN PR (preferring Copilot-authored ones)
             copilot_prs = [
-                pr for pr in linked_prs
-                if pr.get("state") == "OPEN"
-                and "copilot" in (pr.get("author", "") or "").lower()
+                pr
+                for pr in linked_prs
+                if pr.get("state") == "OPEN" and "copilot" in (pr.get("author", "") or "").lower()
             ]
 
-            open_prs = [
-                pr for pr in linked_prs
-                if pr.get("state") == "OPEN"
-            ]
+            open_prs = [pr for pr in linked_prs if pr.get("state") == "OPEN"]
 
             target_pr = (copilot_prs or open_prs or [None])[0]
             if not target_pr:
@@ -2079,8 +2076,7 @@ class GitHubProjectsService:
                 )
                 if rest_prs:
                     copilot_rest = [
-                        pr for pr in rest_prs
-                        if "copilot" in (pr.get("author", "") or "").lower()
+                        pr for pr in rest_prs if "copilot" in (pr.get("author", "") or "").lower()
                     ]
                     target_rest = (copilot_rest or rest_prs)[0]
                     result = {
@@ -2144,9 +2140,7 @@ class GitHubProjectsService:
             return result
 
         except Exception as e:
-            logger.error(
-                "Error finding existing PR for issue #%d: %s", issue_number, e
-            )
+            logger.error("Error finding existing PR for issue #%d: %s", issue_number, e)
             return None
 
     async def get_linked_pull_requests(

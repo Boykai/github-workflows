@@ -673,9 +673,7 @@ class TestPostAgentOutputsFromPr:
         mock_service.get_file_content_from_ref = AsyncMock(
             return_value="# Spec\n\nThis is the spec."
         )
-        mock_service.create_issue_comment = AsyncMock(
-            return_value={"id": 1, "body": "ok"}
-        )
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1, "body": "ok"})
 
         results = await post_agent_outputs_from_pr(
             access_token="token",

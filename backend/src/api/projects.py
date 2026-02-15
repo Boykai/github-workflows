@@ -14,7 +14,11 @@ from src.exceptions import NotFoundError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
-from src.services.cache import cache, get_project_items_cache_key, get_user_projects_cache_key
+from src.services.cache import (
+    cache,
+    get_project_items_cache_key,
+    get_user_projects_cache_key,
+)
 from src.services.github_auth import github_auth_service
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -250,7 +254,11 @@ async def websocket_subscribe(
                     "count": len(tasks),
                 }
             )
-            logger.info("Sent %d initial tasks to WebSocket for project %s", len(tasks), project_id)
+            logger.info(
+                "Sent %d initial tasks to WebSocket for project %s",
+                len(tasks),
+                project_id,
+            )
 
         # Keep connection alive and periodically refresh
         last_refresh = asyncio.get_event_loop().time()

@@ -18,14 +18,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def _resolve_repository_for_project(
-    access_token: str, project_id: str
-) -> tuple[str, str]:
+async def _resolve_repository_for_project(access_token: str, project_id: str) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
     # Try project items first
-    repo_info = await github_projects_service.get_project_repository(
-        access_token, project_id
-    )
+    repo_info = await github_projects_service.get_project_repository(access_token, project_id)
     if repo_info:
         return repo_info
 
@@ -63,9 +59,7 @@ async def create_task(
     logger.info("Creating issue in project %s: %s", project_id, request.title)
 
     # Resolve repository info for issue creation
-    owner, repo = await _resolve_repository_for_project(
-        session.access_token, project_id
-    )
+    owner, repo = await _resolve_repository_for_project(session.access_token, project_id)
 
     # Step 1: Create a real GitHub Issue via REST API
     issue = await github_projects_service.create_issue(

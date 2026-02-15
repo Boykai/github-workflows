@@ -327,7 +327,10 @@ class TestGetProjectItems:
                                 "number": 42,
                                 "title": "Test Issue",
                                 "body": "Description here",
-                                "repository": {"owner": {"login": "owner"}, "name": "repo"},
+                                "repository": {
+                                    "owner": {"login": "owner"},
+                                    "name": "repo",
+                                },
                             },
                         }
                     ],
@@ -1479,9 +1482,7 @@ class TestFormatIssueContextAsPrompt:
         """Should map each agent to its specific output file."""
         issue_data = {"title": "Test", "body": "", "comments": []}
 
-        plan_result = service.format_issue_context_as_prompt(
-            issue_data, agent_name="speckit.plan"
-        )
+        plan_result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.plan")
         assert "`plan.md`" in plan_result
 
         tasks_result = service.format_issue_context_as_prompt(
@@ -1493,9 +1494,7 @@ class TestFormatIssueContextAsPrompt:
         """Unknown agents should get completion-only instructions (no file posting)."""
         issue_data = {"title": "Test", "body": "", "comments": []}
 
-        result = service.format_issue_context_as_prompt(
-            issue_data, agent_name="speckit.implement"
-        )
+        result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.implement")
 
         assert "## Output Instructions" in result
         assert "commit all changes to the PR branch" in result
@@ -1549,9 +1548,7 @@ class TestFormatIssueContextAsPrompt:
         """Should not include existing PR section when no existing PR."""
         issue_data = {"title": "Test", "body": "Build it", "comments": []}
 
-        result = service.format_issue_context_as_prompt(
-            issue_data, agent_name="speckit.specify"
-        )
+        result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.specify")
 
         assert "CRITICAL" not in result
         assert "USE EXISTING PULL REQUEST" not in result
@@ -1571,9 +1568,7 @@ class TestFindExistingPrForIssue:
             patch.object(
                 service, "get_linked_pull_requests", new_callable=AsyncMock
             ) as mock_linked,
-            patch.object(
-                service, "get_pull_request", new_callable=AsyncMock
-            ) as mock_pr,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_pr,
         ):
             mock_linked.return_value = [
                 {
@@ -1604,9 +1599,7 @@ class TestFindExistingPrForIssue:
             patch.object(
                 service, "get_linked_pull_requests", new_callable=AsyncMock
             ) as mock_linked,
-            patch.object(
-                service, "get_pull_request", new_callable=AsyncMock
-            ) as mock_pr,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_pr,
         ):
             mock_linked.return_value = [
                 {
@@ -1719,10 +1712,20 @@ class TestFindExistingPrForIssue:
             ) as mock_linked,
         ):
             mock_linked.return_value = [
-                {"number": 5, "state": "OPEN", "author": "human-dev",
-                 "head_ref": "feature/manual", "is_draft": False},
-                {"number": 7, "state": "OPEN", "author": "copilot-swe-agent[bot]",
-                 "head_ref": "copilot/fix-xyz", "is_draft": True},
+                {
+                    "number": 5,
+                    "state": "OPEN",
+                    "author": "human-dev",
+                    "head_ref": "feature/manual",
+                    "is_draft": False,
+                },
+                {
+                    "number": 7,
+                    "state": "OPEN",
+                    "author": "copilot-swe-agent[bot]",
+                    "head_ref": "copilot/fix-xyz",
+                    "is_draft": True,
+                },
             ]
 
             result = await service.find_existing_pr_for_issue(
@@ -1801,7 +1804,10 @@ class TestAssignCopilotToIssue:
                 mock_client.post.assert_called_once()
                 call_args = mock_client.post.call_args
                 assert call_args.kwargs["json"]["assignees"] == ["copilot-swe-agent[bot]"]
-                assert call_args.kwargs["json"]["agent_assignment"]["custom_agent"] == "speckit.specify"
+                assert (
+                    call_args.kwargs["json"]["agent_assignment"]["custom_agent"]
+                    == "speckit.specify"
+                )
 
     @pytest.mark.asyncio
     async def test_assign_copilot_rest_fallback_with_custom_instructions(self, service):
@@ -1936,7 +1942,11 @@ class TestGetCopilotBotId:
                 "id": "REPO_123",
                 "suggestedActors": {
                     "nodes": [
-                        {"login": "copilot-swe-agent", "__typename": "Bot", "id": "BOT_456"},
+                        {
+                            "login": "copilot-swe-agent",
+                            "__typename": "Bot",
+                            "id": "BOT_456",
+                        },
                         {"login": "other-user", "__typename": "User", "id": "USER_789"},
                     ]
                 },

@@ -241,7 +241,7 @@ async def confirm_recommendation(
                         "issue_number": result.issue_number,
                         "agent_name": backlog_agents[0],
                         "status": "Backlog",
-                        "next_agent": backlog_agents[1] if len(backlog_agents) > 1 else None,
+                        "next_agent": (backlog_agents[1] if len(backlog_agents) > 1 else None),
                         "timestamp": datetime.utcnow().isoformat(),
                     },
                 )
@@ -282,7 +282,10 @@ async def reject_recommendation(
     recommendation.status = RecommendationStatus.REJECTED
     logger.info("Recommendation %s rejected", recommendation_id)
 
-    return {"message": "Recommendation rejected", "recommendation_id": recommendation_id}
+    return {
+        "message": "Recommendation rejected",
+        "recommendation_id": recommendation_id,
+    }
 
 
 @router.get("/config", response_model=WorkflowConfiguration)

@@ -245,7 +245,8 @@ class IssueMetadata(BaseModel):
         default="", description="Target completion date (ISO format YYYY-MM-DD)"
     )
     labels: list[str] = Field(
-        default_factory=lambda: ["ai-generated"], description="Suggested labels for the issue"
+        default_factory=lambda: ["ai-generated"],
+        description="Suggested labels for the issue",
     )
 
 

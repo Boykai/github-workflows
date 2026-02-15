@@ -80,7 +80,8 @@ async def github_callback(
         )
 
         logger.info(
-            "Created session for user: %s, redirecting to frontend", session.github_username
+            "Created session for user: %s, redirecting to frontend",
+            session.github_username,
         )
         return redirect
 

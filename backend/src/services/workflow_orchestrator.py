@@ -623,9 +623,7 @@ class WorkflowOrchestrator:
                     f"#{existing_pr['number']}" if existing_pr else "None",
                 )
             except Exception as e:
-                logger.warning(
-                    "Failed to fetch issue context for agent '%s': %s", agent_name, e
-                )
+                logger.warning("Failed to fetch issue context for agent '%s': %s", agent_name, e)
 
         # Assign the agent
         logger.info(
@@ -707,7 +705,8 @@ class WorkflowOrchestrator:
             return False
 
         logger.info(
-            "Issue %s is Ready, assigning agent and transitioning to In Progress", ctx.issue_id
+            "Issue %s is Ready, assigning agent and transitioning to In Progress",
+            ctx.issue_id,
         )
 
         # Get agents for In Progress status from agent_mappings
@@ -743,11 +742,15 @@ class WorkflowOrchestrator:
                     )
                     if assign_success:
                         logger.info(
-                            "Fallback: Assigned %s to issue #%d", assignee, ctx.issue_number
+                            "Fallback: Assigned %s to issue #%d",
+                            assignee,
+                            ctx.issue_number,
                         )
                     else:
                         logger.warning(
-                            "Fallback: Failed to assign %s to issue #%d", assignee, ctx.issue_number
+                            "Fallback: Failed to assign %s to issue #%d",
+                            assignee,
+                            ctx.issue_number,
                         )
 
         # Update status to In Progress
@@ -823,7 +826,8 @@ class WorkflowOrchestrator:
 
         if not completed_pr:
             logger.info(
-                "No completed Copilot PR found for issue #%d - still in progress", ctx.issue_number
+                "No completed Copilot PR found for issue #%d - still in progress",
+                ctx.issue_number,
             )
             return False
 
@@ -845,7 +849,8 @@ class WorkflowOrchestrator:
                     logger.info("Marked PR #%d as ready for review", completed_pr["number"])
                 else:
                     logger.warning(
-                        "Failed to mark PR #%d as ready for review", completed_pr["number"]
+                        "Failed to mark PR #%d as ready for review",
+                        completed_pr["number"],
                     )
 
         # Update status to In Review

@@ -24,7 +24,11 @@ from src.models.chat import (
 )
 from src.models.user import UserSession
 from src.services.ai_agent import get_ai_agent_service
-from src.services.cache import cache, get_project_items_cache_key, get_user_projects_cache_key
+from src.services.cache import (
+    cache,
+    get_project_items_cache_key,
+    get_user_projects_cache_key,
+)
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
@@ -246,7 +250,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=project_columns if project_columns else DEFAULT_STATUS_COLUMNS,
+        available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
     )
 
     if status_change:
@@ -452,7 +456,9 @@ async def confirm_proposal(
 
         logger.info(
             "Created issue #%d from proposal %s: %s",
-            issue_number, proposal_id, proposal.final_title,
+            issue_number,
+            proposal_id,
+            proposal.final_title,
         )
 
         # Step 3: Set up workflow config and assign agent for Backlog status
@@ -486,7 +492,8 @@ async def confirm_proposal(
             )
             logger.info(
                 "Set issue #%d status to '%s' on project",
-                issue_number, backlog_status,
+                issue_number,
+                backlog_status,
             )
 
             # Assign the first Backlog agent
@@ -521,7 +528,8 @@ async def confirm_proposal(
         except Exception as e:
             logger.warning(
                 "Issue #%d created but agent assignment failed: %s",
-                issue_number, e,
+                issue_number,
+                e,
             )
 
         return proposal
