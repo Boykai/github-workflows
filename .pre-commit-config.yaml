@@ -4,17 +4,12 @@
 
 repos:
   # Backend Python hooks
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
-    hooks:
-      - id: black
-        name: Format Python (black)
-        files: ^backend/
-        args: [--check]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.9.0
     hooks:
+      - id: ruff-format
+        name: Format Python (ruff)
+        files: ^backend/
       - id: ruff
         name: Lint Python (ruff)
         files: ^backend/

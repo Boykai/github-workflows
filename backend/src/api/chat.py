@@ -169,7 +169,9 @@ async def send_message(
     ai_service = get_ai_agent_service()
 
     try:
-        is_feature_request = await ai_service.detect_feature_request_intent(request.content)
+        is_feature_request = await ai_service.detect_feature_request_intent(
+            request.content
+        )
     except Exception as e:
         logger.warning("Feature request detection failed: %s", e)
         is_feature_request = False
@@ -191,9 +193,7 @@ async def send_message(
                 f"- {req}" for req in recommendation.functional_requirements[:3]
             )
             if len(recommendation.functional_requirements) > 3:
-                requirements_preview += (
-                    f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
-                )
+                requirements_preview += f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
 
             # Create assistant response with issue_create action (T015)
             assistant_message = ChatMessage(
@@ -207,7 +207,7 @@ async def send_message(
 {recommendation.user_story}
 
 **UI/UX Description:**
-{recommendation.ui_ux_description[:200]}{'...' if len(recommendation.ui_ux_description) > 200 else ''}
+{recommendation.ui_ux_description[:200]}{"..." if len(recommendation.ui_ux_description) > 200 else ""}
 
 **Functional Requirements:**
 {requirements_preview}
@@ -250,7 +250,9 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
+        available_statuses=(
+            project_columns if project_columns else DEFAULT_STATUS_COLUMNS
+        ),
     )
 
     if status_change:
@@ -510,7 +512,9 @@ async def confirm_proposal(
             ctx.project_item_id = item_id
 
             orchestrator = get_workflow_orchestrator()
-            await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+            await orchestrator.assign_agent_for_status(
+                ctx, backlog_status, agent_index=0
+            )
 
             # Send agent_assigned WebSocket notification
             backlog_agents = config.agent_mappings.get(backlog_status, [])

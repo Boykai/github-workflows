@@ -35,17 +35,15 @@ if [ -n "$STAGED_PY_FILES" ]; then
 
     # Check if we're in a virtual environment or if backend venv exists
     if [ -d "$REPO_ROOT/backend/.venv" ]; then
-        BLACK="$REPO_ROOT/backend/.venv/bin/black"
         RUFF="$REPO_ROOT/backend/.venv/bin/ruff"
     else
-        BLACK="black"
         RUFF="ruff"
     fi
 
-    # Auto-format with black, then verify
-    echo -n "  ⬛ Black formatting... "
-    $BLACK "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null || true
-    if $BLACK --check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
+    # Auto-format with ruff format, then verify
+    echo -n "  🎨 Ruff formatting... "
+    $RUFF format "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null || true
+    if $RUFF format --check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
         echo -e "${GREEN}✓ (auto-formatted)${NC}"
     else
         echo -e "${RED}✗ (auto-fix failed)${NC}"

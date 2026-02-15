@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 def get_current_session(
-    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)
+    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME),
 ) -> UserSession:
     """Get current user session from cookie."""
     if not session_id:
@@ -102,7 +102,9 @@ async def github_callback(
 @router.post("/session")
 async def set_session_cookie(
     response: Response,
-    session_token: Annotated[str, Query(description="Session token from OAuth callback")],
+    session_token: Annotated[
+        str, Query(description="Session token from OAuth callback")
+    ],
 ) -> UserResponse:
     """
     Set session cookie from token.

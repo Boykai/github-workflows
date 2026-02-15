@@ -127,7 +127,9 @@ def set_workflow_config(project_id: str, config: WorkflowConfiguration) -> None:
     _workflow_configs[project_id] = config
 
 
-def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:
+def get_transitions(
+    issue_id: str | None = None, limit: int = 50
+) -> list[WorkflowTransition]:
     """Get workflow transitions, optionally filtered by issue_id."""
     if issue_id:
         filtered = [t for t in _transitions if t.issue_id == issue_id]
@@ -225,7 +227,9 @@ class WorkflowOrchestrator:
         Returns:
             Formatted markdown string
         """
-        requirements_list = "\n".join(f"- {req}" for req in recommendation.functional_requirements)
+        requirements_list = "\n".join(
+            f"- {req}" for req in recommendation.functional_requirements
+        )
 
         # Format metadata section
         metadata = (
@@ -239,11 +243,11 @@ class WorkflowOrchestrator:
 
 | Field | Value |
 |-------|-------|
-| Priority | {metadata.priority.value if metadata.priority else 'P2'} |
-| Size | {metadata.size.value if metadata.size else 'M'} |
+| Priority | {metadata.priority.value if metadata.priority else "P2"} |
+| Size | {metadata.size.value if metadata.size else "M"} |
 | Estimate | {metadata.estimate_hours}h |
-| Start Date | {metadata.start_date or 'TBD'} |
-| Target Date | {metadata.target_date or 'TBD'} |
+| Start Date | {metadata.start_date or "TBD"} |
+| Target Date | {metadata.target_date or "TBD"} |
 
 """
 
@@ -400,7 +404,11 @@ class WorkflowOrchestrator:
             logger.warning("Failed to set project item status to '%s'", backlog_status)
 
         # Set metadata fields if recommendation has metadata
-        if recommendation and hasattr(recommendation, "metadata") and recommendation.metadata:
+        if (
+            recommendation
+            and hasattr(recommendation, "metadata")
+            and recommendation.metadata
+        ):
             await self._set_issue_metadata(ctx, recommendation.metadata)
 
         # Log the transition
@@ -415,7 +423,9 @@ class WorkflowOrchestrator:
         logger.info("Added to project, item_id: %s", item_id)
         return item_id
 
-    async def _set_issue_metadata(self, ctx: WorkflowContext, metadata: "IssueMetadata") -> None:
+    async def _set_issue_metadata(
+        self, ctx: WorkflowContext, metadata: "IssueMetadata"
+    ) -> None:
         """
         Set metadata fields on a project item.
 
@@ -623,7 +633,9 @@ class WorkflowOrchestrator:
                     f"#{existing_pr['number']}" if existing_pr else "None",
                 )
             except Exception as e:
-                logger.warning("Failed to fetch issue context for agent '%s': %s", agent_name, e)
+                logger.warning(
+                    "Failed to fetch issue context for agent '%s': %s", agent_name, e
+                )
 
         # Assign the agent
         logger.info(
@@ -814,7 +826,9 @@ class WorkflowOrchestrator:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
-        logger.info("Checking if Copilot has completed PR for issue #%d", ctx.issue_number)
+        logger.info(
+            "Checking if Copilot has completed PR for issue #%d", ctx.issue_number
+        )
 
         # Check for completed Copilot PR
         completed_pr = await self.github.check_copilot_pr_completion(
@@ -846,7 +860,9 @@ class WorkflowOrchestrator:
                     pr_node_id=pr_node_id,
                 )
                 if mark_success:
-                    logger.info("Marked PR #%d as ready for review", completed_pr["number"])
+                    logger.info(
+                        "Marked PR #%d as ready for review", completed_pr["number"]
+                    )
                 else:
                     logger.warning(
                         "Failed to mark PR #%d as ready for review",
