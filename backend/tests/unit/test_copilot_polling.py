@@ -8,6 +8,8 @@ import pytest
 from src.services.copilot_polling import (
     _advance_pipeline,
     _check_child_pr_completion,
+    _check_main_pr_completion,
+    _filter_events_after,
     _merge_child_pr_if_applicable,
     _posted_agent_outputs,
     _processed_issue_prs,
@@ -276,16 +278,14 @@ class TestCheckInProgressIssues:
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
-    @patch("src.services.copilot_polling.process_in_progress_issue")
     @patch("src.services.copilot_polling.get_pipeline_state")
     async def test_processes_issues_with_in_progress_pipeline(
-        self, mock_get_pipeline, mock_process, mock_service, mock_task
+        self, mock_get_pipeline, mock_service, mock_task
     ):
-        """Issues with an active pipeline for In Progress status should be processed normally."""
+        """Issues with an active In Progress pipeline should use comment-based detection."""
         mock_service.get_project_items = AsyncMock(return_value=[mock_task])
-        mock_process.return_value = {"status": "success"}
 
-        # Pipeline IS for In Progress — should not skip
+        # Pipeline IS for In Progress — should use comment-based detection
         mock_get_pipeline.return_value = PipelineState(
             issue_number=42,
             project_id="PVT_123",
@@ -296,6 +296,9 @@ class TestCheckInProgressIssues:
             started_at=datetime.utcnow(),
         )
 
+        # Agent has NOT completed yet (no Done! marker)
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
         results = await check_in_progress_issues(
             access_token="test-token",
             project_id="PVT_123",
@@ -303,9 +306,15 @@ class TestCheckInProgressIssues:
             repo="repo",
         )
 
-        # Should be processed normally
-        mock_process.assert_called_once()
-        assert len(results) == 1
+        # Should check for completion comment, not call process_in_progress_issue
+        mock_service.check_agent_completion_comment.assert_called_once_with(
+            access_token="test-token",
+            owner="test-owner",
+            repo="test-repo",
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+        assert len(results) == 0
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -738,10 +747,10 @@ class TestPostAgentOutputsFromPr:
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.get_workflow_config")
     @patch("src.services.copilot_polling.get_pipeline_state")
-    async def test_skips_implement_agent(
+    async def test_handles_implement_agent_with_no_md_outputs(
         self, mock_pipeline, mock_config, mock_service, mock_task_backlog
     ):
-        """Should skip speckit.implement since it doesn't produce .md outputs."""
+        """Should process speckit.implement and post Done! marker even with no .md outputs."""
         mock_config.return_value = MagicMock()
         mock_pipeline.return_value = PipelineState(
             issue_number=10,
@@ -750,6 +759,17 @@ class TestPostAgentOutputsFromPr:
             agents=["speckit.implement"],
             current_agent_index=0,
         )
+        # Agent has NOT posted Done! yet
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        # PR is complete
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "copilot_finished": True}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"head_ref": "copilot/feature", "id": "PR_1"}
+        )
+        mock_service.get_pr_changed_files = AsyncMock(return_value=[])
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
 
         results = await post_agent_outputs_from_pr(
             access_token="token",
@@ -759,8 +779,9 @@ class TestPostAgentOutputsFromPr:
             tasks=[mock_task_backlog],
         )
 
-        assert len(results) == 0
-        mock_service.check_agent_completion_comment.assert_not_called()
+        # Should post Done! marker (0 .md files)
+        assert len(results) == 1
+        assert results[0]["files_posted"] == 0
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -975,6 +996,247 @@ class TestCheckChildPrCompletion:
         )
 
         assert result is False
+
+
+class TestCheckMainPrCompletion:
+    """Tests for _check_main_pr_completion function."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_when_pr_details_unavailable(self, mock_service):
+        """Should return False when main PR details can't be fetched."""
+        mock_service.get_pull_request = AsyncMock(return_value=None)
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_when_pr_not_open(self, mock_service):
+        """Should return False when main PR is not open (closed/merged)."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"state": "CLOSED", "is_draft": True}
+        )
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_true_when_pr_not_draft(self, mock_service):
+        """Should return True when main PR is no longer a draft."""
+        mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": False})
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_true_for_fresh_copilot_finished_event(self, mock_service):
+        """Should return True when main PR has fresh copilot_finished event."""
+        pipeline_start = datetime(2025, 1, 15, 17, 0, 0)
+        mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": True})
+        # Event after pipeline start
+        mock_service.get_pr_timeline_events = AsyncMock(
+            return_value=[
+                {
+                    "event": "copilot_work_finished",
+                    "created_at": "2025-01-15T17:30:00Z",
+                }
+            ]
+        )
+        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+            pipeline_started_at=pipeline_start,
+        )
+
+        assert result is True
+        # Verify only fresh events were passed
+        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        assert len(call_args) == 1
+        assert call_args[0]["event"] == "copilot_work_finished"
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_filters_stale_events(self, mock_service):
+        """Should filter out stale events from before pipeline start."""
+        pipeline_start = datetime(2025, 1, 15, 17, 0, 0)
+        mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": True})
+        # Only stale event (before pipeline start)
+        mock_service.get_pr_timeline_events = AsyncMock(
+            return_value=[
+                {
+                    "event": "copilot_work_finished",
+                    "created_at": "2025-01-15T16:00:00Z",
+                }
+            ]
+        )
+        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+            pipeline_started_at=pipeline_start,
+        )
+
+        assert result is False
+        # Verify stale events were filtered out
+        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        assert len(call_args) == 0
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_uses_all_events_when_no_pipeline_start(self, mock_service):
+        """Should use all events when no pipeline start time is available."""
+        mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": True})
+        mock_service.get_pr_timeline_events = AsyncMock(
+            return_value=[{"event": "copilot_work_finished", "created_at": "2025-01-15T16:00:00Z"}]
+        )
+        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+            pipeline_started_at=None,
+        )
+
+        assert result is True
+        # All events should be passed without filtering
+        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        assert len(call_args) == 1
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_when_no_completion_signals(self, mock_service):
+        """Should return False when main PR is draft and no completion events."""
+        mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": True})
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_handles_exceptions_gracefully(self, mock_service):
+        """Should return False and not raise on exceptions."""
+        mock_service.get_pull_request = AsyncMock(side_effect=Exception("API error"))
+
+        result = await _check_main_pr_completion(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="speckit.implement",
+        )
+
+        assert result is False
+
+
+class TestFilterEventsAfter:
+    """Tests for _filter_events_after function."""
+
+    def test_filters_events_before_cutoff(self):
+        """Should exclude events before the cutoff time."""
+        cutoff = datetime(2025, 1, 15, 17, 0, 0)
+        events = [
+            {"event": "old", "created_at": "2025-01-15T16:00:00Z"},
+            {"event": "new", "created_at": "2025-01-15T18:00:00Z"},
+        ]
+
+        result = _filter_events_after(events, cutoff)
+
+        assert len(result) == 1
+        assert result[0]["event"] == "new"
+
+    def test_includes_events_without_timestamp(self):
+        """Should include events that have no created_at (conservative)."""
+        cutoff = datetime(2025, 1, 15, 17, 0, 0)
+        events = [
+            {"event": "no_timestamp"},
+            {"event": "empty_timestamp", "created_at": ""},
+        ]
+
+        result = _filter_events_after(events, cutoff)
+
+        assert len(result) == 2
+
+    def test_includes_events_with_unparseable_timestamp(self):
+        """Should include events with unparseable timestamps (conservative)."""
+        cutoff = datetime(2025, 1, 15, 17, 0, 0)
+        events = [{"event": "bad", "created_at": "not-a-date"}]
+
+        result = _filter_events_after(events, cutoff)
+
+        assert len(result) == 1
+
+    def test_empty_events_list(self):
+        """Should return empty list for empty input."""
+        cutoff = datetime(2025, 1, 15, 17, 0, 0)
+
+        result = _filter_events_after([], cutoff)
+
+        assert result == []
+
+    def test_exact_cutoff_time_excluded(self):
+        """Events at exactly the cutoff time should be excluded."""
+        cutoff = datetime(2025, 1, 15, 17, 0, 0)
+        events = [
+            {"event": "exact", "created_at": "2025-01-15T17:00:00Z"},
+        ]
+
+        result = _filter_events_after(events, cutoff)
+
+        # Exact match should be excluded (we use > not >=)
+        assert len(result) == 0
 
 
 class TestMergeChildPrIfApplicable:
