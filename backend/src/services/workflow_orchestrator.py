@@ -22,7 +22,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from src.models.chat import (
-    DEFAULT_AGENT_MAPPINGS,
     IssueMetadata,
     IssueRecommendation,
     TriggeredBy,
@@ -561,7 +560,6 @@ class WorkflowOrchestrator:
         # All subsequent agents branch FROM and merge INTO this main branch.
         existing_pr = None
         base_ref = "main"
-        is_first_agent = False  # Track if this is the first agent for this issue
 
         if ctx.issue_number:
             # Check if we already have a "main branch" stored for this issue
@@ -579,7 +577,6 @@ class WorkflowOrchestrator:
                 )
             else:
                 # First agent - check for existing PR to establish main branch
-                is_first_agent = True
                 try:
                     existing_pr = await self.github.find_existing_pr_for_issue(
                         access_token=ctx.access_token,

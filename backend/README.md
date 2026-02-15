@@ -70,10 +70,15 @@ src/
 
 A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (default 60). Each cycle:
 
-1. **Step 0 — Post Agent Outputs**: For each issue with an active pipeline, check if the current agent's PR work is done. If so, extract `.md` files from the PR branch and post them as issue comments, then post a `<agent>: Done!` marker. Also captures the first PR's branch as the "main branch" for the issue.
+1. **Step 0 — Post Agent Outputs**: For each issue with an active pipeline, check if the current agent's PR work is done. If so, extract `.md` files from the PR branch and post them as issue comments, then post a `<agent>: Done!` marker. Also captures the first PR's branch as the "main branch" for the issue. (Only applies to `speckit.specify`, `speckit.plan`, `speckit.tasks` — not `speckit.implement`.)
 2. **Step 1 — Check Backlog**: Look for `speckit.specify: Done!` on Backlog issues → transition to Ready and assign `speckit.plan` (branching from the main branch).
-3. **Step 2 — Check Ready**: Look for `speckit.plan: Done!` / `speckit.tasks: Done!` → merge child PR into main branch, delete child branch, advance the internal pipeline or transition to In Progress and assign `speckit.implement`. Before assigning `speckit.implement`, discovers and caches the main branch from linked PRs if not already cached.
-4. **Step 3 — Check In Progress**: Detect Copilot PR completion via timeline events (`copilot_work_finished`, `review_requested`) → merge `speckit.implement` child PR into main branch, delete child branch, convert main draft PR to ready, transition to In Review.
+3. **Step 2 — Check Ready**: Look for `speckit.plan: Done!` / `speckit.tasks: Done!` → merge child PR into main branch, delete child branch, advance the internal pipeline or transition to In Progress and assign `speckit.implement`.
+4. **Step 3 — Check In Progress**: For issues with active `speckit.implement` pipeline, detect child PR completion via timeline events (`copilot_work_finished`, `review_requested`) or when PR is no longer a draft. When detected:
+   - Merge `speckit.implement` child PR into main branch
+   - Delete child branch
+   - Convert the **main PR** (first PR for the issue) from draft to ready for review
+   - Transition status to "In Review"
+   - Request Copilot code review on the main PR
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on the PR.
 
 ### Workflow Orchestrator (`workflow_orchestrator.py`)
@@ -81,9 +86,11 @@ A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (
 Manages per-issue pipeline state and hierarchical PR branching:
 
 - **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`{branch, pr_number}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref`.
+- **Pipeline State Tracking**: `_pipeline_states` dict tracks active agent pipelines per issue, including which agents have completed and which is currently active. This prevents premature status transitions (e.g., waiting for `speckit.implement` to complete before transitioning to "In Review").
 - `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, and calls `assign_copilot_to_issue()` with the main branch as `base_ref`.
 - `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`).
 - `_advance_pipeline()` / `_transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes. Merges child PRs and deletes child branches on agent completion.
+- `_check_child_pr_completion()` — For `speckit.implement`, checks if a child PR targeting the main branch exists and shows completion signals.
 - `_reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart.
 
 ### GitHub Projects Service (`github_projects.py`)

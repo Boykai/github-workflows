@@ -760,6 +760,149 @@ async def _merge_child_pr_if_applicable(
         return None
 
 
+async def _check_child_pr_completion(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    main_branch: str,
+    main_pr_number: int | None,
+    agent_name: str,
+) -> bool:
+    """
+    Check if the current agent has created and completed a child PR.
+
+    For agents like speckit.implement, they create a child PR that targets
+    the main branch. This function checks if such a PR exists and shows
+    completion signals (copilot_work_finished or review_requested events).
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        main_branch: The first PR's branch name (target for child PRs)
+        main_pr_number: The first PR's number (to exclude from checking)
+        agent_name: Name of the agent we're checking completion for
+
+    Returns:
+        True if a completed child PR exists, False otherwise
+    """
+    try:
+        # Get all linked PRs for this issue
+        linked_prs = await github_projects_service.get_linked_pull_requests(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        if not linked_prs:
+            logger.debug(
+                "No linked PRs found for issue #%d, agent '%s' hasn't created PR yet",
+                issue_number,
+                agent_name,
+            )
+            return False
+
+        # Look for a child PR that targets the main branch
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
+
+            # Skip the main PR itself - we're looking for child PRs
+            if pr_number == main_pr_number:
+                continue
+
+            # Skip non-Copilot PRs
+            if "copilot" not in pr_author:
+                continue
+
+            # Only consider OPEN PRs
+            if pr_state != "OPEN":
+                continue
+
+            # Get full PR details to check base_ref
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+
+            if not pr_details:
+                continue
+
+            pr_base = pr_details.get("base_ref", "")
+
+            # Check if this PR targets the main branch (it's a child PR)
+            if pr_base != main_branch:
+                continue
+
+            logger.info(
+                "Found child PR #%d targeting main branch '%s' for issue #%d",
+                pr_number,
+                main_branch,
+                issue_number,
+            )
+
+            # Check if Copilot has finished work on this child PR
+            is_draft = pr_details.get("is_draft", True)
+
+            # If not draft, Copilot has finished
+            if not is_draft:
+                logger.info(
+                    "Child PR #%d is ready for review (not draft), agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return True
+
+            # Check timeline events for completion signals
+            timeline_events = await github_projects_service.get_pr_timeline_events(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+
+            copilot_finished = github_projects_service._check_copilot_finished_events(
+                timeline_events
+            )
+
+            if copilot_finished:
+                logger.info(
+                    "Child PR #%d has copilot_finished event, agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return True
+
+            logger.debug(
+                "Child PR #%d exists but no completion signals yet for agent '%s'",
+                pr_number,
+                agent_name,
+            )
+            return False  # Child PR exists but not complete yet
+
+        logger.debug(
+            "No child PR found targeting main branch '%s' for issue #%d, agent '%s' hasn't created PR yet",
+            main_branch,
+            issue_number,
+            agent_name,
+        )
+        return False
+
+    except Exception as e:
+        logger.error(
+            "Error checking child PR completion for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return False
+
+
 async def _reconstruct_pipeline_state(
     access_token: str,
     owner: str,
@@ -1426,6 +1569,11 @@ async def process_in_progress_issue(
     3. We convert the draft PR to an open PR (ready for review)
     4. We update the issue status to "In Review"
 
+    For issues with an active In Progress pipeline (e.g., speckit.implement):
+    - Wait for a CHILD PR that targets the main branch to complete
+    - OR wait for fresh completion signals on any linked PR
+    - Do NOT transition based on stale completion from previous agents
+
     Args:
         access_token: GitHub access token
         project_id: Project V2 node ID
@@ -1439,7 +1587,165 @@ async def process_in_progress_issue(
         Result dict if action was taken, None otherwise
     """
     try:
-        # Check if Copilot has finished work on the PR
+        # Check if there's an active In Progress pipeline (e.g., speckit.implement)
+        config = get_workflow_config(project_id)
+        in_progress_status = config.status_in_progress if config else "In Progress"
+        pipeline = get_pipeline_state(issue_number)
+
+        if pipeline and not pipeline.is_complete and pipeline.status == in_progress_status:
+            current_agent = pipeline.current_agent
+            logger.debug(
+                "Issue #%d has active In Progress pipeline with agent '%s'",
+                issue_number,
+                current_agent,
+            )
+
+            # For speckit.implement, we need to wait for a CHILD PR to complete
+            # The main PR may show stale completion signals from previous agents
+            main_branch_info = get_issue_main_branch(issue_number)
+            if main_branch_info and current_agent:
+                main_pr_number = main_branch_info.get("pr_number")
+
+                # Look for a child PR that targets the main branch and is complete
+                child_pr_complete = await _check_child_pr_completion(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                    main_branch=str(main_branch_info["branch"]),
+                    main_pr_number=main_pr_number,
+                    agent_name=current_agent,
+                )
+
+                if not child_pr_complete:
+                    logger.debug(
+                        "Issue #%d: Agent '%s' has not completed yet (no child PR completion detected)",
+                        issue_number,
+                        current_agent,
+                    )
+                    return None
+
+                logger.info(
+                    "Issue #%d: Agent '%s' child PR completed",
+                    issue_number,
+                    current_agent,
+                )
+
+                # When speckit.implement completes, we need to:
+                # 1. Merge the child PR into the main branch
+                # 2. Convert the MAIN PR from draft to ready
+                # 3. Update status to "In Review"
+
+                # Step 1: Merge speckit.implement child PR into main branch
+                merge_result = await _merge_child_pr_if_applicable(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                    main_branch=str(main_branch_info["branch"]),
+                    main_pr_number=main_pr_number,
+                    completed_agent=current_agent,
+                )
+                if merge_result:
+                    logger.info(
+                        "Merged %s child PR into main branch '%s' for issue #%d",
+                        current_agent,
+                        main_branch_info["branch"],
+                        issue_number,
+                    )
+
+                # Step 2: Convert the MAIN PR from draft to ready for review
+                main_pr_details = await github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=main_pr_number,
+                )
+
+                if main_pr_details:
+                    main_pr_id = main_pr_details.get("id")
+                    main_pr_is_draft = main_pr_details.get("is_draft", False)
+
+                    if main_pr_is_draft and main_pr_id:
+                        logger.info(
+                            "Converting main PR #%d from draft to ready for review",
+                            main_pr_number,
+                        )
+                        mark_ready_success = await github_projects_service.mark_pr_ready_for_review(
+                            access_token=access_token,
+                            pr_node_id=main_pr_id,
+                        )
+                        if mark_ready_success:
+                            logger.info(
+                                "Successfully converted main PR #%d from draft to ready",
+                                main_pr_number,
+                            )
+                        else:
+                            logger.warning(
+                                "Failed to convert main PR #%d from draft to ready",
+                                main_pr_number,
+                            )
+
+                # Mark pipeline as complete and remove state
+                pipeline.completed_agents.append(current_agent)
+                pipeline.current_agent_index += 1
+                remove_pipeline_state(issue_number)
+
+                # Step 3: Update status to "In Review"
+                logger.info(
+                    "Updating issue #%d status to 'In Review' after %s completed",
+                    issue_number,
+                    current_agent,
+                )
+
+                await asyncio.sleep(2)
+
+                success = await github_projects_service.update_item_status_by_name(
+                    access_token=access_token,
+                    project_id=project_id,
+                    item_id=item_id,
+                    status_name="In Review",
+                )
+
+                if success:
+                    cache_key = f"{issue_number}:{main_pr_number}"
+                    _processed_issue_prs.add(cache_key)
+
+                    logger.info(
+                        "Successfully updated issue #%d to 'In Review' (main PR #%d ready)",
+                        issue_number,
+                        main_pr_number,
+                    )
+
+                    # Request Copilot code review on the main PR
+                    if main_pr_details and main_pr_details.get("id"):
+                        review_requested = await github_projects_service.request_copilot_review(
+                            access_token=access_token,
+                            pr_node_id=main_pr_details.get("id"),
+                            pr_number=main_pr_number,
+                        )
+                        if review_requested:
+                            logger.info("Copilot code review requested for main PR #%d", main_pr_number)
+
+                    return {
+                        "status": "success",
+                        "issue_number": issue_number,
+                        "pr_number": main_pr_number,
+                        "task_title": task_title,
+                        "action": "status_updated_to_in_review",
+                        "agent_completed": current_agent,
+                        "child_pr_merged": merge_result is not None,
+                    }
+                else:
+                    logger.error("Failed to update issue #%d status to 'In Review'", issue_number)
+                    return {
+                        "status": "error",
+                        "issue_number": issue_number,
+                        "error": "Failed to update issue status",
+                    }
+
+        # Fallback: Check for PR completion without active pipeline
+        # This handles legacy cases or issues without agent pipelines
         finished_pr = await github_projects_service.check_copilot_pr_completion(
             access_token=access_token,
             owner=owner,
@@ -1502,9 +1808,7 @@ async def process_in_progress_issue(
 
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
 
-        # Step 1.5: Merge child PR into main branch if applicable
-        # This handles cases where speckit.implement created a child branch targeting the
-        # issue's main branch (first PR's branch). We merge it before transitioning to In Review.
+        # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
         main_branch_info = get_issue_main_branch(issue_number)
         if main_branch_info:
             merge_result = await _merge_child_pr_if_applicable(

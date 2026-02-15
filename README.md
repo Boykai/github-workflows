@@ -72,7 +72,7 @@ Traditional DevOps workflows require developers to context-switch between their 
 |--------|-------------------|--------------|-------------------|
 | 📋 **Backlog** | `speckit.specify` | Agent creates first PR (establishes main branch) and writes `spec.md` | `speckit.specify: Done!` comment detected |
 | 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential pipeline: each agent branches from main branch, child PR merged + branch deleted on completion | Both agents post `Done!` markers |
-| 🔄 **In Progress** | `speckit.implement` | Agent branches from main branch, implements code from `tasks.md`, child PR merged + branch deleted | Copilot PR completion detected |
+| 🔄 **In Progress** | `speckit.implement` | Agent branches from main branch, implements code from `tasks.md`, child PR merged + branch deleted, main PR converted from draft to ready | Child PR completion detected (timeline events or not draft) |
 | 👀 **In Review** | — | Main PR contains all agent work (child PRs already merged), Copilot code review requested | Manual merge |
 | ✅ **Done** | — | Work completed and merged | Manual or webhook on PR merge |
 
@@ -96,9 +96,11 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 
 - **Hierarchical PR Branching**: The first PR created for an issue establishes the "main branch" for that issue. All subsequent agents branch FROM this main branch and create their own child PRs targeting it. When a child agent completes, their PR is automatically squash-merged into the main branch and the child branch is deleted. By the time the issue reaches In Review, the main PR contains all agent work consolidated into a single branch.
 - **Main Branch Discovery**: The main branch is tracked per-issue in memory. If the server restarts, the system automatically discovers the main branch by scanning linked PRs for the issue before assigning the next agent.
-- **System-Side Output Posting**: When an agent's PR work completes, the polling service automatically extracts `.md` files from the PR branch, posts them as GitHub Issue comments, and posts the `<agent>: Done!` marker to advance the pipeline.
+- **System-Side Output Posting**: When an agent's PR work completes (for `speckit.specify`, `speckit.plan`, `speckit.tasks`), the polling service automatically extracts `.md` files from the PR branch, posts them as GitHub Issue comments, and posts the `<agent>: Done!` marker to advance the pipeline.
+- **speckit.implement Completion**: Unlike other agents, `speckit.implement` completion is detected via PR timeline events (`copilot_work_finished`, `review_requested`) or when the child PR is no longer a draft. When complete, its child PR is merged into the main branch, the main PR is converted from draft to ready for review, status is updated to "In Review", and Copilot code review is requested.
 - **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state by scanning issue comments for `Done!` markers.
 - **Automatic Branch Cleanup**: After a child PR is merged into the main branch, the child branch is automatically deleted from the repository to keep the branch list clean.
+- **Pipeline State Tracking**: Each issue with an active agent pipeline has its state tracked in memory, including which agents have completed and which is currently active. This prevents premature status transitions.
 
 ### Key Integrations
 
@@ -157,9 +159,18 @@ The background polling service runs every 60 seconds (configurable) and executes
 
 1. **Step 0 — Post Agent Outputs**: For issues with active pipelines, detect completed PRs, extract `.md` files from the PR branch, post them as issue comments, and post the `<agent>: Done!` marker. Also captures the main branch when the first PR is detected.
 2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (with main branch as base).
-3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → merge child PR into main branch, delete child branch, advance pipeline or transition to In Progress (discover main branch if needed before assigning `speckit.implement`).
-4. **Step 3 — Check In Progress**: Detect Copilot PR completion (timeline events: `copilot_work_finished`, `review_requested`) → merge `speckit.implement` child PR into main branch, delete child branch, convert main PR draft to ready, transition to In Review.
+3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → merge child PR into main branch, delete child branch, advance pipeline or transition to In Progress and assign `speckit.implement`.
+4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review.
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on In Review PRs.
+
+#### speckit.implement Completion Flow
+
+When `speckit.implement` completes its work:
+1. **Merge child PR** — The `speckit.implement` child PR is squash-merged into the issue's main branch
+2. **Delete child branch** — The child branch is automatically deleted
+3. **Convert main PR** — The main PR (first PR for the issue) is converted from draft to ready for review
+4. **Update status** — Issue status is updated to "In Review"
+5. **Request review** — Copilot code review is requested on the main PR
 
 ---
 
@@ -616,6 +627,20 @@ github-workflows/
 - Check that your GitHub Project has the required status columns: Backlog, Ready, In Progress, In Review
 - Review backend logs for agent assignment errors: `docker compose logs -f backend`
 - Manually trigger a check: `POST /api/v1/workflow/polling/check-all`
+- Check pipeline state for a specific issue: `GET /api/v1/workflow/pipeline-states/{issue_number}`
+
+**speckit.implement not starting or completing:**
+- Ensure the `speckit.tasks: Done!` marker was posted on the issue
+- Check that the issue transitioned to "In Progress" status
+- Verify the pipeline state shows `speckit.implement` as the current agent
+- Review logs for child PR detection: the system waits for a child PR targeting the main branch
+- If Copilot hasn't created a PR yet, this may be a GitHub Copilot delay — the backend correctly assigned the agent
+
+**Issue stuck in "In Progress":**
+- The system waits for `speckit.implement` to create a child PR that targets the issue's main branch
+- Check if a new child PR exists by looking at linked PRs for the issue
+- The system looks for `copilot_work_finished` timeline events or the PR no longer being a draft
+- Once detected, the child PR will be merged, main PR converted to ready, and status updated to "In Review"
 
 **Multiple PRs created for one issue:**
 - This is expected behavior with hierarchical branching. The first PR's branch becomes the "main branch" for the issue. Each subsequent agent (speckit.plan, speckit.tasks, speckit.implement) creates its own child branch from the main branch and opens a child PR targeting it. When each agent completes, the system automatically squash-merges the child PR into the main branch and deletes the child branch. By the time the issue reaches In Review, the main PR contains all consolidated work.

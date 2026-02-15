@@ -1941,7 +1941,6 @@ class GitHubProjectsService:
 
             all_prs = response.json()
             issue_ref = f"#{issue_number}"
-            issue_num_str = str(issue_number)
             matched_prs = []
 
             for pr in all_prs:
