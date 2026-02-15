@@ -23,7 +23,7 @@ from src.services.copilot_polling import (
     post_agent_outputs_from_pr,
     process_in_progress_issue,
 )
-from src.services.workflow_orchestrator import PipelineState
+from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
 
 
 @pytest.fixture
@@ -639,10 +639,12 @@ class TestPostAgentOutputsFromPr:
 
     @pytest.fixture(autouse=True)
     def clear_cache(self):
-        """Clear the posted agent outputs cache between tests."""
+        """Clear the posted agent outputs cache and main branch tracking between tests."""
         _posted_agent_outputs.clear()
+        _issue_main_branches.clear()
         yield
         _posted_agent_outputs.clear()
+        _issue_main_branches.clear()
 
     @pytest.fixture
     def mock_task_backlog(self):

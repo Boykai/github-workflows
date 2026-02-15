@@ -117,6 +117,7 @@ class MainBranchInfo(TypedDict):
 
     branch: str
     pr_number: int
+    head_sha: str  # Commit SHA of the branch head (needed for baseRef)
 
 
 # In-memory storage for the "main" PR branch per issue
@@ -176,7 +177,9 @@ def get_issue_main_branch(issue_number: int) -> MainBranchInfo | None:
     return _issue_main_branches.get(issue_number)
 
 
-def set_issue_main_branch(issue_number: int, branch: str, pr_number: int) -> None:
+def set_issue_main_branch(
+    issue_number: int, branch: str, pr_number: int, head_sha: str = ""
+) -> None:
     """
     Set the main PR branch for an issue.
 
@@ -187,6 +190,7 @@ def set_issue_main_branch(issue_number: int, branch: str, pr_number: int) -> Non
         issue_number: GitHub issue number
         branch: The first PR's head branch name (e.g., copilot/update-app-title-workflows)
         pr_number: The first PR's number
+        head_sha: The commit SHA of the branch head (needed for baseRef)
     """
     if issue_number in _issue_main_branches:
         logger.debug(
@@ -195,12 +199,17 @@ def set_issue_main_branch(issue_number: int, branch: str, pr_number: int) -> Non
             _issue_main_branches[issue_number].get("branch"),
         )
         return
-    _issue_main_branches[issue_number] = {"branch": branch, "pr_number": pr_number}
+    _issue_main_branches[issue_number] = {
+        "branch": branch,
+        "pr_number": pr_number,
+        "head_sha": head_sha,
+    }
     logger.info(
-        "Set main branch for issue #%d: '%s' (PR #%d)",
+        "Set main branch for issue #%d: '%s' (PR #%d, SHA: %s)",
         issue_number,
         branch,
         pr_number,
+        head_sha[:8] if head_sha else "none",
     )
 
 
@@ -567,8 +576,15 @@ class WorkflowOrchestrator:
         )
 
         # Determine the base branch for this agent
-        # Strategy: The first PR's branch becomes the "main" branch for the issue.
-        # All subsequent agents branch FROM and merge INTO this main branch.
+        #
+        # Branching strategy:
+        #   - ONLY the first agent references the repo's main branch:
+        #       base_ref="main" → creates branch "copilot/xxx" → PR targets "main"
+        #   - ALL subsequent agents use the COMMIT SHA of the first branch's head:
+        #       base_ref=<sha> → creates branch "copilot/xxx-<suffix>" → PR targets "copilot/xxx"
+        #
+        # CRITICAL: Copilot cannot resolve branch names like "copilot/xxx" as commits.
+        # We must pass the actual commit SHA for the baseRef parameter.
         existing_pr = None
         base_ref = "main"
 
@@ -577,17 +593,47 @@ class WorkflowOrchestrator:
             main_branch_info = get_issue_main_branch(ctx.issue_number)
 
             if main_branch_info:
-                # Use the stored main branch for all subsequent agents
-                base_ref = str(main_branch_info["branch"])
-                logger.info(
-                    "Using issue #%d main branch '%s' (from PR #%d) as base for agent '%s'",
-                    ctx.issue_number,
-                    base_ref,
-                    main_branch_info["pr_number"],
-                    agent_name,
+                # Subsequent agent — branch FROM the issue's first branch.
+                # We need to fetch the LATEST commit SHA (more commits may have been added).
+                main_branch = str(main_branch_info["branch"])
+                main_pr_number = main_branch_info["pr_number"]
+
+                # Fetch current PR details to get the latest head commit SHA
+                pr_details = await self.github.get_pull_request(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    pr_number=main_pr_number,
                 )
+
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    head_sha = pr_details["last_commit"]["sha"]
+                    base_ref = head_sha  # Use commit SHA, not branch name!
+                    logger.info(
+                        "Agent '%s' will branch from commit %s (branch '%s', PR #%d) for issue #%d",
+                        agent_name,
+                        head_sha[:8],
+                        main_branch,
+                        main_pr_number,
+                        ctx.issue_number,
+                    )
+                else:
+                    # Fallback to branch name if we can't get SHA (may still fail)
+                    base_ref = main_branch
+                    logger.warning(
+                        "Could not get commit SHA for PR #%d, using branch name '%s' (may fail)",
+                        main_pr_number,
+                        main_branch,
+                    )
+
+                existing_pr = {
+                    "number": main_pr_number,
+                    "head_ref": main_branch,
+                    "url": f"https://github.com/{ctx.repository_owner}/{ctx.repository_name}/pull/{main_pr_number}",
+                    "is_draft": pr_details.get("is_draft", True) if pr_details else True,
+                }
             else:
-                # First agent - check for existing PR to establish main branch
+                # First agent — check for existing PR to establish main branch
                 try:
                     existing_pr = await self.github.find_existing_pr_for_issue(
                         access_token=ctx.access_token,
@@ -596,18 +642,30 @@ class WorkflowOrchestrator:
                         issue_number=ctx.issue_number,
                     )
                     if existing_pr:
+                        # Fetch full PR details to get commit SHA
+                        pr_details = await self.github.get_pull_request(
+                            access_token=ctx.access_token,
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            pr_number=existing_pr["number"],
+                        )
+                        head_sha = ""
+                        if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                            head_sha = pr_details["last_commit"]["sha"]
+
                         # Store this as the main branch for the issue
-                        base_ref = existing_pr["head_ref"]
                         set_issue_main_branch(
                             ctx.issue_number,
                             existing_pr["head_ref"],
                             existing_pr["number"],
+                            head_sha,
                         )
                         logger.info(
-                            "Established main branch for issue #%s: '%s' (PR #%d)",
+                            "Established main branch for issue #%s: '%s' (PR #%d, SHA: %s)",
                             ctx.issue_number,
-                            base_ref,
+                            existing_pr["head_ref"],
                             existing_pr["number"],
+                            head_sha[:8] if head_sha else "none",
                         )
                 except Exception as e:
                     logger.warning("Failed to check for existing PR: %s", e)

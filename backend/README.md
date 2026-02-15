@@ -33,7 +33,7 @@ When `DEBUG=true`:
 src/
 ├── main.py                    # FastAPI app, lifecycle (startup → polling), CORS, routers
 ├── config.py                  # Pydantic Settings from env / .env
-├── constants.py               # GitHub API URLs, status constants
+├── constants.py               # Status names, agent output file mappings, cache key helpers
 ├── exceptions.py              # Custom exception classes
 │
 ├── api/                       # Route handlers
@@ -85,9 +85,9 @@ A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (
 
 Manages per-issue pipeline state and hierarchical PR branching:
 
-- **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`{branch, pr_number}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref`.
+- **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`MainBranchInfo: {branch, pr_number, head_sha}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref`, and the `head_sha` (commit SHA) is used as the `base_ref` because GitHub Copilot cannot branch from remote branch names — it requires a commit SHA.
 - **Pipeline State Tracking**: `_pipeline_states` dict tracks active agent pipelines per issue, including which agents have completed and which is currently active. This prevents premature status transitions (e.g., waiting for `speckit.implement` to complete before transitioning to "In Review").
-- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, and calls `assign_copilot_to_issue()` with the main branch as `base_ref`.
+- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, fetches the latest commit SHA from the main branch, and calls `assign_copilot_to_issue()` with the commit SHA as `base_ref`.
 - `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`).
 - `_advance_pipeline()` / `_transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes. Merges child PRs and deletes child branches on agent completion.
 - `_check_child_pr_completion()` — For `speckit.implement`, checks if a child PR targeting the main branch exists and shows completion signals.

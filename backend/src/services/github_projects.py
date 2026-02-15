@@ -19,64 +19,60 @@ INITIAL_BACKOFF_SECONDS = 1
 MAX_BACKOFF_SECONDS = 30
 
 
-# GraphQL queries
-LIST_USER_PROJECTS_QUERY = """
-query($login: String!, $first: Int!) {
-  user(login: $login) {
-    projectsV2(first: $first) {
-      nodes {
+# GraphQL fragments for reusable field selections
+PROJECT_FIELDS_FRAGMENT = """
+fragment ProjectFields on ProjectV2 {
+  id
+  title
+  url
+  shortDescription
+  closed
+  field(name: "Status") {
+    ... on ProjectV2SingleSelectField {
+      id
+      options {
         id
-        title
-        url
-        shortDescription
-        closed
-        field(name: "Status") {
-          ... on ProjectV2SingleSelectField {
-            id
-            options {
-              id
-              name
-              color
-            }
-          }
-        }
-        items(first: 1) {
-          totalCount
-        }
+        name
+        color
       }
     }
+  }
+  items(first: 1) {
+    totalCount
   }
 }
 """
 
-LIST_ORG_PROJECTS_QUERY = """
+# GraphQL queries
+LIST_USER_PROJECTS_QUERY = (
+    PROJECT_FIELDS_FRAGMENT
+    + """
 query($login: String!, $first: Int!) {
-  organization(login: $login) {
+  user(login: $login) {
     projectsV2(first: $first) {
       nodes {
-        id
-        title
-        url
-        shortDescription
-        closed
-        field(name: "Status") {
-          ... on ProjectV2SingleSelectField {
-            id
-            options {
-              id
-              name
-              color
-            }
-          }
-        }
-        items(first: 1) {
-          totalCount
-        }
+        ...ProjectFields
       }
     }
   }
 }
 """
+)
+
+LIST_ORG_PROJECTS_QUERY = (
+    PROJECT_FIELDS_FRAGMENT
+    + """
+query($login: String!, $first: Int!) {
+  organization(login: $login) {
+    projectsV2(first: $first) {
+      nodes {
+        ...ProjectFields
+      }
+    }
+  }
+}
+"""
+)
 
 GET_PROJECT_ITEMS_QUERY = """
 query($projectId: ID!, $first: Int!, $after: String) {
@@ -1184,7 +1180,7 @@ class GitHubProjectsService:
             is_draft = existing_pr.get("is_draft", True)
             draft_label = " (Draft / Work In Progress)" if is_draft else ""
             parts.append(
-                "## ⚠️  CRITICAL — REUSE EXISTING PULL REQUEST\n\n"
+                "## ⚠️  CRITICAL — USE EXISTING BRANCH\n\n"
                 f"An open pull request{draft_label} already exists for this issue.\n"
                 f"- **PR:** #{pr_num} — {pr_url}\n"
                 f"- **Branch:** `{branch}`\n\n"
@@ -1225,11 +1221,13 @@ class GitHubProjectsService:
 
         # ── Output instructions ──────────────────────────────────────────
         if agent_name:
-            # Map each agent to the specific .md file(s) it produces
+            # Map each agent to the specific .md file(s) it produces.
+            # All agents are listed; implement has no .md outputs.
             agent_files = {
                 "speckit.specify": ["spec.md"],
                 "speckit.plan": ["plan.md"],
                 "speckit.tasks": ["tasks.md"],
+                "speckit.implement": [],
             }
             files = agent_files.get(agent_name, [])
 

@@ -17,6 +17,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from src.constants import (
+    AGENT_OUTPUT_FILES,
+    cache_key_agent_output,
+    cache_key_issue_pr,
+    cache_key_review_requested,
+)
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
@@ -56,14 +62,140 @@ _processed_issue_prs: set[str] = set()  # "issue_number:pr_number"
 # Track issues where we've already posted agent outputs to avoid duplicates
 _posted_agent_outputs: set[str] = set()  # "issue_number:agent_name:pr_number"
 
-# Map agent names to the specific .md files they produce.
-# Agents with an empty list still get PR completion detection + Done! marker posting.
-AGENT_OUTPUT_FILES: dict[str, list[str]] = {
-    "speckit.specify": ["spec.md"],
-    "speckit.plan": ["plan.md"],
-    "speckit.tasks": ["tasks.md"],
-    "speckit.implement": [],
-}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline State Management Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def _get_or_reconstruct_pipeline(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    project_id: str,
+    status: str,
+    agents: list[str],
+    expected_status: str | None = None,
+) -> PipelineState:
+    """
+    Get existing pipeline state or reconstruct from issue comments.
+
+    This consolidates the repeated pattern of checking for existing pipeline
+    state and reconstructing it if missing or for a different status.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        project_id: Project ID
+        status: Current workflow status
+        agents: Ordered list of agents for this status
+        expected_status: If provided, only use cached pipeline if status matches
+
+    Returns:
+        PipelineState (either cached or reconstructed)
+    """
+    pipeline = get_pipeline_state(issue_number)
+
+    # Use cached pipeline if it exists and matches expected status
+    if pipeline is not None:
+        if expected_status is None or pipeline.status == expected_status:
+            return pipeline
+
+    # Reconstruct from comments
+    return await _reconstruct_pipeline_state(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        project_id=project_id,
+        status=status,
+        agents=agents,
+    )
+
+
+async def _process_pipeline_completion(
+    access_token: str,
+    project_id: str,
+    task: Any,
+    owner: str,
+    repo: str,
+    pipeline: PipelineState,
+    from_status: str,
+    to_status: str,
+) -> dict[str, Any] | None:
+    """
+    Process pipeline completion check and advance/transition as needed.
+
+    Consolidates the repeated pattern of:
+    1. Check if pipeline is complete → transition to next status
+    2. Check if current agent completed → advance pipeline
+
+    Args:
+        access_token: GitHub access token
+        project_id: Project ID
+        task: Task object with issue info
+        owner: Repository owner
+        repo: Repository name
+        pipeline: Current pipeline state
+        from_status: Current status
+        to_status: Target status after pipeline completion
+
+    Returns:
+        Result dict or None
+    """
+    task_owner = task.repository_owner or owner
+    task_repo = task.repository_name or repo
+
+    if pipeline.is_complete:
+        # All agents done → transition to next status
+        return await _transition_after_pipeline_complete(
+            access_token=access_token,
+            project_id=project_id,
+            item_id=task.github_item_id,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            issue_node_id=task.github_content_id,
+            from_status=from_status,
+            to_status=to_status,
+            task_title=task.title,
+        )
+
+    # Check if current agent has completed
+    current_agent = pipeline.current_agent
+    if current_agent:
+        completed = await github_projects_service.check_agent_completion_comment(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            agent_name=current_agent,
+        )
+
+        if completed:
+            return await _advance_pipeline(
+                access_token=access_token,
+                project_id=project_id,
+                item_id=task.github_item_id,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                issue_node_id=task.github_content_id,
+                pipeline=pipeline,
+                from_status=from_status,
+                to_status=to_status,
+                task_title=task.title,
+            )
+
+    return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent Output Posting
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 async def post_agent_outputs_from_pr(
@@ -75,8 +207,10 @@ async def post_agent_outputs_from_pr(
 ) -> list[dict[str, Any]]:
     """
     For all issues with active pipelines, check if the current agent's PR work
-    is complete. If so, fetch .md files from the PR, post them as issue comments,
-    and post the ``<agent-name>: Done!`` marker.
+    is complete. If so, fetch any .md files from the PR (if present), post them
+    as issue comments, and post the ``<agent-name>: Done!`` marker.
+
+    All agents are eligible — output files are optional, not required.
 
     This runs BEFORE the status-specific checks (backlog/ready/in-progress) so
     that the Done! markers are in place for the existing comment-based detection.
@@ -111,18 +245,14 @@ async def post_agent_outputs_from_pr(
             if not current_agent:
                 continue
 
-            # Only process agents that produce .md files (not speckit.implement)
-            if current_agent not in AGENT_OUTPUT_FILES:
-                continue
-
             task_owner = task.repository_owner or owner
             task_repo = task.repository_name or repo
             if not task_owner or not task_repo:
                 continue
 
             # Check if we already posted outputs for this agent on this issue
-            cache_key_prefix = f"{task.issue_number}:{current_agent}"
-            if any(k.startswith(cache_key_prefix) for k in _posted_agent_outputs):
+            cache_prefix = f"{task.issue_number}:{current_agent}"
+            if any(k.startswith(cache_prefix) for k in _posted_agent_outputs):
                 continue
 
             # Check if the Done! marker is already posted (agent did it itself)
@@ -136,6 +266,15 @@ async def post_agent_outputs_from_pr(
             )
             if already_done:
                 continue
+
+            # Determine if this is a subsequent agent (not the first in the overall pipeline).
+            # Subsequent agents create child PRs targeting the main branch, so we must
+            # NOT re-detect the main PR as the completed work of a later agent.
+            main_branch_info = get_issue_main_branch(task.issue_number)
+            main_pr_number = main_branch_info["pr_number"] if main_branch_info else None
+            # If a main branch already exists, every agent from this point on is "subsequent"
+            # — the main PR was created by the first agent (speckit.specify in Backlog).
+            is_subsequent_agent = main_branch_info is not None
 
             # Check for a completed PR linked to this issue
             finished_pr = await github_projects_service.check_copilot_pr_completion(
@@ -152,7 +291,18 @@ async def post_agent_outputs_from_pr(
             if not pr_number:
                 continue
 
-            cache_key = f"{task.issue_number}:{current_agent}:{pr_number}"
+            # For subsequent agents, skip the main PR — they create child PRs.
+            # The main PR is the first agent's work and should not be re-attributed.
+            if is_subsequent_agent and pr_number == main_pr_number:
+                logger.debug(
+                    "Skipping main PR #%d for agent '%s' on issue #%d — waiting for child PR",
+                    pr_number,
+                    current_agent,
+                    task.issue_number,
+                )
+                continue
+
+            cache_key = cache_key_agent_output(task.issue_number, current_agent, pr_number)
             if cache_key in _posted_agent_outputs:
                 continue
 
@@ -181,11 +331,16 @@ async def post_agent_outputs_from_pr(
             # Track the "main" branch for this issue (first PR's branch)
             # All subsequent agent branches will be created from and merged into this branch
             if head_ref and not get_issue_main_branch(task.issue_number):
-                set_issue_main_branch(task.issue_number, head_ref, pr_number)
+                # Get head commit SHA for subsequent agent branching
+                head_sha = ""
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    head_sha = pr_details["last_commit"]["sha"]
+                set_issue_main_branch(task.issue_number, head_ref, pr_number, head_sha)
                 logger.info(
-                    "Captured main branch '%s' (PR #%d) for issue #%d",
+                    "Captured main branch '%s' (PR #%d, SHA: %s) for issue #%d",
                     head_ref,
                     pr_number,
+                    head_sha[:8] if head_sha else "none",
                     task.issue_number,
                 )
 
@@ -381,65 +536,30 @@ async def check_backlog_issues(
             if not task_owner or not task_repo:
                 continue
 
-            # Get or create pipeline state
-            pipeline = get_pipeline_state(task.issue_number)
-            if pipeline is None:
-                # Reconstruct from comments
-                pipeline = await _reconstruct_pipeline_state(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    project_id=project_id,
-                    status=config.status_backlog,
-                    agents=agents,
-                )
+            # Get or reconstruct pipeline state
+            pipeline = await _get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_backlog,
+                agents=agents,
+            )
 
-            if pipeline.is_complete:
-                # All Backlog agents done → transition to Ready
-                result = await _transition_after_pipeline_complete(
-                    access_token=access_token,
-                    project_id=project_id,
-                    item_id=task.github_item_id,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    issue_node_id=task.github_content_id,
-                    from_status=config.status_backlog,
-                    to_status=config.status_ready,
-                    task_title=task.title,
-                )
-                if result:
-                    results.append(result)
-                continue
-
-            # Check if current agent has completed
-            current_agent = pipeline.current_agent
-            if current_agent:
-                completed = await github_projects_service.check_agent_completion_comment(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    agent_name=current_agent,
-                )
-
-                if completed:
-                    result = await _advance_pipeline(
-                        access_token=access_token,
-                        project_id=project_id,
-                        item_id=task.github_item_id,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        issue_node_id=task.github_content_id,
-                        pipeline=pipeline,
-                        from_status=config.status_backlog,
-                        to_status=config.status_ready,
-                        task_title=task.title,
-                    )
-                    if result:
-                        results.append(result)
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=config.status_backlog,
+                to_status=config.status_ready,
+            )
+            if result:
+                results.append(result)
 
     except Exception as e:
         logger.error("Error checking backlog issues: %s", e)
@@ -505,65 +625,31 @@ async def check_ready_issues(
             if not task_owner or not task_repo:
                 continue
 
-            # Get or create pipeline state
-            pipeline = get_pipeline_state(task.issue_number)
-            if pipeline is None or pipeline.status != config.status_ready:
-                # Reconstruct from comments
-                pipeline = await _reconstruct_pipeline_state(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    project_id=project_id,
-                    status=config.status_ready,
-                    agents=agents,
-                )
+            # Get or reconstruct pipeline state
+            pipeline = await _get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_ready,
+                agents=agents,
+                expected_status=config.status_ready,
+            )
 
-            if pipeline.is_complete:
-                # All Ready agents done → transition to In Progress
-                result = await _transition_after_pipeline_complete(
-                    access_token=access_token,
-                    project_id=project_id,
-                    item_id=task.github_item_id,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    issue_node_id=task.github_content_id,
-                    from_status=config.status_ready,
-                    to_status=config.status_in_progress,
-                    task_title=task.title,
-                )
-                if result:
-                    results.append(result)
-                continue
-
-            # Check if current agent has completed
-            current_agent = pipeline.current_agent
-            if current_agent:
-                completed = await github_projects_service.check_agent_completion_comment(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    agent_name=current_agent,
-                )
-
-                if completed:
-                    result = await _advance_pipeline(
-                        access_token=access_token,
-                        project_id=project_id,
-                        item_id=task.github_item_id,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        issue_node_id=task.github_content_id,
-                        pipeline=pipeline,
-                        from_status=config.status_ready,
-                        to_status=config.status_in_progress,
-                        task_title=task.title,
-                    )
-                    if result:
-                        results.append(result)
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=config.status_ready,
+                to_status=config.status_in_progress,
+            )
+            if result:
+                results.append(result)
 
     except Exception as e:
         logger.error("Error checking ready issues: %s", e)
@@ -1440,15 +1526,27 @@ async def _transition_after_pipeline_complete(
                 issue_number=issue_number,
             )
             if existing_pr:
+                # Fetch PR details to get commit SHA
+                pr_details = await github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=existing_pr["number"],
+                )
+                head_sha = ""
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    head_sha = pr_details["last_commit"]["sha"]
                 set_issue_main_branch(
                     issue_number,
                     existing_pr["head_ref"],
                     existing_pr["number"],
+                    head_sha,
                 )
                 logger.info(
-                    "Captured main branch '%s' (PR #%d) for issue #%d before assigning %s",
+                    "Captured main branch '%s' (PR #%d, SHA: %s) for issue #%d before assigning %s",
                     existing_pr["head_ref"],
                     existing_pr["number"],
+                    head_sha[:8] if head_sha else "none",
                     issue_number,
                     new_status_agents[0],
                 )
@@ -1751,7 +1849,7 @@ async def ensure_copilot_review_requested(
         Result dict if review was requested, None otherwise
     """
     # Check for cache to avoid repeated API calls
-    cache_key = f"copilot_review_requested:{issue_number}"
+    cache_key = cache_key_review_requested(issue_number)
     if cache_key in _processed_issue_prs:
         return None
 
@@ -1887,12 +1985,20 @@ async def process_in_progress_issue(
             return None
 
         pr_number = finished_pr.get("number")
+        if pr_number is None:
+            logger.warning(
+                "Issue #%d ('%s'): PR missing number field",
+                issue_number,
+                task_title,
+            )
+            return None
+
         pr_id = finished_pr.get("id")
         is_draft = finished_pr.get("is_draft", False)
         check_status = finished_pr.get("check_status", "unknown")
 
         # Check if we've already processed this issue+PR combination
-        cache_key = f"{issue_number}:{pr_number}"
+        cache_key = cache_key_issue_pr(issue_number, pr_number)
         if cache_key in _processed_issue_prs:
             logger.debug(
                 "Issue #%d PR #%d: Already processed, skipping",

@@ -1515,7 +1515,7 @@ class TestFormatIssueContextAsPrompt:
         assert "## Output Instructions" not in result
 
     def test_format_includes_existing_pr_instructions_at_top(self, service):
-        """Should include existing PR instructions FIRST when existing_pr is provided."""
+        """Should include existing PR context FIRST when existing_pr is provided."""
         issue_data = {"title": "Test", "body": "Build it", "comments": []}
         existing_pr = {
             "number": 42,
@@ -1529,11 +1529,10 @@ class TestFormatIssueContextAsPrompt:
         )
 
         assert "CRITICAL" in result
-        assert "REUSE EXISTING PULL REQUEST" in result
+        assert "USE EXISTING BRANCH" in result
         assert "#42" in result
         assert "`copilot/fix-123`" in result
-        assert "Do NOT open a new pull request" in result
-        assert "Do NOT create a new branch" in result.replace("do NOT", "Do NOT")
+        assert "Do NOT create a new branch" in result
         assert "git checkout copilot/fix-123" in result
         assert "git push origin copilot/fix-123" in result
         assert "Draft" in result  # WIP/draft label
