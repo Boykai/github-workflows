@@ -1,11 +1,10 @@
 """Unit tests for Workflow Orchestrator - Agent mapping assignment."""
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from src.models.chat import DEFAULT_AGENT_MAPPINGS, WorkflowConfiguration
+from src.models.chat import TriggeredBy, WorkflowConfiguration
 from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
@@ -448,3 +447,368 @@ class TestPipelineState:
             current_agent_index=1,
         )
         assert state.next_agent is None
+
+
+class TestWorkflowConfigManagement:
+    """Tests for workflow configuration management functions."""
+
+    def setup_method(self):
+        """Clear configs before each test."""
+        from src.services.workflow_orchestrator import _workflow_configs
+
+        _workflow_configs.clear()
+
+    def test_get_workflow_config_returns_none_for_unknown(self):
+        """Should return None for unknown project ID."""
+        from src.services.workflow_orchestrator import get_workflow_config
+
+        result = get_workflow_config("unknown_project")
+        assert result is None
+
+    def test_set_and_get_workflow_config(self):
+        """Should store and retrieve workflow config."""
+        from src.services.workflow_orchestrator import (
+            get_workflow_config,
+            set_workflow_config,
+        )
+
+        config = WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+
+        set_workflow_config("PVT_123", config)
+        result = get_workflow_config("PVT_123")
+
+        assert result is not None
+        assert result.project_id == "PVT_123"
+
+
+class TestPipelineStateManagement:
+    """Tests for pipeline state management functions."""
+
+    def setup_method(self):
+        """Clear pipeline states before each test."""
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+
+    def test_get_pipeline_state_returns_none_for_unknown(self):
+        """Should return None for unknown issue number."""
+        from src.services.workflow_orchestrator import get_pipeline_state
+
+        result = get_pipeline_state(999)
+        assert result is None
+
+    def test_set_and_get_pipeline_state(self):
+        """Should store and retrieve pipeline state."""
+        from src.services.workflow_orchestrator import (
+            get_pipeline_state,
+            set_pipeline_state,
+        )
+
+        state = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan"],
+            current_agent_index=0,
+        )
+
+        set_pipeline_state(42, state)
+        result = get_pipeline_state(42)
+
+        assert result is not None
+        assert result.issue_number == 42
+
+    def test_remove_pipeline_state(self):
+        """Should remove pipeline state."""
+        from src.services.workflow_orchestrator import (
+            get_pipeline_state,
+            remove_pipeline_state,
+            set_pipeline_state,
+        )
+
+        state = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan"],
+            current_agent_index=0,
+        )
+
+        set_pipeline_state(42, state)
+        remove_pipeline_state(42)
+        result = get_pipeline_state(42)
+
+        assert result is None
+
+    def test_get_all_pipeline_states(self):
+        """Should return all pipeline states."""
+        from src.services.workflow_orchestrator import (
+            get_all_pipeline_states,
+            set_pipeline_state,
+        )
+
+        state1 = PipelineState(
+            issue_number=1,
+            project_id="PVT_1",
+            status="Ready",
+            agents=["a"],
+            current_agent_index=0,
+        )
+        state2 = PipelineState(
+            issue_number=2,
+            project_id="PVT_2",
+            status="Backlog",
+            agents=["b"],
+            current_agent_index=0,
+        )
+
+        set_pipeline_state(1, state1)
+        set_pipeline_state(2, state2)
+
+        result = get_all_pipeline_states()
+
+        assert len(result) == 2
+        assert 1 in result
+        assert 2 in result
+
+
+class TestIssueMainBranchManagement:
+    """Tests for issue main branch management functions."""
+
+    def setup_method(self):
+        """Clear main branches before each test."""
+        from src.services.workflow_orchestrator import _issue_main_branches
+
+        _issue_main_branches.clear()
+
+    def test_get_issue_main_branch_returns_none_for_unknown(self):
+        """Should return None for unknown issue number."""
+        from src.services.workflow_orchestrator import get_issue_main_branch
+
+        result = get_issue_main_branch(999)
+        assert result is None
+
+    def test_set_and_get_issue_main_branch(self):
+        """Should store and retrieve main branch info."""
+        from src.services.workflow_orchestrator import (
+            get_issue_main_branch,
+            set_issue_main_branch,
+        )
+
+        set_issue_main_branch(42, "copilot/feature-42", 100)
+        result = get_issue_main_branch(42)
+
+        assert result is not None
+        assert result["branch"] == "copilot/feature-42"
+        assert result["pr_number"] == 100
+
+    def test_set_issue_main_branch_does_not_overwrite(self):
+        """Should not overwrite existing main branch."""
+        from src.services.workflow_orchestrator import (
+            get_issue_main_branch,
+            set_issue_main_branch,
+        )
+
+        set_issue_main_branch(42, "first-branch", 100)
+        set_issue_main_branch(42, "second-branch", 200)  # Should be ignored
+
+        result = get_issue_main_branch(42)
+        assert result["branch"] == "first-branch"
+        assert result["pr_number"] == 100
+
+    def test_clear_issue_main_branch(self):
+        """Should clear main branch info."""
+        from src.services.workflow_orchestrator import (
+            clear_issue_main_branch,
+            get_issue_main_branch,
+            set_issue_main_branch,
+        )
+
+        set_issue_main_branch(42, "copilot/feature-42", 100)
+        clear_issue_main_branch(42)
+        result = get_issue_main_branch(42)
+
+        assert result is None
+
+
+class TestTransitionLogging:
+    """Tests for workflow transition logging."""
+
+    def setup_method(self):
+        """Clear transitions before each test."""
+        from src.services.workflow_orchestrator import _transitions
+
+        _transitions.clear()
+
+    def test_get_transitions_empty(self):
+        """Should return empty list when no transitions."""
+        from src.services.workflow_orchestrator import get_transitions
+
+        result = get_transitions()
+        assert result == []
+
+    def test_get_transitions_by_issue_id(self):
+        """Should filter transitions by issue_id."""
+
+        from src.models.chat import WorkflowTransition
+        from src.services.workflow_orchestrator import (
+            _transitions,
+            get_transitions,
+        )
+
+        _transitions.append(
+            WorkflowTransition(
+                session_id="s1",
+                project_id="p1",
+                issue_id="I_1",
+                from_status="Backlog",
+                to_status="Ready",
+                triggered_by=TriggeredBy.AUTOMATIC,
+                success=True,
+            )
+        )
+        _transitions.append(
+            WorkflowTransition(
+                session_id="s2",
+                project_id="p1",
+                issue_id="I_2",
+                from_status="Ready",
+                to_status="In Progress",
+                triggered_by=TriggeredBy.AUTOMATIC,
+                success=True,
+            )
+        )
+
+        result = get_transitions(issue_id="I_1")
+        assert len(result) == 1
+        assert result[0].issue_id == "I_1"
+
+
+class TestCreateIssueFromRecommendation:
+    """Tests for create_issue_from_recommendation."""
+
+    @pytest.fixture
+    def mock_ai_service(self):
+        return Mock()
+
+    @pytest.fixture
+    def mock_github_service(self):
+        service = Mock()
+        service.create_issue = AsyncMock()
+        return service
+
+    @pytest.fixture
+    def orchestrator(self, mock_ai_service, mock_github_service):
+        return WorkflowOrchestrator(mock_ai_service, mock_github_service)
+
+    @pytest.fixture
+    def workflow_context(self):
+        return WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+
+    @pytest.mark.asyncio
+    async def test_creates_issue_successfully(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
+        """Should create GitHub issue from recommendation."""
+        from uuid import uuid4
+
+        from src.models.chat import IssueRecommendation
+
+        recommendation = IssueRecommendation(
+            recommendation_id=uuid4(),
+            session_id=uuid4(),
+            title="Test Issue",
+            body="Issue body",
+            reasoning="Because",
+            labels=["enhancement"],
+            original_input="User request",
+            user_story="As a user...",
+            ui_ux_description="UI description",
+            functional_requirements=["Req 1"],
+        )
+
+        mock_github_service.create_issue.return_value = {
+            "node_id": "I_123",
+            "number": 42,
+            "html_url": "https://github.com/owner/repo/issues/42",
+        }
+
+        result = await orchestrator.create_issue_from_recommendation(
+            workflow_context, recommendation
+        )
+
+        assert result["number"] == 42
+        assert workflow_context.issue_id == "I_123"
+        assert workflow_context.issue_number == 42
+        mock_github_service.create_issue.assert_called_once()
+
+
+class TestAddToProjectWithBacklog:
+    """Tests for add_to_project_with_backlog."""
+
+    @pytest.fixture
+    def mock_ai_service(self):
+        return Mock()
+
+    @pytest.fixture
+    def mock_github_service(self):
+        service = Mock()
+        service.add_issue_to_project = AsyncMock()
+        service.update_item_status_by_name = AsyncMock()
+        return service
+
+    @pytest.fixture
+    def orchestrator(self, mock_ai_service, mock_github_service):
+        return WorkflowOrchestrator(mock_ai_service, mock_github_service)
+
+    @pytest.fixture
+    def workflow_context(self):
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_123",
+        )
+        ctx.config = WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+        return ctx
+
+    @pytest.mark.asyncio
+    async def test_adds_issue_to_project(self, orchestrator, workflow_context, mock_github_service):
+        """Should add issue to project with Backlog status."""
+        mock_github_service.add_issue_to_project.return_value = "PVTI_123"
+        mock_github_service.update_item_status_by_name.return_value = True
+
+        result = await orchestrator.add_to_project_with_backlog(workflow_context)
+
+        assert result == "PVTI_123"
+        assert workflow_context.project_item_id == "PVTI_123"
+        mock_github_service.add_issue_to_project.assert_called_once()
+        mock_github_service.update_item_status_by_name.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_raises_when_no_issue_id(self, orchestrator, mock_github_service):
+        """Should raise when no issue_id in context."""
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+        )
+
+        with pytest.raises(ValueError, match="No issue_id"):
+            await orchestrator.add_to_project_with_backlog(ctx)

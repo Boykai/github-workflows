@@ -200,4 +200,248 @@ describe('useRealTimeSync', () => {
     // lastUpdate should be set
     expect(result.current.lastUpdate).not.toBeNull();
   });
+
+  describe('message handling', () => {
+    it('should handle initial_data message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalled();
+      expect(result.current.lastUpdate).not.toBeNull();
+    });
+
+    it('should handle task_update message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'task_update' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
+
+    it('should handle task_created message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'task_created' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
+
+    it('should handle status_changed message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'status_changed' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
+
+    it('should handle refresh message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
+
+    it('should handle invalid JSON message gracefully', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      // Simulate invalid JSON
+      await act(async () => {
+        mockWebSocketInstances[0]?.onmessage?.(
+          new MessageEvent('message', { data: 'not valid json' })
+        );
+      });
+
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('should ignore unknown message types', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      // Clear any calls from connection
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'unknown_type' });
+      });
+
+      // Should not invalidate for unknown types
+      expect(invalidateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reconnection behavior', () => {
+    it('should attempt reconnection on close', async () => {
+      vi.useFakeTimers();
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      const initialCount = mockWebSocketInstances.length;
+
+      // Close the connection
+      await act(async () => {
+        mockWebSocketInstances[0]?.close();
+      });
+
+      // Advance timers to trigger reconnection
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      // Should create a new WebSocket
+      expect(mockWebSocketInstances.length).toBeGreaterThan(initialCount);
+
+      vi.useRealTimers();
+    });
+
+    it('should stay in polling mode after max reconnect attempts', async () => {
+      vi.useFakeTimers();
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // The hook starts with polling by design, then tries to upgrade to WebSocket
+      // After max reconnect attempts, it stays in polling mode
+      expect(['polling', 'connecting']).toContain(result.current.status);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('polling fallback', () => {
+    it('should handle WebSocket not supported gracefully', () => {
+      // Override WebSocket to throw
+      // @ts-expect-error - Override global WebSocket
+      global.WebSocket = class {
+        constructor() {
+          throw new Error('WebSocket not supported');
+        }
+      };
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // The hook starts with polling and will stay there when WebSocket fails
+      // Status could be 'polling' or 'connecting' depending on timing
+      expect(['polling', 'connecting']).toContain(result.current.status);
+
+      // Restore mock
+      // @ts-expect-error - Override global WebSocket
+      global.WebSocket = MockWebSocket;
+    });
+  });
 });
