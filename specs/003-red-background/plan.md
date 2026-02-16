@@ -1,37 +1,41 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Red Background Color
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `copilot/apply-red-background-color-again` | **Date**: 2026-02-16 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/003-red-background/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a red background color (#ff0000 or similar prominent red) to the main application container, ensuring consistent visibility across all primary screens while maintaining accessibility standards (WCAG AA minimum) for text and UI element contrast. The implementation will modify CSS custom properties to achieve the desired visual branding impact.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4, React 18.3, CSS3  
+**Primary Dependencies**: React, Vite (build tool), CSS custom properties  
+**Storage**: N/A (visual styling only)  
+**Testing**: Playwright (E2E), Vitest (unit), manual visual verification  
+**Target Platform**: Modern web browsers (Chrome, Firefox, Safari, Edge)
+**Project Type**: Web application (frontend + backend, this feature is frontend-only)  
+**Performance Goals**: Instant visual rendering, no performance degradation  
+**Constraints**: WCAG AA accessibility compliance (4.5:1 contrast for normal text, 3:1 for large text)  
+**Scale/Scope**: Single CSS variable change affecting entire application UI
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Design Check
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | Feature has complete spec.md with prioritized user stories (US1: P1, US2: P2), Given-When-Then scenarios, and clear scope |
+| II. Template-Driven Workflow | ✅ PASS | Using canonical plan template from .specify/templates/ |
+| III. Agent-Orchestrated Execution | ✅ PASS | Following speckit.plan workflow, will hand off to speckit.tasks then speckit.implement |
+| IV. Test Optionality with Clarity | ✅ PASS | Spec does not explicitly request automated tests; feature is visual and requires manual verification primarily |
+| V. Simplicity and DRY | ✅ PASS | Simple CSS variable change, no premature abstraction needed |
+
+**Gate Decision**: ✅ PROCEED to Phase 0 (Research)
 
 ## Project Structure
 
@@ -48,27 +52,8 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
 │   ├── models/
@@ -80,25 +65,18 @@ frontend/
 ├── src/
 │   ├── components/
 │   ├── pages/
-│   └── services/
+│   ├── hooks/
+│   ├── index.css       # CSS custom properties (MODIFIED: --color-bg-secondary)
+│   ├── App.css         # Uses --color-bg-secondary
+│   └── main.tsx
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    └── e2e/            # Playwright E2E tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with React frontend and FastAPI backend. This feature only modifies frontend CSS custom properties in `frontend/src/index.css` (lines 9 and 25 for light and dark themes).
 
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+No violations identified. This is a straightforward CSS variable change with no additional complexity.
