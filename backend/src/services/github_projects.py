@@ -1336,28 +1336,41 @@ class GitHubProjectsService:
             True if unassignment succeeded or Copilot was not assigned
         """
         try:
+            import asyncio
             import json as json_mod
 
+            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees"
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.github+json",
+                "Content-Type": "application/json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+
             # Use REST API to remove Copilot assignee
+            # The assignee login for Copilot is "copilot-swe-agent[bot]"
             # httpx's delete() doesn't support json= param, so use request()
             response = await self._client.request(
                 "DELETE",
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
-                content=json_mod.dumps({"assignees": ["Copilot"]}),
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "Content-Type": "application/json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                url,
+                content=json_mod.dumps({"assignees": ["copilot-swe-agent[bot]"]}),
+                headers=headers,
             )
 
             if response.status_code == 200:
+                # Verify Copilot was actually removed from assignees
+                result = response.json()
+                remaining = [a.get("login", "") for a in result.get("assignees", [])]
+                copilot_gone = not any("copilot" in a.lower() for a in remaining)
                 logger.info(
-                    "Unassigned Copilot from issue #%d before re-assignment",
+                    "Unassigned Copilot from issue #%d (remaining assignees: %s, copilot_removed: %s)",
                     issue_number,
+                    remaining,
+                    copilot_gone,
                 )
-                return True
+                # Give GitHub a moment to propagate the unassignment
+                await asyncio.sleep(2)
+                return copilot_gone
             elif response.status_code == 404:
                 # Copilot was not assigned
                 logger.debug(
@@ -1367,9 +1380,10 @@ class GitHubProjectsService:
                 return True
             else:
                 logger.warning(
-                    "Failed to unassign Copilot from issue #%d - Status: %s",
+                    "Failed to unassign Copilot from issue #%d - Status: %s, Response: %s",
                     issue_number,
                     response.status_code,
+                    response.text[:500] if response.text else "empty",
                 )
                 # Don't fail - we'll try to assign anyway
                 return True
