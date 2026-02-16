@@ -19,9 +19,9 @@
 
 **Purpose**: Create new directories and files required for the project board feature
 
-- [ ] T001 Create project board component directory at `frontend/src/components/project-board/`
-- [ ] T002 [P] Create backend Pydantic models file at `backend/src/models/project_board.py` with BoardAssignee, LinkedPullRequest, BoardIssueCard, BoardStatusColumn, BoardStatusColumnSummary, BoardProject, BoardProjectListResponse, BoardDataResponse, LinkedPRsRequest, LinkedPRsResponse models per contracts/api-contracts.md Contract 2
-- [ ] T003 [P] Create backend API router file at `backend/src/api/project_board.py` with router skeleton
+- [x] T001 Create project board component directory at `frontend/src/components/project-board/`
+- [x] T002 [P] Create backend Pydantic models file at `backend/src/models/project_board.py` with BoardAssignee, LinkedPullRequest, BoardIssueCard, BoardStatusColumn, BoardStatusColumnSummary, BoardProject, BoardProjectListResponse, BoardDataResponse, LinkedPRsRequest, LinkedPRsResponse models per contracts/api-contracts.md Contract 2
+- [x] T003 [P] Create backend API router file at `backend/src/api/project_board.py` with router skeleton
 
 **Checkpoint**: File structure ready — proceed to foundational infrastructure
 
@@ -33,13 +33,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Extend GitHub Projects service with `get_board_data(access_token, project_id)` method and `GET_BOARD_DATA_QUERY` GraphQL query in `backend/src/services/github_projects.py` — query fetches project items with fieldValues (Status, Priority, Size, Estimate), assignees with avatarUrl, and repository info per research.md Decision 2
-- [ ] T005 Extend GitHub Projects service with `get_linked_prs(access_token, content_ids)` method and `GET_LINKED_PRS_QUERY` GraphQL query in `backend/src/services/github_projects.py` — batched query using aliases on Issue.timelineItems for CrossReferencedEvent per research.md Decision 3
-- [ ] T006 Implement three FastAPI endpoints in `backend/src/api/project_board.py`: GET /projects (list projects reusing existing service), GET /{project_id}/board (board data grouped by status), POST /linked-prs (batch linked PRs) per contracts/api-contracts.md Contract 1
-- [ ] T007 Register project board router in `backend/src/api/__init__.py` with prefix `/project-board` and tags `["project-board"]` per contracts/api-contracts.md Contract 6.1
-- [ ] T008 [P] Add project board TypeScript types to `frontend/src/types/index.ts`: BoardAssignee, LinkedPullRequest, BoardIssueCard, BoardStatusColumn, BoardProject, BoardProjectListResponse, BoardDataResponse, LinkedPRsRequest, LinkedPRsResponse interfaces per contracts/api-contracts.md Contract 3
-- [ ] T009 [P] Add `projectBoardApi` object to `frontend/src/services/api.ts` with listProjects(), getBoardData(projectId), and getLinkedPRs(contentIds) methods per contracts/api-contracts.md Contract 4
-- [ ] T010 Create `useProjectBoard` custom hook in `frontend/src/hooks/useProjectBoard.ts` with useQuery for project list (key: `['board-projects']`), useQuery for board data (key: `['board-data', projectId]`), state for selectedProjectId/isModalOpen/selectedCard, and functions for selectProject/openModal/closeModal per research.md Decision 5
+- [x] T004 Extend GitHub Projects service with `get_board_data(access_token, project_id)` method and `GET_BOARD_DATA_QUERY` GraphQL query in `backend/src/services/github_projects.py` — query fetches project items with fieldValues (Status, Priority, Size, Estimate), assignees with avatarUrl, and repository info per research.md Decision 2
+- [x] T005 Extend GitHub Projects service with `get_linked_prs(access_token, content_ids)` method and `GET_LINKED_PRS_QUERY` GraphQL query in `backend/src/services/github_projects.py` — batched query using aliases on Issue.timelineItems for CrossReferencedEvent per research.md Decision 3
+- [x] T006 Implement three FastAPI endpoints in `backend/src/api/project_board.py`: GET /projects (list projects reusing existing service), GET /{project_id}/board (board data grouped by status), POST /linked-prs (batch linked PRs) per contracts/api-contracts.md Contract 1
+- [x] T007 Register project board router in `backend/src/api/__init__.py` with prefix `/project-board` and tags `["project-board"]` per contracts/api-contracts.md Contract 6.1
+- [x] T008 [P] Add project board TypeScript types to `frontend/src/types/index.ts`: BoardAssignee, LinkedPullRequest, BoardIssueCard, BoardStatusColumn, BoardProject, BoardProjectListResponse, BoardDataResponse, LinkedPRsRequest, LinkedPRsResponse interfaces per contracts/api-contracts.md Contract 3
+- [x] T009 [P] Add `projectBoardApi` object to `frontend/src/services/api.ts` with listProjects(), getBoardData(projectId), and getLinkedPRs(contentIds) methods per contracts/api-contracts.md Contract 4
+- [x] T010 Create `useProjectBoard` custom hook in `frontend/src/hooks/useProjectBoard.ts` with useQuery for project list (key: `['board-projects']`), useQuery for board data (key: `['board-data', projectId]`), state for selectedProjectId/isModalOpen/selectedCard, and functions for selectProject/openModal/closeModal per research.md Decision 5
 
 **Checkpoint**: Foundation ready — backend endpoints operational, frontend data layer wired, user story implementation can now begin
 
@@ -53,12 +53,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Create `ProjectBoardPage` component in `frontend/src/components/project-board/ProjectBoardPage.tsx` — main page with project dropdown selector, board grid layout, uses `useProjectBoard` hook, renders BoardColumn for each status column per contracts/api-contracts.md Contract 5.1
-- [ ] T012 [P] [US1] Create `BoardColumn` component in `frontend/src/components/project-board/BoardColumn.tsx` — renders colored status dot, column name, item count, aggregate total_estimate in header, scrollable list of BoardIssueCard components, accepts onCardClick callback per contracts/api-contracts.md Contract 5.2
-- [ ] T013 [P] [US1] Create `BoardIssueCard` component in `frontend/src/components/project-board/BoardIssueCard.tsx` — renders repo_name/issue_number, title, up to 3 assignee avatars with +N overflow, linked PR badge (count with state color), priority/size/estimate badges with color coding, clickable per contracts/api-contracts.md Contract 5.3
-- [ ] T014 [US1] Add state-based routing in `frontend/src/App.tsx` — add `currentPage` state (`'chat' | 'project-board'`), conditionally render ProjectBoardPage when `currentPage === 'project-board'`, pass onNavigate callback to sidebar per contracts/api-contracts.md Contract 6.2 and research.md Decision 4
-- [ ] T015 [US1] Add navigation link to project board in `frontend/src/components/sidebar/ProjectSidebar.tsx` — add onNavigateToBoard prop, render "Project Board" button/link that calls `onNavigate('project-board')` per contracts/api-contracts.md Contract 6.3
-- [ ] T016 [US1] Add board-specific CSS styles to `frontend/src/App.css` — add `.project-board-page`, `.board-project-selector`, `.board-container` (horizontal scroll), `.board-column`, `.board-column-header`, `.board-issue-card` (hover effects), `.board-card-badges` (priority/size/estimate colors), `.board-assignee-avatars`, `.board-pr-badge`, and status dot color classes (`.status-dot--GREEN`, `.status-dot--YELLOW`, `.status-dot--RED`, `.status-dot--BLUE`, `.status-dot--PURPLE`, `.status-dot--PINK`, `.status-dot--ORANGE`, `.status-dot--GRAY`) using existing CSS custom properties per research.md Decision 8 and Decision 9
+- [x] T011 [P] [US1] Create `ProjectBoardPage` component in `frontend/src/components/project-board/ProjectBoardPage.tsx` — main page with project dropdown selector, board grid layout, uses `useProjectBoard` hook, renders BoardColumn for each status column per contracts/api-contracts.md Contract 5.1
+- [x] T012 [P] [US1] Create `BoardColumn` component in `frontend/src/components/project-board/BoardColumn.tsx` — renders colored status dot, column name, item count, aggregate total_estimate in header, scrollable list of BoardIssueCard components, accepts onCardClick callback per contracts/api-contracts.md Contract 5.2
+- [x] T013 [P] [US1] Create `BoardIssueCard` component in `frontend/src/components/project-board/BoardIssueCard.tsx` — renders repo_name/issue_number, title, up to 3 assignee avatars with +N overflow, linked PR badge (count with state color), priority/size/estimate badges with color coding, clickable per contracts/api-contracts.md Contract 5.3
+- [x] T014 [US1] Add state-based routing in `frontend/src/App.tsx` — add `currentPage` state (`'chat' | 'project-board'`), conditionally render ProjectBoardPage when `currentPage === 'project-board'`, pass onNavigate callback to sidebar per contracts/api-contracts.md Contract 6.2 and research.md Decision 4
+- [x] T015 [US1] Add navigation link to project board in `frontend/src/components/sidebar/ProjectSidebar.tsx` — add onNavigateToBoard prop, render "Project Board" button/link that calls `onNavigate('project-board')` per contracts/api-contracts.md Contract 6.3
+- [x] T016 [US1] Add board-specific CSS styles to `frontend/src/App.css` — add `.project-board-page`, `.board-project-selector`, `.board-container` (horizontal scroll), `.board-column`, `.board-column-header`, `.board-issue-card` (hover effects), `.board-card-badges` (priority/size/estimate colors), `.board-assignee-avatars`, `.board-pr-badge`, and status dot color classes (`.status-dot--GREEN`, `.status-dot--YELLOW`, `.status-dot--RED`, `.status-dot--BLUE`, `.status-dot--PURPLE`, `.status-dot--PINK`, `.status-dot--ORANGE`, `.status-dot--GRAY`) using existing CSS custom properties per research.md Decision 8 and Decision 9
 
 **Checkpoint**: User Story 1 complete — user can navigate to /project-board, select a project, and see the full Kanban board with all issue card data fields
 
@@ -72,9 +72,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Create `IssueDetailModal` component in `frontend/src/components/project-board/IssueDetailModal.tsx` — modal overlay with centered content, displays full issue details (title, body, status, priority, size, estimate), lists assignees with avatars and usernames, lists linked PRs with state badges, "Open on GitHub" link with `target="_blank" rel="noopener noreferrer"`, closes on click-outside/Escape key/close button, renders nothing when isOpen is false per contracts/api-contracts.md Contract 5.4
-- [ ] T018 [US2] Integrate IssueDetailModal into ProjectBoardPage in `frontend/src/components/project-board/ProjectBoardPage.tsx` — wire selectedCard and isModalOpen state from useProjectBoard hook, pass openModal callback to BoardColumn/BoardIssueCard, pass closeModal callback to IssueDetailModal
-- [ ] T019 [US2] Add modal CSS styles to `frontend/src/App.css` — add `.issue-detail-modal-overlay` (fixed positioning, backdrop), `.issue-detail-modal-content` (centered card, scrollable), `.modal-assignee-list`, `.modal-pr-list`, `.modal-github-link`, `.modal-close-button` using existing CSS custom properties
+- [x] T017 [US2] Create `IssueDetailModal` component in `frontend/src/components/project-board/IssueDetailModal.tsx` — modal overlay with centered content, displays full issue details (title, body, status, priority, size, estimate), lists assignees with avatars and usernames, lists linked PRs with state badges, "Open on GitHub" link with `target="_blank" rel="noopener noreferrer"`, closes on click-outside/Escape key/close button, renders nothing when isOpen is false per contracts/api-contracts.md Contract 5.4
+- [x] T018 [US2] Integrate IssueDetailModal into ProjectBoardPage in `frontend/src/components/project-board/ProjectBoardPage.tsx` — wire selectedCard and isModalOpen state from useProjectBoard hook, pass openModal callback to BoardColumn/BoardIssueCard, pass closeModal callback to IssueDetailModal
+- [x] T019 [US2] Add modal CSS styles to `frontend/src/App.css` — add `.issue-detail-modal-overlay` (fixed positioning, backdrop), `.issue-detail-modal-content` (centered card, scrollable), `.modal-assignee-list`, `.modal-pr-list`, `.modal-github-link`, `.modal-close-button` using existing CSS custom properties
 
 **Checkpoint**: User Story 2 complete — clicking any issue card opens a detail modal with full information and a working GitHub link
 
@@ -88,10 +88,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Add 15-second auto-refresh to `useProjectBoard` hook in `frontend/src/hooks/useProjectBoard.ts` — set `refetchInterval: isModalOpen ? false : 15000` on board data useQuery, set `staleTime: 10000` for stale-while-revalidate behavior per research.md Decision 5
-- [ ] T021 [US3] Add subtle refresh indicator to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show "Refreshing..." indicator using `isFetching` state from useQuery without disrupting current view or scroll position
-- [ ] T022 [US3] Add auto-refresh error notification to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — display error toast/banner when background refresh fails with retry button using `refetch()`, retain last successfully loaded data on failure
-- [ ] T023 [US3] Add refresh indicator CSS styles to `frontend/src/App.css` — add `.board-refresh-indicator` (subtle top-bar or corner indicator), `.board-refresh-error` (error notification banner with retry button)
+- [x] T020 [US3] Add 15-second auto-refresh to `useProjectBoard` hook in `frontend/src/hooks/useProjectBoard.ts` — set `refetchInterval: isModalOpen ? false : 15000` on board data useQuery, set `staleTime: 10000` for stale-while-revalidate behavior per research.md Decision 5
+- [x] T021 [US3] Add subtle refresh indicator to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show "Refreshing..." indicator using `isFetching` state from useQuery without disrupting current view or scroll position
+- [x] T022 [US3] Add auto-refresh error notification to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — display error toast/banner when background refresh fails with retry button using `refetch()`, retain last successfully loaded data on failure
+- [x] T023 [US3] Add refresh indicator CSS styles to `frontend/src/App.css` — add `.board-refresh-indicator` (subtle top-bar or corner indicator), `.board-refresh-error` (error notification banner with retry button)
 
 **Checkpoint**: User Story 3 complete — board auto-refreshes every 15 seconds, pauses during modal, handles refresh errors gracefully
 
@@ -105,10 +105,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Add initial loading states to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show loading spinner/skeleton while project list is loading (`isLoading` from projects query), show board loading skeleton while board data is loading (`isLoading` from board query) per research.md Decision 10
-- [ ] T025 [US4] Add error states to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show error message with retry button when initial data fetch fails (`isError` + `error` from queries), show re-authenticate prompt when 401 error is returned
-- [ ] T026 [US4] Add empty state to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show "No projects available" message when user has no GitHub Projects, show "No status columns" message when selected project has no status fields configured
-- [ ] T027 [US4] Add loading and error state CSS styles to `frontend/src/App.css` — add `.board-loading-skeleton`, `.board-loading-spinner`, `.board-error-state` (error message + retry button), `.board-empty-state` (informational message) using existing CSS custom properties
+- [x] T024 [US4] Add initial loading states to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show loading spinner/skeleton while project list is loading (`isLoading` from projects query), show board loading skeleton while board data is loading (`isLoading` from board query) per research.md Decision 10
+- [x] T025 [US4] Add error states to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show error message with retry button when initial data fetch fails (`isError` + `error` from queries), show re-authenticate prompt when 401 error is returned
+- [x] T026 [US4] Add empty state to `ProjectBoardPage` in `frontend/src/components/project-board/ProjectBoardPage.tsx` — show "No projects available" message when user has no GitHub Projects, show "No status columns" message when selected project has no status fields configured
+- [x] T027 [US4] Add loading and error state CSS styles to `frontend/src/App.css` — add `.board-loading-skeleton`, `.board-loading-spinner`, `.board-error-state` (error message + retry button), `.board-empty-state` (informational message) using existing CSS custom properties
 
 **Checkpoint**: User Story 4 complete — all loading, error, and empty states display correctly
 
@@ -118,13 +118,13 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T028 [P] Handle edge case of issues with missing optional fields (no assignees, no linked PRs, no priority/size/estimate) in `frontend/src/components/project-board/BoardIssueCard.tsx` — verify card renders gracefully without blank spaces or broken layout
-- [ ] T029 [P] Handle edge case of large project dropdown (50+ projects) in `frontend/src/components/project-board/ProjectBoardPage.tsx` — ensure dropdown supports scrolling and remains performant
-- [ ] T030 [P] Handle edge case of large column (100+ issues) in `frontend/src/components/project-board/BoardColumn.tsx` — ensure column supports scrolling and board remains responsive
-- [ ] T031 Handle network connectivity loss in `frontend/src/components/project-board/ProjectBoardPage.tsx` — retain last successfully loaded data and display connectivity warning
-- [ ] T032 Verify dark mode support for all board components in `frontend/src/App.css` — ensure all `.project-board-*` classes use CSS custom properties for theming per research.md Decision 8
-- [ ] T033 Run `npm run build` in `frontend/` and `python -m py_compile backend/src/api/project_board.py` to verify no build errors
-- [ ] T034 Manual verification: start backend + frontend dev servers and walk through all user scenarios per quickstart.md Step 11
+- [x] T028 [P] Handle edge case of issues with missing optional fields (no assignees, no linked PRs, no priority/size/estimate) in `frontend/src/components/project-board/BoardIssueCard.tsx` — verify card renders gracefully without blank spaces or broken layout
+- [x] T029 [P] Handle edge case of large project dropdown (50+ projects) in `frontend/src/components/project-board/ProjectBoardPage.tsx` — ensure dropdown supports scrolling and remains performant
+- [x] T030 [P] Handle edge case of large column (100+ issues) in `frontend/src/components/project-board/BoardColumn.tsx` — ensure column supports scrolling and board remains responsive
+- [x] T031 Handle network connectivity loss in `frontend/src/components/project-board/ProjectBoardPage.tsx` — retain last successfully loaded data and display connectivity warning
+- [x] T032 Verify dark mode support for all board components in `frontend/src/App.css` — ensure all `.project-board-*` classes use CSS custom properties for theming per research.md Decision 8
+- [x] T033 Run `npm run build` in `frontend/` and `python -m py_compile backend/src/api/project_board.py` to verify no build errors
+- [x] T034 Manual verification: start backend + frontend dev servers and walk through all user scenarios per quickstart.md Step 11
 
 ---
 
