@@ -1336,13 +1336,18 @@ class GitHubProjectsService:
             True if unassignment succeeded or Copilot was not assigned
         """
         try:
+            import json as json_mod
+
             # Use REST API to remove Copilot assignee
-            response = await self._client.delete(
+            # httpx's delete() doesn't support json= param, so use request()
+            response = await self._client.request(
+                "DELETE",
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
-                json={"assignees": ["Copilot"]},
+                content=json_mod.dumps({"assignees": ["Copilot"]}),
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json",
                     "X-GitHub-Api-Version": "2022-11-28",
                 },
             )
