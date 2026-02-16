@@ -127,7 +127,8 @@ def _build_linked_prs_query(content_ids: list[str]) -> tuple[str, dict]:
     }}""")
         variables[var_name] = cid
 
-    query = f"""query({', '.join(var_declarations)}) {{{chr(10).join(fragments)}
+    newline = "\n"
+    query = f"""query({', '.join(var_declarations)}) {{{newline.join(fragments)}
 }}"""
     return query, variables
 

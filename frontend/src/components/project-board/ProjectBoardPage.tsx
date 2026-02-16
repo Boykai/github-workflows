@@ -105,12 +105,15 @@ export function ProjectBoardPage({ onNavigateToChat }: ProjectBoardPageProps) {
           </div>
         )}
 
-        {/* Refresh error notification */}
-        {selectedProjectId && !boardLoading && !boardError && boardData && boardFetching === false && boardData.columns.length === 0 && (
-          <div className="board-empty-state">
-            <p>This project has no status columns configured.</p>
-          </div>
-        )}
+        {/* Empty columns state */}
+        {(() => {
+          const showNoColumnsState = selectedProjectId && !boardLoading && !boardError && boardData && !boardFetching && boardData.columns.length === 0;
+          return showNoColumnsState ? (
+            <div className="board-empty-state">
+              <p>This project has no status columns configured.</p>
+            </div>
+          ) : null;
+        })()}
 
         {boardData && boardData.columns.length > 0 && (
           <div className="board-container-kanban">
