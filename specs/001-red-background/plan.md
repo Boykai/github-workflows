@@ -1,37 +1,35 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Red Background Interface
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `copilot/apply-red-background-interface-again` | **Date**: 2026-02-16 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/001-red-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a solid red (#FF0000) background to the main app container across all screens and responsive layouts. The implementation modifies CSS custom properties in the existing theming system to ensure the red background persists across navigation, page refreshes, and both light/dark theme modes while maintaining text contrast for accessibility.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x (frontend), CSS3
+**Primary Dependencies**: React 18.3, Vite (build tool), CSS custom properties
+**Storage**: localStorage (theme mode persistence via useAppTheme hook)
+**Testing**: Vitest (unit), Playwright (e2e)
+**Target Platform**: Modern web browsers (Chrome, Firefox, Safari, Edge)
+**Project Type**: Web application (frontend focus - CSS styling change)
+**Performance Goals**: Background color applied within 100ms of page load, zero visual flicker
+**Constraints**: Maintain WCAG AA contrast ratio (4.5:1) for text, preserve existing theme functionality
+**Scale/Scope**: Single CSS variable change affecting all screens in the application
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Evidence |
+|-----------|--------|----------|
+| I. Specification-First | ✅ PASS | Complete spec.md with 3 prioritized user stories (P1, P2, P3), Given-When-Then scenarios, clear scope boundaries |
+| II. Template-Driven Workflow | ✅ PASS | Following canonical plan-template.md structure for all artifacts |
+| III. Agent-Orchestrated Execution | ✅ PASS | Clear phase boundaries: specify → plan → tasks → implement |
+| IV. Test Optionality | ✅ PASS | Tests not explicitly required for simple CSS change - visual verification sufficient |
+| V. Simplicity and DRY | ✅ PASS | Minimal change: single CSS custom property modification, no new abstractions needed |
 
 ## Project Structure
 
@@ -48,57 +46,103 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
+│   ├── index.css              # Global CSS with theme variables (MODIFIED)
+│   ├── App.css                # App component styles
+│   ├── App.tsx                # Main app component
 │   ├── components/
-│   ├── pages/
-│   └── services/
+│   │   └── chat/
+│   │       └── ChatInterface.css
+│   └── hooks/
+│       └── useAppTheme.ts     # Theme mode persistence logic
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    ├── unit/
+    └── e2e/
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (frontend-focused change). The feature only requires modifying CSS custom properties in `frontend/src/index.css` where the `--color-bg-secondary` variable controls the main page background color for both light and dark themes.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No violations detected - Constitution Check passed for all principles.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+---
+
+## Post-Design Constitution Check
+
+*Re-evaluation after Phase 1 design completion*
+
+| Principle | Status | Post-Design Evidence |
+|-----------|--------|---------------------|
+| I. Specification-First | ✅ PASS | Design artifacts (research.md, data-model.md, contracts/, quickstart.md) directly implement spec requirements without scope creep |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates: research.md (10 questions), data-model.md (CSS variables), contracts/css-changes.md (change specification), quickstart.md (implementation guide) |
+| III. Agent-Orchestrated Execution | ✅ PASS | Phase 0 (research) and Phase 1 (design) completed successfully. Ready for Phase 2 (tasks) hand-off via /speckit.tasks command |
+| IV. Test Optionality | ✅ PASS | No automated tests added. Visual verification documented in quickstart.md sufficient for 2-line CSS change |
+| V. Simplicity and DRY | ✅ PASS | Design confirmed minimal approach: 2 CSS custom property values changed in 1 file. Zero new abstractions, zero JavaScript changes, zero new dependencies |
+
+### Design Validation
+
+**Artifacts Generated**:
+- ✅ research.md: 10 research questions resolved, all NEEDS CLARIFICATION items cleared
+- ✅ data-model.md: CSS custom property definitions and state management documented
+- ✅ contracts/css-changes.md: Exact 2-line CSS change specification with validation checklists
+- ✅ quickstart.md: 15-20 minute implementation guide with troubleshooting
+- ✅ Agent context updated: TypeScript, React, CSS custom properties added to copilot-instructions.md
+
+**Constitution Compliance**:
+- No complexity violations introduced during design
+- No new abstractions or dependencies added
+- Scope remains exactly as specified: CSS background color only
+- Test optionality maintained: visual verification sufficient
+
+**Ready for Phase 2**: All design artifacts complete. Implementation can proceed via /speckit.tasks command.
+
+---
+
+## Phase Summary
+
+### Phase 0: Research (Completed)
+
+**Duration**: Research phase  
+**Deliverable**: `research.md` with 10 resolved questions  
+**Outcome**: Confirmed approach - modify `--color-bg-secondary` in both theme modes
+
+**Key Decisions**:
+1. Target CSS variable: `--color-bg-secondary` in `:root` and `html.dark-mode-active`
+2. Side effects acceptable: buttons/task previews inherit red background
+3. Accessibility trade-off: light mode contrast documented as known issue
+4. No JavaScript changes needed: existing theme system handles persistence
+
+### Phase 1: Design (Completed)
+
+**Duration**: Design phase  
+**Deliverables**: 
+- `data-model.md`: CSS variable definitions and theme state management
+- `contracts/css-changes.md`: Exact 2-line change specification
+- `quickstart.md`: 15-20 minute implementation guide
+- Agent context updated
+
+**Outcome**: Implementation contract defined - 2 lines in 1 file
+
+**Key Artifacts**:
+1. **Data Model**: Documents CSS custom property architecture and theme switching
+2. **Contract**: Specifies exact before/after values, validation checklist, rollback plan
+3. **Quickstart**: Step-by-step guide with troubleshooting and verification scenarios
+
+### Next Phase: Tasks (Phase 2)
+
+**Command**: `/speckit.tasks` (not executed by /speckit.plan)  
+**Input**: This plan.md + all Phase 0/1 artifacts  
+**Output**: `tasks.md` with executable implementation tasks  
+**Executor**: Separate agent or human developer
+
+---
+
+## Notes
+
+This plan was generated by the `/speckit.plan` command which executes Phase 0 (research) and Phase 1 (design) of the speckit workflow. The plan stops here as Phase 2 (tasks generation) is handled by a separate `/speckit.tasks` command per the constitution's agent-orchestrated execution principle.
+
+All planning artifacts are now available in `specs/001-red-background/` for the implementation phase.
