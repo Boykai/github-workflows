@@ -368,10 +368,10 @@ class TestAssignAgentForStatus:
         mock_github_service.assign_copilot_to_issue.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_subsequent_agent_uses_commit_sha_as_base_ref(
+    async def test_subsequent_agent_uses_branch_name_as_base_ref(
         self, orchestrator, workflow_context, mock_github_service
     ):
-        """Subsequent agents should use commit SHA as base_ref, not branch name."""
+        """Subsequent agents should use branch name as base_ref to work on same branch."""
         from src.services.workflow_orchestrator import set_issue_main_branch
 
         # Simulate main branch being set by a prior agent (speckit.specify)
@@ -384,7 +384,6 @@ class TestAssignAgentForStatus:
         }
         mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
         mock_github_service.assign_copilot_to_issue.return_value = True
-        # Mock get_pull_request to return latest commit SHA
         mock_github_service.get_pull_request = AsyncMock(
             return_value={
                 "last_commit": {"sha": "latest789sha000"},
@@ -397,8 +396,8 @@ class TestAssignAgentForStatus:
         assert result is True
         call_args = mock_github_service.assign_copilot_to_issue.call_args
         assert call_args.kwargs["custom_agent"] == "speckit.implement"
-        # Must use commit SHA as base_ref, NOT branch name
-        assert call_args.kwargs["base_ref"] == "latest789sha000"
+        # Must use branch name so Copilot works on the same branch
+        assert call_args.kwargs["base_ref"] == "copilot/test-feature"
 
         # Should pass existing_pr context to format_issue_context_as_prompt
         prompt_call = mock_github_service.format_issue_context_as_prompt.call_args
@@ -413,10 +412,10 @@ class TestAssignAgentForStatus:
         clear_issue_main_branch(42)
 
     @pytest.mark.asyncio
-    async def test_all_subsequent_agents_use_commit_sha(
+    async def test_all_subsequent_agents_use_branch_name(
         self, orchestrator, workflow_context, mock_github_service
     ):
-        """ALL subsequent agents (plan, tasks) should use commit SHA, not branch name."""
+        """ALL subsequent agents (plan, tasks) should use branch name to work on same PR."""
         from src.services.workflow_orchestrator import set_issue_main_branch
 
         set_issue_main_branch(42, "copilot/test-feature", 99, "abc123def456")
@@ -440,8 +439,8 @@ class TestAssignAgentForStatus:
         assert result is True
         call_args = mock_github_service.assign_copilot_to_issue.call_args
         assert call_args.kwargs["custom_agent"] == "speckit.plan"
-        # Must use commit SHA — NOT branch name
-        assert call_args.kwargs["base_ref"] == "commit789abc"
+        # Must use branch name so Copilot continues on the same branch
+        assert call_args.kwargs["base_ref"] == "copilot/test-feature"
 
         # Should pass existing_pr context
         prompt_call = mock_github_service.format_issue_context_as_prompt.call_args

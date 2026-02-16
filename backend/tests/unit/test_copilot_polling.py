@@ -9,7 +9,9 @@ from src.services.copilot_polling import (
     _advance_pipeline,
     _check_child_pr_completion,
     _check_main_pr_completion,
+    _claimed_child_prs,
     _filter_events_after,
+    _find_completed_child_pr,
     _merge_child_pr_if_applicable,
     _posted_agent_outputs,
     _processed_issue_prs,
@@ -60,8 +62,10 @@ def mock_task_no_issue():
 def clear_processed_cache():
     """Clear the processed cache before each test."""
     _processed_issue_prs.clear()
+    _claimed_child_prs.clear()
     yield
     _processed_issue_prs.clear()
+    _claimed_child_prs.clear()
 
 
 class TestGetPollingStatus:
@@ -844,6 +848,109 @@ class TestPostAgentOutputsFromPr:
 
         assert len(results) == 0
         mock_service.check_copilot_pr_completion.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._check_main_pr_completion", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_subsequent_agent_detects_completion_on_main_pr(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_main_pr_check,
+        mock_task_backlog,
+    ):
+        """Subsequent agent should detect completion via fresh signals on the main PR."""
+        # Set up: main branch already established (first agent completed)
+        _issue_main_branches[10] = {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"}
+
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            started_at=datetime(2026, 1, 1),
+        )
+
+        # check_copilot_pr_completion finds the main PR as completed
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "copilot_finished": True}
+        )
+        # _check_main_pr_completion confirms fresh completion signals
+        mock_main_pr_check.return_value = True
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "head_ref": "copilot/feature",
+                "id": "PR_5",
+                "last_commit": {"sha": "def"},
+            }
+        )
+        mock_service.get_pr_changed_files = AsyncMock(
+            return_value=[{"filename": "specs/plan.md", "status": "added"}]
+        )
+        mock_service.get_file_content_from_ref = AsyncMock(return_value="# Plan")
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        # Should have detected completion and posted outputs
+        assert len(results) == 1
+        assert results[0]["agent_name"] == "speckit.plan"
+        assert results[0]["pr_number"] == 5
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._check_main_pr_completion", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_subsequent_agent_skips_main_pr_without_fresh_signals(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_main_pr_check,
+        mock_task_backlog,
+    ):
+        """Subsequent agent should NOT detect completion if no fresh signals on main PR."""
+        _issue_main_branches[10] = {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"}
+
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            started_at=datetime(2026, 1, 1),
+        )
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "copilot_finished": True}
+        )
+        # No fresh completion signals
+        mock_main_pr_check.return_value = False
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 0
 
 
 class TestCheckChildPrCompletion:
@@ -1738,3 +1845,302 @@ class TestAdvancePipeline:
         assert result["agent_name"] == "speckit.tasks"
         assert "1/2" in result["pipeline_progress"]
         mock_orchestrator.assign_agent_for_status.assert_called_once()
+
+
+class TestFindCompletedChildPr:
+    """Tests for _find_completed_child_pr function."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_none_when_no_linked_prs(self, mock_service):
+        """Should return None when no linked PRs exist."""
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_pr_info_when_child_pr_complete(self, mock_service):
+        """Should return PR info when child PR has completion signals (like PR #214 for issue #211)."""
+        # Simulate PRs #212 (main) and #214 (child)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 212, "state": "OPEN", "author": "copilot[bot]"},  # Main PR
+                {"number": 214, "state": "OPEN", "author": "copilot[bot]"},  # Child PR
+            ]
+        )
+        # PR #214 details - targets the main branch, not 'main'
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_214",
+                "base_ref": "copilot/add-black-background-theme",
+                "head_ref": "copilot/implement-black-background-theme",
+                "is_draft": True,
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(
+            return_value=[{"event": "copilot_work_finished"}]
+        )
+        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is not None
+        assert result["number"] == 214
+        assert result["is_child_pr"] is True
+        assert result["copilot_finished"] is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_main_pr(self, mock_service):
+        """Should skip the main PR and only consider child PRs."""
+        # Only the main PR exists, no child PR
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 212, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is None
+        # Should not call get_pull_request for the main PR
+        mock_service.get_pull_request.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_none_when_child_pr_targets_wrong_branch(self, mock_service):
+        """Should return None when child PR targets 'main' instead of the main branch."""
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 212, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 215, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        # PR #215 targets 'main' not the main branch
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "base_ref": "main",  # Wrong target
+                "is_draft": False,
+            }
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_pr_when_not_draft(self, mock_service):
+        """Should return PR info when child PR is not draft (ready for review)."""
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 212, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 214, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_214",
+                "base_ref": "copilot/add-black-background-theme",
+                "head_ref": "copilot/implement-feature",
+                "is_draft": False,  # Not draft = ready
+                "last_commit": {"sha": "xyz789"},
+            }
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is not None
+        assert result["number"] == 214
+        assert result["copilot_finished"] is True
+        # Should not check timeline events if not draft
+        mock_service.get_pr_timeline_events.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_pr_info_when_child_pr_merged(self, mock_service):
+        """Should return PR info when child PR is MERGED (like PR #218 for issue #215)."""
+        # Simulate PRs #216 (main) and #218 (merged child)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 216, "state": "OPEN", "author": "copilot[bot]"},  # Main PR
+                {"number": 218, "state": "MERGED", "author": "copilot[bot]"},  # Merged child PR
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_218",
+                "base_ref": "copilot/apply-white-background-interface",
+                "head_ref": "copilot/apply-white-background-interface-again",
+                "last_commit": {"sha": "merged123"},
+            }
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=215,
+            main_branch="copilot/apply-white-background-interface",
+            main_pr_number=216,
+            agent_name="speckit.tasks",
+        )
+
+        assert result is not None
+        assert result["number"] == 218
+        assert result["is_child_pr"] is True
+        assert result["is_merged"] is True
+        assert result["copilot_finished"] is True
+        # Should not check timeline events for merged PRs
+        mock_service.get_pr_timeline_events.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_none_when_child_pr_still_in_progress(self, mock_service):
+        """Should return None when child PR exists but is still in progress."""
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 212, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 214, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "base_ref": "copilot/add-black-background-theme",
+                "is_draft": True,
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=211,
+            main_branch="copilot/add-black-background-theme",
+            main_pr_number=212,
+            agent_name="speckit.plan",
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_claimed_child_pr_from_other_agent(self, mock_service):
+        """Should skip child PR that was already claimed by another agent.
+
+        This prevents speckit.tasks from re-using speckit.plan's merged PR.
+        """
+        # Pre-claim PR #226 for speckit.plan
+        _claimed_child_prs.add("224:226:speckit.plan")
+
+        # Simulate PRs #225 (main) and #226 (merged child claimed by speckit.plan)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 225, "state": "OPEN", "author": "copilot[bot]"},  # Main PR
+                {"number": 226, "state": "MERGED", "author": "copilot[bot]"},  # Claimed child PR
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_226",
+                "base_ref": "copilot/apply-yellow-background-color-again",
+                "head_ref": "copilot/apply-yellow-background-color-another-one",
+                "last_commit": {"sha": "merged123"},
+            }
+        )
+
+        # speckit.tasks should NOT see the PR that was claimed by speckit.plan
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=224,
+            main_branch="copilot/apply-yellow-background-color-again",
+            main_pr_number=225,
+            agent_name="speckit.tasks",  # Different agent
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_allows_same_agent_to_see_claimed_pr(self, mock_service):
+        """Should allow an agent to see its own claimed PR."""
+        # Pre-claim PR #226 for speckit.plan
+        _claimed_child_prs.add("224:226:speckit.plan")
+
+        # Simulate PRs #225 (main) and #226 (merged child)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 225, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 226, "state": "MERGED", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_226",
+                "base_ref": "copilot/apply-yellow-background-color-again",
+                "head_ref": "copilot/apply-yellow-background-color-another-one",
+                "last_commit": {"sha": "merged123"},
+            }
+        )
+
+        # speckit.plan should still see its own claimed PR
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=224,
+            main_branch="copilot/apply-yellow-background-color-again",
+            main_pr_number=225,
+            agent_name="speckit.plan",  # Same agent
+        )
+
+        assert result is not None
+        assert result["number"] == 226

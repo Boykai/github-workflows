@@ -580,11 +580,11 @@ class WorkflowOrchestrator:
         # Branching strategy:
         #   - ONLY the first agent references the repo's main branch:
         #       base_ref="main" → creates branch "copilot/xxx" → PR targets "main"
-        #   - ALL subsequent agents use the COMMIT SHA of the first branch's head:
-        #       base_ref=<sha> → creates branch "copilot/xxx-<suffix>" → PR targets "copilot/xxx"
+        #   - ALL subsequent agents work on the SAME branch as the first agent:
+        #       base_ref="copilot/xxx" → pushes commits to existing branch
         #
-        # CRITICAL: Copilot cannot resolve branch names like "copilot/xxx" as commits.
-        # We must pass the actual commit SHA for the baseRef parameter.
+        # We pass the branch name (not commit SHA) so Copilot continues work on
+        # the existing PR branch rather than creating a new child branch.
         existing_pr = None
         base_ref = "main"
 
@@ -593,12 +593,11 @@ class WorkflowOrchestrator:
             main_branch_info = get_issue_main_branch(ctx.issue_number)
 
             if main_branch_info:
-                # Subsequent agent — branch FROM the issue's first branch.
-                # We need to fetch the LATEST commit SHA (more commits may have been added).
+                # Subsequent agent — work on the same branch as the first agent.
                 main_branch = str(main_branch_info["branch"])
                 main_pr_number = main_branch_info["pr_number"]
 
-                # Fetch current PR details to get the latest head commit SHA
+                # Fetch current PR details
                 pr_details = await self.github.get_pull_request(
                     access_token=ctx.access_token,
                     owner=ctx.repository_owner,
@@ -606,26 +605,19 @@ class WorkflowOrchestrator:
                     pr_number=main_pr_number,
                 )
 
-                if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                    head_sha = pr_details["last_commit"]["sha"]
-                    base_ref = head_sha  # Use commit SHA, not branch name!
-                    logger.info(
-                        "Agent '%s' will branch from commit %s (branch '%s', PR #%d) for issue #%d",
-                        agent_name,
-                        head_sha[:8],
-                        main_branch,
-                        main_pr_number,
-                        ctx.issue_number,
-                    )
-                else:
-                    # Fallback to branch name if we can't get SHA (may still fail)
-                    base_ref = main_branch
-                    logger.warning(
-                        "Could not get commit SHA for PR #%d, using branch name '%s' (may fail)",
-                        main_pr_number,
-                        main_branch,
-                    )
+                # Use the branch name so Copilot works on the same branch
+                base_ref = main_branch
+                logger.info(
+                    "Agent '%s' will work on existing branch '%s' (PR #%d) for issue #%d",
+                    agent_name,
+                    main_branch,
+                    main_pr_number,
+                    ctx.issue_number,
+                )
 
+                # Pass existing_pr so subsequent agents receive "use existing
+                # branch" instructions — Copilot pushes commits to the same
+                # PR branch rather than creating a separate child PR.
                 existing_pr = {
                     "number": main_pr_number,
                     "head_ref": main_branch,
