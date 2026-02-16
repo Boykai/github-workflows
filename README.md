@@ -845,7 +845,7 @@ The GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers automatica
 |----------|--------|---------|
 | `GITHUB_TOKEN` | Key Vault | GitHub PAT for API access |
 | `AZURE_OPENAI_ENDPOINT` | Key Vault | Azure OpenAI service endpoint |
-| `AZURE_OPENAI_DEPLOYMENT` | Key Vault | Model deployment name (gpt-41) |
+| `AZURE_OPENAI_DEPLOYMENT` | Key Vault | Model deployment name (gpt-41, deploys gpt-4.1) |
 | `AZURE_CLIENT_ID` | Config | User-assigned managed identity client ID |
 | `BACKEND_URL` | Config | Internal FQDN of backend Container App |
 | `BACKEND_HOST` | Config (Frontend) | Backend host for Nginx proxy_pass |
