@@ -1,37 +1,55 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Update Project Title to 'pottery'
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `copilot/update-project-title-to-pottery-again` | **Date**: 2026-02-16 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-pottery-title/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Update the project title from "Welcome to Tech Connect 2026!" to "pottery" across all user-facing interfaces, documentation files, and configuration metadata. This is a cosmetic text replacement that preserves all technical package identifiers for backward compatibility. Changes target the HTML page title, README documentation, and human-readable descriptions in package.json and pyproject.toml files.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4 (Frontend), Python 3.11+ (Backend)  
+**Primary Dependencies**: React 18.3, Vite 5.4 (Frontend), FastAPI 0.109+ (Backend)  
+**Storage**: N/A (text file changes only)  
+**Testing**: Vitest, Playwright (Frontend), pytest (Backend)  
+**Target Platform**: Web application (browser-based)
+**Project Type**: Web application with frontend and backend  
+**Performance Goals**: Text changes with zero performance impact  
+**Constraints**: Must preserve package identifiers for backward compatibility  
+**Scale/Scope**: 4 files to modify (1 HTML, 1 README, 2 package configs)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Design Evaluation
+
+| Principle | Compliance | Notes |
+|-----------|------------|-------|
+| **I. Specification-First Development** | ✅ PASS | spec.md includes 3 prioritized user stories (P1: browser title, P2: documentation, P3: package metadata) with Given-When-Then scenarios. Scope clearly bounded to text changes only. |
+| **II. Template-Driven Workflow** | ✅ PASS | Following canonical plan.md template. All required sections present. |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | speckit.plan agent executing Phase 0-1, will hand off to speckit.tasks/speckit.implement. |
+| **IV. Test Optionality with Clarity** | ✅ PASS | Tests are optional for text-only changes. E2E test exists (frontend/e2e/ui.spec.ts) that validates page title - will be updated as part of implementation. |
+| **V. Simplicity and DRY** | ✅ PASS | Straightforward text replacements. No abstractions needed. YAGNI principles followed. |
+
+**Gate Status**: ✅ **PASS** - No violations. All principles satisfied. Proceed to Phase 0.
+
+### Post-Design Evaluation
+
+| Principle | Compliance | Notes |
+|-----------|------------|-------|
+| **I. Specification-First Development** | ✅ PASS | Specification provided complete prioritized user stories. research.md, data-model.md, contracts/, and quickstart.md all align with spec requirements. No scope creep detected. |
+| **II. Template-Driven Workflow** | ✅ PASS | All artifacts follow canonical templates: plan.md, research.md, data-model.md, contracts/file-changes.md, quickstart.md. No custom sections added beyond template structure. |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | speckit.plan completed Phase 0-1. Clear handoff to speckit.tasks (Phase 2) then speckit.implement (Phase 3). Single-responsibility maintained. |
+| **IV. Test Optionality with Clarity** | ✅ PASS | Tests optional for text changes. Existing E2E test (frontend/e2e/ui.spec.ts) identified and will be updated as part of implementation to maintain test alignment. No new tests required. |
+| **V. Simplicity and DRY** | ✅ PASS | Solution is maximally simple: direct text replacements in 5 files. No abstractions, no new dependencies, no premature optimization. YAGNI principles fully satisfied. |
+
+**Gate Status**: ✅ **PASS** - All principles satisfied post-design. No violations. No complexity introduced.
+
+**Summary**: This feature remains a straightforward text replacement task. All design artifacts (research, data model, contracts, quickstart) confirm the minimal scope and simple implementation approach. Ready to proceed to Phase 2 (tasks generation).
 
 ## Project Structure
 
@@ -48,57 +66,24 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+├── index.html           # Browser page title (line 7)
+├── package.json         # Package metadata (line 2: name remains unchanged)
+└── src/
+    ├── App.tsx          # Already references correct title
+    └── components/
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+backend/
+├── pyproject.toml       # Package metadata (line 2: name, line 4: description)
+└── src/
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+README.md                # Project documentation (line 1: title)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure with frontend and backend directories. Changes are limited to 4 files: frontend/index.html (HTML title tag), README.md (project title and references), frontend/package.json (description field only - name preserved), backend/pyproject.toml (description field only - name preserved).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+No complexity violations to track. This is a simple text replacement feature with no abstraction, no new dependencies, and no architectural complexity.
