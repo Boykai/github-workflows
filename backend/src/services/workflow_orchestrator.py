@@ -768,23 +768,47 @@ class WorkflowOrchestrator:
             except Exception as e:
                 logger.warning("Failed to fetch issue context for agent '%s': %s", agent_name, e)
 
-        # Assign the agent
-        logger.info(
-            "Assigning agent '%s' to issue #%s with base_ref='%s'",
-            agent_name,
-            ctx.issue_number,
-            base_ref,
-        )
-        success = await self.github.assign_copilot_to_issue(
-            access_token=ctx.access_token,
-            owner=ctx.repository_owner,
-            repo=ctx.repository_name,
-            issue_node_id=ctx.issue_id,
-            issue_number=ctx.issue_number,
-            base_ref=base_ref,
-            custom_agent=agent_name,
-            custom_instructions=custom_instructions,
-        )
+        # Assign the agent with retry-with-backoff
+        # GitHub's Copilot API can return transient errors, especially right after
+        # a child PR merge. We retry up to 3 times with exponential backoff.
+        import asyncio
+
+        max_retries = 3
+        base_delay = 3  # seconds
+        success = False
+
+        for attempt in range(max_retries):
+            logger.info(
+                "Assigning agent '%s' to issue #%s with base_ref='%s' (attempt %d/%d)",
+                agent_name,
+                ctx.issue_number,
+                base_ref,
+                attempt + 1,
+                max_retries,
+            )
+            success = await self.github.assign_copilot_to_issue(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_node_id=ctx.issue_id,
+                issue_number=ctx.issue_number,
+                base_ref=base_ref,
+                custom_agent=agent_name,
+                custom_instructions=custom_instructions,
+            )
+
+            if success:
+                break
+
+            if attempt < max_retries - 1:
+                delay = base_delay * (2**attempt)  # 3s, 6s, 12s
+                logger.warning(
+                    "Agent assignment failed for '%s' on issue #%s, retrying in %ds...",
+                    agent_name,
+                    ctx.issue_number,
+                    delay,
+                )
+                await asyncio.sleep(delay)
 
         if success:
             logger.info(

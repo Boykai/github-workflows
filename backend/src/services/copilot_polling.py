@@ -578,13 +578,39 @@ async def post_agent_outputs_from_pr(
                 continue
 
             logger.info(
-                "Agent '%s' PR #%d complete for issue #%d — posting .md outputs as comments",
+                "Agent '%s' PR #%d complete for issue #%d — processing completion",
                 current_agent,
                 pr_number,
                 task.issue_number,
             )
 
-            # Get PR details for the head branch ref
+            # STEP 1: Merge child PR into the main branch FIRST (before posting Done!)
+            # This ensures GitHub has time to process the merge before we try to assign the next agent.
+            is_child_pr = finished_pr.get("is_child_pr", False)
+            main_branch_info = get_issue_main_branch(task.issue_number)
+            if is_child_pr and main_branch_info:
+                merge_result = await _merge_child_pr_if_applicable(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    main_branch=main_branch_info["branch"],
+                    main_pr_number=main_branch_info["pr_number"],
+                    completed_agent=current_agent,
+                )
+                if merge_result:
+                    logger.info(
+                        "Merged child PR #%d before posting Done! for agent '%s' on issue #%d",
+                        pr_number,
+                        current_agent,
+                        task.issue_number,
+                    )
+                    # Wait a moment for GitHub to fully process the merge
+                    import asyncio
+
+                    await asyncio.sleep(2)
+
+            # STEP 2: Get PR details for posting .md outputs
             pr_details = await github_projects_service.get_pull_request(
                 access_token=access_token,
                 owner=task_owner,
@@ -712,9 +738,7 @@ async def post_agent_outputs_from_pr(
 
             _posted_agent_outputs.add(cache_key)
 
-            # If this was a child PR, mark it as claimed by this agent
-            # to prevent subsequent agents from re-using it
-            is_child_pr = finished_pr.get("is_child_pr", False)
+            # Mark the child PR as claimed (merge already happened above)
             if is_child_pr:
                 claimed_key = f"{task.issue_number}:{pr_number}:{current_agent}"
                 _claimed_child_prs.add(claimed_key)
@@ -1843,19 +1867,8 @@ async def _advance_pipeline(
         len(pipeline.agents),
     )
 
-    # Merge child PR into the main branch if applicable
-    # Child PRs are those that target the issue's main branch (first PR's branch), not `main`
-    main_branch_info = get_issue_main_branch(issue_number)
-    if main_branch_info:
-        await _merge_child_pr_if_applicable(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-            main_branch=main_branch_info["branch"],
-            main_pr_number=main_branch_info["pr_number"],
-            completed_agent=completed_agent,
-        )
+    # NOTE: Child PR merge now happens in post_agent_outputs_from_pr BEFORE the Done! comment
+    # is posted. This ensures GitHub has time to process the merge before we assign the next agent.
 
     # Send agent_completed WebSocket notification
     await connection_manager.broadcast_to_project(
