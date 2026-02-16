@@ -10,7 +10,7 @@
 ### Session 2026-02-13
 
 - Q: Should the Backlog → Ready transition wait for `speckit.specify` to complete before proceeding? → A: Yes — hold the issue in Backlog until `speckit.specify` completes, then auto-transition to Ready.
-- Q: What is the canonical completion signal for a Spec Kit agent? → A: Comment-based — the agent posts its output (markdown files) as GitHub Issue comments, then posts a final `<agent-name>: All done!>` comment as the completion signal.
+- Q: What is the canonical completion signal for a Spec Kit agent? → A: Comment-based — the agent posts its output (markdown files) as GitHub Issue comments, then posts a final `<agent-name>: Done!` comment as the completion signal.
 - Q: Where should pipeline state (which agent is active, which have completed) be persisted? → A: In-memory with GitHub Issue comments as source of truth — completion markers on the issue serve as the durable record; on restart, the system reconstructs pipeline state by reading issue comments.
 - Q: Should the existing polling service be extended to monitor all pipeline statuses, or should a separate pipeline monitor be introduced? → A: Extend existing polling service — add comment-based completion checks for Backlog and Ready statuses alongside the existing PR-based check for In Progress.
 - Q: Should `speckit.implement` completion use the comment-based signal or the existing PR-based detection? → A: PR-based (existing) — keep detecting `speckit.implement` completion via PR un-drafting. *(Updated: With hierarchical branching, all agents now create PRs. The `speckit.specify`, `speckit.plan`, and `speckit.tasks` agents produce PRs whose `.md` outputs are extracted and posted as issue comments by the polling service. `speckit.implement` still uses the PR-based completion detection.)*
@@ -87,7 +87,7 @@ An administrator or project owner can view and update the mapping between GitHub
 
 - What happens when the `speckit.plan` agent completes but `speckit.tasks` assignment fails? The issue should remain in "Ready" with an error logged, and the user should be notified to retry.
 - What happens if an issue is manually moved from "Backlog" directly to "In Progress", skipping "Ready"? The system should assign `speckit.implement` since the status-to-agent mapping is based on the target status, not the transition path.
-- How does the system detect completion of sequential agents (plan then tasks) in the "Ready" pipeline? Completion is detected when the agent posts a `<agent-name>: All done!>` comment on the GitHub Issue. The system polls issue comments for this marker.
+- How does the system detect completion of sequential agents (plan then tasks) in the "Ready" pipeline? Completion is detected when the agent posts a `<agent-name>: Done!` comment on the GitHub Issue. The system polls issue comments for this marker.
 - What happens if an issue is moved backward in the workflow (e.g., from "In Progress" back to "Ready")? The system should re-trigger the agent(s) mapped to the new status, treating it as a fresh transition.
 - What happens if the Spec Kit agent name is invalid or unrecognized by GitHub Copilot? The system should log a warning and fall back to generic Copilot assignment without a custom agent.
 - How does the system handle concurrent status changes on the same issue? The system should process transitions sequentially per issue to avoid race conditions in agent assignment.
@@ -100,18 +100,18 @@ An administrator or project owner can view and update the mapping between GitHub
 - **FR-002**: System MUST assign GitHub Copilot with the `speckit.specify` custom agent when an issue enters "Backlog" status
 - **FR-002a**: System MUST hold the issue in "Backlog" status until the `speckit.specify` agent completes, then auto-transition the issue to "Ready"
 - **FR-003**: System MUST assign GitHub Copilot with the `speckit.plan` custom agent when an issue enters "Ready" status
-- **FR-004**: System MUST detect when the `speckit.plan` agent completes its work on a "Ready" issue by monitoring for a comment matching the pattern `<agent-name>: All done!>` on the GitHub Issue
+- **FR-004**: System MUST detect when the `speckit.plan` agent completes its work on a "Ready" issue by monitoring for a comment matching the pattern `<agent-name>: Done!` on the GitHub Issue
 - **FR-005**: System MUST assign GitHub Copilot with the `speckit.tasks` custom agent after `speckit.plan` completes on a "Ready" issue
-- **FR-006**: System MUST detect when the `speckit.tasks` agent completes its work on a "Ready" issue by monitoring for a comment matching the pattern `<agent-name>: All done!>` on the GitHub Issue
+- **FR-006**: System MUST detect when the `speckit.tasks` agent completes its work on a "Ready" issue by monitoring for a comment matching the pattern `<agent-name>: Done!` on the GitHub Issue
 - **FR-007**: System MUST transition the issue from "Ready" to "In Progress" only after both `speckit.plan` and `speckit.tasks` agents have completed
 - **FR-008**: System MUST assign GitHub Copilot with the `speckit.implement` custom agent when an issue enters "In Progress" status
 - **FR-009**: System MUST pass the full issue context (title, description, comments, and artifacts from prior agents) as the prompt to each assigned custom agent
-- **FR-009a**: System MUST detect completion of `speckit.specify`, `speckit.plan`, and `speckit.tasks` agents by polling for a GitHub Issue comment matching the pattern `<agent-name>: All done!>` (e.g., `speckit.specify: All done!>`)
+- **FR-009a**: System MUST detect completion of `speckit.specify`, `speckit.plan`, and `speckit.tasks` agents by polling for a GitHub Issue comment matching the pattern `<agent-name>: Done!` (e.g., `speckit.specify: Done!`)
 - **FR-009b**: Each agent MUST post its output artifacts (markdown files) as GitHub Issue comments before posting the completion marker comment
 - **FR-009c**: System MUST detect completion of the `speckit.implement` agent via the existing PR-based mechanism (PR is no longer a draft), not via the comment-based signal. *(Note: With hierarchical branching, all agents create PRs. The system extracts `.md` outputs from specify/plan/tasks PRs and posts them as issue comments with a `Done!` marker. speckit.implement completion is detected via PR timeline events.)*
 - **FR-010**: System MUST log each agent assignment as a workflow transition, recording the specific agent name used
 - **FR-011**: System MUST track the sub-state of sequential agent pipelines (e.g., "Ready: awaiting plan completion", "Ready: awaiting tasks completion") in memory, using GitHub Issue comments as the durable source of truth
-- **FR-011a**: On system restart, the system MUST reconstruct pipeline state for in-progress issues by scanning their GitHub Issue comments for agent completion markers (`<agent-name>: All done!>`)
+- **FR-011a**: On system restart, the system MUST reconstruct pipeline state for in-progress issues by scanning their GitHub Issue comments for agent completion markers (`<agent-name>: Done!`)
 - **FR-011b**: The existing polling service MUST be extended to monitor issues in "Backlog" and "Ready" statuses for agent completion comments, in addition to the existing "In Progress" PR-based checks
 - **FR-012**: System MUST handle agent assignment failures gracefully by logging the error, notifying the user, and leaving the issue in its current status
 - **FR-013**: System MUST support configuring the status-to-agent mapping per project through the workflow configuration

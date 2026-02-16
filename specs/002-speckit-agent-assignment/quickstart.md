@@ -9,8 +9,8 @@ This feature replaces the single Copilot custom agent assignment with a per-stat
 
 | Status | Agent(s) | Completion Signal |
 |--------|----------|-------------------|
-| Backlog | `speckit.specify` | Comment: `speckit.specify: All done!>` |
-| Ready | `speckit.plan` → `speckit.tasks` | Comments: `speckit.plan: All done!>`, `speckit.tasks: All done!>` |
+| Backlog | `speckit.specify` | Comment: `speckit.specify: Done!` |
+| Ready | `speckit.plan` → `speckit.tasks` | Comments: `speckit.plan: Done!`, `speckit.tasks: Done!` |
 | In Progress | `speckit.implement` | PR un-drafted (existing) |
 | In Review | *(no agent — reviewer assigned)* | — |
 
@@ -84,7 +84,7 @@ User confirms an AI-generated issue recommendation in the chat interface.
 The `speckit.specify` agent works on the issue, posting specification artifacts as comments.
 
 **What happens when complete**:
-- Agent posts `speckit.specify: All done!>` comment
+- Agent posts `speckit.specify: Done!` comment
 - Polling service detects the completion marker
 - Issue auto-transitions to **Ready** status
 - `speckit.plan` agent is assigned
@@ -95,7 +95,7 @@ The `speckit.specify` agent works on the issue, posting specification artifacts 
 The `speckit.plan` agent generates an implementation plan.
 
 **What happens when complete**:
-- Agent posts `speckit.plan: All done!>` comment
+- Agent posts `speckit.plan: Done!` comment
 - Polling service detects the marker
 - `speckit.tasks` agent is assigned (issue stays in **Ready**)
 - User receives notification: *"speckit.plan completed, speckit.tasks assigned"*
@@ -105,7 +105,7 @@ The `speckit.plan` agent generates an implementation plan.
 The `speckit.tasks` agent breaks the plan into actionable tasks.
 
 **What happens when complete**:
-- Agent posts `speckit.tasks: All done!>` comment
+- Agent posts `speckit.tasks: Done!` comment
 - Polling service detects the marker
 - Issue transitions to **In Progress** status
 - `speckit.implement` agent is assigned

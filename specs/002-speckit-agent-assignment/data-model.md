@@ -84,7 +84,7 @@ Tracks per-issue pipeline progress through sequential agents.
 **Reconstruction**: On restart, for each tracked issue:
 1. Fetch issue comments via `get_issue_with_comments()`
 2. Get agent list from `agent_mappings[current_status]`
-3. Scan comments for `"<agent>: All done!>"` markers sequentially
+3. Scan comments for `"<agent>: Done!"` markers sequentially
 4. Set `current_agent_index` to count of found markers
 5. If all agents completed → trigger status transition
 

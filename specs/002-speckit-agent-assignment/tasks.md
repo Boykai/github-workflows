@@ -29,7 +29,7 @@
 
 **Purpose**: Modify workflow to stop at Backlog and assign speckit.specify
 
-- [X] T004 [US1] Add check_agent_completion_comment() method to GitHubProjectsService in backend/src/services/github_projects.py that scans issue comments for `<agent-name>: All done!>` marker
+- [X] T004 [US1] Add check_agent_completion_comment() method to GitHubProjectsService in backend/src/services/github_projects.py that scans issue comments for `<agent-name>: Done!` marker
 - [X] T005 [US1] Add assign_agent_for_status() helper method to WorkflowOrchestrator in backend/src/services/workflow_orchestrator.py that looks up agent_mappings, fetches issue context, and calls assign_copilot_to_issue
 - [X] T006 [US1] Refactor execute_full_workflow() in backend/src/services/workflow_orchestrator.py to stop at Backlog status and assign first Backlog agent instead of transitioning to Ready
 

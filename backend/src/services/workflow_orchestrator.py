@@ -630,8 +630,10 @@ class WorkflowOrchestrator:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
-        assert ctx.issue_id is not None, "issue_id required for agent assignment"
-        assert ctx.issue_number is not None, "issue_number required for agent assignment"
+        if ctx.issue_id is None:
+            raise ValueError("issue_id required for agent assignment")
+        if ctx.issue_number is None:
+            raise ValueError("issue_number required for agent assignment")
 
         agents = config.agent_mappings.get(status, [])
         if not agents:
@@ -869,8 +871,10 @@ class WorkflowOrchestrator:
         Returns:
             True if transition succeeded (assignment failures are logged but don't fail the transition)
         """
-        assert ctx.issue_number is not None, "issue_number required"
-        assert ctx.project_item_id is not None, "project_item_id required"
+        if ctx.issue_number is None:
+            raise ValueError("issue_number required for handle_ready_to_in_progress")
+        if ctx.project_item_id is None:
+            raise ValueError("project_item_id required for handle_ready_to_in_progress")
 
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:
@@ -982,8 +986,10 @@ class WorkflowOrchestrator:
         Returns:
             True if PR completion detected and handled, False if still in progress
         """
-        assert ctx.issue_number is not None, "issue_number required"
-        assert ctx.project_item_id is not None, "project_item_id required"
+        if ctx.issue_number is None:
+            raise ValueError("issue_number required for handle_in_progress")
+        if ctx.project_item_id is None:
+            raise ValueError("project_item_id required for handle_in_progress")
 
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:
@@ -1134,8 +1140,10 @@ class WorkflowOrchestrator:
         Returns:
             True if transition and assignment succeeded
         """
-        assert ctx.issue_number is not None, "issue_number required"
-        assert ctx.project_item_id is not None, "project_item_id required"
+        if ctx.issue_number is None:
+            raise ValueError("issue_number required for handle_completion")
+        if ctx.project_item_id is None:
+            raise ValueError("project_item_id required for handle_completion")
 
         config = ctx.config or get_workflow_config(ctx.project_id)
         if not config:

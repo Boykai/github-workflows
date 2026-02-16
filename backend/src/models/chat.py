@@ -8,6 +8,8 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
+from src.constants import DEFAULT_AGENT_MAPPINGS
+
 
 class SenderType(str, Enum):
     """Sender type for chat messages."""
@@ -299,14 +301,6 @@ class IssueRecommendation(BaseModel):
             }
         }
     }
-
-
-# Default agent mappings: status name → ordered list of Spec Kit agents
-DEFAULT_AGENT_MAPPINGS: dict[str, list[str]] = {
-    "Backlog": ["speckit.specify"],
-    "Ready": ["speckit.plan", "speckit.tasks"],
-    "In Progress": ["speckit.implement"],
-}
 
 
 class WorkflowConfiguration(BaseModel):

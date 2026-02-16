@@ -20,14 +20,14 @@
 
 ### R2: How to detect comment-based agent completion
 
-**Decision**: Add a `check_agent_completion_comment()` method to `GitHubProjectsService` that uses the existing `get_issue_with_comments()` GraphQL query (which returns up to 100 comments) and scans for a comment body matching the pattern `<agent-name>: All done!>`. The scan checks comments in reverse chronological order for the most recent completion marker.
+**Decision**: Add a `check_agent_completion_comment()` method to `GitHubProjectsService` that uses the existing `get_issue_with_comments()` GraphQL query (which returns up to 100 comments) and scans for a comment body matching the pattern `<agent-name>: Done!`. The scan checks comments in reverse chronological order for the most recent completion marker.
 
 **Rationale**: The `get_issue_with_comments()` method already fetches issue comments via GraphQL (`GET_ISSUE_WITH_COMMENTS_QUERY`). Adding comment pattern matching requires no new API calls — it's a filter on data we already retrieve. This is simpler than using the REST timeline API or webhooks.
 
 **Alternatives considered**:
 - Webhook-based detection (GitHub `issue_comment` event) — rejected because the system already uses polling and adding webhook handling for comments would introduce a second detection path, complicating the architecture.
 - REST API `GET /repos/{owner}/{repo}/issues/{issue_number}/comments` — rejected because GraphQL query already fetches comments and is used elsewhere; would be a redundant API path.
-- Regex pattern matching on comment body — considered but the completion marker is a simple string match, not a regex pattern. Exact match (or `startswith`) on `"<agent-name>: All done!>"` is sufficient.
+- Regex pattern matching on comment body — considered but the completion marker is a simple string match, not a regex pattern. Exact match (or `startswith`) on `"<agent-name>: Done!"` is sufficient.
 
 ---
 
@@ -53,8 +53,8 @@
 ### R4: How to extend the polling service for multi-status monitoring
 
 **Decision**: Extend `poll_for_copilot_completion()` to add two new check functions alongside `check_in_progress_issues()`:
-1. `check_backlog_issues()` — polls Backlog issues for `speckit.specify: All done!>` comment
-2. `check_ready_issues()` — polls Ready issues for `speckit.plan: All done!>` and `speckit.tasks: All done!>` comments
+1. `check_backlog_issues()` — polls Backlog issues for `speckit.specify: Done!` comment
+2. `check_ready_issues()` — polls Ready issues for `speckit.plan: Done!` and `speckit.tasks: Done!` comments
 
 Each function follows the same pattern as `check_in_progress_issues()`: fetch project items, filter by status, check each matching issue.
 
@@ -70,14 +70,14 @@ poll_for_copilot_completion():
   items = get_project_items()
   
   1. check_backlog_issues(items)
-     → For each Backlog issue: check for "speckit.specify: All done!>"
+     → For each Backlog issue: check for "speckit.specify: Done!"
      → If found: transition to Ready, assign speckit.plan
   
   2. check_ready_issues(items)
      → For each Ready issue: check pipeline state
-     → If awaiting plan: check for "speckit.plan: All done!>"
+     → If awaiting plan: check for "speckit.plan: Done!"
        → If found: assign speckit.tasks, update pipeline state
-     → If awaiting tasks: check for "speckit.tasks: All done!>"
+     → If awaiting tasks: check for "speckit.tasks: Done!"
        → If found: transition to In Progress, assign speckit.implement
   
   3. check_in_progress_issues(items)  # existing, unchanged
@@ -124,7 +124,7 @@ async def reconstruct_pipeline_state(issue_number, status, agent_mappings, issue
     agents = agent_mappings.get(status, [])
     completed = []
     for agent in agents:
-        marker = f"{agent}: All done!>"
+        marker = f"{agent}: Done!"
         if any(marker in comment.body for comment in issue_comments):
             completed.append(agent)
         else:
