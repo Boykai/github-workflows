@@ -1,74 +1,77 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Blue Background Application Interface
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-blue-background` | **Date**: 2026-02-16 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/001-blue-background/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a solid blue background (#1976D2) to the main application container while maintaining WCAG AA accessibility standards (minimum 4.5:1 contrast ratio for text). The implementation will use CSS custom properties in the existing theme system to ensure consistent application across all screens and dark mode compatibility.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4, React 18.3.1  
+**Primary Dependencies**: Vite 5.4 (build tool), React 18.3.1, CSS3 custom properties  
+**Storage**: localStorage (theme persistence via useAppTheme hook)  
+**Testing**: Vitest (unit tests), Playwright (e2e tests)  
+**Target Platform**: Modern web browsers (Chrome, Firefox, Safari, Edge)
+**Project Type**: Web application (frontend + backend)  
+**Performance Goals**: No measurable increase in page load time, maintain 60fps rendering  
+**Constraints**: WCAG AA accessibility (4.5:1 contrast for text, 3:1 for interactive elements), dark mode compatibility  
+**Scale/Scope**: Single-page application, ~20 components, CSS variable-based theming system
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Design Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First Development** | ✅ PASS | Feature spec includes prioritized user stories (P1, P2) with Given-When-Then acceptance criteria. Scope is clearly bounded to styling changes only. |
+| **II. Template-Driven Workflow** | ✅ PASS | Following plan-template.md structure. All required sections present. |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | Planning phase output will feed into tasks generation and implementation phases. |
+| **IV. Test Optionality** | ✅ PASS | Feature spec does not explicitly request tests. Visual validation is primary verification method. Manual testing acceptable for CSS changes. |
+| **V. Simplicity and DRY** | ✅ PASS | Solution uses existing CSS custom properties. No new abstractions needed. Single CSS variable change achieves requirement. |
+
+**Pre-Design Result**: ✅ ALL GATES PASSED - Proceeding to Phase 0 research
+
+### Post-Design Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First Development** | ✅ PASS | All design artifacts trace directly to spec requirements. Implementation contracts clearly map to functional requirements. |
+| **II. Template-Driven Workflow** | ✅ PASS | All Phase 1 artifacts follow canonical templates. Research, data-model, contracts, and quickstart all properly structured. |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | Planning phase output complete. Ready for handoff to tasks generation (speckit.tasks) and implementation (speckit.implement). |
+| **IV. Test Optionality** | ✅ PASS | Manual visual testing appropriate for CSS changes. No automated tests required as spec does not request them. |
+| **V. Simplicity and DRY** | ✅ PASS | Single file modification (index.css). No abstractions added. Pure CSS implementation using existing variable system. Zero JavaScript changes. |
+
+**Post-Design Result**: ✅ ALL GATES PASSED - Ready for task generation and implementation
+
+**Complexity Justification**: N/A - No complexity violations
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-blue-background/
+├── spec.md              # Feature specification (already created by speckit.specify)
+├── checklists/          # Quality checklists (already created by speckit.specify)
+│   └── requirements.md
+├── plan.md              # This file (speckit.plan output)
+├── research.md          # Phase 0 output (speckit.plan)
+├── data-model.md        # Phase 1 output (speckit.plan)
+├── quickstart.md        # Phase 1 output (speckit.plan)
+├── contracts/           # Phase 1 output (speckit.plan)
+│   └── css-changes.md
+└── tasks.md             # Phase 2 output (speckit.tasks - NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
 │   ├── models/
@@ -78,21 +81,24 @@ backend/
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   ├── components/      # React components (LoginButton, ProjectSidebar, ChatInterface, etc.)
+│   │   ├── auth/
+│   │   ├── chat/
+│   │   ├── common/
+│   │   └── sidebar/
+│   ├── hooks/           # Custom React hooks (useAppTheme.ts manages theme switching)
+│   ├── services/        # API services
+│   ├── types/           # TypeScript type definitions
+│   ├── App.tsx          # Main application component (app-container structure)
+│   ├── App.css          # Application-specific styles
+│   ├── index.css        # Global styles + CSS custom properties (MODIFICATION TARGET)
+│   └── main.tsx         # Application entry point
+├── e2e/                 # Playwright end-to-end tests
+├── index.html           # HTML entry point
+└── package.json
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with frontend/backend separation. This feature affects **only the frontend** styling system. The main modification target is `frontend/src/index.css` where CSS custom properties are defined. The existing theme system uses `:root` for light mode and `html.dark-mode-active` for dark mode, with `--color-bg-secondary` controlling the main application background color.
 
 ## Complexity Tracking
 
