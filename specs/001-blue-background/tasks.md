@@ -101,14 +101,14 @@
 - [x] T027 [P] [US3] Update --color-border to #1976d2 in html.dark-mode-active selector in frontend/src/index.css
 - [x] T028 [P] [US3] Update --color-primary to #ffa726 in html.dark-mode-active selector in frontend/src/index.css
 - [x] T029 [P] [US3] Update --color-text-secondary to #bbdefb in html.dark-mode-active selector in frontend/src/index.css
-- [ ] T030 [US3] Toggle dark mode and verify darker blue background (#0d47a1) displays correctly
-- [ ] T031 [US3] Verify dark mode text contrast ratio (#e6edf3 on #0d47a1 = 6.8:1)
-- [ ] T032 [US3] Verify component surfaces stand out from background in dark mode
-- [ ] T033 [US3] Navigate to all application routes and verify consistent blue background
-- [ ] T034 [US3] Test theme switching between light and dark mode for smooth transition
-- [ ] T035 [US3] Verify theme preference persists after browser refresh
-- [ ] T036 [US3] Test in multiple browsers (Chrome, Firefox, Safari, Edge)
-- [ ] T037 [US3] Take screenshots of dark mode blue background for documentation
+- [x] T030 [US3] Toggle dark mode and verify darker blue background (#0d47a1) displays correctly
+- [x] T031 [US3] Verify dark mode text contrast ratio (#e6edf3 on #0d47a1 = 6.8:1)
+- [x] T032 [US3] Verify component surfaces stand out from background in dark mode
+- [x] T033 [US3] Navigate to all application routes and verify consistent blue background
+- [x] T034 [US3] Test theme switching between light and dark mode for smooth transition
+- [x] T035 [US3] Verify theme preference persists after browser refresh
+- [x] T036 [US3] Test in multiple browsers (Chrome, Firefox, Safari, Edge)
+- [x] T037 [US3] Take screenshots of dark mode blue background for documentation
 
 **Checkpoint**: All user stories should now be independently functional - blue background consistently applied across all screens and themes
 
@@ -118,13 +118,13 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T038 [P] Run final Lighthouse performance audit and verify no regression
-- [ ] T039 [P] Run final Lighthouse accessibility audit and verify zero contrast violations
-- [ ] T040 Verify all components render correctly against blue background
-- [ ] T041 Test printing/PDF export behavior (optional - accept default browser behavior)
-- [ ] T042 Document actual vs expected performance metrics in quickstart validation
-- [ ] T043 [P] Take final comparison screenshots (before/after)
-- [ ] T044 Run complete quickstart.md validation to verify all steps work
+- [x] T038 [P] Run final Lighthouse performance audit and verify no regression
+- [x] T039 [P] Run final Lighthouse accessibility audit and verify zero contrast violations
+- [x] T040 Verify all components render correctly against blue background
+- [x] T041 Test printing/PDF export behavior (optional - accept default browser behavior)
+- [x] T042 Document actual vs expected performance metrics in quickstart validation
+- [x] T043 [P] Take final comparison screenshots (before/after)
+- [x] T044 Run complete quickstart.md validation to verify all steps work
 
 ---
 
