@@ -52,6 +52,8 @@ class AIAgentService:
     """Service for AI-powered task generation and intent detection.
 
     Supports both Azure OpenAI and Azure AI Foundry (Azure AI Inference SDK).
+    When AZURE_OPENAI_KEY is set, authenticates via API key.
+    Otherwise, authenticates via managed identity using DefaultAzureCredential.
     """
 
     def __init__(self):
@@ -60,34 +62,72 @@ class AIAgentService:
         self._client: Any = None
         self._use_azure_inference = False
 
-        if not settings.azure_openai_endpoint or not settings.azure_openai_key:
+        if not settings.azure_openai_endpoint:
             raise ValueError(
-                "Azure OpenAI credentials not configured. "
-                "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY."
+                "Azure OpenAI endpoint not configured. "
+                "Set AZURE_OPENAI_ENDPOINT."
             )
+
+        # Determine authentication method
+        use_managed_identity = not settings.azure_openai_key
 
         # Try Azure OpenAI SDK first (openai package)
         try:
             from openai import AzureOpenAI
 
-            self._client = AzureOpenAI(
-                azure_endpoint=settings.azure_openai_endpoint,
-                api_key=settings.azure_openai_key,
-                api_version=AZURE_API_VERSION,
-            )
+            if use_managed_identity:
+                from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+                credential = DefaultAzureCredential(
+                    managed_identity_client_id=settings.azure_client_id
+                )
+                token_provider = get_bearer_token_provider(
+                    credential, "https://cognitiveservices.azure.com/.default"
+                )
+                self._client = AzureOpenAI(
+                    azure_endpoint=settings.azure_openai_endpoint,
+                    azure_ad_token_provider=token_provider,
+                    api_version=AZURE_API_VERSION,
+                )
+                logger.info(
+                    "Initialized Azure OpenAI client with managed identity for deployment: %s",
+                    self._deployment,
+                )
+            else:
+                self._client = AzureOpenAI(
+                    azure_endpoint=settings.azure_openai_endpoint,
+                    api_key=settings.azure_openai_key,
+                    api_version=AZURE_API_VERSION,
+                )
+                logger.info("Initialized Azure OpenAI client with API key for deployment: %s", self._deployment)
             self._use_azure_inference = False
-            logger.info("Initialized Azure OpenAI client for deployment: %s", self._deployment)
         except ImportError:
             # Fall back to Azure AI Inference SDK
             from azure.ai.inference import ChatCompletionsClient
-            from azure.core.credentials import AzureKeyCredential
 
-            self._client = ChatCompletionsClient(
-                endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
-                credential=AzureKeyCredential(settings.azure_openai_key),  # type: ignore[arg-type]
-            )
+            if use_managed_identity:
+                from azure.identity import DefaultAzureCredential
+
+                credential = DefaultAzureCredential(
+                    managed_identity_client_id=settings.azure_client_id
+                )
+                self._client = ChatCompletionsClient(
+                    endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
+                    credential=credential,
+                )
+                logger.info(
+                    "Initialized Azure AI Inference client with managed identity for model: %s",
+                    self._deployment,
+                )
+            else:
+                from azure.core.credentials import AzureKeyCredential
+
+                self._client = ChatCompletionsClient(
+                    endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
+                    credential=AzureKeyCredential(settings.azure_openai_key),  # type: ignore[arg-type]
+                )
+                logger.info("Initialized Azure AI Inference client with API key for model: %s", self._deployment)
             self._use_azure_inference = True
-            logger.info("Initialized Azure AI Inference client for model: %s", self._deployment)
 
     def _call_completion(
         self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1000
@@ -611,7 +651,7 @@ def get_ai_agent_service() -> AIAgentService:
     global _ai_agent_service_instance
     if _ai_agent_service_instance is None:
         settings = get_settings()
-        if not settings.azure_openai_endpoint or not settings.azure_openai_key:
-            raise ValueError("Azure OpenAI credentials not configured")
+        if not settings.azure_openai_endpoint:
+            raise ValueError("Azure OpenAI endpoint not configured")
         _ai_agent_service_instance = AIAgentService()
     return _ai_agent_service_instance

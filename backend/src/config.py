@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     azure_openai_endpoint: str | None = None
     azure_openai_key: str | None = None
     azure_openai_deployment: str = "gpt-4"
+    azure_client_id: str | None = None
 
     # Session
     session_secret_key: str
