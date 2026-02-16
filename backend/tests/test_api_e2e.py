@@ -65,7 +65,11 @@ class TestAuthEndpoints:
         response = await client.get("/api/v1/auth/github", follow_redirects=False)
 
         # Should redirect to GitHub OAuth
-        assert response.status_code in [302, 307, 400]  # Redirect or bad request if not configured
+        assert response.status_code in [
+            302,
+            307,
+            400,
+        ]  # Redirect or bad request if not configured
 
     @pytest.mark.asyncio
     async def test_auth_github_callback_requires_code_and_state(self, client):
@@ -78,7 +82,8 @@ class TestAuthEndpoints:
     async def test_auth_github_callback_validates_state(self, client):
         """GitHub callback should validate state parameter."""
         response = await client.get(
-            "/api/v1/auth/github/callback", params={"code": "test_code", "state": "invalid_state"}
+            "/api/v1/auth/github/callback",
+            params={"code": "test_code", "state": "invalid_state"},
         )
         # Should reject invalid state
         assert response.status_code == 400
@@ -111,7 +116,8 @@ class TestAuthEndpoints:
 
         try:
             response = await client.post(
-                "/api/v1/auth/session", params={"session_token": str(session.session_id)}
+                "/api/v1/auth/session",
+                params={"session_token": str(session.session_id)},
             )
 
             assert response.status_code == 200

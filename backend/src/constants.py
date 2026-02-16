@@ -9,3 +9,62 @@ CACHE_PREFIX_PROJECT_ITEMS = "project:items"
 
 # Session cookie name
 SESSION_COOKIE_NAME = "session_id"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Workflow Status Names
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class StatusNames:
+    """Standard workflow status column names."""
+
+    BACKLOG = "Backlog"
+    READY = "Ready"
+    IN_PROGRESS = "In Progress"
+    IN_REVIEW = "In Review"
+    DONE = "Done"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent Configuration
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+# Known .md output files for specific agents.
+# Used to label expected vs. extra .md files when posting PR outputs as issue comments.
+# Any agent can produce output files — this mapping is NOT a gatekeeper.
+# Agents not listed here (or with an empty list) still get full PR completion
+# detection, output posting for any .md files found, and Done! marker posting.
+AGENT_OUTPUT_FILES: dict[str, list[str]] = {
+    "speckit.specify": ["spec.md"],
+    "speckit.plan": ["plan.md"],
+    "speckit.tasks": ["tasks.md"],
+}
+
+# Default agent mappings for each status
+DEFAULT_AGENT_MAPPINGS: dict[str, list[str]] = {
+    StatusNames.BACKLOG: ["speckit.specify"],
+    StatusNames.READY: ["speckit.plan", "speckit.tasks"],
+    StatusNames.IN_PROGRESS: ["speckit.implement"],
+}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cache Key Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def cache_key_issue_pr(issue_number: int, pr_number: int) -> str:
+    """Generate cache key for processed issue PR."""
+    return f"{issue_number}:{pr_number}"
+
+
+def cache_key_agent_output(issue_number: int, agent: str, pr_number: int) -> str:
+    """Generate cache key for posted agent outputs."""
+    return f"{issue_number}:{agent}:{pr_number}"
+
+
+def cache_key_review_requested(issue_number: int) -> str:
+    """Generate cache key for Copilot review request tracking."""
+    return f"copilot_review_requested:{issue_number}"

@@ -12,9 +12,35 @@ from src.models.user import UserSession
 from src.services.cache import cache, get_project_items_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
+from src.services.workflow_orchestrator import get_workflow_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+async def _resolve_repository_for_project(access_token: str, project_id: str) -> tuple[str, str]:
+    """Resolve repository owner and name for issue creation."""
+    # Try project items first
+    repo_info = await github_projects_service.get_project_repository(access_token, project_id)
+    if repo_info:
+        return repo_info
+
+    # Try workflow config
+    config = get_workflow_config(project_id)
+    if config and config.repository_owner and config.repository_name:
+        return config.repository_owner, config.repository_name
+
+    # Fall back to default repository from settings
+    from src.config import get_settings
+
+    settings = get_settings()
+    if settings.default_repo_owner and settings.default_repo_name:
+        return settings.default_repo_owner, settings.default_repo_name
+
+    raise ValidationError(
+        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
+        "or ensure the project has at least one linked issue."
+    )
 
 
 @router.post("", response_model=Task)
@@ -30,18 +56,33 @@ async def create_task(
             raise ValidationError("No project selected. Please select a project first.")
         project_id = session.selected_project_id
 
-    logger.info("Creating task in project %s: %s", project_id, request.title)
+    logger.info("Creating issue in project %s: %s", project_id, request.title)
 
-    # Create draft item in GitHub
-    item_id = await github_projects_service.create_draft_item(
+    # Resolve repository info for issue creation
+    owner, repo = await _resolve_repository_for_project(session.access_token, project_id)
+
+    # Step 1: Create a real GitHub Issue via REST API
+    issue = await github_projects_service.create_issue(
+        access_token=session.access_token,
+        owner=owner,
+        repo=repo,
+        title=request.title,
+        body=request.description or "",
+    )
+
+    issue_number = issue["number"]
+    issue_node_id = issue["node_id"]
+    issue_url = issue["html_url"]
+
+    # Step 2: Add the issue to the project
+    item_id = await github_projects_service.add_issue_to_project(
         access_token=session.access_token,
         project_id=project_id,
-        title=request.title,
-        description=request.description,
+        issue_node_id=issue_node_id,
     )
 
     if not item_id:
-        raise ValidationError("Failed to create task in GitHub Project")
+        raise ValidationError("Failed to add issue to GitHub Project")
 
     # Create task response
     task = Task(
@@ -51,6 +92,7 @@ async def create_task(
         description=request.description,
         status="Todo",  # Default status for new items
         status_option_id="",  # Will be set by GitHub
+        issue_number=issue_number,
     )
 
     # Invalidate cache
@@ -63,10 +105,12 @@ async def create_task(
             "type": "task_created",
             "task_id": item_id,
             "title": request.title,
+            "issue_number": issue_number,
+            "issue_url": issue_url,
         },
     )
 
-    logger.info("Created task %s in project %s", task.task_id, project_id)
+    logger.info("Created issue #%d in project %s", issue_number, project_id)
     return task
 
 

@@ -402,7 +402,6 @@ async def update_issue_status_for_copilot_pr(
     # Get the project ID for this repository
     # We need to find which project contains this issue
     try:
-
         # Try to find the project for this repository
         # First, list user's projects to find the matching one
         projects_response = await github_projects_service._client.get(
@@ -423,7 +422,11 @@ async def update_issue_status_for_copilot_pr(
             }
 
         # Get projects for the repository owner
-        projects = await github_projects_service.get_user_projects(settings.github_webhook_token)
+        webhook_user = projects_response.json()
+        webhook_username: str = webhook_user.get("login", repo_owner)
+        projects = await github_projects_service.list_user_projects(
+            settings.github_webhook_token, webhook_username
+        )
 
         # Find the project that contains this repository
         target_project = None

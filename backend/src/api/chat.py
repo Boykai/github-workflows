@@ -20,12 +20,23 @@ from src.models.chat import (
     ProposalStatus,
     RecommendationStatus,
     SenderType,
+    WorkflowConfiguration,
 )
 from src.models.user import UserSession
 from src.services.ai_agent import get_ai_agent_service
-from src.services.cache import cache, get_project_items_cache_key, get_user_projects_cache_key
+from src.services.cache import (
+    cache,
+    get_project_items_cache_key,
+    get_user_projects_cache_key,
+)
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
+from src.services.workflow_orchestrator import (
+    WorkflowContext,
+    get_workflow_config,
+    get_workflow_orchestrator,
+    set_workflow_config,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -35,6 +46,39 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007)
 _recommendations: dict[str, IssueRecommendation] = {}
+
+
+async def _resolve_repository(session: UserSession) -> tuple[str, str]:
+    """Resolve repository owner and name for issue creation."""
+    if not session.selected_project_id:
+        raise ValidationError("No project selected")
+
+    project_id = session.selected_project_id
+
+    # Try project items first
+    repo_info = await github_projects_service.get_project_repository(
+        session.access_token,
+        project_id,
+    )
+    if repo_info:
+        return repo_info
+
+    # Try workflow config
+    config = get_workflow_config(project_id)
+    if config and config.repository_owner and config.repository_name:
+        return config.repository_owner, config.repository_name
+
+    # Fall back to default repository from settings
+    from src.config import get_settings
+
+    settings = get_settings()
+    if settings.default_repo_owner and settings.default_repo_name:
+        return settings.default_repo_owner, settings.default_repo_name
+
+    raise ValidationError(
+        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
+        "or ensure the project has at least one linked issue."
+    )
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
@@ -80,6 +124,8 @@ async def send_message(
     if not session.selected_project_id:
         raise ValidationError("Please select a project first")
 
+    selected_project_id = session.selected_project_id
+
     # T058: Input validation for maximum content length
     MAX_FEATURE_REQUEST_LENGTH = 4000
     if len(request.content) > MAX_FEATURE_REQUEST_LENGTH:
@@ -115,13 +161,13 @@ async def send_message(
     cached_projects = cache.get(cache_key)
     if cached_projects:
         for p in cached_projects:
-            if p.project_id == session.selected_project_id:
+            if p.project_id == selected_project_id:
                 project_name = p.name
                 project_columns = [col.name for col in p.status_columns]
                 break
 
     # Get current tasks for context
-    tasks_cache_key = get_project_items_cache_key(session.selected_project_id)
+    tasks_cache_key = get_project_items_cache_key(selected_project_id)
     current_tasks = cache.get(tasks_cache_key) or []
 
     # ──────────────────────────────────────────────────────────────────
@@ -168,7 +214,7 @@ async def send_message(
 {recommendation.user_story}
 
 **UI/UX Description:**
-{recommendation.ui_ux_description[:200]}{'...' if len(recommendation.ui_ux_description) > 200 else ''}
+{recommendation.ui_ux_description[:200]}{"..." if len(recommendation.ui_ux_description) > 200 else ""}
 
 **Functional Requirements:**
 {requirements_preview}
@@ -211,25 +257,25 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=project_columns if project_columns else DEFAULT_STATUS_COLUMNS,
+        available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
     )
 
     if status_change:
         # This is a status change request - identify target task and status
         target_task = ai_service.identify_target_task(
-            query=status_change.get("task_query", ""),
-            tasks=current_tasks,
+            task_reference=status_change.task_reference,
+            available_tasks=current_tasks,
         )
 
         if target_task:
-            target_status = status_change.get("target_status", "")
+            target_status = status_change.target_status
 
             # Find the status column info
             status_option_id = ""
             status_field_id = ""
             if cached_projects:
                 for p in cached_projects:
-                    if p.project_id == session.selected_project_id:
+                    if p.project_id == selected_project_id:
                         for col in p.status_columns:
                             if col.name.lower() == target_status.lower():
                                 status_option_id = col.option_id
@@ -272,7 +318,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content=f"I couldn't find a task matching '{status_change.get('task_query', '')}'. Please try again with a more specific task name.",
+                content=f"I couldn't find a task matching '{status_change.task_reference}'. Please try again with a more specific task name.",
             )
             add_message(session.session_id, error_message)
 
@@ -357,27 +403,49 @@ async def confirm_proposal(
             if proposal.status != ProposalStatus.EDITED:
                 proposal.status = ProposalStatus.EDITED
 
-    # Create the task in GitHub
+    # Resolve repository info for issue creation
+    owner, repo = await _resolve_repository(session)
+
+    # Narrowed: _resolve_repository validates selected_project_id is not None
+    project_id = session.selected_project_id
+    assert project_id is not None
+
+    # Create the issue in GitHub
     try:
-        item_id = await github_projects_service.create_draft_item(
+        # Step 1: Create a real GitHub Issue via REST API
+        issue = await github_projects_service.create_issue(
             access_token=session.access_token,
-            project_id=session.selected_project_id,
+            owner=owner,
+            repo=repo,
             title=proposal.final_title,
-            description=proposal.final_description,
+            body=proposal.final_description or "",
+        )
+
+        issue_number = issue["number"]
+        issue_node_id = issue["node_id"]
+        issue_url = issue["html_url"]
+
+        # Step 2: Add the issue to the project
+        item_id = await github_projects_service.add_issue_to_project(
+            access_token=session.access_token,
+            project_id=project_id,
+            issue_node_id=issue_node_id,
         )
 
         proposal.status = ProposalStatus.CONFIRMED
 
         # Invalidate cache
-        cache.delete(get_project_items_cache_key(session.selected_project_id))
+        cache.delete(get_project_items_cache_key(project_id))
 
         # Broadcast WebSocket message to connected clients
         await connection_manager.broadcast_to_project(
-            session.selected_project_id,
+            project_id,
             {
                 "type": "task_created",
                 "task_id": item_id,
                 "title": proposal.final_title,
+                "issue_number": issue_number,
+                "issue_url": issue_url,
             },
         )
 
@@ -385,23 +453,101 @@ async def confirm_proposal(
         confirm_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.SYSTEM,
-            content=f"✅ Task created: **{proposal.final_title}**",
+            content=f"✅ Issue created: **{proposal.final_title}** ([#{issue_number}]({issue_url}))",
             action_type=ActionType.TASK_CREATE,
             action_data={
                 "proposal_id": str(proposal.proposal_id),
                 "task_id": item_id,
+                "issue_number": issue_number,
+                "issue_url": issue_url,
                 "status": ProposalStatus.CONFIRMED.value,
             },
         )
         add_message(session.session_id, confirm_message)
 
-        logger.info("Created task from proposal %s: %s", proposal_id, proposal.final_title)
+        logger.info(
+            "Created issue #%d from proposal %s: %s",
+            issue_number,
+            proposal_id,
+            proposal.final_title,
+        )
+
+        # Step 3: Set up workflow config and assign agent for Backlog status
+        try:
+            from src.config import get_settings
+
+            settings = get_settings()
+
+            config = get_workflow_config(project_id)
+            if not config:
+                config = WorkflowConfiguration(
+                    project_id=project_id,
+                    repository_owner=owner,
+                    repository_name=repo,
+                    copilot_assignee=settings.default_assignee,
+                )
+                set_workflow_config(project_id, config)
+            else:
+                config.repository_owner = owner
+                config.repository_name = repo
+                if not config.copilot_assignee:
+                    config.copilot_assignee = settings.default_assignee
+
+            # Set issue status to Backlog on the project
+            backlog_status = config.status_backlog
+            await github_projects_service.update_item_status_by_name(
+                access_token=session.access_token,
+                project_id=project_id,
+                item_id=item_id,
+                status_name=backlog_status,
+            )
+            logger.info(
+                "Set issue #%d status to '%s' on project",
+                issue_number,
+                backlog_status,
+            )
+
+            # Assign the first Backlog agent
+            ctx = WorkflowContext(
+                session_id=str(session.session_id),
+                project_id=project_id,
+                access_token=session.access_token,
+                repository_owner=owner,
+                repository_name=repo,
+                config=config,
+            )
+            ctx.issue_id = issue_node_id
+            ctx.issue_number = issue_number
+            ctx.project_item_id = item_id
+
+            orchestrator = get_workflow_orchestrator()
+            await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+
+            # Send agent_assigned WebSocket notification
+            backlog_agents = config.agent_mappings.get(backlog_status, [])
+            if backlog_agents:
+                await connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "agent_assigned",
+                        "issue_number": issue_number,
+                        "agent_name": backlog_agents[0],
+                        "status": backlog_status,
+                    },
+                )
+
+        except Exception as e:
+            logger.warning(
+                "Issue #%d created but agent assignment failed: %s",
+                issue_number,
+                e,
+            )
 
         return proposal
 
     except Exception as e:
-        logger.error("Failed to create task from proposal: %s", e)
-        raise ValidationError(f"Failed to create task: {e}") from e
+        logger.error("Failed to create issue from proposal: %s", e)
+        raise ValidationError(f"Failed to create issue: {e}") from e
 
 
 @router.delete("/proposals/{proposal_id}")

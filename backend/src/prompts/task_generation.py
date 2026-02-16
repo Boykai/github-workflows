@@ -82,10 +82,10 @@ def create_status_change_prompt(
 ) -> list[dict]:
     """Create messages for status change intent detection."""
     context = f"""Available tasks in the project:
-{chr(10).join(f'- {task}' for task in available_tasks[:20])}
+{chr(10).join(f"- {task}" for task in available_tasks[:20])}
 
 Available statuses:
-{', '.join(available_statuses)}"""
+{", ".join(available_statuses)}"""
 
     return [
         {"role": "system", "content": STATUS_CHANGE_SYSTEM_PROMPT},

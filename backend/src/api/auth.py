@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 def get_current_session(
-    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME)
+    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME),
 ) -> UserSession:
     """Get current user session from cookie."""
     if not session_id:
@@ -80,7 +80,8 @@ async def github_callback(
         )
 
         logger.info(
-            "Created session for user: %s, redirecting to frontend", session.github_username
+            "Created session for user: %s, redirecting to frontend",
+            session.github_username,
         )
         return redirect
 

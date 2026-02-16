@@ -241,9 +241,32 @@ export interface WorkflowConfiguration {
   repository_name: string;
   copilot_assignee: string;
   review_assignee?: string;
+  agent_mappings: Record<string, string[]>;
   status_backlog: string;
   status_ready: string;
   status_in_progress: string;
   status_in_review: string;
   enabled: boolean;
+}
+
+export interface AgentNotification {
+  type: 'agent_assigned' | 'agent_completed';
+  issue_number: number;
+  agent_name: string;
+  status: string;
+  next_agent: string | null;
+  timestamp: string;
+}
+
+export interface PipelineStateInfo {
+  issue_number: number;
+  project_id: string;
+  status: string;
+  agents: string[];
+  current_agent_index: number;
+  current_agent: string | null;
+  completed_agents: string[];
+  is_complete: boolean;
+  started_at: string | null;
+  error: string | null;
 }

@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
@@ -22,6 +22,8 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
+    get_all_pipeline_states,
+    get_pipeline_state,
     get_transitions,
     get_workflow_config,
     get_workflow_orchestrator,
@@ -229,22 +231,23 @@ async def confirm_recommendation(
                 },
             )
 
-            # T035: Send WebSocket notification for Ready status transition
-            if result.current_status == "Ready":
+            # Send agent_assigned notification for the first Backlog agent
+            backlog_agents = config.agent_mappings.get(config.status_backlog, [])
+            if backlog_agents:
                 await connection_manager.broadcast_to_project(
                     session.selected_project_id,
                     {
-                        "type": "status_updated",
-                        "issue_id": result.issue_id,
+                        "type": "agent_assigned",
                         "issue_number": result.issue_number,
-                        "from_status": "Backlog",
-                        "to_status": "Ready",
-                        "title": recommendation.title,
+                        "agent_name": backlog_agents[0],
+                        "status": "Backlog",
+                        "next_agent": (backlog_agents[1] if len(backlog_agents) > 1 else None),
+                        "timestamp": datetime.utcnow().isoformat(),
                     },
                 )
 
             logger.info(
-                "Workflow completed: issue #%d created",
+                "Workflow completed: issue #%d created and placed in Backlog",
                 result.issue_number,
             )
 
@@ -279,7 +282,10 @@ async def reject_recommendation(
     recommendation.status = RecommendationStatus.REJECTED
     logger.info("Recommendation %s rejected", recommendation_id)
 
-    return {"message": "Recommendation rejected", "recommendation_id": recommendation_id}
+    return {
+        "message": "Recommendation rejected",
+        "recommendation_id": recommendation_id,
+    }
 
 
 @router.get("/config", response_model=WorkflowConfiguration)
@@ -336,6 +342,76 @@ async def get_transition_history(
     """
     transitions = get_transitions(issue_id=issue_id, limit=limit)
     return transitions
+
+
+@router.get("/pipeline-states")
+async def list_pipeline_states(
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """
+    Get all active pipeline states for the current project.
+
+    Returns pipeline progress for all issues being tracked.
+    """
+    all_states = get_all_pipeline_states()
+
+    # Filter to states matching the user's selected project
+    project_states = {}
+    if session.selected_project_id:
+        project_states = {
+            k: {
+                "issue_number": v.issue_number,
+                "project_id": v.project_id,
+                "status": v.status,
+                "agents": v.agents,
+                "current_agent_index": v.current_agent_index,
+                "current_agent": v.current_agent,
+                "completed_agents": v.completed_agents,
+                "is_complete": v.is_complete,
+                "started_at": v.started_at.isoformat() if v.started_at else None,
+                "error": v.error,
+            }
+            for k, v in all_states.items()
+            if v.project_id == session.selected_project_id
+        }
+
+    return {
+        "pipeline_states": project_states,
+        "count": len(project_states),
+    }
+
+
+@router.get("/pipeline-states/{issue_number}")
+async def get_pipeline_state_for_issue(
+    issue_number: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """
+    Get pipeline state for a specific issue.
+
+    Returns the current pipeline progress including which agent is active.
+    """
+    state = get_pipeline_state(issue_number)
+
+    if not state:
+        raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
+
+    # Verify project access
+    if session.selected_project_id and state.project_id != session.selected_project_id:
+        raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
+
+    return {
+        "issue_number": state.issue_number,
+        "project_id": state.project_id,
+        "status": state.status,
+        "agents": state.agents,
+        "current_agent_index": state.current_agent_index,
+        "current_agent": state.current_agent,
+        "completed_agents": state.completed_agents,
+        "is_complete": state.is_complete,
+        "started_at": state.started_at.isoformat() if state.started_at else None,
+        "error": state.error,
+    }
 
 
 @router.post("/notify/in-review")
@@ -459,7 +535,6 @@ async def check_issue_copilot_completion(
 async def start_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
     interval_seconds: int = 15,
-    background_tasks: BackgroundTasks = None,
 ) -> dict:
     """
     Start background polling for Copilot PR completions.

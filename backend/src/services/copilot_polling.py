@@ -17,7 +17,31 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from src.constants import (
+    AGENT_OUTPUT_FILES,
+    cache_key_agent_output,
+    cache_key_issue_pr,
+    cache_key_review_requested,
+)
+from src.services.agent_tracking import (
+    get_current_agent_from_tracking,
+    mark_agent_active,
+    mark_agent_done,
+)
 from src.services.github_projects import github_projects_service
+from src.services.websocket import connection_manager
+from src.services.workflow_orchestrator import (
+    PipelineState,
+    WorkflowContext,
+    WorkflowState,
+    get_issue_main_branch,
+    get_pipeline_state,
+    get_workflow_config,
+    get_workflow_orchestrator,
+    remove_pipeline_state,
+    set_issue_main_branch,
+    set_pipeline_state,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,21 +64,764 @@ _polling_state = PollingState()
 # Track issues we've already processed to avoid duplicate updates
 _processed_issue_prs: set[str] = set()  # "issue_number:pr_number"
 
+# Track issues where we've already posted agent outputs to avoid duplicates
+_posted_agent_outputs: set[str] = set()  # "issue_number:agent_name:pr_number"
 
-async def check_in_progress_issues(
+# Track which child PRs have been claimed/attributed to an agent
+# This prevents subsequent agents from re-using already-completed child PRs
+_claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
+
+# Track agents that we've already assigned (pending Copilot to start working).
+# This prevents the polling loop from re-assigning the same agent every cycle
+# before Copilot has had time to create its child PR.
+_pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Issue Body Tracking Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def _update_issue_tracking(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    agent_name: str,
+    new_state: str,
+) -> bool:
+    """
+    Update the agent tracking table in a GitHub Issue's body.
+
+    Fetches the current body, updates the agent's state, and pushes it back.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: Issue number
+        agent_name: Agent name to update
+        new_state: "active" or "done"
+
+    Returns:
+        True if update succeeded
+    """
+    try:
+        issue_data = await github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        body = issue_data.get("body", "")
+        if not body:
+            return False
+
+        if new_state == "active":
+            updated_body = mark_agent_active(body, agent_name)
+        elif new_state == "done":
+            updated_body = mark_agent_done(body, agent_name)
+        else:
+            return False
+
+        if updated_body == body:
+            return True  # No change needed
+
+        success = await github_projects_service.update_issue_body(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            body=updated_body,
+        )
+        if success:
+            logger.info(
+                "Tracking update: '%s' → %s on issue #%d",
+                agent_name,
+                new_state,
+                issue_number,
+            )
+        return success
+    except Exception as e:
+        logger.warning("Failed to update tracking for issue #%d: %s", issue_number, e)
+        return False
+
+
+async def _get_tracking_state_from_issue(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+) -> tuple[str, list[dict]]:
+    """
+    Fetch the issue body and comments for tracking-based decisions.
+
+    Returns:
+        Tuple of (body, comments)
+    """
+    issue_data = await github_projects_service.get_issue_with_comments(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+    )
+    return issue_data.get("body", ""), issue_data.get("comments", [])
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline State Management Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def _get_or_reconstruct_pipeline(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    project_id: str,
+    status: str,
+    agents: list[str],
+    expected_status: str | None = None,
+) -> PipelineState:
+    """
+    Get existing pipeline state or reconstruct from issue comments.
+
+    This consolidates the repeated pattern of checking for existing pipeline
+    state and reconstructing it if missing or for a different status.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        project_id: Project ID
+        status: Current workflow status
+        agents: Ordered list of agents for this status
+        expected_status: If provided, only use cached pipeline if status matches
+
+    Returns:
+        PipelineState (either cached or reconstructed)
+    """
+    pipeline = get_pipeline_state(issue_number)
+
+    # Use cached pipeline if it exists and matches expected status
+    if pipeline is not None:
+        if expected_status is None or pipeline.status == expected_status:
+            return pipeline
+
+    # Reconstruct from comments
+    return await _reconstruct_pipeline_state(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        project_id=project_id,
+        status=status,
+        agents=agents,
+    )
+
+
+async def _process_pipeline_completion(
+    access_token: str,
+    project_id: str,
+    task: Any,
+    owner: str,
+    repo: str,
+    pipeline: PipelineState,
+    from_status: str,
+    to_status: str,
+) -> dict[str, Any] | None:
+    """
+    Process pipeline completion check and advance/transition as needed.
+
+    Consolidates the repeated pattern of:
+    1. Check if pipeline is complete → transition to next status
+    2. Check if current agent completed → advance pipeline
+    3. Check if current agent was never assigned (after reconstruction) → trigger it
+
+    Args:
+        access_token: GitHub access token
+        project_id: Project ID
+        task: Task object with issue info
+        owner: Repository owner
+        repo: Repository name
+        pipeline: Current pipeline state
+        from_status: Current status
+        to_status: Target status after pipeline completion
+
+    Returns:
+        Result dict or None
+    """
+    task_owner = task.repository_owner or owner
+    task_repo = task.repository_name or repo
+
+    if pipeline.is_complete:
+        # All agents done → transition to next status
+        return await _transition_after_pipeline_complete(
+            access_token=access_token,
+            project_id=project_id,
+            item_id=task.github_item_id,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            issue_node_id=task.github_content_id,
+            from_status=from_status,
+            to_status=to_status,
+            task_title=task.title,
+        )
+
+    # Check if current agent has completed
+    current_agent = pipeline.current_agent
+    if current_agent:
+        completed = await github_projects_service.check_agent_completion_comment(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            agent_name=current_agent,
+        )
+
+        if completed:
+            return await _advance_pipeline(
+                access_token=access_token,
+                project_id=project_id,
+                item_id=task.github_item_id,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                issue_node_id=task.github_content_id,
+                pipeline=pipeline,
+                from_status=from_status,
+                to_status=to_status,
+                task_title=task.title,
+            )
+
+        # If current agent hasn't completed, check if it was ever assigned.
+        # First, consult the tracking table in the issue body — this is the
+        # durable source of truth and survives server restarts.
+        if pipeline.completed_agents and not completed:
+            # Check the issue body tracking table first
+            body, _comments = await _get_tracking_state_from_issue(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+            )
+            tracking_step = get_current_agent_from_tracking(body)
+            if tracking_step and tracking_step.agent_name == current_agent:
+                logger.debug(
+                    "Agent '%s' is 🔄 Active in issue #%d tracking table — waiting",
+                    current_agent,
+                    task.issue_number,
+                )
+                return None  # Already assigned, wait for it to finish
+
+            # Also check in-memory pending set (belt and suspenders)
+            pending_key = f"{task.issue_number}:{current_agent}"
+            if pending_key in _pending_agent_assignments:
+                logger.debug(
+                    "Agent '%s' already assigned for issue #%d (in-memory), waiting for Copilot to start working",
+                    current_agent,
+                    task.issue_number,
+                )
+                return None
+
+            # Check if current agent has started work (created a PR)
+            main_branch_info = get_issue_main_branch(task.issue_number)
+            if main_branch_info:
+                child_pr = await _find_completed_child_pr(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    main_branch=main_branch_info["branch"],
+                    main_pr_number=main_branch_info["pr_number"],
+                    agent_name=current_agent,
+                )
+                # If no child PR exists (even incomplete), the agent was never assigned
+                if child_pr is None:
+                    # Check if there's even an incomplete child PR in progress
+                    linked_prs = await github_projects_service.get_linked_pull_requests(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=task.issue_number,
+                    )
+                    # Count PRs that target the main branch (excluding the main PR itself)
+                    child_prs_for_current_agent = [
+                        pr
+                        for pr in (linked_prs or [])
+                        if int(pr.get("number", 0)) != main_branch_info["pr_number"]
+                        and "copilot" in pr.get("author", "").lower()
+                    ]
+                    # If there are completed agents but the current agent's PR doesn't exist,
+                    # we need to trigger it. Count expected PRs vs actual child PRs.
+                    expected_child_prs = len(pipeline.completed_agents)
+                    actual_child_prs = len(child_prs_for_current_agent)
+
+                    if actual_child_prs < expected_child_prs + 1:
+                        # Current agent was never assigned - trigger it now
+                        logger.info(
+                            "Agent '%s' was never assigned for issue #%d (found %d child PRs, "
+                            "expected %d for %d completed agents) — assigning now",
+                            current_agent,
+                            task.issue_number,
+                            actual_child_prs,
+                            expected_child_prs + 1,
+                            len(pipeline.completed_agents),
+                        )
+                        orchestrator = get_workflow_orchestrator()
+                        ctx = WorkflowContext(
+                            session_id="polling",
+                            project_id=project_id,
+                            access_token=access_token,
+                            repository_owner=task_owner,
+                            repository_name=task_repo,
+                            issue_id=task.github_content_id,
+                            issue_number=task.issue_number,
+                            project_item_id=task.github_item_id,
+                            current_state=WorkflowState.READY,
+                        )
+                        ctx.config = get_workflow_config(project_id)
+
+                        assigned = await orchestrator.assign_agent_for_status(
+                            ctx, from_status, agent_index=pipeline.current_agent_index
+                        )
+                        if assigned:
+                            _pending_agent_assignments.add(pending_key)
+                            return {
+                                "status": "success",
+                                "issue_number": task.issue_number,
+                                "action": "agent_assigned_after_reconstruction",
+                                "agent_name": current_agent,
+                                "from_status": from_status,
+                            }
+
+    return None
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent Output Posting
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def post_agent_outputs_from_pr(
     access_token: str,
     project_id: str,
     owner: str,
     repo: str,
+    tasks: list,
 ) -> list[dict[str, Any]]:
     """
-    Check all issues in "In Progress" status for completed Copilot PRs.
+    For all issues with active pipelines, check if the current agent's PR work
+    is complete. If so, fetch any .md files from the PR (if present), post them
+    as issue comments, and post the ``<agent-name>: Done!`` marker.
+
+    All agents are eligible — output files are optional, not required.
+
+    This runs BEFORE the status-specific checks (backlog/ready/in-progress) so
+    that the Done! markers are in place for the existing comment-based detection.
 
     Args:
         access_token: GitHub access token
         project_id: GitHub Project V2 node ID
-        owner: Repository owner (fallback if not in task)
-        repo: Repository name (fallback if not in task)
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items
+
+    Returns:
+        List of results for each issue where outputs were posted
+    """
+    results = []
+
+    try:
+        config = get_workflow_config(project_id)
+        if not config:
+            return results
+
+        # Find all issues with active pipelines
+        for task in tasks:
+            if task.issue_number is None:
+                continue
+
+            pipeline = get_pipeline_state(task.issue_number)
+            if not pipeline or pipeline.is_complete:
+                continue
+
+            current_agent = pipeline.current_agent
+            if not current_agent:
+                continue
+
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
+            # Check if we already posted outputs for this agent on this issue
+            cache_prefix = f"{task.issue_number}:{current_agent}"
+            if any(k.startswith(cache_prefix) for k in _posted_agent_outputs):
+                continue
+
+            # Check if the Done! marker is already posted (agent did it itself)
+            marker = f"{current_agent}: Done!"
+            already_done = await github_projects_service.check_agent_completion_comment(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                agent_name=current_agent,
+            )
+            if already_done:
+                continue
+
+            # Determine if this is a subsequent agent (not the first in the overall pipeline).
+            main_branch_info = get_issue_main_branch(task.issue_number)
+            main_pr_number = main_branch_info["pr_number"] if main_branch_info else None
+            main_branch = main_branch_info["branch"] if main_branch_info else None
+            is_subsequent_agent = main_branch_info is not None
+
+            finished_pr = None
+
+            # For subsequent agents, check child PR completion FIRST
+            # Subsequent agents create child PRs targeting the main branch (not 'main')
+            if is_subsequent_agent and main_branch and main_pr_number:
+                child_pr_info = await _find_completed_child_pr(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    main_branch=main_branch,
+                    main_pr_number=main_pr_number,
+                    agent_name=current_agent,
+                )
+                if child_pr_info:
+                    finished_pr = child_pr_info
+                    logger.info(
+                        "Found completed child PR #%d for agent '%s' on issue #%d",
+                        child_pr_info.get("number"),
+                        current_agent,
+                        task.issue_number,
+                    )
+
+            # If no child PR, check for standard Copilot PR completion (first agent)
+            if not finished_pr:
+                finished_pr = await github_projects_service.check_copilot_pr_completion(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                )
+
+            if not finished_pr:
+                # No completed PR found via standard detection.
+                # For subsequent agents, also check if work was done directly
+                # on the main PR (Copilot pushes commits to the same branch
+                # rather than creating a child PR).
+                if is_subsequent_agent and main_pr_number is not None:
+                    main_pr_completed = await _check_main_pr_completion(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        main_pr_number=main_pr_number,
+                        issue_number=task.issue_number,
+                        agent_name=current_agent,
+                        pipeline_started_at=pipeline.started_at,
+                    )
+                    if main_pr_completed:
+                        # Use the main PR as the finished PR
+                        pr_details = await github_projects_service.get_pull_request(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            pr_number=main_pr_number,
+                        )
+                        if pr_details:
+                            finished_pr = {
+                                "number": main_pr_number,
+                                "id": pr_details.get("id"),
+                                "head_ref": pr_details.get("head_ref", ""),
+                                "last_commit": pr_details.get("last_commit"),
+                                "copilot_finished": True,
+                            }
+                if not finished_pr:
+                    continue
+
+            pr_number = finished_pr.get("number")
+            if not pr_number:
+                continue
+
+            # For subsequent agents, the main PR may show completion signals.
+            # We need to verify these are FRESH signals (after pipeline start)
+            # to avoid re-attributing the first agent's work.
+            if is_subsequent_agent and pr_number == main_pr_number:
+                main_pr_completed = await _check_main_pr_completion(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    main_pr_number=main_pr_number,
+                    issue_number=task.issue_number,
+                    agent_name=current_agent,
+                    pipeline_started_at=pipeline.started_at,
+                )
+                if not main_pr_completed:
+                    logger.debug(
+                        "Main PR #%d has no fresh completion signals for agent '%s' "
+                        "on issue #%d — still in progress",
+                        pr_number,
+                        current_agent,
+                        task.issue_number,
+                    )
+                    continue
+
+            cache_key = cache_key_agent_output(task.issue_number, current_agent, pr_number)
+            if cache_key in _posted_agent_outputs:
+                continue
+
+            logger.info(
+                "Agent '%s' PR #%d complete for issue #%d — processing completion",
+                current_agent,
+                pr_number,
+                task.issue_number,
+            )
+
+            # STEP 1: Merge child PR into the main branch FIRST (before posting Done!)
+            # This ensures GitHub has time to process the merge before we try to assign the next agent.
+            is_child_pr = finished_pr.get("is_child_pr", False)
+            main_branch_info = get_issue_main_branch(task.issue_number)
+            if is_child_pr and main_branch_info:
+                merge_result = await _merge_child_pr_if_applicable(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    main_branch=main_branch_info["branch"],
+                    main_pr_number=main_branch_info["pr_number"],
+                    completed_agent=current_agent,
+                )
+                if merge_result:
+                    logger.info(
+                        "Merged child PR #%d before posting Done! for agent '%s' on issue #%d",
+                        pr_number,
+                        current_agent,
+                        task.issue_number,
+                    )
+                    # Wait a moment for GitHub to fully process the merge
+                    import asyncio
+
+                    await asyncio.sleep(2)
+
+            # STEP 2: Get PR details for posting .md outputs
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                pr_number=pr_number,
+            )
+
+            head_ref = pr_details.get("head_ref", "") if pr_details else ""
+            if not head_ref:
+                logger.warning(
+                    "Could not determine head ref for PR #%d, trying file list",
+                    pr_number,
+                )
+
+            # Track the "main" branch for this issue (first PR's branch)
+            # All subsequent agent branches will be created from and merged into this branch
+            if head_ref and not get_issue_main_branch(task.issue_number):
+                # Get head commit SHA for subsequent agent branching
+                head_sha = ""
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    head_sha = pr_details["last_commit"]["sha"]
+                set_issue_main_branch(task.issue_number, head_ref, pr_number, head_sha)
+                logger.info(
+                    "Captured main branch '%s' (PR #%d, SHA: %s) for issue #%d",
+                    head_ref,
+                    pr_number,
+                    head_sha[:8] if head_sha else "none",
+                    task.issue_number,
+                )
+
+            # Get changed files from the PR
+            pr_files = await github_projects_service.get_pr_changed_files(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                pr_number=pr_number,
+            )
+
+            # Find .md files that match the agent's expected outputs
+            expected_files = AGENT_OUTPUT_FILES.get(current_agent, [])
+            posted_count = 0
+
+            for pr_file in pr_files:
+                filename = pr_file.get("filename", "")
+                basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+
+                if basename.lower() in [f.lower() for f in expected_files]:
+                    # Fetch file content from the PR branch
+                    ref = head_ref or "HEAD"
+                    content = await github_projects_service.get_file_content_from_ref(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        path=filename,
+                        ref=ref,
+                    )
+
+                    if content:
+                        # Post file content as an issue comment
+                        comment_body = (
+                            f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
+                        )
+                        comment = await github_projects_service.create_issue_comment(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
+                            body=comment_body,
+                        )
+                        if comment:
+                            posted_count += 1
+                            logger.info(
+                                "Posted content of %s as comment on issue #%d",
+                                filename,
+                                task.issue_number,
+                            )
+                    else:
+                        logger.warning(
+                            "Could not fetch content of %s from ref %s for issue #%d",
+                            filename,
+                            ref,
+                            task.issue_number,
+                        )
+
+            # Also post any other .md files changed in the PR
+            for pr_file in pr_files:
+                filename = pr_file.get("filename", "")
+                basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+
+                if (
+                    basename.lower().endswith(".md")
+                    and basename.lower() not in [f.lower() for f in expected_files]
+                    and pr_file.get("status") in ("added", "modified")
+                ):
+                    ref = head_ref or "HEAD"
+                    content = await github_projects_service.get_file_content_from_ref(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        path=filename,
+                        ref=ref,
+                    )
+
+                    if content:
+                        comment_body = (
+                            f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
+                        )
+                        await github_projects_service.create_issue_comment(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
+                            body=comment_body,
+                        )
+                        posted_count += 1
+
+            # Post the Done! marker
+            done_comment = await github_projects_service.create_issue_comment(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                body=marker,
+            )
+
+            _posted_agent_outputs.add(cache_key)
+
+            # Mark the child PR as claimed (merge already happened above)
+            if is_child_pr:
+                claimed_key = f"{task.issue_number}:{pr_number}:{current_agent}"
+                _claimed_child_prs.add(claimed_key)
+                logger.debug(
+                    "Marked child PR #%d as claimed by agent '%s' on issue #%d",
+                    pr_number,
+                    current_agent,
+                    task.issue_number,
+                )
+
+            if done_comment:
+                logger.info(
+                    "Posted '%s' marker on issue #%d (%d .md files posted)",
+                    marker,
+                    task.issue_number,
+                    posted_count,
+                )
+
+                # Update the tracking table in the issue body: mark agent as ✅ Done
+                await _update_issue_tracking(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    agent_name=current_agent,
+                    new_state="done",
+                )
+
+                results.append(
+                    {
+                        "status": "success",
+                        "issue_number": task.issue_number,
+                        "agent_name": current_agent,
+                        "pr_number": pr_number,
+                        "files_posted": posted_count,
+                        "action": "agent_outputs_posted",
+                    }
+                )
+            else:
+                logger.error(
+                    "Failed to post Done! marker on issue #%d",
+                    task.issue_number,
+                )
+
+            # Limit cache size
+            if len(_posted_agent_outputs) > 500:
+                to_remove = list(_posted_agent_outputs)[:250]
+                for key in to_remove:
+                    _posted_agent_outputs.discard(key)
+
+            # Also limit claimed child PRs cache
+            if len(_claimed_child_prs) > 500:
+                to_remove = list(_claimed_child_prs)[:250]
+                for key in to_remove:
+                    _claimed_child_prs.discard(key)
+
+    except Exception as e:
+        logger.error("Error posting agent outputs from PRs: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = str(e)
+
+    return results
+
+
+async def check_backlog_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Check all issues in "Backlog" status for agent completion.
+
+    When speckit.specify completes (posts completion comment), transition the issue
+    to Ready status and assign the first Ready agent (speckit.plan).
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items (optional, to avoid redundant API calls)
 
     Returns:
         List of results for each processed issue
@@ -62,15 +829,1370 @@ async def check_in_progress_issues(
     results = []
 
     try:
-        # Get all project items
-        tasks = await github_projects_service.get_project_items(access_token, project_id)
+        if tasks is None:
+            tasks = await github_projects_service.get_project_items(access_token, project_id)
+
+        config = get_workflow_config(project_id)
+        if not config:
+            logger.debug("No workflow config for project %s, skipping backlog check", project_id)
+            return results
+
+        status_backlog = config.status_backlog.lower()
+        backlog_tasks = [
+            task
+            for task in tasks
+            if task.status
+            and task.status.lower() == status_backlog
+            and task.issue_number is not None
+        ]
+
+        if not backlog_tasks:
+            return results
+
+        logger.debug("Found %d issues in '%s' status", len(backlog_tasks), config.status_backlog)
+
+        agents = config.agent_mappings.get(config.status_backlog, [])
+        if not agents:
+            return results
+
+        for task in backlog_tasks:
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
+            # Get or reconstruct pipeline state
+            pipeline = await _get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_backlog,
+                agents=agents,
+            )
+
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=config.status_backlog,
+                to_status=config.status_ready,
+            )
+            if result:
+                results.append(result)
+
+    except Exception as e:
+        logger.error("Error checking backlog issues: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = str(e)
+
+    return results
+
+
+async def check_ready_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Check all issues in "Ready" status for agent completion.
+
+    Manages the speckit.plan → speckit.tasks pipeline. When all Ready agents
+    complete, transition the issue to In Progress and assign speckit.implement.
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items (optional)
+
+    Returns:
+        List of results for each processed issue
+    """
+    results = []
+
+    try:
+        if tasks is None:
+            tasks = await github_projects_service.get_project_items(access_token, project_id)
+
+        config = get_workflow_config(project_id)
+        if not config:
+            logger.debug("No workflow config for project %s, skipping ready check", project_id)
+            return results
+
+        status_ready = config.status_ready.lower()
+        ready_tasks = [
+            task
+            for task in tasks
+            if task.status and task.status.lower() == status_ready and task.issue_number is not None
+        ]
+
+        if not ready_tasks:
+            return results
+
+        logger.debug("Found %d issues in '%s' status", len(ready_tasks), config.status_ready)
+
+        agents = config.agent_mappings.get(config.status_ready, [])
+        if not agents:
+            return results
+
+        for task in ready_tasks:
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
+            # Get or reconstruct pipeline state
+            pipeline = await _get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_ready,
+                agents=agents,
+                expected_status=config.status_ready,
+            )
+
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=config.status_ready,
+                to_status=config.status_in_progress,
+            )
+            if result:
+                results.append(result)
+
+    except Exception as e:
+        logger.error("Error checking ready issues: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = str(e)
+
+    return results
+
+
+async def _merge_child_pr_if_applicable(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    main_branch: str,
+    main_pr_number: int | None,
+    completed_agent: str,
+) -> dict[str, Any] | None:
+    """
+    Merge a child PR into the issue's main branch if applicable.
+
+    Child PRs are those created by subsequent agents that target the first
+    PR's branch (the "main branch" for the issue). When an agent completes,
+    we check if their PR targets the main branch and merge it automatically.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        main_branch: The first PR's branch name (target for child PRs)
+        main_pr_number: The first PR's number (to exclude from merging)
+        completed_agent: Name of the agent that just completed
+
+    Returns:
+        Result dict if a PR was merged, None otherwise
+    """
+    try:
+        # Get all linked PRs for this issue
+        linked_prs = await github_projects_service.get_linked_pull_requests(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        if not linked_prs:
+            logger.debug(
+                "No linked PRs found for issue #%d, nothing to merge",
+                issue_number,
+            )
+            return None
+
+        # Find a child PR that targets the main branch
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            if pr_number is None:
+                continue
+            pr_number = int(pr_number)
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
+
+            # Skip the main PR itself
+            if pr_number == main_pr_number:
+                continue
+
+            # Skip non-Copilot PRs
+            if "copilot" not in pr_author:
+                continue
+
+            # Only consider OPEN PRs
+            if pr_state != "OPEN":
+                logger.debug(
+                    "PR #%d is %s (not OPEN), skipping",
+                    pr_number,
+                    pr_state,
+                )
+                continue
+
+            # Get full PR details to check base_ref and get node ID
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+
+            if not pr_details:
+                logger.warning(
+                    "Could not get details for PR #%d, skipping",
+                    pr_number,
+                )
+                continue
+
+            pr_base = pr_details.get("base_ref", "")  # The branch this PR targets
+
+            # Skip PRs not targeting the main branch
+            if pr_base != main_branch:
+                logger.debug(
+                    "PR #%d targets '%s' not main branch '%s', skipping",
+                    pr_number,
+                    pr_base,
+                    main_branch,
+                )
+                continue
+
+            pr_node_id = pr_details.get("id")
+            if not pr_node_id:
+                logger.warning(
+                    "No node ID for PR #%d, skipping merge",
+                    pr_number,
+                )
+                continue
+
+            # Check if PR is mergeable (not draft, no conflicts)
+            is_draft = pr_details.get("is_draft", False)
+            if is_draft:
+                logger.info(
+                    "PR #%d is still a draft, marking ready before merge",
+                    pr_number,
+                )
+                await github_projects_service.mark_pr_ready_for_review(
+                    access_token=access_token,
+                    pr_node_id=pr_node_id,
+                )
+
+            # Merge the child PR into the main branch
+            logger.info(
+                "Merging child PR #%d (by %s) into main branch '%s' for issue #%d",
+                pr_number,
+                completed_agent,
+                main_branch,
+                issue_number,
+            )
+
+            merge_result = await github_projects_service.merge_pull_request(
+                access_token=access_token,
+                pr_node_id=pr_node_id,
+                pr_number=pr_number,
+                commit_headline=f"Merge {completed_agent} changes into {main_branch}",
+                merge_method="SQUASH",
+            )
+
+            if merge_result:
+                # Get the child branch name to delete after merge
+                child_branch = pr_details.get("head_ref", "")
+
+                logger.info(
+                    "Successfully merged child PR #%d into '%s' (commit: %s)",
+                    pr_number,
+                    main_branch,
+                    (
+                        merge_result.get("merge_commit", "")[:8]
+                        if merge_result.get("merge_commit")
+                        else "N/A"
+                    ),
+                )
+
+                # Mark this PR as claimed by the completed agent
+                # This prevents subsequent agents from re-detecting it
+                claimed_key = f"{issue_number}:{pr_number}:{completed_agent}"
+                _claimed_child_prs.add(claimed_key)
+                logger.debug(
+                    "Marked merged child PR #%d as claimed by agent '%s' on issue #%d",
+                    pr_number,
+                    completed_agent,
+                    issue_number,
+                )
+
+                # Clean up: delete the child branch after successful merge
+                if child_branch:
+                    logger.info(
+                        "Cleaning up child branch '%s' after merge",
+                        child_branch,
+                    )
+                    deleted = await github_projects_service.delete_branch(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        branch_name=child_branch,
+                    )
+                    if deleted:
+                        logger.info(
+                            "Deleted child branch '%s' for issue #%d",
+                            child_branch,
+                            issue_number,
+                        )
+
+                return {
+                    "status": "merged",
+                    "pr_number": pr_number,
+                    "main_branch": main_branch,
+                    "agent": completed_agent,
+                    "merge_commit": merge_result.get("merge_commit"),
+                    "branch_deleted": child_branch if child_branch else None,
+                }
+            else:
+                logger.warning(
+                    "Failed to merge child PR #%d into '%s'",
+                    pr_number,
+                    main_branch,
+                )
+
+        return None
+
+    except Exception as e:
+        logger.error(
+            "Error merging child PR for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return None
+
+
+async def _find_completed_child_pr(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    main_branch: str,
+    main_pr_number: int,
+    agent_name: str,
+) -> dict | None:
+    """
+    Find a completed child PR created by the current agent.
+
+    For subsequent agents in the pipeline, they create child PRs that target
+    the main branch (the first PR's branch). This function finds such PRs
+    and returns the PR details if completed.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        main_branch: The first PR's branch name (target for child PRs)
+        main_pr_number: The first PR's number (to exclude from checking)
+        agent_name: Name of the agent we're checking completion for
+
+    Returns:
+        Dict with PR details if a completed child PR exists, None otherwise
+    """
+    try:
+        # Get all linked PRs for this issue
+        linked_prs = await github_projects_service.get_linked_pull_requests(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        if not linked_prs:
+            logger.debug(
+                "No linked PRs found for issue #%d when looking for child PR",
+                issue_number,
+            )
+            return None
+
+        # Look for a child PR that targets the main branch
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            if pr_number is None:
+                continue
+            pr_number = int(pr_number)
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
+
+            # Skip the main PR itself - we're looking for child PRs
+            if pr_number == main_pr_number:
+                continue
+
+            # Skip non-Copilot PRs
+            if "copilot" not in pr_author:
+                continue
+
+            # Consider OPEN or MERGED PRs - child PRs get merged after completion
+            if pr_state not in ("OPEN", "MERGED"):
+                continue
+
+            # Get full PR details to check base_ref
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+
+            if not pr_details:
+                continue
+
+            pr_base = pr_details.get("base_ref", "")
+
+            # Check if this PR targets the main branch (it's a child PR)
+            if pr_base != main_branch:
+                logger.debug(
+                    "PR #%d targets '%s', not main branch '%s' - not a child PR",
+                    pr_number,
+                    pr_base,
+                    main_branch,
+                )
+                continue
+
+            # Check if this PR has already been claimed by another agent
+            # This prevents subsequent agents from re-using completed child PRs
+            claimed_by_other = False
+            for key in _claimed_child_prs:
+                if key.startswith(f"{issue_number}:{pr_number}:"):
+                    # Extract the agent that claimed this PR
+                    claimed_agent = key.split(":")[-1]
+                    if claimed_agent != agent_name:
+                        logger.debug(
+                            "Child PR #%d already claimed by agent '%s', "
+                            "skipping for agent '%s' on issue #%d",
+                            pr_number,
+                            claimed_agent,
+                            agent_name,
+                            issue_number,
+                        )
+                        claimed_by_other = True
+                        break
+            if claimed_by_other:
+                continue
+
+            # If PR is MERGED, Copilot has definitely finished
+            if pr_state == "MERGED":
+                logger.info(
+                    "Found MERGED child PR #%d targeting main branch '%s' for issue #%d",
+                    pr_number,
+                    main_branch,
+                    issue_number,
+                )
+                return {
+                    "number": pr_number,
+                    "id": pr_details.get("id"),
+                    "head_ref": pr_details.get("head_ref", ""),
+                    "base_ref": pr_base,
+                    "last_commit": pr_details.get("last_commit"),
+                    "copilot_finished": True,
+                    "is_child_pr": True,
+                    "is_merged": True,
+                }
+
+            logger.info(
+                "Found child PR #%d targeting main branch '%s' for issue #%d",
+                pr_number,
+                main_branch,
+                issue_number,
+            )
+
+            # Check if Copilot has finished work on this child PR
+            is_draft = pr_details.get("is_draft", True)
+
+            # If not draft, Copilot has finished
+            if not is_draft:
+                logger.info(
+                    "Child PR #%d is ready for review (not draft), agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return {
+                    "number": pr_number,
+                    "id": pr_details.get("id"),
+                    "head_ref": pr_details.get("head_ref", ""),
+                    "base_ref": pr_base,
+                    "last_commit": pr_details.get("last_commit"),
+                    "copilot_finished": True,
+                    "is_child_pr": True,
+                }
+
+            # Check timeline events for completion signals
+            timeline_events = await github_projects_service.get_pr_timeline_events(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=pr_number,  # Note: PR number for timeline events
+            )
+
+            copilot_finished = github_projects_service._check_copilot_finished_events(
+                timeline_events
+            )
+
+            if copilot_finished:
+                logger.info(
+                    "Child PR #%d has copilot_finished events, agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return {
+                    "number": pr_number,
+                    "id": pr_details.get("id"),
+                    "head_ref": pr_details.get("head_ref", ""),
+                    "base_ref": pr_base,
+                    "last_commit": pr_details.get("last_commit"),
+                    "copilot_finished": True,
+                    "is_child_pr": True,
+                }
+
+            logger.debug(
+                "Child PR #%d exists but no completion signals yet for agent '%s'",
+                pr_number,
+                agent_name,
+            )
+
+        logger.debug(
+            "No completed child PR found for issue #%d, agent '%s'",
+            issue_number,
+            agent_name,
+        )
+        return None
+
+    except Exception as e:
+        logger.error(
+            "Error finding child PR for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return None
+
+
+async def _check_child_pr_completion(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    main_branch: str,
+    main_pr_number: int | None,
+    agent_name: str,
+) -> bool:
+    """
+    Check if the current agent has created and completed a child PR.
+
+    For agents like speckit.implement, they create a child PR that targets
+    the main branch. This function checks if such a PR exists and shows
+    completion signals (copilot_work_finished or review_requested events).
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        main_branch: The first PR's branch name (target for child PRs)
+        main_pr_number: The first PR's number (to exclude from checking)
+        agent_name: Name of the agent we're checking completion for
+
+    Returns:
+        True if a completed child PR exists, False otherwise
+    """
+    try:
+        # Get all linked PRs for this issue
+        linked_prs = await github_projects_service.get_linked_pull_requests(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        if not linked_prs:
+            logger.debug(
+                "No linked PRs found for issue #%d, agent '%s' hasn't created PR yet",
+                issue_number,
+                agent_name,
+            )
+            return False
+
+        # Look for a child PR that targets the main branch
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            if pr_number is None:
+                continue
+            pr_number = int(pr_number)
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
+
+            # Skip the main PR itself - we're looking for child PRs
+            if pr_number == main_pr_number:
+                continue
+
+            # Skip non-Copilot PRs
+            if "copilot" not in pr_author:
+                continue
+
+            # Only consider OPEN PRs
+            if pr_state != "OPEN":
+                continue
+
+            # Get full PR details to check base_ref
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+
+            if not pr_details:
+                continue
+
+            pr_base = pr_details.get("base_ref", "")
+
+            # Check if this PR targets the main branch (it's a child PR)
+            if pr_base != main_branch:
+                continue
+
+            logger.info(
+                "Found child PR #%d targeting main branch '%s' for issue #%d",
+                pr_number,
+                main_branch,
+                issue_number,
+            )
+
+            # Check if Copilot has finished work on this child PR
+            is_draft = pr_details.get("is_draft", True)
+
+            # If not draft, Copilot has finished
+            if not is_draft:
+                logger.info(
+                    "Child PR #%d is ready for review (not draft), agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return True
+
+            # Check timeline events for completion signals
+            timeline_events = await github_projects_service.get_pr_timeline_events(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=pr_number,
+            )
+
+            copilot_finished = github_projects_service._check_copilot_finished_events(
+                timeline_events
+            )
+
+            if copilot_finished:
+                logger.info(
+                    "Child PR #%d has copilot_finished event, agent '%s' completed",
+                    pr_number,
+                    agent_name,
+                )
+                return True
+
+            logger.debug(
+                "Child PR #%d exists but no completion signals yet for agent '%s'",
+                pr_number,
+                agent_name,
+            )
+            return False  # Child PR exists but not complete yet
+
+        logger.debug(
+            "No child PR found targeting main branch '%s' for issue #%d, agent '%s' hasn't created PR yet",
+            main_branch,
+            issue_number,
+            agent_name,
+        )
+        return False
+
+    except Exception as e:
+        logger.error(
+            "Error checking child PR completion for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return False
+
+
+async def _check_main_pr_completion(
+    access_token: str,
+    owner: str,
+    repo: str,
+    main_pr_number: int,
+    issue_number: int,
+    agent_name: str,
+    pipeline_started_at: datetime | None = None,
+) -> bool:
+    """
+    Check if a Copilot agent completed work directly on the main PR.
+
+    Some agents (like speckit.implement) may work directly on the first PR
+    (the main PR) rather than creating a separate child PR. This function
+    detects completion by checking:
+      1. If the main PR is no longer a draft (Copilot marks it ready when done)
+      2. If the main PR has copilot_work_finished or review_requested events
+         that occurred after the pipeline started (to filter stale events from
+         earlier agents like speckit.specify)
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        main_pr_number: The main PR number to check
+        issue_number: GitHub issue number (for logging)
+        agent_name: Name of the agent we're checking completion for
+        pipeline_started_at: When the pipeline was started (used to filter
+            stale events from earlier agents)
+
+    Returns:
+        True if the main PR shows fresh completion signals, False otherwise
+    """
+    try:
+        # Get main PR details
+        pr_details = await github_projects_service.get_pull_request(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            pr_number=main_pr_number,
+        )
+
+        if not pr_details:
+            logger.debug(
+                "Could not get details for main PR #%d, issue #%d",
+                main_pr_number,
+                issue_number,
+            )
+            return False
+
+        is_draft = pr_details.get("is_draft", True)
+        pr_state = pr_details.get("state", "").upper()
+
+        # Only consider OPEN PRs
+        if pr_state != "OPEN":
+            logger.debug(
+                "Main PR #%d is not open (state=%s), not checking for completion",
+                main_pr_number,
+                pr_state,
+            )
+            return False
+
+        # Signal 1: PR is no longer a draft
+        # When Copilot finishes, it converts the PR from draft to ready.
+        # Since the pipeline keeps the main PR as draft until the final
+        # agent completes, a non-draft main PR means the agent finished.
+        if not is_draft:
+            logger.info(
+                "Main PR #%d is no longer a draft — agent '%s' completed "
+                "directly on main PR for issue #%d",
+                main_pr_number,
+                agent_name,
+                issue_number,
+            )
+            return True
+
+        # Signal 2: Check timeline events for fresh completion signals
+        timeline_events = await github_projects_service.get_pr_timeline_events(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=main_pr_number,
+        )
+
+        # Filter events to only those after pipeline started (avoid stale
+        # events from earlier agents like speckit.specify)
+        if pipeline_started_at:
+            fresh_events = _filter_events_after(timeline_events, pipeline_started_at)
+            logger.debug(
+                "Filtered %d/%d timeline events for main PR #%d (after pipeline start %s)",
+                len(fresh_events),
+                len(timeline_events),
+                main_pr_number,
+                pipeline_started_at.isoformat(),
+            )
+        else:
+            # No pipeline start time — use all events (less safe but better
+            # than missing completion entirely)
+            fresh_events = timeline_events
+            logger.debug(
+                "No pipeline start time for issue #%d, using all %d timeline events",
+                issue_number,
+                len(timeline_events),
+            )
+
+        copilot_finished = github_projects_service._check_copilot_finished_events(fresh_events)
+
+        if copilot_finished:
+            logger.info(
+                "Main PR #%d has fresh copilot_finished event after pipeline start — "
+                "agent '%s' completed directly on main PR for issue #%d",
+                main_pr_number,
+                agent_name,
+                issue_number,
+            )
+            return True
+
+        logger.debug(
+            "Main PR #%d has no fresh completion signals for agent '%s', issue #%d",
+            main_pr_number,
+            agent_name,
+            issue_number,
+        )
+        return False
+
+    except Exception as e:
+        logger.error(
+            "Error checking main PR #%d completion for issue #%d: %s",
+            main_pr_number,
+            issue_number,
+            e,
+        )
+        return False
+
+
+def _filter_events_after(events: list[dict[str, Any]], cutoff: datetime) -> list[dict[str, Any]]:
+    """
+    Filter timeline events to only those occurring after a cutoff datetime.
+
+    Args:
+        events: List of timeline events from GitHub API
+        cutoff: Only include events with created_at after this time
+
+    Returns:
+        Filtered list of events
+    """
+    filtered: list[dict[str, Any]] = []
+    for event in events:
+        created_at_str = event.get("created_at", "")
+        if not created_at_str:
+            # If no timestamp, include the event (conservative)
+            filtered.append(event)
+            continue
+        try:
+            # GitHub timestamps are ISO 8601 UTC (e.g., "2025-01-15T17:19:47Z")
+            event_time = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+            # Make cutoff timezone-aware if needed
+            cutoff_aware = (
+                cutoff.replace(tzinfo=event_time.tzinfo) if cutoff.tzinfo is None else cutoff
+            )
+            if event_time > cutoff_aware:
+                filtered.append(event)
+        except (ValueError, TypeError):
+            # If timestamp can't be parsed, include the event (conservative)
+            filtered.append(event)
+    return filtered
+
+
+async def _reconstruct_pipeline_state(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    project_id: str,
+    status: str,
+    agents: list[str],
+) -> PipelineState:
+    """
+    Reconstruct pipeline state from issue comments.
+
+    Scans comments for sequential completion markers to determine
+    which agents have already completed.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: GitHub issue number
+        project_id: Project ID
+        status: Current workflow status
+        agents: Ordered list of agents for this status
+
+    Returns:
+        Reconstructed PipelineState
+    """
+    completed = []
+
+    try:
+        issue_data = await github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        comments = issue_data.get("comments", []) if issue_data else []
+
+        # Check each agent sequentially — stop at first incomplete
+        for agent in agents:
+            marker = f"{agent}: Done!"
+            if any(marker in comment.get("body", "") for comment in comments):
+                completed.append(agent)
+            else:
+                break
+
+        # Claim all MERGED child PRs for completed agents
+        # This prevents subsequent agents from re-detecting them
+        if completed:
+            main_branch_info = get_issue_main_branch(issue_number)
+            if main_branch_info:
+                main_branch = main_branch_info.get("branch")
+                main_pr_number = main_branch_info.get("pr_number")
+                if main_branch and main_pr_number:
+                    linked_prs = await github_projects_service.get_linked_pull_requests(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                    )
+                    for pr in linked_prs or []:
+                        pr_number = pr.get("number")
+                        pr_state = pr.get("state", "").upper()
+                        if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
+                            # Get PR details to check if it targets the main branch
+                            pr_details = await github_projects_service.get_pull_request(
+                                access_token=access_token,
+                                owner=owner,
+                                repo=repo,
+                                pr_number=pr_number,
+                            )
+                            if pr_details and pr_details.get("base_ref") == main_branch:
+                                # Claim this merged child PR for all completed agents
+                                # This prevents re-detection
+                                for completed_agent in completed:
+                                    claimed_key = f"{issue_number}:{pr_number}:{completed_agent}"
+                                    if claimed_key not in _claimed_child_prs:
+                                        _claimed_child_prs.add(claimed_key)
+                                        logger.debug(
+                                            "Claimed merged child PR #%d for agent '%s' "
+                                            "during pipeline reconstruction (issue #%d)",
+                                            pr_number,
+                                            completed_agent,
+                                            issue_number,
+                                        )
+
+    except Exception as e:
+        logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
+
+    pipeline = PipelineState(
+        issue_number=issue_number,
+        project_id=project_id,
+        status=status,
+        agents=list(agents),
+        current_agent_index=len(completed),
+        completed_agents=completed,
+        started_at=datetime.utcnow(),
+    )
+    set_pipeline_state(issue_number, pipeline)
+
+    logger.info(
+        "Reconstructed pipeline state for issue #%d: %d/%d agents completed",
+        issue_number,
+        len(completed),
+        len(agents),
+    )
+
+    return pipeline
+
+
+async def _advance_pipeline(
+    access_token: str,
+    project_id: str,
+    item_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    issue_node_id: str | None,
+    pipeline: PipelineState,
+    from_status: str,
+    to_status: str,
+    task_title: str,
+) -> dict[str, Any] | None:
+    """
+    Advance the pipeline after an agent completes.
+
+    If there are more agents in the pipeline, assign the next one.
+    If pipeline is complete, transition to the next status.
+
+    Args:
+        access_token: GitHub access token
+        project_id: Project ID
+        item_id: Project item ID
+        owner: Repository owner
+        repo: Repository name
+        issue_number: Issue number
+        issue_node_id: Issue node ID (for Copilot assignment)
+        pipeline: Current pipeline state
+        from_status: Current status
+        to_status: Target status after pipeline completion
+        task_title: Task title for logging
+
+    Returns:
+        Result dict or None
+    """
+    completed_agent = pipeline.current_agent
+    assert completed_agent is not None, "No current agent in pipeline"
+    pipeline.completed_agents.append(completed_agent)
+    pipeline.current_agent_index += 1
+
+    logger.info(
+        "Agent '%s' completed on issue #%d (%d/%d agents done)",
+        completed_agent,
+        issue_number,
+        len(pipeline.completed_agents),
+        len(pipeline.agents),
+    )
+
+    # NOTE: Child PR merge now happens in post_agent_outputs_from_pr BEFORE the Done! comment
+    # is posted. This ensures GitHub has time to process the merge before we assign the next agent.
+
+    # Send agent_completed WebSocket notification
+    await connection_manager.broadcast_to_project(
+        project_id,
+        {
+            "type": "agent_completed",
+            "issue_number": issue_number,
+            "agent_name": completed_agent,
+            "status": from_status,
+            "next_agent": pipeline.current_agent if not pipeline.is_complete else None,
+            "timestamp": datetime.utcnow().isoformat(),
+        },
+    )
+
+    if pipeline.is_complete:
+        # Pipeline complete → transition to next status
+        remove_pipeline_state(issue_number)
+        return await _transition_after_pipeline_complete(
+            access_token=access_token,
+            project_id=project_id,
+            item_id=item_id,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            issue_node_id=issue_node_id,
+            from_status=from_status,
+            to_status=to_status,
+            task_title=task_title,
+        )
+    else:
+        # Assign next agent
+        next_agent = pipeline.current_agent
+        pipeline.started_at = datetime.utcnow()
+        set_pipeline_state(issue_number, pipeline)
+
+        logger.info("Assigning next agent '%s' to issue #%d", next_agent, issue_number)
+
+        orchestrator = get_workflow_orchestrator()
+        ctx = WorkflowContext(
+            session_id="polling",
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            issue_id=issue_node_id,
+            issue_number=issue_number,
+            project_item_id=item_id,
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = get_workflow_config(project_id)
+
+        success = await orchestrator.assign_agent_for_status(
+            ctx, from_status, agent_index=pipeline.current_agent_index
+        )
+
+        # Send agent_assigned WebSocket notification
+        if success:
+            await connection_manager.broadcast_to_project(
+                project_id,
+                {
+                    "type": "agent_assigned",
+                    "issue_number": issue_number,
+                    "agent_name": next_agent,
+                    "status": from_status,
+                    "next_agent": pipeline.next_agent,
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
+
+        return {
+            "status": "success" if success else "error",
+            "issue_number": issue_number,
+            "task_title": task_title,
+            "action": "agent_assigned",
+            "agent_name": next_agent,
+            "completed_agent": completed_agent,
+            "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
+        }
+
+
+async def _transition_after_pipeline_complete(
+    access_token: str,
+    project_id: str,
+    item_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    issue_node_id: str | None,
+    from_status: str,
+    to_status: str,
+    task_title: str,
+) -> dict[str, Any] | None:
+    """
+    Transition an issue to the next status after all agents in the pipeline complete,
+    then assign the first agent for the new status.
+
+    Args:
+        access_token: GitHub access token
+        project_id: Project ID
+        item_id: Project item ID
+        owner: Repo owner
+        repo: Repo name
+        issue_number: Issue number
+        issue_node_id: Issue node ID
+        from_status: Current status
+        to_status: Target status
+        task_title: Task title for logging
+
+    Returns:
+        Result dict or None
+    """
+    logger.info(
+        "All agents complete for issue #%d in '%s'. Transitioning to '%s'.",
+        issue_number,
+        from_status,
+        to_status,
+    )
+
+    # Transition the status
+    success = await github_projects_service.update_item_status_by_name(
+        access_token=access_token,
+        project_id=project_id,
+        item_id=item_id,
+        status_name=to_status,
+    )
+
+    if not success:
+        logger.error(
+            "Failed to transition issue #%d from '%s' to '%s'",
+            issue_number,
+            from_status,
+            to_status,
+        )
+        return {
+            "status": "error",
+            "issue_number": issue_number,
+            "task_title": task_title,
+            "error": f"Failed to update status to {to_status}",
+        }
+
+    # Remove any old pipeline state for this issue
+    remove_pipeline_state(issue_number)
+
+    # When transitioning to "In Review", convert main PR from draft→ready
+    # and request Copilot code review on the main PR
+    if to_status.lower() == "in review":
+        main_branch_info = get_issue_main_branch(issue_number)
+        if main_branch_info:
+            main_pr_number = main_branch_info["pr_number"]
+            main_pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=main_pr_number,
+            )
+            if main_pr_details:
+                main_pr_id = main_pr_details.get("id")
+                main_pr_is_draft = main_pr_details.get("is_draft", False)
+
+                # Convert draft → ready
+                if main_pr_is_draft and main_pr_id:
+                    logger.info(
+                        "Converting main PR #%d from draft to ready for review",
+                        main_pr_number,
+                    )
+                    mark_ready_success = await github_projects_service.mark_pr_ready_for_review(
+                        access_token=access_token,
+                        pr_node_id=main_pr_id,
+                    )
+                    if mark_ready_success:
+                        logger.info(
+                            "Successfully converted main PR #%d from draft to ready",
+                            main_pr_number,
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to convert main PR #%d from draft to ready",
+                            main_pr_number,
+                        )
+
+                # Request Copilot code review
+                if main_pr_id:
+                    review_requested = await github_projects_service.request_copilot_review(
+                        access_token=access_token,
+                        pr_node_id=str(main_pr_id),
+                        pr_number=main_pr_number,
+                    )
+                    if review_requested:
+                        logger.info(
+                            "Copilot code review requested for main PR #%d",
+                            main_pr_number,
+                        )
+
+    # Send status transition WebSocket notification
+    await connection_manager.broadcast_to_project(
+        project_id,
+        {
+            "type": "status_updated",
+            "issue_number": issue_number,
+            "from_status": from_status,
+            "to_status": to_status,
+            "title": task_title,
+            "triggered_by": "pipeline_complete",
+        },
+    )
+
+    # Assign the first agent for the new status
+    config = get_workflow_config(project_id)
+    new_status_agents = config.agent_mappings.get(to_status, []) if config else []
+
+    if new_status_agents:
+        # Ensure we have the main branch captured before assigning the next agent
+        # This is especially important for speckit.implement which needs to branch from the main PR
+        main_branch_info = get_issue_main_branch(issue_number)
+        if not main_branch_info:
+            # Try to find and capture the main branch from existing PRs
+            logger.info(
+                "No main branch cached for issue #%d, attempting to discover from linked PRs",
+                issue_number,
+            )
+            existing_pr = await github_projects_service.find_existing_pr_for_issue(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+            if existing_pr:
+                # Fetch PR details to get commit SHA
+                pr_details = await github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=existing_pr["number"],
+                )
+                head_sha = ""
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    head_sha = pr_details["last_commit"]["sha"]
+                set_issue_main_branch(
+                    issue_number,
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                    head_sha,
+                )
+                logger.info(
+                    "Captured main branch '%s' (PR #%d, SHA: %s) for issue #%d before assigning %s",
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                    head_sha[:8] if head_sha else "none",
+                    issue_number,
+                    new_status_agents[0],
+                )
+
+        orchestrator = get_workflow_orchestrator()
+        ctx = WorkflowContext(
+            session_id="polling",
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            issue_id=issue_node_id,
+            issue_number=issue_number,
+            project_item_id=item_id,
+        )
+        ctx.config = config
+
+        logger.info(
+            "Assigning agent '%s' to issue #%d after transition to '%s'",
+            new_status_agents[0],
+            issue_number,
+            to_status,
+        )
+        await orchestrator.assign_agent_for_status(ctx, to_status, agent_index=0)
+
+    return {
+        "status": "success",
+        "issue_number": issue_number,
+        "task_title": task_title,
+        "action": "status_transitioned",
+        "from_status": from_status,
+        "to_status": to_status,
+        "next_agents": new_status_agents,
+    }
+
+
+async def check_in_progress_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Check all issues in "In Progress" status for completed Copilot PRs.
+
+    Skips issues that have an active agent pipeline for a different status
+    (e.g., Backlog or Ready). These issues were likely moved to "In Progress"
+    by external GitHub project automation (e.g., when a PR was linked) and
+    should not be auto-transitioned until their pipeline completes naturally.
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner (fallback if not in task)
+        repo: Repository name (fallback if not in task)
+        tasks: Pre-fetched project items (optional, to avoid redundant API calls)
+
+    Returns:
+        List of results for each processed issue
+    """
+    results = []
+
+    try:
+        if tasks is None:
+            tasks = await github_projects_service.get_project_items(access_token, project_id)
+
+        config = get_workflow_config(project_id)
+        in_progress_label = config.status_in_progress.lower() if config else "in progress"
 
         # Filter to "In Progress" items with issue numbers
         in_progress_tasks = [
             task
             for task in tasks
             if task.status
-            and task.status.lower() == "in progress"
+            and task.status.lower() == in_progress_label
             and task.issue_number is not None
         ]
 
@@ -91,6 +2213,107 @@ async def check_in_progress_issues(
                 )
                 continue
 
+            # Guard: skip issues managed by a pipeline for a different status.
+            # External GitHub automation (e.g., linking a PR) can move issues
+            # to "In Progress" before the agent pipeline is ready.
+            pipeline = get_pipeline_state(task.issue_number)
+            if pipeline and not pipeline.is_complete:
+                pipeline_status = pipeline.status.lower() if pipeline.status else ""
+                if pipeline_status != in_progress_label:
+                    logger.warning(
+                        "Issue #%d is in 'In Progress' but has active pipeline for "
+                        "'%s' status (agent: %s, %d/%d done). Skipping — likely "
+                        "moved by external automation. Attempting to restore status.",
+                        task.issue_number,
+                        pipeline.status,
+                        pipeline.current_agent or "none",
+                        len(pipeline.completed_agents),
+                        len(pipeline.agents),
+                    )
+                    # Try to move the issue back to its pipeline status
+                    try:
+                        restored = await github_projects_service.update_item_status_by_name(
+                            access_token=access_token,
+                            project_id=project_id,
+                            item_id=task.github_item_id,
+                            status_name=pipeline.status,
+                        )
+                        if restored:
+                            logger.info(
+                                "Restored issue #%d back to '%s' status",
+                                task.issue_number,
+                                pipeline.status,
+                            )
+                        else:
+                            logger.warning(
+                                "Failed to restore issue #%d to '%s' status",
+                                task.issue_number,
+                                pipeline.status,
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            "Error restoring issue #%d status: %s",
+                            task.issue_number,
+                            e,
+                        )
+                    continue
+
+            # Check for active pipeline (e.g., speckit.implement)
+            if (
+                pipeline
+                and not pipeline.is_complete
+                and pipeline.status.lower() == in_progress_label
+            ):
+                in_review_status = config.status_in_review if config else "In Review"
+
+                if pipeline.is_complete:
+                    # All In Progress agents done → transition to In Review
+                    result = await _transition_after_pipeline_complete(
+                        access_token=access_token,
+                        project_id=project_id,
+                        item_id=task.github_item_id,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=task.issue_number,
+                        issue_node_id=task.github_content_id,
+                        from_status=config.status_in_progress if config else "In Progress",
+                        to_status=in_review_status,
+                        task_title=task.title,
+                    )
+                    if result:
+                        results.append(result)
+                    continue
+
+                # Check if current agent has completed (via Done! comment marker)
+                current_agent = pipeline.current_agent
+                if current_agent:
+                    completed = await github_projects_service.check_agent_completion_comment(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=task.issue_number,
+                        agent_name=current_agent,
+                    )
+
+                    if completed:
+                        result = await _advance_pipeline(
+                            access_token=access_token,
+                            project_id=project_id,
+                            item_id=task.github_item_id,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
+                            issue_node_id=task.github_content_id,
+                            pipeline=pipeline,
+                            from_status=config.status_in_progress if config else "In Progress",
+                            to_status=in_review_status,
+                            task_title=task.title,
+                        )
+                        if result:
+                            results.append(result)
+                continue
+
+            # No active pipeline — use legacy PR completion detection
             result = await process_in_progress_issue(
                 access_token=access_token,
                 project_id=project_id,
@@ -157,6 +2380,7 @@ async def check_in_review_issues_for_copilot_review(
             if not task_owner or not task_repo:
                 continue
 
+            assert task.issue_number is not None  # filtered above
             result = await ensure_copilot_review_requested(
                 access_token=access_token,
                 owner=task_owner,
@@ -195,7 +2419,7 @@ async def ensure_copilot_review_requested(
         Result dict if review was requested, None otherwise
     """
     # Check for cache to avoid repeated API calls
-    cache_key = f"copilot_review_requested:{issue_number}"
+    cache_key = cache_key_review_requested(issue_number)
     if cache_key in _processed_issue_prs:
         return None
 
@@ -289,6 +2513,11 @@ async def process_in_progress_issue(
     """
     Process a single in-progress issue to check for Copilot PR completion.
 
+    This is the LEGACY path for issues WITHOUT an active agent pipeline.
+    Issues with active pipelines (e.g., speckit.implement) are handled
+    directly in check_in_progress_issues via check_agent_completion_comment
+    and _advance_pipeline, just like Backlog and Ready status handling.
+
     When Copilot finishes work on a PR:
     1. The PR is still in draft mode (Copilot doesn't mark it ready)
     2. CI checks have completed (SUCCESS or FAILURE)
@@ -308,7 +2537,8 @@ async def process_in_progress_issue(
         Result dict if action was taken, None otherwise
     """
     try:
-        # Check if Copilot has finished work on the PR
+        # Fallback: Check for PR completion without active pipeline
+        # This handles legacy cases or issues without agent pipelines
         finished_pr = await github_projects_service.check_copilot_pr_completion(
             access_token=access_token,
             owner=owner,
@@ -325,12 +2555,20 @@ async def process_in_progress_issue(
             return None
 
         pr_number = finished_pr.get("number")
+        if pr_number is None:
+            logger.warning(
+                "Issue #%d ('%s'): PR missing number field",
+                issue_number,
+                task_title,
+            )
+            return None
+
         pr_id = finished_pr.get("id")
         is_draft = finished_pr.get("is_draft", False)
         check_status = finished_pr.get("check_status", "unknown")
 
         # Check if we've already processed this issue+PR combination
-        cache_key = f"{issue_number}:{pr_number}"
+        cache_key = cache_key_issue_pr(issue_number, pr_number)
         if cache_key in _processed_issue_prs:
             logger.debug(
                 "Issue #%d PR #%d: Already processed, skipping",
@@ -370,6 +2608,25 @@ async def process_in_progress_issue(
                 }
 
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
+
+        # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
+        main_branch_info = get_issue_main_branch(issue_number)
+        if main_branch_info:
+            merge_result = await _merge_child_pr_if_applicable(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+                main_branch=str(main_branch_info["branch"]),
+                main_pr_number=main_branch_info["pr_number"],
+                completed_agent="speckit.implement",
+            )
+            if merge_result:
+                logger.info(
+                    "Merged speckit.implement child PR into main branch '%s' for issue #%d",
+                    main_branch_info["branch"],
+                    issue_number,
+                )
 
         # Step 2: Update issue status to "In Review"
         logger.info(
@@ -490,14 +2747,70 @@ async def poll_for_copilot_completion(
             _polling_state.last_poll_time = datetime.utcnow()
             _polling_state.poll_count += 1
 
-            logger.debug("Polling for Copilot PR completions (poll #%d)", _polling_state.poll_count)
+            logger.debug(
+                "Polling for Copilot PR completions (poll #%d)",
+                _polling_state.poll_count,
+            )
 
-            # Step 1: Check "In Progress" issues for completed Copilot PRs
+            # Fetch all project items once per poll cycle
+            all_tasks = await github_projects_service.get_project_items(access_token, project_id)
+
+            # Step 0: Post agent .md outputs from completed PRs as issue comments
+            # This runs first so Done! markers are available for steps 1-3
+            output_results = await post_agent_outputs_from_pr(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                tasks=all_tasks,
+            )
+
+            if output_results:
+                logger.info(
+                    "Poll #%d: Posted agent outputs for %d issues",
+                    _polling_state.poll_count,
+                    len(output_results),
+                )
+
+            # Step 1: Check "Backlog" issues for agent completion
+            backlog_results = await check_backlog_issues(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                tasks=all_tasks,
+            )
+
+            if backlog_results:
+                logger.info(
+                    "Poll #%d: Processed %d backlog issues",
+                    _polling_state.poll_count,
+                    len(backlog_results),
+                )
+
+            # Step 2: Check "Ready" issues for agent pipeline completion
+            ready_results = await check_ready_issues(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                tasks=all_tasks,
+            )
+
+            if ready_results:
+                logger.info(
+                    "Poll #%d: Processed %d ready issues",
+                    _polling_state.poll_count,
+                    len(ready_results),
+                )
+
+            # Step 3: Check "In Progress" issues for completed Copilot PRs
             results = await check_in_progress_issues(
                 access_token=access_token,
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
+                tasks=all_tasks,
             )
 
             if results:
@@ -507,7 +2820,7 @@ async def poll_for_copilot_completion(
                     len(results),
                 )
 
-            # Step 2: Check "In Review" issues to ensure Copilot has reviewed their PRs
+            # Step 4: Check "In Review" issues to ensure Copilot has reviewed their PRs
             review_results = await check_in_review_issues_for_copilot_review(
                 access_token=access_token,
                 project_id=project_id,
