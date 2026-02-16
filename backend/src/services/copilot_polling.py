@@ -66,6 +66,11 @@ _posted_agent_outputs: set[str] = set()  # "issue_number:agent_name:pr_number"
 # This prevents subsequent agents from re-using already-completed child PRs
 _claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
 
+# Track agents that we've already assigned (pending Copilot to start working).
+# This prevents the polling loop from re-assigning the same agent every cycle
+# before Copilot has had time to create its child PR.
+_pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Pipeline State Management Helpers
@@ -233,7 +238,14 @@ async def _process_pipeline_completion(
                     expected_child_prs = len(pipeline.completed_agents)
                     actual_child_prs = len(child_prs_for_current_agent)
 
-                    if actual_child_prs < expected_child_prs + 1:
+                    pending_key = f"{task.issue_number}:{current_agent}"
+                    if pending_key in _pending_agent_assignments:
+                        logger.debug(
+                            "Agent '%s' already assigned for issue #%d, waiting for Copilot to start working",
+                            current_agent,
+                            task.issue_number,
+                        )
+                    elif actual_child_prs < expected_child_prs + 1:
                         # Current agent was never assigned - trigger it now
                         logger.info(
                             "Agent '%s' was never assigned for issue #%d (found %d child PRs, "
@@ -262,6 +274,7 @@ async def _process_pipeline_completion(
                             ctx, from_status, agent_index=pipeline.current_agent_index
                         )
                         if assigned:
+                            _pending_agent_assignments.add(pending_key)
                             return {
                                 "status": "success",
                                 "issue_number": task.issue_number,
