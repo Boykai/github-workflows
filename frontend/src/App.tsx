@@ -2,6 +2,7 @@
  * Main application component.
  */
 
+import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -11,6 +12,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ProjectBoardPage } from '@/components/project-board/ProjectBoardPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -25,6 +27,7 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
+  const [currentPage, setCurrentPage] = useState<'chat' | 'project-board'>('chat');
   const {
     projects,
     selectedProject,
@@ -53,6 +56,25 @@ function AppContent() {
     confirmRecommendation,
     rejectRecommendation,
   } = useWorkflow();
+
+  // Hash-based navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#/project-board') {
+        setCurrentPage('project-board');
+      } else {
+        setCurrentPage('chat');
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const navigateTo = (page: 'chat' | 'project-board') => {
+    setCurrentPage(page);
+    window.location.hash = page === 'project-board' ? '#/project-board' : '';
+  };
 
   if (authLoading) {
     return (
@@ -96,45 +118,54 @@ function AppContent() {
       </header>
 
       <main className="app-main">
-        <ProjectSidebar
-          projects={projects}
-          selectedProject={selectedProject}
-          tasks={tasks}
-          isLoading={projectsLoading}
-          tasksLoading={tasksLoading}
-          onProjectSelect={selectProject}
-        />
-
-        <section className="chat-section">
-          {selectedProject ? (
-            <ChatInterface
-              messages={messages}
-              pendingProposals={pendingProposals}
-              pendingStatusChanges={pendingStatusChanges}
-              pendingRecommendations={pendingRecommendations}
-              isSending={isSending}
-              onSendMessage={sendMessage}
-              onConfirmProposal={handleConfirmProposal}
-              onConfirmStatusChange={confirmStatusChange}
-              onConfirmRecommendation={async (recommendationId) => {
-                const result = await confirmRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-                refreshTasks();
-                return result;
-              }}
-              onRejectProposal={rejectProposal}
-              onRejectRecommendation={async (recommendationId) => {
-                await rejectRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-              }}
-              onNewChat={clearChat}
+        {currentPage === 'chat' && (
+          <>
+            <ProjectSidebar
+              projects={projects}
+              selectedProject={selectedProject}
+              tasks={tasks}
+              isLoading={projectsLoading}
+              tasksLoading={tasksLoading}
+              onProjectSelect={selectProject}
+              onNavigate={navigateTo}
             />
-          ) : (
-            <div className="chat-placeholder">
-              <p>Select a project from the sidebar to start chatting</p>
-            </div>
-          )}
-        </section>
+
+            <section className="chat-section">
+              {selectedProject ? (
+                <ChatInterface
+                  messages={messages}
+                  pendingProposals={pendingProposals}
+                  pendingStatusChanges={pendingStatusChanges}
+                  pendingRecommendations={pendingRecommendations}
+                  isSending={isSending}
+                  onSendMessage={sendMessage}
+                  onConfirmProposal={handleConfirmProposal}
+                  onConfirmStatusChange={confirmStatusChange}
+                  onConfirmRecommendation={async (recommendationId) => {
+                    const result = await confirmRecommendation(recommendationId);
+                    removePendingRecommendation(recommendationId);
+                    refreshTasks();
+                    return result;
+                  }}
+                  onRejectProposal={rejectProposal}
+                  onRejectRecommendation={async (recommendationId) => {
+                    await rejectRecommendation(recommendationId);
+                    removePendingRecommendation(recommendationId);
+                  }}
+                  onNewChat={clearChat}
+                />
+              ) : (
+                <div className="chat-placeholder">
+                  <p>Select a project from the sidebar to start chatting</p>
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {currentPage === 'project-board' && (
+          <ProjectBoardPage onNavigateToChat={() => navigateTo('chat')} />
+        )}
       </main>
     </div>
   );
