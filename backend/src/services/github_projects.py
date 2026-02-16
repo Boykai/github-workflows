@@ -229,7 +229,7 @@ mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $
       baseRef: $baseRef,
       customInstructions: $customInstructions,
       customAgent: $customAgent,
-      model: ""
+      model: "claude-opus-4.6"
     }
   }) {
     assignable {
@@ -1541,7 +1541,7 @@ class GitHubProjectsService:
                     "base_branch": base_ref,
                     "custom_instructions": custom_instructions,
                     "custom_agent": custom_agent,
-                    "model": "",
+                    "model": "claude-opus-4.6",
                 },
             }
 

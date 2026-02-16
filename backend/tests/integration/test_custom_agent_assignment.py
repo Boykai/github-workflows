@@ -163,7 +163,7 @@ async def test_rest_api_payload():
             "base_branch": "main",
             "custom_instructions": "## Issue Title\nTest Issue\n\n## Issue Description\nThis is a test.",
             "custom_agent": "speckit.specify",
-            "model": "",
+            "model": "claude-opus-4.6",
         },
     }
 
