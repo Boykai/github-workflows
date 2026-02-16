@@ -736,3 +736,116 @@ docker compose logs -f frontend   # Frontend only
 ## License
 
 MIT License — see LICENSE file for details.
+
+---
+
+## Azure Cloud Deployment
+
+### Architecture
+
+```mermaid
+graph TB
+    User([User]) -->|HTTPS| FE[Frontend Container App<br/>Nginx + React SPA]
+    FE -->|Internal HTTPS| BE[Backend Container App<br/>FastAPI]
+    BE -->|Managed Identity| KV[Azure Key Vault]
+    BE -->|Managed Identity| AOAI[Azure OpenAI<br/>gpt-4.1]
+    AOAI --- AIH[AI Foundry Hub]
+    AIH --- AIP[AI Foundry Project]
+    
+    subgraph Container Apps Environment
+        FE
+        BE
+    end
+    
+    ACR[Azure Container Registry] -.->|Image Pull| FE
+    ACR -.->|Image Pull| BE
+    LAW[Log Analytics Workspace] -.->|Logging| FE
+    LAW -.->|Logging| BE
+    
+    MI[User-Assigned<br/>Managed Identity] -->|AcrPull| ACR
+    MI -->|Secrets User| KV
+    MI -->|OpenAI User| AOAI
+```
+
+### Prerequisites
+
+- **Azure Subscription** with permissions to create resources
+- **Azure CLI** installed and authenticated (`az login`)
+- **GitHub repository** with appropriate permissions for Actions
+
+### Initial Setup
+
+1. **Create an Azure AD App Registration**:
+   ```bash
+   az ad app create --display-name "github-workflows-deploy"
+   ```
+
+2. **Add a federated credential** for OIDC authentication from GitHub Actions:
+   ```bash
+   az ad app federated-credential create \
+     --id <APP_OBJECT_ID> \
+     --parameters '{
+       "name": "github-actions-main",
+       "issuer": "https://token.actions.githubusercontent.com",
+       "subject": "repo:Boykai/github-workflows:ref:refs/heads/main",
+       "audiences": ["api://AzureADTokenExchange"]
+     }'
+   ```
+
+3. **Grant roles** to the app registration on your subscription or resource group:
+   ```bash
+   # Get the service principal
+   SP_ID=$(az ad sp show --id <APP_CLIENT_ID> --query id -o tsv)
+
+   # Contributor role
+   az role assignment create --assignee $SP_ID --role Contributor --scope /subscriptions/<SUB_ID>
+
+   # User Access Administrator role (for managed identity role assignments)
+   az role assignment create --assignee $SP_ID --role "User Access Administrator" --scope /subscriptions/<SUB_ID>
+   ```
+
+4. **Configure GitHub repository secrets** (Settings → Secrets and variables → Actions):
+
+   | Secret | Description |
+   |--------|-------------|
+   | `AZURE_CLIENT_ID` | App registration client ID |
+   | `AZURE_TENANT_ID` | Azure AD tenant ID |
+   | `AZURE_SUBSCRIPTION_ID` | Target Azure subscription ID |
+   | `GITHUB_TOKEN_VALUE` | GitHub PAT for the app's GitHub API access |
+
+### Infrastructure Deployment (Manual)
+
+To deploy infrastructure manually without GitHub Actions:
+
+```bash
+# Login to Azure
+az login
+
+# Create resource group
+az group create --name rg-ghprojectschat-prod --location eastus2
+
+# Deploy Bicep template
+az deployment group create \
+  --resource-group rg-ghprojectschat-prod \
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
+```
+
+### CI/CD Pipeline
+
+The GitHub Actions workflow (`.github/workflows/deploy.yml`) triggers automatically on push to `main`:
+
+1. **Build & Push**: Builds Docker images for backend and frontend, pushes to Azure Container Registry
+2. **Deploy Infrastructure**: Deploys all Azure resources via Bicep templates
+3. **Deploy Applications**: Updates Container Apps with new image tags and verifies health
+
+### Environment Variables Reference
+
+| Variable | Source | Purpose |
+|----------|--------|---------|
+| `GITHUB_TOKEN` | Key Vault | GitHub PAT for API access |
+| `AZURE_OPENAI_ENDPOINT` | Key Vault | Azure OpenAI service endpoint |
+| `AZURE_OPENAI_DEPLOYMENT` | Key Vault | Model deployment name (gpt-41) |
+| `AZURE_CLIENT_ID` | Config | User-assigned managed identity client ID |
+| `BACKEND_URL` | Config | Internal FQDN of backend Container App |
+| `BACKEND_HOST` | Config (Frontend) | Backend host for Nginx proxy_pass |
