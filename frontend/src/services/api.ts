@@ -16,6 +16,9 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  BoardProjectListResponse,
+  BoardDataResponse,
+  LinkedPRsResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -203,6 +206,25 @@ export const chatApi = {
   cancelProposal(proposalId: string): Promise<void> {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
+    });
+  },
+};
+
+// ============ Project Board API ============
+
+export const projectBoardApi = {
+  listProjects(): Promise<BoardProjectListResponse> {
+    return request<BoardProjectListResponse>('/project-board/projects');
+  },
+
+  getBoardData(projectId: string): Promise<BoardDataResponse> {
+    return request<BoardDataResponse>(`/project-board/${projectId}/board`);
+  },
+
+  getLinkedPRs(contentIds: string[]): Promise<LinkedPRsResponse> {
+    return request<LinkedPRsResponse>('/project-board/linked-prs', {
+      method: 'POST',
+      body: JSON.stringify({ content_ids: contentIds }),
     });
   },
 };

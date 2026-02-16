@@ -15,6 +15,7 @@ interface ProjectSidebarProps {
   isLoading: boolean;
   tasksLoading: boolean;
   onProjectSelect: (projectId: string) => void;
+  onNavigate?: (page: 'chat' | 'project-board') => void;
 }
 
 export function ProjectSidebar({
@@ -24,6 +25,7 @@ export function ProjectSidebar({
   isLoading,
   tasksLoading,
   onProjectSelect,
+  onNavigate,
 }: ProjectSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [recentlyUpdated, setRecentlyUpdated] = useState<Set<string>>(new Set());
@@ -85,6 +87,17 @@ export function ProjectSidebar({
 
       {!isCollapsed && (
         <>
+          {/* Navigation to standalone board */}
+          {onNavigate && (
+            <div className="sidebar-nav">
+              <button
+                className="sidebar-nav-button"
+                onClick={() => onNavigate('project-board')}
+              >
+                📋 View Full Board
+              </button>
+            </div>
+          )}
           {/* Sync Status Indicator (T060) */}
           {selectedProject && (
             <div className={`sync-status sync-status--${syncStatus}`}>

@@ -270,3 +270,72 @@ export interface PipelineStateInfo {
   started_at: string | null;
   error: string | null;
 }
+
+// ============ Project Board Types ============
+
+export interface BoardAssignee {
+  login: string;
+  avatar_url: string;
+}
+
+export interface LinkedPullRequest {
+  pr_number: number;
+  title: string;
+  state: 'OPEN' | 'CLOSED' | 'MERGED';
+  url: string;
+}
+
+export interface BoardIssueCard {
+  item_id: string;
+  content_id: string | null;
+  issue_number: number | null;
+  title: string;
+  body: string | null;
+  state: string | null;
+  url: string | null;
+  repo_name: string | null;
+  repo_full_name: string | null;
+  status: string | null;
+  priority: string | null;
+  size: string | null;
+  estimate: number | null;
+  assignees: BoardAssignee[];
+  linked_prs: LinkedPullRequest[];
+}
+
+export interface BoardStatusColumn {
+  name: string;
+  color: string;
+  option_id: string;
+  description: string | null;
+  item_count: number;
+  total_estimate: number | null;
+  items: BoardIssueCard[];
+}
+
+export interface BoardProject {
+  project_id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  item_count: number;
+  status_columns: { name: string; color: string; option_id: string }[];
+}
+
+export interface BoardProjectListResponse {
+  projects: BoardProject[];
+}
+
+export interface BoardDataResponse {
+  project_id: string;
+  title: string;
+  columns: BoardStatusColumn[];
+}
+
+export interface LinkedPRsRequest {
+  content_ids: string[];
+}
+
+export interface LinkedPRsResponse {
+  linked_prs: Record<string, LinkedPullRequest[]>;
+}
