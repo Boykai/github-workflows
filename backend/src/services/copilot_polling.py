@@ -23,6 +23,11 @@ from src.constants import (
     cache_key_issue_pr,
     cache_key_review_requested,
 )
+from src.services.agent_tracking import (
+    get_current_agent_from_tracking,
+    mark_agent_active,
+    mark_agent_done,
+)
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
@@ -70,6 +75,97 @@ _claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
 # This prevents the polling loop from re-assigning the same agent every cycle
 # before Copilot has had time to create its child PR.
 _pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Issue Body Tracking Helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def _update_issue_tracking(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    agent_name: str,
+    new_state: str,
+) -> bool:
+    """
+    Update the agent tracking table in a GitHub Issue's body.
+
+    Fetches the current body, updates the agent's state, and pushes it back.
+
+    Args:
+        access_token: GitHub access token
+        owner: Repository owner
+        repo: Repository name
+        issue_number: Issue number
+        agent_name: Agent name to update
+        new_state: "active" or "done"
+
+    Returns:
+        True if update succeeded
+    """
+    try:
+        issue_data = await github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        body = issue_data.get("body", "")
+        if not body:
+            return False
+
+        if new_state == "active":
+            updated_body = mark_agent_active(body, agent_name)
+        elif new_state == "done":
+            updated_body = mark_agent_done(body, agent_name)
+        else:
+            return False
+
+        if updated_body == body:
+            return True  # No change needed
+
+        success = await github_projects_service.update_issue_body(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            body=updated_body,
+        )
+        if success:
+            logger.info(
+                "Tracking update: '%s' → %s on issue #%d",
+                agent_name,
+                new_state,
+                issue_number,
+            )
+        return success
+    except Exception as e:
+        logger.warning("Failed to update tracking for issue #%d: %s", issue_number, e)
+        return False
+
+
+async def _get_tracking_state_from_issue(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+) -> tuple[str, list[dict]]:
+    """
+    Fetch the issue body and comments for tracking-based decisions.
+
+    Returns:
+        Tuple of (body, comments)
+    """
+    issue_data = await github_projects_service.get_issue_with_comments(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+    )
+    return issue_data.get("body", ""), issue_data.get("comments", [])
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -201,10 +297,35 @@ async def _process_pipeline_completion(
             )
 
         # If current agent hasn't completed, check if it was ever assigned.
-        # After server restart, pipeline reconstruction may identify that
-        # the previous agent completed, but the current agent was never triggered.
-        # We detect this by checking if there's any Copilot PR for the current agent.
+        # First, consult the tracking table in the issue body — this is the
+        # durable source of truth and survives server restarts.
         if pipeline.completed_agents and not completed:
+            # Check the issue body tracking table first
+            body, _comments = await _get_tracking_state_from_issue(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+            )
+            tracking_step = get_current_agent_from_tracking(body)
+            if tracking_step and tracking_step.agent_name == current_agent:
+                logger.debug(
+                    "Agent '%s' is 🔄 Active in issue #%d tracking table — waiting",
+                    current_agent,
+                    task.issue_number,
+                )
+                return None  # Already assigned, wait for it to finish
+
+            # Also check in-memory pending set (belt and suspenders)
+            pending_key = f"{task.issue_number}:{current_agent}"
+            if pending_key in _pending_agent_assignments:
+                logger.debug(
+                    "Agent '%s' already assigned for issue #%d (in-memory), waiting for Copilot to start working",
+                    current_agent,
+                    task.issue_number,
+                )
+                return None
+
             # Check if current agent has started work (created a PR)
             main_branch_info = get_issue_main_branch(task.issue_number)
             if main_branch_info:
@@ -238,14 +359,7 @@ async def _process_pipeline_completion(
                     expected_child_prs = len(pipeline.completed_agents)
                     actual_child_prs = len(child_prs_for_current_agent)
 
-                    pending_key = f"{task.issue_number}:{current_agent}"
-                    if pending_key in _pending_agent_assignments:
-                        logger.debug(
-                            "Agent '%s' already assigned for issue #%d, waiting for Copilot to start working",
-                            current_agent,
-                            task.issue_number,
-                        )
-                    elif actual_child_prs < expected_child_prs + 1:
+                    if actual_child_prs < expected_child_prs + 1:
                         # Current agent was never assigned - trigger it now
                         logger.info(
                             "Agent '%s' was never assigned for issue #%d (found %d child PRs, "
@@ -618,6 +732,17 @@ async def post_agent_outputs_from_pr(
                     task.issue_number,
                     posted_count,
                 )
+
+                # Update the tracking table in the issue body: mark agent as ✅ Done
+                await _update_issue_tracking(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    agent_name=current_agent,
+                    new_state="done",
+                )
+
                 results.append(
                     {
                         "status": "success",

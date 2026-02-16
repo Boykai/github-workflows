@@ -29,6 +29,7 @@ from src.models.chat import (
     WorkflowResult,
     WorkflowTransition,
 )
+from src.services.agent_tracking import append_tracking_to_body
 
 if TYPE_CHECKING:
     from src.services.ai_agent import AIAgentService
@@ -282,6 +283,76 @@ class WorkflowOrchestrator:
         return body
 
     # ──────────────────────────────────────────────────────────────────
+    # HELPER: Update Agent Tracking in Issue Body
+    # ──────────────────────────────────────────────────────────────────
+    async def _update_agent_tracking_state(
+        self,
+        ctx: WorkflowContext,
+        agent_name: str,
+        new_state: str,
+    ) -> bool:
+        """
+        Update the agent tracking table in the GitHub Issue body.
+
+        Fetches the current issue body, updates the agent's state in the
+        tracking table, and pushes the updated body back to GitHub.
+
+        Args:
+            ctx: Workflow context with issue info
+            agent_name: Agent name (e.g. "speckit.specify")
+            new_state: "active" or "done"
+
+        Returns:
+            True if the issue body was updated successfully
+        """
+        from src.services.agent_tracking import mark_agent_active, mark_agent_done
+
+        if not ctx.issue_number:
+            return False
+
+        try:
+            issue_data = await self.github.get_issue_with_comments(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+            )
+            body = issue_data.get("body", "")
+            if not body:
+                return False
+
+            if new_state == "active":
+                updated_body = mark_agent_active(body, agent_name)
+            elif new_state == "done":
+                updated_body = mark_agent_done(body, agent_name)
+            else:
+                logger.warning("Unknown tracking state: %s", new_state)
+                return False
+
+            if updated_body == body:
+                logger.debug("No tracking change for agent '%s' (state=%s)", agent_name, new_state)
+                return True  # No change needed
+
+            success = await self.github.update_issue_body(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+                body=updated_body,
+            )
+            if success:
+                logger.info(
+                    "Updated tracking: agent '%s' → %s on issue #%d",
+                    agent_name,
+                    new_state,
+                    ctx.issue_number,
+                )
+            return success
+        except Exception as e:
+            logger.warning("Failed to update agent tracking for issue #%d: %s", ctx.issue_number, e)
+            return False
+
+    # ──────────────────────────────────────────────────────────────────
     # HELPER: Log Transition
     # ──────────────────────────────────────────────────────────────────
     def log_transition(
@@ -351,6 +422,17 @@ class WorkflowOrchestrator:
         ctx.current_state = WorkflowState.CREATING
 
         body = self.format_issue_body(recommendation)
+
+        # Append the agent pipeline tracking table to the issue body
+        config = ctx.config or get_workflow_config(ctx.project_id)
+        if config and config.agent_mappings:
+            status_order = [
+                config.status_backlog,
+                config.status_ready,
+                config.status_in_progress,
+            ]
+            body = append_tracking_to_body(body, config.agent_mappings, status_order)
+            logger.info("Appended agent pipeline tracking to issue body")
 
         issue = await self.github.create_issue(
             access_token=ctx.access_token,
@@ -711,6 +793,9 @@ class WorkflowOrchestrator:
                 ctx.issue_number,
                 base_ref,
             )
+
+            # Mark agent as 🔄 Active in the issue body tracking table
+            await self._update_agent_tracking_state(ctx, agent_name, "active")
         else:
             logger.warning(
                 "Failed to assign agent '%s' to issue #%s",

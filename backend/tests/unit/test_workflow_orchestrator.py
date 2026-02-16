@@ -109,7 +109,10 @@ class TestHandleReadyStatusWithAgentMappings:
         result = await orchestrator.handle_ready_status(workflow_context)
 
         assert result is True
-        mock_github_service.get_issue_with_comments.assert_called_once_with(
+        # get_issue_with_comments is called once for issue context and once
+        # by _update_agent_tracking_state to mark the agent as Active.
+        assert mock_github_service.get_issue_with_comments.call_count >= 1
+        mock_github_service.get_issue_with_comments.assert_any_call(
             access_token="test-token",
             owner="test-owner",
             repo="test-repo",

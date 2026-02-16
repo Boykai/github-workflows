@@ -980,6 +980,44 @@ class GitHubProjectsService:
         logger.info("Created issue #%d in %s/%s", issue["number"], owner, repo)
         return issue
 
+    async def update_issue_body(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        body: str,
+    ) -> bool:
+        """
+        Update a GitHub Issue's body text using REST API.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+            body: New issue body (markdown)
+
+        Returns:
+            True if update succeeded
+        """
+        try:
+            response = await self._client.patch(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+                json={"body": body},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+            response.raise_for_status()
+            logger.info("Updated body of issue #%d in %s/%s", issue_number, owner, repo)
+            return True
+        except Exception as e:
+            logger.error("Failed to update issue #%d body: %s", issue_number, e)
+            return False
+
     async def add_issue_to_project(
         self,
         access_token: str,
