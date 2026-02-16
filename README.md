@@ -157,11 +157,47 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 
 The background polling service runs every 60 seconds (configurable) and executes these steps in order:
 
-1. **Step 0 — Post Agent Outputs**: For issues with active pipelines, detect completed PRs, extract `.md` files from the PR branch, post them as issue comments, and post the `<agent>: Done!` marker. Also captures the main branch when the first PR is detected.
+1. **Step 0 — Post Agent Outputs**: For issues with active pipelines, detect completed PRs. For each completed agent:
+   - **Merge child PR first** into the main branch (before posting Done!)
+   - Wait 2 seconds for GitHub to process the merge
+   - Extract `.md` files from the PR branch and post them as issue comments
+   - Post the `<agent>: Done!` marker
+   - Update the tracking table in the issue body (mark agent as ✅ Done)
+   - Also captures the main branch when the first PR is detected
 2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (with main branch as base).
-3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → merge child PR into main branch, delete child branch, advance pipeline or transition to In Progress and assign `speckit.implement`.
+3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance pipeline or transition to In Progress and assign `speckit.implement`.
 4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review.
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on In Review PRs.
+
+### Agent Pipeline Tracking
+
+Each issue maintains a **tracking table** in its body that shows the full agent pipeline and current progress:
+
+```markdown
+---
+
+## 🤖 Agent Pipeline
+
+| # | Status | Agent | State |
+|---|--------|-------|-------|
+| 1 | Backlog | `speckit.specify` | ✅ Done |
+| 2 | Ready | `speckit.plan` | ✅ Done |
+| 3 | Ready | `speckit.tasks` | 🔄 Active |
+| 4 | In Progress | `speckit.implement` | ⏳ Pending |
+```
+
+**State values:**
+- **⏳ Pending** — Agent not yet started
+- **🔄 Active** — Currently assigned to GitHub Copilot
+- **✅ Done** — `<agent>: Done!` comment posted
+
+This durable tracking survives server restarts and provides visibility into pipeline progress directly on the GitHub Issue.
+
+### Retry-with-Backoff
+
+Agent assignments use exponential backoff to handle transient GitHub API errors (especially after PR merges):
+- **3 attempts** with delays: 3s → 6s → 12s
+- Logs warnings on retries, success/failure on completion
 
 #### speckit.implement Completion Flow
 
@@ -171,6 +207,12 @@ When `speckit.implement` completes its work:
 3. **Convert main PR** — The main PR (first PR for the issue) is converted from draft to ready for review
 4. **Update status** — Issue status is updated to "In Review"
 5. **Request review** — Copilot code review is requested on the main PR
+
+### GitHub Copilot Model
+
+All custom Copilot agents use **Claude Opus 4.6** by default for reasoning and code generation tasks. The model is configured in both:
+- GraphQL mutation: `assignCopilotToIssue`
+- REST API fallback: `/repos/{owner}/{repo}/issues/{issue_number}/copilot`
 
 ---
 
@@ -558,6 +600,7 @@ github-workflows/
 │   │   │   └── user.py       #   User / session
 │   │   ├── services/         # Business logic
 │   │   │   ├── ai_agent.py           # Azure OpenAI integration
+│   │   │   ├── agent_tracking.py     # Agent pipeline tracking (issue body markdown)
 │   │   │   ├── cache.py              # In-memory TTL cache
 │   │   │   ├── copilot_polling.py    # Background polling + agent output posting
 │   │   │   ├── github_auth.py        # OAuth token exchange
