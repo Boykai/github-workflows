@@ -223,6 +223,12 @@ class BoardStatusColumn(BaseModel):
     items: list[BoardIssueCard] = []
 
 
+class BoardStatusColumnSummary(BaseModel):
+    name: str
+    color: str
+    option_id: str
+
+
 class BoardProject(BaseModel):
     project_id: str
     title: str
@@ -230,12 +236,6 @@ class BoardProject(BaseModel):
     url: str
     item_count: int = 0
     status_columns: list[BoardStatusColumnSummary] = []
-
-
-class BoardStatusColumnSummary(BaseModel):
-    name: str
-    color: str
-    option_id: str
 
 
 class BoardProjectListResponse(BaseModel):
