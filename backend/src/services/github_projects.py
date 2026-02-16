@@ -1313,6 +1313,67 @@ class GitHubProjectsService:
             )
             return False
 
+    async def unassign_copilot_from_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> bool:
+        """
+        Unassign GitHub Copilot from an issue.
+
+        This is needed before re-assigning Copilot with a different custom agent,
+        as the API may fail if Copilot is already assigned.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            True if unassignment succeeded or Copilot was not assigned
+        """
+        try:
+            # Use REST API to remove Copilot assignee
+            response = await self._client.delete(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
+                json={"assignees": ["Copilot"]},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code == 200:
+                logger.info(
+                    "Unassigned Copilot from issue #%d before re-assignment",
+                    issue_number,
+                )
+                return True
+            elif response.status_code == 404:
+                # Copilot was not assigned
+                logger.debug(
+                    "Copilot was not assigned to issue #%d, nothing to unassign",
+                    issue_number,
+                )
+                return True
+            else:
+                logger.warning(
+                    "Failed to unassign Copilot from issue #%d - Status: %s",
+                    issue_number,
+                    response.status_code,
+                )
+                # Don't fail - we'll try to assign anyway
+                return True
+
+        except Exception as e:
+            logger.error("Error unassigning Copilot from issue #%d: %s", issue_number, e)
+            # Don't fail - we'll try to assign anyway
+            return True
+
     async def assign_copilot_to_issue(
         self,
         access_token: str,
@@ -1350,6 +1411,16 @@ class GitHubProjectsService:
             issue_node_id,
             custom_agent,
         )
+
+        # If this is a custom agent assignment (not the first agent), unassign first
+        # This avoids API errors when Copilot is already assigned with different instructions
+        if custom_agent and issue_number:
+            await self.unassign_copilot_from_issue(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
 
         # Prefer GraphQL — it explicitly supports customAgent in the schema
         graphql_success = await self._assign_copilot_graphql(
