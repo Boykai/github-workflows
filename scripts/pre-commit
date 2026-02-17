@@ -123,6 +123,28 @@ if [ -n "$STAGED_FRONTEND_FILES" ]; then
         FAILED=1
     fi
 
+    # Run tests (mirrors CI: npm test)
+    echo -n "  🧪 Vitest... "
+    if npm test --silent 2>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Test failures must be fixed manually${NC}"
+        npm test 2>&1 | tail -15
+        FAILED=1
+    fi
+
+    # Build check (mirrors CI: npm run build)
+    echo -n "  🏗️  Build... "
+    if npm run build --silent 2>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Build errors must be fixed manually${NC}"
+        npm run build 2>&1 | tail -10
+        FAILED=1
+    fi
+
     # Re-stage auto-fixed frontend files
     cd "$REPO_ROOT"
     for file in $STAGED_FRONTEND_FILES; do
