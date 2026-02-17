@@ -25,9 +25,9 @@
 
 **Purpose**: Verify current baseline and confirm existing theming infrastructure
 
-- [ ] T001 Verify current CSS custom properties in `frontend/src/index.css` match expected baseline (`:root` and `html.dark-mode-active` blocks contain `--color-bg`, `--color-bg-secondary`, `--color-border`, `--color-text`, `--color-text-secondary`, `--shadow`)
-- [ ] T002 Verify existing dark mode toggle mechanism works (confirm `useAppTheme` hook in `frontend/src/hooks/useAppTheme.ts` toggles `dark-mode-active` class on `<html>`)
-- [ ] T003 Run existing frontend build (`cd frontend && npm install && npm run build`) to confirm clean baseline with no pre-existing errors
+- [x] T001 Verify current CSS custom properties in `frontend/src/index.css` match expected baseline (`:root` and `html.dark-mode-active` blocks contain `--color-bg`, `--color-bg-secondary`, `--color-border`, `--color-text`, `--color-text-secondary`, `--shadow`)
+- [x] T002 Verify existing dark mode toggle mechanism works (confirm `useAppTheme` hook in `frontend/src/hooks/useAppTheme.ts` toggles `dark-mode-active` class on `<html>`)
+- [x] T003 Run existing frontend build (`cd frontend && npm install && npm run build`) to confirm clean baseline with no pre-existing errors
 
 ---
 
@@ -49,10 +49,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update light mode CSS custom properties in `:root` block of `frontend/src/index.css`: change `--color-bg` from `#ffffff` to `#8B5C2B`, change `--color-bg-secondary` from `#f6f8fa` to `#7A4F24`, change `--color-text` from `#24292f` to `#FFFFFF`, change `--color-text-secondary` from `#57606a` to `#E8D5B5`, change `--color-border` from `#d0d7de` to `#A67B4A`, change `--shadow` from `rgba(0, 0, 0, 0.1)` to `rgba(0, 0, 0, 0.2)`
-- [ ] T005 [US1] Add hardcoded fallback color for body background in `frontend/src/index.css`: add `background: #8B5C2B;` line before existing `background: var(--color-bg-secondary);` in the `body` rule to support browsers without CSS custom property support (FR-006)
-- [ ] T006 [US1] Add print media query at the end of `frontend/src/index.css`: add `@media print { body { background: #ffffff !important; color: #000000 !important; } }` to override brown background for print (edge case from spec)
-- [ ] T007 [US1] Build frontend (`cd frontend && npm run build`) and verify no CSS syntax errors or build failures introduced by the color changes
+- [x] T004 [US1] Update light mode CSS custom properties in `:root` block of `frontend/src/index.css`: change `--color-bg` from `#ffffff` to `#8B5C2B`, change `--color-bg-secondary` from `#f6f8fa` to `#7A4F24`, change `--color-text` from `#24292f` to `#FFFFFF`, change `--color-text-secondary` from `#57606a` to `#E8D5B5`, change `--color-border` from `#d0d7de` to `#A67B4A`, change `--shadow` from `rgba(0, 0, 0, 0.1)` to `rgba(0, 0, 0, 0.2)`
+- [x] T005 [US1] Add hardcoded fallback color for body background in `frontend/src/index.css`: add `background: #8B5C2B;` line before existing `background: var(--color-bg-secondary);` in the `body` rule to support browsers without CSS custom property support (FR-006)
+- [x] T006 [US1] Add print media query at the end of `frontend/src/index.css`: add `@media print { body { background: #ffffff !important; color: #000000 !important; } }` to override brown background for print (edge case from spec)
+- [x] T007 [US1] Build frontend (`cd frontend && npm run build`) and verify no CSS syntax errors or build failures introduced by the color changes
 
 **Checkpoint**: At this point, the app should display a brown background on all main screens in light mode. All text should be white and readable. The brown background should be responsive across all device sizes. Print preview should show white background. This is the MVP — the core user request is fulfilled.
 
@@ -66,9 +66,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Update login button hover color in `frontend/src/App.css`: change `.login-button:hover` background from `#32383f` to `#5A3D25` to harmonize with brown theme
-- [ ] T009 [US2] Update task highlight animation in `frontend/src/App.css`: change `@keyframes highlightTask` initial background-color from `#dafbe1` to `#C4956A` to harmonize with brown theme
-- [ ] T010 [US2] Visually verify that modals, sidebar, navigation bars, and overlay components inherit brown background from CSS variables — no additional code changes needed for components using `var(--color-bg)` and `var(--color-bg-secondary)`
+- [x] T008 [US2] Update login button hover color in `frontend/src/App.css`: change `.login-button:hover` background from `#32383f` to `#5A3D25` to harmonize with brown theme
+- [x] T009 [US2] Update task highlight animation in `frontend/src/App.css`: change `@keyframes highlightTask` initial background-color from `#dafbe1` to `#C4956A` to harmonize with brown theme
+- [x] T010 [US2] Visually verify that modals, sidebar, navigation bars, and overlay components inherit brown background from CSS variables — no additional code changes needed for components using `var(--color-bg)` and `var(--color-bg-secondary)`
 
 **Checkpoint**: At this point, all overlays, modals, navigation panels, and interactive components should display brown backgrounds consistent with the main app theme. No visual clashing between overlay and main content backgrounds.
 
@@ -82,9 +82,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Update dark mode CSS custom properties in `html.dark-mode-active` block of `frontend/src/index.css`: change `--color-bg` from `#0d1117` to `#2C1A0E`, change `--color-bg-secondary` from `#161b22` to `#3D2817`, change `--color-border` from `#30363d` to `#5A3D25`
-- [ ] T012 [US3] Verify dark mode text colors (`--color-text: #e6edf3` and `--color-text-secondary: #8b949e`) remain unchanged — they already meet WCAG AA contrast against the dark brown background (#2C1A0E yields ~12.5:1 ratio)
-- [ ] T013 [US3] Build frontend (`cd frontend && npm run build`) and verify no errors; test dark mode toggle to confirm smooth transition between light brown and dark brown variants
+- [x] T011 [US3] Update dark mode CSS custom properties in `html.dark-mode-active` block of `frontend/src/index.css`: change `--color-bg` from `#0d1117` to `#2C1A0E`, change `--color-bg-secondary` from `#161b22` to `#3D2817`, change `--color-border` from `#30363d` to `#5A3D25`
+- [x] T012 [US3] Verify dark mode text colors (`--color-text: #e6edf3` and `--color-text-secondary: #8b949e`) remain unchanged — they already meet WCAG AA contrast against the dark brown background (#2C1A0E yields ~12.5:1 ratio)
+- [x] T013 [US3] Build frontend (`cd frontend && npm run build`) and verify no errors; test dark mode toggle to confirm smooth transition between light brown and dark brown variants
 
 **Checkpoint**: All three user stories should now be fully functional. Light mode shows brown (#8B5C2B), dark mode shows dark brown (#2C1A0E), toggle works smoothly, and all components inherit the theme.
 
@@ -94,10 +94,10 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T014 Run full frontend test suite (`cd frontend && npm test`) to verify no regressions from CSS changes
-- [ ] T015 Run Lighthouse or axe accessibility audit to verify WCAG AA contrast compliance for all text-on-background combinations (FR-002, SC-002)
-- [ ] T016 Visual regression check across 5 screen sizes: mobile portrait (375px), mobile landscape (667px), tablet (768px), laptop (1024px), desktop (1440px) — verify brown background fills viewport without gaps or artifacts (FR-004, SC-003)
-- [ ] T017 Verify centralized color definition: confirm all brown color changes exist only in `frontend/src/index.css` (primary) and `frontend/src/App.css` (hardcoded overrides) — future color adjustment requires modifying no more than one file for theme colors (FR-009, SC-006)
+- [x] T014 Run full frontend test suite (`cd frontend && npm test`) to verify no regressions from CSS changes
+- [x] T015 Run Lighthouse or axe accessibility audit to verify WCAG AA contrast compliance for all text-on-background combinations (FR-002, SC-002)
+- [x] T016 Visual regression check across 5 screen sizes: mobile portrait (375px), mobile landscape (667px), tablet (768px), laptop (1024px), desktop (1440px) — verify brown background fills viewport without gaps or artifacts (FR-004, SC-003)
+- [x] T017 Verify centralized color definition: confirm all brown color changes exist only in `frontend/src/index.css` (primary) and `frontend/src/App.css` (hardcoded overrides) — future color adjustment requires modifying no more than one file for theme colors (FR-009, SC-006)
 
 ---
 

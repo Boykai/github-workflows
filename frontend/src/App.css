@@ -98,7 +98,7 @@
 }
 
 .login-button:hover {
-  background: #32383f;
+  background: #5A3D25;
 }
 
 .login-button.loading {
@@ -384,7 +384,7 @@
 
 @keyframes highlight-pulse {
   0% {
-    background: #dafbe1;
+    background: #C4956A;
     border-color: #2da44e;
     box-shadow: 0 0 0 4px rgba(45, 164, 78, 0.2);
   }
