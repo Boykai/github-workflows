@@ -94,8 +94,8 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 
 ### Key Behaviors
 
-- **Hierarchical PR Branching**: The first PR created for an issue establishes the "main branch" for that issue. All subsequent agents branch FROM this main branch (using the commit SHA as `base_ref`, since GitHub Copilot requires a commit SHA rather than a branch name) and create their own child PRs targeting it. When a child agent completes, their PR is automatically squash-merged into the main branch and the child branch is deleted. By the time the issue reaches In Review, the main PR contains all agent work consolidated into a single branch.
-- **Main Branch Discovery**: The main branch is tracked per-issue in memory (including branch name, PR number, and latest commit SHA). If the server restarts, the system automatically discovers the main branch by scanning linked PRs for the issue before assigning the next agent. The commit SHA is fetched fresh for each agent assignment to ensure subsequent agents branch from the latest code.
+- **Hierarchical PR Branching**: The first PR created for an issue establishes the "main branch" for that issue. All subsequent agents branch FROM this main branch (using the branch name as `base_ref`) and create their own child PRs targeting it. When a child agent completes, their PR is automatically squash-merged into the main branch and the child branch is deleted. By the time the issue reaches In Review, the main PR contains all agent work consolidated into a single branch.
+- **Main Branch Discovery**: The main branch is tracked per-issue in memory (including branch name, PR number, and latest HEAD SHA for audit purposes). If the server restarts, the system automatically discovers the main branch by scanning linked PRs for the issue before assigning the next agent.
 - **System-Side Output Posting**: When an agent's PR work completes (for `speckit.specify`, `speckit.plan`, `speckit.tasks`), the polling service automatically extracts `.md` files from the PR branch, posts them as GitHub Issue comments, and posts the `<agent>: Done!` marker to advance the pipeline.
 - **speckit.implement Completion**: Unlike other agents, `speckit.implement` completion is detected via PR timeline events (`copilot_work_finished`, `review_requested`) or when the child PR is no longer a draft. When complete, its child PR is merged into the main branch, the main PR is converted from draft to ready for review, status is updated to "In Review", and Copilot code review is requested.
 - **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state by scanning issue comments for `Done!` markers.
@@ -129,6 +129,8 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Real-Time Sync**: Live updates via WebSocket with polling fallback
 - **Pipeline State Tracking**: Monitor which agent is active, which have completed, and overall progress
 - **Pipeline Reconstruction**: Server can reconstruct pipeline state from issue comments on restart
+- **Self-Healing Recovery**: Background detection and automatic re-assignment of stalled agent pipelines with per-issue cooldowns
+- **Double-Assignment Prevention**: Pending agent assignments are tracked to prevent race conditions in concurrent polling loops
 - **Workflow Configuration**: Customize agent mappings, status columns, and assignees per project
 - **Responsive UI**: Modern React interface with dark/light mode and TanStack Query state management
 
@@ -165,10 +167,11 @@ The background polling service runs every 60 seconds (configurable) and executes
    - Post the `<agent>: Done!` marker
    - Update the tracking table in the issue body (mark agent as ✅ Done)
    - Also captures the main branch when the first PR is detected
-2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (with main branch as base).
+2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (branching from the main branch).
 3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance pipeline or transition to In Progress and assign `speckit.implement`.
 4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review.
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on In Review PRs.
+6. **Step 5 — Self-Healing Recovery**: Detect stalled agent pipelines across all non-completed issues. If an issue has an active agent in its tracking table but no corresponding pending assignment or recent progress, the system re-assigns the agent. A per-issue cooldown (5 minutes) prevents rapid re-assignment. On restart, workflow configuration is auto-bootstrapped if missing.
 
 ### Agent Pipeline Tracking
 

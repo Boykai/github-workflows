@@ -815,7 +815,6 @@
 
 .issue-card-assignees {
   display: flex;
-  gap: -4px;
 }
 
 .issue-card-avatar {

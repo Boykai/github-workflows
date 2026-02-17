@@ -183,7 +183,7 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.7, max_tokens=16000)
+            content = self._call_completion(messages, temperature=0.7, max_tokens=8000)
             logger.debug("Issue recommendation response: %s", content[:500])
 
             return self._parse_issue_recommendation_response(content, user_input, session_id)

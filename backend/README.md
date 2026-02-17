@@ -90,6 +90,9 @@ A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (
    - Transition status to "In Review"
    - Request Copilot code review on the main PR
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on the PR.
+6. **Step 5 — Self-Healing Recovery**: Detect stalled agent pipelines across all non-completed issues. If an issue has an active agent in its tracking table but no corresponding pending assignment or recent progress, the system re-assigns the agent. A per-issue cooldown (5 minutes) prevents rapid re-assignment. On restart, workflow configuration is auto-bootstrapped if missing.
+
+**Double-Assignment Prevention**: The polling service tracks `_pending_agent_assignments` to avoid race conditions where concurrent polling loops could re-assign the same agent before Copilot has started working. The pending flag is set on assignment and cleared on completion.
 
 ### Agent Tracking Service (`agent_tracking.py`)
 
@@ -108,10 +111,10 @@ This tracking survives server restarts and provides visibility into pipeline pro
 
 Manages per-issue pipeline state and hierarchical PR branching:
 
-- **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`MainBranchInfo: {branch, pr_number, head_sha}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref`, and the `head_sha` (commit SHA) is used as the `base_ref` because GitHub Copilot cannot branch from remote branch names — it requires a commit SHA.
+- **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`MainBranchInfo: {branch, pr_number, head_sha}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref` — the main branch **name** is passed as `base_ref` so Copilot creates a child branch from it. The `head_sha` is tracked for audit purposes.
 - **Pipeline State Tracking**: `_pipeline_states` dict tracks active agent pipelines per issue, including which agents have completed and which is currently active. This prevents premature status transitions (e.g., waiting for `speckit.implement` to complete before transitioning to "In Review").
 - **Retry-with-Backoff**: Agent assignments retry up to 3 times with exponential backoff (3s → 6s → 12s) to handle transient GitHub API errors, especially after PR merges.
-- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, fetches the latest commit SHA from the main branch, and calls `assign_copilot_to_issue()` with the commit SHA as `base_ref`.
+- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, and calls `assign_copilot_to_issue()` with the main branch name as `base_ref`.
 - `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`).
 - `_advance_pipeline()` / `_transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes.
 - `_check_child_pr_completion()` — For `speckit.implement`, checks if a child PR targeting the main branch exists and shows completion signals.

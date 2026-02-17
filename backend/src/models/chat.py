@@ -51,7 +51,7 @@ class ChatMessage(BaseModel):
     message_id: UUID = Field(default_factory=uuid4, description="Unique message identifier")
     session_id: UUID = Field(..., description="Parent session ID (FK)")
     sender_type: SenderType = Field(..., description="Message sender type")
-    content: str = Field(..., description="Message text content")
+    content: str = Field(..., max_length=100000, description="Message text content")
     action_type: ActionType | None = Field(default=None, description="Associated action type")
     action_data: dict[str, Any] | None = Field(default=None, description="Action-specific payload")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Message timestamp")
@@ -128,7 +128,7 @@ class AITaskProposal(BaseModel):
 class ChatMessageRequest(BaseModel):
     """Request to send a chat message."""
 
-    content: str = Field(..., description="Message content")
+    content: str = Field(..., max_length=100000, description="Message content")
 
     @field_validator("content")
     @classmethod
