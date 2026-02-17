@@ -3320,6 +3320,7 @@ class GitHubProjectsService:
         owner: str,
         repo: str,
         issue_number: int,
+        pipeline_started_at: "datetime | None" = None,
     ) -> dict | None:
         """
         Check if GitHub Copilot has finished work on a PR for an issue.
@@ -3331,11 +3332,18 @@ class GitHubProjectsService:
           - 'copilot_work_finished' event
           - 'review_requested' event where review_requester is Copilot
 
+        When ``pipeline_started_at`` is provided, timeline events that
+        occurred before this timestamp are ignored. This prevents stale
+        events from earlier agents (e.g., speckit.specify) from being
+        misattributed to the current agent (e.g., speckit.implement).
+
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
             repo: Repository name
             issue_number: Issue number
+            pipeline_started_at: If provided, only consider timeline events
+                after this time (filters stale events from earlier agents).
 
         Returns:
             Dict with PR details if Copilot has finished work, None otherwise
@@ -3399,6 +3407,41 @@ class GitHubProjectsService:
                     timeline_events = await self.get_pr_timeline_events(
                         access_token, owner, repo, pr_number
                     )
+
+                    # If a pipeline start time was provided, filter out stale
+                    # events from earlier agents.  This prevents e.g. a
+                    # review_requested event from speckit.specify being
+                    # mistaken for speckit.implement completing.
+                    if pipeline_started_at is not None:
+                        fresh_events = []
+                        for ev in timeline_events:
+                            created_at_str = ev.get("created_at", "")
+                            if not created_at_str:
+                                fresh_events.append(ev)
+                                continue
+                            try:
+                                from datetime import datetime as _dt
+
+                                event_time = _dt.fromisoformat(
+                                    created_at_str.replace("Z", "+00:00")
+                                )
+                                cutoff = (
+                                    pipeline_started_at.replace(tzinfo=event_time.tzinfo)
+                                    if pipeline_started_at.tzinfo is None
+                                    else pipeline_started_at
+                                )
+                                if event_time > cutoff:
+                                    fresh_events.append(ev)
+                            except (ValueError, TypeError):
+                                fresh_events.append(ev)
+                        logger.debug(
+                            "Filtered timeline events for PR #%d: %d/%d after pipeline start %s",
+                            pr_number,
+                            len(fresh_events),
+                            len(timeline_events),
+                            pipeline_started_at.isoformat(),
+                        )
+                        timeline_events = fresh_events
 
                     copilot_finished = self._check_copilot_finished_events(timeline_events)
 

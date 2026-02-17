@@ -66,6 +66,10 @@ class PollingState:
 # Global polling state
 _polling_state = PollingState()
 
+# Reference to the current polling asyncio.Task so we can cancel it
+# before starting a new one (prevents concurrent loops).
+_polling_task: asyncio.Task | None = None
+
 # Track issues we've already processed to avoid duplicate updates
 _processed_issue_prs: set[str] = set()  # "issue_number:pr_number"
 
@@ -80,6 +84,11 @@ _claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
 # This prevents the polling loop from re-assigning the same agent every cycle
 # before Copilot has had time to create its child PR.
 _pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+
+# Track PRs that OUR system converted from draft → ready.
+# This prevents _check_main_pr_completion Signal 1 from misinterpreting
+# a non-draft PR as agent completion when we ourselves marked it ready.
+_system_marked_ready_prs: set[int] = set()  # pr_number
 
 # Recovery cooldown: tracks when we last attempted recovery for each issue.
 # Prevents re-assigning an agent every poll cycle — gives Copilot time to start.
@@ -1143,6 +1152,7 @@ async def _merge_child_pr_if_applicable(
                     access_token=access_token,
                     pr_node_id=pr_node_id,
                 )
+                _system_marked_ready_prs.add(pr_number)
 
             # Merge the child PR into the main branch
             logger.info(
@@ -1675,15 +1685,29 @@ async def _check_main_pr_completion(
         # When Copilot finishes, it converts the PR from draft to ready.
         # Since the pipeline keeps the main PR as draft until the final
         # agent completes, a non-draft main PR means the agent finished.
+        #
+        # GUARD: If OUR system converted the PR from draft → ready (tracked
+        # in _system_marked_ready_prs), ignore this signal — it was not
+        # caused by Copilot completing its work.
         if not is_draft:
-            logger.info(
-                "Main PR #%d is no longer a draft — agent '%s' completed "
-                "directly on main PR for issue #%d",
-                main_pr_number,
-                agent_name,
-                issue_number,
-            )
-            return True
+            if main_pr_number in _system_marked_ready_prs:
+                logger.info(
+                    "Main PR #%d is no longer a draft but was marked ready by "
+                    "our system (not Copilot) — ignoring Signal 1 for agent '%s' "
+                    "on issue #%d",
+                    main_pr_number,
+                    agent_name,
+                    issue_number,
+                )
+            else:
+                logger.info(
+                    "Main PR #%d is no longer a draft — agent '%s' completed "
+                    "directly on main PR for issue #%d",
+                    main_pr_number,
+                    agent_name,
+                    issue_number,
+                )
+                return True
 
         # Signal 2: Check timeline events for fresh completion signals
         timeline_events = await github_projects_service.get_pr_timeline_events(
@@ -2266,6 +2290,7 @@ async def _transition_after_pipeline_complete(
                         pr_node_id=main_pr_id,
                     )
                     if mark_ready_success:
+                        _system_marked_ready_prs.add(main_pr_number)
                         logger.info(
                             "Successfully converted main PR #%d from draft to ready",
                             main_pr_number,
@@ -2492,24 +2517,6 @@ async def check_in_progress_issues(
                 and pipeline.status.lower() == in_progress_label
             ):
                 in_review_status = config.status_in_review if config else "In Review"
-
-                if pipeline.is_complete:
-                    # All In Progress agents done → transition to In Review
-                    result = await _transition_after_pipeline_complete(
-                        access_token=access_token,
-                        project_id=project_id,
-                        item_id=task.github_item_id,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        issue_node_id=task.github_content_id,
-                        from_status=config.status_in_progress if config else "In Progress",
-                        to_status=in_review_status,
-                        task_title=task.title,
-                    )
-                    if result:
-                        results.append(result)
-                    continue
 
                 # Check if current agent has completed (via Done! comment marker)
                 current_agent = pipeline.current_agent
@@ -2764,6 +2771,22 @@ async def process_in_progress_issue(
         Result dict if action was taken, None otherwise
     """
     try:
+        # Guard: If an active pipeline exists for this issue, skip legacy
+        # processing.  The pipeline-based path in check_in_progress_issues
+        # is the authoritative handler.  This guard protects against race
+        # conditions (e.g., concurrent poll loops) or callers that bypass
+        # the pipeline check (e.g., the manual API endpoint).
+        pipeline = get_pipeline_state(issue_number)
+        if pipeline and not pipeline.is_complete:
+            logger.info(
+                "Issue #%d has active pipeline (status='%s', agent='%s') — "
+                "skipping legacy process_in_progress_issue",
+                issue_number,
+                pipeline.status,
+                pipeline.current_agent or "none",
+            )
+            return None
+
         # Fallback: Check for PR completion without active pipeline
         # This handles legacy cases or issues without agent pipelines
         finished_pr = await github_projects_service.check_copilot_pr_completion(
@@ -2835,6 +2858,7 @@ async def process_in_progress_issue(
                 }
 
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
+            _system_marked_ready_prs.add(pr_number)
 
         # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
         main_branch_info = get_issue_main_branch(issue_number)
@@ -3305,6 +3329,23 @@ async def poll_for_copilot_completion(
 
     _polling_state.is_running = True
 
+    try:
+        await _poll_loop(access_token, project_id, owner, repo, interval_seconds)
+    except asyncio.CancelledError:
+        logger.info("Copilot PR completion polling cancelled")
+    finally:
+        _polling_state.is_running = False
+
+
+async def _poll_loop(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    interval_seconds: int,
+) -> None:
+    """Inner polling loop, separated so CancelledError is handled in the caller."""
+
     while _polling_state.is_running:
         try:
             _polling_state.last_poll_time = datetime.utcnow()
@@ -3423,11 +3464,20 @@ async def poll_for_copilot_completion(
         await asyncio.sleep(interval_seconds)
 
     logger.info("Copilot PR completion polling stopped")
+    _polling_state.is_running = False
 
 
 def stop_polling() -> None:
-    """Stop the background polling loop."""
+    """Stop the background polling loop.
+
+    Sets the is_running flag to False AND cancels the asyncio task so that
+    the loop stops even if it's in the middle of a long-running await.
+    """
+    global _polling_task
     _polling_state.is_running = False
+    if _polling_task is not None and not _polling_task.done():
+        _polling_task.cancel()
+        _polling_task = None
 
 
 def get_polling_status() -> dict[str, Any]:
