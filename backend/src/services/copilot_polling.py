@@ -573,7 +573,7 @@ async def post_agent_outputs_from_pr(
             # For subsequent agents, the main PR may show completion signals.
             # We need to verify these are FRESH signals (after pipeline start)
             # to avoid re-attributing the first agent's work.
-            if is_subsequent_agent and pr_number == main_pr_number:
+            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
                 main_pr_completed = await _check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -3031,7 +3031,7 @@ async def recover_stalled_issues(
         # Statuses that are "pre-review" — these are the ones we monitor
         terminal_statuses = {
             (config.status_in_review or "In Review").lower(),
-            (config.status_done if hasattr(config, "status_done") else "Done").lower(),
+            (getattr(config, "status_done", None) or "Done").lower(),
         }
 
         # Filter to non-terminal issues with issue numbers
@@ -3107,6 +3107,8 @@ async def recover_stalled_issues(
                 continue
 
             expected_agent = active_step or pending_step
+            if expected_agent is None:
+                continue
             agent_name = expected_agent.agent_name
             agent_status = expected_agent.status  # e.g. "Backlog", "Ready"
 
@@ -3152,6 +3154,9 @@ async def recover_stalled_issues(
                     pr_author = (pr.get("author") or "").lower()
 
                     if pr_state != "OPEN" or "copilot" not in pr_author:
+                        continue
+
+                    if not isinstance(pr_number, int):
                         continue
 
                     # Get full details to check draft status

@@ -1107,6 +1107,7 @@ class GitHubProjectsService:
             LinkedPR,
             PRState,
             Repository,
+            StatusColor,
             StatusField,
             StatusOption,
         )
@@ -1318,7 +1319,7 @@ class GitHubProjectsService:
             no_status_option = StatusOption(
                 option_id="__no_status__",
                 name="No Status",
-                color="GRAY",
+                color=StatusColor.GRAY,
             )
             estimate_total = sum(it.estimate or 0.0 for it in no_status_items)
             columns.append(
