@@ -106,7 +106,7 @@ As a new team member or contributor, I want clear documentation covering archite
 
 ### Edge Cases
 
-- What happens when the managed identity role assignment is not yet propagated at the time the container app starts? The container app should retry authentication with backoff; the health probe should report unhealthy until dependencies are reachable.
+- What happens when the managed identity role assignment is not yet propagated at the time the container app starts? The container app should handle delayed identity propagation gracefully and become available once permissions are active; it should report unhealthy status until dependencies are reachable.
 - What happens when the AI model deployment capacity is exhausted? The backend should return a user-friendly error indicating temporary unavailability, not expose internal details.
 - What happens when the vault is temporarily unreachable? The backend should fail its health check and container orchestration should restart the instance.
 - What happens when the container registry is empty (first-ever deployment)? The CI/CD pipeline must build and push images before deploying infrastructure that references them, or the container apps must tolerate a missing image on initial infrastructure deployment.
@@ -162,7 +162,7 @@ As a new team member or contributor, I want clear documentation covering archite
 - **GitHub PAT**: A GitHub personal access token for the application's GitHub API access will be manually created and stored as a GitHub repository secret for initial Key Vault seeding.
 - **Model availability**: The GPT-4.1 model is available in the selected Azure region. If not, the operator selects a region where it is available.
 - **Container app image on first deploy**: The CI/CD pipeline builds and pushes images before infrastructure references them. On the very first deployment, the infrastructure and image build may need to be coordinated (pipeline handles this by ordering jobs).
-- **Backend health endpoint**: The existing backend already exposes a health endpoint at `/api/v1/health`. This may need to be verified or adapted for the container app health probe path.
+- **Backend health endpoint**: The existing backend exposes a health endpoint at `/api/v1/health`. The container app health probe must target the path where this endpoint is reachable.
 - **No frontend code changes**: Only the web server configuration and Docker entrypoint are modified; no React/Vite source code changes.
 - **Out of scope**: Custom GitHub Agents (`/api/agent` routes), multi-environment deployments, and frontend application logic changes.
 - **Performance defaults**: Standard web application performance expectations apply (page load under 3 seconds, API response under 5 seconds under normal load).
