@@ -1,4 +1,4 @@
-# GitHub Projects Chat Interface
+# Agent Projects
 
 > **A new way of working with DevOps** — leveraging AI in a conversational web app to create, manage, and execute GitHub Issues on a GitHub Project Board, with an automated **Spec Kit agent pipeline** that turns a feature request into a specification, plan, task breakdown, and implementation — all through GitHub Copilot custom agents.
 
@@ -124,6 +124,7 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Automatic Branch Cleanup**: Child branches are deleted from the repository after their PRs are merged into the main branch
 - **System-Side Output Posting**: Agent `.md` outputs are extracted from PRs and posted as issue comments automatically
 - **Main Branch Discovery**: If the server restarts, the main branch is rediscovered from linked PRs before assigning the next agent
+- **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, and linked PR counts
 - **Status Updates via Chat**: Update task status using natural language commands
 - **Real-Time Sync**: Live updates via WebSocket with polling fallback
 - **Pipeline State Tracking**: Monitor which agent is active, which have completed, and overall progress
@@ -338,7 +339,7 @@ If you want AI-powered issue generation from natural language:
 ```env
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
 AZURE_OPENAI_KEY=your_api_key
-AZURE_OPENAI_DEPLOYMENT=gpt-5
+AZURE_OPENAI_DEPLOYMENT=gpt-4
 ```
 
 ### 4. Start the Application
@@ -524,6 +525,12 @@ npm run test:e2e:headed   # E2E with browser visible
 | WS | `/api/v1/projects/{id}/subscribe` | WebSocket for real-time updates |
 | GET | `/api/v1/projects/{id}/events` | SSE fallback for real-time updates |
 
+### Board
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/board/projects` | List projects with status field configuration |
+| GET | `/api/v1/board/{project_id}` | Get board data (columns + items) |
+
 ### Chat
 | Method | Path | Description |
 |--------|------|-------------|
@@ -588,12 +595,14 @@ github-workflows/
 │   ├── src/
 │   │   ├── api/              # API endpoints
 │   │   │   ├── auth.py       #   Authentication (OAuth)
+│   │   │   ├── board.py      #   Project board (Kanban columns + items)
 │   │   │   ├── chat.py       #   Chat interface
 │   │   │   ├── projects.py   #   Project management
 │   │   │   ├── tasks.py      #   Task CRUD
 │   │   │   ├── workflow.py   #   Workflow & pipeline management
 │   │   │   └── webhooks.py   #   GitHub webhook handler
 │   │   ├── models/           # Pydantic data models
+│   │   │   ├── board.py      #   Board columns, items, custom fields
 │   │   │   ├── chat.py       #   Chat, workflow config, agent mappings
 │   │   │   ├── project.py    #   Projects, status columns
 │   │   │   ├── task.py       #   Tasks / project items
@@ -622,12 +631,15 @@ github-workflows/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── auth/         # LoginButton
+│   │   │   ├── board/        # ProjectBoard, BoardColumn, IssueCard,
+│   │   │   │                 # IssueDetailModal, colorUtils
 │   │   │   ├── chat/         # ChatInterface, MessageBubble, TaskPreview,
 │   │   │   │                 # StatusChangePreview, IssueRecommendationPreview
 │   │   │   ├── common/       # ErrorDisplay, RateLimitIndicator
 │   │   │   └── sidebar/      # ProjectSidebar, ProjectSelector, TaskCard
 │   │   ├── hooks/            # useAuth, useChat, useProjects, useWorkflow,
-│   │   │                     # useRealTimeSync, useAppTheme
+│   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme
+│   │   ├── pages/            # ProjectBoardPage
 │   │   ├── services/         # API client (api.ts)
 │   │   └── types/            # TypeScript type definitions
 │   ├── e2e/                  # Playwright E2E tests
@@ -636,6 +648,8 @@ github-workflows/
 │   ├── vitest.config.ts
 │   └── playwright.config.ts
 └── specs/                    # Feature specifications
+    ├── 001-app-title-update/
+    ├── 001-github-project-board/
     ├── 001-github-project-chat/
     ├── 001-github-project-workflow/
     └── 002-speckit-agent-assignment/

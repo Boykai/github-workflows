@@ -1528,20 +1528,16 @@ class TestFormatIssueContextAsPrompt:
             issue_data, agent_name="speckit.plan", existing_pr=existing_pr
         )
 
-        assert "CRITICAL" in result
-        assert "USE EXISTING BRANCH" in result
+        assert "Related Pull Request" in result
         assert "#42" in result
         assert "`copilot/fix-123`" in result
-        assert "Do NOT create a new branch" in result
-        assert "git checkout copilot/fix-123" in result
-        assert "git push origin copilot/fix-123" in result
         assert "Draft" in result  # WIP/draft label
+        assert "child branch" in result
         assert "`plan.md`" in result
-        assert "on branch `copilot/fix-123`" in result
-        # Existing PR section should come before issue title
-        critical_pos = result.index("CRITICAL")
+        # Related PR section should come before issue title
+        pr_pos = result.index("Related Pull Request")
         title_pos = result.index("## Issue Title")
-        assert critical_pos < title_pos, "Existing PR instructions must appear before Issue Title"
+        assert pr_pos < title_pos, "Related PR info must appear before Issue Title"
 
     def test_format_no_existing_pr_section_when_none(self, service):
         """Should not include existing PR section when no existing PR."""

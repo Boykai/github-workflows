@@ -1,6 +1,6 @@
-# GitHub Projects Chat — Backend
+# Agent Projects — Backend
 
-FastAPI backend that powers the GitHub Projects Chat Interface and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (Azure OpenAI), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
+FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (Azure OpenAI), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
 
 ## Setup
 
@@ -38,6 +38,7 @@ src/
 │
 ├── api/                       # Route handlers
 │   ├── auth.py                # OAuth flow, sessions, dev-login
+│   ├── board.py               # Project board (Kanban columns + items)
 │   ├── chat.py                # Chat messages, proposals, confirm/reject
 │   ├── projects.py            # List/select projects, tasks, WebSocket, SSE
 │   ├── tasks.py               # Create/update tasks (GitHub Issues + project items)
@@ -45,6 +46,7 @@ src/
 │   └── webhooks.py            # GitHub webhook (PR ready_for_review)
 │
 ├── models/                    # Pydantic v2 data models
+│   ├── board.py               # Board columns, items, custom fields, linked PRs
 │   ├── chat.py                # ChatMessage, IssueRecommendation, WorkflowConfig, AgentMapping…
 │   ├── project.py             # Project, StatusColumn
 │   ├── task.py                # Task / project item

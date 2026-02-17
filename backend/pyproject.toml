@@ -1,7 +1,7 @@
 [project]
-name = "github-projects-chat-backend"
+name = "agent-projects-backend"
 version = "0.1.0"
-description = "FastAPI backend for GitHub Projects Chat Interface"
+description = "FastAPI backend for Agent Projects"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",

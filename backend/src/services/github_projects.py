@@ -555,6 +555,157 @@ mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $text: String!) {
 """
 
 
+# ──────────────────────────────────────────────────────────────────
+# Board feature: GraphQL queries for project board display
+# ──────────────────────────────────────────────────────────────────
+
+# Query to list projects with full status field options (colors, descriptions)
+BOARD_LIST_PROJECTS_QUERY = """
+query($login: String!, $first: Int!) {
+  user(login: $login) {
+    projectsV2(first: $first) {
+      nodes {
+        id
+        title
+        url
+        shortDescription
+        closed
+        field(name: "Status") {
+          ... on ProjectV2SingleSelectField {
+            id
+            options {
+              id
+              name
+              color
+              description
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+# Query to get all project items with custom field values for board display
+BOARD_GET_PROJECT_ITEMS_QUERY = """
+query($projectId: ID!, $first: Int!, $after: String) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      title
+      url
+      shortDescription
+      owner {
+        ... on User { login }
+        ... on Organization { login }
+      }
+      field(name: "Status") {
+        ... on ProjectV2SingleSelectField {
+          id
+          options {
+            id
+            name
+            color
+            description
+          }
+        }
+      }
+      items(first: $first, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          id
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                optionId
+                field { ... on ProjectV2FieldCommon { name } }
+                color
+              }
+              ... on ProjectV2ItemFieldNumberValue {
+                number
+                field { ... on ProjectV2FieldCommon { name } }
+              }
+            }
+          }
+          content {
+            ... on DraftIssue {
+              title
+              body
+            }
+            ... on Issue {
+              id
+              number
+              title
+              body
+              url
+              assignees(first: 10) {
+                nodes {
+                  login
+                  avatarUrl
+                }
+              }
+              repository {
+                owner { login }
+                name
+              }
+              timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 50) {
+                nodes {
+                  ... on ConnectedEvent {
+                    subject {
+                      ... on PullRequest {
+                        id
+                        number
+                        title
+                        state
+                        url
+                      }
+                    }
+                  }
+                  ... on CrossReferencedEvent {
+                    source {
+                      ... on PullRequest {
+                        id
+                        number
+                        title
+                        state
+                        url
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            ... on PullRequest {
+              id
+              number
+              title
+              body
+              url
+              state
+              assignees(first: 10) {
+                nodes {
+                  login
+                  avatarUrl
+                }
+              }
+              repository {
+                owner { login }
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
@@ -868,6 +1019,325 @@ class GitHubProjectsService:
 
         logger.info("Fetched %d total tasks from project %s", len(all_tasks), project_id)
         return all_tasks
+
+    # ──────────────────────────────────────────────────────────────────
+    # Board feature methods
+    # ──────────────────────────────────────────────────────────────────
+
+    async def list_board_projects(self, access_token: str, username: str, limit: int = 20) -> list:
+        """
+        List projects with full status field configuration for board display.
+
+        Args:
+            access_token: GitHub OAuth access token
+            username: GitHub username
+            limit: Maximum number of projects
+
+        Returns:
+            List of BoardProject objects with status field options
+        """
+        from src.models.board import BoardProject, StatusField, StatusOption
+
+        data = await self._graphql(
+            access_token,
+            BOARD_LIST_PROJECTS_QUERY,
+            {"login": username, "first": limit},
+        )
+
+        user_data = data.get("user")
+        if not user_data:
+            return []
+
+        projects = []
+        for node in user_data.get("projectsV2", {}).get("nodes", []):
+            if not node or node.get("closed"):
+                continue
+
+            status_field_data = node.get("field")
+            if not status_field_data:
+                continue  # Skip projects without a Status field
+
+            options = []
+            for opt in status_field_data.get("options", []):
+                options.append(
+                    StatusOption(
+                        option_id=opt["id"],
+                        name=opt["name"],
+                        color=opt.get("color", "GRAY"),
+                        description=opt.get("description"),
+                    )
+                )
+
+            projects.append(
+                BoardProject(
+                    project_id=node["id"],
+                    name=node["title"],
+                    description=node.get("shortDescription"),
+                    url=node["url"],
+                    owner_login=username,
+                    status_field=StatusField(
+                        field_id=status_field_data["id"],
+                        options=options,
+                    ),
+                )
+            )
+
+        return projects
+
+    async def get_board_data(self, access_token: str, project_id: str, limit: int = 100):
+        """
+        Get full board data for a project: items with custom fields and linked PRs.
+
+        Args:
+            access_token: GitHub OAuth access token
+            project_id: GitHub Project V2 node ID
+            limit: Maximum items per page
+
+        Returns:
+            BoardDataResponse with project metadata and columns
+        """
+        from src.models.board import (
+            Assignee,
+            BoardColumn,
+            BoardDataResponse,
+            BoardItem,
+            BoardProject,
+            ContentType,
+            CustomFieldValue,
+            LinkedPR,
+            PRState,
+            Repository,
+            StatusField,
+            StatusOption,
+        )
+
+        all_items: list[BoardItem] = []
+        has_next_page = True
+        after = None
+        project_meta = None
+
+        while has_next_page:
+            data = await self._graphql(
+                access_token,
+                BOARD_GET_PROJECT_ITEMS_QUERY,
+                {"projectId": project_id, "first": limit, "after": after},
+            )
+
+            node = data.get("node")
+            if not node:
+                break
+
+            # Parse project metadata on first page
+            if project_meta is None:
+                status_field_data = node.get("field")
+                if not status_field_data:
+                    raise ValueError(f"Project {project_id} has no Status field")
+
+                status_options = [
+                    StatusOption(
+                        option_id=opt["id"],
+                        name=opt["name"],
+                        color=opt.get("color", "GRAY"),
+                        description=opt.get("description"),
+                    )
+                    for opt in status_field_data.get("options", [])
+                ]
+
+                owner_data = node.get("owner", {})
+                owner_login = owner_data.get("login", "")
+
+                project_meta = BoardProject(
+                    project_id=project_id,
+                    name=node.get("title", ""),
+                    description=node.get("shortDescription"),
+                    url=node.get("url", ""),
+                    owner_login=owner_login,
+                    status_field=StatusField(
+                        field_id=status_field_data["id"],
+                        options=status_options,
+                    ),
+                )
+
+            items_data = node.get("items", {})
+            page_info = items_data.get("pageInfo", {})
+
+            for item in items_data.get("nodes", []):
+                if not item:
+                    continue
+
+                content = item.get("content", {})
+                if not content:
+                    continue
+
+                # Parse field values (Status, Priority, Size, Estimate)
+                field_values = item.get("fieldValues", {}).get("nodes", [])
+                status_name = ""
+                status_option_id = ""
+                priority_val = None
+                size_val = None
+                estimate_val = None
+
+                for fv in field_values:
+                    if not fv:
+                        continue
+                    field_info = fv.get("field", {})
+                    field_name = field_info.get("name", "")
+
+                    if field_name == "Status":
+                        status_name = fv.get("name", "")
+                        status_option_id = fv.get("optionId", "")
+                    elif field_name == "Priority":
+                        priority_val = CustomFieldValue(
+                            name=fv.get("name", ""),
+                            color=fv.get("color"),
+                        )
+                    elif field_name == "Size":
+                        size_val = CustomFieldValue(
+                            name=fv.get("name", ""),
+                            color=fv.get("color"),
+                        )
+                    elif field_name == "Estimate":
+                        num = fv.get("number")
+                        if num is not None:
+                            estimate_val = float(num)
+
+                # Determine content type
+                if content.get("number") is not None and "state" in content:
+                    content_type = ContentType.PULL_REQUEST
+                elif content.get("number") is not None:
+                    content_type = ContentType.ISSUE
+                else:
+                    content_type = ContentType.DRAFT_ISSUE
+
+                # Parse assignees
+                assignees = []
+                for assignee_node in content.get("assignees", {}).get("nodes", []):
+                    if assignee_node:
+                        assignees.append(
+                            Assignee(
+                                login=assignee_node["login"],
+                                avatar_url=assignee_node.get("avatarUrl", ""),
+                            )
+                        )
+
+                # Parse repository
+                repo_data = content.get("repository")
+                repository = None
+                if repo_data:
+                    repository = Repository(
+                        owner=repo_data.get("owner", {}).get("login", ""),
+                        name=repo_data.get("name", ""),
+                    )
+
+                # Parse linked PRs from timeline events
+                linked_prs: list[LinkedPR] = []
+                seen_pr_ids: set[str] = set()
+                timeline = content.get("timelineItems", {}).get("nodes", [])
+                for event in timeline:
+                    if not event:
+                        continue
+                    pr_data = event.get("subject") or event.get("source")
+                    if pr_data and pr_data.get("id"):
+                        pr_id = pr_data["id"]
+                        if pr_id not in seen_pr_ids:
+                            seen_pr_ids.add(pr_id)
+                            pr_state_raw = pr_data.get("state", "OPEN").upper()
+                            if pr_state_raw == "MERGED":
+                                pr_state = PRState.MERGED
+                            elif pr_state_raw == "CLOSED":
+                                pr_state = PRState.CLOSED
+                            else:
+                                pr_state = PRState.OPEN
+
+                            linked_prs.append(
+                                LinkedPR(
+                                    pr_id=pr_id,
+                                    number=pr_data.get("number", 0),
+                                    title=pr_data.get("title", ""),
+                                    state=pr_state,
+                                    url=pr_data.get("url", ""),
+                                )
+                            )
+
+                all_items.append(
+                    BoardItem(
+                        item_id=item["id"],
+                        content_id=content.get("id"),
+                        content_type=content_type,
+                        title=content.get("title", "Untitled"),
+                        number=content.get("number"),
+                        repository=repository,
+                        url=content.get("url"),
+                        body=content.get("body"),
+                        status=status_name or "No Status",
+                        status_option_id=status_option_id,
+                        assignees=assignees,
+                        priority=priority_val,
+                        size=size_val,
+                        estimate=estimate_val,
+                        linked_prs=linked_prs,
+                    )
+                )
+
+            has_next_page = page_info.get("hasNextPage", False)
+            after = page_info.get("endCursor")
+            if not after:
+                break
+
+        if project_meta is None:
+            raise ValueError(f"Project not found: {project_id}")
+
+        # Group items into columns by status
+        status_options = project_meta.status_field.options
+
+        # Also create a "No Status" column for items without a status
+        columns_map: dict[str, list[BoardItem]] = {opt.option_id: [] for opt in status_options}
+        no_status_items: list[BoardItem] = []
+
+        for board_item in all_items:
+            if board_item.status_option_id in columns_map:
+                columns_map[board_item.status_option_id].append(board_item)
+            else:
+                no_status_items.append(board_item)
+
+        columns: list[BoardColumn] = []
+        for opt in status_options:
+            col_items = columns_map[opt.option_id]
+            estimate_total = sum(it.estimate or 0.0 for it in col_items)
+            columns.append(
+                BoardColumn(
+                    status=opt,
+                    items=col_items,
+                    item_count=len(col_items),
+                    estimate_total=estimate_total,
+                )
+            )
+
+        # Append no-status column if there are unclassified items
+        if no_status_items:
+            no_status_option = StatusOption(
+                option_id="__no_status__",
+                name="No Status",
+                color="GRAY",
+            )
+            estimate_total = sum(it.estimate or 0.0 for it in no_status_items)
+            columns.append(
+                BoardColumn(
+                    status=no_status_option,
+                    items=no_status_items,
+                    item_count=len(no_status_items),
+                    estimate_total=estimate_total,
+                )
+            )
+
+        logger.info(
+            "Board data for project %s: %d items across %d columns",
+            project_id,
+            len(all_items),
+            len(columns),
+        )
+
+        return BoardDataResponse(project=project_meta, columns=columns)
 
     async def create_draft_item(
         self,
@@ -1210,7 +1680,7 @@ class GitHubProjectsService:
         """
         parts = []
 
-        # ── Existing PR instructions FIRST (highest priority) ────────────
+        # ── Existing PR context (for agents working on an existing branch) ───
         if existing_pr:
             branch = existing_pr.get("head_ref", "")
             pr_num = existing_pr.get("number", "")
@@ -1218,21 +1688,12 @@ class GitHubProjectsService:
             is_draft = existing_pr.get("is_draft", True)
             draft_label = " (Draft / Work In Progress)" if is_draft else ""
             parts.append(
-                "## ⚠️  CRITICAL — USE EXISTING BRANCH\n\n"
-                f"An open pull request{draft_label} already exists for this issue.\n"
+                "## Related Pull Request\n\n"
+                f"A pull request{draft_label} already exists for this issue.\n"
                 f"- **PR:** #{pr_num} — {pr_url}\n"
                 f"- **Branch:** `{branch}`\n\n"
-                "### MANDATORY RULES — READ BEFORE DOING ANYTHING\n\n"
-                f"1. **Checkout the existing branch:** `git fetch origin && git checkout {branch}`\n"
-                f"2. **Make all commits on `{branch}`.** Do NOT create a new branch.\n"
-                f"3. **Push to the existing branch:** `git push origin {branch}`\n"
-                f"4. **Do NOT open a new pull request.** PR #{pr_num} already targets `main`.\n"
-                "5. Do NOT run `git checkout -b`, `git switch -c`, or any command that creates a new branch.\n"
-                "6. Do NOT run any command that opens or creates a pull request.\n\n"
-                f"The pull request is{draft_label}. This is intentional — multiple agents "
-                f"contribute to it sequentially. Just push your commits to `{branch}`.\n\n"
-                f"Previous agent work already exists on `{branch}`. "
-                "Build on top of those commits.\n\n"
+                "Previous agent work exists on this branch. Your work will be "
+                "created as a child branch and automatically merged back.\n\n"
                 "---"
             )
 
@@ -1430,6 +1891,57 @@ class GitHubProjectsService:
             logger.error("Error unassigning Copilot from issue #%d: %s", issue_number, e)
             # Don't fail - we'll try to assign anyway
             return True
+
+    async def is_copilot_assigned_to_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> bool:
+        """
+        Check if GitHub Copilot is currently assigned to an issue.
+
+        When Copilot finishes its work, it unassigns itself from the issue.
+        This can be used as a completion signal for agents working on existing branches.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            True if Copilot is currently assigned
+        """
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+            response = await self._client.get(url, headers=headers)
+            if response.status_code != 200:
+                logger.warning(
+                    "Failed to check assignees for issue #%d: status %d",
+                    issue_number,
+                    response.status_code,
+                )
+                return True  # Assume still assigned on error (conservative)
+
+            issue_data = response.json()
+            assignees = issue_data.get("assignees", [])
+            for assignee in assignees:
+                login = (assignee.get("login") or "").lower()
+                if "copilot" in login:
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.warning("Error checking Copilot assignment for issue #%d: %s", issue_number, e)
+            return True  # Assume still assigned on error (conservative)
 
     async def assign_copilot_to_issue(
         self,
@@ -2613,6 +3125,70 @@ class GitHubProjectsService:
 
         except Exception as e:
             logger.error("Failed to delete branch '%s': %s", branch_name, e)
+            return False
+
+    async def update_pr_base(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        base: str,
+    ) -> bool:
+        """
+        Update the base branch of a pull request.
+
+        Used to re-target child PRs that were created targeting 'main' (when
+        Copilot branches from a commit SHA) so they target the issue's main
+        branch instead. This ensures the child PR merges into the correct branch.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+            base: New base branch name
+
+        Returns:
+            True if the base branch was updated successfully
+        """
+        try:
+            response = await self._client.patch(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
+                json={"base": base},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code == 200:
+                logger.info(
+                    "Updated PR #%d base branch to '%s' in %s/%s",
+                    pr_number,
+                    base,
+                    owner,
+                    repo,
+                )
+                return True
+            else:
+                logger.warning(
+                    "Failed to update PR #%d base branch to '%s': %d %s",
+                    pr_number,
+                    base,
+                    response.status_code,
+                    response.text[:300] if response.text else "empty",
+                )
+                return False
+
+        except Exception as e:
+            logger.error(
+                "Failed to update PR #%d base branch to '%s': %s",
+                pr_number,
+                base,
+                e,
+            )
             return False
 
     async def has_copilot_reviewed_pr(

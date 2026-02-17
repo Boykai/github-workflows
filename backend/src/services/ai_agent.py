@@ -183,7 +183,7 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.7, max_tokens=2000)
+            content = self._call_completion(messages, temperature=0.7, max_tokens=16000)
             logger.debug("Issue recommendation response: %s", content[:500])
 
             return self._parse_issue_recommendation_response(content, user_input, session_id)
@@ -224,6 +224,7 @@ class AIAgentService:
         user_story = data.get("user_story", "").strip()
         ui_ux_description = data.get("ui_ux_description", "").strip()
         functional_requirements = data.get("functional_requirements", [])
+        technical_notes = data.get("technical_notes", "").strip()
 
         # Validate required fields
         if not title:
@@ -237,16 +238,21 @@ class AIAgentService:
         if len(title) > 256:
             title = title[:253] + "..."
 
+        # Always use the user's actual input as original_context (not from AI response)
+        original_context = original_input
+
         # Parse metadata with defaults
         metadata = self._parse_issue_metadata(data.get("metadata", {}))
 
         return IssueRecommendation(
             session_id=UUID(session_id),
             original_input=original_input,
+            original_context=original_context,
             title=title,
             user_story=user_story,
             ui_ux_description=ui_ux_description or "No UI/UX description provided.",
             functional_requirements=functional_requirements,
+            technical_notes=technical_notes,
             metadata=metadata,
             status=RecommendationStatus.PENDING,
         )

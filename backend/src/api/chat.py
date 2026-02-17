@@ -126,13 +126,6 @@ async def send_message(
 
     selected_project_id = session.selected_project_id
 
-    # T058: Input validation for maximum content length
-    MAX_FEATURE_REQUEST_LENGTH = 4000
-    if len(request.content) > MAX_FEATURE_REQUEST_LENGTH:
-        raise ValidationError(
-            f"Message too long. Maximum length is {MAX_FEATURE_REQUEST_LENGTH} characters."
-        )
-
     # Try to get AI service (optional)
     try:
         ai_service = get_ai_agent_service()
@@ -193,14 +186,15 @@ async def send_message(
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
 
-            # Format requirements for display
+            # Format requirements for display - show ALL of them
             requirements_preview = "\n".join(
-                f"- {req}" for req in recommendation.functional_requirements[:3]
+                f"- {req}" for req in recommendation.functional_requirements
             )
-            if len(recommendation.functional_requirements) > 3:
-                requirements_preview += (
-                    f"\n- ... and {len(recommendation.functional_requirements) - 3} more"
-                )
+
+            # Format technical notes preview
+            technical_notes_preview = ""
+            if recommendation.technical_notes:
+                technical_notes_preview = f"\n\n**Technical Notes:**\n{recommendation.technical_notes[:300]}{'...' if len(recommendation.technical_notes) > 300 else ''}"
 
             # Create assistant response with issue_create action (T015)
             assistant_message = ChatMessage(
@@ -214,10 +208,10 @@ async def send_message(
 {recommendation.user_story}
 
 **UI/UX Description:**
-{recommendation.ui_ux_description[:200]}{"..." if len(recommendation.ui_ux_description) > 200 else ""}
+{recommendation.ui_ux_description}
 
 **Functional Requirements:**
-{requirements_preview}
+{requirements_preview}{technical_notes_preview}
 
 Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 action_type=ActionType.ISSUE_CREATE,
@@ -225,8 +219,10 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "recommendation_id": str(recommendation.recommendation_id),
                     "proposed_title": recommendation.title,
                     "user_story": recommendation.user_story,
+                    "original_context": recommendation.original_context,
                     "ui_ux_description": recommendation.ui_ux_description,
                     "functional_requirements": recommendation.functional_requirements,
+                    "technical_notes": recommendation.technical_notes,
                     "status": RecommendationStatus.PENDING.value,
                 },
             )

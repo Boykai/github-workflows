@@ -2,6 +2,7 @@
  * Main application component.
  */
 
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -11,6 +12,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -25,6 +27,7 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
+  const [activeView, setActiveView] = useState<'chat' | 'board'>('chat');
   const {
     projects,
     selectedProject,
@@ -66,7 +69,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
-        <h1>Welcome to Tech Connect 2026!</h1>
+        <h1>Agent Projects</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
@@ -82,7 +85,23 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>Welcome to Tech Connect 2026!</h1>
+        <div className="header-left">
+          <h1>Agent Projects</h1>
+          <nav className="header-nav">
+            <button
+              className={`header-nav-btn ${activeView === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveView('chat')}
+            >
+              Chat
+            </button>
+            <button
+              className={`header-nav-btn ${activeView === 'board' ? 'active' : ''}`}
+              onClick={() => setActiveView('board')}
+            >
+              Project Board
+            </button>
+          </nav>
+        </div>
         <div className="header-actions">
           <button 
             className="theme-toggle-btn"
@@ -96,18 +115,25 @@ function AppContent() {
       </header>
 
       <main className="app-main">
-        <ProjectSidebar
-          projects={projects}
-          selectedProject={selectedProject}
-          tasks={tasks}
-          isLoading={projectsLoading}
-          tasksLoading={tasksLoading}
-          onProjectSelect={selectProject}
-        />
+        {activeView === 'board' ? (
+          <ProjectBoardPage
+            selectedProjectId={selectedProject?.project_id}
+            onProjectSelect={selectProject}
+          />
+        ) : (
+          <>
+            <ProjectSidebar
+              projects={projects}
+              selectedProject={selectedProject}
+              tasks={tasks}
+              isLoading={projectsLoading}
+              tasksLoading={tasksLoading}
+              onProjectSelect={selectProject}
+            />
 
-        <section className="chat-section">
-          {selectedProject ? (
-            <ChatInterface
+            <section className="chat-section">
+              {selectedProject ? (
+                <ChatInterface
               messages={messages}
               pendingProposals={pendingProposals}
               pendingStatusChanges={pendingStatusChanges}
@@ -135,6 +161,8 @@ function AppContent() {
             </div>
           )}
         </section>
+          </>
+        )}
       </main>
     </div>
   );

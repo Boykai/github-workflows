@@ -51,7 +51,7 @@ class ChatMessage(BaseModel):
     message_id: UUID = Field(default_factory=uuid4, description="Unique message identifier")
     session_id: UUID = Field(..., description="Parent session ID (FK)")
     sender_type: SenderType = Field(..., description="Message sender type")
-    content: str = Field(..., max_length=10000, description="Message text content")
+    content: str = Field(..., description="Message text content")
     action_type: ActionType | None = Field(default=None, description="Associated action type")
     action_data: dict[str, Any] | None = Field(default=None, description="Action-specific payload")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Message timestamp")
@@ -128,7 +128,7 @@ class AITaskProposal(BaseModel):
 class ChatMessageRequest(BaseModel):
     """Request to send a chat message."""
 
-    content: str = Field(..., max_length=10000, description="Message content")
+    content: str = Field(..., description="Message content")
 
     @field_validator("content")
     @classmethod
@@ -260,10 +260,16 @@ class IssueRecommendation(BaseModel):
     recommendation_id: UUID = Field(default_factory=uuid4, description="Unique recommendation ID")
     session_id: UUID = Field(..., description="Parent session ID")
     original_input: str = Field(..., description="User's original feature request text")
+    original_context: str = Field(
+        default="", description="User's complete input preserved verbatim by the AI"
+    )
     title: str = Field(..., max_length=256, description="AI-generated issue title")
     user_story: str = Field(..., description="User story in As a/I want/So that format")
     ui_ux_description: str = Field(..., description="UI/UX guidance for implementation")
     functional_requirements: list[str] = Field(..., description="List of testable requirements")
+    technical_notes: str = Field(
+        default="", description="Implementation hints and architecture considerations"
+    )
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
         description="AI-generated issue metadata (priority, size, dates, labels)",
@@ -280,6 +286,7 @@ class IssueRecommendation(BaseModel):
                 "recommendation_id": "550e8400-e29b-41d4-a716-446655440000",
                 "session_id": "550e8400-e29b-41d4-a716-446655440001",
                 "original_input": "Add CSV export functionality for user data",
+                "original_context": "I need to be able to export my user data as CSV. It should include all profile fields and timestamps. Files could be up to 10MB.",
                 "title": "Add CSV export functionality for user data",
                 "user_story": "As a user, I want to export my data as CSV so that I can analyze it.",
                 "ui_ux_description": "Add an Export button in the user profile section.",
@@ -287,6 +294,7 @@ class IssueRecommendation(BaseModel):
                     "System MUST generate CSV with all user profile fields",
                     "System MUST include timestamps in ISO 8601 format",
                 ],
+                "technical_notes": "Use streaming CSV response for large datasets. Rate-limit exports to 5 per minute per user.",
                 "metadata": {
                     "priority": "P2",
                     "size": "M",
