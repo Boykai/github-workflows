@@ -135,18 +135,20 @@ async def select_project(
 
 async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
     """Start Copilot PR completion polling for the selected project."""
+    import src.services.copilot_polling as _cp_module
     from src.services.copilot_polling import (
         get_polling_status,
         poll_for_copilot_completion,
         stop_polling,
     )
 
-    # Stop any existing polling first
+    # Stop any existing polling first — cancel the task so it stops immediately
+    # even if it's in the middle of a long-running API call.
     status = get_polling_status()
     if status["is_running"]:
         stop_polling()
-        # Wait for polling to stop
-        await asyncio.sleep(0.5)
+        # Give the cancelled task a chance to clean up
+        await asyncio.sleep(0.1)
 
     # Get repository info for the project
     repo_info = await github_projects_service.get_project_repository(
@@ -176,8 +178,9 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
 
     owner, repo = repo_info
 
-    # Start polling as background task (15 second interval)
-    asyncio.create_task(
+    # Start polling as background task (15 second interval).
+    # Store the task reference so stop_polling() can cancel it.
+    task = asyncio.create_task(
         poll_for_copilot_completion(
             access_token=session.access_token,
             project_id=project_id,
@@ -186,6 +189,7 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
             interval_seconds=15,
         )
     )
+    _cp_module._polling_task = task
 
     logger.info(
         "Auto-started Copilot PR polling for project %s (%s/%s)",

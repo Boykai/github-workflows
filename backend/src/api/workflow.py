@@ -578,7 +578,9 @@ async def start_copilot_polling(
     # Start polling as background task
     import asyncio
 
-    asyncio.create_task(
+    import src.services.copilot_polling as _cp_module
+
+    task = asyncio.create_task(
         poll_for_copilot_completion(
             access_token=session.access_token,
             project_id=session.selected_project_id,
@@ -587,6 +589,7 @@ async def start_copilot_polling(
             interval_seconds=interval_seconds,
         )
     )
+    _cp_module._polling_task = task
 
     logger.info(
         "Started Copilot PR polling for project %s (interval: %ds)",

@@ -72,9 +72,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
     settings = get_settings()
     setup_logging(settings.debug)
-    logger.info("Starting GitHub Projects Chat API")
+    logger.info("Starting Agent Projects API")
     yield
-    logger.info("Shutting down GitHub Projects Chat API")
+    logger.info("Shutting down Agent Projects API")
 
 
 def create_app() -> FastAPI:
@@ -82,8 +82,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="GitHub Projects Chat API",
-        description="REST API for GitHub Projects Chat Interface",
+        title="Agent Projects API",
+        description="REST API for Agent Projects",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/api/docs" if settings.debug else None,

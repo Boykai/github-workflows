@@ -23,10 +23,13 @@ from src.constants import (
     cache_key_issue_pr,
     cache_key_review_requested,
 )
+from src.models.chat import WorkflowConfiguration
 from src.services.agent_tracking import (
     get_current_agent_from_tracking,
+    get_next_pending_agent,
     mark_agent_active,
     mark_agent_done,
+    parse_tracking_from_body,
 )
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -41,6 +44,8 @@ from src.services.workflow_orchestrator import (
     remove_pipeline_state,
     set_issue_main_branch,
     set_pipeline_state,
+    set_workflow_config,
+    update_issue_main_branch_sha,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +66,10 @@ class PollingState:
 # Global polling state
 _polling_state = PollingState()
 
+# Reference to the current polling asyncio.Task so we can cancel it
+# before starting a new one (prevents concurrent loops).
+_polling_task: asyncio.Task | None = None
+
 # Track issues we've already processed to avoid duplicate updates
 _processed_issue_prs: set[str] = set()  # "issue_number:pr_number"
 
@@ -75,6 +84,16 @@ _claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
 # This prevents the polling loop from re-assigning the same agent every cycle
 # before Copilot has had time to create its child PR.
 _pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+
+# Track PRs that OUR system converted from draft → ready.
+# This prevents _check_main_pr_completion Signal 1 from misinterpreting
+# a non-draft PR as agent completion when we ourselves marked it ready.
+_system_marked_ready_prs: set[int] = set()  # pr_number
+
+# Recovery cooldown: tracks when we last attempted recovery for each issue.
+# Prevents re-assigning an agent every poll cycle — gives Copilot time to start.
+_recovery_last_attempt: dict[int, datetime] = {}  # issue_number -> last attempt time
+RECOVERY_COOLDOWN_SECONDS = 300  # 5 minutes between recovery attempts per issue
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -526,6 +545,7 @@ async def post_agent_outputs_from_pr(
                         issue_number=task.issue_number,
                         agent_name=current_agent,
                         pipeline_started_at=pipeline.started_at,
+                        agent_assigned_sha=pipeline.agent_assigned_sha,
                     )
                     if main_pr_completed:
                         # Use the main PR as the finished PR
@@ -553,7 +573,7 @@ async def post_agent_outputs_from_pr(
             # For subsequent agents, the main PR may show completion signals.
             # We need to verify these are FRESH signals (after pipeline start)
             # to avoid re-attributing the first agent's work.
-            if is_subsequent_agent and pr_number == main_pr_number:
+            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
                 main_pr_completed = await _check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -562,6 +582,7 @@ async def post_agent_outputs_from_pr(
                     issue_number=task.issue_number,
                     agent_name=current_agent,
                     pipeline_started_at=pipeline.started_at,
+                    agent_assigned_sha=pipeline.agent_assigned_sha,
                 )
                 if not main_pr_completed:
                     logger.debug(
@@ -1071,15 +1092,46 @@ async def _merge_child_pr_if_applicable(
 
             pr_base = pr_details.get("base_ref", "")  # The branch this PR targets
 
-            # Skip PRs not targeting the main branch
-            if pr_base != main_branch:
+            # Check if this is a child PR for the current issue.
+            # A child PR can target either:
+            #   1. The main branch name (e.g., "copilot/implement-xxx")
+            #   2. "main" — when created from a commit SHA
+            # We accept both but need to re-target PRs that hit "main"
+            # so they merge into the issue's main branch instead.
+            is_child_of_main_branch = pr_base == main_branch
+            is_child_of_default = pr_base == "main"
+
+            if not is_child_of_main_branch and not is_child_of_default:
                 logger.debug(
-                    "PR #%d targets '%s' not main branch '%s', skipping",
+                    "PR #%d targets '%s' not main branch '%s' or 'main', skipping",
                     pr_number,
                     pr_base,
                     main_branch,
                 )
                 continue
+
+            # If the child PR targets "main" instead of the issue's main branch,
+            # update the PR base to target the correct branch before merging.
+            if is_child_of_default and main_branch != "main":
+                logger.info(
+                    "Child PR #%d targets 'main' — updating base to '%s' before merge",
+                    pr_number,
+                    main_branch,
+                )
+                base_updated = await github_projects_service.update_pr_base(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_number,
+                    base=main_branch,
+                )
+                if not base_updated:
+                    logger.warning(
+                        "Could not re-target PR #%d to '%s', skipping merge",
+                        pr_number,
+                        main_branch,
+                    )
+                    continue
 
             pr_node_id = pr_details.get("id")
             if not pr_node_id:
@@ -1100,6 +1152,7 @@ async def _merge_child_pr_if_applicable(
                     access_token=access_token,
                     pr_node_id=pr_node_id,
                 )
+                _system_marked_ready_prs.add(pr_number)
 
             # Merge the child PR into the main branch
             logger.info(
@@ -1121,6 +1174,12 @@ async def _merge_child_pr_if_applicable(
             if merge_result:
                 # Get the child branch name to delete after merge
                 child_branch = pr_details.get("head_ref", "")
+
+                # Update the main branch HEAD SHA to the merge commit
+                # so the next agent branches from the post-merge state
+                merge_commit_sha = merge_result.get("merge_commit", "")
+                if merge_commit_sha:
+                    update_issue_main_branch_sha(issue_number, merge_commit_sha)
 
                 logger.info(
                     "Successfully merged child PR #%d into '%s' (commit: %s)",
@@ -1267,10 +1326,19 @@ async def _find_completed_child_pr(
 
             pr_base = pr_details.get("base_ref", "")
 
-            # Check if this PR targets the main branch (it's a child PR)
-            if pr_base != main_branch:
+            # Check if this PR is a child PR for the current issue.
+            # A child PR can target either:
+            #   1. The main branch name (e.g., "copilot/implement-xxx") — when Copilot
+            #      creates a branch from the main branch name
+            #   2. "main" — when Copilot creates a branch from a commit SHA, it may
+            #      target the default branch instead of the main PR's branch
+            # We accept both, but exclude the main PR itself (already handled above).
+            is_child_of_main_branch = pr_base == main_branch
+            is_child_of_default = pr_base == "main"
+
+            if not is_child_of_main_branch and not is_child_of_default:
                 logger.debug(
-                    "PR #%d targets '%s', not main branch '%s' - not a child PR",
+                    "PR #%d targets '%s', not main branch '%s' or 'main' - not a child PR",
                     pr_number,
                     pr_base,
                     main_branch,
@@ -1474,12 +1542,15 @@ async def _check_child_pr_completion(
             pr_base = pr_details.get("base_ref", "")
 
             # Check if this PR targets the main branch (it's a child PR)
-            if pr_base != main_branch:
+            # Accept PRs targeting either the main_branch name or "main"
+            # (commit-SHA-based branching may create PRs targeting "main")
+            if pr_base != main_branch and pr_base != "main":
                 continue
 
             logger.info(
-                "Found child PR #%d targeting main branch '%s' for issue #%d",
+                "Found child PR #%d targeting '%s' (main branch '%s') for issue #%d",
                 pr_number,
+                pr_base,
                 main_branch,
                 issue_number,
             )
@@ -1524,7 +1595,7 @@ async def _check_child_pr_completion(
             return False  # Child PR exists but not complete yet
 
         logger.debug(
-            "No child PR found targeting main branch '%s' for issue #%d, agent '%s' hasn't created PR yet",
+            "No child PR found targeting main branch '%s' (or 'main') for issue #%d, agent '%s' hasn't created PR yet",
             main_branch,
             issue_number,
             agent_name,
@@ -1548,17 +1619,23 @@ async def _check_main_pr_completion(
     issue_number: int,
     agent_name: str,
     pipeline_started_at: datetime | None = None,
+    agent_assigned_sha: str = "",
 ) -> bool:
     """
     Check if a Copilot agent completed work directly on the main PR.
 
-    Some agents (like speckit.implement) may work directly on the first PR
-    (the main PR) rather than creating a separate child PR. This function
-    detects completion by checking:
+    Subsequent agents work on the existing PR branch (not creating a new PR).
+    This function detects completion by checking multiple signals:
       1. If the main PR is no longer a draft (Copilot marks it ready when done)
       2. If the main PR has copilot_work_finished or review_requested events
-         that occurred after the pipeline started (to filter stale events from
-         earlier agents like speckit.specify)
+         that occurred after the pipeline started
+      3. If new commits exist on the branch (HEAD SHA changed since agent was
+         assigned) AND Copilot is no longer assigned to the issue — indicating
+         the agent pushed commits and finished its session
+
+    Signal 3 is critical for subsequent agents that push to the existing branch.
+    GitHub does not always fire copilot_work_finished timeline events when
+    Copilot works on an already-open PR branch.
 
     Args:
         access_token: GitHub access token
@@ -1569,6 +1646,8 @@ async def _check_main_pr_completion(
         agent_name: Name of the agent we're checking completion for
         pipeline_started_at: When the pipeline was started (used to filter
             stale events from earlier agents)
+        agent_assigned_sha: The HEAD SHA captured when the agent was assigned.
+            If empty, commit-based detection is skipped.
 
     Returns:
         True if the main PR shows fresh completion signals, False otherwise
@@ -1606,15 +1685,29 @@ async def _check_main_pr_completion(
         # When Copilot finishes, it converts the PR from draft to ready.
         # Since the pipeline keeps the main PR as draft until the final
         # agent completes, a non-draft main PR means the agent finished.
+        #
+        # GUARD: If OUR system converted the PR from draft → ready (tracked
+        # in _system_marked_ready_prs), ignore this signal — it was not
+        # caused by Copilot completing its work.
         if not is_draft:
-            logger.info(
-                "Main PR #%d is no longer a draft — agent '%s' completed "
-                "directly on main PR for issue #%d",
-                main_pr_number,
-                agent_name,
-                issue_number,
-            )
-            return True
+            if main_pr_number in _system_marked_ready_prs:
+                logger.info(
+                    "Main PR #%d is no longer a draft but was marked ready by "
+                    "our system (not Copilot) — ignoring Signal 1 for agent '%s' "
+                    "on issue #%d",
+                    main_pr_number,
+                    agent_name,
+                    issue_number,
+                )
+            else:
+                logger.info(
+                    "Main PR #%d is no longer a draft — agent '%s' completed "
+                    "directly on main PR for issue #%d",
+                    main_pr_number,
+                    agent_name,
+                    issue_number,
+                )
+                return True
 
         # Signal 2: Check timeline events for fresh completion signals
         timeline_events = await github_projects_service.get_pr_timeline_events(
@@ -1656,6 +1749,139 @@ async def _check_main_pr_completion(
                 issue_number,
             )
             return True
+
+        # Signal 3: Commit-based detection + Copilot unassigned
+        # When an agent works on the existing PR branch, it may not fire
+        # timeline events. Instead, check if:
+        #   (a) The branch HEAD SHA has changed since the agent was assigned
+        #   (b) Copilot is no longer assigned to the issue (it self-unassigns
+        #       when done)
+        # Both conditions must be true to confirm completion.
+        if agent_assigned_sha:
+            current_sha = ""
+            last_commit = pr_details.get("last_commit")
+            if last_commit:
+                current_sha = last_commit.get("sha", "")
+
+            has_new_commits = current_sha and current_sha != agent_assigned_sha
+
+            if has_new_commits:
+                logger.info(
+                    "Main PR #%d has new commits for agent '%s' on issue #%d "
+                    "(assigned SHA: %s → current SHA: %s). Checking if Copilot "
+                    "is still assigned...",
+                    main_pr_number,
+                    agent_name,
+                    issue_number,
+                    agent_assigned_sha[:8],
+                    current_sha[:8],
+                )
+
+                # Check if Copilot is still assigned to the issue
+                copilot_still_assigned = await github_projects_service.is_copilot_assigned_to_issue(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+
+                if not copilot_still_assigned:
+                    logger.info(
+                        "Agent '%s' completed on main PR #%d for issue #%d — "
+                        "new commits detected (SHA: %s → %s) and Copilot is "
+                        "no longer assigned",
+                        agent_name,
+                        main_pr_number,
+                        issue_number,
+                        agent_assigned_sha[:8],
+                        current_sha[:8],
+                    )
+                    return True
+                else:
+                    logger.debug(
+                        "Main PR #%d has new commits but Copilot is still "
+                        "assigned to issue #%d — agent '%s' still working",
+                        main_pr_number,
+                        issue_number,
+                        agent_name,
+                    )
+            else:
+                # SHA unchanged — but we should still check if Copilot has
+                # unassigned itself (indicating the agent finished or failed
+                # without pushing commits). This can happen if:
+                #   - The agent completed with no code changes
+                #   - The agent failed/timed out
+                #   - The assignment didn't take effect
+                copilot_still_assigned = await github_projects_service.is_copilot_assigned_to_issue(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                if not copilot_still_assigned:
+                    logger.warning(
+                        "Main PR #%d HEAD SHA unchanged (%s) but Copilot is no longer "
+                        "assigned to issue #%d for agent '%s'. Agent may have failed "
+                        "or completed without changes. Consider re-assigning.",
+                        main_pr_number,
+                        agent_assigned_sha[:8] if agent_assigned_sha else "none",
+                        issue_number,
+                        agent_name,
+                    )
+                    # Return True to trigger the completion flow, which will
+                    # allow the polling loop to advance and potentially re-assign
+                    # the agent. The Done! marker won't be posted without actual
+                    # output files, but the pipeline can attempt recovery.
+                    return True
+                else:
+                    logger.debug(
+                        "Main PR #%d HEAD SHA unchanged (%s) for agent '%s', issue #%d "
+                        "(Copilot still assigned — waiting)",
+                        main_pr_number,
+                        agent_assigned_sha[:8] if agent_assigned_sha else "none",
+                        agent_name,
+                        issue_number,
+                    )
+        else:
+            # No assigned SHA available — also check Copilot assignment as
+            # a standalone signal. If Copilot is no longer assigned AND the
+            # issue timeline shows the agent was previously assigned, it means
+            # the agent has finished (even if we can't confirm new commits).
+            copilot_still_assigned = await github_projects_service.is_copilot_assigned_to_issue(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+            if not copilot_still_assigned:
+                # Double-check: make sure there are new commits since pipeline start
+                # by checking if the committed_date of the last commit is after
+                # pipeline_started_at
+                last_commit = pr_details.get("last_commit")
+                if last_commit and pipeline_started_at:
+                    committed_date_str = last_commit.get("committed_date", "")
+                    if committed_date_str:
+                        try:
+                            commit_time = datetime.fromisoformat(
+                                committed_date_str.replace("Z", "+00:00")
+                            )
+                            cutoff = (
+                                pipeline_started_at.replace(tzinfo=commit_time.tzinfo)
+                                if pipeline_started_at.tzinfo is None
+                                else pipeline_started_at
+                            )
+                            if commit_time > cutoff:
+                                logger.info(
+                                    "Agent '%s' completed on main PR #%d for issue #%d — "
+                                    "Copilot unassigned and fresh commits exist (commit: %s)",
+                                    agent_name,
+                                    main_pr_number,
+                                    issue_number,
+                                    committed_date_str,
+                                )
+                                return True
+                        except (ValueError, TypeError):
+                            pass
 
         logger.debug(
             "Main PR #%d has no fresh completion signals for agent '%s', issue #%d",
@@ -1798,6 +2024,27 @@ async def _reconstruct_pipeline_state(
     except Exception as e:
         logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
 
+    # Try to capture current HEAD SHA for commit-based completion detection
+    reconstructed_sha = ""
+    main_branch_info = get_issue_main_branch(issue_number)
+    if main_branch_info and main_branch_info.get("pr_number"):
+        try:
+            pr_details = await github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=main_branch_info["pr_number"],
+            )
+            if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                reconstructed_sha = pr_details["last_commit"]["sha"]
+                logger.debug(
+                    "Captured current HEAD SHA '%s' during pipeline reconstruction for issue #%d",
+                    reconstructed_sha[:8],
+                    issue_number,
+                )
+        except Exception as e:
+            logger.debug("Could not capture HEAD SHA during reconstruction: %s", e)
+
     pipeline = PipelineState(
         issue_number=issue_number,
         project_id=project_id,
@@ -1806,6 +2053,7 @@ async def _reconstruct_pipeline_state(
         current_agent_index=len(completed),
         completed_agents=completed,
         started_at=datetime.utcnow(),
+        agent_assigned_sha=reconstructed_sha,
     )
     set_pipeline_state(issue_number, pipeline)
 
@@ -1858,6 +2106,9 @@ async def _advance_pipeline(
     assert completed_agent is not None, "No current agent in pipeline"
     pipeline.completed_agents.append(completed_agent)
     pipeline.current_agent_index += 1
+
+    # Clear the pending assignment flag now that the agent has completed
+    _pending_agent_assignments.discard(f"{issue_number}:{completed_agent}")
 
     logger.info(
         "Agent '%s' completed on issue #%d (%d/%d agents done)",
@@ -2039,6 +2290,7 @@ async def _transition_after_pipeline_complete(
                         pr_node_id=main_pr_id,
                     )
                     if mark_ready_success:
+                        _system_marked_ready_prs.add(main_pr_number)
                         logger.info(
                             "Successfully converted main PR #%d from draft to ready",
                             main_pr_number,
@@ -2265,24 +2517,6 @@ async def check_in_progress_issues(
                 and pipeline.status.lower() == in_progress_label
             ):
                 in_review_status = config.status_in_review if config else "In Review"
-
-                if pipeline.is_complete:
-                    # All In Progress agents done → transition to In Review
-                    result = await _transition_after_pipeline_complete(
-                        access_token=access_token,
-                        project_id=project_id,
-                        item_id=task.github_item_id,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        issue_node_id=task.github_content_id,
-                        from_status=config.status_in_progress if config else "In Progress",
-                        to_status=in_review_status,
-                        task_title=task.title,
-                    )
-                    if result:
-                        results.append(result)
-                    continue
 
                 # Check if current agent has completed (via Done! comment marker)
                 current_agent = pipeline.current_agent
@@ -2537,6 +2771,22 @@ async def process_in_progress_issue(
         Result dict if action was taken, None otherwise
     """
     try:
+        # Guard: If an active pipeline exists for this issue, skip legacy
+        # processing.  The pipeline-based path in check_in_progress_issues
+        # is the authoritative handler.  This guard protects against race
+        # conditions (e.g., concurrent poll loops) or callers that bypass
+        # the pipeline check (e.g., the manual API endpoint).
+        pipeline = get_pipeline_state(issue_number)
+        if pipeline and not pipeline.is_complete:
+            logger.info(
+                "Issue #%d has active pipeline (status='%s', agent='%s') — "
+                "skipping legacy process_in_progress_issue",
+                issue_number,
+                pipeline.status,
+                pipeline.current_agent or "none",
+            )
+            return None
+
         # Fallback: Check for PR completion without active pipeline
         # This handles legacy cases or issues without agent pipelines
         finished_pr = await github_projects_service.check_copilot_pr_completion(
@@ -2608,6 +2858,7 @@ async def process_in_progress_issue(
                 }
 
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
+            _system_marked_ready_prs.add(pr_number)
 
         # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
         main_branch_info = get_issue_main_branch(issue_number)
@@ -2718,6 +2969,347 @@ async def process_in_progress_issue(
         }
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Self-Healing Recovery: Detect and fix stalled agent pipelines
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+async def recover_stalled_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Self-healing recovery check for all issues that have not reached "In Review".
+
+    For every issue in Backlog / Ready / In Progress status:
+      1. Parse the agent tracking table from the issue body to determine the
+         expected current agent and its status (Active / Pending).
+      2. Verify that BOTH conditions are true:
+         a) Copilot is assigned to the issue
+         b) There is a WIP (draft) PR that the agent is working on
+      3. If either condition is missing, re-assign the agent so Copilot
+         restarts the work.
+
+    A per-issue cooldown prevents re-assignment from firing every poll cycle;
+    after a recovery assignment, the issue is given RECOVERY_COOLDOWN_SECONDS
+    before being checked again.
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items (optional)
+
+    Returns:
+        List of recovery actions taken
+    """
+    results: list[dict[str, Any]] = []
+
+    try:
+        if tasks is None:
+            tasks = await github_projects_service.get_project_items(access_token, project_id)
+
+        config = get_workflow_config(project_id)
+        if not config:
+            # Auto-bootstrap a default workflow config so recovery can work
+            # even after an app restart (the config is normally in-memory only)
+            logger.info(
+                "Recovery: no workflow config for project %s — bootstrapping default config",
+                project_id,
+            )
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+            )
+            set_workflow_config(project_id, config)
+
+        # Statuses that are "pre-review" — these are the ones we monitor
+        terminal_statuses = {
+            (config.status_in_review or "In Review").lower(),
+            (getattr(config, "status_done", None) or "Done").lower(),
+        }
+
+        # Filter to non-terminal issues with issue numbers
+        active_tasks = [
+            task
+            for task in tasks
+            if task.status
+            and task.status.lower() not in terminal_statuses
+            and task.issue_number is not None
+        ]
+
+        if not active_tasks:
+            return results
+
+        logger.debug(
+            "Recovery check: %d issues have not reached 'In Review'",
+            len(active_tasks),
+        )
+
+        now = datetime.utcnow()
+
+        for task in active_tasks:
+            issue_number = task.issue_number
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+
+            if not task_owner or not task_repo:
+                continue
+
+            # ── Cooldown check ────────────────────────────────────────────
+            last_attempt = _recovery_last_attempt.get(issue_number)
+            if last_attempt:
+                elapsed = (now - last_attempt).total_seconds()
+                if elapsed < RECOVERY_COOLDOWN_SECONDS:
+                    logger.debug(
+                        "Recovery: issue #%d on cooldown (%.0fs / %ds)",
+                        issue_number,
+                        elapsed,
+                        RECOVERY_COOLDOWN_SECONDS,
+                    )
+                    continue
+
+            # ── Read the issue body tracking table ────────────────────────
+            try:
+                issue_data = await github_projects_service.get_issue_with_comments(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=issue_number,
+                )
+            except Exception as e:
+                logger.debug("Recovery: could not fetch issue #%d: %s", issue_number, e)
+                continue
+
+            body = issue_data.get("body", "")
+            if not body:
+                continue
+
+            steps = parse_tracking_from_body(body)
+            if not steps:
+                # No tracking table — this issue wasn't created through our pipeline
+                continue
+
+            # ── Determine expected agent ──────────────────────────────────
+            # The active agent (🔄) is the one that should be working.
+            # If there is no active agent, the next pending agent (⏳) needs
+            # to be assigned.
+            active_step = get_current_agent_from_tracking(body)
+            pending_step = get_next_pending_agent(body)
+
+            if active_step is None and pending_step is None:
+                # All agents are ✅ Done — nothing to recover
+                continue
+
+            expected_agent = active_step or pending_step
+            if expected_agent is None:
+                continue
+            agent_name = expected_agent.agent_name
+            agent_status = expected_agent.status  # e.g. "Backlog", "Ready"
+
+            # ── Pending assignment check ──────────────────────────────────
+            # If the agent was just assigned (by the workflow or a previous
+            # recovery), skip — Copilot needs time to create the WIP PR.
+            pending_key = f"{issue_number}:{agent_name}"
+            if pending_key in _pending_agent_assignments:
+                logger.debug(
+                    "Recovery: issue #%d agent '%s' is in pending set — skipping",
+                    issue_number,
+                    agent_name,
+                )
+                continue
+
+            # ── Check condition A: Copilot is assigned ────────────────────
+            copilot_assigned = await github_projects_service.is_copilot_assigned_to_issue(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=issue_number,
+            )
+
+            # ── Check condition B: WIP (draft) PR exists ─────────────────
+            has_wip_pr = False
+            wip_pr_number = None
+
+            # For the first agent, look for any open Copilot draft PR linked to issue
+            # For subsequent agents, look for a child PR targeting the main branch
+            main_branch_info = get_issue_main_branch(issue_number)
+
+            linked_prs = await github_projects_service.get_linked_pull_requests(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=issue_number,
+            )
+
+            if linked_prs:
+                for pr in linked_prs:
+                    pr_number = pr.get("number")
+                    pr_state = (pr.get("state") or "").upper()
+                    pr_author = (pr.get("author") or "").lower()
+
+                    if pr_state != "OPEN" or "copilot" not in pr_author:
+                        continue
+
+                    if not isinstance(pr_number, int):
+                        continue
+
+                    # Get full details to check draft status
+                    pr_details = await github_projects_service.get_pull_request(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        pr_number=pr_number,
+                    )
+                    if not pr_details:
+                        continue
+
+                    is_draft = pr_details.get("is_draft", False)
+                    pr_base = pr_details.get("base_ref", "")
+
+                    if main_branch_info:
+                        # Subsequent agent — WIP PR must be a draft child PR
+                        # targeting the main branch (or "main")
+                        main_branch = main_branch_info["branch"]
+                        main_pr = main_branch_info["pr_number"]
+
+                        if pr_number == main_pr:
+                            # This is the main PR, not a child — check if it's
+                            # still draft (first agent may still be working)
+                            if is_draft and not main_branch_info.get("head_sha"):
+                                has_wip_pr = True
+                                wip_pr_number = pr_number
+                                break
+                            continue
+
+                        # Child PR: must target main branch or "main"
+                        if pr_base == main_branch or pr_base == "main":
+                            has_wip_pr = True
+                            wip_pr_number = pr_number
+                            break
+                    else:
+                        # First agent — any open Copilot PR counts
+                        has_wip_pr = True
+                        wip_pr_number = pr_number
+                        break
+
+            # ── Evaluate whether recovery is needed ───────────────────────
+            if copilot_assigned and has_wip_pr:
+                # Both conditions met — agent is working normally
+                logger.debug(
+                    "Recovery: issue #%d OK — agent '%s' assigned and WIP PR #%s exists",
+                    issue_number,
+                    agent_name,
+                    wip_pr_number,
+                )
+                continue
+
+            # Something is wrong — log what's missing
+            missing = []
+            if not copilot_assigned:
+                missing.append("Copilot NOT assigned")
+            if not has_wip_pr:
+                missing.append("no WIP PR found")
+
+            logger.warning(
+                "Recovery: issue #%d stalled — agent '%s' (%s), problems: %s. Re-assigning agent.",
+                issue_number,
+                agent_name,
+                "Active" if active_step else "Pending",
+                ", ".join(missing),
+            )
+
+            # ── Re-assign the agent ──────────────────────────────────────
+            # Figure out which status and agent_index to use
+            agents_for_status = config.agent_mappings.get(agent_status, [])
+            try:
+                agent_index = agents_for_status.index(agent_name)
+            except ValueError:
+                logger.warning(
+                    "Recovery: agent '%s' not found in mappings for status '%s'",
+                    agent_name,
+                    agent_status,
+                )
+                continue
+
+            orchestrator = get_workflow_orchestrator()
+            ctx = WorkflowContext(
+                session_id="recovery",
+                project_id=project_id,
+                access_token=access_token,
+                repository_owner=task_owner,
+                repository_name=task_repo,
+                issue_id=task.github_content_id,
+                issue_number=issue_number,
+                project_item_id=task.github_item_id,
+                current_state=WorkflowState.READY,
+            )
+            ctx.config = config
+
+            try:
+                assigned = await orchestrator.assign_agent_for_status(
+                    ctx, agent_status, agent_index=agent_index
+                )
+            except Exception as e:
+                logger.error(
+                    "Recovery: failed to re-assign agent '%s' for issue #%d: %s",
+                    agent_name,
+                    issue_number,
+                    e,
+                )
+                _recovery_last_attempt[issue_number] = now
+                continue
+
+            # Set cooldown regardless of success to avoid rapid retries
+            _recovery_last_attempt[issue_number] = now
+
+            if assigned:
+                # Also add to pending set so normal polling doesn't double-assign
+                pending_key = f"{issue_number}:{agent_name}"
+                _pending_agent_assignments.add(pending_key)
+
+                results.append(
+                    {
+                        "status": "recovered",
+                        "issue_number": issue_number,
+                        "agent_name": agent_name,
+                        "agent_status": agent_status,
+                        "was_active": active_step is not None,
+                        "missing": missing,
+                    }
+                )
+                logger.info(
+                    "Recovery: re-assigned agent '%s' for issue #%d (missing: %s)",
+                    agent_name,
+                    issue_number,
+                    ", ".join(missing),
+                )
+            else:
+                logger.warning(
+                    "Recovery: assign_agent_for_status returned False for '%s' on issue #%d",
+                    agent_name,
+                    issue_number,
+                )
+
+    except Exception as e:
+        logger.error("Error in recovery check: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = f"Recovery error: {e}"
+
+    # Limit cooldown cache size
+    if len(_recovery_last_attempt) > 200:
+        oldest = sorted(_recovery_last_attempt.items(), key=lambda kv: kv[1])[:100]
+        for key, _ in oldest:
+            _recovery_last_attempt.pop(key, None)
+
+    return results
+
+
 async def poll_for_copilot_completion(
     access_token: str,
     project_id: str,
@@ -2741,6 +3333,23 @@ async def poll_for_copilot_completion(
     )
 
     _polling_state.is_running = True
+
+    try:
+        await _poll_loop(access_token, project_id, owner, repo, interval_seconds)
+    except asyncio.CancelledError:
+        logger.info("Copilot PR completion polling cancelled")
+    finally:
+        _polling_state.is_running = False
+
+
+async def _poll_loop(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    interval_seconds: int,
+) -> None:
+    """Inner polling loop, separated so CancelledError is handled in the caller."""
 
     while _polling_state.is_running:
         try:
@@ -2835,6 +3444,22 @@ async def poll_for_copilot_completion(
                     len(review_results),
                 )
 
+            # Step 5: Self-healing recovery — detect and fix stalled pipelines
+            recovery_results = await recover_stalled_issues(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                tasks=all_tasks,
+            )
+
+            if recovery_results:
+                logger.info(
+                    "Poll #%d: Recovered %d stalled issues",
+                    _polling_state.poll_count,
+                    len(recovery_results),
+                )
+
         except Exception as e:
             logger.error("Error in polling loop: %s", e)
             _polling_state.errors_count += 1
@@ -2844,11 +3469,20 @@ async def poll_for_copilot_completion(
         await asyncio.sleep(interval_seconds)
 
     logger.info("Copilot PR completion polling stopped")
+    _polling_state.is_running = False
 
 
 def stop_polling() -> None:
-    """Stop the background polling loop."""
+    """Stop the background polling loop.
+
+    Sets the is_running flag to False AND cancels the asyncio task so that
+    the loop stops even if it's in the middle of a long-running await.
+    """
+    global _polling_task
     _polling_state.is_running = False
+    if _polling_task is not None and not _polling_task.done():
+        _polling_task.cancel()
+        _polling_task = None
 
 
 def get_polling_status() -> dict[str, Any]:

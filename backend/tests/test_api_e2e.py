@@ -1,5 +1,5 @@
 """
-End-to-end API tests for the GitHub Projects Chat Backend.
+End-to-end API tests for the Agent Projects Backend.
 
 These tests verify the API endpoints work correctly.
 """

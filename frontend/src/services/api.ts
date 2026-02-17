@@ -1,5 +1,5 @@
 /**
- * API client service for GitHub Projects Chat Interface.
+ * API client service for Agent Projects.
  * Provides typed fetch wrapper with error handling.
  */
 
@@ -16,6 +16,8 @@ import type {
   TaskCreateRequest,
   TaskListResponse,
   User,
+  BoardProjectListResponse,
+  BoardDataResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -204,5 +206,25 @@ export const chatApi = {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============ Board API ============
+
+export const boardApi = {
+  /**
+   * List available projects for board display.
+   */
+  listProjects(refresh = false): Promise<BoardProjectListResponse> {
+    const params = refresh ? '?refresh=true' : '';
+    return request<BoardProjectListResponse>(`/board/projects${params}`);
+  },
+
+  /**
+   * Get board data for a specific project.
+   */
+  getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
+    const params = refresh ? '?refresh=true' : '';
+    return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
   },
 };

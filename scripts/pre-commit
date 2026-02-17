@@ -77,7 +77,7 @@ if [ -n "$STAGED_PY_FILES" ]; then
         PYRIGHT="pyright"
     fi
 
-    if $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" --quiet 2>/dev/null; then
+    if $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC}"
     else
         echo -e "${RED}✗${NC}"

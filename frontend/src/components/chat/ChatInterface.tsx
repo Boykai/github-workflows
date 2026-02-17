@@ -80,6 +80,21 @@ export function ChatInterface({
     }
   };
 
+  // Auto-resize textarea to fit content
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 400)}px`;
+  };
+
+  // Reset textarea height when input is cleared (after send)
+  useEffect(() => {
+    if (!input && inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
+  }, [input]);
+
   return (
     <div className="chat-interface">
       {messages.length > 0 && (
@@ -171,11 +186,11 @@ export function ChatInterface({
         <textarea
           ref={inputRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Describe a task to create..."
+          placeholder="Describe a feature request or task... (Shift+Enter for new line)"
           disabled={isSending}
-          rows={1}
+          rows={2}
           className="chat-input"
         />
         <button

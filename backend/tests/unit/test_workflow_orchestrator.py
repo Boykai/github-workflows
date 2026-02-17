@@ -399,7 +399,8 @@ class TestAssignAgentForStatus:
         assert result is True
         call_args = mock_github_service.assign_copilot_to_issue.call_args
         assert call_args.kwargs["custom_agent"] == "speckit.implement"
-        # Must use branch name so Copilot works on the same branch
+        # Subsequent agents use the main PR's branch name as base_ref
+        # (GitHub's API requires a branch name, not a commit SHA)
         assert call_args.kwargs["base_ref"] == "copilot/test-feature"
 
         # Should pass existing_pr context to format_issue_context_as_prompt
@@ -442,7 +443,8 @@ class TestAssignAgentForStatus:
         assert result is True
         call_args = mock_github_service.assign_copilot_to_issue.call_args
         assert call_args.kwargs["custom_agent"] == "speckit.plan"
-        # Must use branch name so Copilot continues on the same branch
+        # Subsequent agents use the main PR's branch name as base_ref
+        # (GitHub's API requires a branch name, not a commit SHA)
         assert call_args.kwargs["base_ref"] == "copilot/test-feature"
 
         # Should pass existing_pr context
@@ -471,7 +473,7 @@ class TestAssignAgentForStatus:
         }
         mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
         mock_github_service.assign_copilot_to_issue.return_value = True
-        mock_github_service.find_existing_pr_for_issue.return_value = None
+        mock_github_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
 
         result = await orchestrator.assign_agent_for_status(workflow_context, "Backlog", 0)
 

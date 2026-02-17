@@ -66,7 +66,7 @@ test.describe('API Integration', () => {
     await page.goto('/');
     
     // Should show login UI (not crash)
-    await expect(page.locator('h1')).toContainText('GitHub Projects Chat');
+    await expect(page.locator('h1')).toContainText('Agent Projects');
     
     // Should show sign in option
     const signInText = page.locator('text=/sign in|login|authenticate/i');

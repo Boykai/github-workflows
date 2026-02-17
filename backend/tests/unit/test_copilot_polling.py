@@ -13,9 +13,11 @@ from src.services.copilot_polling import (
     _filter_events_after,
     _find_completed_child_pr,
     _merge_child_pr_if_applicable,
+    _pending_agent_assignments,
     _posted_agent_outputs,
     _processed_issue_prs,
     _reconstruct_pipeline_state,
+    _recovery_last_attempt,
     _transition_after_pipeline_complete,
     check_backlog_issues,
     check_in_progress_issues,
@@ -24,6 +26,7 @@ from src.services.copilot_polling import (
     get_polling_status,
     post_agent_outputs_from_pr,
     process_in_progress_issue,
+    recover_stalled_issues,
 )
 from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
 
@@ -1936,18 +1939,18 @@ class TestFindCompletedChildPr:
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_returns_none_when_child_pr_targets_wrong_branch(self, mock_service):
-        """Should return None when child PR targets 'main' instead of the main branch."""
+    async def test_returns_none_when_child_pr_targets_unrelated_branch(self, mock_service):
+        """Should return None when child PR targets an unrelated branch (not main branch or 'main')."""
         mock_service.get_linked_pull_requests = AsyncMock(
             return_value=[
                 {"number": 212, "state": "OPEN", "author": "copilot[bot]"},
                 {"number": 215, "state": "OPEN", "author": "copilot[bot]"},
             ]
         )
-        # PR #215 targets 'main' not the main branch
+        # PR #215 targets an unrelated branch
         mock_service.get_pull_request = AsyncMock(
             return_value={
-                "base_ref": "main",  # Wrong target
+                "base_ref": "feature/other-work",  # Unrelated target
                 "is_draft": False,
             }
         )
@@ -2144,3 +2147,344 @@ class TestFindCompletedChildPr:
 
         assert result is not None
         assert result["number"] == 226
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Self-Healing Recovery Tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestRecoverStalledIssues:
+    """Tests for the self-healing recover_stalled_issues function."""
+
+    TRACKING_BODY = (
+        "## Issue Body\n\n"
+        "---\n\n"
+        "## 🤖 Agent Pipeline\n\n"
+        "| # | Status | Agent | State |\n"
+        "|---|--------|-------|-------|\n"
+        "| 1 | Backlog | `speckit.specify` | 🔄 Active |\n"
+        "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+    )
+
+    TRACKING_BODY_ALL_DONE = (
+        "## Issue Body\n\n"
+        "---\n\n"
+        "## 🤖 Agent Pipeline\n\n"
+        "| # | Status | Agent | State |\n"
+        "|---|--------|-------|-------|\n"
+        "| 1 | Backlog | `speckit.specify` | ✅ Done |\n"
+        "| 2 | Ready | `speckit.plan` | ✅ Done |\n"
+    )
+
+    @pytest.fixture(autouse=True)
+    def clear_recovery_state(self):
+        """Clear global recovery state before each test."""
+        _recovery_last_attempt.clear()
+        _pending_agent_assignments.clear()
+        yield
+        _recovery_last_attempt.clear()
+        _pending_agent_assignments.clear()
+
+    @pytest.fixture
+    def mock_backlog_task(self):
+        task = MagicMock()
+        task.github_item_id = "PVTI_100"
+        task.github_content_id = "I_100"
+        task.issue_number = 100
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Stalled Issue"
+        task.status = "Backlog"
+        return task
+
+    @pytest.fixture
+    def mock_in_review_task(self):
+        task = MagicMock()
+        task.github_item_id = "PVTI_200"
+        task.github_content_id = "I_200"
+        task.issue_number = 200
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Reviewed Issue"
+        task.status = "In Review"
+        return task
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_returns_empty_when_no_config(self, mock_config):
+        """Should return empty list when no workflow config exists."""
+        mock_config.return_value = None
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_skips_terminal_statuses(self, mock_config, mock_in_review_task):
+        """Should skip issues that are In Review or Done."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_in_review_task],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_skips_issues_with_all_agents_done(
+        self, mock_config, mock_service, mock_backlog_task
+    ):
+        """Should skip issues where all agents are ✅ Done."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY_ALL_DONE}
+        )
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_recovers_when_copilot_not_assigned_and_no_wip_pr(
+        self, mock_config, mock_service, mock_get_branch, mock_get_orch, mock_backlog_task
+    ):
+        """Should re-assign agent when Copilot is not assigned and no WIP PR."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_get_branch.return_value = None
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert len(results) == 1
+        assert results[0]["status"] == "recovered"
+        assert results[0]["issue_number"] == 100
+        assert results[0]["agent_name"] == "speckit.specify"
+        assert "Copilot NOT assigned" in results[0]["missing"]
+        assert "no WIP PR found" in results[0]["missing"]
+        mock_orchestrator.assign_agent_for_status.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_recovers_when_copilot_assigned_but_no_wip_pr(
+        self, mock_config, mock_service, mock_get_branch, mock_get_orch, mock_backlog_task
+    ):
+        """Should re-assign agent when Copilot is assigned but no WIP PR found."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_get_branch.return_value = None
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert len(results) == 1
+        assert results[0]["missing"] == ["no WIP PR found"]
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_no_recovery_when_agent_healthy(
+        self, mock_config, mock_service, mock_get_branch, mock_backlog_task
+    ):
+        """Should not recover when Copilot is assigned and WIP PR exists."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 50, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "base_ref": "main",
+                "head_ref": "copilot/feature",
+            }
+        )
+        mock_get_branch.return_value = None
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_respects_cooldown(
+        self, mock_config, mock_service, mock_get_branch, mock_backlog_task
+    ):
+        """Should skip issues within cooldown period."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+
+        # Set a recent recovery attempt within cooldown
+        _recovery_last_attempt[100] = datetime.utcnow()
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert results == []
+        # Should NOT have called get_issue_with_comments since it's on cooldown
+        mock_service.get_issue_with_comments.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_sets_cooldown_after_recovery(
+        self, mock_config, mock_service, mock_get_branch, mock_get_orch, mock_backlog_task
+    ):
+        """Should set cooldown timestamp after recovery attempt."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_get_branch.return_value = None
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+
+        assert 100 not in _recovery_last_attempt
+
+        await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert 100 in _recovery_last_attempt
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_skips_issues_without_tracking_table(
+        self, mock_config, mock_service, mock_backlog_task
+    ):
+        """Should skip issues that don't have a tracking table."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "Just a plain issue body with no tracking table."}
+        )
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_skips_tasks_without_issue_number(self, mock_config, mock_service):
+        """Should skip tasks without an issue number."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        task = MagicMock()
+        task.issue_number = None
+        task.status = "Backlog"
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[task],
+        )
+
+        assert results == []

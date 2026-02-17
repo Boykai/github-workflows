@@ -1,12 +1,12 @@
 """GitHub Project model with status columns."""
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class ProjectType(str, Enum):
+class ProjectType(StrEnum):
     """Type of GitHub Project."""
 
     ORGANIZATION = "organization"
