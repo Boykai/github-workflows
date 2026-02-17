@@ -19,7 +19,7 @@
 
 **Purpose**: Verify current CSS variable state before making changes
 
-- [ ] T001 Verify current --color-bg and --color-bg-secondary values in :root and html.dark-mode-active selectors in frontend/src/index.css
+- [x] T001 Verify current --color-bg and --color-bg-secondary values in :root and html.dark-mode-active selectors in frontend/src/index.css
 
 ---
 
@@ -31,8 +31,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update --color-bg from #ffffff to #E8F5E9 in :root selector in frontend/src/index.css
-- [ ] T003 [US1] Update --color-bg-secondary from #f6f8fa to #C8E6C9 in :root selector in frontend/src/index.css
+- [x] T002 [US1] Update --color-bg from #ffffff to #E8F5E9 in :root selector in frontend/src/index.css
+- [x] T003 [US1] Update --color-bg-secondary from #f6f8fa to #C8E6C9 in :root selector in frontend/src/index.css
 
 **Checkpoint**: Light mode displays mint green (#E8F5E9) primary background and light green (#C8E6C9) secondary background across all screens. Verify no flicker during navigation and modal overlays harmonize with green theme.
 
@@ -46,8 +46,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Verify WCAG AA contrast of --color-text (#24292f) against new --color-bg (#E8F5E9) achieves 13.03:1 ratio in frontend/src/index.css
-- [ ] T005 [US2] Verify WCAG AA contrast of --color-text-secondary (#57606a) against new --color-bg (#E8F5E9) achieves 5.77:1 ratio and against --color-bg-secondary (#C8E6C9) achieves 4.83:1 ratio in frontend/src/index.css
+- [x] T004 [US2] Verify WCAG AA contrast of --color-text (#24292f) against new --color-bg (#E8F5E9) achieves 13.03:1 ratio in frontend/src/index.css
+- [x] T005 [US2] Verify WCAG AA contrast of --color-text-secondary (#57606a) against new --color-bg (#E8F5E9) achieves 5.77:1 ratio and against --color-bg-secondary (#C8E6C9) achieves 4.83:1 ratio in frontend/src/index.css
 
 **Checkpoint**: All text and interactive elements are clearly readable against green backgrounds. No component-level CSS changes needed — existing text colors maintain sufficient contrast.
 
@@ -61,8 +61,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T006 [US3] Update --color-bg from #0d1117 to #0D2818 in html.dark-mode-active selector in frontend/src/index.css
-- [ ] T007 [US3] Update --color-bg-secondary from #161b22 to #1A3A2A in html.dark-mode-active selector in frontend/src/index.css
+- [x] T006 [US3] Update --color-bg from #0d1117 to #0D2818 in html.dark-mode-active selector in frontend/src/index.css
+- [x] T007 [US3] Update --color-bg-secondary from #161b22 to #1A3A2A in html.dark-mode-active selector in frontend/src/index.css
 
 **Checkpoint**: Dark mode displays dark green (#0D2818) primary background and (#1A3A2A) secondary background. Dark mode text (#e6edf3) achieves 13.32:1 and 10.56:1 contrast ratios respectively. Transition between modes is smooth without visual glitches.
 
@@ -72,9 +72,9 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T008 Verify all 4 CSS variable changes are correct by running grep -n "color-bg" frontend/src/index.css
-- [ ] T009 Verify no layout breakage on desktop and mobile viewports by visual inspection
-- [ ] T010 Run quickstart.md validation checklist against running application
+- [x] T008 Verify all 4 CSS variable changes are correct by running grep -n "color-bg" frontend/src/index.css
+- [x] T009 Verify no layout breakage on desktop and mobile viewports by visual inspection
+- [x] T010 Run quickstart.md validation checklist against running application
 
 ---
 
