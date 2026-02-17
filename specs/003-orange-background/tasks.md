@@ -19,8 +19,8 @@
 
 **Purpose**: Confirm current CSS variable structure before making changes
 
-- [ ] T001 Verify current `:root` CSS custom property values in frontend/src/index.css match expected baseline (#ffffff for --color-bg, #f6f8fa for --color-bg-secondary)
-- [ ] T002 Verify current `html.dark-mode-active` CSS custom property values in frontend/src/index.css match expected baseline (#0d1117 for --color-bg)
+- [ ] T001 Verify current `:root` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #ffffff, --color-bg-secondary: #f6f8fa, --color-border: #d0d7de, --color-text: #24292f, --color-text-secondary: #57606a, --shadow: rgba(0,0,0,0.1))
+- [ ] T002 Verify current `html.dark-mode-active` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #0d1117, --color-bg-secondary: #161b22, --color-border: #30363d, --color-text: #e6edf3, --color-text-secondary: #8b949e, --shadow: rgba(0,0,0,0.4))
 
 ---
 
@@ -51,7 +51,7 @@
 
 - [ ] T007 [US2] Update `--color-text` from `#24292f` to `#000000` in `:root` selector of frontend/src/index.css for 4.54:1 contrast on #FF8C00
 - [ ] T008 [US2] Update `--color-text-secondary` from `#57606a` to `#4A2800` in `:root` selector of frontend/src/index.css for ~4.8:1 contrast on #FF8C00
-- [ ] T009 [US2] Verify login button in frontend/src/App.css remains accessible (uses `var(--color-text)` as background, resolves to black #000000 with white text)
+- [ ] T009 [US2] Verify login button in frontend/src/App.css remains accessible — uses `var(--color-text)` as background (resolves to #000000), white text on black gives 21:1 contrast ratio
 
 **Checkpoint**: All text is readable on orange background. Primary text (#000000) achieves 4.54:1 contrast. Secondary text (#4A2800) achieves ~4.8:1 contrast. Login button is black with white text.
 
@@ -96,7 +96,7 @@
 
 - [ ] T017 Run visual verification of all screens (login, dashboard, settings) in both light and dark mode to confirm orange background consistency
 - [ ] T018 Run accessibility contrast check for light mode: #000000 on #FF8C00 ≥ 4.5:1 and #4A2800 on #FF8C00 ≥ 4.5:1
-- [ ] T019 Run accessibility contrast check for dark mode: #FFFFFF on #CC7000 ≥ 3:1 (large text) and #D4A574 on #CC7000 for secondary text
+- [ ] T019 Run accessibility contrast check for dark mode: #FFFFFF on #CC7000 → ~3.2:1 (meets 3:1 threshold for large text/UI per research.md; note: below 4.5:1 for normal text per WCAG AA); #D4A574 on #CC7000 for secondary text
 - [ ] T020 Run quickstart.md validation checklist from specs/003-orange-background/quickstart.md
 
 ---
