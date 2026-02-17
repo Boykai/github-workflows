@@ -47,12 +47,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Update `:root` CSS custom properties in frontend/src/index.css to set `--color-text: #FFFFFF` and `--color-text-secondary: #FFD6D6` for readable light-mode text on red background
-- [ ] T006 [US2] Update `html.dark-mode-active` CSS custom properties in frontend/src/index.css to set `--color-text: #FFFFFF` and `--color-text-secondary: #FFCCCC` for readable dark-mode text on dark red background
-- [ ] T007 [US2] Update `:root` CSS custom properties in frontend/src/index.css to set `--color-border: #FF6666` and `--shadow` to use `rgba(0, 0, 0, 0.3)` for visible borders on red background
-- [ ] T008 [US2] Update `html.dark-mode-active` CSS custom properties in frontend/src/index.css to set `--color-border: #AA3333` and `--shadow` to use `rgba(0, 0, 0, 0.5)` for visible borders on dark red background
-- [ ] T009 [US2] Update `.login-button` background in frontend/src/App.css from `var(--color-text)` to a high-contrast value (e.g., `#333333` or `var(--color-primary)`) since --color-text is now white
-- [ ] T010 [US2] Update `.login-button:hover` background in frontend/src/App.css to match the updated login button color scheme
+- [ ] T005 [P] [US2] Update `:root` CSS custom properties in frontend/src/index.css to set `--color-text: #FFFFFF` and `--color-text-secondary: #FFD6D6` for readable light-mode text on red background
+- [ ] T006 [P] [US2] Update `html.dark-mode-active` CSS custom properties in frontend/src/index.css to set `--color-text: #FFFFFF` and `--color-text-secondary: #FFCCCC` for readable dark-mode text on dark red background
+- [ ] T007 [P] [US2] Update `:root` CSS custom properties in frontend/src/index.css to set `--color-border: #FF6666` and `--shadow` to use `rgba(0, 0, 0, 0.3)` for visible borders on red background
+- [ ] T008 [P] [US2] Update `html.dark-mode-active` CSS custom properties in frontend/src/index.css to set `--color-border: #AA3333` and `--shadow` to use `rgba(0, 0, 0, 0.5)` for visible borders on dark red background
+- [ ] T009 [P] [US2] Update `.login-button` background in frontend/src/App.css from `var(--color-text)` to a high-contrast value (e.g., `#333333` or `var(--color-primary)`) since --color-text is now white
+- [ ] T010 [P] [US2] Update `.login-button:hover` background in frontend/src/App.css to match the updated login button color scheme
 
 **Checkpoint**: All text and interactive elements are readable and meet WCAG AA contrast standards against the red background.
 
@@ -66,8 +66,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Verify `html` and `body` elements in frontend/src/index.css have no fixed height/width constraints that would prevent full viewport coverage (confirm `min-height: 100vh` or equivalent is set, add if missing)
-- [ ] T012 [US3] Verify `.app-container` in frontend/src/App.css uses `height: 100vh` to ensure red background fills the viewport on all device sizes (no change expected — confirm only)
+- [ ] T011 [P] [US3] Verify `html` and `body` elements in frontend/src/index.css have no fixed height/width constraints that would prevent full viewport coverage (confirm `min-height: 100vh` or equivalent is set, add if missing)
+- [ ] T012 [P] [US3] Verify `.app-container` in frontend/src/App.css uses `height: 100vh` to ensure red background fills the viewport on all device sizes (no change expected — confirm only)
 
 **Checkpoint**: Red background fills entire viewport on mobile, tablet, and desktop without gaps.
 
@@ -77,9 +77,9 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T013 Verify red background persists during navigation between login, dashboard, sidebar, and chat views without flickering in frontend/src/App.tsx
-- [ ] T014 Verify modals and popup overlays preserve the red background behind them in frontend/src/components/chat/ChatInterface.css
-- [ ] T015 Run visual audit of all screens to confirm component-level backgrounds (cards, headers, sidebars) are preserved per FR-007
+- [ ] T013 [P] Verify red background persists during navigation between login, dashboard, sidebar, and chat views without flickering in frontend/src/App.tsx
+- [ ] T014 [P] Verify modals and popup overlays preserve the red background behind them in frontend/src/components/chat/ChatInterface.css
+- [ ] T015 [P] Run visual audit of all screens to confirm component-level backgrounds (cards, headers, sidebars) are preserved per FR-007
 
 ---
 
