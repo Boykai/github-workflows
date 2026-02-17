@@ -19,8 +19,8 @@
 
 **Purpose**: Confirm current CSS variable structure before making changes
 
-- [ ] T001 Verify current `:root` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #ffffff, --color-bg-secondary: #f6f8fa, --color-border: #d0d7de, --color-text: #24292f, --color-text-secondary: #57606a, --shadow: rgba(0,0,0,0.1))
-- [ ] T002 Verify current `html.dark-mode-active` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #0d1117, --color-bg-secondary: #161b22, --color-border: #30363d, --color-text: #e6edf3, --color-text-secondary: #8b949e, --shadow: rgba(0,0,0,0.4))
+- [x] T001 Verify current `:root` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #ffffff, --color-bg-secondary: #f6f8fa, --color-border: #d0d7de, --color-text: #24292f, --color-text-secondary: #57606a, --shadow: rgba(0,0,0,0.1))
+- [x] T002 Verify current `html.dark-mode-active` CSS custom property values in frontend/src/index.css match expected baseline (--color-bg: #0d1117, --color-bg-secondary: #161b22, --color-border: #30363d, --color-text: #e6edf3, --color-text-secondary: #8b949e, --shadow: rgba(0,0,0,0.4))
 
 ---
 
@@ -32,10 +32,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Update `--color-bg` from `#ffffff` to `#FF8C00` in `:root` selector of frontend/src/index.css
-- [ ] T004 [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#E07B00` in `:root` selector of frontend/src/index.css
-- [ ] T005 [US1] Update `--color-border` from `#d0d7de` to `#C06500` in `:root` selector of frontend/src/index.css
-- [ ] T006 [US1] Update `--shadow` from `rgba(0, 0, 0, 0.1)` to `rgba(0, 0, 0, 0.2)` in `:root` selector of frontend/src/index.css
+- [x] T003 [US1] Update `--color-bg` from `#ffffff` to `#FF8C00` in `:root` selector of frontend/src/index.css
+- [x] T004 [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#E07B00` in `:root` selector of frontend/src/index.css
+- [x] T005 [US1] Update `--color-border` from `#d0d7de` to `#C06500` in `:root` selector of frontend/src/index.css
+- [x] T006 [US1] Update `--shadow` from `rgba(0, 0, 0, 0.1)` to `rgba(0, 0, 0, 0.2)` in `:root` selector of frontend/src/index.css
 
 **Checkpoint**: All screens display orange background. Cards, header, sidebar, and chat sections are orange. Borders are orange-tinted.
 
@@ -49,9 +49,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Update `--color-text` from `#24292f` to `#000000` in `:root` selector of frontend/src/index.css for 4.54:1 contrast on #FF8C00
-- [ ] T008 [US2] Update `--color-text-secondary` from `#57606a` to `#4A2800` in `:root` selector of frontend/src/index.css for ~4.8:1 contrast on #FF8C00
-- [ ] T009 [US2] Verify login button in frontend/src/App.css remains accessible — uses `var(--color-text)` as background (resolves to #000000), white text on black gives 21:1 contrast ratio
+- [x] T007 [US2] Update `--color-text` from `#24292f` to `#000000` in `:root` selector of frontend/src/index.css for 4.54:1 contrast on #FF8C00
+- [x] T008 [US2] Update `--color-text-secondary` from `#57606a` to `#4A2800` in `:root` selector of frontend/src/index.css for ~4.8:1 contrast on #FF8C00
+- [x] T009 [US2] Verify login button in frontend/src/App.css remains accessible — uses `var(--color-text)` as background (resolves to #000000), white text on black gives 21:1 contrast ratio
 
 **Checkpoint**: All text is readable on orange background. Primary text (#000000) achieves 4.54:1 contrast. Secondary text (#4A2800) achieves ~4.8:1 contrast. Login button is black with white text.
 
@@ -65,12 +65,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Update `--color-bg` from `#0d1117` to `#CC7000` in `html.dark-mode-active` selector of frontend/src/index.css
-- [ ] T011 [US3] Update `--color-bg-secondary` from `#161b22` to `#A35800` in `html.dark-mode-active` selector of frontend/src/index.css
-- [ ] T012 [US3] Update `--color-border` from `#30363d` to `#8B4800` in `html.dark-mode-active` selector of frontend/src/index.css
-- [ ] T013 [US3] Update `--color-text` from `#e6edf3` to `#FFFFFF` in `html.dark-mode-active` selector of frontend/src/index.css
-- [ ] T014 [US3] Update `--color-text-secondary` from `#8b949e` to `#D4A574` in `html.dark-mode-active` selector of frontend/src/index.css
-- [ ] T015 [US3] Update `--shadow` from `rgba(0, 0, 0, 0.4)` to `rgba(0, 0, 0, 0.3)` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T010 [US3] Update `--color-bg` from `#0d1117` to `#CC7000` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T011 [US3] Update `--color-bg-secondary` from `#161b22` to `#A35800` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T012 [US3] Update `--color-border` from `#30363d` to `#8B4800` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T013 [US3] Update `--color-text` from `#e6edf3` to `#FFFFFF` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T014 [US3] Update `--color-text-secondary` from `#8b949e` to `#D4A574` in `html.dark-mode-active` selector of frontend/src/index.css
+- [x] T015 [US3] Update `--shadow` from `rgba(0, 0, 0, 0.4)` to `rgba(0, 0, 0, 0.3)` in `html.dark-mode-active` selector of frontend/src/index.css
 
 **Checkpoint**: Dark mode displays darker orange (#CC7000). White text (#FFFFFF) on dark orange is readable. Theme toggle transitions smoothly between light and dark orange variants.
 
@@ -84,7 +84,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Verify orange background fills full viewport without gaps at mobile (320px), tablet (768px), and desktop (1920px) widths in frontend/src/index.css — no additional CSS changes needed as CSS custom properties apply globally via existing body and container selectors
+- [x] T016 [US4] Verify orange background fills full viewport without gaps at mobile (320px), tablet (768px), and desktop (1920px) widths in frontend/src/index.css — no additional CSS changes needed as CSS custom properties apply globally via existing body and container selectors
 
 **Checkpoint**: Orange background renders correctly across all viewport sizes. No gaps, scrolling artifacts, or layout shifts.
 
@@ -94,10 +94,10 @@
 
 **Purpose**: Final verification across all user stories
 
-- [ ] T017 Run visual verification of all screens (login, dashboard, settings) in both light and dark mode to confirm orange background consistency
-- [ ] T018 Run accessibility contrast check for light mode: #000000 on #FF8C00 ≥ 4.5:1 and #4A2800 on #FF8C00 ≥ 4.5:1
-- [ ] T019 Run accessibility contrast check for dark mode: #FFFFFF on #CC7000 → ~3.2:1 (meets 3:1 threshold for large text/UI per research.md; note: below 4.5:1 for normal text per WCAG AA); #D4A574 on #CC7000 for secondary text
-- [ ] T020 Run quickstart.md validation checklist from specs/003-orange-background/quickstart.md
+- [x] T017 Run visual verification of all screens (login, dashboard, settings) in both light and dark mode to confirm orange background consistency
+- [x] T018 Run accessibility contrast check for light mode: #000000 on #FF8C00 ≥ 4.5:1 and #4A2800 on #FF8C00 ≥ 4.5:1
+- [x] T019 Run accessibility contrast check for dark mode: #FFFFFF on #CC7000 → ~3.2:1 (meets 3:1 threshold for large text/UI per research.md; note: below 4.5:1 for normal text per WCAG AA); #D4A574 on #CC7000 for secondary text
+- [x] T020 Run quickstart.md validation checklist from specs/003-orange-background/quickstart.md
 
 ---
 
