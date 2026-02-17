@@ -1,11 +1,11 @@
 """Board-specific Pydantic models for the Project Board feature."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class StatusColor(str, Enum):
+class StatusColor(StrEnum):
     """GitHub predefined status colors."""
 
     GRAY = "GRAY"
@@ -18,7 +18,7 @@ class StatusColor(str, Enum):
     PURPLE = "PURPLE"
 
 
-class ContentType(str, Enum):
+class ContentType(StrEnum):
     """Type of content backing a project item."""
 
     ISSUE = "issue"
@@ -26,7 +26,7 @@ class ContentType(str, Enum):
     PULL_REQUEST = "pull_request"
 
 
-class PRState(str, Enum):
+class PRState(StrEnum):
     """State of a pull request."""
 
     OPEN = "open"

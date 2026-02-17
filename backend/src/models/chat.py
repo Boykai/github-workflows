@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime, timedelta
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 from src.constants import DEFAULT_AGENT_MAPPINGS
 
 
-class SenderType(str, Enum):
+class SenderType(StrEnum):
     """Sender type for chat messages."""
 
     USER = "user"
@@ -19,7 +19,7 @@ class SenderType(str, Enum):
     SYSTEM = "system"
 
 
-class ActionType(str, Enum):
+class ActionType(StrEnum):
     """Action type for chat messages with associated actions."""
 
     TASK_CREATE = "task_create"
@@ -28,7 +28,7 @@ class ActionType(str, Enum):
     ISSUE_CREATE = "issue_create"
 
 
-class ProposalStatus(str, Enum):
+class ProposalStatus(StrEnum):
     """Status of an AI task proposal."""
 
     PENDING = "pending"
@@ -37,7 +37,7 @@ class ProposalStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class RecommendationStatus(str, Enum):
+class RecommendationStatus(StrEnum):
     """Status of an AI issue recommendation."""
 
     PENDING = "pending"
@@ -169,7 +169,7 @@ class ProposalConfirmRequest(BaseModel):
 # ============================================================================
 
 
-class TriggeredBy(str, Enum):
+class TriggeredBy(StrEnum):
     """Source that triggered a workflow transition."""
 
     AUTOMATIC = "automatic"
@@ -177,7 +177,7 @@ class TriggeredBy(str, Enum):
     DETECTION = "detection"
 
 
-class IssuePriority(str, Enum):
+class IssuePriority(StrEnum):
     """Priority levels for issues."""
 
     P0 = "P0"  # Critical - immediate attention
@@ -186,7 +186,7 @@ class IssuePriority(str, Enum):
     P3 = "P3"  # Low - nice to have
 
 
-class IssueSize(str, Enum):
+class IssueSize(StrEnum):
     """Size estimates for issues (T-shirt sizing)."""
 
     XS = "XS"  # < 1 hour
@@ -196,7 +196,7 @@ class IssueSize(str, Enum):
     XL = "XL"  # 3-5 days
 
 
-class IssueLabel(str, Enum):
+class IssueLabel(StrEnum):
     """Pre-defined labels for GitHub Issues."""
 
     # Type labels
