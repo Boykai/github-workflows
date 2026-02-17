@@ -8,6 +8,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - In-memory (MVP) with session-based caching (001-github-project-workflow)
 - Python 3.11 + FastAPI, httpx, Pydantic 2.x, pydantic-settings (002-speckit-agent-assignment)
 - In-memory (dicts/lists); GitHub Issue comments as durable source of truth (002-speckit-agent-assignment)
+- TypeScript 5.4, CSS3 + React 18.3, Vite 5.4 (003-green-background-app)
+- N/A (CSS-only changes) (003-green-background-app)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -27,9 +29,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 003-green-background-app: Added TypeScript 5.4, CSS3 + React 18.3, Vite 5.4
 - 002-speckit-agent-assignment: Added Python 3.11 + FastAPI, httpx, Pydantic 2.x, pydantic-settings
 - 001-github-project-workflow: Added Python 3.11 + FastAPI, httpx, azure-ai-inference, pydantic
-- 001-github-project-chat: Added Python 3.11+ (backend), TypeScript 5.x (frontend)
 
 
 <!-- MANUAL ADDITIONS START -->
