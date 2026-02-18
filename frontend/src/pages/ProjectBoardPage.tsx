@@ -38,7 +38,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
   // Agent config state (004-agent-workflow-config-ui)
   const agentConfig = useAgentConfig(selectedProjectId);
-  const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents();
+  const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
 
   const handleProjectSwitch = (projectId: string) => {
     if (agentConfig.isDirty) {

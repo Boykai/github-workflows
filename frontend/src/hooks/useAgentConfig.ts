@@ -193,11 +193,11 @@ interface UseAvailableAgentsReturn {
   refetch: () => void;
 }
 
-export function useAvailableAgents(): UseAvailableAgentsReturn {
+export function useAvailableAgents(projectId?: string | null): UseAvailableAgentsReturn {
   const [agents, setAgents] = useState<AvailableAgent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchedRef = useRef(false);
+  const lastFetchedProjectRef = useRef<string | null | undefined>(undefined);
 
   const fetchAgents = useCallback(async () => {
     setIsLoading(true);
@@ -219,12 +219,15 @@ export function useAvailableAgents(): UseAvailableAgentsReturn {
     }
   }, []);
 
+  // Refetch when projectId changes (different repo may have different agents)
   useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchAgents();
+    if (projectId !== lastFetchedProjectRef.current) {
+      lastFetchedProjectRef.current = projectId;
+      if (projectId) {
+        fetchAgents();
+      }
     }
-  }, [fetchAgents]);
+  }, [projectId, fetchAgents]);
 
   const refetch = useCallback(() => {
     fetchAgents();

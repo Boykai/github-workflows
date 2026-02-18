@@ -3801,7 +3801,7 @@ class GitHubProjectsService:
         ),
     ]
 
-    _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
+    _FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---", re.DOTALL)
 
     async def list_available_agents(
         self,

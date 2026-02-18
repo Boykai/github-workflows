@@ -1455,11 +1455,7 @@ class WorkflowOrchestrator:
                     get_agent_slugs(config_for_flag, status_name) if config_for_flag else []
                 )
                 if agents_for_flag:
-                    first_agent_name = (
-                        agents_for_flag[0].slug
-                        if hasattr(agents_for_flag[0], "slug")
-                        else str(agents_for_flag[0])
-                    )
+                    first_agent_name = str(agents_for_flag[0])
                     try:
                         from src.services.copilot_polling import (
                             _pending_agent_assignments,
@@ -1485,9 +1481,9 @@ class WorkflowOrchestrator:
                 issue_number=ctx.issue_number,
                 issue_url=ctx.issue_url,
                 project_item_id=ctx.project_item_id,
-                current_status="Backlog",
+                current_status=status_name,
                 message=(
-                    f"Issue #{ctx.issue_number} created, added to project (Backlog), "
+                    f"Issue #{ctx.issue_number} created, added to project ({status_name}), "
                     f"and assigned to first agent"
                 ),
             )

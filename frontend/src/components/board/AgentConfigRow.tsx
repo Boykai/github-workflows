@@ -8,7 +8,7 @@ import { useState } from 'react';
 import type { BoardColumn, AvailableAgent } from '@/types';
 import { AgentColumnCell } from './AgentColumnCell';
 import { AgentSaveBar } from './AgentSaveBar';
-import type { useAgentConfig } from '@/hooks/useAgentConfig';
+import { useAgentConfig } from '@/hooks/useAgentConfig';
 
 interface AgentConfigRowProps {
   columns: BoardColumn[];

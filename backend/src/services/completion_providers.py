@@ -10,6 +10,7 @@ wrap around either provider.
 """
 
 import asyncio
+import hashlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -63,24 +64,34 @@ class CopilotCompletionProvider(CompletionProvider):
 
     def __init__(self, model: str = "gpt-4o"):
         self._model = model
-        self._clients: dict[str, Any] = {}
+        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
         logger.info("Initialized Copilot completion provider (model: %s)", model)
+
+    @staticmethod
+    def _token_key(github_token: str) -> str:
+        """Return a stable hash of the token for use as a cache key.
+
+        Avoids keeping raw tokens as dict keys where they could be
+        exposed by debug tooling or log dumps.
+        """
+        return hashlib.sha256(github_token.encode()).hexdigest()[:16]
 
     async def _get_or_create_client(self, github_token: str) -> Any:
         """Get cached or create new CopilotClient for a given token."""
-        if github_token not in self._clients:
+        key = self._token_key(github_token)
+        if key not in self._clients:
             from copilot import CopilotClient
             from copilot.types import CopilotClientOptions
 
             options = CopilotClientOptions(github_token=github_token)
             client = CopilotClient(options=options)
             await client.start()
-            self._clients[github_token] = client
+            self._clients[key] = client
             logger.info(
                 "Created new CopilotClient (total cached: %d)",
                 len(self._clients),
             )
-        return self._clients[github_token]
+        return self._clients[key]
 
     async def complete(
         self,
@@ -233,21 +244,24 @@ class AzureOpenAICompletionProvider(CompletionProvider):
         if self._use_azure_inference:
             from azure.ai.inference.models import SystemMessage, UserMessage
 
-            response = self._client.complete(
+            inference_messages = [
+                (
+                    SystemMessage(content=m["content"])
+                    if m["role"] == "system"
+                    else UserMessage(content=m["content"])
+                )
+                for m in messages
+            ]
+            response = await asyncio.to_thread(
+                self._client.complete,
                 model=self._deployment,
-                messages=[
-                    (
-                        SystemMessage(content=m["content"])
-                        if m["role"] == "system"
-                        else UserMessage(content=m["content"])
-                    )
-                    for m in messages
-                ],
+                messages=inference_messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
         else:
-            response = self._client.chat.completions.create(
+            response = await asyncio.to_thread(
+                self._client.chat.completions.create,
                 model=self._deployment,
                 messages=messages,
                 temperature=temperature,
