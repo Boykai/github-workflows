@@ -39,8 +39,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update `--color-bg` from `#ffffff` to `#ffebee` (Material Red 50) in `:root` selector in frontend/src/index.css
-- [ ] T002 [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#ffcdd2` (Material Red 100) in `:root` selector in frontend/src/index.css
+- [ ] T001 [P] [US1] Update `--color-bg` from `#ffffff` to `#ffebee` (Material Red 50) in `:root` selector in frontend/src/index.css
+- [ ] T002 [P] [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#ffcdd2` (Material Red 100) in `:root` selector in frontend/src/index.css
 
 **Checkpoint**: Light mode now displays red-tinted backgrounds across all screens. Text contrast ratio with #24292f is 12.82:1 (--color-bg) and 10.41:1 (--color-bg-secondary), both exceeding WCAG AA 4.5:1 minimum.
 
@@ -54,8 +54,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [US2] Verify existing foreground text color `--color-text: #24292f` achieves ≥4.5:1 contrast against new `--color-bg` (#ffebee) and `--color-bg-secondary` (#ffcdd2) in frontend/src/index.css
-- [ ] T004 [US2] Verify existing secondary text color `--color-text-secondary: #57606a` achieves ≥4.5:1 contrast against new background values in frontend/src/index.css
+- [ ] T003 [P] [US2] Verify existing foreground text color `--color-text: #24292f` achieves ≥4.5:1 contrast against new `--color-bg` (#ffebee) and `--color-bg-secondary` (#ffcdd2) in frontend/src/index.css
+- [ ] T004 [P] [US2] Verify existing secondary text color `--color-text-secondary: #57606a` achieves ≥4.5:1 contrast against new background values in frontend/src/index.css
 
 **Checkpoint**: All text and UI elements are confirmed readable on the red backgrounds with WCAG AA compliance. No code changes needed — existing text colors already provide sufficient contrast.
 
@@ -69,8 +69,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T005 [US3] Update `--color-bg` from `#0d1117` to `#2a0a0a` (dark red) in `html.dark-mode-active` selector in frontend/src/index.css
-- [ ] T006 [US3] Update `--color-bg-secondary` from `#161b22` to `#1a0000` (very dark red) in `html.dark-mode-active` selector in frontend/src/index.css
+- [ ] T005 [P] [US3] Update `--color-bg` from `#0d1117` to `#2a0a0a` (dark red) in `html.dark-mode-active` selector in frontend/src/index.css
+- [ ] T006 [P] [US3] Update `--color-bg-secondary` from `#161b22` to `#1a0000` (very dark red) in `html.dark-mode-active` selector in frontend/src/index.css
 
 **Checkpoint**: Dark mode now displays dark red-tinted backgrounds. Text contrast ratio with #e6edf3 is 15.50:1 (--color-bg) and 17.02:1 (--color-bg-secondary), both exceeding WCAG AA 4.5:1 minimum.
 
@@ -84,8 +84,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T007 [US4] Verify all background color references use `var(--color-bg)` or `var(--color-bg-secondary)` and no hardcoded background color values exist in frontend/src/App.css
-- [ ] T008 [US4] Verify body background uses `var(--color-bg-secondary)` in frontend/src/index.css (already the case — no changes needed)
+- [ ] T007 [P] [US4] Verify all background color references use `var(--color-bg)` or `var(--color-bg-secondary)` and no hardcoded background color values exist in frontend/src/App.css
+- [ ] T008 [P] [US4] Verify body background uses `var(--color-bg-secondary)` in frontend/src/index.css (already the case — no changes needed)
 
 **Checkpoint**: The red background is fully centralized — changing the 4 CSS custom property values in `frontend/src/index.css` is the only modification required, with zero component-level changes.
 
@@ -95,8 +95,8 @@
 
 **Purpose**: Final validation across all responsive breakpoints and modes
 
-- [ ] T009 Verify red background renders consistently across mobile, tablet, and desktop viewport widths in frontend/src/index.css
-- [ ] T010 Verify no component-level background overrides are broken by the global red background change in frontend/src/App.css
+- [ ] T009 [P] Verify red background renders consistently across mobile, tablet, and desktop viewport widths in frontend/src/index.css
+- [ ] T010 [P] Verify no component-level background overrides are broken by the global red background change in frontend/src/App.css
 
 ---
 
@@ -109,13 +109,13 @@ Phase 1: Setup — skipped (no setup needed)
     ↓
 Phase 2: Foundational — skipped (no foundational changes needed)
     ↓
-Phase 3: User Story 1 (T001-T002, sequential — same file, same selector)
+Phase 3: User Story 1 (T001-T002, parallel — different CSS variables)
     ↓
-Phase 4: User Story 2 (T003-T004, verification only — no code changes)
+Phase 4: User Story 2 (T003-T004, parallel — verification only, no code changes)
     ↓
-Phase 5: User Story 3 (T005-T006, sequential — same file, same selector)
+Phase 5: User Story 3 (T005-T006, parallel — different CSS variables)
     ↓
-Phase 6: User Story 4 (T007-T008, verification only — no code changes)
+Phase 6: User Story 4 (T007-T008, parallel — verification only, no code changes)
     ↓
 Phase 7: Polish (T009-T010, parallel — different verification scopes)
 ```
@@ -129,8 +129,8 @@ Phase 7: Polish (T009-T010, parallel — different verification scopes)
 
 ### Within Each User Story
 
-- T001 before T002 (same `:root` selector in same file)
-- T005 before T006 (same `html.dark-mode-active` selector in same file)
+- T001 and T002 are parallel (different CSS variables in same selector)
+- T005 and T006 are parallel (different CSS variables in same selector)
 - Verification tasks (T003-T004, T007-T008) require no specific ordering
 
 ### Parallel Opportunities
