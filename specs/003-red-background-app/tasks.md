@@ -1,7 +1,7 @@
 # Tasks: Apply Red Background Color to App
 
 **Input**: Design documents from `/specs/003-red-background-app/`
-**Prerequisites**: spec.md ✅, plan.md (not committed — color values and architecture confirmed in spec.md)
+**Prerequisites**: spec.md ✅ (color values, architecture, and requirements fully specified)
 
 **Tests**: Tests are NOT included (not explicitly requested in spec).
 
@@ -42,7 +42,7 @@
 - [ ] T001 [US1] Update `--color-bg` CSS custom property from `#ffffff` to `#fff5f5` (light red, 13.7:1 contrast with `#24292f` text) in `:root` selector in `frontend/src/index.css`
 - [ ] T002 [US1] Update `--color-bg-secondary` CSS custom property from `#f6f8fa` to `#ffebee` (Material Red 50, 12.8:1 contrast with `#24292f` text) in `:root` selector in `frontend/src/index.css`
 
-**Checkpoint**: Light mode now displays red-themed backgrounds. All screens show the red background consistently across all responsive breakpoints. Component-level backgrounds (cards, modals, inputs) retain their own colors since they reference `--color-bg` which is a subtle red tint.
+**Checkpoint**: Light mode now displays red-themed backgrounds. All screens show the red background consistently across all responsive breakpoints. Components referencing `--color-bg` adopt the subtle red tint as intended. Components with explicitly set background colors (e.g., input fields with hardcoded values) are not overridden.
 
 ---
 
