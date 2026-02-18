@@ -10,6 +10,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - In-memory (dicts/lists); GitHub Issue comments as durable source of truth (002-speckit-agent-assignment)
 - Python 3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI, React 18, TanStack React Query, Tailwind CSS (001-github-project-board)
 - N/A (no persistent storage; data fetched from GitHub API) (001-github-project-board)
+- TypeScript 5.4, CSS3 + React 18.3, Vite 5.4 (003-red-background-app)
+- N/A (CSS variable changes only) (003-red-background-app)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -29,9 +31,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 003-red-background-app: Added TypeScript 5.4, CSS3 + React 18.3, Vite 5.4
 - 001-github-project-board: Added Python 3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI, React 18, TanStack React Query, Tailwind CSS
 - 002-speckit-agent-assignment: Added Python 3.11 + FastAPI, httpx, Pydantic 2.x, pydantic-settings
-- 001-github-project-workflow: Added Python 3.11 + FastAPI, httpx, azure-ai-inference, pydantic
 
 
 <!-- MANUAL ADDITIONS START -->
