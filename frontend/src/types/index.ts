@@ -223,6 +223,32 @@ export interface IssueCreateActionData {
   status: RecommendationStatus;
 }
 
+// ============ Agent Assignment (004-agent-workflow-config-ui) ============
+
+export type AgentSource = 'builtin' | 'repository';
+
+export interface AgentAssignment {
+  id: string;           // UUID string
+  slug: string;         // Agent identifier
+  display_name?: string | null;
+  config?: Record<string, unknown> | null;
+}
+
+export interface AvailableAgent {
+  slug: string;
+  display_name: string;
+  description?: string | null;
+  avatar_url?: string | null;
+  source: AgentSource;
+}
+
+export interface AgentPreset {
+  id: string;
+  label: string;
+  description: string;
+  mappings: Record<string, AgentAssignment[]>;
+}
+
 // ============ Workflow Result (T052) ============
 
 export interface WorkflowResult {
@@ -241,7 +267,7 @@ export interface WorkflowConfiguration {
   repository_name: string;
   copilot_assignee: string;
   review_assignee?: string;
-  agent_mappings: Record<string, string[]>;
+  agent_mappings: Record<string, AgentAssignment[]>;
   status_backlog: string;
   status_ready: string;
   status_in_progress: string;

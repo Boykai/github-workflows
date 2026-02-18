@@ -30,6 +30,10 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.models.chat import AgentAssignment
 
 logger = logging.getLogger(__name__)
 
@@ -69,14 +73,14 @@ class AgentStep:
 
 
 def build_agent_pipeline_steps(
-    agent_mappings: dict[str, list[str]],
+    agent_mappings: dict[str, list[AgentAssignment]],
     status_order: list[str],
 ) -> list[AgentStep]:
     """
     Build the ordered list of agent steps from the workflow configuration.
 
     Args:
-        agent_mappings: Status name → list of agent names
+        agent_mappings: Status name → list of AgentAssignment objects
         status_order:   Ordered list of statuses that have agents
                         (e.g. ["Backlog", "Ready", "In Progress"])
 
@@ -87,7 +91,8 @@ def build_agent_pipeline_steps(
     idx = 1
     for status in status_order:
         for agent in agent_mappings.get(status, []):
-            steps.append(AgentStep(index=idx, status=status, agent_name=agent, state=STATE_PENDING))
+            agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
+            steps.append(AgentStep(index=idx, status=status, agent_name=agent_slug, state=STATE_PENDING))
             idx += 1
     return steps
 
@@ -116,7 +121,7 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
 
 def append_tracking_to_body(
     body: str,
-    agent_mappings: dict[str, list[str]],
+    agent_mappings: dict[str, list[AgentAssignment]],
     status_order: list[str],
 ) -> str:
     """

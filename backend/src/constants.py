@@ -42,11 +42,22 @@ AGENT_OUTPUT_FILES: dict[str, list[str]] = {
     "speckit.tasks": ["tasks.md"],
 }
 
-# Default agent mappings for each status
+# Default agent mappings for each status (Spec Kit pipeline)
 DEFAULT_AGENT_MAPPINGS: dict[str, list[str]] = {
     StatusNames.BACKLOG: ["speckit.specify"],
     StatusNames.READY: ["speckit.plan", "speckit.tasks"],
     StatusNames.IN_PROGRESS: ["speckit.implement"],
+    StatusNames.IN_REVIEW: ["copilot-review"],
+}
+
+# Human-readable display names for known agents
+AGENT_DISPLAY_NAMES: dict[str, str] = {
+    "speckit.specify": "Spec Kit - Specify",
+    "speckit.plan": "Spec Kit - Plan",
+    "speckit.tasks": "Spec Kit - Tasks",
+    "speckit.implement": "Spec Kit - Implement",
+    "copilot-review": "Copilot Review",
+    "copilot": "GitHub Copilot",
 }
 
 

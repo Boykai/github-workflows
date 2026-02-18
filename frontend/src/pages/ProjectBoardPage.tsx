@@ -6,6 +6,10 @@ import { useState } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
+import { AgentConfigRow } from '@/components/board/AgentConfigRow';
+import { AddAgentPopover } from '@/components/board/AddAgentPopover';
+import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
+import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -31,6 +35,21 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
   // Modal state (US2)
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
+
+  // Agent config state (004-agent-workflow-config-ui)
+  const agentConfig = useAgentConfig(selectedProjectId);
+  const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents();
+
+  const handleProjectSwitch = (projectId: string) => {
+    if (agentConfig.isDirty) {
+      const confirmed = window.confirm(
+        'You have unsaved agent configuration changes. Discard and switch projects?'
+      );
+      if (!confirmed) return;
+      agentConfig.discard();
+    }
+    selectProject(projectId);
+  };
 
   const handleCardClick = (item: BoardItem) => {
     setSelectedItem(item);
@@ -61,7 +80,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           <select
             className="board-project-select"
             value={selectedProjectId ?? ''}
-            onChange={(e) => e.target.value && selectProject(e.target.value)}
+            onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
             disabled={projectsLoading}
           >
             <option value="">
@@ -137,6 +156,31 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {selectedProjectId && !boardLoading && boardData && (
         <>
+          {/* Agent Configuration Row */}
+          <AgentConfigRow
+            columns={boardData.columns}
+            agentConfig={agentConfig}
+            availableAgents={availableAgents}
+            renderPresetSelector={
+              <AgentPresetSelector
+                columnNames={boardData.columns.map((c) => c.status.name)}
+                currentMappings={agentConfig.localMappings}
+                onApplyPreset={agentConfig.applyPreset}
+              />
+            }
+            renderAddButton={(status: string) => (
+              <AddAgentPopover
+                status={status}
+                availableAgents={availableAgents}
+                assignedAgents={agentConfig.localMappings[status] ?? []}
+                isLoading={agentsLoading}
+                error={agentsError}
+                onRetry={refetchAgents}
+                onAddAgent={agentConfig.addAgent}
+              />
+            )}
+          />
+
           {boardData.columns.every((col) => col.items.length === 0) ? (
             <div className="board-empty-state">
               <div className="board-empty-icon">📭</div>

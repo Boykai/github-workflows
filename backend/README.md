@@ -1,6 +1,6 @@
 # Agent Projects — Backend
 
-FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (Azure OpenAI), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
+FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
 
 ## Setup
 
@@ -33,7 +33,7 @@ When `DEBUG=true`:
 src/
 ├── main.py                    # FastAPI app, lifecycle (startup → polling), CORS, routers
 ├── config.py                  # Pydantic Settings from env / .env
-├── constants.py               # Status names, agent output file mappings, cache key helpers
+├── constants.py               # Status names, agent mappings, display names, cache key helpers
 ├── exceptions.py              # Custom exception classes
 │
 ├── api/                       # Route handlers
@@ -42,28 +42,29 @@ src/
 │   ├── chat.py                # Chat messages, proposals, confirm/reject
 │   ├── projects.py            # List/select projects, tasks, WebSocket, SSE
 │   ├── tasks.py               # Create/update tasks (GitHub Issues + project items)
-│   ├── workflow.py            # Workflow config, pipeline state, polling control
+│   ├── workflow.py            # Workflow config, pipeline state, polling control, agent discovery
 │   └── webhooks.py            # GitHub webhook (PR ready_for_review)
 │
 ├── models/                    # Pydantic v2 data models
 │   ├── board.py               # Board columns, items, custom fields, linked PRs
-│   ├── chat.py                # ChatMessage, IssueRecommendation, WorkflowConfig, AgentMapping…
+│   ├── chat.py                # ChatMessage, IssueRecommendation, WorkflowConfig, AgentMapping, display names…
 │   ├── project.py             # Project, StatusColumn
 │   ├── task.py                # Task / project item
 │   └── user.py                # User, session
 │
 ├── services/                  # Business logic
-│   ├── ai_agent.py            # Azure OpenAI — issue generation from natural language
+│   ├── ai_agent.py            # AI issue generation via pluggable CompletionProvider
 │   ├── agent_tracking.py      # Agent pipeline tracking (issue body markdown table)
 │   ├── cache.py               # In-memory TTL cache (for GitHub API responses)
+│   ├── completion_providers.py # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
 │   ├── copilot_polling.py     # Background polling loop + agent output posting
 │   ├── github_auth.py         # OAuth token exchange
 │   ├── github_projects.py     # GitHub GraphQL + REST client (projects, issues, PRs, Copilot assignment)
 │   ├── websocket.py           # WebSocket connection manager, broadcast
 │   └── workflow_orchestrator.py  # Pipeline state machine, agent assignment, status transitions
 │
-└── prompts/                   # Prompt templates for Azure OpenAI
-    ├── issue_generation.py    # System/user prompts for issue creation
+└── prompts/                   # Prompt templates for AI completion providers
+    ├── issue_generation.py    # System/user prompts for issue creation (concise JSON output)
     └── task_generation.py     # Legacy task generation prompts
 ```
 
@@ -89,10 +90,11 @@ A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (
    - Convert the **main PR** (first PR for the issue) from draft to ready for review
    - Transition status to "In Review"
    - Request Copilot code review on the main PR
-5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on the PR.
+   - If Copilot moves an issue to "In Progress" before the pipeline expects it, the service **accepts the status change** and updates the pipeline state — it does NOT restore the old status (which would re-trigger the agent).
+5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on In Review PRs.
 6. **Step 5 — Self-Healing Recovery**: Detect stalled agent pipelines across all non-completed issues. If an issue has an active agent in its tracking table but no corresponding pending assignment or recent progress, the system re-assigns the agent. A per-issue cooldown (5 minutes) prevents rapid re-assignment. On restart, workflow configuration is auto-bootstrapped if missing.
 
-**Double-Assignment Prevention**: The polling service tracks `_pending_agent_assignments` to avoid race conditions where concurrent polling loops could re-assign the same agent before Copilot has started working. The pending flag is set on assignment and cleared on completion.
+**Double-Assignment Prevention**: The polling service tracks `_pending_agent_assignments` to avoid race conditions where concurrent polling loops could re-assign the same agent before Copilot has started working. The pending flag is set BEFORE the API call and cleared on failure. A per-issue recovery cooldown (5 minutes) prevents rapid re-assignment.
 
 ### Agent Tracking Service (`agent_tracking.py`)
 
@@ -114,12 +116,22 @@ Manages per-issue pipeline state and hierarchical PR branching:
 - **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`MainBranchInfo: {branch, pr_number, head_sha}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref` — the main branch **name** is passed as `base_ref` so Copilot creates a child branch from it. The `head_sha` is tracked for audit purposes.
 - **Pipeline State Tracking**: `_pipeline_states` dict tracks active agent pipelines per issue, including which agents have completed and which is currently active. This prevents premature status transitions (e.g., waiting for `speckit.implement` to complete before transitioning to "In Review").
 - **Retry-with-Backoff**: Agent assignments retry up to 3 times with exponential backoff (3s → 6s → 12s) to handle transient GitHub API errors, especially after PR merges.
+- **Early Pending Flags**: Pending agent assignments are set BEFORE the GitHub API call and cleared only on failure. This prevents race conditions in `execute_full_workflow` where a poll could overlap with the initial assignment.
 - `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, checks for cached main branch or discovers it from existing PRs, and calls `assign_copilot_to_issue()` with the main branch name as `base_ref`.
 - `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`).
 - `_advance_pipeline()` / `_transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes.
 - `_check_child_pr_completion()` — For `speckit.implement`, checks if a child PR targeting the main branch exists and shows completion signals.
 - `_reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart.
 - `_update_agent_tracking_state()` — Updates the tracking table in the issue body when agents are assigned or complete.
+
+### Completion Providers (`completion_providers.py`)
+
+Pluggable AI completion layer used by `ai_agent.py` for issue generation:
+
+- **`CompletionProvider`** — Abstract base class defining `async complete(system_prompt, user_prompt, github_token) -> str`
+- **`CopilotCompletionProvider`** (default) — Uses `github-copilot-sdk` (`CopilotClient`, `SessionConfig`, `MessageOptions`). Caches clients per GitHub token hash. Creates a session with `system_message={"mode": "replace", "content": ...}`, sends the prompt, gathers `ASSISTANT_MESSAGE` events, and joins them. 120s timeout.
+- **`AzureOpenAICompletionProvider`** (optional) — Uses `openai` SDK (or `azure-ai-inference` fallback). Static API key from env vars. `API_VERSION = "2024-02-15-preview"`.
+- **`create_completion_provider()`** — Factory that reads `settings.ai_provider` and returns the appropriate provider instance.
 
 ### GitHub Projects Service (`github_projects.py`)
 

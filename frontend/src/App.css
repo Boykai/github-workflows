@@ -719,6 +719,573 @@
   font-size: 13px;
 }
 
+/* ============ Agent Config Row (004-agent-workflow-config-ui) ============ */
+
+.agent-config-row {
+  position: relative;
+  margin: 0 24px 8px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.agent-config-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.agent-config-row-toggle {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.agent-config-row-toggle:hover {
+  background: var(--color-border);
+}
+
+.agent-config-row-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agent-config-row-body {
+  overflow-x: auto;
+  padding: 8px 12px 12px;
+}
+
+.agent-config-row-columns {
+  display: flex;
+  gap: 16px;
+  min-width: min-content;
+}
+
+/* ============ Agent Column Cell ============ */
+
+.agent-column-cell {
+  flex: 0 0 300px;
+  min-height: 40px;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color 0.2s;
+}
+
+.agent-column-cell--modified {
+  border-color: var(--color-accent, #58a6ff);
+  box-shadow: 0 0 0 1px var(--color-accent, #58a6ff33);
+}
+
+.agent-column-cell--skeleton {
+  opacity: 0.5;
+}
+
+.agent-column-cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-column-cell-warning {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #d29922;
+  background: #d2992211;
+  border-radius: 4px;
+}
+
+/* ============ Agent Tile ============ */
+
+.agent-tile {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  transition: box-shadow 0.15s, opacity 0.15s;
+}
+
+.agent-tile:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.agent-tile--dragging {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.agent-tile--warning {
+  border-color: #d29922;
+}
+
+.agent-tile-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.agent-tile-drag-handle {
+  cursor: grab;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.agent-tile-drag-handle:hover {
+  opacity: 1;
+}
+
+.agent-tile-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.agent-tile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.agent-tile-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-tile-warning-badge {
+  color: #d29922;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.agent-tile-expand-btn,
+.agent-tile-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.agent-tile-expand-btn:hover,
+.agent-tile-remove-btn:hover {
+  opacity: 1;
+  background: var(--color-border);
+}
+
+.agent-tile-remove-btn:hover {
+  color: #f85149;
+}
+
+.agent-tile-details {
+  padding: 4px 8px 8px;
+  border-top: 1px solid var(--color-border);
+  font-size: 11px;
+}
+
+.agent-tile-detail-row {
+  display: flex;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.agent-tile-detail-label {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.agent-tile-detail-value {
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.agent-tile-skeleton {
+  height: 36px;
+  background: var(--color-border);
+  border-radius: 6px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.3; }
+}
+
+/* ============ Agent Save Bar ============ */
+
+.agent-save-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 8px 12px;
+  background: var(--color-bg-secondary);
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.agent-save-bar-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agent-save-bar-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.agent-save-bar-error {
+  font-size: 12px;
+  color: #f85149;
+}
+
+.agent-save-bar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.agent-save-bar-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  transition: background 0.15s;
+}
+
+.agent-save-bar-btn--discard {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.agent-save-bar-btn--discard:hover {
+  background: var(--color-border);
+}
+
+.agent-save-bar-btn--save {
+  background: #238636;
+  color: #fff;
+  border-color: #238636;
+}
+
+.agent-save-bar-btn--save:hover {
+  background: #2ea043;
+}
+
+.agent-save-bar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ Add Agent Popover ============ */
+
+.add-agent-popover-container {
+  position: relative;
+  width: 100%;
+}
+
+.add-agent-trigger-btn {
+  width: 100%;
+  padding: 4px 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-agent-trigger-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+}
+
+.add-agent-popover {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  left: 0;
+  width: 280px;
+  max-height: 340px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.add-agent-popover-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.add-agent-popover-filter {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.add-agent-popover-filter:focus {
+  border-color: var(--color-accent, #58a6ff);
+}
+
+.add-agent-popover-list {
+  overflow-y: auto;
+  max-height: 260px;
+  padding: 4px;
+}
+
+.add-agent-popover-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  color: var(--color-text);
+  position: relative;
+}
+
+.add-agent-popover-item:hover {
+  background: var(--color-bg-secondary);
+}
+
+.add-agent-popover-item--duplicate {
+  opacity: 0.6;
+}
+
+.add-agent-popover-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-agent-popover-item-name {
+  font-weight: 500;
+}
+
+.add-agent-popover-item-slug {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.add-agent-popover-item-desc {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+}
+
+.add-agent-popover-item-source {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  background: var(--color-border);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.add-agent-popover-item-source--builtin {
+  background: #2ea04333;
+  color: #3fb950;
+}
+
+.add-agent-popover-item-source--repository {
+  background: #58a6ff22;
+  color: #58a6ff;
+}
+
+.add-agent-popover-item-badge {
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.add-agent-popover-loading,
+.add-agent-popover-error,
+.add-agent-popover-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.add-agent-popover-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent, #58a6ff);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.add-agent-popover-retry {
+  margin-top: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+/* ============ Agent Preset Selector ============ */
+
+.agent-preset-selector {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.agent-preset-btn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.agent-preset-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+.agent-preset-btn--active {
+  border-color: var(--color-accent, #58a6ff);
+  color: var(--color-accent, #58a6ff);
+}
+
+.agent-preset-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-preset-dialog {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.agent-preset-dialog-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.agent-preset-dialog-desc {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.agent-preset-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.agent-preset-dialog-btn {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.agent-preset-dialog-btn--cancel {
+  background: var(--color-bg-secondary);
+  color: var(--color-text);
+}
+
+.agent-preset-dialog-btn--cancel:hover {
+  background: var(--color-border);
+}
+
+.agent-preset-dialog-btn--confirm {
+  background: var(--color-accent, #58a6ff);
+  color: #fff;
+  border-color: var(--color-accent, #58a6ff);
+}
+
+.agent-preset-dialog-btn--confirm:hover {
+  opacity: 0.9;
+}
+
 /* ============ Issue Card ============ */
 
 .board-issue-card {

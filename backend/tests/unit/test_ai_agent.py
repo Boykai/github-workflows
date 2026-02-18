@@ -1,63 +1,128 @@
-"""Unit tests for the AI agent service (Azure OpenAI integration)."""
+"""Unit tests for the AI agent service (multi-provider support)."""
 
-import sys
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-
-# Mock the openai module before importing ai_agent
-mock_openai = MagicMock()
-mock_openai.AzureOpenAI = MagicMock()
-sys.modules["openai"] = mock_openai
 
 from src.services.ai_agent import (
     AIAgentService,
     GeneratedTask,
     StatusChangeIntent,
 )
+from src.services.completion_providers import CompletionProvider
+
+
+class MockCompletionProvider(CompletionProvider):
+    """Test double for CompletionProvider that returns configurable responses."""
+
+    def __init__(self, response: str = ""):
+        self._response = response
+        self._side_effect = None
+        self.last_messages = None
+        self.last_github_token = None
+
+    async def complete(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 1000,
+        github_token: str | None = None,
+    ) -> str:
+        self.last_messages = messages
+        self.last_github_token = github_token
+        if self._side_effect:
+            raise self._side_effect
+        return self._response
+
+    def set_response(self, response: str) -> None:
+        self._response = response
+        self._side_effect = None
+
+    def set_error(self, error: Exception) -> None:
+        self._side_effect = error
+
+    @property
+    def name(self) -> str:
+        return "mock"
 
 
 class TestAIAgentServiceInit:
     """Tests for AIAgentService initialization."""
 
-    @patch("src.services.ai_agent.get_settings")
-    def test_init_creates_client_with_settings(self, mock_get_settings):
-        """Service should initialize with Azure OpenAI settings."""
-        mock_settings = Mock()
-        mock_settings.azure_openai_endpoint = "https://test.openai.azure.com"
-        mock_settings.azure_openai_key = "test-api-key"
-        mock_settings.azure_openai_deployment = "gpt-4-test"
-        mock_get_settings.return_value = mock_settings
+    def test_init_with_custom_provider(self):
+        """Service should accept a custom CompletionProvider."""
+        provider = MockCompletionProvider()
+        service = AIAgentService(provider=provider)
+        assert service._provider is provider
+
+    @patch("src.services.ai_agent.create_completion_provider")
+    def test_init_default_provider(self, mock_create):
+        """Service should create provider via factory if none provided."""
+        mock_provider = MockCompletionProvider()
+        mock_create.return_value = mock_provider
 
         service = AIAgentService()
-        assert service._deployment == "gpt-4-test"
+        mock_create.assert_called_once()
+        assert service._provider is mock_provider
+
+
+class TestCallCompletion:
+    """Tests for the _call_completion method."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    @pytest.mark.asyncio
+    async def test_call_completion_passes_github_token(self, service, mock_provider):
+        """Should pass github_token through to the provider."""
+        mock_provider.set_response('{"result": "ok"}')
+
+        await service._call_completion(
+            messages=[{"role": "user", "content": "test"}],
+            github_token="test-token-123",
+        )
+
+        assert mock_provider.last_github_token == "test-token-123"
+
+    @pytest.mark.asyncio
+    async def test_call_completion_passes_messages(self, service, mock_provider):
+        """Should pass messages through to the provider."""
+        mock_provider.set_response("response")
+        messages = [
+            {"role": "system", "content": "You are helpful"},
+            {"role": "user", "content": "Hello"},
+        ]
+
+        await service._call_completion(messages=messages)
+
+        assert mock_provider.last_messages == messages
 
 
 class TestGenerateTaskFromDescription:
     """Tests for task generation from natural language."""
 
     @pytest.fixture
-    def mock_service(self):
-        """Create a service with mocked client."""
-        with patch("src.services.ai_agent.get_settings") as mock_settings:
-            mock_settings.return_value = Mock(
-                azure_openai_endpoint="https://test.openai.azure.com",
-                azure_openai_key="test-key",
-                azure_openai_deployment="gpt-4",
-            )
-            service = AIAgentService()
-            return service
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
 
     @pytest.mark.asyncio
-    async def test_generate_task_parses_json_response(self, mock_service):
+    async def test_generate_task_parses_json_response(self, service, mock_provider):
         """Service should parse JSON response and return GeneratedTask."""
-        # Mock the _call_completion method
-        mock_service._call_completion = Mock(
-            return_value='{"title": "Test Task", "description": "Test Description"}'
+        mock_provider.set_response(
+            '{"title": "Test Task", "description": "Test Description"}'
         )
 
-        result = await mock_service.generate_task_from_description(
-            "Create a task for testing", "Test Project"
+        result = await service.generate_task_from_description(
+            "Create a task for testing", "Test Project", github_token="tok"
         )
 
         assert isinstance(result, GeneratedTask)
@@ -65,90 +130,112 @@ class TestGenerateTaskFromDescription:
         assert result.description == "Test Description"
 
     @pytest.mark.asyncio
-    async def test_generate_task_handles_markdown_code_blocks(self, mock_service):
+    async def test_generate_task_handles_markdown_code_blocks(self, service, mock_provider):
         """Service should handle JSON wrapped in markdown code blocks."""
-        mock_service._call_completion = Mock(
-            return_value='```json\n{"title": "Markdown Task", "description": "With code block"}\n```'
+        mock_provider.set_response(
+            '```json\n{"title": "Markdown Task", "description": "With code block"}\n```'
         )
 
-        result = await mock_service.generate_task_from_description("Create a task", "Project")
+        result = await service.generate_task_from_description(
+            "Create a task", "Project", github_token="tok"
+        )
 
         assert result.title == "Markdown Task"
         assert result.description == "With code block"
 
     @pytest.mark.asyncio
-    async def test_generate_task_raises_on_invalid_json(self, mock_service):
+    async def test_generate_task_raises_on_invalid_json(self, service, mock_provider):
         """Service should raise ValueError on invalid JSON."""
-        mock_service._call_completion = Mock(return_value="Not valid JSON")
+        mock_provider.set_response("Not valid JSON")
 
         with pytest.raises(ValueError, match="Failed to generate task"):
-            await mock_service.generate_task_from_description("Create task", "Project")
+            await service.generate_task_from_description(
+                "Create task", "Project", github_token="tok"
+            )
 
     @pytest.mark.asyncio
-    async def test_generate_task_raises_on_missing_title(self, mock_service):
+    async def test_generate_task_raises_on_missing_title(self, service, mock_provider):
         """Service should raise ValueError when title is missing."""
-        mock_service._call_completion = Mock(return_value='{"description": "No title"}')
+        mock_provider.set_response('{"description": "No title"}')
 
         with pytest.raises(ValueError, match="Failed to generate task"):
-            await mock_service.generate_task_from_description("Create task", "Project")
+            await service.generate_task_from_description(
+                "Create task", "Project", github_token="tok"
+            )
 
     @pytest.mark.asyncio
-    async def test_generate_task_truncates_long_title(self, mock_service):
+    async def test_generate_task_truncates_long_title(self, service, mock_provider):
         """Service should truncate titles over 256 characters."""
         long_title = "A" * 300
-        mock_service._call_completion = Mock(
-            return_value=f'{{"title": "{long_title}", "description": "Test"}}'
+        mock_provider.set_response(
+            f'{{"title": "{long_title}", "description": "Test"}}'
         )
 
-        result = await mock_service.generate_task_from_description("Create task", "Project")
+        result = await service.generate_task_from_description(
+            "Create task", "Project", github_token="tok"
+        )
 
         assert len(result.title) == 256
         assert result.title.endswith("...")
 
     @pytest.mark.asyncio
-    async def test_generate_task_helpful_error_on_401(self, mock_service):
+    async def test_generate_task_helpful_error_on_401(self, service, mock_provider):
         """Service should provide helpful error message on 401."""
-        mock_service._call_completion = Mock(side_effect=Exception("401 Access denied"))
+        mock_provider.set_error(Exception("401 Access denied"))
 
         with pytest.raises(ValueError, match="authentication failed"):
-            await mock_service.generate_task_from_description("Create task", "Project")
+            await service.generate_task_from_description(
+                "Create task", "Project", github_token="tok"
+            )
 
     @pytest.mark.asyncio
-    async def test_generate_task_helpful_error_on_404(self, mock_service):
+    async def test_generate_task_helpful_error_on_404(self, service, mock_provider):
         """Service should provide helpful error message on 404."""
-        mock_service._call_completion = Mock(side_effect=Exception("404 Resource not found"))
+        mock_provider.set_error(Exception("404 Resource not found"))
 
         with pytest.raises(ValueError, match="not found"):
-            await mock_service.generate_task_from_description("Create task", "Project")
+            await service.generate_task_from_description(
+                "Create task", "Project", github_token="tok"
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_task_passes_github_token(self, service, mock_provider):
+        """Service should pass github_token to provider."""
+        mock_provider.set_response(
+            '{"title": "Task", "description": "Description"}'
+        )
+
+        await service.generate_task_from_description(
+            "Create task", "Project", github_token="user-oauth-token"
+        )
+
+        assert mock_provider.last_github_token == "user-oauth-token"
 
 
 class TestParseStatusChangeRequest:
     """Tests for status change intent detection."""
 
     @pytest.fixture
-    def mock_service(self):
-        """Create a service with mocked client."""
-        with patch("src.services.ai_agent.get_settings") as mock_settings:
-            mock_settings.return_value = Mock(
-                azure_openai_endpoint="https://test.openai.azure.com",
-                azure_openai_api_key="test-key",
-                azure_openai_deployment="gpt-4",
-            )
-            with patch("openai.AzureOpenAI"):
-                service = AIAgentService()
-                return service
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_returns_intent(self, mock_service):
+    async def test_parse_status_change_returns_intent(self, service, mock_provider):
         """Service should return StatusChangeIntent for valid requests."""
-        mock_service._call_completion = Mock(
-            return_value='{"intent": "status_change", "task_reference": "Login feature", "target_status": "Done", "confidence": 0.9}'
+        mock_provider.set_response(
+            '{"intent": "status_change", "task_reference": "Login feature", '
+            '"target_status": "Done", "confidence": 0.9}'
         )
 
-        result = await mock_service.parse_status_change_request(
+        result = await service.parse_status_change_request(
             "Mark login feature as done",
             ["Login feature", "Dashboard"],
             ["Todo", "In Progress", "Done"],
+            github_token="tok",
         )
 
         assert isinstance(result, StatusChangeIntent)
@@ -157,41 +244,119 @@ class TestParseStatusChangeRequest:
         assert result.confidence == 0.9
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_returns_none_for_low_confidence(self, mock_service):
+    async def test_parse_status_change_returns_none_for_low_confidence(
+        self, service, mock_provider
+    ):
         """Service should return None for low confidence detections."""
-        mock_service._call_completion = Mock(
-            return_value='{"intent": "status_change", "task_reference": "Task", "target_status": "Done", "confidence": 0.3}'
+        mock_provider.set_response(
+            '{"intent": "status_change", "task_reference": "Task", '
+            '"target_status": "Done", "confidence": 0.3}'
         )
 
-        result = await mock_service.parse_status_change_request(
-            "Maybe done?", ["Task"], ["Todo", "Done"]
+        result = await service.parse_status_change_request(
+            "Maybe done?", ["Task"], ["Todo", "Done"], github_token="tok"
         )
 
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_returns_none_for_non_status_intent(self, mock_service):
+    async def test_parse_status_change_returns_none_for_non_status_intent(
+        self, service, mock_provider
+    ):
         """Service should return None when intent is not status_change."""
-        mock_service._call_completion = Mock(
-            return_value='{"intent": "create_task", "confidence": 0.9}'
-        )
+        mock_provider.set_response('{"intent": "create_task", "confidence": 0.9}')
 
-        result = await mock_service.parse_status_change_request(
-            "Create a new task", ["Task"], ["Todo", "Done"]
+        result = await service.parse_status_change_request(
+            "Create a new task", ["Task"], ["Todo", "Done"], github_token="tok"
         )
 
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_handles_errors_gracefully(self, mock_service):
+    async def test_parse_status_change_handles_errors_gracefully(
+        self, service, mock_provider
+    ):
         """Service should return None on errors, not raise."""
-        mock_service._call_completion = Mock(side_effect=Exception("API Error"))
+        mock_provider.set_error(Exception("API Error"))
 
-        result = await mock_service.parse_status_change_request(
-            "Move task", ["Task"], ["Todo", "Done"]
+        result = await service.parse_status_change_request(
+            "Move task", ["Task"], ["Todo", "Done"], github_token="tok"
         )
 
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_parse_status_change_passes_github_token(
+        self, service, mock_provider
+    ):
+        """Service should pass github_token to provider."""
+        mock_provider.set_response('{"intent": "other"}')
+
+        await service.parse_status_change_request(
+            "Move task", ["Task"], ["Todo", "Done"], github_token="my-token"
+        )
+
+        assert mock_provider.last_github_token == "my-token"
+
+
+class TestDetectFeatureRequestIntent:
+    """Tests for feature request intent detection."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    @pytest.mark.asyncio
+    async def test_detect_feature_request_true(self, service, mock_provider):
+        """Should detect feature request intent."""
+        mock_provider.set_response(
+            '{"intent": "feature_request", "confidence": 0.9}'
+        )
+
+        result = await service.detect_feature_request_intent(
+            "Add a dark mode toggle", github_token="tok"
+        )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_detect_feature_request_false(self, service, mock_provider):
+        """Should return False when not a feature request."""
+        mock_provider.set_response('{"intent": "other", "confidence": 0.1}')
+
+        result = await service.detect_feature_request_intent(
+            "Move task to done", github_token="tok"
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_detect_feature_request_handles_errors(self, service, mock_provider):
+        """Should return False on errors."""
+        mock_provider.set_error(Exception("API Error"))
+
+        result = await service.detect_feature_request_intent(
+            "Some input", github_token="tok"
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_detect_feature_request_passes_github_token(
+        self, service, mock_provider
+    ):
+        """Should pass github_token to provider."""
+        mock_provider.set_response('{"intent": "other", "confidence": 0.1}')
+
+        await service.detect_feature_request_intent(
+            "Some input", github_token="my-gh-token"
+        )
+
+        assert mock_provider.last_github_token == "my-gh-token"
 
 
 class TestIdentifyTargetTask:
@@ -199,15 +364,7 @@ class TestIdentifyTargetTask:
 
     @pytest.fixture
     def service(self):
-        """Create a service with mocked initialization."""
-        with patch("src.services.ai_agent.get_settings") as mock_settings:
-            mock_settings.return_value = Mock(
-                azure_openai_endpoint="https://test.openai.azure.com",
-                azure_openai_api_key="test-key",
-                azure_openai_deployment="gpt-4",
-            )
-            with patch("openai.AzureOpenAI"):
-                return AIAgentService()
+        return AIAgentService(provider=MockCompletionProvider())
 
     def test_identify_task_exact_match(self, service):
         """Should find exact title match."""
@@ -262,15 +419,7 @@ class TestIdentifyTargetStatus:
 
     @pytest.fixture
     def service(self):
-        """Create a service with mocked initialization."""
-        with patch("src.services.ai_agent.get_settings") as mock_settings:
-            mock_settings.return_value = Mock(
-                azure_openai_endpoint="https://test.openai.azure.com",
-                azure_openai_api_key="test-key",
-                azure_openai_deployment="gpt-4",
-            )
-            with patch("openai.AzureOpenAI"):
-                return AIAgentService()
+        return AIAgentService(provider=MockCompletionProvider())
 
     def test_identify_status_exact_match(self, service):
         """Should find exact status match."""
@@ -318,15 +467,7 @@ class TestParseJsonResponse:
 
     @pytest.fixture
     def service(self):
-        """Create a service with mocked initialization."""
-        with patch("src.services.ai_agent.get_settings") as mock_settings:
-            mock_settings.return_value = Mock(
-                azure_openai_endpoint="https://test.openai.azure.com",
-                azure_openai_api_key="test-key",
-                azure_openai_deployment="gpt-4",
-            )
-            with patch("openai.AzureOpenAI"):
-                return AIAgentService()
+        return AIAgentService(provider=MockCompletionProvider())
 
     def test_parse_plain_json(self, service):
         """Should parse plain JSON."""
@@ -349,87 +490,52 @@ class TestParseJsonResponse:
             service._parse_json_response("not json at all")
 
 
-class TestAzureOpenAIIntegration:
-    """Integration tests for Azure OpenAI connection (requires valid credentials).
+class TestCompletionProviders:
+    """Tests for the completion provider infrastructure."""
 
-    These tests are skipped by default. Run with: pytest -m integration
-    """
+    def test_copilot_provider_requires_github_token(self):
+        """CopilotCompletionProvider should require github_token."""
+        from src.services.completion_providers import CopilotCompletionProvider
 
-    @pytest.fixture
-    def live_service(self):
-        """Create a service using real settings (if available)."""
-        # Skip if running with mocked openai module (no real credentials)
-        import sys
+        provider = CopilotCompletionProvider(model="gpt-4o")
+        assert provider.name == "copilot"
 
-        if "openai" in sys.modules and hasattr(sys.modules["openai"], "_mock_name"):
-            pytest.skip("Running with mocked openai - no real credentials available")
+    @patch("src.services.completion_providers.get_settings")
+    def test_azure_provider_requires_credentials(self, mock_settings):
+        """AzureOpenAICompletionProvider should require Azure credentials."""
+        from src.services.completion_providers import AzureOpenAICompletionProvider
 
-        try:
-            from src.config import get_settings
+        mock_settings.return_value = Mock(
+            azure_openai_endpoint=None,
+            azure_openai_key=None,
+            azure_openai_deployment="gpt-4",
+        )
 
-            settings = get_settings()
-            # Check if we have real credentials
-            if not settings.azure_openai_endpoint or not settings.azure_openai_key:
-                pytest.skip("Azure OpenAI credentials not configured")
-            # This will use actual .env settings
-            service = AIAgentService()
-            # Verify the client is not a mock
-            if hasattr(service._client, "_mock_name") or isinstance(service._client, MagicMock):
-                pytest.skip("Azure OpenAI client is mocked - no real credentials")
-            return service
-        except Exception as e:
-            pytest.skip(f"Azure OpenAI credentials not configured: {e}")
+        with pytest.raises(ValueError, match="Azure OpenAI credentials not configured"):
+            AzureOpenAICompletionProvider()
 
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_task_generation(self, live_service):
-        """Test actual task generation with Azure OpenAI.
+    @patch("src.services.completion_providers.get_settings")
+    def test_create_provider_copilot(self, mock_settings):
+        """Factory should create CopilotCompletionProvider for 'copilot'."""
+        from src.services.completion_providers import (
+            CopilotCompletionProvider,
+            create_completion_provider,
+        )
 
-        This test requires valid Azure OpenAI credentials and deployment.
-        Skipped if the API returns an error (invalid credentials or deployment).
-        """
-        try:
-            result = await live_service.generate_task_from_description(
-                "Create a login page with email and password fields", "Web App Project"
-            )
+        mock_settings.return_value = Mock(
+            ai_provider="copilot",
+            copilot_model="gpt-4o",
+        )
 
-            assert isinstance(result, GeneratedTask)
-            assert len(result.title) > 0
-            assert len(result.description) > 0
-        except ValueError as e:
-            error_msg = str(e)
-            if any(
-                code in error_msg
-                for code in ["404", "401", "403", "Resource not found", "Access denied"]
-            ):
-                pytest.skip(f"Azure OpenAI not available or credentials invalid: {e}")
-            raise
+        provider = create_completion_provider()
+        assert isinstance(provider, CopilotCompletionProvider)
 
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_status_change_detection(self, live_service):
-        """Test actual status change detection with Azure OpenAI.
+    @patch("src.services.completion_providers.get_settings")
+    def test_create_provider_unknown_raises(self, mock_settings):
+        """Factory should raise for unknown provider name."""
+        from src.services.completion_providers import create_completion_provider
 
-        This test requires valid Azure OpenAI credentials and deployment.
-        Skipped if the API returns an error.
-        """
-        try:
-            result = await live_service.parse_status_change_request(
-                "Mark the login feature task as completed",
-                ["Login feature", "Dashboard", "Settings page"],
-                ["Todo", "In Progress", "Done"],
-            )
+        mock_settings.return_value = Mock(ai_provider="unknown_provider")
 
-            # Should detect status change intent
-            if result:
-                assert isinstance(result, StatusChangeIntent)
-                assert result.confidence >= 0.5
-        except Exception as e:
-            error_msg = str(e)
-            if any(
-                code in error_msg
-                for code in ["404", "401", "403", "Resource not found", "Access denied"]
-            ):
-                pytest.skip(f"Azure OpenAI not available or credentials invalid: {e}")
-            # For status change, we return None on errors, so this shouldn't happen
-            raise
+        with pytest.raises(ValueError, match="Unknown AI provider"):
+            create_completion_provider()

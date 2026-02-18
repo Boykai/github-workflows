@@ -255,12 +255,16 @@ class TestCheckInProgressIssues:
     async def test_skips_issues_with_active_pipeline_for_other_status(
         self, mock_get_pipeline, mock_process, mock_service, mock_task
     ):
-        """Issues managed by a pipeline for a different status should be skipped."""
+        """Issues with a pipeline for a different status should have their pipeline
+        updated to 'In Progress' (accepting Copilot's status change) and then be
+        handled via comment-based agent completion detection — NOT by restoring
+        the old status (which would re-trigger the agent)."""
         mock_service.get_project_items = AsyncMock(return_value=[mock_task])
-        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        # Agent has NOT completed yet
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
 
         # Simulate a pipeline for Backlog status (not In Progress)
-        mock_get_pipeline.return_value = PipelineState(
+        pipeline = PipelineState(
             issue_number=42,
             project_id="PVT_123",
             status="Backlog",
@@ -269,19 +273,24 @@ class TestCheckInProgressIssues:
             completed_agents=[],
             started_at=datetime.utcnow(),
         )
+        mock_get_pipeline.return_value = pipeline
 
-        results = await check_in_progress_issues(
-            access_token="test-token",
-            project_id="PVT_123",
-            owner="owner",
-            repo="repo",
-        )
+        with patch("src.services.copilot_polling.set_pipeline_state") as mock_set_pipeline:
+            results = await check_in_progress_issues(
+                access_token="test-token",
+                project_id="PVT_123",
+                owner="owner",
+                repo="repo",
+            )
 
-        # Issue should be skipped — pipeline is for Backlog, not In Progress
+        # Should NOT try to restore status (that causes duplicate agent triggers)
+        mock_service.update_item_status_by_name.assert_not_called()
+        # Legacy process_in_progress_issue should NOT be called (pipeline path used)
         mock_process.assert_not_called()
+        # Pipeline should be updated to accept the "In Progress" status
+        mock_set_pipeline.assert_called_once()
+        assert pipeline.status == "In Progress"
         assert len(results) == 0
-        # Should attempt to restore status
-        mock_service.update_item_status_by_name.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -954,6 +963,121 @@ class TestPostAgentOutputsFromPr:
         )
 
         assert len(results) == 0
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._get_tracking_state_from_issue", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_reconstructs_pipeline_from_tracking_table_on_restart(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_tracking,
+        mock_task_backlog,
+    ):
+        """After container restart (no in-memory pipeline), should reconstruct
+        the pipeline from the durable tracking table and detect completion."""
+        mock_config.return_value = MagicMock()
+        # Simulate container restart: in-memory pipeline is None
+        mock_pipeline.return_value = None
+
+        # Tracking table shows speckit.specify as 🔄 Active in Backlog
+        tracking_body = (
+            "## Issue Body\n\n"
+            "---\n\n"
+            "## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | Backlog | `speckit.specify` | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+        )
+        mock_tracking.return_value = (tracking_body, [])  # body, comments (no Done! yet)
+
+        # Main branch not in memory and no existing PR discovered
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "head_ref": "copilot/issue-10",
+                "number": 11,
+                "id": "PR_11",
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+
+        # Agent has completed — PR is non-draft
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 11, "state": "open"}
+        )
+        mock_service.get_pr_changed_files = AsyncMock(
+            return_value=[{"filename": "specs/spec.md", "status": "added"}]
+        )
+        mock_service.get_file_content_from_ref = AsyncMock(
+            return_value="# Specification\nDetails here."
+        )
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1, "body": "ok"})
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        # Pipeline should have been reconstructed and completion detected
+        assert len(results) == 1
+        assert results[0]["status"] == "success"
+        assert results[0]["agent_name"] == "speckit.specify"
+
+        # Should have posted outputs (spec.md) + Done! marker
+        assert mock_service.create_issue_comment.call_count == 2
+
+        # Verify tracking table was fetched for reconstruction
+        mock_tracking.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._get_tracking_state_from_issue", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_reconstruction_skips_when_no_active_agent_in_tracking(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_tracking,
+        mock_task_backlog,
+    ):
+        """If tracking table has no 🔄 Active agent, reconstruction should skip."""
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = None
+
+        # All agents show ✅ Done or ⏳ Pending — no active agent
+        tracking_body = (
+            "## Issue Body\n\n"
+            "---\n\n"
+            "## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | Backlog | `speckit.specify` | ✅ Done |\n"
+            "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+        )
+        mock_tracking.return_value = (tracking_body, [])
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        # No pipeline reconstructed → no results
+        assert len(results) == 0
+        mock_service.check_copilot_pr_completion.assert_not_called()
 
 
 class TestCheckChildPrCompletion:
@@ -2286,6 +2410,7 @@ class TestRecoverStalledIssues:
         mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
         mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_get_branch.return_value = None
 
         mock_orchestrator = MagicMock()
@@ -2324,6 +2449,7 @@ class TestRecoverStalledIssues:
         mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
         mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_get_branch.return_value = None
 
         mock_orchestrator = MagicMock()
@@ -2423,6 +2549,7 @@ class TestRecoverStalledIssues:
         mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
         mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_get_branch.return_value = None
 
         mock_orchestrator = MagicMock()
@@ -2488,3 +2615,44 @@ class TestRecoverStalledIssues:
         )
 
         assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    async def test_skips_recovery_when_done_marker_exists(
+        self, mock_config, mock_service, mock_get_branch, mock_backlog_task
+    ):
+        """Should NOT re-assign when the agent already has a Done! marker.
+
+        This guards against the double-trigger bug: after a container restart
+        the volatile state is lost but the Done! comment persists.  Recovery
+        should see the marker and skip re-assignment.
+        """
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY}
+        )
+        # Copilot unassigned (self-unassigned after completion)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        # No WIP PR found
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_get_branch.return_value = None
+        # Done! marker IS present — agent already completed
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=True)
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        # Should NOT have recovered — Done! marker means agent completed
+        assert results == []
+        # Cooldown should still be set to avoid repeated checks
+        assert 100 in _recovery_last_attempt

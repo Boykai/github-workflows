@@ -38,6 +38,55 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
+    """Extract ordered slug strings for a given status. Minimizes migration diff."""
+    return [a.slug if hasattr(a, "slug") else str(a) for a in config.agent_mappings.get(status, [])]
+
+
+def get_status_order(config: WorkflowConfiguration) -> list[str]:
+    """Return the ordered list of pipeline statuses from configuration."""
+    return [
+        config.status_backlog,
+        config.status_ready,
+        config.status_in_progress,
+        config.status_in_review,
+    ]
+
+
+def get_next_status(config: WorkflowConfiguration, current_status: str) -> str | None:
+    """Return the next status in the pipeline, or None if at the end."""
+    order = get_status_order(config)
+    try:
+        idx = order.index(current_status)
+        if idx + 1 < len(order):
+            return order[idx + 1]
+    except ValueError:
+        pass
+    return None
+
+
+def find_next_actionable_status(config: WorkflowConfiguration, current_status: str) -> str | None:
+    """
+    Find the next status that has agents assigned (pass-through logic, T028).
+
+    Starting from the status *after* current_status, walk forward through the
+    pipeline. Return the first status that has agents or the final status in
+    the pipeline (even if it has no agents, to avoid infinite skipping).
+    Returns None if current_status is already the last one.
+    """
+    order = get_status_order(config)
+    try:
+        start = order.index(current_status) + 1
+    except ValueError:
+        return None
+
+    for i in range(start, len(order)):
+        candidate = order[i]
+        if get_agent_slugs(config, candidate) or i == len(order) - 1:
+            return candidate
+    return None
+
+
 class WorkflowState(Enum):
     """Workflow states for tracking issue lifecycle."""
 
@@ -709,7 +758,7 @@ class WorkflowOrchestrator:
             )
             return True  # All agents already processed
 
-        agent_name = agents[agent_index]
+        agent_name = agents[agent_index].slug if hasattr(agents[agent_index], "slug") else str(agents[agent_index])
         logger.info(
             "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
             agent_name,
@@ -854,6 +903,27 @@ class WorkflowOrchestrator:
         # a child PR merge. We retry up to 3 times with exponential backoff.
         import asyncio
 
+        # Pre-set recovery cooldown and pending flag BEFORE the assignment
+        # API call. This prevents a race where the polling/recovery loop sees
+        # the issue between the unassign and re-assign steps and fires a
+        # duplicate assignment (e.g. issue #297 getting 2 PRs).
+        pending_key = f"{ctx.issue_number}:{agent_name}"
+        try:
+            from src.services.copilot_polling import (
+                _pending_agent_assignments,
+                _recovery_last_attempt,
+            )
+
+            _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
+            _pending_agent_assignments.add(pending_key)
+            logger.debug(
+                "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
+                agent_name,
+                ctx.issue_number,
+            )
+        except ImportError:
+            pass  # copilot_polling not available in tests
+
         max_retries = 3
         base_delay = 3  # seconds
         success = False
@@ -902,29 +972,30 @@ class WorkflowOrchestrator:
             # Mark agent as 🔄 Active in the issue body tracking table
             await self._update_agent_tracking_state(ctx, agent_name, "active")
 
-            # Set recovery cooldown so the self-healing recovery doesn't
-            # re-assign the agent before Copilot has time to create a WIP PR.
+            # Refresh recovery cooldown timestamp now that assignment succeeded
             try:
                 from src.services.copilot_polling import (
-                    _pending_agent_assignments,
                     _recovery_last_attempt,
                 )
 
                 _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
-                _pending_agent_assignments.add(f"{ctx.issue_number}:{agent_name}")
-                logger.debug(
-                    "Set recovery cooldown and pending flag for agent '%s' on issue #%d",
-                    agent_name,
-                    ctx.issue_number,
-                )
             except ImportError:
-                pass  # copilot_polling not available in tests
+                pass
         else:
             logger.warning(
                 "Failed to assign agent '%s' to issue #%s",
                 agent_name,
                 ctx.issue_number,
             )
+            # Clear pending flag so recovery can retry later
+            try:
+                from src.services.copilot_polling import (
+                    _pending_agent_assignments,
+                )
+
+                _pending_agent_assignments.discard(pending_key)
+            except ImportError:
+                pass
 
         # Create / update pipeline state
         # Capture the HEAD SHA at assignment time for commit-based completion detection
@@ -938,9 +1009,9 @@ class WorkflowOrchestrator:
             issue_number=ctx.issue_number,
             project_id=ctx.project_id,
             status=status,
-            agents=list(agents),
+            agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
             current_agent_index=agent_index,
-            completed_agents=list(agents[:agent_index]),
+            completed_agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]],
             started_at=datetime.utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,
@@ -991,8 +1062,8 @@ class WorkflowOrchestrator:
             ctx.issue_id,
         )
 
-        # Get agents for In Progress status from agent_mappings
-        in_progress_agents = config.agent_mappings.get(config.status_in_progress, [])
+        # Get agent slugs for In Progress status from agent_mappings
+        in_progress_slugs = get_agent_slugs(config, config.status_in_progress)
 
         # Assign the first In Progress agent (reuses PR detection + instruction logic)
         copilot_assigned = await self.assign_agent_for_status(
@@ -1057,7 +1128,7 @@ class WorkflowOrchestrator:
         ctx.current_state = WorkflowState.IN_PROGRESS
 
         # Log which agent was used
-        agent_name = in_progress_agents[0] if in_progress_agents else ""
+        agent_name = in_progress_slugs[0] if in_progress_slugs else ""
         self.log_transition(
             ctx=ctx,
             from_status=config.status_ready,
@@ -1345,8 +1416,54 @@ class WorkflowOrchestrator:
             await self.add_to_project_with_backlog(ctx, recommendation)
 
             # Step 3: Assign the first agent for Backlog status
+            # If Backlog has no agents, use pass-through to find next actionable status (T028)
             config = ctx.config or get_workflow_config(ctx.project_id)
             status_name = config.status_backlog if config else "Backlog"
+
+            if config and not get_agent_slugs(config, status_name):
+                # Pass-through: advance to next status with agents
+                next_status = find_next_actionable_status(config, status_name)
+                if next_status:
+                    logger.info(
+                        "Pass-through: Backlog has no agents, advancing to '%s' for issue #%s",
+                        next_status,
+                        ctx.issue_number,
+                    )
+                    # Update project status
+                    if ctx.project_item_id:
+                        await self.github.update_item_status_by_name(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            item_id=ctx.project_item_id,
+                            status_name=next_status,
+                        )
+                    status_name = next_status
+
+            # Pre-register the pending assignment BEFORE calling assign_agent_for_status.
+            # This closes the race window where the recovery polling loop sees the
+            # just-created issue (with ⏳ Pending agent in tracking table) and fires
+            # a duplicate assignment before we even begin the Copilot API call.
+            if ctx.issue_number:
+                config_for_flag = config or get_workflow_config(ctx.project_id)
+                agents_for_flag = get_agent_slugs(config_for_flag, status_name) if config_for_flag else []
+                if agents_for_flag:
+                    first_agent_name = agents_for_flag[0].slug if hasattr(agents_for_flag[0], "slug") else str(agents_for_flag[0])
+                    try:
+                        from src.services.copilot_polling import (
+                            _pending_agent_assignments,
+                            _recovery_last_attempt,
+                        )
+                        early_key = f"{ctx.issue_number}:{first_agent_name}"
+                        _pending_agent_assignments.add(early_key)
+                        _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
+                        logger.debug(
+                            "Early-set pending flag for agent '%s' on issue #%d before assign_agent_for_status",
+                            first_agent_name,
+                            ctx.issue_number,
+                        )
+                    except ImportError:
+                        pass
+
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 
             return WorkflowResult(
