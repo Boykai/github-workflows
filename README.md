@@ -23,8 +23,9 @@ Traditional DevOps workflows require developers to context-switch between their 
 │                        THE SPEC KIT AGENT PIPELINE                           │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │                                                                              │
-│  👤 User describes feature        🤖 Azure OpenAI generates Issue            │
+│  👤 User describes feature        🤖 GitHub Copilot generates Issue          │
 │  in chat interface          ───▶  with title, user story, requirements       │
+│                                   (via Copilot SDK, or Azure OpenAI)         │
 │                                                                              │
 │  User clicks Confirm         ───▶  GitHub Issue created, added to Project    │
 │                                    Status: 📋 Backlog                        │
@@ -73,7 +74,7 @@ Traditional DevOps workflows require developers to context-switch between their 
 | 📋 **Backlog** | `speckit.specify` | Agent creates first PR (establishes main branch) and writes `spec.md` | `speckit.specify: Done!` comment detected |
 | 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential pipeline: each agent branches from main branch, child PR merged + branch deleted on completion | Both agents post `Done!` markers |
 | 🔄 **In Progress** | `speckit.implement` | Agent branches from main branch, implements code from `tasks.md`, child PR merged + branch deleted, main PR converted from draft to ready | Child PR completion detected (timeline events or not draft) |
-| 👀 **In Review** | — | Main PR contains all agent work (child PRs already merged), Copilot code review requested | Manual merge |
+| 👀 **In Review** | `copilot-review` | Main PR contains all agent work (child PRs already merged), Copilot code review requested | Manual merge |
 | ✅ **Done** | — | Work completed and merged | Manual or webhook on PR merge |
 
 ### Agent Pipeline Details
@@ -100,13 +101,16 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **speckit.implement Completion**: Unlike other agents, `speckit.implement` completion is detected via PR timeline events (`copilot_work_finished`, `review_requested`) or when the child PR is no longer a draft. When complete, its child PR is merged into the main branch, the main PR is converted from draft to ready for review, status is updated to "In Review", and Copilot code review is requested.
 - **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state by scanning issue comments for `Done!` markers.
 - **Automatic Branch Cleanup**: After a child PR is merged into the main branch, the child branch is automatically deleted from the repository to keep the branch list clean.
+- **Copilot Status Acceptance**: When Copilot starts working, it naturally moves issues to "In Progress". The polling service accepts this status change and updates the internal pipeline state accordingly — it does NOT fight Copilot by reverting the status, which would re-trigger the agent.
 - **Pipeline State Tracking**: Each issue with an active agent pipeline has its state tracked in memory, including which agents have completed and which is currently active. This prevents premature status transitions.
+- **Double-Assignment Prevention**: Pending agent assignment flags are set BEFORE the GitHub API call and cleared only on failure. A per-issue recovery cooldown (5 minutes) prevents rapid re-assignment.
 
 ### Key Integrations
 
 | Component | Role |
 |-----------|------|
-| **Azure OpenAI** | Generates structured GitHub Issues from natural language descriptions |
+| **GitHub Copilot SDK** | Default AI provider for issue generation — authenticates via user's GitHub OAuth token |
+| **Azure OpenAI** | Optional fallback AI provider for issue generation (requires separate API credentials) |
 | **GitHub Projects V2** | Manages the kanban board with status columns (GraphQL API) |
 | **GitHub Copilot** | Coding agent platform — custom Spec Kit agents run on it |
 | **Polling Service** | Background loop that detects agent completion, posts outputs, advances pipelines |
@@ -119,12 +123,15 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **GitHub OAuth Authentication**: Secure login with GitHub OAuth 2.0
 - **Project Selection**: Browse and select from your GitHub Projects V2 boards
 - **Natural Language Issue Creation**: Describe features in plain English; AI generates structured GitHub Issues with user stories, requirements, and metadata
+- **Pluggable AI Provider**: GitHub Copilot (default, uses OAuth token) or Azure OpenAI (optional, uses API key) — configured via `AI_PROVIDER` env var
 - **Automated Agent Pipeline**: Issues flow through Spec Kit agents automatically — specify → plan → tasks → implement
+- **Agent Configuration UI**: Drag-and-drop agent assignment per board column with presets (Spec Kit, GitHub Copilot, Custom) and custom agent support
+- **Agent Discovery**: Agents are discovered from `.github/agents/*.agent.md` in the repository, combined with built-in agents
 - **Hierarchical PR Branching**: First PR's branch becomes the "main" for the issue; subsequent agents branch from it, child PRs are squash-merged back, and child branches are automatically deleted
 - **Automatic Branch Cleanup**: Child branches are deleted from the repository after their PRs are merged into the main branch
 - **System-Side Output Posting**: Agent `.md` outputs are extracted from PRs and posted as issue comments automatically
 - **Main Branch Discovery**: If the server restarts, the main branch is rediscovered from linked PRs before assigning the next agent
-- **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, and linked PR counts
+- **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, linked PR counts, and per-column agent configuration
 - **Status Updates via Chat**: Update task status using natural language commands
 - **Real-Time Sync**: Live updates via WebSocket with polling fallback
 - **Pipeline State Tracking**: Monitor which agent is active, which have completed, and overall progress
@@ -150,11 +157,29 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
                         │  │ Service            │  │     │  │ Assignment │  │
                         │  └───────────────────┘  │     │  └────────────┘  │
                         │  ┌───────────────────┐  │     └──────────────────┘
-                        │  │ AI Agent Service   │  │
-                        │  │ (Azure OpenAI)     │  │
+                        │  │ AI Completion      │  │
+                        │  │ Providers          │  │
+                        │  │ ┌───────────────┐  │  │
+                        │  │ │ Copilot SDK   │  │  │   ◀── Default (OAuth)
+                        │  │ │ (default)     │  │  │
+                        │  │ ├───────────────┤  │  │
+                        │  │ │ Azure OpenAI  │  │  │   ◀── Optional (API key)
+                        │  │ │ (fallback)    │  │  │
+                        │  │ └───────────────┘  │  │
                         │  └───────────────────┘  │
                         └─────────────────────────┘
 ```
+
+### AI Completion Provider Architecture
+
+The backend uses a pluggable completion provider architecture for AI-powered issue generation:
+
+| Provider | Class | Default | Authentication |
+|----------|-------|---------|----------------|
+| **GitHub Copilot** | `CopilotCompletionProvider` | ✅ Yes | User's GitHub OAuth token (per-request) |
+| **Azure OpenAI** | `AzureOpenAICompletionProvider` | No | Static API key from env vars |
+
+Set `AI_PROVIDER=copilot` (default) or `AI_PROVIDER=azure_openai` in `.env` to select. The Copilot provider authenticates using the user's existing GitHub OAuth token — no additional API keys needed.
 
 ### Polling Service Cycle
 
@@ -169,7 +194,7 @@ The background polling service runs every 60 seconds (configurable) and executes
    - Also captures the main branch when the first PR is detected
 2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (branching from the main branch).
 3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance pipeline or transition to In Progress and assign `speckit.implement`.
-4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review.
+4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review. If Copilot moves an issue to "In Progress" before the pipeline expects it, the polling service **accepts the status change** and updates the pipeline state — it does NOT restore the old status (which would re-trigger the agent).
 5. **Step 4 — Check In Review**: Ensure Copilot code review has been requested on In Review PRs.
 6. **Step 5 — Self-Healing Recovery**: Detect stalled agent pipelines across all non-completed issues. If an issue has an active agent in its tracking table but no corresponding pending assignment or recent progress, the system re-assigns the agent. A per-issue cooldown (5 minutes) prevents rapid re-assignment. On restart, workflow configuration is auto-bootstrapped if missing.
 
@@ -224,13 +249,13 @@ All custom Copilot agents use **Claude Opus 4.6** by default for reasoning and c
 
 - [Fork this repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) before starting
 - [Create a GitHub Project (Kanban)](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) with status columns: **Backlog**, **Ready**, **In Progress**, **In Review**, **Done**
-- Sign up for [GitHub Copilot](https://github.com/features/copilot) (required for the agent pipeline)
+- Sign up for [GitHub Copilot](https://github.com/features/copilot) (required for the agent pipeline and default AI provider)
 - [Visual Studio Code](https://code.visualstudio.com/download) or [GitHub Codespaces](https://github.com/features/codespaces)
 - Docker and Docker Compose (recommended) OR:
   - Node.js 18+
   - Python 3.12+
 - GitHub OAuth App credentials
-- Azure OpenAI API credentials (optional, for AI issue generation)
+- Azure OpenAI API credentials (optional — only needed if using `AI_PROVIDER=azure_openai`)
 
 ---
 
@@ -260,7 +285,8 @@ cp .env.example .env
 
 Edit `.env` and add your credentials (see [.env.example](./.env.example) for details):
 - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from your [GitHub OAuth App](https://github.com/settings/developers)
-- [Azure OpenAI credentials](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/deploy-foundry-models) (optional)
+- AI provider is GitHub Copilot by default (uses your OAuth token — no extra credentials needed)
+- [Azure OpenAI credentials](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/how-to/deploy-foundry-models) (only if using `AI_PROVIDER=azure_openai`)
 
 ### 4. Update GitHub OAuth App
 
@@ -336,10 +362,13 @@ Add to `.env`:
 SESSION_SECRET_KEY=your_generated_key
 ```
 
-#### Azure OpenAI (Optional — for AI issue generation)
+#### AI Provider (Optional — defaults to GitHub Copilot)
 
-If you want AI-powered issue generation from natural language:
+By default, AI issue generation uses **GitHub Copilot** via the user's OAuth token. No extra credentials needed.
+
+To use Azure OpenAI instead:
 ```env
+AI_PROVIDER=azure_openai
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
 AZURE_OPENAI_KEY=your_api_key
 AZURE_OPENAI_DEPLOYMENT=gpt-4
@@ -465,8 +494,10 @@ npm run dev
 | `GITHUB_REDIRECT_URI` | No | `http://localhost:8000/api/v1/auth/github/callback` | OAuth callback URL |
 | `SESSION_SECRET_KEY` | Yes | — | Random hex string for session encryption |
 | `SESSION_EXPIRE_HOURS` | No | `8` | Session TTL in hours |
-| `AZURE_OPENAI_ENDPOINT` | No | — | Azure OpenAI endpoint URL |
-| `AZURE_OPENAI_KEY` | No | — | Azure OpenAI API key |
+| `AI_PROVIDER` | No | `copilot` | AI provider: `copilot` (GitHub Copilot via OAuth) or `azure_openai` |
+| `COPILOT_MODEL` | No | `gpt-4o` | Model for Copilot completion provider |
+| `AZURE_OPENAI_ENDPOINT` | No | — | Azure OpenAI endpoint URL (only when `AI_PROVIDER=azure_openai`) |
+| `AZURE_OPENAI_KEY` | No | — | Azure OpenAI API key (only when `AI_PROVIDER=azure_openai`) |
 | `AZURE_OPENAI_DEPLOYMENT` | No | `gpt-4` | Azure OpenAI deployment name |
 | `GITHUB_WEBHOOK_SECRET` | No | — | Secret for webhook signature verification |
 | `GITHUB_WEBHOOK_TOKEN` | No | — | GitHub PAT (classic) for webhook operations |
@@ -556,6 +587,7 @@ npm run test:e2e:headed   # E2E with browser visible
 | POST | `/api/v1/workflow/recommendations/{id}/reject` | Reject recommendation |
 | GET | `/api/v1/workflow/config` | Get workflow configuration |
 | PUT | `/api/v1/workflow/config` | Update workflow configuration |
+| GET | `/api/v1/workflow/agents` | List available agents (discovered from repo + built-in) |
 | GET | `/api/v1/workflow/transitions` | Get transition audit log |
 | GET | `/api/v1/workflow/pipeline-states` | Get all active pipeline states |
 | GET | `/api/v1/workflow/pipeline-states/{issue_number}` | Get pipeline state for specific issue |
@@ -606,26 +638,27 @@ github-workflows/
 │   │   │   └── webhooks.py   #   GitHub webhook handler
 │   │   ├── models/           # Pydantic data models
 │   │   │   ├── board.py      #   Board columns, items, custom fields
-│   │   │   ├── chat.py       #   Chat, workflow config, agent mappings
+│   │   │   ├── chat.py       #   Chat, workflow config, agent mappings, display names
 │   │   │   ├── project.py    #   Projects, status columns
 │   │   │   ├── task.py       #   Tasks / project items
 │   │   │   └── user.py       #   User / session
 │   │   ├── services/         # Business logic
-│   │   │   ├── ai_agent.py           # Azure OpenAI integration
-│   │   │   ├── agent_tracking.py     # Agent pipeline tracking (issue body markdown)
-│   │   │   ├── cache.py              # In-memory TTL cache
-│   │   │   ├── copilot_polling.py    # Background polling + agent output posting
-│   │   │   ├── github_auth.py        # OAuth token exchange
-│   │   │   ├── github_projects.py    # GitHub API (GraphQL + REST)
-│   │   │   ├── websocket.py          # WebSocket connection manager
+│   │   │   ├── ai_agent.py              # AI issue generation (via CompletionProvider)
+│   │   │   ├── agent_tracking.py        # Agent pipeline tracking (issue body markdown)
+│   │   │   ├── cache.py                 # In-memory TTL cache
+│   │   │   ├── completion_providers.py  # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
+│   │   │   ├── copilot_polling.py       # Background polling + agent output posting
+│   │   │   ├── github_auth.py           # OAuth token exchange
+│   │   │   ├── github_projects.py       # GitHub API (GraphQL + REST)
+│   │   │   ├── websocket.py             # WebSocket connection manager
 │   │   │   └── workflow_orchestrator.py  # Pipeline state + agent assignment
 │   │   ├── prompts/          # AI prompt templates
-│   │   ├── config.py         # Environment configuration
-│   │   ├── constants.py      # API constants
+│   │   ├── config.py         # Environment configuration (Pydantic Settings)
+│   │   ├── constants.py      # Status names, agent mappings, display names
 │   │   ├── exceptions.py     # Custom exceptions
 │   │   └── main.py           # FastAPI app entry point
 │   ├── tests/
-│   │   ├── unit/             # Unit tests
+│   │   ├── unit/             # Unit tests (371+)
 │   │   ├── integration/      # Integration tests
 │   │   ├── test_api_e2e.py   # API end-to-end tests
 │   │   └── conftest.py       # Test fixtures
@@ -635,13 +668,16 @@ github-workflows/
 │   │   ├── components/
 │   │   │   ├── auth/         # LoginButton
 │   │   │   ├── board/        # ProjectBoard, BoardColumn, IssueCard,
-│   │   │   │                 # IssueDetailModal, colorUtils
+│   │   │   │                 # IssueDetailModal, AgentPresetSelector,
+│   │   │   │                 # AgentConfigRow, AgentColumnCell, AgentTile,
+│   │   │   │                 # AgentSaveBar, AddAgentPopover, colorUtils
 │   │   │   ├── chat/         # ChatInterface, MessageBubble, TaskPreview,
 │   │   │   │                 # StatusChangePreview, IssueRecommendationPreview
 │   │   │   ├── common/       # ErrorDisplay, RateLimitIndicator
 │   │   │   └── sidebar/      # ProjectSidebar, ProjectSelector, TaskCard
 │   │   ├── hooks/            # useAuth, useChat, useProjects, useWorkflow,
-│   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme
+│   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme,
+│   │   │                     # useAgentConfig, useAvailableAgents
 │   │   ├── pages/            # ProjectBoardPage
 │   │   ├── services/         # API client (api.ts)
 │   │   └── types/            # TypeScript type definitions
@@ -655,7 +691,8 @@ github-workflows/
     ├── 001-github-project-board/
     ├── 001-github-project-chat/
     ├── 001-github-project-workflow/
-    └── 002-speckit-agent-assignment/
+    ├── 002-speckit-agent-assignment/
+    └── 004-agent-workflow-config-ui/
 ```
 
 ---
@@ -676,11 +713,17 @@ github-workflows/
 - Ensure `CORS_ORIGINS` includes your frontend URL
 - Verify `SESSION_SECRET_KEY` is set
 
-**Azure OpenAI errors:**
+**AI issue generation fails (Copilot provider):**
+- The Copilot provider uses your GitHub OAuth token — ensure you're logged in
+- Verify you have an active [GitHub Copilot subscription](https://github.com/features/copilot)
+- If response is truncated, the system automatically repairs partial JSON
+- Check backend logs for `CopilotClient` errors
+
+**AI issue generation fails (Azure OpenAI provider):**
+- Ensure `AI_PROVIDER=azure_openai` is set
 - Verify `AZURE_OPENAI_ENDPOINT` format: `https://your-resource.openai.azure.com`
 - Check `AZURE_OPENAI_KEY` is correct
 - Ensure the deployment name matches your Azure configuration
-- Azure OpenAI is optional — the app works without it (AI features disabled)
 
 **Agent pipeline not advancing:**
 - Verify the polling service is running: `GET /api/v1/workflow/polling/status`
@@ -702,8 +745,9 @@ github-workflows/
 - The system looks for `copilot_work_finished` timeline events or the PR no longer being a draft
 - Once detected, the child PR will be merged, main PR converted to ready, and status updated to "In Review"
 
-**Multiple PRs created for one issue:**
-- This is expected behavior with hierarchical branching. The first PR's branch becomes the "main branch" for the issue. Each subsequent agent (speckit.plan, speckit.tasks, speckit.implement) creates its own child branch from the main branch and opens a child PR targeting it. When each agent completes, the system automatically squash-merges the child PR into the main branch and deletes the child branch. By the time the issue reaches In Review, the main PR contains all consolidated work.
+**Multiple PRs created for one issue (duplicate agent trigger):**
+- This was caused by the polling service fighting Copilot's natural status changes. When Copilot starts working, it moves issues to "In Progress". The system now **accepts this status change** and updates the pipeline state rather than reverting it. Ensure you're on the latest version.
+- The first PR's branch becomes the "main branch" for the issue — subsequent child PRs from other agents are expected behavior.
 
 **Webhook not triggering:**
 - Verify `GITHUB_WEBHOOK_SECRET` matches the secret in GitHub webhook settings

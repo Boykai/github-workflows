@@ -21,7 +21,13 @@ class Settings(BaseSettings):
     github_client_secret: str
     github_redirect_uri: str = "http://localhost:8000/api/v1/auth/github/callback"
 
-    # Azure OpenAI
+    # AI Provider selection: "copilot" (default) or "azure_openai"
+    ai_provider: str = "copilot"
+
+    # GitHub Copilot settings (used when ai_provider="copilot")
+    copilot_model: str = "gpt-4o"
+
+    # Azure OpenAI settings (used when ai_provider="azure_openai", optional)
     azure_openai_endpoint: str | None = None
     azure_openai_key: str | None = None
     azure_openai_deployment: str = "gpt-4"

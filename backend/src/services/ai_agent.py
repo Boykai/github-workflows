@@ -1,4 +1,12 @@
-"""AI agent service for task generation using Azure OpenAI or Azure AI Foundry."""
+"""AI agent service for task generation and intent detection.
+
+Supports multiple LLM providers:
+- GitHub Copilot (default): Uses Copilot SDK with user's OAuth token
+- Azure OpenAI (optional): Uses Azure OpenAI with static API keys
+
+Microsoft Agent Framework (agent-framework-core) is available as a dependency
+for advanced orchestration patterns.
+"""
 
 import json
 import logging
@@ -8,7 +16,6 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from src.config import get_settings
 from src.models.chat import (
     IssueMetadata,
     IssuePriority,
@@ -24,11 +31,12 @@ from src.prompts.task_generation import (
     create_status_change_prompt,
     create_task_generation_prompt,
 )
+from src.services.completion_providers import (
+    CompletionProvider,
+    create_completion_provider,
+)
 
 logger = logging.getLogger(__name__)
-
-# Azure OpenAI API version
-AZURE_API_VERSION = "2024-02-15-preview"
 
 
 @dataclass
@@ -51,84 +59,58 @@ class StatusChangeIntent:
 class AIAgentService:
     """Service for AI-powered task generation and intent detection.
 
-    Supports both Azure OpenAI and Azure AI Foundry (Azure AI Inference SDK).
+    Uses a pluggable CompletionProvider for LLM calls:
+    - CopilotCompletionProvider (default): GitHub Copilot via user's OAuth token
+    - AzureOpenAICompletionProvider (optional): Azure OpenAI with static keys
+
+    Set AI_PROVIDER env var to select the provider ("copilot" or "azure_openai").
     """
 
-    def __init__(self):
-        settings = get_settings()
-        self._deployment = settings.azure_openai_deployment
-        self._client: Any = None
-        self._use_azure_inference = False
-
-        if not settings.azure_openai_endpoint or not settings.azure_openai_key:
-            raise ValueError(
-                "Azure OpenAI credentials not configured. "
-                "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY."
-            )
-
-        # Try Azure OpenAI SDK first (openai package)
-        try:
-            from openai import AzureOpenAI
-
-            self._client = AzureOpenAI(
-                azure_endpoint=settings.azure_openai_endpoint,
-                api_key=settings.azure_openai_key,
-                api_version=AZURE_API_VERSION,
-            )
-            self._use_azure_inference = False
-            logger.info("Initialized Azure OpenAI client for deployment: %s", self._deployment)
-        except ImportError:
-            # Fall back to Azure AI Inference SDK
-            from azure.ai.inference import ChatCompletionsClient
-            from azure.core.credentials import AzureKeyCredential
-
-            self._client = ChatCompletionsClient(
-                endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
-                credential=AzureKeyCredential(settings.azure_openai_key),  # type: ignore[arg-type]
-            )
-            self._use_azure_inference = True
-            logger.info("Initialized Azure AI Inference client for model: %s", self._deployment)
-
-    def _call_completion(
-        self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 1000
-    ) -> str:
-        """Call the completion API using the appropriate SDK."""
-        if self._use_azure_inference:
-            from azure.ai.inference.models import SystemMessage, UserMessage
-
-            response = self._client.complete(
-                model=self._deployment,
-                messages=[
-                    (
-                        SystemMessage(content=messages[0]["content"])
-                        if messages[0]["role"] == "system"
-                        else UserMessage(content=messages[0]["content"])
-                    ),
-                    UserMessage(content=messages[1]["content"]),
-                ],
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+    def __init__(self, provider: CompletionProvider | None = None):
+        if provider is not None:
+            self._provider = provider
         else:
-            response = self._client.chat.completions.create(
-                model=self._deployment,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+            self._provider = create_completion_provider()
+        logger.info("AIAgentService initialized with provider: %s", self._provider.name)
 
-        return response.choices[0].message.content or ""
+    async def _call_completion(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 1000,
+        github_token: str | None = None,
+    ) -> str:
+        """Call the completion API using the configured provider.
+
+        Args:
+            messages: Chat messages [{"role": "system"|"user", "content": "..."}]
+            temperature: Sampling temperature
+            max_tokens: Maximum response tokens
+            github_token: GitHub OAuth token (required for Copilot provider)
+
+        Returns:
+            The assistant's response content
+        """
+        return await self._provider.complete(
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            github_token=github_token,
+        )
 
     # ──────────────────────────────────────────────────────────────────
     # Issue Recommendation Methods (T011, T012, T013)
     # ──────────────────────────────────────────────────────────────────
 
-    async def detect_feature_request_intent(self, user_input: str) -> bool:
+    async def detect_feature_request_intent(
+        self, user_input: str, github_token: str | None = None
+    ) -> bool:
         """
         Detect if user input is a feature request (T013).
 
         Args:
             user_input: User's message
+            github_token: GitHub OAuth token (required for Copilot provider)
 
         Returns:
             True if this appears to be a feature request
@@ -141,7 +123,9 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.3, max_tokens=200)
+            content = await self._call_completion(
+                messages, temperature=0.3, max_tokens=200, github_token=github_token
+            )
             logger.debug("Feature request detection response: %s", content)
 
             data = self._parse_json_response(content)
@@ -159,7 +143,11 @@ class AIAgentService:
             return False
 
     async def generate_issue_recommendation(
-        self, user_input: str, project_name: str, session_id: str
+        self,
+        user_input: str,
+        project_name: str,
+        session_id: str,
+        github_token: str | None = None,
     ) -> IssueRecommendation:
         """
         Generate a structured issue recommendation from feature request (T011).
@@ -168,6 +156,7 @@ class AIAgentService:
             user_input: User's feature request description
             project_name: Name of the target project for context
             session_id: Current session ID
+            github_token: GitHub OAuth token (required for Copilot provider)
 
         Returns:
             IssueRecommendation with AI-generated content
@@ -183,7 +172,9 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.7, max_tokens=8000)
+            content = await self._call_completion(
+                messages, temperature=0.7, max_tokens=8000, github_token=github_token
+            )
             logger.debug("Issue recommendation response: %s", content[:500])
 
             return self._parse_issue_recommendation_response(content, user_input, session_id)
@@ -194,10 +185,13 @@ class AIAgentService:
 
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
-                    "Azure OpenAI authentication failed. Please verify your API key."
+                    "AI provider authentication failed. Check your credentials "
+                    "(GitHub OAuth token for Copilot, or API key for Azure OpenAI)."
                 ) from e
             elif "404" in error_msg or "Resource not found" in error_msg:
-                raise ValueError(f"Azure OpenAI deployment '{self._deployment}' not found.") from e
+                raise ValueError(
+                    "AI model/deployment not found. Verify your provider configuration."
+                ) from e
             else:
                 raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
 
@@ -384,7 +378,7 @@ class AIAgentService:
     # ──────────────────────────────────────────────────────────────────
 
     async def generate_task_from_description(
-        self, user_input: str, project_name: str
+        self, user_input: str, project_name: str, github_token: str | None = None
     ) -> GeneratedTask:
         """
         Generate a structured task from natural language description.
@@ -392,6 +386,7 @@ class AIAgentService:
         Args:
             user_input: User's natural language task description
             project_name: Name of the target project for context
+            github_token: GitHub OAuth token (required for Copilot provider)
 
         Returns:
             GeneratedTask with title and description
@@ -407,7 +402,9 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.7, max_tokens=1000)
+            content = await self._call_completion(
+                messages, temperature=0.7, max_tokens=1000, github_token=github_token
+            )
             logger.debug("AI response: %s", content[:200] if content else "None")
 
             # Parse JSON response
@@ -421,13 +418,13 @@ class AIAgentService:
             # Provide helpful error messages
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
-                    "Azure OpenAI authentication failed. Please verify your API key and endpoint in .env file. "
+                    "AI provider authentication failed. Check your credentials "
+                    "(GitHub OAuth token for Copilot, or API key for Azure OpenAI). "
                     f"Original error: {error_msg}"
                 ) from e
             elif "404" in error_msg or "Resource not found" in error_msg:
                 raise ValueError(
-                    f"Azure OpenAI deployment '{self._deployment}' not found. "
-                    "Please verify the AZURE_OPENAI_DEPLOYMENT name matches your Azure resource. "
+                    f"AI model/deployment not found. Verify your provider configuration. "
                     f"Original error: {error_msg}"
                 ) from e
             else:
@@ -438,6 +435,7 @@ class AIAgentService:
         user_input: str,
         available_tasks: list[str],
         available_statuses: list[str],
+        github_token: str | None = None,
     ) -> StatusChangeIntent | None:
         """
         Parse user input to detect status change intent.
@@ -446,6 +444,7 @@ class AIAgentService:
             user_input: User's message
             available_tasks: List of task titles in the project
             available_statuses: List of available status options
+            github_token: GitHub OAuth token (required for Copilot provider)
 
         Returns:
             StatusChangeIntent if detected with high confidence, None otherwise
@@ -460,7 +459,9 @@ class AIAgentService:
                 {"role": "user", "content": prompt_messages[1]["content"]},
             ]
 
-            content = self._call_completion(messages, temperature=0.3, max_tokens=200)
+            content = await self._call_completion(
+                messages, temperature=0.3, max_tokens=200, github_token=github_token
+            )
             logger.debug("Status intent response: %s", content)
 
             data = self._parse_json_response(content)
@@ -574,21 +575,158 @@ class AIAgentService:
         return None
 
     def _parse_json_response(self, content: str) -> dict:
-        """Parse JSON from AI response, handling markdown code blocks."""
+        """Parse JSON from AI response, handling markdown code blocks, extra text, and truncation."""
         content = content.strip()
 
         # Remove markdown code blocks if present
-        if content.startswith("```"):
-            # Remove ```json or ``` at start
-            content = re.sub(r"^```(?:json)?\s*\n?", "", content)
-            # Remove ``` at end
-            content = re.sub(r"\n?```\s*$", "", content)
+        if "```" in content:
+            # Try to extract content from a complete code fence first
+            match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", content, re.DOTALL)
+            if match:
+                content = match.group(1).strip()
+            else:
+                # Truncated response: strip opening fence without a closing one
+                content = re.sub(r"^```(?:json)?\s*\n?", "", content).strip()
 
+        # Try direct parse first
         try:
             return json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse JSON: %s\nContent: %s", e, content[:500])
-            raise ValueError(f"Invalid JSON response: {e}") from e
+        except json.JSONDecodeError:
+            pass
+
+        # Try to extract the first JSON object from the text
+        # Find the first '{' and match to its closing '}'
+        start = content.find("{")
+        if start != -1:
+            depth = 0
+            in_string = False
+            escape_next = False
+            for i in range(start, len(content)):
+                c = content[i]
+                if escape_next:
+                    escape_next = False
+                    continue
+                if c == "\\":
+                    if in_string:
+                        escape_next = True
+                    continue
+                if c == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if c == "{":
+                    depth += 1
+                elif c == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = content[start : i + 1]
+                        try:
+                            return json.loads(candidate)
+                        except json.JSONDecodeError:
+                            break
+
+            # If we get here, JSON is likely truncated - attempt repair
+            repaired = self._repair_truncated_json(content[start:])
+            if repaired is not None:
+                logger.warning("Parsed response using JSON truncation repair")
+                return repaired
+
+        logger.error("Failed to parse JSON from response content: %s", content[:500])
+        raise ValueError("Invalid JSON response: could not extract JSON object")
+
+    def _repair_truncated_json(self, content: str) -> dict | None:
+        """Attempt to repair truncated JSON by closing open strings, arrays, and objects."""
+        # Walk the content tracking nesting state
+        in_string = False
+        escape_next = False
+        stack: list[str] = []  # '{' or '['
+
+        for c in content:
+            if escape_next:
+                escape_next = False
+                continue
+            if c == "\\" and in_string:
+                escape_next = True
+                continue
+            if c == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if c == "{":
+                stack.append("{")
+            elif c == "[":
+                stack.append("[")
+            elif c == "}":
+                if stack and stack[-1] == "{":
+                    stack.pop()
+            elif c == "]":
+                if stack and stack[-1] == "[":
+                    stack.pop()
+
+        # Build repair suffix
+        repair = ""
+        if in_string:
+            repair += '"'  # close open string
+        # Close any open arrays/objects in reverse order
+        for bracket in reversed(stack):
+            repair += "]" if bracket == "[" else "}"
+
+        if not repair:
+            return None  # content wasn't actually truncated in a fixable way
+
+        candidate = content + repair
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            # Try more aggressively: trim back to the last complete key-value
+            # Find last comma or colon before truncation point
+            trimmed = content.rstrip()
+            for cutoff_char in [",", ":", '"']:
+                idx = trimmed.rfind(cutoff_char)
+                if idx > 0:
+                    # Try trimming to just before the incomplete entry
+                    attempt = trimmed[:idx].rstrip().rstrip(",")
+                    suffix = ""
+                    if in_string:
+                        # Already handled above; recompute for trimmed
+                        pass
+                    # Recount stack for trimmed version
+                    s_in_str = False
+                    s_escape = False
+                    s_stack: list[str] = []
+                    for ch in attempt:
+                        if s_escape:
+                            s_escape = False
+                            continue
+                        if ch == "\\" and s_in_str:
+                            s_escape = True
+                            continue
+                        if ch == '"' and not s_escape:
+                            s_in_str = not s_in_str
+                            continue
+                        if s_in_str:
+                            continue
+                        if ch == "{":
+                            s_stack.append("{")
+                        elif ch == "[":
+                            s_stack.append("[")
+                        elif ch == "}":
+                            if s_stack and s_stack[-1] == "{":
+                                s_stack.pop()
+                        elif ch == "]":
+                            if s_stack and s_stack[-1] == "[":
+                                s_stack.pop()
+                    if s_in_str:
+                        suffix += '"'
+                    for bracket in reversed(s_stack):
+                        suffix += "]" if bracket == "[" else "}"
+                    try:
+                        return json.loads(attempt + suffix)
+                    except json.JSONDecodeError:
+                        continue
+            return None
 
     def _validate_generated_task(self, data: dict) -> GeneratedTask:
         """Validate and create GeneratedTask from parsed data."""
@@ -613,11 +751,22 @@ _ai_agent_service_instance: AIAgentService | None = None
 
 
 def get_ai_agent_service() -> AIAgentService:
-    """Get or create the global AI agent service instance."""
+    """Get or create the global AI agent service instance.
+
+    The provider is selected based on AI_PROVIDER env var:
+    - "copilot" (default): GitHub Copilot via user's OAuth token
+    - "azure_openai": Azure OpenAI with static API keys
+
+    For the Copilot provider, no startup credentials are needed - the user's
+    GitHub OAuth token is passed per-request.
+    """
     global _ai_agent_service_instance
     if _ai_agent_service_instance is None:
-        settings = get_settings()
-        if not settings.azure_openai_endpoint or not settings.azure_openai_key:
-            raise ValueError("Azure OpenAI credentials not configured")
         _ai_agent_service_instance = AIAgentService()
     return _ai_agent_service_instance
+
+
+def reset_ai_agent_service() -> None:
+    """Reset the global AI agent service instance (useful for testing)."""
+    global _ai_agent_service_instance
+    _ai_agent_service_instance = None

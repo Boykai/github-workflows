@@ -37,6 +37,8 @@ from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
     WorkflowState,
+    find_next_actionable_status,
+    get_agent_slugs,
     get_issue_main_branch,
     get_pipeline_state,
     get_workflow_config,
@@ -463,17 +465,117 @@ async def post_agent_outputs_from_pr(
             if task.issue_number is None:
                 continue
 
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
             pipeline = get_pipeline_state(task.issue_number)
+
+            # If in-memory pipeline state is missing (e.g., after container
+            # restart), reconstruct from the durable tracking table in the
+            # issue body.  This ensures agent completions are detected and
+            # Done! markers posted even when volatile state has been lost.
+            # Without this, Step 0 skips the issue entirely, the Done!
+            # marker is never posted, and recovery (Step 5) mistakenly
+            # re-assigns the same agent — causing duplicate PRs.
+            if pipeline is None:
+                try:
+                    body, comments = await _get_tracking_state_from_issue(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=task.issue_number,
+                    )
+                    steps = parse_tracking_from_body(body)
+                    active_step = get_current_agent_from_tracking(body)
+                    if steps and active_step:
+                        status_key = active_step.status
+                        # Build agent list for this status from the tracking table
+                        status_agents = [s.agent_name for s in steps if s.status == status_key]
+                        # Determine completed agents by checking Done! comments
+                        completed: list[str] = []
+                        for agent in status_agents:
+                            done_marker = f"{agent}: Done!"
+                            if any(done_marker in c.get("body", "") for c in comments):
+                                completed.append(agent)
+                            else:
+                                break  # Sequential — stop at first incomplete
+
+                        pipeline = PipelineState(
+                            issue_number=task.issue_number,
+                            project_id=project_id,
+                            status=status_key,
+                            agents=status_agents,
+                            current_agent_index=len(completed),
+                            completed_agents=completed,
+                            started_at=datetime.utcnow(),
+                        )
+                        set_pipeline_state(task.issue_number, pipeline)
+                        logger.info(
+                            "Reconstructed pipeline for issue #%d from tracking "
+                            "table: active agent '%s', status '%s', %d/%d done",
+                            task.issue_number,
+                            active_step.agent_name,
+                            status_key,
+                            len(completed),
+                            len(status_agents),
+                        )
+
+                        # Reconstruct main branch info if missing so that
+                        # subsequent-agent child PR detection works correctly
+                        if not get_issue_main_branch(task.issue_number):
+                            try:
+                                existing_pr = (
+                                    await github_projects_service.find_existing_pr_for_issue(
+                                        access_token=access_token,
+                                        owner=task_owner,
+                                        repo=task_repo,
+                                        issue_number=task.issue_number,
+                                    )
+                                )
+                                if existing_pr:
+                                    pr_det = await github_projects_service.get_pull_request(
+                                        access_token=access_token,
+                                        owner=task_owner,
+                                        repo=task_repo,
+                                        pr_number=existing_pr["number"],
+                                    )
+                                    h_sha = (
+                                        pr_det.get("last_commit", {}).get("sha", "")
+                                        if pr_det
+                                        else ""
+                                    )
+                                    set_issue_main_branch(
+                                        task.issue_number,
+                                        existing_pr["head_ref"],
+                                        existing_pr["number"],
+                                        h_sha,
+                                    )
+                                    logger.info(
+                                        "Reconstructed main branch '%s' (PR #%d) for issue #%d",
+                                        existing_pr["head_ref"],
+                                        existing_pr["number"],
+                                        task.issue_number,
+                                    )
+                            except Exception as e:
+                                logger.debug(
+                                    "Could not reconstruct main branch for issue #%d: %s",
+                                    task.issue_number,
+                                    e,
+                                )
+                except Exception as e:
+                    logger.debug(
+                        "Could not reconstruct pipeline for issue #%d: %s",
+                        task.issue_number,
+                        e,
+                    )
+
             if not pipeline or pipeline.is_complete:
                 continue
 
             current_agent = pipeline.current_agent
             if not current_agent:
-                continue
-
-            task_owner = task.repository_owner or owner
-            task_repo = task.repository_name or repo
-            if not task_owner or not task_repo:
                 continue
 
             # Check if we already posted outputs for this agent on this issue
@@ -872,7 +974,7 @@ async def check_backlog_issues(
 
         logger.debug("Found %d issues in '%s' status", len(backlog_tasks), config.status_backlog)
 
-        agents = config.agent_mappings.get(config.status_backlog, [])
+        agents = get_agent_slugs(config, config.status_backlog)
         if not agents:
             return results
 
@@ -961,7 +1063,7 @@ async def check_ready_issues(
 
         logger.debug("Found %d issues in '%s' status", len(ready_tasks), config.status_ready)
 
-        agents = config.agent_mappings.get(config.status_ready, [])
+        agents = get_agent_slugs(config, config.status_ready)
         if not agents:
             return results
 
@@ -2329,7 +2431,40 @@ async def _transition_after_pipeline_complete(
 
     # Assign the first agent for the new status
     config = get_workflow_config(project_id)
-    new_status_agents = config.agent_mappings.get(to_status, []) if config else []
+    new_status_agents = get_agent_slugs(config, to_status) if config else []
+
+    # Pass-through: if new status has no agents, find the next actionable status (T028)
+    effective_status = to_status
+    if config and not new_status_agents:
+        next_actionable = find_next_actionable_status(config, to_status)
+        if next_actionable and next_actionable != to_status:
+            logger.info(
+                "Pass-through: '%s' has no agents, advancing issue #%d to '%s'",
+                to_status,
+                issue_number,
+                next_actionable,
+            )
+            pt_success = await github_projects_service.update_item_status_by_name(
+                access_token=access_token,
+                project_id=project_id,
+                item_id=item_id,
+                status_name=next_actionable,
+            )
+            if pt_success:
+                effective_status = next_actionable
+                new_status_agents = get_agent_slugs(config, effective_status)
+
+                await connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "status_updated",
+                        "issue_number": issue_number,
+                        "from_status": to_status,
+                        "to_status": effective_status,
+                        "title": task_title,
+                        "triggered_by": "pass_through",
+                    },
+                )
 
     if new_status_agents:
         # Ensure we have the main branch captured before assigning the next agent
@@ -2392,7 +2527,7 @@ async def _transition_after_pipeline_complete(
             issue_number,
             to_status,
         )
-        await orchestrator.assign_agent_for_status(ctx, to_status, agent_index=0)
+        await orchestrator.assign_agent_for_status(ctx, effective_status, agent_index=0)
 
     return {
         "status": "success",
@@ -2400,7 +2535,7 @@ async def _transition_after_pipeline_complete(
         "task_title": task_title,
         "action": "status_transitioned",
         "from_status": from_status,
-        "to_status": to_status,
+        "to_status": effective_status,
         "next_agents": new_status_agents,
     }
 
@@ -2466,49 +2601,33 @@ async def check_in_progress_issues(
                 continue
 
             # Guard: skip issues managed by a pipeline for a different status.
-            # External GitHub automation (e.g., linking a PR) can move issues
-            # to "In Progress" before the agent pipeline is ready.
+            # When Copilot starts working on an issue, it naturally moves it to
+            # "In Progress" even if the agent was assigned for "Backlog". This is
+            # expected behaviour — do NOT fight it by restoring the old status, as
+            # that re-triggers the agent (causing duplicate PRs).
+            #
+            # Instead, update the pipeline state to reflect the actual status so
+            # the normal "In Progress" monitoring below picks it up.
             pipeline = get_pipeline_state(task.issue_number)
             if pipeline and not pipeline.is_complete:
                 pipeline_status = pipeline.status.lower() if pipeline.status else ""
                 if pipeline_status != in_progress_label:
-                    logger.warning(
-                        "Issue #%d is in 'In Progress' but has active pipeline for "
-                        "'%s' status (agent: %s, %d/%d done). Skipping — likely "
-                        "moved by external automation. Attempting to restore status.",
+                    logger.info(
+                        "Issue #%d is in 'In Progress' but pipeline tracks '%s' "
+                        "status (agent: %s, %d/%d done). Accepting status change — "
+                        "Copilot moved the issue as part of its normal workflow.",
                         task.issue_number,
                         pipeline.status,
                         pipeline.current_agent or "none",
                         len(pipeline.completed_agents),
                         len(pipeline.agents),
                     )
-                    # Try to move the issue back to its pipeline status
-                    try:
-                        restored = await github_projects_service.update_item_status_by_name(
-                            access_token=access_token,
-                            project_id=project_id,
-                            item_id=task.github_item_id,
-                            status_name=pipeline.status,
-                        )
-                        if restored:
-                            logger.info(
-                                "Restored issue #%d back to '%s' status",
-                                task.issue_number,
-                                pipeline.status,
-                            )
-                        else:
-                            logger.warning(
-                                "Failed to restore issue #%d to '%s' status",
-                                task.issue_number,
-                                pipeline.status,
-                            )
-                    except Exception as e:
-                        logger.warning(
-                            "Error restoring issue #%d status: %s",
-                            task.issue_number,
-                            e,
-                        )
-                    continue
+                    # Update the pipeline to reflect actual status so subsequent
+                    # polling iterations treat it as an "In Progress" pipeline.
+                    pipeline.status = config.status_in_progress if config else "In Progress"
+                    set_pipeline_state(task.issue_number, pipeline)
+                    # Fall through to the normal In Progress handling below
+                    # (don't 'continue')
 
             # Check for active pipeline (e.g., speckit.implement)
             if (
@@ -3216,6 +3335,30 @@ async def recover_stalled_issues(
             if not has_wip_pr:
                 missing.append("no WIP PR found")
 
+            # ── Guard: check if the agent already completed ──────────────
+            # After a container restart, volatile state is lost but the
+            # Done! marker (posted by Step 0 in the same or a prior poll
+            # cycle) persists in issue comments.  If the marker exists,
+            # the agent finished successfully and Steps 1-3 will advance
+            # the pipeline — no recovery needed.
+            already_done = await github_projects_service.check_agent_completion_comment(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=issue_number,
+                agent_name=agent_name,
+            )
+            if already_done:
+                logger.info(
+                    "Recovery: issue #%d — agent '%s' has Done! marker, "
+                    "skipping re-assignment (problems were: %s)",
+                    issue_number,
+                    agent_name,
+                    ", ".join(missing),
+                )
+                _recovery_last_attempt[issue_number] = now
+                continue
+
             logger.warning(
                 "Recovery: issue #%d stalled — agent '%s' (%s), problems: %s. Re-assigning agent.",
                 issue_number,
@@ -3226,7 +3369,7 @@ async def recover_stalled_issues(
 
             # ── Re-assign the agent ──────────────────────────────────────
             # Figure out which status and agent_index to use
-            agents_for_status = config.agent_mappings.get(agent_status, [])
+            agents_for_status = get_agent_slugs(config, agent_status)
             try:
                 agent_index = agents_for_status.index(agent_name)
             except ValueError:

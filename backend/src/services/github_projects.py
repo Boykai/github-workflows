@@ -2,10 +2,13 @@
 
 import asyncio
 import logging
+import re
 from datetime import datetime
 
 import httpx
+import yaml
 
+from src.models.chat import AgentSource, AvailableAgent
 from src.models.project import GitHubProject, ProjectType, StatusColumn
 from src.models.task import Task
 
@@ -1982,15 +1985,24 @@ class GitHubProjectsService:
             custom_agent,
         )
 
-        # If this is a custom agent assignment (not the first agent), unassign first
-        # This avoids API errors when Copilot is already assigned with different instructions
+        # If this is a custom agent assignment, unassign Copilot first — but
+        # ONLY if Copilot is currently assigned. Skipping this for new issues
+        # avoids a race condition where the recovery loop sees "Copilot NOT
+        # assigned" between the unassign and re-assign steps.
         if custom_agent and issue_number:
-            await self.unassign_copilot_from_issue(
+            is_assigned = await self.is_copilot_assigned_to_issue(
                 access_token=access_token,
                 owner=owner,
                 repo=repo,
                 issue_number=issue_number,
             )
+            if is_assigned:
+                await self.unassign_copilot_from_issue(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
 
         # Prefer GraphQL — it explicitly supports customAgent in the schema
         graphql_success = await self._assign_copilot_graphql(
@@ -3766,6 +3778,128 @@ class GitHubProjectsService:
                 )
 
         return changes
+
+    # ──────────────────────────────────────────────────────────────────
+    # Agent Discovery (004-agent-workflow-config-ui, T016)
+    # ──────────────────────────────────────────────────────────────────
+
+    # Built-in agents that are always available
+    BUILTIN_AGENTS: list[AvailableAgent] = [
+        AvailableAgent(
+            slug="copilot",
+            display_name="GitHub Copilot",
+            description="Default GitHub Copilot coding agent",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="copilot-review",
+            display_name="Copilot Review",
+            description="GitHub Copilot code review agent",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+    ]
+
+    _FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---", re.DOTALL)
+
+    async def list_available_agents(
+        self,
+        owner: str,
+        repo: str,
+        access_token: str,
+    ) -> list[AvailableAgent]:
+        """
+        Discover agents available for assignment.
+
+        Combines hardcoded built-in agents with custom agents found in
+        the repository's `.github/agents/*.agent.md` files.
+
+        Args:
+            owner: Repository owner.
+            repo: Repository name.
+            access_token: GitHub OAuth access token.
+
+        Returns:
+            Combined list of built-in + repository agents.
+        """
+        agents: list[AvailableAgent] = list(self.BUILTIN_AGENTS)
+
+        if not owner or not repo:
+            return agents
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        # List .github/agents/ directory via Contents API
+        try:
+            response = await self._request_with_retry(
+                "GET",
+                f"https://api.github.com/repos/{owner}/{repo}/contents/.github/agents",
+                headers=headers,
+            )
+            contents = response.json()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                logger.debug("No .github/agents/ directory in %s/%s", owner, repo)
+                return agents
+            logger.warning(
+                "Failed to list .github/agents/ in %s/%s: %s",
+                owner,
+                repo,
+                exc,
+            )
+            return agents
+
+        if not isinstance(contents, list):
+            return agents
+
+        # Filter for *.agent.md files
+        agent_files = [
+            f
+            for f in contents
+            if isinstance(f, dict)
+            and f.get("name", "").endswith(".agent.md")
+            and f.get("type") == "file"
+        ]
+
+        for file_info in agent_files:
+            slug = file_info["name"].removesuffix(".agent.md")
+            download_url = file_info.get("download_url")
+            display_name = slug
+            description: str | None = None
+
+            # Fetch raw content and parse YAML frontmatter
+            if download_url:
+                try:
+                    raw_resp = await self._request_with_retry("GET", download_url, headers=headers)
+                    raw_content = raw_resp.text
+                    fm_match = self._FRONTMATTER_RE.match(raw_content)
+                    if fm_match:
+                        try:
+                            fm = yaml.safe_load(fm_match.group(1))
+                            if isinstance(fm, dict):
+                                display_name = fm.get("name", slug)
+                                description = fm.get("description")
+                        except yaml.YAMLError:
+                            logger.debug("Invalid YAML frontmatter in %s", file_info["name"])
+                except httpx.HTTPStatusError:
+                    logger.debug("Could not fetch content for %s", file_info["name"])
+
+            agents.append(
+                AvailableAgent(
+                    slug=slug,
+                    display_name=display_name,
+                    description=description,
+                    avatar_url=None,
+                    source=AgentSource.REPOSITORY,
+                )
+            )
+
+        return agents
 
 
 # Global service instance

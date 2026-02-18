@@ -3,12 +3,60 @@
 import re
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
-from src.constants import DEFAULT_AGENT_MAPPINGS
+from src.constants import AGENT_DISPLAY_NAMES, DEFAULT_AGENT_MAPPINGS
+
+# ============================================================================
+# Agent Assignment Models (004-agent-workflow-config-ui)
+# ============================================================================
+
+
+class AgentSource(StrEnum):
+    """Source of an available agent."""
+
+    BUILTIN = "builtin"
+    REPOSITORY = "repository"
+
+
+class AgentAssignment(BaseModel):
+    """A single agent assignment within a workflow status column."""
+
+    id: UUID = Field(default_factory=uuid4, description="Unique instance ID")
+    slug: str = Field(..., description="Agent identifier slug")
+    display_name: str | None = Field(default=None, description="Human-readable display name")
+    config: dict | None = Field(
+        default=None, description="Reserved for future per-assignment config"
+    )
+
+
+def _coerce_agent(v: str | dict | AgentAssignment) -> AgentAssignment | dict:
+    """Accept a bare slug string and promote to AgentAssignment."""
+    if isinstance(v, str):
+        return AgentAssignment(slug=v)
+    return v
+
+
+AgentAssignmentInput = Annotated[AgentAssignment, BeforeValidator(_coerce_agent)]
+
+
+class AvailableAgent(BaseModel):
+    """An agent available for assignment, from discovery."""
+
+    slug: str = Field(..., description="Unique agent identifier")
+    display_name: str = Field(..., description="Human-readable name")
+    description: str | None = Field(default=None, description="Agent description")
+    avatar_url: str | None = Field(default=None, description="Avatar URL")
+    source: AgentSource = Field(..., description="Discovery source")
+
+
+class AvailableAgentsResponse(BaseModel):
+    """Response for listing available agents."""
+
+    agents: list[AvailableAgent]
 
 
 class SenderType(StrEnum):
@@ -323,9 +371,18 @@ class WorkflowConfiguration(BaseModel):
     review_assignee: str | None = Field(
         default=None, description="Username for review (default: repo owner)"
     )
-    agent_mappings: dict[str, list[str]] = Field(
-        default_factory=lambda: dict(DEFAULT_AGENT_MAPPINGS),
-        description="Status name → ordered list of Spec Kit agent names to assign sequentially",
+    agent_mappings: dict[str, list[AgentAssignmentInput]] = Field(
+        default_factory=lambda: {
+            k: [
+                AgentAssignment(
+                    slug=s,
+                    display_name=AGENT_DISPLAY_NAMES.get(s),
+                )
+                for s in v
+            ]
+            for k, v in DEFAULT_AGENT_MAPPINGS.items()
+        },
+        description="Status name → ordered list of agent assignments",
     )
     status_backlog: str = Field(default="Backlog", description="Backlog status column name")
     status_ready: str = Field(default="Ready", description="Ready status column name")

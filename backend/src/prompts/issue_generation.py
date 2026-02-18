@@ -99,39 +99,17 @@ Guidelines:
 - Priority: P0 for blockers, P1 for important features, P2 for standard work, P3 for nice-to-haves
 - Labels: Always include "ai-generated", plus ONE type label, and relevant scope/domain labels
 
+IMPORTANT: Output raw JSON ONLY. Do NOT wrap in markdown code fences (no ```json blocks). Keep each field value concise — aim for 1-3 sentences per string field and 5-8 functional requirements. Prioritize completeness of the JSON structure over verbosity in individual fields.
+
 Output your response as valid JSON with these exact keys:
-- title (string)
-- user_story (string)
-- ui_ux_description (string)
-- functional_requirements (array of strings - at least 5)
-- technical_notes (string)
+- title (string, max 256 chars)
+- user_story (string, 1-3 sentences)
+- ui_ux_description (string, concise but comprehensive)
+- functional_requirements (array of 5-8 short strings using "System MUST/SHOULD" format)
+- technical_notes (string, 2-4 sentences)
 - metadata (object with priority, size, estimate_hours, labels)
 
-Do NOT include the user's raw input in your response — it is stored separately. Focus your token budget on generating rich, detailed, and comprehensive analysis.
-
-Example output:
-{
-  "title": "Add CSV export functionality for user data",
-  "user_story": "As a data analyst user, I want to export my profile and activity data as a CSV file so that I can analyze trends in spreadsheet applications like Excel or Google Sheets.",
-  "ui_ux_description": "Add a prominent 'Export Data' button in the user profile section, positioned below the profile summary card. The button should use an download icon with the text 'Export CSV'. On click: 1) Button enters disabled state with a spinning loader, 2) A toast notification appears saying 'Preparing your export...', 3) When ready, the browser triggers an automatic file download, 4) The button returns to its normal state and a success toast confirms 'Export complete'. For exports exceeding 5 seconds, show a progress bar. If the export fails, show an error toast with a 'Retry' option.",
-  "functional_requirements": [
-    "System MUST generate a valid CSV file containing all user profile fields (name, email, role, created_at, updated_at)",
-    "System MUST include all timestamps in ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ)",
-    "System MUST handle exports up to 10MB in file size without timeout or memory errors",
-    "System MUST set the Content-Disposition header to trigger automatic browser download",
-    "System MUST use UTF-8 encoding with BOM for Excel compatibility",
-    "System SHOULD show a progress indicator for exports that take longer than 2 seconds",
-    "System MUST return appropriate HTTP error codes (413 if export exceeds size limit, 500 for server errors)",
-    "System SHOULD sanitize field values to prevent CSV injection attacks"
-  ],
-  "technical_notes": "Consider streaming the CSV response for large datasets to avoid memory issues. Use the csv module in Python or a streaming library. The export endpoint should be rate-limited to prevent abuse (suggest 5 exports per minute per user). Profile fields should be fetched from the existing user profile API to maintain consistency.",
-  "metadata": {
-    "priority": "P2",
-    "size": "M",
-    "estimate_hours": 4,
-    "labels": ["ai-generated", "feature", "backend", "api"]
-  }
-}
+Do NOT include the user's raw input in your response — it is stored separately.
 """
 
 FEATURE_REQUEST_DETECTION_PROMPT = """You are an intent classifier. Analyze the user input and determine if it's a feature request or something else.
@@ -193,8 +171,7 @@ CRITICAL: Your output MUST:
 4. The final issue should contain MORE detail than the user provided, not less
 5. Do NOT echo back the user's raw input — it is stored separately. Focus on analysis and structured output.
 
-Respond with a JSON object containing title, user_story, ui_ux_description, functional_requirements, technical_notes, and metadata (with priority, size, estimate_hours, labels).
-Calculate appropriate start_date and target_date based on the size estimate."""
+Respond with a raw JSON object (NO markdown code fences) containing title, user_story, ui_ux_description, functional_requirements, technical_notes, and metadata (with priority, size, estimate_hours, labels). Keep values concise."""
 
     return [
         {"role": "system", "content": ISSUE_GENERATION_SYSTEM_PROMPT},

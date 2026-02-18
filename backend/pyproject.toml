@@ -10,9 +10,15 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
-    "azure-ai-inference>=1.0.0b1",
-    "openai>=1.0.0",
     "python-multipart>=0.0.6",
+    "pyyaml>=6.0.1",
+    # GitHub Copilot SDK (default AI provider)
+    "github-copilot-sdk>=0.1.0",
+    # Microsoft Agent Framework (orchestration layer)
+    "agent-framework-core>=1.0.0a1",
+    # Azure OpenAI (optional fallback provider)
+    "openai>=1.0.0",
+    "azure-ai-inference>=1.0.0b1",
 ]
 
 [project.optional-dependencies]

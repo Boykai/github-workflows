@@ -33,6 +33,7 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
+    get_agent_slugs,
     get_workflow_config,
     get_workflow_orchestrator,
     set_workflow_config,
@@ -134,7 +135,7 @@ async def send_message(
         error_msg = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content="AI features are not configured. Please set up Azure OpenAI credentials to use chat functionality.",
+            content="AI features are not configured. Please set up your AI provider credentials (GitHub Copilot OAuth or Azure OpenAI) to use chat functionality.",
         )
         add_message(session.session_id, error_msg)
         return error_msg
@@ -169,7 +170,9 @@ async def send_message(
     ai_service = get_ai_agent_service()
 
     try:
-        is_feature_request = await ai_service.detect_feature_request_intent(request.content)
+        is_feature_request = await ai_service.detect_feature_request_intent(
+            request.content, github_token=session.access_token
+        )
     except Exception as e:
         logger.warning("Feature request detection failed: %s", e)
         is_feature_request = False
@@ -181,6 +184,7 @@ async def send_message(
                 user_input=request.content,
                 project_name=project_name,
                 session_id=str(session.session_id),
+                github_token=session.access_token,
             )
 
             # Store recommendation (T016)
@@ -254,6 +258,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
         available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
+        github_token=session.access_token,
     )
 
     if status_change:
@@ -325,6 +330,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         generated = await ai_service.generate_task_from_description(
             user_input=request.content,
             project_name=project_name,
+            github_token=session.access_token,
         )
 
         # Create proposal
@@ -520,14 +526,14 @@ async def confirm_proposal(
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
             # Send agent_assigned WebSocket notification
-            backlog_agents = config.agent_mappings.get(backlog_status, [])
-            if backlog_agents:
+            backlog_slugs = get_agent_slugs(config, backlog_status)
+            if backlog_slugs:
                 await connection_manager.broadcast_to_project(
                     project_id,
                     {
                         "type": "agent_assigned",
                         "issue_number": issue_number,
-                        "agent_name": backlog_agents[0],
+                        "agent_name": backlog_slugs[0],
                         "status": backlog_status,
                     },
                 )

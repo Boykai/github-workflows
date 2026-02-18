@@ -11,6 +11,7 @@ from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
+    AvailableAgentsResponse,
     RecommendationStatus,
     WorkflowConfiguration,
     WorkflowResult,
@@ -22,6 +23,7 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
+    get_agent_slugs,
     get_all_pipeline_states,
     get_pipeline_state,
     get_transitions,
@@ -232,16 +234,16 @@ async def confirm_recommendation(
             )
 
             # Send agent_assigned notification for the first Backlog agent
-            backlog_agents = config.agent_mappings.get(config.status_backlog, [])
-            if backlog_agents:
+            backlog_slugs = get_agent_slugs(config, config.status_backlog)
+            if backlog_slugs:
                 await connection_manager.broadcast_to_project(
                     session.selected_project_id,
                     {
                         "type": "agent_assigned",
                         "issue_number": result.issue_number,
-                        "agent_name": backlog_agents[0],
+                        "agent_name": backlog_slugs[0],
                         "status": "Backlog",
-                        "next_agent": (backlog_agents[1] if len(backlog_agents) > 1 else None),
+                        "next_agent": (backlog_slugs[1] if len(backlog_slugs) > 1 else None),
                         "timestamp": datetime.utcnow().isoformat(),
                     },
                 )
@@ -329,6 +331,43 @@ async def update_config(
     logger.info("Updated workflow config for project %s", session.selected_project_id)
 
     return config_update
+
+
+@router.get("/agents", response_model=AvailableAgentsResponse)
+async def list_agents(
+    session: Annotated[UserSession, Depends(get_session_dep)],
+    owner: str | None = Query(None, description="Repository owner (default: config)"),
+    repo: str | None = Query(None, description="Repository name (default: config)"),
+) -> AvailableAgentsResponse:
+    """
+    List available agents for the selected repository (T017).
+
+    Discovers agents from the repository's `.github/agents/*.agent.md` files
+    and combines them with built-in agents (GitHub Copilot, Copilot Review).
+    """
+    if not session.selected_project_id:
+        raise NotFoundError("No project selected")
+
+    # Resolve owner/repo
+    resolved_owner = owner
+    resolved_repo = repo
+
+    if not resolved_owner or not resolved_repo:
+        config = get_workflow_config(session.selected_project_id)
+        if config:
+            resolved_owner = resolved_owner or config.repository_owner
+            resolved_repo = resolved_repo or config.repository_name
+
+    if not resolved_owner or not resolved_repo:
+        resolved_owner, resolved_repo = _get_repository_info(session)
+
+    agents = await github_projects_service.list_available_agents(
+        owner=resolved_owner or "",
+        repo=resolved_repo or "",
+        access_token=session.access_token,
+    )
+
+    return AvailableAgentsResponse(agents=agents)
 
 
 @router.get("/transitions", response_model=list[WorkflowTransition])
