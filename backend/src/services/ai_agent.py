@@ -190,7 +190,7 @@ class AIAgentService:
                 ) from e
             elif "404" in error_msg or "Resource not found" in error_msg:
                 raise ValueError(
-                    f"AI model/deployment not found. Verify your provider configuration."
+                    "AI model/deployment not found. Verify your provider configuration."
                 ) from e
             else:
                 raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
@@ -633,7 +633,7 @@ class AIAgentService:
                 return repaired
 
         logger.error("Failed to parse JSON from response content: %s", content[:500])
-        raise ValueError(f"Invalid JSON response: could not extract JSON object")
+        raise ValueError("Invalid JSON response: could not extract JSON object")
 
     def _repair_truncated_json(self, content: str) -> dict | None:
         """Attempt to repair truncated JSON by closing open strings, arrays, and objects."""

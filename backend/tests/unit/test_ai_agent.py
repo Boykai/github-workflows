@@ -1,6 +1,6 @@
 """Unit tests for the AI agent service (multi-provider support)."""
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

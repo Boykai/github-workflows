@@ -10,7 +10,6 @@ from pydantic import BaseModel, BeforeValidator, Field, field_validator
 
 from src.constants import AGENT_DISPLAY_NAMES, DEFAULT_AGENT_MAPPINGS
 
-
 # ============================================================================
 # Agent Assignment Models (004-agent-workflow-config-ui)
 # ============================================================================

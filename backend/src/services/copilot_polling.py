@@ -25,7 +25,6 @@ from src.constants import (
 )
 from src.models.chat import WorkflowConfiguration
 from src.services.agent_tracking import (
-    STATE_DONE,
     get_current_agent_from_tracking,
     get_next_pending_agent,
     mark_agent_active,

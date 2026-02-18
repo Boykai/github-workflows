@@ -97,8 +97,8 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._get_or_create_client(github_token)
 
-        from copilot.types import MessageOptions, SessionConfig
         from copilot.generated.session_events import SessionEventType
+        from copilot.types import MessageOptions, SessionConfig
 
         # Extract system message for session config, user message for prompt
         system_content = ""
@@ -144,7 +144,7 @@ class CopilotCompletionProvider(CompletionProvider):
 
         try:
             await asyncio.wait_for(done.wait(), timeout=120)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Copilot completion timed out after 120s")
         finally:
             try:
