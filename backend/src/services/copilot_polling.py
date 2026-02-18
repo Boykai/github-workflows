@@ -492,16 +492,12 @@ async def post_agent_outputs_from_pr(
                     if steps and active_step:
                         status_key = active_step.status
                         # Build agent list for this status from the tracking table
-                        status_agents = [
-                            s.agent_name for s in steps if s.status == status_key
-                        ]
+                        status_agents = [s.agent_name for s in steps if s.status == status_key]
                         # Determine completed agents by checking Done! comments
                         completed: list[str] = []
                         for agent in status_agents:
                             done_marker = f"{agent}: Done!"
-                            if any(
-                                done_marker in c.get("body", "") for c in comments
-                            ):
+                            if any(done_marker in c.get("body", "") for c in comments):
                                 completed.append(agent)
                             else:
                                 break  # Sequential — stop at first incomplete
@@ -530,11 +526,13 @@ async def post_agent_outputs_from_pr(
                         # subsequent-agent child PR detection works correctly
                         if not get_issue_main_branch(task.issue_number):
                             try:
-                                existing_pr = await github_projects_service.find_existing_pr_for_issue(
-                                    access_token=access_token,
-                                    owner=task_owner,
-                                    repo=task_repo,
-                                    issue_number=task.issue_number,
+                                existing_pr = (
+                                    await github_projects_service.find_existing_pr_for_issue(
+                                        access_token=access_token,
+                                        owner=task_owner,
+                                        repo=task_repo,
+                                        issue_number=task.issue_number,
+                                    )
                                 )
                                 if existing_pr:
                                     pr_det = await github_projects_service.get_pull_request(
@@ -555,16 +553,14 @@ async def post_agent_outputs_from_pr(
                                         h_sha,
                                     )
                                     logger.info(
-                                        "Reconstructed main branch '%s' (PR #%d) "
-                                        "for issue #%d",
+                                        "Reconstructed main branch '%s' (PR #%d) for issue #%d",
                                         existing_pr["head_ref"],
                                         existing_pr["number"],
                                         task.issue_number,
                                     )
                             except Exception as e:
                                 logger.debug(
-                                    "Could not reconstruct main branch for "
-                                    "issue #%d: %s",
+                                    "Could not reconstruct main branch for issue #%d: %s",
                                     task.issue_number,
                                     e,
                                 )

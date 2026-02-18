@@ -117,9 +117,7 @@ class TestGenerateTaskFromDescription:
     @pytest.mark.asyncio
     async def test_generate_task_parses_json_response(self, service, mock_provider):
         """Service should parse JSON response and return GeneratedTask."""
-        mock_provider.set_response(
-            '{"title": "Test Task", "description": "Test Description"}'
-        )
+        mock_provider.set_response('{"title": "Test Task", "description": "Test Description"}')
 
         result = await service.generate_task_from_description(
             "Create a task for testing", "Test Project", github_token="tok"
@@ -167,9 +165,7 @@ class TestGenerateTaskFromDescription:
     async def test_generate_task_truncates_long_title(self, service, mock_provider):
         """Service should truncate titles over 256 characters."""
         long_title = "A" * 300
-        mock_provider.set_response(
-            f'{{"title": "{long_title}", "description": "Test"}}'
-        )
+        mock_provider.set_response(f'{{"title": "{long_title}", "description": "Test"}}')
 
         result = await service.generate_task_from_description(
             "Create task", "Project", github_token="tok"
@@ -201,9 +197,7 @@ class TestGenerateTaskFromDescription:
     @pytest.mark.asyncio
     async def test_generate_task_passes_github_token(self, service, mock_provider):
         """Service should pass github_token to provider."""
-        mock_provider.set_response(
-            '{"title": "Task", "description": "Description"}'
-        )
+        mock_provider.set_response('{"title": "Task", "description": "Description"}')
 
         await service.generate_task_from_description(
             "Create task", "Project", github_token="user-oauth-token"
@@ -273,9 +267,7 @@ class TestParseStatusChangeRequest:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_handles_errors_gracefully(
-        self, service, mock_provider
-    ):
+    async def test_parse_status_change_handles_errors_gracefully(self, service, mock_provider):
         """Service should return None on errors, not raise."""
         mock_provider.set_error(Exception("API Error"))
 
@@ -286,9 +278,7 @@ class TestParseStatusChangeRequest:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_parse_status_change_passes_github_token(
-        self, service, mock_provider
-    ):
+    async def test_parse_status_change_passes_github_token(self, service, mock_provider):
         """Service should pass github_token to provider."""
         mock_provider.set_response('{"intent": "other"}')
 
@@ -313,9 +303,7 @@ class TestDetectFeatureRequestIntent:
     @pytest.mark.asyncio
     async def test_detect_feature_request_true(self, service, mock_provider):
         """Should detect feature request intent."""
-        mock_provider.set_response(
-            '{"intent": "feature_request", "confidence": 0.9}'
-        )
+        mock_provider.set_response('{"intent": "feature_request", "confidence": 0.9}')
 
         result = await service.detect_feature_request_intent(
             "Add a dark mode toggle", github_token="tok"
@@ -339,22 +327,16 @@ class TestDetectFeatureRequestIntent:
         """Should return False on errors."""
         mock_provider.set_error(Exception("API Error"))
 
-        result = await service.detect_feature_request_intent(
-            "Some input", github_token="tok"
-        )
+        result = await service.detect_feature_request_intent("Some input", github_token="tok")
 
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_detect_feature_request_passes_github_token(
-        self, service, mock_provider
-    ):
+    async def test_detect_feature_request_passes_github_token(self, service, mock_provider):
         """Should pass github_token to provider."""
         mock_provider.set_response('{"intent": "other", "confidence": 0.1}')
 
-        await service.detect_feature_request_intent(
-            "Some input", github_token="my-gh-token"
-        )
+        await service.detect_feature_request_intent("Some input", github_token="my-gh-token")
 
         assert mock_provider.last_github_token == "my-gh-token"
 

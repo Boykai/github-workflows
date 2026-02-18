@@ -28,7 +28,9 @@ class AgentAssignment(BaseModel):
     id: UUID = Field(default_factory=uuid4, description="Unique instance ID")
     slug: str = Field(..., description="Agent identifier slug")
     display_name: str | None = Field(default=None, description="Human-readable display name")
-    config: dict | None = Field(default=None, description="Reserved for future per-assignment config")
+    config: dict | None = Field(
+        default=None, description="Reserved for future per-assignment config"
+    )
 
 
 def _coerce_agent(v: str | dict | AgentAssignment) -> AgentAssignment | dict:

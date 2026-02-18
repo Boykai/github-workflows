@@ -92,7 +92,9 @@ def build_agent_pipeline_steps(
     for status in status_order:
         for agent in agent_mappings.get(status, []):
             agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
-            steps.append(AgentStep(index=idx, status=status, agent_name=agent_slug, state=STATE_PENDING))
+            steps.append(
+                AgentStep(index=idx, status=status, agent_name=agent_slug, state=STATE_PENDING)
+            )
             idx += 1
     return steps
 

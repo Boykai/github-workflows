@@ -2633,9 +2633,7 @@ class TestRecoverStalledIssues:
             status_in_review="In Review",
             agent_mappings={"Backlog": ["speckit.specify"]},
         )
-        mock_service.get_issue_with_comments = AsyncMock(
-            return_value={"body": self.TRACKING_BODY}
-        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
         # Copilot unassigned (self-unassigned after completion)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
         # No WIP PR found

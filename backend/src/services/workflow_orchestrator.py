@@ -758,7 +758,11 @@ class WorkflowOrchestrator:
             )
             return True  # All agents already processed
 
-        agent_name = agents[agent_index].slug if hasattr(agents[agent_index], "slug") else str(agents[agent_index])
+        agent_name = (
+            agents[agent_index].slug
+            if hasattr(agents[agent_index], "slug")
+            else str(agents[agent_index])
+        )
         logger.info(
             "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
             agent_name,
@@ -1011,7 +1015,9 @@ class WorkflowOrchestrator:
             status=status,
             agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
             current_agent_index=agent_index,
-            completed_agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]],
+            completed_agents=[
+                a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
+            ],
             started_at=datetime.utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,
@@ -1445,14 +1451,21 @@ class WorkflowOrchestrator:
             # a duplicate assignment before we even begin the Copilot API call.
             if ctx.issue_number:
                 config_for_flag = config or get_workflow_config(ctx.project_id)
-                agents_for_flag = get_agent_slugs(config_for_flag, status_name) if config_for_flag else []
+                agents_for_flag = (
+                    get_agent_slugs(config_for_flag, status_name) if config_for_flag else []
+                )
                 if agents_for_flag:
-                    first_agent_name = agents_for_flag[0].slug if hasattr(agents_for_flag[0], "slug") else str(agents_for_flag[0])
+                    first_agent_name = (
+                        agents_for_flag[0].slug
+                        if hasattr(agents_for_flag[0], "slug")
+                        else str(agents_for_flag[0])
+                    )
                     try:
                         from src.services.copilot_polling import (
                             _pending_agent_assignments,
                             _recovery_last_attempt,
                         )
+
                         early_key = f"{ctx.issue_number}:{first_agent_name}"
                         _pending_agent_assignments.add(early_key)
                         _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()

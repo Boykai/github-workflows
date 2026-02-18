@@ -3859,7 +3859,8 @@ class GitHubProjectsService:
 
         # Filter for *.agent.md files
         agent_files = [
-            f for f in contents
+            f
+            for f in contents
             if isinstance(f, dict)
             and f.get("name", "").endswith(".agent.md")
             and f.get("type") == "file"
@@ -3874,9 +3875,7 @@ class GitHubProjectsService:
             # Fetch raw content and parse YAML frontmatter
             if download_url:
                 try:
-                    raw_resp = await self._request_with_retry(
-                        "GET", download_url, headers=headers
-                    )
+                    raw_resp = await self._request_with_retry("GET", download_url, headers=headers)
                     raw_content = raw_resp.text
                     fm_match = self._FRONTMATTER_RE.match(raw_content)
                     if fm_match:
