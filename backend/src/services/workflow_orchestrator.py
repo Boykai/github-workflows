@@ -1473,7 +1473,24 @@ class WorkflowOrchestrator:
                     except ImportError:
                         pass
 
+            # Check if the effective status actually has agents before claiming assignment
+            effective_config = config or get_workflow_config(ctx.project_id)
+            has_agents = bool(
+                effective_config and get_agent_slugs(effective_config, status_name)
+            )
+
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
+
+            if has_agents:
+                message = (
+                    f"Issue #{ctx.issue_number} created, added to project ({status_name}), "
+                    f"and assigned to first agent"
+                )
+            else:
+                message = (
+                    f"Issue #{ctx.issue_number} created, added to project ({status_name}), "
+                    f"but no agents are configured for this status"
+                )
 
             return WorkflowResult(
                 success=True,
@@ -1482,10 +1499,7 @@ class WorkflowOrchestrator:
                 issue_url=ctx.issue_url,
                 project_item_id=ctx.project_item_id,
                 current_status=status_name,
-                message=(
-                    f"Issue #{ctx.issue_number} created, added to project ({status_name}), "
-                    f"and assigned to first agent"
-                ),
+                message=message,
             )
 
         except Exception as e:

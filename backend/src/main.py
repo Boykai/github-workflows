@@ -75,6 +75,17 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting Agent Projects API")
     yield
     logger.info("Shutting down Agent Projects API")
+    # Clean up CopilotCompletionProvider cached clients to avoid resource leaks
+    try:
+        from src.services.ai_agent import _ai_agent_service_instance
+
+        if _ai_agent_service_instance is not None:
+            provider = _ai_agent_service_instance._provider
+            if hasattr(provider, "cleanup"):
+                await provider.cleanup()
+                logger.info("Cleaned up AI completion provider")
+    except Exception as e:
+        logger.warning("Error during completion provider cleanup: %s", e)
 
 
 def create_app() -> FastAPI:

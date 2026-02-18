@@ -7,8 +7,15 @@
 import { useState, useCallback } from 'react';
 import type { AgentAssignment, AgentPreset } from '@/types';
 
-const generateId = (): string =>
-  crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
+const generateId = (): string => {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  // Polyfill: generate RFC 4122 UUID v4 for browsers without crypto.randomUUID
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 1
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
   return { id: generateId(), slug, display_name: displayName };
