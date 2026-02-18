@@ -29,9 +29,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update `--color-bg` from `#ffffff` to `#DBEAFE` in the `:root` selector in frontend/src/index.css
-- [ ] T002 [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#BFDBFE` in the `:root` selector in frontend/src/index.css
-- [ ] T003 [US1] Add `transition: background-color 0.3s ease;` to the `body` rule in frontend/src/index.css for smooth theme toggling
+- [x] T001 [US1] Update `--color-bg` from `#ffffff` to `#DBEAFE` in the `:root` selector in frontend/src/index.css
+- [x] T002 [US1] Update `--color-bg-secondary` from `#f6f8fa` to `#BFDBFE` in the `:root` selector in frontend/src/index.css
+- [x] T003 [US1] Add `transition: background-color 0.3s ease;` to the `body` rule in frontend/src/index.css for smooth theme toggling
 
 **Checkpoint**: Light mode now displays a blue background across all pages. All text remains readable (WCAG AA 11.7:1 contrast ratio with #24292f text).
 
@@ -45,8 +45,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Update `--color-bg` from `#0d1117` to `#1E3A8A` in the `html.dark-mode-active` selector in frontend/src/index.css
-- [ ] T005 [US2] Update `--color-bg-secondary` from `#161b22` to `#1E3A5C` in the `html.dark-mode-active` selector in frontend/src/index.css
+- [x] T004 [US2] Update `--color-bg` from `#0d1117` to `#1E3A8A` in the `html.dark-mode-active` selector in frontend/src/index.css
+- [x] T005 [US2] Update `--color-bg-secondary` from `#161b22` to `#1E3A5C` in the `html.dark-mode-active` selector in frontend/src/index.css
 
 **Checkpoint**: Dark mode now displays a deep navy blue background. Theme toggle transitions smoothly between light blue and dark navy. All text remains readable (WCAG AA 9.4:1 contrast ratio with #e6edf3 text).
 
@@ -60,8 +60,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T006 [US3] Visually audit all modal, dropdown, tooltip, and card components in both light and dark mode against the new blue backgrounds in the running application
-- [ ] T007 [US3] Verify no component-level CSS in frontend/src/App.css or frontend/src/components/ overrides the blue background with conflicting hardcoded colors
+- [x] T006 [US3] Visually audit all modal, dropdown, tooltip, and card components in both light and dark mode against the new blue backgrounds in the running application
+- [x] T007 [US3] Verify no component-level CSS in frontend/src/App.css or frontend/src/components/ overrides the blue background with conflicting hardcoded colors
 
 **Checkpoint**: All overlay and floating UI elements render correctly on the blue background. No visual regressions.
 
@@ -71,8 +71,8 @@
 
 **Purpose**: Final validation across browsers and viewports
 
-- [ ] T008 Verify full-bleed blue background renders on mobile viewport sizes with no white gaps or overscroll artifacts
-- [ ] T009 Update any existing Playwright snapshot baselines in frontend/e2e/ if tests reference background color values
+- [x] T008 Verify full-bleed blue background renders on mobile viewport sizes with no white gaps or overscroll artifacts
+- [x] T009 Update any existing Playwright snapshot baselines in frontend/e2e/ if tests reference background color values
 
 ---
 
