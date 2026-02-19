@@ -4,7 +4,13 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from src.services.cache import CacheEntry, InMemoryCache
+from src.services.cache import (
+    CacheEntry,
+    InMemoryCache,
+    get_cache_key,
+    get_project_items_cache_key,
+    get_user_projects_cache_key,
+)
 
 
 class TestCacheEntry:
@@ -38,6 +44,28 @@ class TestCacheEntry:
         # Very short TTL means it's already expired
         time.sleep(0.01)
         assert entry.is_expired is True
+
+    def test_entry_stores_none_value(self):
+        """Should store None as a valid value."""
+        entry = CacheEntry(None, ttl_seconds=60)
+
+        assert entry.value is None
+        assert entry.is_expired is False
+
+    def test_entry_stores_complex_nested_dict(self):
+        """Should store complex nested structures."""
+        data = {"users": [{"id": 1, "roles": ["admin"]}], "count": 1}
+        entry = CacheEntry(data, ttl_seconds=60)
+
+        assert entry.value == data
+
+    def test_entry_with_large_ttl(self):
+        """Should handle large TTL values."""
+        entry = CacheEntry("val", ttl_seconds=86400)
+
+        expected_min = datetime.utcnow() + timedelta(seconds=86399)
+        assert entry.expires_at >= expected_min
+        assert entry.is_expired is False
 
 
 class TestInMemoryCache:
@@ -136,3 +164,102 @@ class TestInMemoryCache:
         cache.set("test_key", "updated")
 
         assert cache.get("test_key") == "updated"
+
+    @patch("src.services.cache.get_settings")
+    def test_clear_removes_all_entries(self, mock_settings):
+        """Should remove all entries from cache."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("key1", "val1")
+        cache.set("key2", "val2")
+        cache.set("key3", "val3")
+
+        cache.clear()
+
+        assert cache.get("key1") is None
+        assert cache.get("key2") is None
+        assert cache.get("key3") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_clear_expired_removes_only_expired(self, mock_settings):
+        """Should remove only expired entries and return count."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("short_lived", "expires", ttl_seconds=1)
+        cache.set("long_lived", "stays", ttl_seconds=600)
+
+        time.sleep(1.1)
+        removed = cache.clear_expired()
+
+        assert removed == 1
+        assert cache.get("short_lived") is None
+        assert cache.get("long_lived") == "stays"
+
+    @patch("src.services.cache.get_settings")
+    def test_clear_expired_returns_zero_when_none_expired(self, mock_settings):
+        """Should return 0 when no entries are expired."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("key1", "val1", ttl_seconds=600)
+
+        removed = cache.clear_expired()
+
+        assert removed == 0
+
+    @patch("src.services.cache.get_settings")
+    def test_set_uses_default_ttl_from_settings(self, mock_settings):
+        """Should use settings TTL when no custom TTL provided."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=120)
+
+        cache = InMemoryCache()
+        cache.set("key", "value")
+
+        # Entry should exist (not expired with 120s TTL)
+        assert cache.get("key") == "value"
+
+
+class TestCacheKeyHelpers:
+    """Tests for cache key generation functions."""
+
+    def test_get_cache_key_formats_correctly(self):
+        """Should format key as prefix:identifier."""
+        result = get_cache_key("users", "123")
+
+        assert result == "users:123"
+
+    def test_get_cache_key_with_empty_identifier(self):
+        """Should handle empty identifier."""
+        result = get_cache_key("prefix", "")
+
+        assert result == "prefix:"
+
+    def test_get_user_projects_cache_key(self):
+        """Should generate correct user projects cache key."""
+        result = get_user_projects_cache_key("user_456")
+
+        assert "user_456" in result
+        assert ":" in result
+
+    def test_get_project_items_cache_key(self):
+        """Should generate correct project items cache key."""
+        result = get_project_items_cache_key("proj_789")
+
+        assert "proj_789" in result
+        assert ":" in result
+
+    def test_different_users_get_different_keys(self):
+        """Should produce unique keys for different users."""
+        key1 = get_user_projects_cache_key("user_a")
+        key2 = get_user_projects_cache_key("user_b")
+
+        assert key1 != key2
+
+    def test_different_projects_get_different_keys(self):
+        """Should produce unique keys for different projects."""
+        key1 = get_project_items_cache_key("proj_1")
+        key2 = get_project_items_cache_key("proj_2")
+
+        assert key1 != key2
