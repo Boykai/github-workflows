@@ -2,7 +2,7 @@
  * Unit tests for useWorkflow hook
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useWorkflow } from './useWorkflow';
 
 // Mock global fetch

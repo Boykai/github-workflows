@@ -1,7 +1,8 @@
 """Unit tests for completion providers."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.services.completion_providers import (
     CopilotCompletionProvider,

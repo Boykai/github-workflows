@@ -58,6 +58,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/unit/test_ai_agent.py" = ["E402"]  # Allow late imports for mocking
 "tests/unit/test_main.py" = ["E402"]  # Allow late imports (env vars must be set first)
+"tests/unit/test_api_endpoints.py" = ["E402"]  # Allow late imports (env vars must be set first)
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
