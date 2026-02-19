@@ -23,7 +23,7 @@
 
 **Purpose**: Verify baseline state before making changes
 
-- [ ] T001 Verify current title occurrences by running `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` from repository root
+- [x] T001 Verify current title occurrences by running `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` from repository root
 
 ---
 
@@ -43,8 +43,8 @@
 
 ### Implementation
 
-- [ ] T002 [US1] Replace `<title>Agent Projects</title>` with `<title>New App</title>` on line 7 of frontend/index.html
-- [ ] T003 [P] [US1] Replace `toHaveTitle(/Agent Projects/i)` with `toHaveTitle(/New App/i)` on line 62 of frontend/e2e/auth.spec.ts
+- [x] T002 [US1] Replace `<title>Agent Projects</title>` with `<title>New App</title>` on line 7 of frontend/index.html
+- [x] T003 [P] [US1] Replace `toHaveTitle(/Agent Projects/i)` with `toHaveTitle(/New App/i)` on line 62 of frontend/e2e/auth.spec.ts
 
 **Checkpoint**: Browser tab displays "New App". Title assertion in auth E2E test updated.
 
@@ -58,10 +58,10 @@
 
 ### Implementation
 
-- [ ] T004 [US2] Replace `<h1>Agent Projects</h1>` with `<h1>New App</h1>` on line 72 (login header) and line 89 (authenticated header) of frontend/src/App.tsx
-- [ ] T005 [P] [US2] Replace all `toContainText('Agent Projects')` heading assertions with `toContainText('New App')` on lines 12, 24, 38, 99 of frontend/e2e/auth.spec.ts
-- [ ] T006 [P] [US2] Replace `toContainText('Agent Projects')` heading assertions with `toContainText('New App')` on lines 43, 67 of frontend/e2e/ui.spec.ts
-- [ ] T007 [P] [US2] Replace `toContainText('Agent Projects')` heading assertion with `toContainText('New App')` on line 69 of frontend/e2e/integration.spec.ts
+- [x] T004 [US2] Replace `<h1>Agent Projects</h1>` with `<h1>New App</h1>` on line 72 (login header) and line 89 (authenticated header) of frontend/src/App.tsx
+- [x] T005 [P] [US2] Replace all `toContainText('Agent Projects')` heading assertions with `toContainText('New App')` on lines 12, 24, 38, 99 of frontend/e2e/auth.spec.ts
+- [x] T006 [P] [US2] Replace `toContainText('Agent Projects')` heading assertions with `toContainText('New App')` on lines 43, 67 of frontend/e2e/ui.spec.ts
+- [x] T007 [P] [US2] Replace `toContainText('Agent Projects')` heading assertion with `toContainText('New App')` on line 69 of frontend/e2e/integration.spec.ts
 
 **Checkpoint**: Login page and authenticated headers display "New App". All heading-related E2E test assertions updated.
 
@@ -75,22 +75,22 @@
 
 ### Implementation — Backend
 
-- [ ] T008 [P] [US3] Replace `"Starting Agent Projects API"` with `"Starting New App API"` on line 75 and `"Shutting down Agent Projects API"` with `"Shutting down New App API"` on line 77 of backend/src/main.py
-- [ ] T009 [US3] Replace `title="Agent Projects API"` with `title="New App API"` on line 85 and `description="REST API for Agent Projects"` with `description="REST API for New App"` on line 86 of backend/src/main.py (same file as T008, run sequentially)
-- [ ] T010 [P] [US3] Replace `description = "FastAPI backend for Agent Projects"` with `description = "FastAPI backend for New App"` on line 4 of backend/pyproject.toml
-- [ ] T011 [P] [US3] Replace `# Agent Projects — Backend` with `# New App — Backend` and `Agent Projects` with `New App` in body text of backend/README.md
-- [ ] T012 [P] [US3] Replace `Agent Projects Backend` with `New App Backend` in the file header comment on line 2 of backend/tests/test_api_e2e.py
+- [x] T008 [P] [US3] Replace `"Starting Agent Projects API"` with `"Starting New App API"` on line 75 and `"Shutting down Agent Projects API"` with `"Shutting down New App API"` on line 77 of backend/src/main.py
+- [x] T009 [US3] Replace `title="Agent Projects API"` with `title="New App API"` on line 85 and `description="REST API for Agent Projects"` with `description="REST API for New App"` on line 86 of backend/src/main.py (same file as T008, run sequentially)
+- [x] T010 [P] [US3] Replace `description = "FastAPI backend for Agent Projects"` with `description = "FastAPI backend for New App"` on line 4 of backend/pyproject.toml
+- [x] T011 [P] [US3] Replace `# Agent Projects — Backend` with `# New App — Backend` and `Agent Projects` with `New App` in body text of backend/README.md
+- [x] T012 [P] [US3] Replace `Agent Projects Backend` with `New App Backend` in the file header comment on line 2 of backend/tests/test_api_e2e.py
 
 ### Implementation — Configuration
 
-- [ ] T013 [P] [US3] Replace `"name": "Agent Projects"` with `"name": "New App"` on line 2 of .devcontainer/devcontainer.json
-- [ ] T014 [P] [US3] Replace `Setting up Agent Projects development environment` with `Setting up New App development environment` on line 7 of .devcontainer/post-create.sh
+- [x] T013 [P] [US3] Replace `"name": "Agent Projects"` with `"name": "New App"` on line 2 of .devcontainer/devcontainer.json
+- [x] T014 [P] [US3] Replace `Setting up Agent Projects development environment` with `Setting up New App development environment` on line 7 of .devcontainer/post-create.sh
 
 ### Implementation — Documentation & Comments
 
-- [ ] T015 [P] [US3] Replace `# Agent Projects` with `# New App` on line 1 of README.md
-- [ ] T016 [P] [US3] Replace `Agent Projects API` with `New App API` in the file header comment on line 2 of frontend/src/types/index.ts
-- [ ] T017 [P] [US3] Replace `Agent Projects` with `New App` in the file header comment on line 2 of frontend/src/services/api.ts
+- [x] T015 [P] [US3] Replace `# Agent Projects` with `# New App` on line 1 of README.md
+- [x] T016 [P] [US3] Replace `Agent Projects API` with `New App API` in the file header comment on line 2 of frontend/src/types/index.ts
+- [x] T017 [P] [US3] Replace `Agent Projects` with `New App` in the file header comment on line 2 of frontend/src/services/api.ts
 
 **Checkpoint**: All references to "Agent Projects" removed from backend, configuration, documentation, and comments. Codebase search returns zero matches (excluding internal package identifiers).
 
@@ -100,8 +100,8 @@
 
 **Purpose**: Final verification and validation across all user stories
 
-- [ ] T018 Run post-change verification search: `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` — confirm zero unexpected matches remain (same command as T001, now expecting 0 results instead of ~20)
-- [ ] T019 Run quickstart.md validation checklist from specs/005-new-app-title/quickstart.md
+- [x] T018 Run post-change verification search: `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` — confirm zero unexpected matches remain (same command as T001, now expecting 0 results instead of ~20)
+- [x] T019 Run quickstart.md validation checklist from specs/005-new-app-title/quickstart.md
 
 ---
 
