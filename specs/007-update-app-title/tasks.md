@@ -140,7 +140,7 @@ Task: "Update .env.example"
 
 ### MVP First (User Story 1 Only)
 
-1. Complete Phase 3: Update browser tab title (T001-T002)
+1. Complete User Story 1: Update browser tab title (T001-T002)
 2. **STOP and VALIDATE**: Open app in browser, verify tab shows "One More"
 3. Deploy/demo if ready
 
