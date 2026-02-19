@@ -1,5 +1,5 @@
 /**
- * API client service for Agent Projects.
+ * API client service for New App.
  * Provides typed fetch wrapper with error handling.
  */
 
