@@ -600,6 +600,27 @@ class WorkflowOrchestrator:
                     agent_name,
                     ctx.issue_number,
                 )
+
+                # Add the sub-issue to the same GitHub Project as the parent
+                sub_node_id = sub_issue.get("node_id", "")
+                if sub_node_id and ctx.project_id:
+                    try:
+                        await self.github.add_issue_to_project(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            issue_node_id=sub_node_id,
+                        )
+                        logger.info(
+                            "Added sub-issue #%d to project %s",
+                            sub_issue.get("number"),
+                            ctx.project_id,
+                        )
+                    except Exception as proj_err:
+                        logger.warning(
+                            "Failed to add sub-issue #%d to project: %s",
+                            sub_issue.get("number"),
+                            proj_err,
+                        )
             except Exception as e:
                 logger.warning(
                     "Failed to create sub-issue for agent '%s' on issue #%d: %s",

@@ -2523,8 +2523,36 @@ class GitHubProjectsService:
             item_id = nodes[0]["id"]
 
         if not item_id:
+            # Sub-issue is not on the project yet — add it and retry
+            logger.info(
+                "Sub-issue %s has no project items — adding to project %s first",
+                sub_issue_node_id,
+                project_id,
+            )
+            try:
+                new_item_id = await self.add_issue_to_project(
+                    access_token=access_token,
+                    project_id=project_id,
+                    issue_node_id=sub_issue_node_id,
+                )
+                if new_item_id:
+                    item_id = new_item_id
+                    logger.info(
+                        "Added sub-issue %s to project, item_id: %s",
+                        sub_issue_node_id,
+                        item_id,
+                    )
+            except Exception as add_err:
+                logger.warning(
+                    "Failed to add sub-issue %s to project %s: %s",
+                    sub_issue_node_id,
+                    project_id,
+                    add_err,
+                )
+
+        if not item_id:
             logger.warning(
-                "Sub-issue %s has no project items — cannot set status to '%s'",
+                "Sub-issue %s could not be added to project — cannot set status to '%s'",
                 sub_issue_node_id,
                 status_name,
             )
