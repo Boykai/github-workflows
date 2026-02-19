@@ -30,7 +30,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [ ] T002 Update `--color-bg-secondary` value from `#f6f8fa` to `var(--color-bg-pink)` in the `:root` block in frontend/src/index.css so the body and secondary backgrounds use pink
-- [ ] T003 Add a dark mode pink variant `--color-bg-pink` set to an appropriately dark/desaturated pink (e.g., `#2b1a1e`) in the `html.dark-mode-active` block in frontend/src/index.css
+- [ ] T003 Override `--color-bg-pink` with an appropriately dark/desaturated pink (e.g., `#2b1a1e`) in the `html.dark-mode-active` block in frontend/src/index.css (CSS scoping ensures this overrides the `:root` value when dark mode is active)
 - [ ] T004 Update `--color-bg-secondary` value from `#161b22` to `var(--color-bg-pink)` in the `html.dark-mode-active` block in frontend/src/index.css
 
 **Checkpoint**: Foundation ready - centralized pink variable defined for both light and dark themes
@@ -75,7 +75,7 @@
 
 **Goal**: The pink background color is defined in a single centralized location so future color changes require editing only one value
 
-**Independent Test**: Change the `--color-bg-pink` value in `:root` to a different color (e.g., `#90EE90`) and verify the entire app updates from that single change
+**Independent Test**: Change the `--color-bg-pink` value in `:root` to a different color (e.g., `#90EE90`) and verify the entire app updates from that single change in light mode; also change the `--color-bg-pink` value in `html.dark-mode-active` and verify the dark mode app updates accordingly
 
 ### Implementation for User Story 3
 
