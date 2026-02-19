@@ -76,7 +76,7 @@
 ### Implementation — Backend
 
 - [ ] T008 [P] [US3] Replace `"Starting Agent Projects API"` with `"Starting New App API"` on line 75 and `"Shutting down Agent Projects API"` with `"Shutting down New App API"` on line 77 of backend/src/main.py
-- [ ] T009 [P] [US3] Replace `title="Agent Projects API"` with `title="New App API"` on line 85 and `description="REST API for Agent Projects"` with `description="REST API for New App"` on line 86 of backend/src/main.py
+- [ ] T009 [US3] Replace `title="Agent Projects API"` with `title="New App API"` on line 85 and `description="REST API for Agent Projects"` with `description="REST API for New App"` on line 86 of backend/src/main.py (same file as T008, run sequentially)
 - [ ] T010 [P] [US3] Replace `description = "FastAPI backend for Agent Projects"` with `description = "FastAPI backend for New App"` on line 4 of backend/pyproject.toml
 - [ ] T011 [P] [US3] Replace `# Agent Projects — Backend` with `# New App — Backend` and `Agent Projects` with `New App` in body text of backend/README.md
 - [ ] T012 [P] [US3] Replace `Agent Projects Backend` with `New App Backend` in the file header comment on line 2 of backend/tests/test_api_e2e.py
@@ -100,7 +100,7 @@
 
 **Purpose**: Final verification and validation across all user stories
 
-- [ ] T018 Run verification search: `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` — confirm zero unexpected matches remain
+- [ ] T018 Run post-change verification search: `grep -rn "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.json" --include="*.html" --include="*.md" --include="*.sh" --include="*.toml" | grep -v ".git/" | grep -v "node_modules/" | grep -v "specs/"` — confirm zero unexpected matches remain (same command as T001, now expecting 0 results instead of ~20)
 - [ ] T019 Run quickstart.md validation checklist from specs/005-new-app-title/quickstart.md
 
 ---
@@ -167,7 +167,7 @@ T016-T017: Frontend file comment updates
 ```
 # All tasks in Phase 5 can run simultaneously (different files):
 T008: backend/src/main.py (log messages)
-T009: backend/src/main.py (FastAPI metadata) — same file as T008, run sequentially
+T009: backend/src/main.py (FastAPI metadata) — same file as T008, run sequentially after T008
 T010: backend/pyproject.toml
 T011: backend/README.md
 T012: backend/tests/test_api_e2e.py
