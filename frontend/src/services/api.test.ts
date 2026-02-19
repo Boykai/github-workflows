@@ -6,7 +6,7 @@ import { ApiError, authApi, projectsApi, tasksApi, chatApi, boardApi } from './a
 
 // Mock global fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 function jsonResponse(data: unknown, status = 200) {
   return {

@@ -91,9 +91,7 @@ class TestAuthGitHubEndpoint:
     @pytest.mark.asyncio
     async def test_github_oauth_redirects(self, client):
         """Should return 302 redirect to GitHub."""
-        response = await client.get(
-            "/api/v1/auth/github", follow_redirects=False
-        )
+        response = await client.get("/api/v1/auth/github", follow_redirects=False)
 
         assert response.status_code == 302
         assert "github.com" in response.headers["location"]

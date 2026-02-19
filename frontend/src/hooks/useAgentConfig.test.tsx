@@ -19,7 +19,7 @@ vi.mock('./useWorkflow', () => ({
 
 // Mock global fetch for useAvailableAgents
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 // Mock crypto.randomUUID
 Object.defineProperty(globalThis, 'crypto', {
@@ -81,7 +81,7 @@ describe('useAgentConfig', () => {
       result.current.addAgent('Todo', {
         slug: 'copilot',
         display_name: 'Copilot',
-        source: 'marketplace' as const,
+        source: 'repository' as const,
       });
     });
 
@@ -205,7 +205,7 @@ describe('useAgentConfig', () => {
       result.current.addAgent('Todo', {
         slug: 'copilot',
         display_name: 'Copilot',
-        source: 'marketplace' as const,
+        source: 'repository' as const,
       });
     });
 
@@ -236,7 +236,7 @@ describe('useAgentConfig', () => {
       result.current.addAgent('Todo', {
         slug: 'copilot',
         display_name: 'Copilot',
-        source: 'marketplace' as const,
+        source: 'repository' as const,
       });
     });
 
@@ -315,7 +315,7 @@ describe('useAvailableAgents', () => {
 
   it('should fetch agents when projectId is provided', async () => {
     const agents = [
-      { slug: 'copilot', display_name: 'Copilot', source: 'marketplace' },
+      { slug: 'copilot', display_name: 'Copilot', source: 'repository' },
     ];
     mockFetch.mockResolvedValue({
       ok: true,
@@ -370,7 +370,7 @@ describe('useAvailableAgents', () => {
       ok: true,
       json: () =>
         Promise.resolve({
-          agents: [{ slug: 'new-agent', display_name: 'New', source: 'marketplace' }],
+          agents: [{ slug: 'new-agent', display_name: 'New', source: 'repository' }],
         }),
     });
 

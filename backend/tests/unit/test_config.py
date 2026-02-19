@@ -169,7 +169,10 @@ class TestSetupLogging:
         setup_logging(debug=True)
 
         # basicConfig only sets level if no handlers exist; verify via handlers
-        assert any(h.level <= logging.DEBUG for h in root_logger.handlers) or root_logger.level == logging.DEBUG
+        assert (
+            any(h.level <= logging.DEBUG for h in root_logger.handlers)
+            or root_logger.level == logging.DEBUG
+        )
 
     def test_info_mode(self):
         """Non-debug mode should configure root logger with INFO level."""

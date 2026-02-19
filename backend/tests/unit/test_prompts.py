@@ -175,9 +175,7 @@ class TestTaskGenerationPrompts:
 
     def test_create_status_change_prompt_system_role(self):
         """Should use the status change system prompt."""
-        messages = create_status_change_prompt(
-            "Move task to done", ["task1"], ["Todo", "Done"]
-        )
+        messages = create_status_change_prompt("Move task to done", ["task1"], ["Todo", "Done"])
 
         assert messages[0]["role"] == "system"
         assert messages[0]["content"] == STATUS_CHANGE_SYSTEM_PROMPT
@@ -205,9 +203,7 @@ class TestTaskGenerationPrompts:
 
     def test_create_status_change_prompt_includes_user_input(self):
         """Should include user request in message."""
-        messages = create_status_change_prompt(
-            "Mark login as complete", ["login"], ["Done"]
-        )
+        messages = create_status_change_prompt("Mark login as complete", ["login"], ["Done"])
 
         assert "Mark login as complete" in messages[1]["content"]
 

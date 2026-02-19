@@ -7,7 +7,7 @@ import { useWorkflow } from './useWorkflow';
 
 // Mock global fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch;
+vi.stubGlobal('fetch', mockFetch);
 
 function jsonResponse(data: unknown, status = 200) {
   return {

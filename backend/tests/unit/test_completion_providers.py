@@ -94,9 +94,7 @@ class TestCreateCompletionProvider:
     @patch("src.services.completion_providers.get_settings")
     def test_creates_copilot_provider_by_default(self, mock_settings):
         """Should create CopilotCompletionProvider for 'copilot' setting."""
-        mock_settings.return_value = MagicMock(
-            ai_provider="copilot", copilot_model="gpt-4o"
-        )
+        mock_settings.return_value = MagicMock(ai_provider="copilot", copilot_model="gpt-4o")
 
         provider = create_completion_provider()
 
@@ -106,9 +104,7 @@ class TestCreateCompletionProvider:
     @patch("src.services.completion_providers.get_settings")
     def test_creates_copilot_provider_with_custom_model(self, mock_settings):
         """Should pass model from settings to CopilotCompletionProvider."""
-        mock_settings.return_value = MagicMock(
-            ai_provider="copilot", copilot_model="gpt-3.5-turbo"
-        )
+        mock_settings.return_value = MagicMock(ai_provider="copilot", copilot_model="gpt-3.5-turbo")
 
         provider = create_completion_provider()
 
