@@ -19,7 +19,7 @@
 
 **Purpose**: Define the brown color as a reusable CSS custom property
 
-- [ ] T001 Define `--color-bg-primary: #795548` CSS custom property in `:root` and dark-mode variant in `html.dark-mode-active` in frontend/src/index.css
+- [x] T001 Define `--color-bg-primary: #795548` CSS custom property in `:root` and dark-mode variant in `html.dark-mode-active` in frontend/src/index.css
 
 ---
 
@@ -31,10 +31,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update `body` background from `var(--color-bg-secondary)` to `var(--color-bg-primary)` in frontend/src/index.css
-- [ ] T003 [US1] Update `.app-header` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
-- [ ] T004 [P] [US1] Update `.board-page` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
-- [ ] T005 [P] [US1] Update `.chat-section` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
+- [x] T002 [US1] Update `body` background from `var(--color-bg-secondary)` to `var(--color-bg-primary)` in frontend/src/index.css
+- [x] T003 [US1] Update `.app-header` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
+- [x] T004 [P] [US1] Update `.board-page` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
+- [x] T005 [P] [US1] Update `.chat-section` background from `var(--color-bg)` to `var(--color-bg-primary)` in frontend/src/App.css
 
 **Checkpoint**: At this point, the brown background should be visible across all pages and views
 
@@ -48,9 +48,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Verify and update `--color-text` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (current #24292f has ~3.1:1 ratio — update to #ffffff which achieves ~7.5:1 ratio)
-- [ ] T007 [US2] Verify and update `--color-text-secondary` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (update to a lighter tone e.g. #d7ccc8 which achieves ~4.6:1 ratio, meeting WCAG AA)
-- [ ] T008 [US2] Verify `.login-button` and `.logout-button` styles remain visually distinct against the brown background in frontend/src/App.css
+- [x] T006 [US2] Verify and update `--color-text` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (current #24292f has ~3.1:1 ratio — update to #ffffff which achieves ~7.5:1 ratio)
+- [x] T007 [US2] Verify and update `--color-text-secondary` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (update to a lighter tone e.g. #d7ccc8 which achieves ~4.6:1 ratio, meeting WCAG AA)
+- [x] T008 [US2] Verify `.login-button` and `.logout-button` styles remain visually distinct against the brown background in frontend/src/App.css
 
 **Checkpoint**: All text and interactive elements should be clearly legible against the brown background
 
@@ -64,7 +64,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] Verify `--color-bg-primary` is used consistently (not hardcoded hex values) across all background declarations in frontend/src/index.css and frontend/src/App.css
+- [x] T009 [US3] Verify `--color-bg-primary` is used consistently (not hardcoded hex values) across all background declarations in frontend/src/index.css and frontend/src/App.css
 
 **Checkpoint**: The brown color is defined once as a design token and referenced everywhere
 
@@ -74,8 +74,8 @@
 
 **Purpose**: Edge cases and cleanup
 
-- [ ] T010 [P] Verify scoped component backgrounds (cards, inputs, modals) retain their own background colors and are not overridden by the brown background in frontend/src/App.css
-- [ ] T011 [P] Verify dark mode (`html.dark-mode-active`) has an appropriate brown variant or retains its existing dark theme in frontend/src/index.css
+- [x] T010 [P] Verify scoped component backgrounds (cards, inputs, modals) retain their own background colors and are not overridden by the brown background in frontend/src/App.css
+- [x] T011 [P] Verify dark mode (`html.dark-mode-active`) has an appropriate brown variant or retains its existing dark theme in frontend/src/index.css
 
 ---
 

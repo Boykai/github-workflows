@@ -34,11 +34,11 @@
 
 .app-login h1 {
   font-size: 32px;
-  color: var(--color-text);
+  color: var(--color-text-on-primary);
 }
 
 .app-login p {
-  color: var(--color-text-secondary);
+  color: var(--color-text-on-primary);
   margin-bottom: 16px;
 }
 
@@ -54,7 +54,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
-  background: var(--color-bg);
+  background: var(--color-bg-primary);
+  color: var(--color-text-on-primary);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -93,7 +94,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--color-text);
+  background: var(--color-btn-github);
   color: white;
 }
 
@@ -319,12 +320,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  background: var(--color-bg-primary);
 }
 
 .chat-placeholder {
   text-align: center;
-  color: var(--color-text-secondary);
+  color: var(--color-text-on-primary);
 }
 
 /* Sync Status Indicator */
@@ -566,7 +567,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-bg);
+  background: var(--color-bg-primary);
 }
 
 .board-page-header {
@@ -1724,7 +1725,7 @@
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  background: var(--color-text);
+  background: var(--color-btn-github);
   color: white;
   border-radius: var(--radius);
   text-decoration: none;
