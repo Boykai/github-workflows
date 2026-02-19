@@ -1,115 +1,76 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Replace App Title with 'agentic'
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
+**Feature Branch**: `001-agentic-app-title`  
+**Created**: 2026-02-19  
 **Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
+**Input**: User description: "Replace App Title with 'agentic'"
 
 ## User Scenarios & Testing *(mandatory)*
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
--->
+### User Story 1 - Consistent App Branding (Priority: P1)
 
-### User Story 1 - [Brief Title] (Priority: P1)
+As a user of the application, I want to see the title 'agentic' displayed consistently across all visible surfaces — including the browser tab, page headers, and navigation — so that the branding accurately reflects the application's identity.
 
-[Describe this user journey in plain language]
+**Why this priority**: The app title is the most visible branding element; inconsistency or incorrect naming undermines trust and professional appearance. This is the core deliverable of the feature.
 
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Independent Test**: Can be fully tested by opening the application in a browser and verifying the title text in the browser tab, page header, and login screen header. Delivers immediate, visible branding alignment.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the application is loaded in a browser, **When** the user views the browser tab, **Then** the tab title reads 'agentic' (exact casing, all lowercase).
+2. **Given** the user is on the login page, **When** the page renders, **Then** the main heading displays 'agentic'.
+3. **Given** the user is logged in and viewing the main application, **When** the page header renders, **Then** the heading displays 'agentic'.
 
 ---
 
-### User Story 2 - [Brief Title] (Priority: P2)
+### User Story 2 - Updated Developer & Configuration References (Priority: P2)
 
-[Describe this user journey in plain language]
+As a developer setting up the project, I want all developer-facing references (development environment names, setup scripts, documentation) to reflect the 'agentic' branding so that the project identity is consistent across all touchpoints.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: While not user-facing, developer references create confusion when they don't match the actual product name. Consistency across documentation and configuration supports onboarding and maintenance.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Can be tested by reviewing development environment setup output, README files, and configuration files for the correct app name.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** a developer opens the project documentation, **When** they read the README, **Then** the application is referred to as 'agentic'.
+2. **Given** a developer sets up the development environment, **When** the setup completes, **Then** any setup messages and environment names reference 'agentic'.
+3. **Given** a developer views the backend service metadata, **When** they inspect the service title or description, **Then** it reads 'agentic'.
 
 ---
-
-### User Story 3 - [Brief Title] (Priority: P3)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-[Add more user stories as needed, each with an assigned priority]
 
 ### Edge Cases
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
-
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
+- What happens if a user bookmarks the page before the title change? The bookmark retains the old title until the user revisits and re-saves; no action required — this is standard browser behavior.
+- How does the system handle cached pages displaying the old title? Standard browser cache refresh (hard reload or cache expiry) will display the new title. No special cache-busting is required for a text-only change.
 
 ## Requirements *(mandatory)*
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
-
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
-
-*Example of marking unclear requirements:*
-
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
-
-### Key Entities *(include if feature involves data)*
-
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
+- **FR-001**: System MUST display the exact string 'agentic' (all lowercase) as the browser tab title on every page.
+- **FR-002**: System MUST display the exact string 'agentic' as the main heading on the login page.
+- **FR-003**: System MUST display the exact string 'agentic' as the main heading in the application header when the user is logged in.
+- **FR-004**: System MUST replace the previous app title in all end-to-end test assertions with 'agentic' to ensure tests validate the new branding.
+- **FR-005**: System MUST update the development environment name and setup messaging to reference 'agentic'.
+- **FR-006**: System MUST update backend service metadata (title and description) to reference 'agentic'.
+- **FR-007**: System MUST update project documentation (README files) to reference 'agentic' wherever the current app title appears.
+- **FR-008**: Typography, font size, color, and styling of title elements MUST remain unchanged; only the text content is replaced.
 
 ## Success Criteria *(mandatory)*
 
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
-
 ### Measurable Outcomes
 
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-001**: 100% of visible app title instances display the exact text 'agentic' (all lowercase) — verified by visiting the login page, main application page, and checking the browser tab title.
+- **SC-002**: All existing end-to-end tests pass after the title update with zero regressions.
+- **SC-003**: The development environment setup script and configuration reference 'agentic' with no lingering references to the old title.
+- **SC-004**: All project README files reference 'agentic' as the application name.
+- **SC-005**: No styling, layout, or visual changes occur beyond the text content of the title — the change is limited to text replacement only.
+
+## Assumptions
+
+- The current app title is 'Agent Projects' and appears in frontend HTML, frontend components, e2e test files, developer configuration, backend service metadata, and project documentation.
+- The exact casing 'agentic' (all lowercase) is intentional and must be preserved exactly.
+- No new pages, components, or services need to be created — only existing text references are updated.
+- No changes to routing, navigation structure, or application logic are required.
+- Existing typography and CSS styling should remain untouched; this is a text-only change.
