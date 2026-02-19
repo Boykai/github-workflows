@@ -16,6 +16,20 @@ from src.services.workflow_orchestrator import (
 class TestHandleReadyStatusWithAgentMappings:
     """Tests for handle_ready_status with agent_mappings configuration."""
 
+    @pytest.fixture(autouse=True)
+    def clear_pending_state(self):
+        """Clear global pending assignment state between tests."""
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        yield
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+
     @pytest.fixture
     def mock_ai_service(self):
         """Create mock AI service."""
@@ -269,6 +283,20 @@ class TestHandleReadyStatusWithAgentMappings:
 
 class TestAssignAgentForStatus:
     """Tests for assign_agent_for_status helper."""
+
+    @pytest.fixture(autouse=True)
+    def clear_pending_state(self):
+        """Clear global pending assignment state between tests."""
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        yield
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
 
     @pytest.fixture
     def mock_ai_service(self):

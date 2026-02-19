@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 import time
 from collections import defaultdict
@@ -14,6 +15,28 @@ from src.config import get_settings, setup_logging
 from src.exceptions import AppException
 
 logger = logging.getLogger(__name__)
+
+
+async def _session_cleanup_loop() -> None:
+    """Periodic background task to purge expired sessions."""
+    from src.services.database import get_db
+    from src.services.session_store import purge_expired_sessions
+
+    settings = get_settings()
+    interval = settings.session_cleanup_interval
+
+    while True:
+        try:
+            await asyncio.sleep(interval)
+            db = get_db()
+            count = await purge_expired_sessions(db)
+            if count > 0:
+                logger.info("Periodic cleanup: purged %d expired sessions", count)
+        except asyncio.CancelledError:
+            logger.debug("Session cleanup task cancelled")
+            break
+        except Exception:
+            logger.exception("Error in session cleanup task")
 
 
 class RateLimiter:
@@ -73,7 +96,26 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     setup_logging(settings.debug)
     logger.info("Starting Agent Projects API")
+
+    # Initialize SQLite database, run migrations, seed global settings
+    from src.services.database import close_database, init_database, seed_global_settings
+
+    db = await init_database()
+    await seed_global_settings(db)
+    _app.state.db = db
+
+    # Start periodic session cleanup
+    cleanup_task = asyncio.create_task(_session_cleanup_loop())
+
     yield
+
+    # Shutdown: cancel cleanup task, close database
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+    await close_database()
     logger.info("Shutting down Agent Projects API")
 
 

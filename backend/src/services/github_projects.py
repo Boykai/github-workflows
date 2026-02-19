@@ -1113,6 +1113,7 @@ class GitHubProjectsService:
             StatusColor,
             StatusField,
             StatusOption,
+            SubIssue,
         )
 
         all_items: list[BoardItem] = []
@@ -1290,6 +1291,52 @@ class GitHubProjectsService:
 
         if project_meta is None:
             raise ValueError(f"Project not found: {project_id}")
+
+        # Fetch sub-issues for each issue item
+        for board_item in all_items:
+            if (
+                board_item.content_type == ContentType.ISSUE
+                and board_item.number is not None
+                and board_item.repository
+            ):
+                try:
+                    raw_sub_issues = await self.get_sub_issues(
+                        access_token=access_token,
+                        owner=board_item.repository.owner,
+                        repo=board_item.repository.name,
+                        issue_number=board_item.number,
+                    )
+                    for si in raw_sub_issues:
+                        si_assignees = [
+                            Assignee(
+                                login=a.get("login", ""),
+                                avatar_url=a.get("avatar_url", ""),
+                            )
+                            for a in si.get("assignees", [])
+                            if isinstance(a, dict)
+                        ]
+                        # Detect agent from title: "[speckit.implement] Feature title"
+                        si_title = si.get("title", "")
+                        si_agent = None
+                        if si_title.startswith("[") and "]" in si_title:
+                            si_agent = si_title[1 : si_title.index("]")]
+                        board_item.sub_issues.append(
+                            SubIssue(
+                                id=si.get("node_id", ""),
+                                number=si.get("number", 0),
+                                title=si_title,
+                                url=si.get("html_url", ""),
+                                state=si.get("state", "open"),
+                                assigned_agent=si_agent,
+                                assignees=si_assignees,
+                            )
+                        )
+                except Exception as e:
+                    logger.debug(
+                        "Failed to fetch sub-issues for item #%s: %s",
+                        board_item.number,
+                        e,
+                    )
 
         # Group items into columns by status
         status_options = project_meta.status_field.options
@@ -1490,6 +1537,77 @@ class GitHubProjectsService:
             return True
         except Exception as e:
             logger.error("Failed to update issue #%d body: %s", issue_number, e)
+            return False
+
+    async def update_issue_state(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        state: str,
+        state_reason: str | None = None,
+        labels_add: list[str] | None = None,
+        labels_remove: list[str] | None = None,
+    ) -> bool:
+        """
+        Update a GitHub Issue's state (open/closed) and optionally manage labels.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+            state: "open" or "closed"
+            state_reason: Optional reason ("completed", "not_planned", "reopened")
+            labels_add: Labels to add
+            labels_remove: Labels to remove
+
+        Returns:
+            True if update succeeded
+        """
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        try:
+            # Update state
+            payload: dict = {"state": state}
+            if state_reason:
+                payload["state_reason"] = state_reason
+
+            response = await self._client.patch(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+                json=payload,
+                headers=headers,
+            )
+            response.raise_for_status()
+
+            # Add labels
+            if labels_add:
+                await self._client.post(
+                    f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels",
+                    json={"labels": labels_add},
+                    headers=headers,
+                )
+
+            # Remove labels
+            if labels_remove:
+                for label in labels_remove:
+                    await self._client.delete(
+                        f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels/{label}",
+                        headers=headers,
+                    )
+
+            logger.info(
+                "Updated issue #%d state to '%s' in %s/%s",
+                issue_number, state, owner, repo,
+            )
+            return True
+        except Exception as e:
+            logger.warning("Failed to update issue #%d state: %s", issue_number, e)
             return False
 
     async def add_issue_to_project(
@@ -2342,6 +2460,86 @@ class GitHubProjectsService:
             item_id=item_id,
             field_id=field_id,
             option_id=option_id,
+        )
+
+    async def update_sub_issue_project_status(
+        self,
+        access_token: str,
+        project_id: str,
+        sub_issue_node_id: str,
+        status_name: str,
+    ) -> bool:
+        """
+        Update a sub-issue's Status field on the project board.
+
+        Sub-issues automatically inherit the parent issue's project, so they
+        already have a project item.  This method queries the sub-issue's
+        ``projectItems`` connection to find its project-item ID, then delegates
+        to ``update_item_status_by_name`` to set the Status column.
+
+        Returns ``True`` on success, ``False`` otherwise.
+        """
+        query = """
+        query($issueId: ID!) {
+            node(id: $issueId) {
+                ... on Issue {
+                    projectItems(first: 10) {
+                        nodes {
+                            id
+                            project { id }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        try:
+            data = await self._graphql(
+                access_token, query, {"issueId": sub_issue_node_id}
+            )
+        except Exception as exc:
+            logger.warning(
+                "GraphQL projectItems query failed for sub-issue %s: %s",
+                sub_issue_node_id,
+                exc,
+            )
+            return False
+
+        nodes = (
+            data.get("node", {})
+            .get("projectItems", {})
+            .get("nodes", [])
+        )
+
+        # Find the project item that belongs to *our* project
+        item_id: str | None = None
+        for node in nodes:
+            if node.get("project", {}).get("id") == project_id:
+                item_id = node["id"]
+                break
+
+        if not item_id and nodes:
+            # Fallback: use the first project item if project_id didn't match
+            item_id = nodes[0]["id"]
+
+        if not item_id:
+            logger.warning(
+                "Sub-issue %s has no project items — cannot set status to '%s'",
+                sub_issue_node_id,
+                status_name,
+            )
+            return False
+
+        logger.info(
+            "Updating sub-issue project board status to '%s' (item %s)",
+            status_name,
+            item_id,
+        )
+        return await self.update_item_status_by_name(
+            access_token=access_token,
+            project_id=project_id,
+            item_id=item_id,
+            status_name=status_name,
         )
 
     # ──────────────────────────────────────────────────────────────────
@@ -3204,6 +3402,96 @@ class GitHubProjectsService:
             )
             return False
 
+    async def link_pull_request_to_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        issue_number: int,
+    ) -> bool:
+        """
+        Link a pull request to a GitHub issue by adding a closing reference.
+
+        Prepends ``Closes #<issue_number>`` to the PR body so that GitHub
+        displays the PR in the issue's Development sidebar and automatically
+        closes the issue when the PR is merged.
+
+        This is called once for the *first* PR created for an issue — the
+        "main" branch that all subsequent agent child PRs merge into.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+            issue_number: Issue number to link
+
+        Returns:
+            True if the PR body was updated successfully
+        """
+        try:
+            # Fetch the current PR body first
+            pr_details = await self.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+            current_body = (pr_details or {}).get("body", "") or ""
+
+            closing_ref = f"Closes #{issue_number}"
+
+            # Don't duplicate if the reference already exists
+            if closing_ref in current_body:
+                logger.debug(
+                    "PR #%d already references issue #%d — skipping link",
+                    pr_number,
+                    issue_number,
+                )
+                return True
+
+            updated_body = f"{closing_ref}\n\n{current_body}" if current_body else closing_ref
+
+            response = await self._client.patch(
+                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
+                json={"body": updated_body},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code == 200:
+                logger.info(
+                    "Linked PR #%d to issue #%d ('%s') in %s/%s",
+                    pr_number,
+                    issue_number,
+                    closing_ref,
+                    owner,
+                    repo,
+                )
+                return True
+            else:
+                logger.warning(
+                    "Failed to link PR #%d to issue #%d: %d %s",
+                    pr_number,
+                    issue_number,
+                    response.status_code,
+                    response.text[:300] if response.text else "empty",
+                )
+                return False
+
+        except Exception as e:
+            logger.error(
+                "Failed to link PR #%d to issue #%d: %s",
+                pr_number,
+                issue_number,
+                e,
+            )
+            return False
+
     async def has_copilot_reviewed_pr(
         self,
         access_token: str,
@@ -3558,6 +3846,206 @@ class GitHubProjectsService:
         }
 
     # ──────────────────────────────────────────────────────────────────
+    # Sub-Issues
+    # ──────────────────────────────────────────────────────────────────
+
+    async def create_sub_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        parent_issue_number: int,
+        title: str,
+        body: str,
+        labels: list[str] | None = None,
+    ) -> dict:
+        """
+        Create a GitHub sub-issue attached to a parent issue.
+
+        Uses the GitHub Sub-Issues API to create a new issue and link it
+        as a child of the parent issue.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            parent_issue_number: Parent issue number to attach to
+            title: Sub-issue title
+            body: Sub-issue body (markdown)
+            labels: Optional list of label names
+
+        Returns:
+            Dict with sub-issue details: id, node_id, number, html_url
+        """
+        # Step 1: Create the issue
+        sub_issue = await self.create_issue(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            title=title,
+            body=body,
+            labels=labels,
+        )
+
+        sub_issue_number = sub_issue["number"]
+
+        # Step 2: Attach as sub-issue using the Sub-Issues API
+        try:
+            response = await self._client.post(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues",
+                json={"sub_issue_id": sub_issue["id"]},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+            )
+
+            if response.status_code in (200, 201):
+                logger.info(
+                    "Attached sub-issue #%d to parent issue #%d",
+                    sub_issue_number,
+                    parent_issue_number,
+                )
+            else:
+                logger.warning(
+                    "Failed to attach sub-issue #%d to parent #%d: %d %s",
+                    sub_issue_number,
+                    parent_issue_number,
+                    response.status_code,
+                    response.text[:300] if response.text else "",
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to attach sub-issue #%d to parent #%d: %s",
+                sub_issue_number,
+                parent_issue_number,
+                e,
+            )
+
+        return sub_issue
+
+    async def get_sub_issues(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> list[dict]:
+        """
+        Get sub-issues for a parent issue using the GitHub Sub-Issues API.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Parent issue number
+
+        Returns:
+            List of sub-issue dicts with id, node_id, number, title, state, html_url, assignees, etc.
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/sub_issues",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Accept": "application/vnd.github+json",
+                    "X-GitHub-Api-Version": "2022-11-28",
+                },
+                params={"per_page": 50},
+            )
+
+            if response.status_code == 200:
+                sub_issues = response.json()
+                logger.info(
+                    "Found %d sub-issues for issue #%d",
+                    len(sub_issues),
+                    issue_number,
+                )
+                return sub_issues
+            else:
+                logger.debug(
+                    "No sub-issues for issue #%d: %d",
+                    issue_number,
+                    response.status_code,
+                )
+                return []
+
+        except Exception as e:
+            logger.debug("Failed to get sub-issues for issue #%d: %s", issue_number, e)
+            return []
+
+    def tailor_body_for_agent(
+        self,
+        parent_body: str,
+        agent_name: str,
+        parent_issue_number: int,
+        parent_title: str,
+    ) -> str:
+        """
+        Tailor a parent issue's body for a specific agent sub-issue.
+
+        Creates a focused body that references the parent issue and includes
+        agent-specific guidance.
+
+        Args:
+            parent_body: The parent issue's body text
+            agent_name: The agent slug (e.g., "speckit.specify")
+            parent_issue_number: Parent issue number for cross-referencing
+            parent_title: Parent issue title
+
+        Returns:
+            Tailored markdown body for the sub-issue
+        """
+        # Map agent slugs to human-readable task descriptions
+        agent_descriptions = {
+            "speckit.specify": "Write a detailed specification for this feature. Analyze requirements, define acceptance criteria, and document the technical approach.",
+            "speckit.plan": "Create a detailed implementation plan. Break down the specification into actionable steps, identify dependencies, and define the order of execution.",
+            "speckit.tasks": "Generate granular implementation tasks from the plan. Each task should be a well-defined unit of work with clear inputs, outputs, and acceptance criteria.",
+            "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
+            "copilot": "Implement the requested changes. Write production-quality code with tests.",
+        }
+
+        agent_desc = agent_descriptions.get(
+            agent_name,
+            f"Complete the work assigned to the `{agent_name}` agent.",
+        )
+
+        # Strip the tracking table from the parent body (it belongs to the parent)
+        import re
+        clean_body = re.sub(
+            r"\n---\s*\n\s*##\s*🤖\s*Agent Pipeline.*",
+            "",
+            parent_body,
+            flags=re.DOTALL,
+        ).rstrip()
+
+        # Also strip the "Generated by AI" footer
+        clean_body = re.sub(
+            r"\n---\s*\n\*Generated by AI.*?\*\s*$",
+            "",
+            clean_body,
+            flags=re.DOTALL,
+        ).rstrip()
+
+        body = f"""> **Parent Issue:** #{parent_issue_number} — {parent_title}
+
+## 🤖 Agent Task: `{agent_name}`
+
+{agent_desc}
+
+---
+
+## Parent Issue Context
+
+{clean_body}
+
+---
+*Sub-issue created for agent `{agent_name}` — see parent issue #{parent_issue_number} for full context*
+"""
+        return body
+
+    # ──────────────────────────────────────────────────────────────────
     # Issue Comments and PR File Content
     # ──────────────────────────────────────────────────────────────────
 
@@ -3796,6 +4284,34 @@ class GitHubProjectsService:
             slug="copilot-review",
             display_name="Copilot Review",
             description="GitHub Copilot code review agent",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="speckit.specify",
+            display_name="Spec Kit - Specify",
+            description="Generates a detailed specification from a GitHub issue",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="speckit.plan",
+            display_name="Spec Kit - Plan",
+            description="Creates an implementation plan from a specification",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="speckit.tasks",
+            display_name="Spec Kit - Tasks",
+            description="Breaks an implementation plan into granular tasks",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="speckit.implement",
+            display_name="Spec Kit - Implement",
+            description="Implements code changes based on the task list",
             avatar_url=None,
             source=AgentSource.BUILTIN,
         ),

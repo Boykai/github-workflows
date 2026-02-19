@@ -523,6 +523,29 @@ async def confirm_proposal(
             ctx.project_item_id = item_id
 
             orchestrator = get_workflow_orchestrator()
+
+            # Create all sub-issues upfront so the user can see the full pipeline
+            agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
+            if agent_sub_issues:
+                from src.services.workflow_orchestrator import (
+                    PipelineState,
+                    set_pipeline_state,
+                )
+
+                pipeline_state = PipelineState(
+                    issue_number=issue_number,
+                    project_id=project_id,
+                    status=backlog_status,
+                    agents=[],
+                    agent_sub_issues=agent_sub_issues,
+                )
+                set_pipeline_state(issue_number, pipeline_state)
+                logger.info(
+                    "Pre-created %d sub-issues for issue #%d",
+                    len(agent_sub_issues),
+                    issue_number,
+                )
+
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
             # Send agent_assigned WebSocket notification

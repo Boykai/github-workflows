@@ -18,6 +18,12 @@ import type {
   User,
   BoardProjectListResponse,
   BoardDataResponse,
+  EffectiveUserSettings,
+  UserPreferencesUpdate,
+  GlobalSettings,
+  GlobalSettingsUpdate,
+  EffectiveProjectSettings,
+  ProjectSettingsUpdate,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -226,5 +232,63 @@ export const boardApi = {
   getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
     const params = refresh ? '?refresh=true' : '';
     return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
+  },
+};
+
+// ============ Settings API ============
+
+export const settingsApi = {
+  /**
+   * Get authenticated user's effective settings (merged with global defaults).
+   */
+  getUserSettings(): Promise<EffectiveUserSettings> {
+    return request<EffectiveUserSettings>('/settings/user');
+  },
+
+  /**
+   * Update authenticated user's preferences (partial update).
+   */
+  updateUserSettings(data: UserPreferencesUpdate): Promise<EffectiveUserSettings> {
+    return request<EffectiveUserSettings>('/settings/user', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get global/instance-level settings.
+   */
+  getGlobalSettings(): Promise<GlobalSettings> {
+    return request<GlobalSettings>('/settings/global');
+  },
+
+  /**
+   * Update global/instance-level settings (partial update).
+   */
+  updateGlobalSettings(data: GlobalSettingsUpdate): Promise<GlobalSettings> {
+    return request<GlobalSettings>('/settings/global', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get effective project settings for authenticated user.
+   */
+  getProjectSettings(projectId: string): Promise<EffectiveProjectSettings> {
+    return request<EffectiveProjectSettings>(`/settings/project/${projectId}`);
+  },
+
+  /**
+   * Update per-project settings for authenticated user (partial update).
+   */
+  updateProjectSettings(
+    projectId: string,
+    data: ProjectSettingsUpdate
+  ): Promise<EffectiveProjectSettings> {
+    return request<EffectiveProjectSettings>(`/settings/project/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 };

@@ -59,6 +59,11 @@ htmlcov/
 .mypy_cache/
 coverage/
 
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
+
 # Misc
 *.tmp
 *.bak

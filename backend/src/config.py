@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     # Copilot PR polling interval in seconds (0 to disable polling)
     copilot_polling_interval: int = 60
 
+    # Database
+    database_path: str = "/app/data/settings.db"
+
+    # Session cleanup interval in seconds
+    session_cleanup_interval: int = 3600
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse CORS origins from comma-separated string."""

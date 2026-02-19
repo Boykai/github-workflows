@@ -131,6 +131,9 @@ class PipelineState:
     started_at: datetime | None = None
     error: str | None = None
     agent_assigned_sha: str = ""  # HEAD SHA when the current agent was assigned
+    # Maps agent_name → sub-issue info for sub-issue-per-agent workflow
+    agent_sub_issues: dict[str, dict] = field(default_factory=dict)
+    # {agent_name: {"number": int, "node_id": str, "url": str}}
 
     @property
     def current_agent(self) -> str | None:
@@ -509,6 +512,105 @@ class WorkflowOrchestrator:
         return transition
 
     # ──────────────────────────────────────────────────────────────────
+    # HELPER: Create All Sub-Issues Upfront
+    # ──────────────────────────────────────────────────────────────────
+    async def create_all_sub_issues(
+        self,
+        ctx: WorkflowContext,
+    ) -> dict[str, dict]:
+        """
+        Create sub-issues for every agent in the pipeline, upfront.
+
+        Iterates over all statuses in the workflow configuration and creates
+        a sub-issue per agent so the user can see the full scope of work
+        immediately after the main issue is created.
+
+        Args:
+            ctx: Workflow context with issue info populated
+
+        Returns:
+            Dict mapping agent_name → {"number": int, "node_id": str, "url": str}
+        """
+        config = ctx.config or get_workflow_config(ctx.project_id)
+        if not config or not ctx.issue_number or not ctx.repository_owner:
+            return {}
+
+        # Fetch parent issue data once for body tailoring
+        try:
+            parent_issue_data = await self.github.get_issue_with_comments(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+            )
+            parent_body = parent_issue_data.get("body", "")
+            parent_title = parent_issue_data.get("title", f"Issue #{ctx.issue_number}")
+        except Exception as e:
+            logger.warning("Failed to fetch parent issue for sub-issue creation: %s", e)
+            return {}
+
+        # Collect all agents across all statuses in pipeline order
+        all_agents: list[str] = []
+        for status in get_status_order(config):
+            slugs = get_agent_slugs(config, status)
+            for slug in slugs:
+                if slug not in all_agents:
+                    all_agents.append(slug)
+
+        if not all_agents:
+            return {}
+
+        logger.info(
+            "Creating %d sub-issues upfront for issue #%d: %s",
+            len(all_agents),
+            ctx.issue_number,
+            ", ".join(all_agents),
+        )
+
+        agent_sub_issues: dict[str, dict] = {}
+
+        for agent_name in all_agents:
+            try:
+                sub_body = self.github.tailor_body_for_agent(
+                    parent_body=parent_body,
+                    agent_name=agent_name,
+                    parent_issue_number=ctx.issue_number,
+                    parent_title=parent_title,
+                )
+
+                sub_issue = await self.github.create_sub_issue(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    parent_issue_number=ctx.issue_number,
+                    title=f"[{agent_name}] {parent_title}",
+                    body=sub_body,
+                    labels=["ai-generated", "sub-issue"],
+                )
+
+                agent_sub_issues[agent_name] = {
+                    "number": sub_issue.get("number"),
+                    "node_id": sub_issue.get("node_id", ""),
+                    "url": sub_issue.get("html_url", ""),
+                }
+
+                logger.info(
+                    "Created sub-issue #%d for agent '%s' (parent #%d)",
+                    sub_issue.get("number"),
+                    agent_name,
+                    ctx.issue_number,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to create sub-issue for agent '%s' on issue #%d: %s",
+                    agent_name,
+                    ctx.issue_number,
+                    e,
+                )
+
+        return agent_sub_issues
+
+    # ──────────────────────────────────────────────────────────────────
     # STEP 1: Create GitHub Issue (T022)
     # ──────────────────────────────────────────────────────────────────
     async def create_issue_from_recommendation(
@@ -875,18 +977,67 @@ class WorkflowOrchestrator:
                             existing_pr["number"],
                             head_sha[:8] if head_sha else "none",
                         )
+
+                        # Link the first PR to the GitHub Issue
+                        try:
+                            await self.github.link_pull_request_to_issue(
+                                access_token=ctx.access_token,
+                                owner=ctx.repository_owner,
+                                repo=ctx.repository_name,
+                                pr_number=existing_pr["number"],
+                                issue_number=ctx.issue_number,
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                "Failed to link PR #%d to issue #%d: %s",
+                                existing_pr["number"],
+                                ctx.issue_number,
+                                e,
+                            )
                 except Exception as e:
                     logger.warning("Failed to check for existing PR: %s", e)
 
-        # Fetch issue context for the agent's custom instructions
+        # ── Look up pre-created Sub-Issue for this agent ─────────────
+        # Sub-issues are created upfront in create_all_sub_issues() so
+        # the user can see the full scope immediately.  Here we look up
+        # the existing sub-issue from the pipeline state.
+        sub_issue_node_id = ctx.issue_id  # fallback: parent issue
+        sub_issue_number = ctx.issue_number  # fallback: parent issue number
+        sub_issue_info: dict | None = None
+
+        existing_pipeline = get_pipeline_state(ctx.issue_number)
+        if existing_pipeline and existing_pipeline.agent_sub_issues:
+            pre_created = existing_pipeline.agent_sub_issues.get(agent_name)
+            if pre_created:
+                sub_issue_node_id = pre_created.get("node_id", ctx.issue_id)
+                sub_issue_number = pre_created.get("number", ctx.issue_number)
+                sub_issue_info = pre_created
+                logger.info(
+                    "Using pre-created sub-issue #%d for agent '%s' (parent #%d)",
+                    sub_issue_number,
+                    agent_name,
+                    ctx.issue_number,
+                )
+            else:
+                logger.warning(
+                    "No pre-created sub-issue found for agent '%s' on issue #%d — "
+                    "falling back to parent issue",
+                    agent_name,
+                    ctx.issue_number,
+                )
+
+        # Fetch issue context for the agent's custom instructions.
+        # Use the SUB-ISSUE data (not parent) so Copilot focuses only on
+        # the sub-issue and doesn't create duplicate PRs for the parent.
         custom_instructions = ""
-        if ctx.issue_number:
+        instruction_issue_number = sub_issue_number if sub_issue_info else ctx.issue_number
+        if instruction_issue_number:
             try:
                 issue_data = await self.github.get_issue_with_comments(
                     access_token=ctx.access_token,
                     owner=ctx.repository_owner,
                     repo=ctx.repository_name,
-                    issue_number=ctx.issue_number,
+                    issue_number=instruction_issue_number,
                 )
                 custom_instructions = self.github.format_issue_context_as_prompt(
                     issue_data,
@@ -894,8 +1045,9 @@ class WorkflowOrchestrator:
                     existing_pr=existing_pr,
                 )
                 logger.info(
-                    "Prepared custom instructions for agent '%s' (length: %d chars, existing_pr: %s)",
+                    "Prepared custom instructions for agent '%s' from issue #%d (length: %d chars, existing_pr: %s)",
                     agent_name,
+                    instruction_issue_number,
                     len(custom_instructions),
                     f"#{existing_pr['number']}" if existing_pr else "None",
                 )
@@ -907,19 +1059,39 @@ class WorkflowOrchestrator:
         # a child PR merge. We retry up to 3 times with exponential backoff.
         import asyncio
 
-        # Pre-set recovery cooldown and pending flag BEFORE the assignment
-        # API call. This prevents a race where the polling/recovery loop sees
-        # the issue between the unassign and re-assign steps and fires a
-        # duplicate assignment (e.g. issue #297 getting 2 PRs).
+        # ── Dedup guard ──────────────────────────────────────────────
+        # If this exact agent+issue was already assigned recently (within
+        # the grace period), skip the duplicate assignment.  This closes
+        # race windows where multiple code-paths (polling steps, recovery,
+        # status-transition) all converge on the same assignment.
         pending_key = f"{ctx.issue_number}:{agent_name}"
         try:
             from src.services.copilot_polling import (
+                ASSIGNMENT_GRACE_PERIOD_SECONDS,
                 _pending_agent_assignments,
                 _recovery_last_attempt,
             )
 
+            existing_ts = _pending_agent_assignments.get(pending_key)
+            if existing_ts is not None:
+                age = (datetime.utcnow() - existing_ts).total_seconds()
+                if age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
+                    logger.warning(
+                        "Skipping duplicate assignment of agent '%s' on issue #%d "
+                        "(already assigned %.0fs ago, grace=%ds)",
+                        agent_name,
+                        ctx.issue_number,
+                        age,
+                        ASSIGNMENT_GRACE_PERIOD_SECONDS,
+                    )
+                    return True  # Treat as success — the original assignment is in flight
+
+            # Pre-set recovery cooldown and pending flag BEFORE the assignment
+            # API call. This prevents a race where the polling/recovery loop sees
+            # the issue between the unassign and re-assign steps and fires a
+            # duplicate assignment.
             _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
-            _pending_agent_assignments.add(pending_key)
+            _pending_agent_assignments[pending_key] = datetime.utcnow()
             logger.debug(
                 "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
                 agent_name,
@@ -934,8 +1106,9 @@ class WorkflowOrchestrator:
 
         for attempt in range(max_retries):
             logger.info(
-                "Assigning agent '%s' to issue #%s with base_ref='%s' (attempt %d/%d)",
+                "Assigning agent '%s' to sub-issue #%s (parent #%s) with base_ref='%s' (attempt %d/%d)",
                 agent_name,
+                sub_issue_number,
                 ctx.issue_number,
                 base_ref,
                 attempt + 1,
@@ -945,8 +1118,8 @@ class WorkflowOrchestrator:
                 access_token=ctx.access_token,
                 owner=ctx.repository_owner,
                 repo=ctx.repository_name,
-                issue_node_id=ctx.issue_id,
-                issue_number=ctx.issue_number,
+                issue_node_id=sub_issue_node_id,
+                issue_number=sub_issue_number,
                 base_ref=base_ref,
                 custom_agent=agent_name,
                 custom_instructions=custom_instructions,
@@ -976,6 +1149,50 @@ class WorkflowOrchestrator:
             # Mark agent as 🔄 Active in the issue body tracking table
             await self._update_agent_tracking_state(ctx, agent_name, "active")
 
+            # Mark the sub-issue as "in progress" (add label, ensure open)
+            if sub_issue_info and sub_issue_number != ctx.issue_number:
+                try:
+                    await self.github.update_issue_state(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=sub_issue_number,
+                        state="open",
+                        labels_add=["in-progress"],
+                    )
+                    logger.info(
+                        "Marked sub-issue #%d as in-progress for agent '%s'",
+                        sub_issue_number,
+                        agent_name,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to mark sub-issue #%d as in-progress: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
+                # Update the sub-issue's project board Status to "In Progress"
+                try:
+                    sub_node_id = sub_issue_info.get("node_id", "")
+                    if sub_node_id:
+                        await self.github.update_sub_issue_project_status(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            sub_issue_node_id=sub_node_id,
+                            status_name=(
+                                config.status_in_progress
+                                if config
+                                else "In Progress"
+                            ),
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to update sub-issue #%d project board status: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
             # Refresh recovery cooldown timestamp now that assignment succeeded
             try:
                 from src.services.copilot_polling import (
@@ -997,7 +1214,7 @@ class WorkflowOrchestrator:
                     _pending_agent_assignments,
                 )
 
-                _pending_agent_assignments.discard(pending_key)
+                _pending_agent_assignments.pop(pending_key, None)
             except ImportError:
                 pass
 
@@ -1008,6 +1225,15 @@ class WorkflowOrchestrator:
             main_branch_info = get_issue_main_branch(ctx.issue_number)
             if main_branch_info and main_branch_info.get("head_sha"):
                 assigned_sha = main_branch_info.get("head_sha", "")
+
+        # Preserve existing sub-issue mappings from previous agents
+        existing_pipeline = get_pipeline_state(ctx.issue_number)
+        existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
+
+        # Add the new agent's sub-issue info
+        agent_sub_issues = dict(existing_sub_issues)
+        if sub_issue_info:
+            agent_sub_issues[agent_name] = sub_issue_info
 
         pipeline_state = PipelineState(
             issue_number=ctx.issue_number,
@@ -1021,6 +1247,7 @@ class WorkflowOrchestrator:
             started_at=datetime.utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,
+            agent_sub_issues=agent_sub_issues,
         )
         set_pipeline_state(ctx.issue_number, pipeline_state)
 
@@ -1463,7 +1690,7 @@ class WorkflowOrchestrator:
                         )
 
                         early_key = f"{ctx.issue_number}:{first_agent_name}"
-                        _pending_agent_assignments.add(early_key)
+                        _pending_agent_assignments[early_key] = datetime.utcnow()
                         _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
                         logger.debug(
                             "Early-set pending flag for agent '%s' on issue #%d before assign_agent_for_status",
@@ -1472,6 +1699,24 @@ class WorkflowOrchestrator:
                         )
                     except ImportError:
                         pass
+
+            # Create all sub-issues upfront so the user can see the full pipeline
+            agent_sub_issues = await self.create_all_sub_issues(ctx)
+            if agent_sub_issues:
+                # Store in pipeline state so assign_agent_for_status can look them up
+                pipeline_state = PipelineState(
+                    issue_number=ctx.issue_number,
+                    project_id=ctx.project_id,
+                    status=status_name,
+                    agents=[],  # Will be set properly by assign_agent_for_status
+                    agent_sub_issues=agent_sub_issues,
+                )
+                set_pipeline_state(ctx.issue_number, pipeline_state)
+                logger.info(
+                    "Pre-created %d sub-issues for issue #%d",
+                    len(agent_sub_issues),
+                    ctx.issue_number,
+                )
 
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 

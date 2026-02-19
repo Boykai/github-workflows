@@ -123,7 +123,7 @@ async def select_project(
 
     # Update session
     session.selected_project_id = project_id
-    github_auth_service.update_session(session)
+    await github_auth_service.update_session(session)
 
     logger.info("User %s selected project %s", session.github_username, project_id)
 

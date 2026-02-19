@@ -299,6 +299,134 @@ export interface PipelineStateInfo {
 
 // ============ Board Types ============
 
+// ============ Settings Types (006-sqlite-settings-storage) ============
+
+export type AIProviderType = 'copilot' | 'azure_openai';
+
+export type ThemeModeType = 'dark' | 'light';
+
+export type DefaultViewType = 'chat' | 'board' | 'settings';
+
+export type NotificationEventType =
+  | 'task_status_change'
+  | 'agent_completion'
+  | 'new_recommendation'
+  | 'chat_mention';
+
+export interface AIPreferences {
+  provider: AIProviderType;
+  model: string;
+  temperature: number;
+}
+
+export interface DisplayPreferences {
+  theme: ThemeModeType;
+  default_view: DefaultViewType;
+  sidebar_collapsed: boolean;
+}
+
+export interface WorkflowDefaults {
+  default_repository: string | null;
+  default_assignee: string;
+  copilot_polling_interval: number;
+}
+
+export interface NotificationPreferences {
+  task_status_change: boolean;
+  agent_completion: boolean;
+  new_recommendation: boolean;
+  chat_mention: boolean;
+}
+
+export interface EffectiveUserSettings {
+  ai: AIPreferences;
+  display: DisplayPreferences;
+  workflow: WorkflowDefaults;
+  notifications: NotificationPreferences;
+}
+
+export interface GlobalSettings {
+  ai: AIPreferences;
+  display: DisplayPreferences;
+  workflow: WorkflowDefaults;
+  notifications: NotificationPreferences;
+  allowed_models: string[];
+}
+
+export interface ProjectBoardConfig {
+  column_order: string[];
+  collapsed_columns: string[];
+  show_estimates: boolean;
+}
+
+export interface ProjectAgentMapping {
+  slug: string;
+  display_name?: string | null;
+}
+
+export interface ProjectSpecificSettings {
+  project_id: string;
+  board_display_config?: ProjectBoardConfig | null;
+  agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
+}
+
+export interface EffectiveProjectSettings {
+  ai: AIPreferences;
+  display: DisplayPreferences;
+  workflow: WorkflowDefaults;
+  notifications: NotificationPreferences;
+  project: ProjectSpecificSettings;
+}
+
+// ── Update (PUT) request types ──
+
+export interface AIPreferencesUpdate {
+  provider?: AIProviderType | null;
+  model?: string | null;
+  temperature?: number | null;
+}
+
+export interface DisplayPreferencesUpdate {
+  theme?: ThemeModeType | null;
+  default_view?: DefaultViewType | null;
+  sidebar_collapsed?: boolean | null;
+}
+
+export interface WorkflowDefaultsUpdate {
+  default_repository?: string | null;
+  default_assignee?: string | null;
+  copilot_polling_interval?: number | null;
+}
+
+export interface NotificationPreferencesUpdate {
+  task_status_change?: boolean | null;
+  agent_completion?: boolean | null;
+  new_recommendation?: boolean | null;
+  chat_mention?: boolean | null;
+}
+
+export interface UserPreferencesUpdate {
+  ai?: AIPreferencesUpdate;
+  display?: DisplayPreferencesUpdate;
+  workflow?: WorkflowDefaultsUpdate;
+  notifications?: NotificationPreferencesUpdate;
+}
+
+export interface GlobalSettingsUpdate {
+  ai?: AIPreferencesUpdate;
+  display?: DisplayPreferencesUpdate;
+  workflow?: WorkflowDefaultsUpdate;
+  notifications?: NotificationPreferencesUpdate;
+  allowed_models?: string[];
+}
+
+export interface ProjectSettingsUpdate {
+  board_display_config?: ProjectBoardConfig | null;
+  agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
+}
+
+// ============ Board Types (continued) ============
+
 export type StatusColor =
   | 'GRAY'
   | 'BLUE'
@@ -361,6 +489,17 @@ export interface LinkedPR {
   url: string;
 }
 
+export interface SubIssue {
+  id: string;
+  number: number;
+  title: string;
+  url: string;
+  state: string;
+  assigned_agent?: string | null;
+  assignees: BoardAssignee[];
+  linked_prs: LinkedPR[];
+}
+
 export interface BoardItem {
   item_id: string;
   content_id?: string;
@@ -377,6 +516,7 @@ export interface BoardItem {
   size?: BoardCustomFieldValue;
   estimate?: number;
   linked_prs: LinkedPR[];
+  sub_issues: SubIssue[];
 }
 
 export interface BoardColumn {

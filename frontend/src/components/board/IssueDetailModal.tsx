@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
-import type { BoardItem } from '@/types';
+import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 
 interface IssueDetailModalProps {
@@ -157,6 +157,52 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           <div className="modal-section">
             <h3 className="modal-section-title">Description</h3>
             <div className="modal-body">{item.body}</div>
+          </div>
+        )}
+
+        {/* Sub-Issues */}
+        {item.sub_issues && item.sub_issues.length > 0 && (
+          <div className="modal-section">
+            <h3 className="modal-section-title">
+              Sub-Issues ({item.sub_issues.filter((s) => s.state === 'closed').length}/{item.sub_issues.length} completed)
+            </h3>
+            <div className="modal-sub-issues">
+              {item.sub_issues.map((si: SubIssue) => (
+                <a
+                  key={si.id}
+                  href={si.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`modal-sub-issue-link ${si.state === 'closed' ? 'modal-sub-issue-closed' : 'modal-sub-issue-open'}`}
+                >
+                  <span className={`modal-sub-issue-state ${si.state === 'closed' ? 'sub-issue-done' : 'sub-issue-pending'}`}>
+                    {si.state === 'closed' ? '✓' : '○'}
+                  </span>
+                  <span className="modal-sub-issue-info">
+                    {si.assigned_agent && (
+                      <span className="modal-sub-issue-agent">{si.assigned_agent}</span>
+                    )}
+                    <span className="modal-sub-issue-number">#{si.number}</span>
+                    <span className="modal-sub-issue-title">{si.title}</span>
+                  </span>
+                  {si.assignees.length > 0 && (
+                    <div className="modal-sub-issue-assignees">
+                      {si.assignees.map((a) => (
+                        <img
+                          key={a.login}
+                          src={a.avatar_url}
+                          alt={a.login}
+                          title={a.login}
+                          className="modal-sub-issue-avatar"
+                          width={20}
+                          height={20}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </a>
+              ))}
+            </div>
           </div>
         )}
 

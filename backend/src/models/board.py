@@ -98,6 +98,23 @@ class LinkedPR(BaseModel):
     url: str = Field(..., description="PR URL on GitHub")
 
 
+class SubIssue(BaseModel):
+    """A sub-issue attached to a parent issue, representing work for a specific agent."""
+
+    id: str = Field(..., description="Sub-issue GraphQL node ID")
+    number: int = Field(..., description="Sub-issue number")
+    title: str = Field(..., description="Sub-issue title")
+    url: str = Field(..., description="GitHub URL")
+    state: str = Field(default="open", description="Issue state: open or closed")
+    assigned_agent: str | None = Field(
+        default=None, description="Agent slug assigned to this sub-issue"
+    )
+    assignees: list[Assignee] = Field(default_factory=list, description="Assigned users")
+    linked_prs: list[LinkedPR] = Field(
+        default_factory=list, description="PRs linked to this sub-issue"
+    )
+
+
 class BoardItem(BaseModel):
     """An item (issue/draft/PR) on the board with all display metadata."""
 
@@ -121,6 +138,9 @@ class BoardItem(BaseModel):
     estimate: float | None = Field(default=None, description="Estimate value (numeric)")
     linked_prs: list[LinkedPR] = Field(
         default_factory=list, description="Pull requests linked to this issue"
+    )
+    sub_issues: list[SubIssue] = Field(
+        default_factory=list, description="Sub-issues for agent work"
     )
 
 

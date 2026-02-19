@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def get_current_session(
+async def get_current_session(
     session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME),
 ) -> UserSession:
     """Get current user session from cookie."""
     if not session_id:
         raise AuthenticationError("No session cookie")
 
-    session = github_auth_service.get_session(session_id)
+    session = await github_auth_service.get_session(session_id)
     if not session:
         raise AuthenticationError("Invalid or expired session")
 
@@ -33,7 +33,7 @@ async def get_session_dep(
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserSession:
     """Dependency for getting current session from cookie."""
-    return get_current_session(session_id)
+    return await get_current_session(session_id)
 
 
 @router.get("/github")
@@ -110,7 +110,7 @@ async def set_session_cookie(
     Called by frontend after OAuth callback to set cookie via proxy.
     This ensures the cookie is associated with the frontend's origin.
     """
-    session = github_auth_service.get_session(session_token)
+    session = await github_auth_service.get_session(session_token)
     if not session:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -137,7 +137,7 @@ async def get_current_user(
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserResponse:
     """Get current authenticated user."""
-    session = get_current_session(session_id)
+    session = await get_current_session(session_id)
     return UserResponse.from_session(session)
 
 
@@ -148,7 +148,7 @@ async def logout(
 ) -> dict:
     """Logout current user by revoking session."""
     if session_id:
-        github_auth_service.revoke_session(session_id)
+        await github_auth_service.revoke_session(session_id)
 
     response.delete_cookie(key=SESSION_COOKIE_NAME)
     return {"message": "Logged out successfully"}
