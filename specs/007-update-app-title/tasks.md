@@ -39,8 +39,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update `<title>` tag from "Agent Projects" to "One More" in frontend/index.html
-- [ ] T002 [P] [US1] Update page title assertion in E2E test from "Agent Projects" to "One More" in frontend/e2e/auth.spec.ts
+- [x] T001 [US1] Update `<title>` tag from "Agent Projects" to "One More" in frontend/index.html
+- [x] T002 [P] [US1] Update page title assertion in E2E test from "Agent Projects" to "One More" in frontend/e2e/auth.spec.ts
 
 **Checkpoint**: Browser tab should now display "One More" when the application is opened.
 
@@ -54,11 +54,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [P] [US2] Update login page `<h1>` text from "Agent Projects" to "One More" in frontend/src/App.tsx (line ~72)
-- [ ] T004 [P] [US2] Update authenticated header `<h1>` text from "Agent Projects" to "One More" in frontend/src/App.tsx (line ~89)
-- [ ] T005 [P] [US2] Update header text assertions in E2E tests from "Agent Projects" to "One More" in frontend/e2e/auth.spec.ts
-- [ ] T006 [P] [US2] Update header text assertions in E2E tests from "Agent Projects" to "One More" in frontend/e2e/ui.spec.ts
-- [ ] T007 [P] [US2] Update header text assertion in E2E test from "Agent Projects" to "One More" in frontend/e2e/integration.spec.ts
+- [x] T003 [P] [US2] Update login page `<h1>` text from "Agent Projects" to "One More" in frontend/src/App.tsx (line ~72)
+- [x] T004 [P] [US2] Update authenticated header `<h1>` text from "Agent Projects" to "One More" in frontend/src/App.tsx (line ~89)
+- [x] T005 [P] [US2] Update header text assertions in E2E tests from "Agent Projects" to "One More" in frontend/e2e/auth.spec.ts
+- [x] T006 [P] [US2] Update header text assertions in E2E tests from "Agent Projects" to "One More" in frontend/e2e/ui.spec.ts
+- [x] T007 [P] [US2] Update header text assertion in E2E test from "Agent Projects" to "One More" in frontend/e2e/integration.spec.ts
 
 **Checkpoint**: Both login page and authenticated header should display "One More".
 
@@ -72,17 +72,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [P] [US3] Update FastAPI app title and description from "Agent Projects" to "One More" in backend/src/main.py
-- [ ] T009 [P] [US3] Update startup/shutdown log messages from "Agent Projects" to "One More" in backend/src/main.py
-- [ ] T010 [P] [US3] Update project description from "Agent Projects" to "One More" in backend/pyproject.toml
-- [ ] T011 [P] [US3] Update devcontainer name from "Agent Projects" to "One More" in .devcontainer/devcontainer.json
-- [ ] T012 [P] [US3] Update setup script echo message from "Agent Projects" to "One More" in .devcontainer/post-create.sh
-- [ ] T013 [P] [US3] Update environment config comment from "Agent Projects" to "One More" in .env.example
-- [ ] T014 [P] [US3] Update heading from "Agent Projects" to "One More" in README.md
-- [ ] T015 [P] [US3] Update heading and description references from "Agent Projects" to "One More" in backend/README.md
-- [ ] T016 [P] [US3] Update JSDoc comment from "Agent Projects" to "One More" in frontend/src/services/api.ts
-- [ ] T017 [P] [US3] Update JSDoc comment from "Agent Projects" to "One More" in frontend/src/types/index.ts
-- [ ] T018 [P] [US3] Update docstring from "Agent Projects" to "One More" in backend/tests/test_api_e2e.py
+- [x] T008 [P] [US3] Update FastAPI app title and description from "Agent Projects" to "One More" in backend/src/main.py
+- [x] T009 [P] [US3] Update startup/shutdown log messages from "Agent Projects" to "One More" in backend/src/main.py
+- [x] T010 [P] [US3] Update project description from "Agent Projects" to "One More" in backend/pyproject.toml
+- [x] T011 [P] [US3] Update devcontainer name from "Agent Projects" to "One More" in .devcontainer/devcontainer.json
+- [x] T012 [P] [US3] Update setup script echo message from "Agent Projects" to "One More" in .devcontainer/post-create.sh
+- [x] T013 [P] [US3] Update environment config comment from "Agent Projects" to "One More" in .env.example
+- [x] T014 [P] [US3] Update heading from "Agent Projects" to "One More" in README.md
+- [x] T015 [P] [US3] Update heading and description references from "Agent Projects" to "One More" in backend/README.md
+- [x] T016 [P] [US3] Update JSDoc comment from "Agent Projects" to "One More" in frontend/src/services/api.ts
+- [x] T017 [P] [US3] Update JSDoc comment from "Agent Projects" to "One More" in frontend/src/types/index.ts
+- [x] T018 [P] [US3] Update docstring from "Agent Projects" to "One More" in backend/tests/test_api_e2e.py
 
 **Checkpoint**: A codebase-wide search for "Agent Projects" should return zero results outside of spec/documentation files.
 
@@ -92,8 +92,8 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T019 Run full codebase search to confirm no remaining "Agent Projects" references in source files
-- [ ] T020 Visually verify browser tab title, login header, and authenticated header display "One More"
+- [x] T019 Run full codebase search to confirm no remaining "Agent Projects" references in source files
+- [x] T020 Visually verify browser tab title, login header, and authenticated header display "One More"
 
 ---
 
