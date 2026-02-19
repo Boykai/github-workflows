@@ -6,10 +6,11 @@
   --color-warning: #9a6700;
   --color-danger: #cf222e;
   --color-bg: #ffffff;
+  --color-bg-primary: #795548;
   --color-bg-secondary: #f6f8fa;
   --color-border: #d0d7de;
-  --color-text: #24292f;
-  --color-text-secondary: #57606a;
+  --color-text: #ffffff;
+  --color-text-secondary: #d7ccc8;
   --radius: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -22,6 +23,7 @@ html.dark-mode-active {
   --color-warning: #d29922;
   --color-danger: #f85149;
   --color-bg: #0d1117;
+  --color-bg-primary: #3e2723;
   --color-bg-secondary: #161b22;
   --color-border: #30363d;
   --color-text: #e6edf3;
@@ -40,7 +42,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
 }
 
 button {
