@@ -20,7 +20,7 @@
 **Purpose**: Define the blue background color as reusable CSS custom properties for light and dark themes
 
 - [ ] T001 Add `--color-bg-app: #1E3A5F` CSS variable to `:root` in frontend/src/index.css
-- [ ] T002 [P] Add `--color-bg-app: #0F2440` CSS variable to `html.dark-mode-active` in frontend/src/index.css
+- [ ] T002 Add `--color-bg-app: #0F2440` CSS variable to `html.dark-mode-active` in frontend/src/index.css
 
 ---
 
@@ -48,7 +48,7 @@
 
 - [ ] T004 [P] [US2] Add `--color-text-on-app: #ffffff` and `--color-text-on-app-secondary: rgba(255, 255, 255, 0.8)` tokens to `:root` in frontend/src/index.css
 - [ ] T005 [P] [US2] Add `--color-text-on-app: #e6edf3` and `--color-text-on-app-secondary: rgba(230, 237, 243, 0.8)` tokens to `html.dark-mode-active` in frontend/src/index.css
-- [ ] T006 [US2] Update loading screen `.app-loading` color to `var(--color-text-on-app)` in frontend/src/App.css
+- [ ] T006 [P] [US2] Update loading screen `.app-loading` color to `var(--color-text-on-app)` in frontend/src/App.css
 - [ ] T007 [P] [US2] Update login screen `.app-login h1` color to `var(--color-text-on-app)` in frontend/src/App.css
 - [ ] T008 [P] [US2] Update login screen `.app-login p` color to `var(--color-text-on-app-secondary)` in frontend/src/App.css
 
@@ -84,11 +84,11 @@
 ### Phase Dependencies
 
 ```
-Phase 1: Setup (T001-T002, parallel)
+Phase 1: Setup (T001-T002, sequential)
     ↓
 Phase 2: US1 - Blue Background (T003)
     ↓
-Phase 3: US2 - Readable Content (T004-T008, T004+T005 parallel, T007+T008 parallel)
+Phase 3: US2 - Readable Content (T004-T008, T004+T005 parallel, T006+T007+T008 parallel)
     ↓
 Phase 4: US3 - Surface Contrast (T009)
     ↓
@@ -103,9 +103,8 @@ Phase 5: Polish (T010-T011, parallel)
 
 ### Parallel Opportunities
 
-- T001 and T002 can run in parallel (different CSS rule blocks)
-- T004 and T005 can run in parallel (different CSS rule blocks)
-- T007 and T008 can run in parallel (different CSS selectors)
+- T004 and T005 can run in parallel (different CSS rule blocks in frontend/src/index.css)
+- T006, T007, and T008 can run in parallel (different CSS selectors in frontend/src/App.css)
 - T010 and T011 can run in parallel (independent verifications)
 
 ---
@@ -117,7 +116,8 @@ Phase 5: Polish (T010-T011, parallel)
 Task: "Add --color-text-on-app tokens to :root in frontend/src/index.css"
 Task: "Add --color-text-on-app tokens to html.dark-mode-active in frontend/src/index.css"
 
-# Launch parallel login screen updates:
+# Launch parallel App.css updates:
+Task: "Update .app-loading color in frontend/src/App.css"
 Task: "Update .app-login h1 color in frontend/src/App.css"
 Task: "Update .app-login p color in frontend/src/App.css"
 ```
@@ -155,7 +155,7 @@ Task: "Update .app-login p color in frontend/src/App.css"
 
 **Total Tasks**: 11
 **Tasks per User Story**: US1: 1, US2: 5, US3: 1
-**Parallel Opportunities**: 4 groups (T001+T002, T004+T005, T007+T008, T010+T011)
+**Parallel Opportunities**: 3 groups (T004+T005, T006+T007+T008, T010+T011)
 **Suggested MVP Scope**: User Story 1 (Phases 1-2, tasks T001-T003)
 **Format Validation**: ✅ All tasks follow checklist format (checkbox, ID, labels, file paths)
 
