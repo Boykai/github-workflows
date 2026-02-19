@@ -9,7 +9,7 @@ test.describe('Authentication', () => {
     await page.goto('/');
     
     // Should show the login page
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('Hello World');
     await expect(page.locator('text=Manage your GitHub Projects with natural language')).toBeVisible();
     
     // Should have a login button
@@ -21,7 +21,7 @@ test.describe('Authentication', () => {
     await page.goto('/');
     
     // The login content should appear quickly (not stuck on loading)
-    await expect(page.locator('h1')).toContainText('Agent Projects', { timeout: 5000 });
+    await expect(page.locator('h1')).toContainText('Hello World', { timeout: 5000 });
     
     // Should NOT show a loading spinner for more than briefly
     const spinner = page.locator('.spinner, .loading, [data-testid="loading"]');
@@ -35,7 +35,7 @@ test.describe('Authentication', () => {
     await page.goto('/');
     
     // Wait for page to load
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('Hello World');
     
     // Find and click login button
     const loginButton = page.locator('button:has-text("Sign in with GitHub"), button:has-text("Login"), button:has-text("Sign in")');
@@ -59,7 +59,7 @@ test.describe('Page Structure', () => {
     await page.goto('/');
     
     // Check page title
-    await expect(page).toHaveTitle(/Agent Projects/i);
+    await expect(page).toHaveTitle(/Hello World/i);
   });
 
   test('should have accessible elements', async ({ page }) => {
@@ -96,6 +96,6 @@ test.describe('Error Handling', () => {
     await page.goto('/');
     
     // Page should still render the login UI
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('Hello World');
   });
 });

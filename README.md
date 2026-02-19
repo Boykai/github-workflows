@@ -1,4 +1,4 @@
-# Agent Projects
+# Hello World
 
 > **A new way of working with DevOps** — leveraging AI in a conversational web app to create, manage, and execute GitHub Issues on a GitHub Project Board, with an automated **Spec Kit agent pipeline** that turns a feature request into a specification, plan, task breakdown, and implementation — all through GitHub Copilot custom agents.
 
