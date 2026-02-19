@@ -8,6 +8,8 @@
   --color-bg: #ffffff;
   --color-bg-secondary: #f6f8fa;
   --color-bg-app: #1E3A5F;
+  --color-text-on-app: #ffffff;
+  --color-text-on-app-secondary: rgba(255, 255, 255, 0.8);
   --color-border: #d0d7de;
   --color-text: #24292f;
   --color-text-secondary: #57606a;
@@ -25,6 +27,8 @@ html.dark-mode-active {
   --color-bg: #0d1117;
   --color-bg-secondary: #161b22;
   --color-bg-app: #0F2440;
+  --color-text-on-app: #e6edf3;
+  --color-text-on-app-secondary: rgba(230, 237, 243, 0.8);
   --color-border: #30363d;
   --color-text: #e6edf3;
   --color-text-secondary: #8b949e;
