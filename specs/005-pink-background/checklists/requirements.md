@@ -31,6 +31,5 @@
 
 ## Notes
 
-- All checklist items passed on initial validation.
-- FR-002 uses "e.g., CSS custom property" as an illustrative example rather than a prescription, which is acceptable.
+- All checklist items passed on validation.
 - The spec is ready for `/speckit.clarify` or `/speckit.plan`.

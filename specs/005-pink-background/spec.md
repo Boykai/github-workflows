@@ -65,7 +65,7 @@ As a product owner, I want the pink background color defined in a single, centra
 ### Functional Requirements
 
 - **FR-001**: System MUST apply a pink background color (#FFC0CB) to the root/main application container so it renders consistently across all primary screens and views.
-- **FR-002**: System MUST define the pink background color as a centralized style variable (e.g., CSS custom property `--color-bg-primary: #FFC0CB`) to allow easy future updates from a single location.
+- **FR-002**: System MUST define the pink background color as a single, centralized design token or style variable to allow easy future updates from one location.
 - **FR-003**: System MUST ensure all text elements maintain a minimum WCAG AA contrast ratio of 4.5:1 against the pink background color.
 - **FR-004**: System MUST verify that buttons, icons, input fields, cards, and other UI components remain visually distinct and legible when rendered over the pink background.
 - **FR-005**: System MUST apply the background color change responsively so it renders correctly across all supported screen sizes (mobile, tablet, desktop).
@@ -86,7 +86,7 @@ As a product owner, I want the pink background color defined in a single, centra
 ### Assumptions
 
 - The recommended shade of pink is #FFC0CB (standard soft/light pink), chosen for its subtle appearance and broad compatibility with dark text for accessibility compliance.
-- The application uses a standard web styling approach (CSS, CSS-in-JS, or a utility framework) where a centralized variable can be defined and consumed globally.
+- The application uses a styling approach where a centralized color variable can be defined and consumed globally.
 - Dark mode support is addressed only if the application currently has dark mode implemented; no new dark mode implementation is required.
 - Existing UI components with intentional background colors (cards, modals, input fields) may retain their own styling; only the page-level background changes to pink.
 - Performance targets follow standard web application expectations — the color change should not introduce any perceivable rendering delay.
