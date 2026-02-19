@@ -9,8 +9,10 @@
   --color-bg-primary: #795548;
   --color-bg-secondary: #f6f8fa;
   --color-border: #d0d7de;
-  --color-text: #ffffff;
-  --color-text-secondary: #d7ccc8;
+  --color-text: #24292f;
+  --color-text-secondary: #57606a;
+  --color-text-on-primary: #ffffff;
+  --color-btn-github: #24292f;
   --radius: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -28,6 +30,8 @@ html.dark-mode-active {
   --color-border: #30363d;
   --color-text: #e6edf3;
   --color-text-secondary: #8b949e;
+  --color-text-on-primary: #e6edf3;
+  --color-btn-github: #e6edf3;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
