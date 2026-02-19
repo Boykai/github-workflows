@@ -24,8 +24,8 @@
 
 **Purpose**: Verify current state and confirm all title reference locations before making changes
 
-- [ ] T001 Verify current title references by running `grep -r "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.html" --include="*.json" --include="*.py" --include="*.toml" --include="*.md" --include="*.example" .` from repository root
-- [ ] T002 Confirm frontend dev server runs successfully with `npm run dev` in frontend/
+- [x] T001 Verify current title references by running `grep -r "Agent Projects" --include="*.ts" --include="*.tsx" --include="*.html" --include="*.json" --include="*.py" --include="*.toml" --include="*.md" --include="*.example" .` from repository root
+- [x] T002 Confirm frontend dev server runs successfully with `npm run dev` in frontend/
 
 **Checkpoint**: Current state verified — ready to begin title replacement
 
@@ -49,7 +49,7 @@ All changes are independent text replacements within existing files. No new infr
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Update `<title>` tag from "Agent Projects" to "Hello World" in frontend/index.html
+- [x] T003 [US1] Update `<title>` tag from "Agent Projects" to "Hello World" in frontend/index.html
 
 **Checkpoint**: At this point, the browser tab should display "Hello World" — User Story 1 is complete and independently testable
 
@@ -63,8 +63,8 @@ All changes are independent text replacements within existing files. No new infr
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Update first `<h1>Agent Projects</h1>` to `<h1>Hello World</h1>` (login page header) in frontend/src/App.tsx
-- [ ] T005 [P] [US2] Update second `<h1>Agent Projects</h1>` to `<h1>Hello World</h1>` (app header) in frontend/src/App.tsx
+- [x] T004 [P] [US2] Update first `<h1>Agent Projects</h1>` to `<h1>Hello World</h1>` (login page header) in frontend/src/App.tsx
+- [x] T005 [P] [US2] Update second `<h1>Agent Projects</h1>` to `<h1>Hello World</h1>` (app header) in frontend/src/App.tsx
 
 **Checkpoint**: At this point, both the browser tab and in-app headers should display "Hello World" — User Stories 1 AND 2 are complete
 
@@ -80,25 +80,25 @@ All changes are independent text replacements within existing files. No new infr
 
 **Backend metadata:**
 
-- [ ] T006 [P] [US3] Update FastAPI app `title` from "Agent Projects API" to "Hello World API" in backend/src/main.py
-- [ ] T007 [P] [US3] Update FastAPI app `description` from "REST API for Agent Projects" to "REST API for Hello World" in backend/src/main.py
-- [ ] T008 [P] [US3] Update startup log message from "Starting Agent Projects API" to "Starting Hello World API" in backend/src/main.py
-- [ ] T009 [P] [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Hello World API" in backend/src/main.py
-- [ ] T010 [P] [US3] Update package description from "FastAPI backend for Agent Projects" to "FastAPI backend for Hello World" in backend/pyproject.toml
-- [ ] T011 [P] [US3] Update headings and descriptions from "Agent Projects" to "Hello World" in backend/README.md
+- [x] T006 [P] [US3] Update FastAPI app `title` from "Agent Projects API" to "Hello World API" in backend/src/main.py
+- [x] T007 [P] [US3] Update FastAPI app `description` from "REST API for Agent Projects" to "REST API for Hello World" in backend/src/main.py
+- [x] T008 [P] [US3] Update startup log message from "Starting Agent Projects API" to "Starting Hello World API" in backend/src/main.py
+- [x] T009 [P] [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Hello World API" in backend/src/main.py
+- [x] T010 [P] [US3] Update package description from "FastAPI backend for Agent Projects" to "FastAPI backend for Hello World" in backend/pyproject.toml
+- [x] T011 [P] [US3] Update headings and descriptions from "Agent Projects" to "Hello World" in backend/README.md
 
 **E2E test assertions:**
 
-- [ ] T012 [P] [US3] Update all "Agent Projects" assertions to "Hello World" in frontend/e2e/auth.spec.ts
-- [ ] T013 [P] [US3] Update all "Agent Projects" assertions to "Hello World" in frontend/e2e/ui.spec.ts
-- [ ] T014 [P] [US3] Update "Agent Projects" assertion to "Hello World" in frontend/e2e/integration.spec.ts
+- [x] T012 [P] [US3] Update all "Agent Projects" assertions to "Hello World" in frontend/e2e/auth.spec.ts
+- [x] T013 [P] [US3] Update all "Agent Projects" assertions to "Hello World" in frontend/e2e/ui.spec.ts
+- [x] T014 [P] [US3] Update "Agent Projects" assertion to "Hello World" in frontend/e2e/integration.spec.ts
 
 **Configuration and documentation:**
 
-- [ ] T015 [P] [US3] Update container name from "Agent Projects" to "Hello World" in .devcontainer/devcontainer.json
-- [ ] T016 [P] [US3] Update header comment from "Agent Projects" to "Hello World" in .env.example
-- [ ] T017 [P] [US3] Update JSDoc comment from "Agent Projects" to "Hello World" in frontend/src/types/index.ts
-- [ ] T018 [P] [US3] Update JSDoc comment from "Agent Projects" to "Hello World" in frontend/src/services/api.ts
+- [x] T015 [P] [US3] Update container name from "Agent Projects" to "Hello World" in .devcontainer/devcontainer.json
+- [x] T016 [P] [US3] Update header comment from "Agent Projects" to "Hello World" in .env.example
+- [x] T017 [P] [US3] Update JSDoc comment from "Agent Projects" to "Hello World" in frontend/src/types/index.ts
+- [x] T018 [P] [US3] Update JSDoc comment from "Agent Projects" to "Hello World" in frontend/src/services/api.ts
 
 **Checkpoint**: All user stories should now be independently functional — zero references to "Agent Projects" remain outside `specs/`
 
@@ -108,8 +108,8 @@ All changes are independent text replacements within existing files. No new infr
 
 **Purpose**: Final verification that all changes are consistent and complete
 
-- [ ] T019 Run global search `grep -r "Agent Projects"` to verify no references remain outside specs/ directory
-- [ ] T020 Run quickstart.md validation steps to confirm end-to-end correctness
+- [x] T019 Run global search `grep -r "Agent Projects"` to verify no references remain outside specs/ directory
+- [x] T020 Run quickstart.md validation steps to confirm end-to-end correctness
 
 ---
 

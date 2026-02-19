@@ -1,5 +1,5 @@
 {
-  "name": "Agent Projects",
+  "name": "Hello World",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
