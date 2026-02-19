@@ -22,7 +22,7 @@
 
 **Purpose**: Audit current title references to confirm scope of changes
 
-- [ ] T001 Audit all occurrences of "Agent Projects" in the repository to confirm the 6 files identified in research.md (3 source + 3 E2E test files)
+- [x] T001 Audit all occurrences of "Agent Projects" in the repository to confirm the 6 files identified in research.md (3 source + 3 E2E test files)
 
 ---
 
@@ -42,8 +42,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [P] [US1] Update `<title>` tag from "Agent Projects" to "Goodbye" in frontend/index.html (line 7)
-- [ ] T003 [US1] Update both `<h1>` elements from "Agent Projects" to "Goodbye" in frontend/src/App.tsx (lines 72 and 89)
+- [x] T002 [P] [US1] Update `<title>` tag from "Agent Projects" to "Goodbye" in frontend/index.html (line 7)
+- [x] T003 [US1] Update both `<h1>` elements from "Agent Projects" to "Goodbye" in frontend/src/App.tsx (lines 72 and 89)
 
 **Checkpoint**: MVP complete — all user-facing title surfaces display "Goodbye". Browser tab, login page heading, and app header all show the new title.
 
@@ -57,9 +57,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Update all "Agent Projects" assertions (5 heading + 1 title) to "Goodbye" in frontend/e2e/auth.spec.ts
-- [ ] T005 [P] [US2] Update all "Agent Projects" heading assertions (2 occurrences) to "Goodbye" in frontend/e2e/ui.spec.ts
-- [ ] T006 [P] [US2] Update "Agent Projects" heading assertion (1 occurrence) to "Goodbye" in frontend/e2e/integration.spec.ts
+- [x] T004 [P] [US2] Update all "Agent Projects" assertions (5 heading + 1 title) to "Goodbye" in frontend/e2e/auth.spec.ts
+- [x] T005 [P] [US2] Update all "Agent Projects" heading assertions (2 occurrences) to "Goodbye" in frontend/e2e/ui.spec.ts
+- [x] T006 [P] [US2] Update "Agent Projects" heading assertion (1 occurrence) to "Goodbye" in frontend/e2e/integration.spec.ts
 
 **Checkpoint**: All E2E test assertions updated — full test suite passes with zero regressions.
 
@@ -69,7 +69,7 @@
 
 **Purpose**: Final verification across all changes
 
-- [ ] T007 Run quickstart.md verification checklist — confirm all manual and automated checks from specs/005-goodbye-app-title/quickstart.md pass (browser tab, login heading, app heading, lint, type-check, tests)
+- [x] T007 Run quickstart.md verification checklist — confirm all manual and automated checks from specs/005-goodbye-app-title/quickstart.md pass (browser tab, login heading, app heading, lint, type-check, tests)
 
 ---
 
