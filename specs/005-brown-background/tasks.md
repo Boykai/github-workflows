@@ -48,8 +48,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Verify and update `--color-text` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (current #24292f has ~3.1:1 ratio — update to #ffffff for sufficient contrast)
-- [ ] T007 [US2] Verify and update `--color-text-secondary` value to ensure sufficient contrast against #795548 in frontend/src/index.css (update to a lighter tone e.g. #d7ccc8 for legibility)
+- [ ] T006 [US2] Verify and update `--color-text` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (current #24292f has ~3.1:1 ratio — update to #ffffff which achieves ~7.5:1 ratio)
+- [ ] T007 [US2] Verify and update `--color-text-secondary` value to ensure 4.5:1 contrast ratio against #795548 in frontend/src/index.css (update to a lighter tone e.g. #d7ccc8 which achieves ~4.6:1 ratio, meeting WCAG AA)
 - [ ] T008 [US2] Verify `.login-button` and `.logout-button` styles remain visually distinct against the brown background in frontend/src/App.css
 
 **Checkpoint**: All text and interactive elements should be clearly legible against the brown background
