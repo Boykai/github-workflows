@@ -62,3 +62,6 @@ coverage/
 # Misc
 *.tmp
 *.bak
+
+# TypeScript build info
+*.tsbuildinfo

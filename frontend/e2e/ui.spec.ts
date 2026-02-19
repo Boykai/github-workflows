@@ -40,7 +40,7 @@ test.describe('Login Page UI', () => {
     await page.goto('/');
     
     // Should show app name
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('One More');
     
     // Should have description text
     const description = page.locator('p, .description');
@@ -64,7 +64,7 @@ test.describe('Login Page UI', () => {
     
     // Page should still be visible and functional
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('One More');
   });
 });
 
