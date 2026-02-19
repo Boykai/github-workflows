@@ -1,5 +1,5 @@
 [project]
-name = "agent-projects-backend"
+name = "objects-backend"
 version = "0.1.0"
 description = "FastAPI backend for Objects"
 requires-python = ">=3.11"
