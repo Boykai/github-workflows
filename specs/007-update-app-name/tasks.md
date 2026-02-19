@@ -53,8 +53,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T002 [P] [US2] Update login page header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 72)
-- [ ] T003 [P] [US2] Update authenticated app header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 89)
+- [ ] T002 [US2] Update login page header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 72)
+- [ ] T003 [US2] Update authenticated app header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 89)
 
 **Checkpoint**: Both login and authenticated headers display "Robot". US2 is independently verifiable.
 
@@ -68,10 +68,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T004 [P] [US3] Update startup log message from "Starting Agent Projects API" to "Starting Robot API" in backend/src/main.py (line 75)
-- [ ] T005 [P] [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Robot API" in backend/src/main.py (line 77)
-- [ ] T006 [P] [US3] Update FastAPI title from "Agent Projects API" to "Robot API" in backend/src/main.py (line 85)
-- [ ] T007 [P] [US3] Update FastAPI description from "REST API for Agent Projects" to "REST API for Robot" in backend/src/main.py (line 86)
+- [ ] T004 [US3] Update startup log message from "Starting Agent Projects API" to "Starting Robot API" in backend/src/main.py (line 75)
+- [ ] T005 [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Robot API" in backend/src/main.py (line 77)
+- [ ] T006 [US3] Update FastAPI title from "Agent Projects API" to "Robot API" in backend/src/main.py (line 85)
+- [ ] T007 [US3] Update FastAPI description from "REST API for Agent Projects" to "REST API for Robot" in backend/src/main.py (line 86)
 - [ ] T008 [P] [US3] Update devcontainer name from "Agent Projects" to "Robot" in .devcontainer/devcontainer.json (line 2)
 - [ ] T009 [P] [US3] Update setup script log message from "Agent Projects" to "Robot" in .devcontainer/post-create.sh (line 7)
 - [ ] T010 [P] [US3] Update environment config header from "Agent Projects" to "Robot" in .env.example (line 2)
@@ -90,15 +90,15 @@
 ### Implementation for User Story 4
 
 - [ ] T012 [P] [US4] Update main README heading from "# Agent Projects" to "# Robot" in README.md (line 1)
-- [ ] T013 [P] [US4] Update backend README heading from "# Agent Projects — Backend" to "# Robot — Backend" in backend/README.md (line 1)
-- [ ] T014 [P] [US4] Update backend README body text from "Agent Projects" to "Robot" in backend/README.md (line 3)
-- [ ] T015 [P] [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 12)
-- [ ] T016 [P] [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 24)
-- [ ] T017 [P] [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 38)
-- [ ] T018 [P] [US4] Update E2E auth test page title assertion from /Agent Projects/i to /Robot/i in frontend/e2e/auth.spec.ts (line 62)
-- [ ] T019 [P] [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 99)
-- [ ] T020 [P] [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 43)
-- [ ] T021 [P] [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 67)
+- [ ] T013 [US4] Update backend README heading from "# Agent Projects — Backend" to "# Robot — Backend" in backend/README.md (line 1)
+- [ ] T014 [US4] Update backend README body text from "Agent Projects" to "Robot" in backend/README.md (line 3)
+- [ ] T015 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 12)
+- [ ] T016 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 24)
+- [ ] T017 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 38)
+- [ ] T018 [US4] Update E2E auth test page title assertion from /Agent Projects/i to /Robot/i in frontend/e2e/auth.spec.ts (line 62)
+- [ ] T019 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 99)
+- [ ] T020 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 43)
+- [ ] T021 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 67)
 - [ ] T022 [P] [US4] Update E2E integration test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/integration.spec.ts (line 69)
 - [ ] T023 [US4] Run full codebase search to verify zero remaining "Agent Projects" references outside specs/
 
@@ -136,13 +136,19 @@
 
 ### Within Each User Story
 
-- All tasks within US1, US2, US3 are parallelizable (different files or independent changes)
-- US4 documentation tasks (T012–T014) are parallelizable with E2E test assertion tasks (T015–T022)
+- US1 has a single task — no parallelism considerations
+- US2 tasks modify the same file (`App.tsx`) — sequential within story
+- US3: T004–T007 sequential (same file `main.py`); T008–T011 parallelizable (different files each)
+- US4: tasks grouped by file — groups can run in parallel, tasks within same-file groups are sequential
 - T023 (verification search) must run after all other US4 tasks are complete
 
 ### Parallel Opportunities
 
-- US1 (T001), US2 (T002–T003), and US3 (T004–T011) can all execute in parallel — they modify different files
+- US1 has a single task (T001) — no internal parallelism needed
+- US2 tasks (T002–T003) modify the same file (`App.tsx`) — must be sequential
+- US3 tasks T004–T007 modify the same file (`main.py`) — must be sequential; T008–T011 modify different files — can run in parallel with each other and with main.py changes
+- US4 groups by file: T012 (README.md), T013–T014 (backend/README.md), T015–T019 (auth.spec.ts), T020–T021 (ui.spec.ts), T022 (integration.spec.ts) — groups can run in parallel
+- US1, US2, and US3 can all execute in parallel with each other — they modify different files across stories
 - All [P] tasks within US3 modify different files and can run simultaneously
 - All [P] tasks within US4 modify different files and can run simultaneously
 
@@ -151,18 +157,12 @@
 ## Parallel Example: User Story 3
 
 ```bash
-# All backend and config changes can run in parallel (different files):
-Task T004: "Update startup log in backend/src/main.py"
-Task T005: "Update shutdown log in backend/src/main.py"
-Task T006: "Update FastAPI title in backend/src/main.py"
-Task T007: "Update FastAPI description in backend/src/main.py"
+# Tasks T004-T007 modify the same file (main.py) and must run sequentially.
+# Tasks T008-T011 each modify different files and can run in parallel with each other:
 Task T008: "Update devcontainer name in .devcontainer/devcontainer.json"
 Task T009: "Update setup script in .devcontainer/post-create.sh"
 Task T010: "Update env header in .env.example"
 Task T011: "Update pyproject description in backend/pyproject.toml"
-
-# Note: T004-T007 all modify the same file (main.py) so they must be applied sequentially.
-# T008-T011 each modify different files and can truly run in parallel with each other and with the main.py changes.
 ```
 
 ---
@@ -170,14 +170,20 @@ Task T011: "Update pyproject description in backend/pyproject.toml"
 ## Parallel Example: User Story 4
 
 ```bash
-# README updates and E2E test updates can run in parallel (different files):
+# These groups modify different files and can run in parallel:
+# Group 1 (README.md - single file):
 Task T012: "Update README.md"
+# Group 2 (backend/README.md - sequential, same file):
 Task T013: "Update backend/README.md heading"
 Task T014: "Update backend/README.md body"
+# Group 3 (auth.spec.ts - sequential, same file):
 Task T015-T019: "Update frontend/e2e/auth.spec.ts assertions"
+# Group 4 (ui.spec.ts - sequential, same file):
 Task T020-T021: "Update frontend/e2e/ui.spec.ts assertions"
+# Group 5 (integration.spec.ts - single file):
 Task T022: "Update frontend/e2e/integration.spec.ts assertion"
 
+# Groups 1-5 can all run in parallel (different files).
 # T023 (verification) runs last after all changes are complete.
 ```
 
@@ -220,7 +226,7 @@ With multiple developers:
 | **User Story 3 tasks** | 8 (T004–T011) |
 | **User Story 4 tasks** | 12 (T012–T023) |
 | **Polish tasks** | 2 (T024–T025) |
-| **Parallel opportunities** | US1/US2/US3 fully parallel; all [P] tasks within US3 and US4 |
+| **Parallel opportunities** | US1/US2/US3 can run in parallel across stories; T008–T011 parallel within US3; file-groups parallel within US4 |
 | **Suggested MVP scope** | User Story 1 only (T001) |
 | **Estimated time** | 10–15 minutes total |
 
