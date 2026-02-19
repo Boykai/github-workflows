@@ -23,7 +23,7 @@
 
 **Purpose**: Verify current state and confirm baseline before making changes
 
-- [ ] T001 Verify all occurrences of "Agent Projects" in the codebase by running `grep -rn "Agent Projects" . --include="*.html" --include="*.tsx" --include="*.ts" --include="*.py" --include="*.toml" --include="*.json" --include="*.md" --include="*.sh" --include="*.env*" | grep -v node_modules | grep -v .git/ | grep -v specs/`
+- [x] T001 Verify all occurrences of "Agent Projects" in the codebase by running `grep -rn "Agent Projects" . --include="*.html" --include="*.tsx" --include="*.ts" --include="*.py" --include="*.toml" --include="*.json" --include="*.md" --include="*.sh" --include="*.env*" | grep -v node_modules | grep -v .git/ | grep -v specs/`
 
 ---
 
@@ -35,9 +35,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Replace `<title>Agent Projects</title>` with `<title>Objects</title>` in frontend/index.html
-- [ ] T003 [P] [US1] Replace login page `<h1>Agent Projects</h1>` with `<h1>Objects</h1>` on line 72 of frontend/src/App.tsx
-- [ ] T004 [P] [US1] Replace authenticated header `<h1>Agent Projects</h1>` with `<h1>Objects</h1>` on line 89 of frontend/src/App.tsx
+- [x] T002 [US1] Replace `<title>Agent Projects</title>` with `<title>Objects</title>` in frontend/index.html
+- [x] T003 [P] [US1] Replace login page `<h1>Agent Projects</h1>` with `<h1>Objects</h1>` on line 72 of frontend/src/App.tsx
+- [x] T004 [P] [US1] Replace authenticated header `<h1>Agent Projects</h1>` with `<h1>Objects</h1>` on line 89 of frontend/src/App.tsx
 
 **Checkpoint**: Browser tab and both page headers display "Objects". User Story 1 is fully functional and testable independently.
 
@@ -51,35 +51,35 @@
 
 ### Backend Implementation
 
-- [ ] T005 [P] [US2] Replace startup log `"Starting Agent Projects API"` with `"Starting Objects API"` on line 75 of backend/src/main.py
-- [ ] T006 [P] [US2] Replace shutdown log `"Shutting down Agent Projects API"` with `"Shutting down Objects API"` on line 77 of backend/src/main.py
-- [ ] T007 [P] [US2] Replace FastAPI title `"Agent Projects API"` with `"Objects API"` on line 85 of backend/src/main.py
-- [ ] T008 [P] [US2] Replace FastAPI description `"REST API for Agent Projects"` with `"REST API for Objects"` on line 86 of backend/src/main.py
+- [x] T005 [P] [US2] Replace startup log `"Starting Agent Projects API"` with `"Starting Objects API"` on line 75 of backend/src/main.py
+- [x] T006 [P] [US2] Replace shutdown log `"Shutting down Agent Projects API"` with `"Shutting down Objects API"` on line 77 of backend/src/main.py
+- [x] T007 [P] [US2] Replace FastAPI title `"Agent Projects API"` with `"Objects API"` on line 85 of backend/src/main.py
+- [x] T008 [P] [US2] Replace FastAPI description `"REST API for Agent Projects"` with `"REST API for Objects"` on line 86 of backend/src/main.py
 
 ### E2E Test Assertion Updates
 
-- [ ] T009 [P] [US2] Update 5 test assertions from "Agent Projects" to "Objects" in frontend/e2e/auth.spec.ts (lines 12, 24, 38, 62, 99)
-- [ ] T010 [P] [US2] Update 2 test assertions from "Agent Projects" to "Objects" in frontend/e2e/ui.spec.ts (lines 43, 67)
-- [ ] T011 [P] [US2] Update 1 test assertion from "Agent Projects" to "Objects" in frontend/e2e/integration.spec.ts (line 69)
+- [x] T009 [P] [US2] Update 5 test assertions from "Agent Projects" to "Objects" in frontend/e2e/auth.spec.ts (lines 12, 24, 38, 62, 99)
+- [x] T010 [P] [US2] Update 2 test assertions from "Agent Projects" to "Objects" in frontend/e2e/ui.spec.ts (lines 43, 67)
+- [x] T011 [P] [US2] Update 1 test assertion from "Agent Projects" to "Objects" in frontend/e2e/integration.spec.ts (line 69)
 
 ### Configuration Files
 
-- [ ] T012 [P] [US2] Replace dev container name `"Agent Projects"` with `"Objects"` in .devcontainer/devcontainer.json
-- [ ] T013 [P] [US2] Replace echo message `"Agent Projects"` with `"Objects"` in .devcontainer/post-create.sh
-- [ ] T014 [P] [US2] Replace comment header `"Agent Projects"` with `"Objects"` in .env.example
-- [ ] T015 [P] [US2] Replace package name `"agent-projects-frontend"` with `"objects-frontend"` in frontend/package.json
+- [x] T012 [P] [US2] Replace dev container name `"Agent Projects"` with `"Objects"` in .devcontainer/devcontainer.json
+- [x] T013 [P] [US2] Replace echo message `"Agent Projects"` with `"Objects"` in .devcontainer/post-create.sh
+- [x] T014 [P] [US2] Replace comment header `"Agent Projects"` with `"Objects"` in .env.example
+- [x] T015 [P] [US2] Replace package name `"agent-projects-frontend"` with `"objects-frontend"` in frontend/package.json
 
 ### Documentation
 
-- [ ] T016 [P] [US2] Replace heading `"# Agent Projects"` with `"# Objects"` in README.md
-- [ ] T017 [P] [US2] Replace heading and description references from "Agent Projects" to "Objects" in backend/README.md
-- [ ] T018 [P] [US2] Replace project description from `"FastAPI backend for Agent Projects"` to `"FastAPI backend for Objects"` in backend/pyproject.toml
+- [x] T016 [P] [US2] Replace heading `"# Agent Projects"` with `"# Objects"` in README.md
+- [x] T017 [P] [US2] Replace heading and description references from "Agent Projects" to "Objects" in backend/README.md
+- [x] T018 [P] [US2] Replace project description from `"FastAPI backend for Agent Projects"` to `"FastAPI backend for Objects"` in backend/pyproject.toml
 
 ### JSDoc and Docstrings
 
-- [ ] T019 [P] [US2] Replace JSDoc comment from `"Agent Projects"` to `"Objects"` in frontend/src/services/api.ts
-- [ ] T020 [P] [US2] Replace JSDoc comment from `"Agent Projects"` to `"Objects"` in frontend/src/types/index.ts
-- [ ] T021 [P] [US2] Replace module docstring from `"Agent Projects"` to `"Objects"` in backend/tests/test_api_e2e.py
+- [x] T019 [P] [US2] Replace JSDoc comment from `"Agent Projects"` to `"Objects"` in frontend/src/services/api.ts
+- [x] T020 [P] [US2] Replace JSDoc comment from `"Agent Projects"` to `"Objects"` in frontend/src/types/index.ts
+- [x] T021 [P] [US2] Replace module docstring from `"Agent Projects"` to `"Objects"` in backend/tests/test_api_e2e.py
 
 **Checkpoint**: All references to "Agent Projects" replaced with "Objects" across the entire codebase (excluding specs/ directory). User Story 2 is complete.
 
@@ -89,8 +89,8 @@
 
 **Purpose**: Final verification and validation across all changes
 
-- [ ] T022 Verify zero remaining references to "Agent Projects" outside specs/ by running `grep -rn "Agent Projects" . --include="*.html" --include="*.tsx" --include="*.ts" --include="*.py" --include="*.toml" --include="*.json" --include="*.md" --include="*.sh" --include="*.env*" | grep -v node_modules | grep -v .git/ | grep -v specs/`
-- [ ] T023 Run quickstart.md validation checklist from specs/005-update-page-title/quickstart.md
+- [x] T022 Verify zero remaining references to "Agent Projects" outside specs/ by running `grep -rn "Agent Projects" . --include="*.html" --include="*.tsx" --include="*.ts" --include="*.py" --include="*.toml" --include="*.json" --include="*.md" --include="*.sh" --include="*.env*" | grep -v node_modules | grep -v .git/ | grep -v specs/`
+- [x] T023 Run quickstart.md validation checklist from specs/005-update-page-title/quickstart.md
 
 ---
 
