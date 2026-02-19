@@ -41,8 +41,20 @@ jobs:
       - name: Type check with pyright
         run: pyright src
 
-      #- name: Run tests
-      #  run: pytest --cov=src --cov-report=term-missing
+      - name: Run tests with coverage
+        env:
+          GITHUB_CLIENT_ID: test_ci_client_id
+          GITHUB_CLIENT_SECRET: test_ci_client_secret
+          SESSION_SECRET_KEY: test_ci_session_secret_key
+        run: |
+          pytest --cov=src --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: backend/coverage.xml
 
   # Frontend tests run directly on the runner
   frontend:
@@ -71,8 +83,15 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Run tests
-        run: npm test
+      - name: Run tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend/coverage/
 
       - name: Build
         run: npm run build
