@@ -23,7 +23,7 @@
 
 **Purpose**: Verify current baseline and confirm file structure — no new dependencies required
 
-- [ ] T001 Verify current design token values in frontend/src/index.css and audit hardcoded light color values in frontend/src/App.css per contracts/css-changes.md
+- [X] T001 Verify current design token values in frontend/src/index.css and audit hardcoded light color values in frontend/src/App.css per contracts/css-changes.md
 
 ---
 
@@ -37,8 +37,8 @@
 
 ### Implementation
 
-- [ ] T002 [US1] Update :root design tokens to black theme values in frontend/src/index.css — change --color-primary to #539bf5, --color-secondary to #8b949e, --color-success to #3fb950, --color-warning to #d29922, --color-danger to #f85149, --color-bg to #000000, --color-bg-secondary to #121212, --color-border to #30363d, --color-text to #e6edf3, --color-text-secondary to #8b949e, --shadow to 0 1px 3px rgba(0, 0, 0, 0.4)
-- [ ] T003 [P] [US1] Add inline style="background-color: #000000" to the <html> element in frontend/index.html to prevent white flash before CSS loads (FR-005)
+- [X] T002 [US1] Update :root design tokens to black theme values in frontend/src/index.css — change --color-primary to #539bf5, --color-secondary to #8b949e, --color-success to #3fb950, --color-warning to #d29922, --color-danger to #f85149, --color-bg to #000000, --color-bg-secondary to #121212, --color-border to #30363d, --color-text to #e6edf3, --color-text-secondary to #8b949e, --shadow to 0 1px 3px rgba(0, 0, 0, 0.4)
+- [X] T003 [P] [US1] Add inline style="background-color: #000000" to the <html> element in frontend/index.html to prevent white flash before CSS loads (FR-005)
 
 **Checkpoint**: MVP complete — all pages display black background, all text passes WCAG AA contrast, no white flash on load. The centralized token architecture ensures all components using `var(--color-*)` inherit the new values automatically (FR-006, SC-005).
 
@@ -52,7 +52,7 @@
 
 ### Implementation
 
-- [ ] T004 [US3] Replace hardcoded light background and text colors in frontend/src/App.css — update highlight-pulse animation background from #dafbe1 to rgba(45, 164, 78, 0.2) at line ~388, error-toast background from #fff1f0 to rgba(207, 34, 46, 0.15) at line ~407, error-banner background from #fff1f0 to rgba(207, 34, 46, 0.15) at line ~446, error-banner-message color from #82071e to #ff6b6b at line ~471, and board-error-content color from #82071e to #ff6b6b at line ~1476
+- [X] T004 [US3] Replace hardcoded light background and text colors in frontend/src/App.css — update highlight-pulse animation background from #dafbe1 to rgba(45, 164, 78, 0.2) at line ~388, error-toast background from #fff1f0 to rgba(207, 34, 46, 0.15) at line ~407, error-banner background from #fff1f0 to rgba(207, 34, 46, 0.15) at line ~446, error-banner-message color from #82071e to #ff6b6b at line ~471, and board-error-content color from #82071e to #ff6b6b at line ~1476
 
 **Checkpoint**: All component-level backgrounds consistent with black theme. No remaining hardcoded light backgrounds in the codebase (FR-007).
 
@@ -74,8 +74,8 @@
 
 **Purpose**: Final verification and visual regression check across all routes
 
-- [ ] T005 [P] Verify no remaining hardcoded light background values (#fff, #ffffff, #f6f8fa, #f5f5f5) in background properties across frontend/src/index.css, frontend/src/App.css, and frontend/src/components/chat/ChatInterface.css
-- [ ] T006 Run quickstart.md validation checklist from specs/007-black-background/quickstart.md — verify all pages display black background, no white flash on load, text contrast passes, all components themed, error states visible
+- [X] T005 [P] Verify no remaining hardcoded light background values (#fff, #ffffff, #f6f8fa, #f5f5f5) in background properties across frontend/src/index.css, frontend/src/App.css, and frontend/src/components/chat/ChatInterface.css
+- [X] T006 Run quickstart.md validation checklist from specs/007-black-background/quickstart.md — verify all pages display black background, no white flash on load, text contrast passes, all components themed, error states visible
 
 ---
 

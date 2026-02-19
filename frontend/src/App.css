@@ -384,7 +384,7 @@
 
 @keyframes highlight-pulse {
   0% {
-    background: #dafbe1;
+    background: rgba(45, 164, 78, 0.2);
     border-color: #2da44e;
     box-shadow: 0 0 0 4px rgba(45, 164, 78, 0.2);
   }
@@ -404,7 +404,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #fff1f0;
+  background: rgba(207, 34, 46, 0.15);
   border: 1px solid #cf222e;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -443,7 +443,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #fff1f0;
+  background: rgba(207, 34, 46, 0.15);
   border: 1px solid #cf222e;
   border-radius: var(--radius);
   margin: 16px;
@@ -467,7 +467,7 @@
 
 .error-banner-message {
   font-size: 13px;
-  color: #82071e;
+  color: #ff6b6b;
 }
 
 .error-banner-retry {
@@ -1472,7 +1472,7 @@
 
 .board-error-content p {
   font-size: 12px;
-  color: #82071e;
+  color: #ff6b6b;
   margin: 2px 0 0;
 }
 
