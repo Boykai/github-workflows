@@ -19,7 +19,7 @@
 
 **Purpose**: Verify baseline and confirm current title state
 
-- [ ] T001 Verify current app title strings by searching for existing title text in frontend/index.html and frontend/src/App.tsx
+- [ ] T001 Verify current app title by running `grep -rn "Welcome to Tech Connect 2026!" frontend/index.html frontend/src/App.tsx` and confirming 3 matches (1 in index.html, 2 in App.tsx)
 
 ---
 
@@ -41,7 +41,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Replace title text in `<title>` element on line 7 of frontend/index.html from current value to "GitHub Workflows"
+- [ ] T002 [US1] Replace `<title>` element text in frontend/index.html from "Welcome to Tech Connect 2026!" to "GitHub Workflows"
 
 **Checkpoint**: Browser tab displays "GitHub Workflows" — User Story 1 is fully functional and independently testable
 
@@ -55,8 +55,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [P] [US2] Replace login page header text in `<h1>` element in frontend/src/App.tsx from current value to "GitHub Workflows"
-- [ ] T004 [P] [US2] Replace authenticated view header text in `<h1>` element in frontend/src/App.tsx from current value to "GitHub Workflows"
+- [ ] T003 [P] [US2] Replace login page `<h1>` (inside the `auth-section` div) in frontend/src/App.tsx from "Welcome to Tech Connect 2026!" to "GitHub Workflows"
+- [ ] T004 [P] [US2] Replace authenticated view `<h1>` (inside the `chat-container` div) in frontend/src/App.tsx from "Welcome to Tech Connect 2026!" to "GitHub Workflows"
 
 **Checkpoint**: Both login and authenticated headers display "GitHub Workflows" — User Story 2 is fully functional and independently testable
 
@@ -70,7 +70,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T005 [US3] Search entire frontend/ directory for old title string references and verify zero matches remain
+- [ ] T005 [US3] Run `grep -rn "Welcome to Tech Connect 2026!" frontend/` to search for old title references and verify zero matches remain
 - [ ] T006 [US3] Run existing E2E test suite (frontend/e2e/auth.spec.ts) and update title assertions only if tests fail due to old title references
 
 **Checkpoint**: No old title references remain — complete branding consistency achieved
