@@ -1,7 +1,7 @@
 [project]
 name = "agent-projects-backend"
 version = "0.1.0"
-description = "FastAPI backend for Agent Projects"
+description = "FastAPI backend for Fusion"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",

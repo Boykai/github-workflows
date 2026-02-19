@@ -72,9 +72,9 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
     settings = get_settings()
     setup_logging(settings.debug)
-    logger.info("Starting Agent Projects API")
+    logger.info("Starting Fusion API")
     yield
-    logger.info("Shutting down Agent Projects API")
+    logger.info("Shutting down Fusion API")
 
 
 def create_app() -> FastAPI:
@@ -82,8 +82,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Agent Projects API",
-        description="REST API for Agent Projects",
+        title="Fusion API",
+        description="REST API for Fusion",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/api/docs" if settings.debug else None,

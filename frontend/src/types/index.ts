@@ -1,5 +1,5 @@
 /**
- * TypeScript types for Agent Projects API.
+ * TypeScript types for Fusion API.
  * Aligned with backend Pydantic models and OpenAPI contract.
  */
 
