@@ -182,4 +182,63 @@ describe('ChatInterface', () => {
     render(<ChatInterface {...createDefaultProps({ messages, pendingStatusChanges })} />);
     expect(screen.getByTestId('status-change-preview')).toBeDefined();
   });
+
+  it('Enter key without shift submits the form', () => {
+    const onSendMessage = vi.fn();
+    render(<ChatInterface {...createDefaultProps({ onSendMessage })} />);
+    const textarea = screen.getByPlaceholderText(/Describe a feature/);
+    fireEvent.change(textarea, { target: { value: 'Test message' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+    expect(onSendMessage).toHaveBeenCalledWith('Test message');
+  });
+
+  it('Enter key with shift does NOT submit the form', () => {
+    const onSendMessage = vi.fn();
+    render(<ChatInterface {...createDefaultProps({ onSendMessage })} />);
+    const textarea = screen.getByPlaceholderText(/Describe a feature/);
+    fireEvent.change(textarea, { target: { value: 'Test message' } });
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+    expect(onSendMessage).not.toHaveBeenCalled();
+  });
+
+  it('handleInputChange auto-resizes textarea', () => {
+    render(<ChatInterface {...createDefaultProps()} />);
+    const textarea = screen.getByPlaceholderText(/Describe a feature/) as HTMLTextAreaElement;
+    // Simulate change that triggers auto-resize
+    fireEvent.change(textarea, { target: { value: 'Line 1\nLine 2\nLine 3' } });
+    // The handler sets style.height; verify no crash and value is set
+    expect(textarea.value).toBe('Line 1\nLine 2\nLine 3');
+  });
+
+  it('textarea height resets when input is cleared', () => {
+    const { rerender } = render(<ChatInterface {...createDefaultProps()} />);
+    const textarea = screen.getByPlaceholderText(/Describe a feature/) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'some text' } });
+    // Submit to clear input
+    fireEvent.submit(textarea.closest('form')!);
+    // After clearing, the effect should reset height
+    expect(textarea.style.height).toBe('auto');
+  });
+
+  it('renders IssueRecommendationPreview for issue_create recommendations', () => {
+    const recommendation = {
+      recommendation_id: 'rec-1',
+      proposed_title: 'New feature',
+      user_story: 'As a user...',
+      ui_ux_description: 'A toggle',
+      functional_requirements: ['Req 1'],
+      status: 'pending' as const,
+    };
+    const pendingRecommendations = new Map([['rec-1', recommendation]]);
+    const messages = [
+      createMessage({
+        message_id: 'msg-1',
+        sender_type: 'assistant',
+        action_type: 'issue_create',
+        action_data: { recommendation_id: 'rec-1' } as never,
+      }),
+    ];
+    render(<ChatInterface {...createDefaultProps({ messages, pendingRecommendations })} />);
+    expect(screen.getByTestId('issue-recommendation-preview')).toBeDefined();
+  });
 });

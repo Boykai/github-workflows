@@ -141,4 +141,64 @@ describe('IssueRecommendationPreview', () => {
     );
     expect(screen.getByText('... and 3 more')).toBeDefined();
   });
+
+  it('reject button calls onReject', async () => {
+    const onReject = vi.fn().mockResolvedValue(undefined);
+    render(
+      <IssueRecommendationPreview
+        recommendation={createRecommendation()}
+        onConfirm={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+        onReject={onReject}
+      />
+    );
+    fireEvent.click(screen.getByText('✗ Reject'));
+    await waitFor(() => {
+      expect(onReject).toHaveBeenCalledWith('rec-1');
+    });
+  });
+
+  it('shows error message on reject failure', async () => {
+    const onReject = vi.fn().mockRejectedValue(new Error('Reject failed'));
+    render(
+      <IssueRecommendationPreview
+        recommendation={createRecommendation()}
+        onConfirm={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+        onReject={onReject}
+      />
+    );
+    fireEvent.click(screen.getByText('✗ Reject'));
+    await waitFor(() => {
+      expect(screen.getByText('Reject failed')).toBeDefined();
+    });
+  });
+
+  it('shows generic error on reject failure with non-Error', async () => {
+    const onReject = vi.fn().mockRejectedValue('some string error');
+    render(
+      <IssueRecommendationPreview
+        recommendation={createRecommendation()}
+        onConfirm={vi.fn().mockResolvedValue({ success: true, message: 'ok' })}
+        onReject={onReject}
+      />
+    );
+    fireEvent.click(screen.getByText('✗ Reject'));
+    await waitFor(() => {
+      expect(screen.getByText('Failed to reject')).toBeDefined();
+    });
+  });
+
+  it('shows generic error on confirm failure with non-Error', async () => {
+    const onConfirm = vi.fn().mockRejectedValue('string error');
+    render(
+      <IssueRecommendationPreview
+        recommendation={createRecommendation()}
+        onConfirm={onConfirm}
+        onReject={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+    fireEvent.click(screen.getByText('✓ Confirm & Create Issue'));
+    await waitFor(() => {
+      expect(screen.getByText('Failed to create issue')).toBeDefined();
+    });
+  });
 });

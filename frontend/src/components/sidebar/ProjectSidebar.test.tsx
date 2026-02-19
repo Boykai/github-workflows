@@ -10,6 +10,9 @@ vi.mock('@/hooks/useRealTimeSync', () => ({
   useRealTimeSync: vi.fn(() => ({ status: 'connected', lastUpdate: null })),
 }));
 
+import { useRealTimeSync } from '@/hooks/useRealTimeSync';
+const mockUseRealTimeSync = useRealTimeSync as ReturnType<typeof vi.fn>;
+
 vi.mock('./ProjectSelector', () => ({
   ProjectSelector: () => <div data-testid="project-selector" />,
 }));
@@ -160,5 +163,163 @@ describe('ProjectSidebar', () => {
     );
     expect(screen.getByTestId('task-card')).toBeDefined();
     expect(screen.getByText('Task A')).toBeDefined();
+  });
+
+  it('formatLastUpdate shows "just now" for recent updates', () => {
+    mockUseRealTimeSync.mockReturnValue({ status: 'connected', lastUpdate: new Date() });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/Updated just now/)).toBeDefined();
+  });
+
+  it('formatLastUpdate shows minutes ago', () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    mockUseRealTimeSync.mockReturnValue({ status: 'connected', lastUpdate: fiveMinAgo });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/Updated 5m ago/)).toBeDefined();
+  });
+
+  it('formatLastUpdate shows time for old updates', () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    mockUseRealTimeSync.mockReturnValue({ status: 'connected', lastUpdate: twoHoursAgo });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/Updated/)).toBeDefined();
+  });
+
+  it('shows sync status for connecting state', () => {
+    mockUseRealTimeSync.mockReturnValue({ status: 'connecting', lastUpdate: null });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Connecting...')).toBeDefined();
+  });
+
+  it('shows sync status for polling mode', () => {
+    mockUseRealTimeSync.mockReturnValue({ status: 'polling', lastUpdate: null });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Polling mode')).toBeDefined();
+  });
+
+  it('shows sync status for disconnected state', () => {
+    mockUseRealTimeSync.mockReturnValue({ status: 'disconnected', lastUpdate: null });
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={[]}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Offline')).toBeDefined();
+  });
+
+  it('highlights recently updated tasks', async () => {
+    const tasks1 = [createTask({ task_id: 't1', title: 'Task A', status: 'Todo' })];
+    const { rerender } = render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={tasks1}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    // Add a new task to trigger highlight
+    const tasks2 = [
+      createTask({ task_id: 't1', title: 'Task A', status: 'Todo' }),
+      createTask({ task_id: 't2', title: 'Task B', status: 'In Progress', created_at: '2024-01-16T10:00:00Z' }),
+    ];
+    rerender(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={tasks2}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Task B')).toBeDefined();
+  });
+
+  it('groups tasks into unknown status if not in project columns', () => {
+    const tasks = [
+      createTask({ task_id: 't1', title: 'Task A', status: 'Custom Status' }),
+    ];
+    render(
+      <ProjectSidebar
+        projects={[createProject()]}
+        selectedProject={createProject()}
+        tasks={tasks}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Custom Status')).toBeDefined();
+    expect(screen.getByText('Task A')).toBeDefined();
+  });
+
+  it('uses default statuses when project has no status_columns', () => {
+    const project = createProject({ status_columns: [] });
+    const tasks = [createTask({ task_id: 't1', title: 'Task A', status: 'Todo' })];
+    render(
+      <ProjectSidebar
+        projects={[project]}
+        selectedProject={project}
+        tasks={tasks}
+        isLoading={false}
+        tasksLoading={false}
+        onProjectSelect={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Todo')).toBeDefined();
+    expect(screen.getByText('In Progress')).toBeDefined();
+    expect(screen.getByText('Done')).toBeDefined();
   });
 });

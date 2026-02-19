@@ -2,7 +2,7 @@
  * Unit tests for AgentColumnCell component
  */
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { AgentAssignment } from '@/types';
 
 vi.mock('@dnd-kit/core', () => ({
@@ -98,5 +98,45 @@ describe('AgentColumnCell', () => {
     );
     render(<AgentColumnCell {...defaultProps} agents={agents} />);
     expect(screen.queryByText(/agents assigned/)).toBeNull();
+  });
+
+  it('handleRemove calls onRemoveAgent with status and agent id', () => {
+    const onRemoveAgent = vi.fn();
+    const agents = [createAgent('a1', 'bot-a', 'Bot A')];
+    render(<AgentColumnCell {...defaultProps} agents={agents} onRemoveAgent={onRemoveAgent} />);
+    const removeBtn = screen.getByTitle('Remove agent');
+    fireEvent.click(removeBtn);
+    expect(onRemoveAgent).toHaveBeenCalledWith('In Progress', 'a1');
+  });
+
+  it('renders with availableAgents and shows warning for unknown agent', () => {
+    const agents = [createAgent('a1', 'unknown-bot', 'Unknown Bot')];
+    const availableAgents = [
+      { slug: 'bot-a', display_name: 'Bot A', source: 'builtin' as const },
+    ];
+    const { container } = render(
+      <AgentColumnCell {...defaultProps} agents={agents} availableAgents={availableAgents} />
+    );
+    // The SortableAgentTile passes isWarning to AgentTile
+    expect(container.querySelector('.agent-tile--warning')).not.toBeNull();
+  });
+
+  it('does not show warning when agent is in available agents list', () => {
+    const agents = [createAgent('a1', 'bot-a', 'Bot A')];
+    const availableAgents = [
+      { slug: 'bot-a', display_name: 'Bot A', source: 'builtin' as const },
+    ];
+    const { container } = render(
+      <AgentColumnCell {...defaultProps} agents={agents} availableAgents={availableAgents} />
+    );
+    expect(container.querySelector('.agent-tile--warning')).toBeNull();
+  });
+
+  it('shows warning for 12 agents', () => {
+    const agents = Array.from({ length: 12 }, (_, i) =>
+      createAgent(`a${i}`, `bot-${i}`, `Bot ${i}`)
+    );
+    render(<AgentColumnCell {...defaultProps} agents={agents} />);
+    expect(screen.getByText(/12 agents assigned/)).toBeDefined();
   });
 });
