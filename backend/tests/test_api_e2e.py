@@ -1,5 +1,5 @@
 """
-End-to-end API tests for the Agent Projects Backend.
+End-to-end API tests for the One More Backend.
 
 These tests verify the API endpoints work correctly.
 """

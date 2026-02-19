@@ -1,5 +1,5 @@
 /**
- * API client service for Agent Projects.
+ * API client service for One More.
  * Provides typed fetch wrapper with error handling.
  */
 
