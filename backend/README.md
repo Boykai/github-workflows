@@ -1,6 +1,6 @@
-# Agent Projects — Backend
+# Robot — Backend
 
-FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
+FastAPI backend that powers Robot and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
 
 ## Setup
 

@@ -66,7 +66,7 @@ test.describe('API Integration', () => {
     await page.goto('/');
     
     // Should show login UI (not crash)
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('Robot');
     
     // Should show sign in option
     const signInText = page.locator('text=/sign in|login|authenticate/i');

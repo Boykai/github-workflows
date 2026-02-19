@@ -39,7 +39,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Update HTML page title from "Agent Projects" to "Robot" in frontend/index.html
+- [x] T001 [US1] Update HTML page title from "Agent Projects" to "Robot" in frontend/index.html
 
 **Checkpoint**: Browser tab now displays "Robot". US1 is independently verifiable.
 
@@ -53,8 +53,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T002 [US2] Update login page header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 72)
-- [ ] T003 [US2] Update authenticated app header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 89)
+- [x] T002 [US2] Update login page header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 72)
+- [x] T003 [US2] Update authenticated app header from "Agent Projects" to "Robot" in frontend/src/App.tsx (line 89)
 
 **Checkpoint**: Both login and authenticated headers display "Robot". US2 is independently verifiable.
 
@@ -68,14 +68,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T004 [US3] Update startup log message from "Starting Agent Projects API" to "Starting Robot API" in backend/src/main.py (line 75)
-- [ ] T005 [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Robot API" in backend/src/main.py (line 77)
-- [ ] T006 [US3] Update FastAPI title from "Agent Projects API" to "Robot API" in backend/src/main.py (line 85)
-- [ ] T007 [US3] Update FastAPI description from "REST API for Agent Projects" to "REST API for Robot" in backend/src/main.py (line 86)
-- [ ] T008 [P] [US3] Update devcontainer name from "Agent Projects" to "Robot" in .devcontainer/devcontainer.json (line 2)
-- [ ] T009 [P] [US3] Update setup script log message from "Agent Projects" to "Robot" in .devcontainer/post-create.sh (line 7)
-- [ ] T010 [P] [US3] Update environment config header from "Agent Projects" to "Robot" in .env.example (line 2)
-- [ ] T011 [P] [US3] Update project description from "FastAPI backend for Agent Projects" to "FastAPI backend for Robot" in backend/pyproject.toml (line 4)
+- [x] T004 [US3] Update startup log message from "Starting Agent Projects API" to "Starting Robot API" in backend/src/main.py (line 75)
+- [x] T005 [US3] Update shutdown log message from "Shutting down Agent Projects API" to "Shutting down Robot API" in backend/src/main.py (line 77)
+- [x] T006 [US3] Update FastAPI title from "Agent Projects API" to "Robot API" in backend/src/main.py (line 85)
+- [x] T007 [US3] Update FastAPI description from "REST API for Agent Projects" to "REST API for Robot" in backend/src/main.py (line 86)
+- [x] T008 [P] [US3] Update devcontainer name from "Agent Projects" to "Robot" in .devcontainer/devcontainer.json (line 2)
+- [x] T009 [P] [US3] Update setup script log message from "Agent Projects" to "Robot" in .devcontainer/post-create.sh (line 7)
+- [x] T010 [P] [US3] Update environment config header from "Agent Projects" to "Robot" in .env.example (line 2)
+- [x] T011 [P] [US3] Update project description from "FastAPI backend for Agent Projects" to "FastAPI backend for Robot" in backend/pyproject.toml (line 4)
 
 **Checkpoint**: All backend and developer surfaces display "Robot". US3 is independently verifiable.
 
@@ -89,18 +89,18 @@
 
 ### Implementation for User Story 4
 
-- [ ] T012 [P] [US4] Update main README heading from "# Agent Projects" to "# Robot" in README.md (line 1)
-- [ ] T013 [US4] Update backend README heading from "# Agent Projects — Backend" to "# Robot — Backend" in backend/README.md (line 1)
-- [ ] T014 [US4] Update backend README body text from "Agent Projects" to "Robot" in backend/README.md (line 3)
-- [ ] T015 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 12)
-- [ ] T016 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 24)
-- [ ] T017 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 38)
-- [ ] T018 [US4] Update E2E auth test page title assertion from /Agent Projects/i to /Robot/i in frontend/e2e/auth.spec.ts (line 62)
-- [ ] T019 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 99)
-- [ ] T020 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 43)
-- [ ] T021 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 67)
-- [ ] T022 [P] [US4] Update E2E integration test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/integration.spec.ts (line 69)
-- [ ] T023 [US4] Run full codebase search to verify zero remaining "Agent Projects" references outside specs/
+- [x] T012 [P] [US4] Update main README heading from "# Agent Projects" to "# Robot" in README.md (line 1)
+- [x] T013 [US4] Update backend README heading from "# Agent Projects — Backend" to "# Robot — Backend" in backend/README.md (line 1)
+- [x] T014 [US4] Update backend README body text from "Agent Projects" to "Robot" in backend/README.md (line 3)
+- [x] T015 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 12)
+- [x] T016 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 24)
+- [x] T017 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 38)
+- [x] T018 [US4] Update E2E auth test page title assertion from /Agent Projects/i to /Robot/i in frontend/e2e/auth.spec.ts (line 62)
+- [x] T019 [US4] Update E2E auth test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/auth.spec.ts (line 99)
+- [x] T020 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 43)
+- [x] T021 [US4] Update E2E ui test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/ui.spec.ts (line 67)
+- [x] T022 [P] [US4] Update E2E integration test h1 assertion from "Agent Projects" to "Robot" in frontend/e2e/integration.spec.ts (line 69)
+- [x] T023 [US4] Run full codebase search to verify zero remaining "Agent Projects" references outside specs/
 
 **Checkpoint**: No references to "Agent Projects" remain in user-facing content, configuration, or test assertions. US4 is independently verifiable.
 
@@ -110,8 +110,8 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T024 Run quickstart.md validation checklist to confirm all FRs are satisfied
-- [ ] T025 Verify all E2E tests pass with the updated application name
+- [x] T024 Run quickstart.md validation checklist to confirm all FRs are satisfied
+- [x] T025 Verify all E2E tests pass with the updated application name
 
 ---
 
