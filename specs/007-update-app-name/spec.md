@@ -1,115 +1,104 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Update App Name to "Robot"
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
+**Feature Branch**: `007-update-app-name`  
+**Created**: 2026-02-19  
 **Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
+**Input**: User description: "Update App Name to Robot"
 
 ## User Scenarios & Testing *(mandatory)*
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
--->
+### User Story 1 - App Name Displays as "Robot" in the Browser (Priority: P1)
 
-### User Story 1 - [Brief Title] (Priority: P1)
+As a user, when I open the application in a web browser, the browser tab title displays "Robot" so that I can easily identify the application among my open tabs.
 
-[Describe this user journey in plain language]
+**Why this priority**: The browser tab title is the most visible and frequently seen display of the app name. Users identify and switch between applications primarily by their tab title.
 
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Independent Test**: Can be fully tested by opening the application in a browser and verifying the tab title reads "Robot".
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the application is loaded in a browser, **When** the user views the browser tab, **Then** the tab title displays "Robot"
+2. **Given** the user bookmarks the application, **When** viewing the bookmark, **Then** the default bookmark name is "Robot"
 
 ---
 
-### User Story 2 - [Brief Title] (Priority: P2)
+### User Story 2 - App Name Displays as "Robot" in the Application UI (Priority: P1)
 
-[Describe this user journey in plain language]
+As a user, when I view the application interface, all visible headings, titles, and branding elements display "Robot" instead of the previous name, so the branding is consistent.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: In-app branding is equally critical to the browser title for a consistent user experience. Users should see "Robot" throughout the application.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Can be fully tested by navigating through the application and visually confirming all headings and title elements read "Robot".
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the user is on the main page, **When** viewing the application header, **Then** the displayed application name is "Robot"
+2. **Given** the user is on any page within the application, **When** viewing any heading or title that references the application name, **Then** it displays "Robot"
 
 ---
 
-### User Story 3 - [Brief Title] (Priority: P3)
+### User Story 3 - App Name Displays as "Robot" in Backend and Developer Surfaces (Priority: P2)
 
-[Describe this user journey in plain language]
+As a developer or API consumer, when I access backend documentation, logs, or metadata, the application name appears as "Robot" so that internal tooling and documentation are consistent with the user-facing brand.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: Developer-facing surfaces should reflect the updated brand, but these are secondary to user-facing changes since end users do not typically interact with backend metadata or logs.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Can be fully tested by checking backend startup logs, API documentation pages, and project metadata files for the name "Robot".
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the backend server starts, **When** viewing startup log messages, **Then** the application name in logs reads "Robot"
+2. **Given** a developer accesses the auto-generated API documentation, **When** viewing the API title, **Then** it displays "Robot"
 
 ---
 
-[Add more user stories as needed, each with an assigned priority]
+### User Story 4 - No References to Old App Name Remain (Priority: P2)
+
+As a stakeholder, I want to be confident that no references to the old application name ("Agent Projects") remain in user-facing content, configuration, or documentation, so the rebrand is complete and professional.
+
+**Why this priority**: Leftover references to the old name undermine the rebrand and create confusion. This story ensures completeness.
+
+**Independent Test**: Can be fully tested by performing a comprehensive search of the codebase and all user-facing outputs for the old name "Agent Projects" and confirming zero results.
+
+**Acceptance Scenarios**:
+
+1. **Given** the rename is complete, **When** searching the entire codebase for "Agent Projects", **Then** zero matches are found in user-facing content and configuration files
+2. **Given** the application is running, **When** a user navigates through all screens, **Then** the old name "Agent Projects" does not appear anywhere
+
+---
 
 ### Edge Cases
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
-
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
+- What happens if a user has the old application name cached in their browser tab or bookmark? The updated HTML title tag will resolve this on next page load; existing bookmarks may retain the old name until the user re-bookmarks.
+- What happens if a search engine has indexed the old name? Search engine results will update over time as crawlers re-index the site; this is outside the scope of this feature.
+- What happens to references in automated test assertions that check for the old app name? These must be updated to expect "Robot" to prevent test failures.
 
 ## Requirements *(mandatory)*
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
-
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: The browser tab title MUST display "Robot" when the application is loaded
+- **FR-002**: All user-facing headings and title elements within the application UI MUST display "Robot"
+- **FR-003**: Backend startup log messages that reference the application name MUST use "Robot"
+- **FR-004**: Auto-generated API documentation title MUST display "Robot"
+- **FR-005**: Project configuration and metadata files MUST reference "Robot" as the application display name
+- **FR-006**: The development environment name MUST display "Robot"
+- **FR-007**: All README and documentation files MUST reference "Robot" as the application name
+- **FR-008**: All existing automated tests that assert on the application name MUST be updated to expect "Robot"
+- **FR-009**: No user-facing content or configuration file MUST contain the old application name "Agent Projects" after the rename is complete
 
-*Example of marking unclear requirements:*
+## Assumptions
 
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
-
-### Key Entities *(include if feature involves data)*
-
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
+- The rename applies only to the display name; internal package names, directory structures, and repository names are not changed unless they surface to end users.
+- The old application name is "Agent Projects" based on the current state of the codebase.
+- No logo or visual branding assets need to change — only textual references to the application name.
+- Localization/i18n is not currently in use; all name references are hardcoded English strings.
 
 ## Success Criteria *(mandatory)*
 
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
-
 ### Measurable Outcomes
 
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-001**: 100% of user-facing surfaces (browser tab, headings, titles) display "Robot" instead of "Agent Projects"
+- **SC-002**: A full-text search of the codebase for "Agent Projects" returns zero results in user-facing content and configuration files
+- **SC-003**: All existing automated tests pass with the updated application name
+- **SC-004**: Backend startup and API documentation display "Robot" as the application name
