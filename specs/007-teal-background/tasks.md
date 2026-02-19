@@ -23,7 +23,7 @@
 
 **Purpose**: Verify project structure and existing design token system
 
-- [ ] T001 Verify existing CSS custom property system in frontend/src/index.css — confirm `:root` and `html.dark-mode-active` blocks exist with `--color-*` tokens and that `body` uses `var(--color-bg-secondary)` for background
+- [x] T001 Verify existing CSS custom property system in frontend/src/index.css — confirm `:root` and `html.dark-mode-active` blocks exist with `--color-*` tokens and that `body` uses `var(--color-bg-secondary)` for background
 
 ---
 
@@ -33,7 +33,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Add `--color-bg-app: #0D9488;` CSS custom property to the `:root` block in frontend/src/index.css — insert after `--color-bg-secondary` line to group background tokens together
+- [x] T002 Add `--color-bg-app: #0D9488;` CSS custom property to the `:root` block in frontend/src/index.css — insert after `--color-bg-secondary` line to group background tokens together
 
 **Checkpoint**: Design token defined — user story implementation can now begin
 
@@ -47,8 +47,8 @@
 
 ### Implementation
 
-- [ ] T003 [US1] Update `body` background property from `var(--color-bg-secondary)` to `var(--color-bg-app)` in frontend/src/index.css — this applies the teal background globally across all routes and screens
-- [ ] T004 [US1] Verify teal background renders on login screen, loading screen, and main app layout — confirm no white flash during route transitions and full viewport coverage on mobile, tablet, and desktop in frontend/src/index.css
+- [x] T003 [US1] Update `body` background property from `var(--color-bg-secondary)` to `var(--color-bg-app)` in frontend/src/index.css — this applies the teal background globally across all routes and screens
+- [x] T004 [US1] Verify teal background renders on login screen, loading screen, and main app layout — confirm no white flash during route transitions and full viewport coverage on mobile, tablet, and desktop in frontend/src/index.css
 
 **Checkpoint**: MVP complete — teal background visible across all screens. Cards, modals, sidebar, and header retain their own backgrounds (var(--color-bg) / var(--color-bg-secondary)) and remain visually distinct.
 
@@ -62,8 +62,8 @@
 
 ### Implementation
 
-- [ ] T005 [US2] Verify WCAG AA contrast compliance for all text on teal background in frontend/src/index.css — confirm white text (#FFFFFF) on #0D9488 achieves ≥4.53:1 ratio and dark text (#24292F) on #0D9488 achieves ≥5.5:1 ratio per research.md contrast data
-- [ ] T006 [US2] Verify existing UI components are not broken — confirm cards (var(--color-bg)), modals (var(--color-bg)), sidebar (var(--color-bg)), header (var(--color-bg)), and board columns (var(--color-bg-secondary)) layer correctly on top of the teal background in frontend/src/index.css
+- [x] T005 [US2] Verify WCAG AA contrast compliance for all text on teal background in frontend/src/index.css — confirm white text (#FFFFFF) on #0D9488 achieves ≥4.53:1 ratio and dark text (#24292F) on #0D9488 achieves ≥5.5:1 ratio per research.md contrast data
+- [x] T006 [US2] Verify existing UI components are not broken — confirm cards (var(--color-bg)), modals (var(--color-bg)), sidebar (var(--color-bg)), header (var(--color-bg)), and board columns (var(--color-bg-secondary)) layer correctly on top of the teal background in frontend/src/index.css
 
 **Checkpoint**: Accessibility verified — all text meets WCAG AA contrast and all existing components remain legible and visually distinct.
 
@@ -77,8 +77,8 @@
 
 ### Implementation
 
-- [ ] T007 [US3] Add `--color-bg-app: #0F766E;` to the `html.dark-mode-active` block in frontend/src/index.css — the existing useAppTheme hook and class-toggling mechanism handle the switch automatically, no other files need changes
-- [ ] T008 [US3] Verify dark mode teal variant renders correctly — confirm toggling dark mode transitions smoothly between #0D9488 (light) and #0F766E (dark) and that light text (#E6EDF3) on #0F766E achieves ≥6.8:1 contrast ratio in frontend/src/index.css
+- [x] T007 [US3] Add `--color-bg-app: #0F766E;` to the `html.dark-mode-active` block in frontend/src/index.css — the existing useAppTheme hook and class-toggling mechanism handle the switch automatically, no other files need changes
+- [x] T008 [US3] Verify dark mode teal variant renders correctly — confirm toggling dark mode transitions smoothly between #0D9488 (light) and #0F766E (dark) and that light text (#E6EDF3) on #0F766E achieves ≥6.8:1 contrast ratio in frontend/src/index.css
 
 **Checkpoint**: Dark mode support complete — both light and dark teal variants defined as design tokens in a single file.
 
@@ -88,8 +88,8 @@
 
 **Purpose**: Final verification across all user stories
 
-- [ ] T009 Run quickstart.md verification checklist — verify all items from specs/007-teal-background/quickstart.md pass (login screen teal, main app teal, dark mode toggle, route transitions, component backgrounds)
-- [ ] T010 Confirm single source of truth — verify `--color-bg-app` is defined in exactly one location (`:root` for light, `html.dark-mode-active` for dark) and no hardcoded teal overrides exist elsewhere in frontend/src/
+- [x] T009 Run quickstart.md verification checklist — verify all items from specs/007-teal-background/quickstart.md pass (login screen teal, main app teal, dark mode toggle, route transitions, component backgrounds)
+- [x] T010 Confirm single source of truth — verify `--color-bg-app` is defined in exactly one location (`:root` for light, `html.dark-mode-active` for dark) and no hardcoded teal overrides exist elsewhere in frontend/src/
 
 ---
 
