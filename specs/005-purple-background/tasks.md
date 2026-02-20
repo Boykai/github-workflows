@@ -19,7 +19,7 @@
 
 **Purpose**: Define the purple color as a centralized design token in the theming system
 
-- [ ] T001 Add `--color-bg-app: #7C3AED` CSS custom property to `:root` and `html.dark-mode-active` selectors in frontend/src/index.css
+- [x] T001 Add `--color-bg-app: #7C3AED` CSS custom property to `:root` and `html.dark-mode-active` selectors in frontend/src/index.css
 
 ---
 
@@ -31,7 +31,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update `body` background property in frontend/src/index.css to use `var(--color-bg-app)` instead of `var(--color-bg-secondary)`
+- [x] T002 [US1] Update `body` background property in frontend/src/index.css to use `var(--color-bg-app)` instead of `var(--color-bg-secondary)`
 
 **Checkpoint**: At this point, the purple background should be visible on all screens
 
@@ -45,8 +45,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [US2] Update `.app-login h1` color to `#ffffff` in frontend/src/App.css for WCAG AA contrast against purple background
-- [ ] T004 [P] [US2] Update `.app-login p` color to `#E9D5FF` in frontend/src/App.css for WCAG AA contrast against purple background
+- [x] T003 [US2] Update `.app-login h1` color to `#ffffff` in frontend/src/App.css for WCAG AA contrast against purple background
+- [x] T004 [P] [US2] Update `.app-login p` color to `#E9D5FF` in frontend/src/App.css for WCAG AA contrast against purple background
 
 **Checkpoint**: At this point, all text on exposed surfaces should be clearly readable against the purple background
 
@@ -60,7 +60,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T005 [US3] Verify `--color-bg-app` uses the specific hex value `#7C3AED` (not a CSS keyword like `purple`) in frontend/src/index.css to ensure cross-browser consistency
+- [x] T005 [US3] Verify `--color-bg-app` uses the specific hex value `#7C3AED` (not a CSS keyword like `purple`) in frontend/src/index.css to ensure cross-browser consistency
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -70,8 +70,8 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T006 [P] Verify existing UI components (header, sidebar, cards, modals) remain visually legible against the purple background in frontend/src/App.css
-- [ ] T007 Run the app and confirm zero FOUC or background color flicker during page load and route transitions
+- [x] T006 [P] Verify existing UI components (header, sidebar, cards, modals) remain visually legible against the purple background in frontend/src/App.css
+- [x] T007 Run the app and confirm zero FOUC or background color flicker during page load and route transitions
 
 ---
 
