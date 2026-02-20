@@ -1,7 +1,7 @@
 # Tasks: Add Purple Background Color to App
 
 **Input**: Design documents from `/specs/005-purple-background/`
-**Prerequisites**: plan.md ✅, spec.md ✅
+**Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅
 
 **Tests**: Tests are NOT included (not explicitly requested in spec).
 
@@ -19,7 +19,7 @@
 
 **Purpose**: Define the purple color as a centralized design token in the theming system
 
-- [ ] T001 Add `--color-bg-primary: #7C3AED` CSS custom property to `:root` and `html.dark-mode-active` selectors in frontend/src/index.css
+- [ ] T001 Add `--color-bg-app: #7C3AED` CSS custom property to `:root` and `html.dark-mode-active` selectors in frontend/src/index.css
 
 ---
 
@@ -31,10 +31,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update `body` background property in frontend/src/index.css to use `var(--color-bg-primary)` instead of `var(--color-bg-secondary)`
-- [ ] T003 [P] [US1] Add inline `background-color: #7C3AED` style to `<body>` tag in frontend/index.html to prevent FOUC during page load
+- [ ] T002 [US1] Update `body` background property in frontend/src/index.css to use `var(--color-bg-app)` instead of `var(--color-bg-secondary)`
 
-**Checkpoint**: At this point, the purple background should be visible on all screens with no flicker during load or navigation
+**Checkpoint**: At this point, the purple background should be visible on all screens
 
 ---
 
@@ -42,15 +41,14 @@
 
 **Goal**: Ensure all text and icons remain clearly readable against the purple background with WCAG AA compliance (minimum 4.5:1 contrast ratio)
 
-**Independent Test**: Verify all text elements on the purple background achieve a WCAG AA contrast ratio of at least 4.5:1 (white #FFFFFF on #7C3AED = 7.28:1 ✅)
+**Independent Test**: Verify all text elements on the purple background achieve a WCAG AA contrast ratio of at least 4.5:1 (white #FFFFFF on #7C3AED = 6.65:1 ✅)
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Update `--color-text` and `--color-text-secondary` CSS variables in `:root` selector in frontend/src/index.css to ensure WCAG AA contrast against #7C3AED (e.g., set to white/light tones)
-- [ ] T005 [P] [US2] Update `--color-text` and `--color-text-secondary` CSS variables in `html.dark-mode-active` selector in frontend/src/index.css to ensure WCAG AA contrast against #7C3AED
-- [ ] T006 [US2] Audit `.app-login`, `.app-loading`, and `.chat-placeholder` styles in frontend/src/App.css to ensure foreground colors are legible against the purple background
+- [ ] T003 [US2] Update `.app-login h1` color to `#ffffff` in frontend/src/App.css for WCAG AA contrast against purple background
+- [ ] T004 [P] [US2] Update `.app-login p` color to `#E9D5FF` in frontend/src/App.css for WCAG AA contrast against purple background
 
-**Checkpoint**: At this point, all text and icons should be clearly readable against the purple background in both light and dark modes
+**Checkpoint**: At this point, all text on exposed surfaces should be clearly readable against the purple background
 
 ---
 
@@ -62,7 +60,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Verify `--color-bg-primary` uses the specific hex value `#7C3AED` (not a CSS keyword like `purple`) in frontend/src/index.css to ensure cross-browser consistency
+- [ ] T005 [US3] Verify `--color-bg-app` uses the specific hex value `#7C3AED` (not a CSS keyword like `purple`) in frontend/src/index.css to ensure cross-browser consistency
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -72,8 +70,8 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T008 [P] Verify existing UI components (header, sidebar, cards, modals) remain visually legible against the purple background in frontend/src/App.css
-- [ ] T009 Run the app and confirm zero FOUC or background color flicker during page load and route transitions
+- [ ] T006 [P] Verify existing UI components (header, sidebar, cards, modals) remain visually legible against the purple background in frontend/src/App.css
+- [ ] T007 Run the app and confirm zero FOUC or background color flicker during page load and route transitions
 
 ---
 
@@ -84,13 +82,13 @@
 ```
 Phase 1: Setup (T001)
     ↓
-Phase 2: US1 - Purple Background (T002∥T003, different files)
+Phase 2: US1 - Purple Background (T002)
     ↓
-Phase 3: US2 - Accessibility (T004∥T005 non-overlapping selectors, then T006)
+Phase 3: US2 - Accessibility (T003∥T004, different selectors in same file)
     ↓
-Phase 4: US3 - Cross-Browser (T007)
+Phase 4: US3 - Cross-Browser (T005)
     ↓
-Phase 5: Polish (T008-T009, T008 parallelizable)
+Phase 5: Polish (T006∥T007)
 ```
 
 ### User Story Dependencies
@@ -101,9 +99,8 @@ Phase 5: Polish (T008-T009, T008 parallelizable)
 
 ### Parallel Opportunities
 
-- T003 (FOUC prevention) can run in parallel with T002 (body background update) — different files
-- T005 (dark mode contrast) can run in parallel with T004 (light mode contrast) — non-overlapping selectors in same file
-- T008 (component audit) can run in parallel with T009 (FOUC validation)
+- T003 and T004 can run in parallel (different selectors in same file, non-overlapping)
+- T006 and T007 can run in parallel (audit vs. runtime validation)
 
 ---
 
@@ -112,7 +109,7 @@ Phase 5: Polish (T008-T009, T008 parallelizable)
 ### MVP First (User Story 1 Only)
 
 1. Complete Phase 1: Setup (add CSS variable)
-2. Complete Phase 2: User Story 1 (apply purple background + FOUC prevention)
+2. Complete Phase 2: User Story 1 (apply purple background)
 3. **STOP and VALIDATE**: Verify purple background on all screens
 4. Deploy/demo if ready
 
@@ -131,13 +128,13 @@ Phase 5: Polish (T008-T009, T008 parallelizable)
 | Phase | Tasks | Files Modified |
 |-------|-------|---------------|
 | Setup | T001 | frontend/src/index.css |
-| US1 - Purple Background | T002-T003 | frontend/src/index.css, frontend/index.html |
-| US2 - Accessibility | T004-T006 | frontend/src/index.css, frontend/src/App.css |
-| US3 - Cross-Browser | T007 | frontend/src/index.css |
-| Polish | T008-T009 | frontend/src/App.css |
+| US1 - Purple Background | T002 | frontend/src/index.css |
+| US2 - Accessibility | T003-T004 | frontend/src/App.css |
+| US3 - Cross-Browser | T005 | frontend/src/index.css |
+| Polish | T006-T007 | frontend/src/App.css |
 
-**Total Tasks**: 9
-**Tasks per User Story**: US1: 2, US2: 3, US3: 1, Setup: 1, Polish: 2
-**Parallel Opportunities**: 3 (T002∥T003, T004∥T005, T008∥T009)
+**Total Tasks**: 7
+**Tasks per User Story**: US1: 1, US2: 2, US3: 1, Setup: 1, Polish: 2
+**Parallel Opportunities**: 2 (T003∥T004, T006∥T007)
 **Independent Test Criteria**: Each story can be verified independently
-**Suggested MVP Scope**: User Story 1 (Phase 1 + Phase 2, Tasks T001-T003)
+**Suggested MVP Scope**: User Story 1 (Phase 1 + Phase 2, Tasks T001-T002)
