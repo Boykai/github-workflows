@@ -14,6 +14,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - In-memory dict (`_workflow_configs` in `workflow_orchestrator.py`); no database (004-agent-workflow-config-ui)
 - Python 3.12 (Dockerfile), ≥3.11 (pyproject.toml); TypeScript ~5.4 (frontend) + FastAPI 0.109+, Pydantic 2.5+, pydantic-settings 2.1+, React 18.3, TanStack Query 5.17+ (006-sqlite-settings-storage)
 - SQLite database file, Docker volume mount (new) (006-sqlite-settings-storage)
+- TypeScript 5.4 (frontend), Python 3.11+ (backend) + React 18, Vite 5, @tanstack/react-query, socket.io-client, @dnd-kit (frontend); FastAPI, uvicorn, httpx, pydantic 2, aiosqlite (backend) (001-test-coverage-bugfix)
+- SQLite via aiosqlite (backend) (001-test-coverage-bugfix)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -33,9 +35,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 001-test-coverage-bugfix: Added TypeScript 5.4 (frontend), Python 3.11+ (backend) + React 18, Vite 5, @tanstack/react-query, socket.io-client, @dnd-kit (frontend); FastAPI, uvicorn, httpx, pydantic 2, aiosqlite (backend)
 - 006-sqlite-settings-storage: Added Python 3.12 (Dockerfile), ≥3.11 (pyproject.toml); TypeScript ~5.4 (frontend) + FastAPI 0.109+, Pydantic 2.5+, pydantic-settings 2.1+, React 18.3, TanStack Query 5.17+
 - 004-agent-workflow-config-ui: Added Python 3.12 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, Pydantic ≥2.5, httpx ≥0.26 (backend); React 18.3, @tanstack/react-query ^5.17, `@dnd-kit/core` + `@dnd-kit/sortable` (new, frontend)
-- 001-github-project-board: Added Python 3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI, React 18, TanStack React Query, Tailwind CSS
 
 
 <!-- MANUAL ADDITIONS START -->
