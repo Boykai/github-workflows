@@ -1,104 +1,96 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Update App Title to "Happy Place"
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `005-update-app-title` | **Date**: 2026-02-20 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/005-update-app-title/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace the application display title from "Agent Projects" to "Happy Place" across all user-facing locations. This is a string-replacement change affecting the frontend (`index.html` `<title>`, `App.tsx` `<h1>` headers), backend (FastAPI metadata, log messages), configuration files (`.devcontainer`, `.env.example`, `pyproject.toml`), documentation (`README.md`, `backend/README.md`), and E2E test assertions (Playwright specs). No new dependencies, no logic changes, no data model changes — purely a branding update via find-and-replace with manual verification.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12 (backend), TypeScript ~5.4 (frontend)
+**Primary Dependencies**: FastAPI ≥0.109 (backend); React 18.3, Vite (frontend)
+**Storage**: N/A
+**Testing**: pytest (backend); Playwright (E2E — assertions reference app title)
+**Target Platform**: Linux server (Docker Compose), web browser
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: N/A (string replacement only)
+**Constraints**: Title casing must be exactly "Happy Place" (capital H, capital P) everywhere
+**Scale/Scope**: ~25 occurrences across ~15 files
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md complete with 4 prioritized user stories, acceptance scenarios, edge cases |
+| II. Template-Driven | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated | ✅ PASS | specify → plan → tasks → implement phase sequence followed |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; existing E2E tests will be updated (assertions reference old title) but no new test infrastructure required |
+| V. Simplicity/DRY | ✅ PASS | Pure string replacement — simplest possible approach. No abstraction, no constants extraction, no dynamic title resolution needed |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/005-update-app-title/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output (title location inventory)
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (file change contracts)
+└── tasks.md             # Phase 2 output (/speckit.tasks - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
+│   └── main.py              # FastAPI title, description, log messages
+├── pyproject.toml            # Package description
+├── README.md                 # Backend documentation header
 └── tests/
+    └── test_api_e2e.py       # Module docstring
 
 frontend/
+├── index.html                # <title> tag
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── App.tsx               # <h1> elements (login + authenticated views)
+│   ├── types/index.ts        # Module docstring
+│   └── services/api.ts       # Module docstring
+└── e2e/
+    ├── auth.spec.ts           # Title assertions (5 instances)
+    ├── ui.spec.ts             # Title assertions (2 instances)
+    └── integration.spec.ts    # Title assertions (1 instance)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+.devcontainer/
+├── devcontainer.json          # Container name
+└── post-create.sh             # Setup message
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+.env.example                   # Header comment
+README.md                      # Project documentation header
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure — matches existing `backend/` + `frontend/` layout. All changes are in-place string replacements in existing files. No new files created in source code.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations identified. No complexity justifications needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Constitution Re-Check (Post-Design)
+
+*Re-evaluated after Phase 1 design artifacts were generated.*
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md was completed and clarified before any design artifacts were created |
+| II. Template-Driven | ✅ PASS | plan.md, research.md, data-model.md, contracts/file-changes.md, quickstart.md all follow canonical templates |
+| III. Agent-Orchestrated | ✅ PASS | Phase sequence respected: specify → plan (current). Tasks and implementation deferred to later phases |
+| IV. Test Optionality | ✅ PASS | No new tests mandated. Existing E2E test assertions updated as part of implementation (not new test infrastructure) |
+| V. Simplicity/DRY | ✅ PASS | Pure string replacement — the simplest possible approach for a branding change. No abstraction layers, no constants extraction, no dynamic resolution |
+
+**Result**: All gates pass. No complexity justifications needed. Ready for Phase 2 (`/speckit.tasks`).
