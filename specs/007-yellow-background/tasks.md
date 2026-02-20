@@ -1,0 +1,189 @@
+# Tasks: Yellow Background Color
+
+**Input**: Design documents from `/specs/007-yellow-background/` and `/specs/008-add-yellow-background/`
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/file-changes.md, quickstart.md
+
+**Tests**: Not explicitly requested in feature specification. CSS-only change is visually verifiable per Test Optionality principle. No test tasks included.
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+- **Web app**: `backend/src/`, `frontend/src/`
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Verify current state and confirm implementation approach
+
+- [ ] T001 Verify current `--color-bg-secondary` value is `#f6f8fa` in `:root` selector of frontend/src/index.css
+- [ ] T002 Verify dark mode `--color-bg-secondary` value is `#161b22` in `html.dark-mode-active` selector of frontend/src/index.css
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: No foundational work required — the existing CSS variable system (`--color-bg-secondary` in `:root` and `html.dark-mode-active`) already provides the infrastructure needed. The `body` element already uses `background: var(--color-bg-secondary)`.
+
+**⚠️ SKIP**: This feature has no blocking prerequisites beyond the existing CSS variable system already in place.
+
+---
+
+## Phase 3: User Story 1 — Yellow Background in Light Mode (Priority: P1) 🎯 MVP
+
+**Goal**: Apply a soft yellow background color (#FFFDE7) globally across all pages in light mode by updating the existing CSS custom property.
+
+**Independent Test**: Open any page of the application in light mode and verify the background is a soft yellow color. Navigate between pages/routes and confirm yellow background is consistent. Verify all text, icons, and interactive elements remain clearly legible.
+
+### Implementation for User Story 1
+
+- [ ] T003 [US1] Update `--color-bg-secondary` value from `#f6f8fa` to `#FFFDE7` in the `:root` selector of frontend/src/index.css
+- [ ] T004 [US1] Run `npm run build` in frontend/ to verify the CSS change compiles without errors
+- [ ] T005 [US1] Visually verify light mode shows yellow background on all pages by running `npm run dev` in frontend/ and inspecting the app in browser
+
+**Checkpoint**: At this point, User Story 1 should be fully functional — all pages display a soft yellow background in light mode. This is the MVP delivery.
+
+---
+
+## Phase 4: User Story 2 — Responsive Consistency (Priority: P2)
+
+**Goal**: Confirm the yellow background renders consistently across mobile, tablet, and desktop screen sizes without gaps or visual inconsistencies.
+
+**Independent Test**: View the application at various viewport widths (mobile: 375px, tablet: 768px, desktop: 1440px) and confirm the yellow background appears identically with no gaps or white areas. Resize the browser window and verify no flashing or color changes occur.
+
+### Implementation for User Story 2
+
+- [ ] T006 [US2] Visually verify yellow background at mobile viewport (≤ 480px) by running `npm run dev` in frontend/ and using browser dev tools to resize
+- [ ] T007 [US2] Visually verify yellow background at tablet viewport (481–1024px) using browser dev tools responsive mode
+- [ ] T008 [US2] Visually verify yellow background at desktop viewport (> 1024px) and confirm no gaps or inconsistencies during window resize
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work — yellow background is consistent across all breakpoints. No code changes expected in this phase since CSS custom properties on `:root` inherently apply to all viewport sizes.
+
+---
+
+## Phase 5: User Story 3 — Dark Mode Compatibility (Priority: P3)
+
+**Goal**: Confirm the yellow background applies only in light mode and that dark mode retains its existing background color unchanged.
+
+**Independent Test**: Toggle between light mode and dark mode using the theme toggle button. Verify yellow background appears only in light mode. Verify dark mode background remains the existing dark color (#0d1117 / #161b22).
+
+### Implementation for User Story 3
+
+- [ ] T009 [US3] Verify dark mode `--color-bg-secondary` remains `#161b22` in `html.dark-mode-active` selector of frontend/src/index.css (no changes needed — existing CSS scoping handles this)
+- [ ] T010 [US3] Visually verify dark mode by running `npm run dev` in frontend/, toggling to dark mode, and confirming background is NOT yellow
+- [ ] T011 [US3] Visually verify theme toggle transitions correctly between yellow (light) and dark backgrounds in both directions
+
+**Checkpoint**: All user stories should now be independently functional — yellow background in light mode, consistent across viewports, dark mode unaffected.
+
+---
+
+## Phase 6: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final validation across all stories
+
+- [ ] T012 Verify no component-level background overrides conflict with yellow background by running `grep -r "#f6f8fa" frontend/src/` and confirming zero matches
+- [ ] T013 Confirm WCAG AA contrast ratio maintained — primary text (#24292f) on yellow (#FFFDE7) provides ~17.6:1 ratio, secondary text (#57606a) provides ~7.2:1 ratio
+- [ ] T014 Run quickstart.md validation checklist from specs/008-add-yellow-background/quickstart.md
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies — can start immediately
+- **Foundational (Phase 2)**: Skipped — no blocking prerequisites needed
+- **User Story 1 (Phase 3)**: Depends on Setup verification (Phase 1)
+- **User Story 2 (Phase 4)**: Depends on User Story 1 (Phase 3) — verifies the same CSS change at different viewports
+- **User Story 3 (Phase 5)**: Depends on User Story 1 (Phase 3) — verifies dark mode is unaffected
+- **Polish (Phase 6)**: Depends on all user stories being verified
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Setup (Phase 1) — core CSS change
+- **User Story 2 (P2)**: Can start after User Story 1 (Phase 3) — responsive verification of the same change
+- **User Story 3 (P3)**: Can start after User Story 1 (Phase 3) — dark mode verification, no additional code changes
+
+### Within Each User Story
+
+- Single file modification (T003) drives all three user stories
+- Verification tasks (T004–T014) confirm correctness at each level
+- No model→service→endpoint progression needed — purely CSS
+
+### Parallel Opportunities
+
+- T001 and T002 (Setup verification) can run in parallel
+- T006, T007, and T008 (responsive viewport checks) can run in parallel
+- T009, T010, and T011 (dark mode checks) can run in parallel
+- User Story 2 and User Story 3 can be verified in parallel after User Story 1 is complete
+
+---
+
+## Parallel Example: User Story 2 & 3 Verification
+
+```bash
+# After User Story 1 (T003) is complete, these can run in parallel:
+
+# Viewport verification (US2):
+Task T006: "Verify yellow background at mobile viewport"
+Task T007: "Verify yellow background at tablet viewport"
+Task T008: "Verify yellow background at desktop viewport"
+
+# Dark mode verification (US3):
+Task T009: "Verify dark mode CSS variable unchanged"
+Task T010: "Verify dark mode visually"
+Task T011: "Verify theme toggle transitions"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup verification (T001–T002)
+2. Complete Phase 3: User Story 1 — single CSS variable change (T003–T005)
+3. **STOP and VALIDATE**: Yellow background visible in light mode ✅
+4. Deploy/demo if ready — this IS the feature
+
+### Incremental Delivery
+
+1. Setup verification → Confirm current state
+2. User Story 1 (T003) → Single line CSS change → Build verify → Visual verify (MVP!)
+3. User Story 2 → Responsive viewport checks → No additional code changes expected
+4. User Story 3 → Dark mode verification → No additional code changes expected
+5. Polish → Final contrast and conflict checks
+
+### Summary
+
+| Metric | Value |
+|--------|-------|
+| Total tasks | 14 |
+| Code change tasks | 1 (T003 — single CSS variable update) |
+| Verification tasks | 13 |
+| Files modified | 1 (frontend/src/index.css) |
+| Lines changed | 1 |
+| Tasks per US1 | 3 (1 implementation + 2 verification) |
+| Tasks per US2 | 3 (verification only) |
+| Tasks per US3 | 3 (verification only) |
+| Parallel opportunities | 3 groups (setup, responsive, dark mode) |
+| MVP scope | User Story 1 only (T001–T005) |
+| Estimated time | ~15 minutes |
+
+---
+
+## Notes
+
+- This feature involves a **single CSS variable value change** — the minimal possible modification
+- The existing CSS variable system (`--color-bg-secondary`) already cascades to `body` background and secondary surfaces
+- Dark mode is automatically scoped via the existing `html.dark-mode-active` selector override
+- No new files, dependencies, components, or backend changes are required
+- WCAG AA contrast is maintained with significant margin (17.6:1 for primary text)
+- Rollback is instant: revert `--color-bg-secondary` back to `#f6f8fa` in `:root`
