@@ -1,104 +1,97 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Update App Title to "Happy Place"
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `007-app-title-happy-place` | **Date**: 2026-02-20 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/007-app-title-happy-place/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace the application display title from "Agent Projects" to "Happy Place" across all user-visible, developer-facing, and metadata locations. This is a string-replacement change affecting ~15 files and ~25 occurrences with no logic, schema, or dependency changes. The frontend HTML title, React component headers, backend FastAPI metadata, devcontainer config, documentation, and E2E test assertions all require updating.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI (backend), React/Vite (frontend), Playwright (E2E tests)
+**Storage**: N/A — no storage changes
+**Testing**: Playwright E2E tests (frontend/e2e/*.spec.ts), pytest (backend)
+**Target Platform**: Linux server (Docker), browser (Vite dev server)
+**Project Type**: Web application (backend + frontend)
+**Performance Goals**: N/A — string replacement only, no performance impact
+**Constraints**: Zero functional impact; title casing must be exactly "Happy Place" (title case with space)
+**Scale/Scope**: ~25 string occurrences across ~15 files; no new files created, no files deleted
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Principle I: Specification-First Development — PASS
+
+The feature has a complete `spec.md` with 3 prioritized user stories (P1, P1, P2), Given-When-Then acceptance scenarios for each, clear scope boundaries, edge cases, and assumptions. All requirements are captured before planning.
+
+### Principle II: Template-Driven Workflow — PASS
+
+All artifacts follow canonical templates from `.specify/templates/`. This plan follows the `plan-template.md` structure. Output artifacts (research.md, data-model.md, contracts/, quickstart.md) follow their respective templates.
+
+### Principle III: Agent-Orchestrated Execution — PASS
+
+This plan is produced by the `speckit.plan` agent with clear inputs (spec.md) and outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md). Handoff to `speckit.tasks` is explicit.
+
+### Principle IV: Test Optionality — PASS
+
+Tests are not newly created for this feature. Existing E2E tests (Playwright) that assert the old title string must be updated to expect "Happy Place" — this is a maintenance update, not new test creation. No TDD approach is needed for a string replacement.
+
+### Principle V: Simplicity and DRY — PASS
+
+The change is a direct string replacement with no new abstractions, patterns, or dependencies. No complexity is introduced. The approach is the simplest possible: find all occurrences of the old title and replace with the new title.
+
+**Gate Result**: ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/007-app-title-happy-place/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+│   └── file-changes.md  # Inventory of all file changes
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   └── main.py                    # Update FastAPI title, description, log messages
+├── pyproject.toml                 # Update project description
+└── README.md                      # Update heading and description
 
 frontend/
+├── index.html                     # Update <title> tag
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── App.tsx                    # Update <h1> elements (login + authenticated views)
+│   ├── services/
+│   │   └── api.ts                 # Update JSDoc comment
+│   └── types/
+│       └── index.ts               # Update JSDoc comment
+└── e2e/
+    ├── auth.spec.ts               # Update title/heading assertions
+    ├── ui.spec.ts                 # Update heading assertions
+    └── integration.spec.ts        # Update heading assertions
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+.devcontainer/
+├── devcontainer.json              # Update container name
+└── post-create.sh                 # Update setup message
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+.env.example                       # Update header comment
+README.md                          # Update project heading
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with `backend/` (Python/FastAPI) and `frontend/` (TypeScript/React/Vite). No structural changes — only string replacements within existing files across both layers plus root configuration and documentation.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations found. All Constitution principles pass without justification needed.
