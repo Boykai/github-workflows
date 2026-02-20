@@ -84,9 +84,9 @@
 ```
 Phase 1: Setup (T001)
     ↓
-Phase 2: US1 - Purple Background (T002-T003, T003 parallelizable)
+Phase 2: US1 - Purple Background (T002∥T003, different files)
     ↓
-Phase 3: US2 - Accessibility (T004-T006, T005 parallelizable with T004)
+Phase 3: US2 - Accessibility (T004∥T005 non-overlapping selectors, then T006)
     ↓
 Phase 4: US3 - Cross-Browser (T007)
     ↓
@@ -102,7 +102,7 @@ Phase 5: Polish (T008-T009, T008 parallelizable)
 ### Parallel Opportunities
 
 - T003 (FOUC prevention) can run in parallel with T002 (body background update) — different files
-- T005 (dark mode contrast) can run in parallel with T004 (light mode contrast) — different selectors
+- T005 (dark mode contrast) can run in parallel with T004 (light mode contrast) — non-overlapping selectors in same file
 - T008 (component audit) can run in parallel with T009 (FOUC validation)
 
 ---
