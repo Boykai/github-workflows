@@ -1,104 +1,81 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Update App Title to "Happy Place"
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `007-app-title-happy-place` | **Date**: 2026-02-20 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/007-app-title-happy-place/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace every occurrence of the current application title "Agent Projects" with "Happy Place" across the entire codebase. This is a string-replacement change affecting frontend UI, backend API metadata, developer tooling configuration, documentation, and E2E test assertions. No logic, data model, or API contract changes are required.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript (frontend, Vite + React), Python 3.11 (backend, FastAPI)
+**Primary Dependencies**: React, FastAPI, Playwright (E2E tests)
+**Storage**: N/A — no data model changes
+**Testing**: Playwright E2E tests (frontend/e2e/), pytest (backend/tests/)
+**Target Platform**: Web application (browser + Linux server)
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: N/A — cosmetic change only
+**Constraints**: N/A — no runtime impact
+**Scale/Scope**: ~20 string replacements across ~15 files
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md exists with prioritized user stories and acceptance criteria |
+| II. Template-Driven Workflow | ✅ PASS | Using canonical plan template |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan generated via speckit.plan agent |
+| IV. Test Optionality | ✅ PASS | Existing E2E tests will be updated to reflect new title; no new tests needed |
+| V. Simplicity and DRY | ✅ PASS | Pure find-and-replace; no abstraction or complexity added |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/007-app-title-happy-place/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output (N/A — no data model)
+├── quickstart.md        # Phase 1 output
+└── contracts/           # Phase 1 output (N/A — no API changes)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   └── main.py          # FastAPI title, description, log messages
+├── tests/
+│   └── test_api_e2e.py  # Docstring reference
+├── pyproject.toml        # Package description
+└── README.md             # Documentation heading
 
 frontend/
+├── index.html            # <title> tag
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── App.tsx           # h1 elements (login + header)
+│   ├── types/index.ts    # Comment
+│   └── services/api.ts   # Comment
+└── e2e/
+    ├── auth.spec.ts      # Test assertions
+    ├── ui.spec.ts         # Test assertions
+    └── integration.spec.ts # Test assertions
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+.devcontainer/
+├── devcontainer.json     # Container name
+└── post-create.sh        # Setup message
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+.env.example              # Header comment
+README.md                 # Project heading & description
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application structure (frontend + backend). No structural changes — this is purely a string replacement across existing files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations — all constitution checks pass. No complexity justification needed.
