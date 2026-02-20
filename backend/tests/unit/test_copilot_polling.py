@@ -678,10 +678,10 @@ class TestPostAgentOutputsFromPr:
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.get_workflow_config")
     @patch("src.services.copilot_polling.get_pipeline_state")
-    async def test_posts_md_files_and_done_marker(
+    async def test_posts_done_marker_on_parent_only_without_sub_issue(
         self, mock_pipeline, mock_config, mock_service, mock_task_backlog
     ):
-        """Should post .md file content and Done! marker as issue comments."""
+        """Without sub-issues, only Done! marker is posted (on parent). Markdown files are skipped."""
         mock_config.return_value = MagicMock()
         mock_pipeline.return_value = PipelineState(
             issue_number=10,
@@ -719,18 +719,90 @@ class TestPostAgentOutputsFromPr:
 
         assert len(results) == 1
         assert results[0]["status"] == "success"
+        # No markdown files posted (no sub-issue)
+        assert results[0]["files_posted"] == 0
+        assert results[0]["agent_name"] == "speckit.specify"
+
+        # Only Done! marker posted (on parent issue #10)
+        assert mock_service.create_issue_comment.call_count == 1
+        done_call = mock_service.create_issue_comment.call_args_list[0]
+        done_call_body = done_call.kwargs.get("body") or done_call[1].get("body", "")
+        assert "speckit.specify: Done!" in done_call_body
+        done_call_issue = done_call.kwargs.get("issue_number") or done_call[1].get("issue_number")
+        assert done_call_issue == 10  # Parent issue
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_posts_md_on_sub_issue_and_done_on_parent(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """With sub-issues, markdown goes to sub-issue, Done! goes to parent."""
+        mock_config.return_value = MagicMock()
+        pipeline = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+        )
+        pipeline.agent_sub_issues = {
+            "speckit.specify": {"number": 99, "node_id": "I_99"},
+        }
+        mock_pipeline.return_value = pipeline
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "state": "open"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"head_ref": "feature-branch", "number": 5}
+        )
+        mock_service.get_pr_changed_files = AsyncMock(
+            return_value=[
+                {"filename": "specs/spec.md", "status": "added"},
+                {"filename": "src/main.py", "status": "modified"},
+            ]
+        )
+        mock_service.get_file_content_from_ref = AsyncMock(
+            return_value="# Spec\n\nThis is the spec."
+        )
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1, "body": "ok"})
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 1
+        assert results[0]["status"] == "success"
         assert results[0]["files_posted"] == 1
         assert results[0]["agent_name"] == "speckit.specify"
 
-        # Should have called create_issue_comment twice:
-        # 1 for the spec.md content, 1 for the Done! marker
+        # 2 calls: 1 markdown on sub-issue, 1 Done! on parent
         assert mock_service.create_issue_comment.call_count == 2
 
-        # Verify Done! marker was posted
-        done_call_body = mock_service.create_issue_comment.call_args_list[-1].kwargs.get(
-            "body"
-        ) or mock_service.create_issue_comment.call_args_list[-1][1].get("body", "")
-        assert "speckit.specify: Done!" in done_call_body
+        # First call: markdown on sub-issue #99
+        md_call = mock_service.create_issue_comment.call_args_list[0]
+        md_issue = md_call.kwargs.get("issue_number") or md_call[1].get("issue_number")
+        md_body = md_call.kwargs.get("body") or md_call[1].get("body", "")
+        assert md_issue == 99  # Sub-issue
+        assert "spec.md" in md_body
+
+        # Second call: Done! on parent issue #10
+        done_call = mock_service.create_issue_comment.call_args_list[1]
+        done_issue = done_call.kwargs.get("issue_number") or done_call[1].get("issue_number")
+        done_body = done_call.kwargs.get("body") or done_call[1].get("body", "")
+        assert done_issue == 10  # Parent issue
+        assert "speckit.specify: Done!" in done_body
+
+        # Sub-issue should have been closed
+        mock_service.update_issue_state.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -1032,8 +1104,8 @@ class TestPostAgentOutputsFromPr:
         assert results[0]["status"] == "success"
         assert results[0]["agent_name"] == "speckit.specify"
 
-        # Should have posted outputs (spec.md) + Done! marker
-        assert mock_service.create_issue_comment.call_count == 2
+        # Only Done! marker posted (no sub-issue → no markdown comments)
+        assert mock_service.create_issue_comment.call_count == 1
 
         # Verify tracking table was fetched for reconstruction
         mock_tracking.assert_called_once()

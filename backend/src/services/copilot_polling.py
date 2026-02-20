@@ -116,8 +116,9 @@ def _get_sub_issue_number(
 ) -> int:
     """Return the sub-issue number for an agent, falling back to the parent.
 
-    All agent comments (markdown files AND Done! markers) should be posted on
-    the sub-issue when one exists.
+    Markdown file comments and other non-Done outputs are posted on the
+    sub-issue.  The ``<agent>: Done!`` marker is posted on the **parent**
+    issue only (handled separately by the caller).
     """
     if pipeline and pipeline.agent_sub_issues:
         sub_info = pipeline.agent_sub_issues.get(agent_name)
@@ -134,27 +135,45 @@ async def _check_agent_done_on_sub_or_parent(
     agent_name: str,
     pipeline: "PipelineState | None" = None,
 ) -> bool:
-    """Check if an agent's Done! marker exists on its sub-issue (preferred) or parent.
+    """Check if an agent's Done! marker exists on the parent issue (preferred) or sub-issue.
 
-    Checks the sub-issue first (new behavior). Falls back to the parent issue
-    for backward compatibility with issues created before the sub-issue-only
-    comment policy.
+    Done! markers are now posted on the **parent** issue only.  Falls back to
+    the sub-issue for backward compatibility with issues created before this
+    policy change.
     """
-    sub_number = _get_sub_issue_number(pipeline, agent_name, parent_issue_number)
+    # Check parent issue first (new canonical location for Done! markers)
+    done = await github_projects_service.check_agent_completion_comment(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=parent_issue_number,
+        agent_name=agent_name,
+    )
+    if done:
+        return True
 
-    # Check sub-issue first (if different from parent)
+    # Fall back to sub-issue for backward compat (old issues had Done! on sub-issue)
+    sub_number = _get_sub_issue_number(pipeline, agent_name, parent_issue_number)
     if sub_number != parent_issue_number:
-        done = await github_projects_service.check_agent_completion_comment(
+        return await github_projects_service.check_agent_completion_comment(
             access_token=access_token,
             owner=owner,
             repo=repo,
             issue_number=sub_number,
             agent_name=agent_name,
         )
-        if done:
-            return True
 
-    # Fall back to parent issue for backward compat
+    return False
+
+
+async def _check_agent_done_on_parent(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    agent_name: str,
+) -> bool:
+    """Check if an agent's Done! marker exists on the parent issue only."""
     return await github_projects_service.check_agent_completion_comment(
         access_token=access_token,
         owner=owner,
@@ -560,7 +579,13 @@ async def post_agent_outputs_from_pr(
     """
     For all issues with active pipelines, check if the current agent's PR work
     is complete. If so, fetch any .md files from the PR (if present), post them
-    as issue comments, and post the ``<agent-name>: Done!`` marker.
+    as comments on the **sub-issue**, and post the ``<agent-name>: Done!``
+    marker on the **parent issue** only.
+
+    Comment routing policy:
+      - ``<agent>: Done!`` marker → parent (main) issue ONLY
+      - Markdown file comments     → sub-issue ONLY (skipped if no sub-issue)
+      - All other agent outputs    → sub-issue ONLY
 
     All agents are eligible — output files are optional, not required.
 
@@ -841,33 +866,10 @@ async def post_agent_outputs_from_pr(
                 task.issue_number,
             )
 
-            # STEP 1: Merge child PR into the main branch FIRST (before posting Done!)
-            # This ensures GitHub has time to process the merge before we try to assign the next agent.
+            # Track whether this is a child PR for later merging
             is_child_pr = finished_pr.get("is_child_pr", False)
-            main_branch_info = get_issue_main_branch(task.issue_number)
-            if is_child_pr and main_branch_info:
-                merge_result = await _merge_child_pr_if_applicable(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    main_branch=main_branch_info["branch"],
-                    main_pr_number=main_branch_info["pr_number"],
-                    completed_agent=current_agent,
-                )
-                if merge_result:
-                    logger.info(
-                        "Merged child PR #%d before posting Done! for agent '%s' on issue #%d",
-                        pr_number,
-                        current_agent,
-                        task.issue_number,
-                    )
-                    # Wait a moment for GitHub to fully process the merge
-                    import asyncio
 
-                    await asyncio.sleep(2)
-
-            # STEP 2: Get PR details for posting .md outputs
+            # STEP 1: Get PR details for posting .md outputs
             pr_details = await github_projects_service.get_pull_request(
                 access_token=access_token,
                 owner=task_owner,
@@ -928,97 +930,109 @@ async def post_agent_outputs_from_pr(
             expected_files = AGENT_OUTPUT_FILES.get(current_agent, [])
             posted_count = 0
 
-            # Determine which issue to post comments on.
-            # If the agent has a sub-issue, post there; otherwise fall back to the parent issue.
-            comment_issue_number = task.issue_number
+            # Determine which issue to post markdown file comments on.
+            # Markdown files are ONLY posted on the sub-issue — never on the parent.
+            # The Done! marker is posted on the parent issue separately below.
+            comment_issue_number: int | None = None
             if pipeline and pipeline.agent_sub_issues:
                 sub_info = pipeline.agent_sub_issues.get(current_agent)
                 if sub_info and sub_info.get("number"):
                     comment_issue_number = sub_info["number"]
                     logger.info(
-                        "Posting agent '%s' outputs on sub-issue #%d (parent #%d)",
+                        "Posting agent '%s' markdown outputs on sub-issue #%d (parent #%d)",
                         current_agent,
                         comment_issue_number,
                         task.issue_number,
                     )
 
-            for pr_file in pr_files:
-                filename = pr_file.get("filename", "")
-                basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+            if comment_issue_number is None:
+                logger.info(
+                    "No sub-issue for agent '%s' on issue #%d — "
+                    "skipping markdown file comments (only Done! on parent)",
+                    current_agent,
+                    task.issue_number,
+                )
 
-                if basename.lower() in [f.lower() for f in expected_files]:
-                    # Fetch file content from the PR branch
-                    ref = head_ref or "HEAD"
-                    content = await github_projects_service.get_file_content_from_ref(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        path=filename,
-                        ref=ref,
-                    )
+            # Only post markdown file comments if a sub-issue exists.
+            # Markdown files are NEVER posted on the parent issue.
+            if comment_issue_number is not None:
+                for pr_file in pr_files:
+                    filename = pr_file.get("filename", "")
+                    basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
 
-                    if content:
-                        # Post file content as a comment on the sub-issue (or parent)
-                        comment_body = (
-                            f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
-                        )
-                        comment = await github_projects_service.create_issue_comment(
+                    if basename.lower() in [f.lower() for f in expected_files]:
+                        # Fetch file content from the PR branch
+                        ref = head_ref or "HEAD"
+                        content = await github_projects_service.get_file_content_from_ref(
                             access_token=access_token,
                             owner=task_owner,
                             repo=task_repo,
-                            issue_number=comment_issue_number,
-                            body=comment_body,
+                            path=filename,
+                            ref=ref,
                         )
-                        if comment:
-                            posted_count += 1
-                            logger.info(
-                                "Posted content of %s as comment on issue #%d",
-                                filename,
-                                comment_issue_number,
+
+                        if content:
+                            # Post file content as a comment on the sub-issue only
+                            comment_body = (
+                                f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
                             )
-                    else:
-                        logger.warning(
-                            "Could not fetch content of %s from ref %s for issue #%d",
-                            filename,
-                            ref,
-                            task.issue_number,
-                        )
+                            comment = await github_projects_service.create_issue_comment(
+                                access_token=access_token,
+                                owner=task_owner,
+                                repo=task_repo,
+                                issue_number=comment_issue_number,
+                                body=comment_body,
+                            )
+                            if comment:
+                                posted_count += 1
+                                logger.info(
+                                    "Posted content of %s as comment on sub-issue #%d",
+                                    filename,
+                                    comment_issue_number,
+                                )
+                        else:
+                            logger.warning(
+                                "Could not fetch content of %s from ref %s for issue #%d",
+                                filename,
+                                ref,
+                                task.issue_number,
+                            )
 
-            # Also post any other .md files changed in the PR
-            for pr_file in pr_files:
-                filename = pr_file.get("filename", "")
-                basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+                # Also post any other .md files changed in the PR (on sub-issue only)
+                for pr_file in pr_files:
+                    filename = pr_file.get("filename", "")
+                    basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
 
-                if (
-                    basename.lower().endswith(".md")
-                    and basename.lower() not in [f.lower() for f in expected_files]
-                    and pr_file.get("status") in ("added", "modified")
-                ):
-                    ref = head_ref or "HEAD"
-                    content = await github_projects_service.get_file_content_from_ref(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        path=filename,
-                        ref=ref,
-                    )
-
-                    if content:
-                        comment_body = (
-                            f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
-                        )
-                        await github_projects_service.create_issue_comment(
+                    if (
+                        basename.lower().endswith(".md")
+                        and basename.lower() not in [f.lower() for f in expected_files]
+                        and pr_file.get("status") in ("added", "modified")
+                    ):
+                        ref = head_ref or "HEAD"
+                        content = await github_projects_service.get_file_content_from_ref(
                             access_token=access_token,
                             owner=task_owner,
                             repo=task_repo,
-                            issue_number=comment_issue_number,
-                            body=comment_body,
+                            path=filename,
+                            ref=ref,
                         )
-                        posted_count += 1
 
-            # Post the Done! marker on the SUB-ISSUE (same issue that
-            # received the markdown file comments above).
-            done_issue_number = comment_issue_number  # already resolved above
+                        if content:
+                            comment_body = (
+                                f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
+                            )
+                            await github_projects_service.create_issue_comment(
+                                access_token=access_token,
+                                owner=task_owner,
+                                repo=task_repo,
+                                issue_number=comment_issue_number,
+                                body=comment_body,
+                            )
+                            posted_count += 1
+
+            # Post the Done! marker on the PARENT issue only.
+            # This is the ONLY comment that goes on the main issue.
+            done_issue_number = task.issue_number  # Always the parent
             done_comment = await github_projects_service.create_issue_comment(
                 access_token=access_token,
                 owner=task_owner,
@@ -1029,47 +1043,70 @@ async def post_agent_outputs_from_pr(
 
             _posted_agent_outputs.add(cache_key)
 
-            # Mark the child PR as claimed (merge already happened above)
-            if is_child_pr:
-                claimed_key = f"{task.issue_number}:{pr_number}:{current_agent}"
-                _claimed_child_prs.add(claimed_key)
-                logger.debug(
-                    "Marked child PR #%d as claimed by agent '%s' on issue #%d",
-                    pr_number,
-                    current_agent,
-                    task.issue_number,
-                )
-
             if done_comment:
                 logger.info(
-                    "Posted '%s' marker on issue #%d (%d .md files posted on #%d)",
+                    "Posted '%s' marker on parent issue #%d (%d .md files posted on %s)",
                     marker,
                     done_issue_number,
                     posted_count,
-                    comment_issue_number,
+                    f"sub-issue #{comment_issue_number}" if comment_issue_number else "no sub-issue",
                 )
 
-                # Close the sub-issue as completed now that the agent is done.
-                # Only close when messaging a real sub-issue (not the parent).
-                if done_issue_number != task.issue_number:
+                # STEP 4: Merge child PR into the main branch AFTER posting Done!
+                main_branch_info = get_issue_main_branch(task.issue_number)
+                if is_child_pr and main_branch_info:
+                    merge_result = await _merge_child_pr_if_applicable(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=task.issue_number,
+                        main_branch=main_branch_info["branch"],
+                        main_pr_number=main_branch_info["pr_number"],
+                        completed_agent=current_agent,
+                    )
+                    if merge_result:
+                        logger.info(
+                            "Merged child PR #%d after Done! for agent '%s' on issue #%d",
+                            pr_number,
+                            current_agent,
+                            task.issue_number,
+                        )
+                        # Wait a moment for GitHub to fully process the merge
+                        import asyncio
+
+                        await asyncio.sleep(2)
+
+                # Mark the child PR as claimed
+                if is_child_pr:
+                    claimed_key = f"{task.issue_number}:{pr_number}:{current_agent}"
+                    _claimed_child_prs.add(claimed_key)
+                    logger.debug(
+                        "Marked child PR #%d as claimed by agent '%s' on issue #%d",
+                        pr_number,
+                        current_agent,
+                        task.issue_number,
+                    )
+
+                # STEP 5: Close the sub-issue as completed.
+                if comment_issue_number is not None and comment_issue_number != task.issue_number:
                     closed = await github_projects_service.update_issue_state(
                         access_token=access_token,
                         owner=task_owner,
                         repo=task_repo,
-                        issue_number=done_issue_number,
+                        issue_number=comment_issue_number,
                         state="closed",
                         state_reason="completed",
                     )
                     if closed:
                         logger.info(
                             "Closed sub-issue #%d as completed (agent '%s' done)",
-                            done_issue_number,
+                            comment_issue_number,
                             current_agent,
                         )
                     else:
                         logger.warning(
                             "Failed to close sub-issue #%d after agent '%s' completion",
-                            done_issue_number,
+                            comment_issue_number,
                             current_agent,
                         )
 
@@ -2467,8 +2504,8 @@ async def _advance_pipeline(
                     e,
                 )
 
-    # NOTE: Child PR merge now happens in post_agent_outputs_from_pr BEFORE the Done! comment
-    # is posted. This ensures GitHub has time to process the merge before we assign the next agent.
+    # NOTE: Child PR merge now happens in post_agent_outputs_from_pr AFTER the Done! comment
+    # is posted and BEFORE the sub-issue is closed.
 
     # Send agent_completed WebSocket notification
     await connection_manager.broadcast_to_project(
