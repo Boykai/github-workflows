@@ -1,104 +1,98 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Update App Title to "Ready Set Go"
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `007-app-title-ready-set-go` | **Date**: 2026-02-20 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/007-app-title-ready-set-go/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace all occurrences of the current application display title "Agent Projects" with "Ready Set Go" across the entire codebase. This is a pure text-replacement branding change affecting ~25 occurrences in 15 files spanning the frontend (HTML title, React headers, E2E tests), backend (FastAPI config, log messages, docstrings, project metadata), developer environment (devcontainer, setup scripts, env config), and documentation (README files). No logic, URL, package name, or identifier changes are required.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12 (backend), TypeScript ~5.4 (frontend)
+**Primary Dependencies**: FastAPI ≥0.109 (backend); React 18.3, Playwright (frontend E2E)
+**Storage**: N/A
+**Testing**: pytest (backend), vitest (frontend unit), Playwright (frontend E2E)
+**Target Platform**: Linux server (Docker Compose), web browser
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: N/A — cosmetic text change only
+**Constraints**: Exact casing "Ready Set Go" must be used consistently; no logic changes
+**Scale/Scope**: ~25 string replacements across 15 files
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md complete with 3 prioritized user stories, acceptance scenarios, edge cases |
+| II. Template-Driven | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated | ✅ PASS | specify → plan → tasks → implement phase sequence followed |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; existing E2E test assertions will be updated as part of the title change (they assert on the old title) |
+| V. Simplicity/DRY | ✅ PASS | Simple find-and-replace across existing files; no new abstractions, no new files, no new dependencies |
+
+**Gate Result**: ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/007-app-title-ready-set-go/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output (file inventory)
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (file-changes.md)
+└── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
+│   └── main.py              # FastAPI title, description, log messages
+├── pyproject.toml            # Project description
+├── README.md                 # Backend documentation
 └── tests/
+    └── test_api_e2e.py       # Docstring comment
 
 frontend/
+├── index.html                # <title> tag
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── App.tsx               # <h1> headers (2 locations)
+│   ├── services/api.ts       # Module docstring comment
+│   └── types/index.ts        # Module docstring comment
+└── e2e/
+    ├── auth.spec.ts           # E2E title assertions (5 locations)
+    ├── ui.spec.ts             # E2E title assertions (2 locations)
+    └── integration.spec.ts    # E2E title assertions (1 location)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+.devcontainer/
+├── devcontainer.json          # Container name
+└── post-create.sh             # Setup script echo
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+.env.example                   # Config file header comment
+README.md                      # Project documentation heading
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure — matches existing `backend/` + `frontend/` layout. No new files or directories are created. All changes are in-place string replacements in existing files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations identified. No complexity justifications needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Constitution Re-Check (Post-Design)
+
+*Re-evaluated after Phase 1 design artifacts were generated.*
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md was completed before any design artifacts were created |
+| II. Template-Driven | ✅ PASS | plan.md, research.md, data-model.md, contracts/file-changes.md, quickstart.md all follow canonical templates |
+| III. Agent-Orchestrated | ✅ PASS | Phase sequence respected: specify → plan (current). Tasks and implementation deferred to later phases |
+| IV. Test Optionality | ✅ PASS | No new tests mandated. Existing E2E tests updated to assert new title |
+| V. Simplicity/DRY | ✅ PASS | Pure text replacement — simplest possible approach. No abstractions, no constants extraction, no indirection. Each file is edited independently with the same substitution |
+
+**Result**: All gates pass. No complexity justifications needed. Ready for Phase 2 (`/speckit.tasks`).
