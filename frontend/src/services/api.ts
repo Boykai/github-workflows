@@ -1,5 +1,5 @@
 /**
- * API client service for Agent Projects.
+ * API client service for Happy Place.
  * Provides typed fetch wrapper with error handling.
  */
 

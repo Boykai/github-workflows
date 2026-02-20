@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🚀 Setting up Agent Projects development environment..."
+echo "🚀 Setting up Happy Place development environment..."
 
 # Navigate to workspace
 cd /workspace
