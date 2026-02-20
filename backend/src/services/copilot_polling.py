@@ -109,6 +109,61 @@ RECOVERY_COOLDOWN_SECONDS = 300  # 5 minutes between recovery attempts per issue
 # ──────────────────────────────────────────────────────────────────────────────
 
 
+def _get_sub_issue_number(
+    pipeline: "PipelineState | None",
+    agent_name: str,
+    parent_issue_number: int,
+) -> int:
+    """Return the sub-issue number for an agent, falling back to the parent.
+
+    All agent comments (markdown files AND Done! markers) should be posted on
+    the sub-issue when one exists.
+    """
+    if pipeline and pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(agent_name)
+        if sub_info and sub_info.get("number"):
+            return sub_info["number"]
+    return parent_issue_number
+
+
+async def _check_agent_done_on_sub_or_parent(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    agent_name: str,
+    pipeline: "PipelineState | None" = None,
+) -> bool:
+    """Check if an agent's Done! marker exists on its sub-issue (preferred) or parent.
+
+    Checks the sub-issue first (new behavior). Falls back to the parent issue
+    for backward compatibility with issues created before the sub-issue-only
+    comment policy.
+    """
+    sub_number = _get_sub_issue_number(pipeline, agent_name, parent_issue_number)
+
+    # Check sub-issue first (if different from parent)
+    if sub_number != parent_issue_number:
+        done = await github_projects_service.check_agent_completion_comment(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=sub_number,
+            agent_name=agent_name,
+        )
+        if done:
+            return True
+
+    # Fall back to parent issue for backward compat
+    return await github_projects_service.check_agent_completion_comment(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=parent_issue_number,
+        agent_name=agent_name,
+    )
+
+
 async def _update_issue_tracking(
     access_token: str,
     owner: str,
@@ -344,12 +399,13 @@ async def _process_pipeline_completion(
     # Check if current agent has completed
     current_agent = pipeline.current_agent
     if current_agent:
-        completed = await github_projects_service.check_agent_completion_comment(
+        completed = await _check_agent_done_on_sub_or_parent(
             access_token=access_token,
             owner=task_owner,
             repo=task_repo,
-            issue_number=task.issue_number,
+            parent_issue_number=task.issue_number,
             agent_name=current_agent,
+            pipeline=pipeline,
         )
 
         if completed:
@@ -664,12 +720,13 @@ async def post_agent_outputs_from_pr(
 
             # Check if the Done! marker is already posted (agent did it itself)
             marker = f"{current_agent}: Done!"
-            already_done = await github_projects_service.check_agent_completion_comment(
+            already_done = await _check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=task.issue_number,
+                parent_issue_number=task.issue_number,
                 agent_name=current_agent,
+                pipeline=pipeline,
             )
             if already_done:
                 continue
@@ -961,13 +1018,14 @@ async def post_agent_outputs_from_pr(
                         )
                         posted_count += 1
 
-            # Post the Done! marker on the PARENT issue (not sub-issue)
-            # so that the existing comment-based completion detection still works
+            # Post the Done! marker on the SUB-ISSUE (same issue that
+            # received the markdown file comments above).
+            done_issue_number = comment_issue_number  # already resolved above
             done_comment = await github_projects_service.create_issue_comment(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=task.issue_number,
+                issue_number=done_issue_number,
                 body=marker,
             )
 
@@ -986,11 +1044,36 @@ async def post_agent_outputs_from_pr(
 
             if done_comment:
                 logger.info(
-                    "Posted '%s' marker on issue #%d (%d .md files posted)",
+                    "Posted '%s' marker on issue #%d (%d .md files posted on #%d)",
                     marker,
-                    task.issue_number,
+                    done_issue_number,
                     posted_count,
+                    comment_issue_number,
                 )
+
+                # Close the sub-issue as completed now that the agent is done.
+                # Only close when messaging a real sub-issue (not the parent).
+                if done_issue_number != task.issue_number:
+                    closed = await github_projects_service.update_issue_state(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=done_issue_number,
+                        state="closed",
+                        state_reason="completed",
+                    )
+                    if closed:
+                        logger.info(
+                            "Closed sub-issue #%d as completed (agent '%s' done)",
+                            done_issue_number,
+                            current_agent,
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to close sub-issue #%d after agent '%s' completion",
+                            done_issue_number,
+                            current_agent,
+                        )
 
                 # Update the tracking table in the issue body: mark agent as ✅ Done
                 await _update_issue_tracking(
@@ -2806,12 +2889,13 @@ async def check_in_progress_issues(
                 # Check if current agent has completed (via Done! comment marker)
                 current_agent = pipeline.current_agent
                 if current_agent:
-                    completed = await github_projects_service.check_agent_completion_comment(
+                    completed = await _check_agent_done_on_sub_or_parent(
                         access_token=access_token,
                         owner=task_owner,
                         repo=task_repo,
-                        issue_number=task.issue_number,
+                        parent_issue_number=task.issue_number,
                         agent_name=current_agent,
+                        pipeline=pipeline,
                     )
 
                     if completed:
@@ -3520,12 +3604,14 @@ async def recover_stalled_issues(
             # cycle) persists in issue comments.  If the marker exists,
             # the agent finished successfully and Steps 1-3 will advance
             # the pipeline — no recovery needed.
-            already_done = await github_projects_service.check_agent_completion_comment(
+            recovery_pipeline = get_pipeline_state(issue_number)
+            already_done = await _check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=issue_number,
+                parent_issue_number=issue_number,
                 agent_name=agent_name,
+                pipeline=recovery_pipeline,
             )
             if already_done:
                 logger.info(

@@ -1,5 +1,6 @@
 """Chat API endpoints."""
 
+import asyncio
 import logging
 from typing import Annotated
 from uuid import UUID
@@ -488,7 +489,11 @@ async def confirm_proposal(
                     repository_name=repo,
                     copilot_assignee=settings.default_assignee,
                 )
-                set_workflow_config(project_id, config)
+                set_workflow_config(
+                    project_id,
+                    config,
+                    github_user_id=session.github_user_id,
+                )
             else:
                 config.repository_owner = owner
                 config.repository_name = repo
@@ -560,6 +565,34 @@ async def confirm_proposal(
                         "status": backlog_status,
                     },
                 )
+
+            # Ensure Copilot polling is running so the pipeline advances
+            # after agents complete their work (creates PRs).
+            try:
+                import src.services.copilot_polling as _cp_module
+                from src.services.copilot_polling import (
+                    get_polling_status,
+                    poll_for_copilot_completion,
+                )
+
+                polling_status = get_polling_status()
+                if not polling_status["is_running"]:
+                    task = asyncio.create_task(
+                        poll_for_copilot_completion(
+                            access_token=session.access_token,
+                            project_id=project_id,
+                            owner=owner,
+                            repo=repo,
+                            interval_seconds=15,
+                        )
+                    )
+                    _cp_module._polling_task = task
+                    logger.info(
+                        "Auto-started Copilot polling from confirm_proposal for project %s",
+                        project_id,
+                    )
+            except Exception as poll_err:
+                logger.warning("Failed to start polling after issue creation: %s", poll_err)
 
         except Exception as e:
             logger.warning(

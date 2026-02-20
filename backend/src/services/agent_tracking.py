@@ -90,7 +90,18 @@ def build_agent_pipeline_steps(
     steps: list[AgentStep] = []
     idx = 1
     for status in status_order:
-        for agent in agent_mappings.get(status, []):
+        # Case-insensitive lookup: status names may differ in casing
+        # between the config defaults and the user's project board.
+        matched_agents = agent_mappings.get(status, None)
+        if matched_agents is None:
+            status_lower = status.lower()
+            for k, v in agent_mappings.items():
+                if k.lower() == status_lower:
+                    matched_agents = v
+                    break
+        if not matched_agents:
+            matched_agents = []
+        for agent in matched_agents:
             agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
             steps.append(
                 AgentStep(index=idx, status=status, agent_name=agent_slug, state=STATE_PENDING)

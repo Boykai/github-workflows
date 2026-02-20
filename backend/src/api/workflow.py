@@ -1,5 +1,6 @@
 """Workflow API endpoints for issue creation and management."""
 
+import asyncio
 import hashlib
 import logging
 from datetime import datetime, timedelta
@@ -190,7 +191,11 @@ async def confirm_recommendation(
             repository_name=repo,
             copilot_assignee=settings.default_assignee,
         )
-        set_workflow_config(session.selected_project_id, config)
+        set_workflow_config(
+            session.selected_project_id,
+            config,
+            github_user_id=session.github_user_id,
+        )
     else:
         # Update config with discovered repository
         config.repository_owner = owner
@@ -252,6 +257,33 @@ async def confirm_recommendation(
                 "Workflow completed: issue #%d created and placed in Backlog",
                 result.issue_number,
             )
+
+            # Ensure Copilot polling is running so the pipeline advances
+            try:
+                import src.services.copilot_polling as _cp_module
+                from src.services.copilot_polling import (
+                    get_polling_status,
+                    poll_for_copilot_completion,
+                )
+
+                polling_status = get_polling_status()
+                if not polling_status["is_running"]:
+                    task = asyncio.create_task(
+                        poll_for_copilot_completion(
+                            access_token=session.access_token,
+                            project_id=session.selected_project_id,
+                            owner=owner,
+                            repo=repo,
+                            interval_seconds=15,
+                        )
+                    )
+                    _cp_module._polling_task = task
+                    logger.info(
+                        "Auto-started Copilot polling from confirm_recommendation for project %s",
+                        session.selected_project_id,
+                    )
+            except Exception as poll_err:
+                logger.warning("Failed to start polling after workflow: %s", poll_err)
 
         return result
 
@@ -327,7 +359,11 @@ async def update_config(
     # Ensure project_id matches
     config_update.project_id = session.selected_project_id
 
-    set_workflow_config(session.selected_project_id, config_update)
+    set_workflow_config(
+        session.selected_project_id,
+        config_update,
+        github_user_id=session.github_user_id,
+    )
     logger.info("Updated workflow config for project %s", session.selected_project_id)
 
     return config_update

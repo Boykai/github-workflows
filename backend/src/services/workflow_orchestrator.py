@@ -22,6 +22,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, TypedDict
 
 from src.models.chat import (
+    AgentAssignment,
     IssueMetadata,
     IssueRecommendation,
     TriggeredBy,
@@ -38,9 +39,20 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _ci_get(mappings: dict, key: str, default=None):
+    """Case-insensitive dict lookup for status names."""
+    if key in mappings:
+        return mappings[key]
+    key_lower = key.lower()
+    for k, v in mappings.items():
+        if k.lower() == key_lower:
+            return v
+    return default if default is not None else []
+
+
 def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
-    """Extract ordered slug strings for a given status. Minimizes migration diff."""
-    return [a.slug if hasattr(a, "slug") else str(a) for a in config.agent_mappings.get(status, [])]
+    """Extract ordered slug strings for a given status. Case-insensitive lookup."""
+    return [a.slug if hasattr(a, "slug") else str(a) for a in _ci_get(config.agent_mappings, status, [])]
 
 
 def get_status_order(config: WorkflowConfiguration) -> list[str]:
@@ -181,13 +193,167 @@ _issue_main_branches: dict[int, MainBranchInfo] = {}
 
 
 def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
-    """Get workflow configuration for a project."""
-    return _workflow_configs.get(project_id)
+    """Get workflow configuration for a project.
+
+    Checks in-memory cache first, then falls back to SQLite project_settings.
+    """
+    cached = _workflow_configs.get(project_id)
+    if cached is not None:
+        return cached
+
+    # Fall back to SQLite
+    config = _load_workflow_config_from_db(project_id)
+    if config is not None:
+        _workflow_configs[project_id] = config
+    return config
 
 
-def set_workflow_config(project_id: str, config: WorkflowConfiguration) -> None:
-    """Set workflow configuration for a project."""
+def set_workflow_config(
+    project_id: str,
+    config: WorkflowConfiguration,
+    github_user_id: str | None = None,
+) -> None:
+    """Set workflow configuration for a project.
+
+    Updates in-memory cache and persists to SQLite project_settings.
+    """
     _workflow_configs[project_id] = config
+    _persist_workflow_config_to_db(project_id, config, github_user_id)
+
+
+def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | None:
+    """Load workflow configuration from SQLite project_settings table.
+
+    Uses synchronous sqlite3 to avoid event-loop issues with aiosqlite.
+    SQLite reads are fast (sub-millisecond) so this is safe to call from
+    any context (sync or async).
+    """
+    import json
+    import sqlite3
+
+    try:
+        from src.config import get_settings
+
+        db_path = get_settings().database_path
+    except Exception:
+        return None
+
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+
+        # Try loading from the workflow_config column first (full config)
+        cursor = conn.execute(
+            "SELECT workflow_config FROM project_settings WHERE project_id = ? AND workflow_config IS NOT NULL LIMIT 1",
+            (project_id,),
+        )
+        row = cursor.fetchone()
+        if row and row["workflow_config"]:
+            raw = json.loads(row["workflow_config"])
+            conn.close()
+            logger.info("Loaded workflow config from DB (workflow_config column) for project %s", project_id)
+            return WorkflowConfiguration(**raw)
+
+        # Fall back to agent_pipeline_mappings only
+        cursor = conn.execute(
+            "SELECT agent_pipeline_mappings FROM project_settings WHERE project_id = ? AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
+            (project_id,),
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if row and row["agent_pipeline_mappings"]:
+            raw_mappings = json.loads(row["agent_pipeline_mappings"])
+            # Convert raw dicts to AgentAssignment objects
+            agent_mappings: dict[str, list[AgentAssignment]] = {}
+            for status, agents in raw_mappings.items():
+                agent_mappings[status] = [
+                    AgentAssignment(**a) if isinstance(a, dict) else AgentAssignment(slug=str(a))
+                    for a in agents
+                ]
+            logger.info("Loaded workflow config from DB (agent_pipeline_mappings column) for project %s", project_id)
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner="",
+                repository_name="",
+                agent_mappings=agent_mappings,
+            )
+            # Backfill: persist the full config to workflow_config column
+            # so subsequent loads use the preferred path.
+            try:
+                _persist_workflow_config_to_db(project_id, config)
+                logger.info("Backfilled workflow_config column for project %s", project_id)
+            except Exception:
+                pass
+            return config
+
+        return None
+    except Exception:
+        logger.warning("Failed to load workflow config from DB for project %s", project_id, exc_info=True)
+        return None
+
+
+def _persist_workflow_config_to_db(
+    project_id: str,
+    config: WorkflowConfiguration,
+    github_user_id: str | None = None,
+) -> None:
+    """Persist workflow configuration to SQLite project_settings table.
+
+    Uses synchronous sqlite3 for reliable writes from any context.
+    SQLite in WAL mode supports concurrent access from multiple connections.
+    """
+    import json
+    import sqlite3
+    from datetime import UTC, datetime
+
+    try:
+        from src.config import get_settings
+
+        db_path = get_settings().database_path
+    except Exception:
+        return
+
+    # Serialize config
+    config_json = config.model_dump_json()
+    agent_mappings_json = json.dumps(
+        {
+            status: [a.model_dump(mode="json") if hasattr(a, "model_dump") else {"slug": str(a)} for a in agents]
+            for status, agents in config.agent_mappings.items()
+        }
+    )
+    now = datetime.now(UTC).isoformat()
+
+    # Use a placeholder user if not provided (backward compat)
+    user_id = github_user_id or "__workflow__"
+
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.execute("PRAGMA busy_timeout=5000;")
+
+        cursor = conn.execute(
+            "SELECT 1 FROM project_settings WHERE github_user_id = ? AND project_id = ?",
+            (user_id, project_id),
+        )
+        existing = cursor.fetchone()
+
+        if existing:
+            conn.execute(
+                "UPDATE project_settings SET agent_pipeline_mappings = ?, workflow_config = ?, updated_at = ? "
+                "WHERE github_user_id = ? AND project_id = ?",
+                (agent_mappings_json, config_json, now, user_id, project_id),
+            )
+        else:
+            conn.execute(
+                "INSERT INTO project_settings (github_user_id, project_id, agent_pipeline_mappings, workflow_config, updated_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (user_id, project_id, agent_mappings_json, config_json, now),
+            )
+        conn.commit()
+        conn.close()
+        logger.info("Persisted workflow config to DB for project %s (user=%s)", project_id, user_id)
+    except Exception:
+        logger.warning("Failed to persist workflow config to DB for project %s", project_id, exc_info=True)
 
 
 def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:
@@ -658,11 +824,7 @@ class WorkflowOrchestrator:
         # Append the agent pipeline tracking table to the issue body
         config = ctx.config or get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:
-            status_order = [
-                config.status_backlog,
-                config.status_ready,
-                config.status_in_progress,
-            ]
+            status_order = get_status_order(config)
             body = append_tracking_to_body(body, config.agent_mappings, status_order)
             logger.info("Appended agent pipeline tracking to issue body")
 
@@ -867,7 +1029,7 @@ class WorkflowOrchestrator:
         if ctx.issue_number is None:
             raise ValueError("issue_number required for agent assignment")
 
-        agents = config.agent_mappings.get(status, [])
+        agents = _ci_get(config.agent_mappings, status, [])
         if not agents:
             logger.info("No agents configured for status '%s'", status)
             return True  # No agents to assign is not an error
@@ -1693,33 +1855,24 @@ class WorkflowOrchestrator:
                         )
                     status_name = next_status
 
-            # Pre-register the pending assignment BEFORE calling assign_agent_for_status.
-            # This closes the race window where the recovery polling loop sees the
-            # just-created issue (with ⏳ Pending agent in tracking table) and fires
-            # a duplicate assignment before we even begin the Copilot API call.
+            # Pre-register the recovery cooldown BEFORE calling assign_agent_for_status.
+            # This prevents the polling/recovery loop from racing during sub-issue
+            # creation. NOTE: We only set _recovery_last_attempt (NOT
+            # _pending_agent_assignments) because the latter would cause the dedup
+            # guard inside assign_agent_for_status to skip the actual assignment.
             if ctx.issue_number:
-                config_for_flag = config or get_workflow_config(ctx.project_id)
-                agents_for_flag = (
-                    get_agent_slugs(config_for_flag, status_name) if config_for_flag else []
-                )
-                if agents_for_flag:
-                    first_agent_name = str(agents_for_flag[0])
-                    try:
-                        from src.services.copilot_polling import (
-                            _pending_agent_assignments,
-                            _recovery_last_attempt,
-                        )
+                try:
+                    from src.services.copilot_polling import (
+                        _recovery_last_attempt,
+                    )
 
-                        early_key = f"{ctx.issue_number}:{first_agent_name}"
-                        _pending_agent_assignments[early_key] = datetime.utcnow()
-                        _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
-                        logger.debug(
-                            "Early-set pending flag for agent '%s' on issue #%d before assign_agent_for_status",
-                            first_agent_name,
-                            ctx.issue_number,
-                        )
-                    except ImportError:
-                        pass
+                    _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
+                    logger.debug(
+                        "Set recovery cooldown for issue #%d before sub-issue creation",
+                        ctx.issue_number,
+                    )
+                except ImportError:
+                    pass
 
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await self.create_all_sub_issues(ctx)
