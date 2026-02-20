@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/001-codebase-cleanup-refactor/`
 **Prerequisites**: ✅ spec.md
 
-**Tests**: Test tasks included in Phase 9 (User Story 7) as explicitly requested by FR-015 and FR-016.
+**Tests**: Test tasks included in Phase 9 (User Story 7) as explicitly requested by spec.md FR-015 (backend service tests) and FR-016 (frontend hook tests).
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -156,7 +156,7 @@
 - [ ] T047 [US5] Refactor `frontend/src/services/api.ts` to use the shared HTTP client from `frontend/src/services/httpClient.ts` (T006) instead of direct `fetch()` — preserve all existing `authApi`, `projectsApi`, `tasksApi`, `chatApi`, `boardApi`, `settingsApi` exports
 - [ ] T048 [P] [US5] Refactor `frontend/src/hooks/useWorkflow.ts` — replace direct `fetch()` calls (lines 32, 67, 98, 127) with shared HTTP client methods
 - [ ] T049 [P] [US5] Refactor `frontend/src/hooks/useAgentConfig.ts` — replace direct `fetch()` call (line 206) with shared HTTP client method
-- [ ] T050 [US5] Verify zero direct `fetch()` calls remain outside `frontend/src/services/httpClient.ts` — run `grep -rn "fetch(" frontend/src/ --include="*.ts" --include="*.tsx"` and confirm only httpClient.ts contains raw fetch
+- [ ] T050 [US5] Verify zero direct `fetch()` calls remain outside `frontend/src/services/httpClient.ts` — run `grep -rn '\bfetch\s*(' frontend/src/ --include="*.ts" --include="*.tsx"` and confirm only httpClient.ts contains raw fetch
 
 **Checkpoint**: 100% of frontend API calls route through shared HTTP client; consistent error handling across all hooks
 
