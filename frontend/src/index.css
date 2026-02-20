@@ -7,9 +7,11 @@
   --color-danger: #cf222e;
   --color-bg: #ffffff;
   --color-bg-secondary: #f6f8fa;
+  /* Design token: Pink background — Light Pink (#FFB6C1) for app-level background */
+  --color-bg-primary: #FFB6C1;
   --color-border: #d0d7de;
   --color-text: #24292f;
-  --color-text-secondary: #57606a;
+  --color-text-secondary: #4b5259;
   --radius: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -23,6 +25,8 @@ html.dark-mode-active {
   --color-danger: #f85149;
   --color-bg: #0d1117;
   --color-bg-secondary: #161b22;
+  /* Design token: Pink background — Dark pink variant for dark mode */
+  --color-bg-primary: #2d1620;
   --color-border: #30363d;
   --color-text: #e6edf3;
   --color-text-secondary: #8b949e;
@@ -40,7 +44,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-primary);
 }
 
 button {
