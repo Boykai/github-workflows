@@ -82,8 +82,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Agent Projects API",
-        description="REST API for Agent Projects",
+        title="Dev Bots API",
+        description="REST API for Dev Bots",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/api/docs" if settings.debug else None,
