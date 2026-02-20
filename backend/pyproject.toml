@@ -19,6 +19,8 @@ dependencies = [
     # Azure OpenAI (optional fallback provider)
     "openai>=1.0.0",
     "azure-ai-inference>=1.0.0b1",
+    # SQLite async (durable settings/session storage)
+    "aiosqlite>=0.20.0",
 ]
 
 [project.optional-dependencies]
@@ -78,3 +80,4 @@ typeCheckingMode = "basic"
 include = ["src"]
 exclude = ["**/__pycache__", "tests"]
 reportMissingTypeStubs = false
+reportMissingImports = "warning"

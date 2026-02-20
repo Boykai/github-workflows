@@ -83,9 +83,15 @@ _posted_agent_outputs: set[str] = set()  # "issue_number:agent_name:pr_number"
 _claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
 
 # Track agents that we've already assigned (pending Copilot to start working).
+# Maps "issue_number:agent_name" → datetime of assignment.
 # This prevents the polling loop from re-assigning the same agent every cycle
 # before Copilot has had time to create its child PR.
-_pending_agent_assignments: set[str] = set()  # "issue_number:agent_name"
+_pending_agent_assignments: dict[str, datetime] = {}  # key -> assignment timestamp
+
+# Grace period (seconds) after assigning an agent before any recovery /
+# "agent never assigned" logic is allowed to fire for the same issue.
+# Copilot typically takes 30-90s to create a WIP PR after assignment.
+ASSIGNMENT_GRACE_PERIOD_SECONDS = 120
 
 # Track PRs that OUR system converted from draft → ready.
 # This prevents _check_main_pr_completion Signal 1 from misinterpreting
@@ -101,6 +107,61 @@ RECOVERY_COOLDOWN_SECONDS = 300  # 5 minutes between recovery attempts per issue
 # ──────────────────────────────────────────────────────────────────────────────
 # Issue Body Tracking Helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
+
+def _get_sub_issue_number(
+    pipeline: "PipelineState | None",
+    agent_name: str,
+    parent_issue_number: int,
+) -> int:
+    """Return the sub-issue number for an agent, falling back to the parent.
+
+    All agent comments (markdown files AND Done! markers) should be posted on
+    the sub-issue when one exists.
+    """
+    if pipeline and pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(agent_name)
+        if sub_info and sub_info.get("number"):
+            return sub_info["number"]
+    return parent_issue_number
+
+
+async def _check_agent_done_on_sub_or_parent(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    agent_name: str,
+    pipeline: "PipelineState | None" = None,
+) -> bool:
+    """Check if an agent's Done! marker exists on its sub-issue (preferred) or parent.
+
+    Checks the sub-issue first (new behavior). Falls back to the parent issue
+    for backward compatibility with issues created before the sub-issue-only
+    comment policy.
+    """
+    sub_number = _get_sub_issue_number(pipeline, agent_name, parent_issue_number)
+
+    # Check sub-issue first (if different from parent)
+    if sub_number != parent_issue_number:
+        done = await github_projects_service.check_agent_completion_comment(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=sub_number,
+            agent_name=agent_name,
+        )
+        if done:
+            return True
+
+    # Fall back to parent issue for backward compat
+    return await github_projects_service.check_agent_completion_comment(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=parent_issue_number,
+        agent_name=agent_name,
+    )
 
 
 async def _update_issue_tracking(
@@ -187,6 +248,50 @@ async def _get_tracking_state_from_issue(
         issue_number=issue_number,
     )
     return issue_data.get("body", ""), issue_data.get("comments", [])
+
+
+async def _reconstruct_sub_issue_mappings(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+) -> dict[str, dict]:
+    """Fetch sub-issues from GitHub and build ``agent_name → sub-issue`` mapping.
+
+    Sub-issue titles follow the pattern ``[agent-name] Title``.  This parses
+    the agent name from the bracketed prefix.
+    """
+    try:
+        raw_subs = await github_projects_service.get_sub_issues(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        mappings: dict[str, dict] = {}
+        for si in raw_subs:
+            si_title = si.get("title", "")
+            if si_title.startswith("[") and "]" in si_title:
+                si_agent = si_title[1 : si_title.index("]")]
+                mappings[si_agent] = {
+                    "number": si.get("number"),
+                    "node_id": si.get("node_id", ""),
+                    "url": si.get("html_url", ""),
+                }
+        if mappings:
+            logger.info(
+                "Reconstructed %d sub-issue mappings for issue #%d",
+                len(mappings),
+                issue_number,
+            )
+        return mappings
+    except Exception as e:
+        logger.debug(
+            "Could not reconstruct sub-issue mappings for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return {}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -294,12 +399,13 @@ async def _process_pipeline_completion(
     # Check if current agent has completed
     current_agent = pipeline.current_agent
     if current_agent:
-        completed = await github_projects_service.check_agent_completion_comment(
+        completed = await _check_agent_done_on_sub_or_parent(
             access_token=access_token,
             owner=task_owner,
             repo=task_repo,
-            issue_number=task.issue_number,
+            parent_issue_number=task.issue_number,
             agent_name=current_agent,
+            pipeline=pipeline,
         )
 
         if completed:
@@ -321,6 +427,22 @@ async def _process_pipeline_completion(
         # First, consult the tracking table in the issue body — this is the
         # durable source of truth and survives server restarts.
         if pipeline.completed_agents and not completed:
+            # ── Grace period: if the pipeline was started or last advanced
+            # recently, Copilot likely hasn't created its WIP PR yet.
+            # Skip the expensive "agent never assigned" checks to avoid
+            # duplicate assignments.
+            if pipeline.started_at:
+                age = (datetime.utcnow() - pipeline.started_at).total_seconds()
+                if age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
+                    logger.debug(
+                        "Agent '%s' on issue #%d within grace period (%.0fs / %ds) — waiting",
+                        current_agent,
+                        task.issue_number,
+                        age,
+                        ASSIGNMENT_GRACE_PERIOD_SECONDS,
+                    )
+                    return None
+
             # Check the issue body tracking table first
             body, _comments = await _get_tracking_state_from_issue(
                 access_token=access_token,
@@ -339,11 +461,13 @@ async def _process_pipeline_completion(
 
             # Also check in-memory pending set (belt and suspenders)
             pending_key = f"{task.issue_number}:{current_agent}"
-            if pending_key in _pending_agent_assignments:
+            pending_ts = _pending_agent_assignments.get(pending_key)
+            if pending_ts is not None:
                 logger.debug(
-                    "Agent '%s' already assigned for issue #%d (in-memory), waiting for Copilot to start working",
+                    "Agent '%s' already assigned for issue #%d (in-memory, %.0fs ago), waiting for Copilot to start working",
                     current_agent,
                     task.issue_number,
+                    (datetime.utcnow() - pending_ts).total_seconds(),
                 )
                 return None
 
@@ -409,7 +533,7 @@ async def _process_pipeline_completion(
                             ctx, from_status, agent_index=pipeline.current_agent_index
                         )
                         if assigned:
-                            _pending_agent_assignments.add(pending_key)
+                            _pending_agent_assignments[pending_key] = datetime.utcnow()
                             return {
                                 "status": "success",
                                 "issue_number": task.issue_number,
@@ -511,6 +635,15 @@ async def post_agent_outputs_from_pr(
                             completed_agents=completed,
                             started_at=datetime.utcnow(),
                         )
+
+                        # Reconstruct sub-issue mappings from GitHub API
+                        pipeline.agent_sub_issues = await _reconstruct_sub_issue_mappings(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
+                        )
+
                         set_pipeline_state(task.issue_number, pipeline)
                         logger.info(
                             "Reconstructed pipeline for issue #%d from tracking "
@@ -585,12 +718,13 @@ async def post_agent_outputs_from_pr(
 
             # Check if the Done! marker is already posted (agent did it itself)
             marker = f"{current_agent}: Done!"
-            already_done = await github_projects_service.check_agent_completion_comment(
+            already_done = await _check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=task.issue_number,
+                parent_issue_number=task.issue_number,
                 agent_name=current_agent,
+                pipeline=pipeline,
             )
             if already_done:
                 continue
@@ -764,6 +898,24 @@ async def post_agent_outputs_from_pr(
                     task.issue_number,
                 )
 
+                # Link the first PR to the GitHub Issue so it appears in the
+                # Development sidebar and auto-closes the issue on merge.
+                try:
+                    await github_projects_service.link_pull_request_to_issue(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        pr_number=pr_number,
+                        issue_number=task.issue_number,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to link PR #%d to issue #%d: %s",
+                        pr_number,
+                        task.issue_number,
+                        e,
+                    )
+
             # Get changed files from the PR
             pr_files = await github_projects_service.get_pr_changed_files(
                 access_token=access_token,
@@ -775,6 +927,20 @@ async def post_agent_outputs_from_pr(
             # Find .md files that match the agent's expected outputs
             expected_files = AGENT_OUTPUT_FILES.get(current_agent, [])
             posted_count = 0
+
+            # Determine which issue to post comments on.
+            # If the agent has a sub-issue, post there; otherwise fall back to the parent issue.
+            comment_issue_number = task.issue_number
+            if pipeline and pipeline.agent_sub_issues:
+                sub_info = pipeline.agent_sub_issues.get(current_agent)
+                if sub_info and sub_info.get("number"):
+                    comment_issue_number = sub_info["number"]
+                    logger.info(
+                        "Posting agent '%s' outputs on sub-issue #%d (parent #%d)",
+                        current_agent,
+                        comment_issue_number,
+                        task.issue_number,
+                    )
 
             for pr_file in pr_files:
                 filename = pr_file.get("filename", "")
@@ -792,7 +958,7 @@ async def post_agent_outputs_from_pr(
                     )
 
                     if content:
-                        # Post file content as an issue comment
+                        # Post file content as a comment on the sub-issue (or parent)
                         comment_body = (
                             f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
                         )
@@ -800,7 +966,7 @@ async def post_agent_outputs_from_pr(
                             access_token=access_token,
                             owner=task_owner,
                             repo=task_repo,
-                            issue_number=task.issue_number,
+                            issue_number=comment_issue_number,
                             body=comment_body,
                         )
                         if comment:
@@ -808,7 +974,7 @@ async def post_agent_outputs_from_pr(
                             logger.info(
                                 "Posted content of %s as comment on issue #%d",
                                 filename,
-                                task.issue_number,
+                                comment_issue_number,
                             )
                     else:
                         logger.warning(
@@ -845,17 +1011,19 @@ async def post_agent_outputs_from_pr(
                             access_token=access_token,
                             owner=task_owner,
                             repo=task_repo,
-                            issue_number=task.issue_number,
+                            issue_number=comment_issue_number,
                             body=comment_body,
                         )
                         posted_count += 1
 
-            # Post the Done! marker
+            # Post the Done! marker on the SUB-ISSUE (same issue that
+            # received the markdown file comments above).
+            done_issue_number = comment_issue_number  # already resolved above
             done_comment = await github_projects_service.create_issue_comment(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=task.issue_number,
+                issue_number=done_issue_number,
                 body=marker,
             )
 
@@ -874,11 +1042,36 @@ async def post_agent_outputs_from_pr(
 
             if done_comment:
                 logger.info(
-                    "Posted '%s' marker on issue #%d (%d .md files posted)",
+                    "Posted '%s' marker on issue #%d (%d .md files posted on #%d)",
                     marker,
-                    task.issue_number,
+                    done_issue_number,
                     posted_count,
+                    comment_issue_number,
                 )
+
+                # Close the sub-issue as completed now that the agent is done.
+                # Only close when messaging a real sub-issue (not the parent).
+                if done_issue_number != task.issue_number:
+                    closed = await github_projects_service.update_issue_state(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=done_issue_number,
+                        state="closed",
+                        state_reason="completed",
+                    )
+                    if closed:
+                        logger.info(
+                            "Closed sub-issue #%d as completed (agent '%s' done)",
+                            done_issue_number,
+                            current_agent,
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to close sub-issue #%d after agent '%s' completion",
+                            done_issue_number,
+                            current_agent,
+                        )
 
                 # Update the tracking table in the issue body: mark agent as ✅ Done
                 await _update_issue_tracking(
@@ -2157,6 +2350,15 @@ async def _reconstruct_pipeline_state(
         started_at=datetime.utcnow(),
         agent_assigned_sha=reconstructed_sha,
     )
+
+    # Reconstruct sub-issue mappings from GitHub API
+    pipeline.agent_sub_issues = await _reconstruct_sub_issue_mappings(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+    )
+
     set_pipeline_state(issue_number, pipeline)
 
     logger.info(
@@ -2210,7 +2412,7 @@ async def _advance_pipeline(
     pipeline.current_agent_index += 1
 
     # Clear the pending assignment flag now that the agent has completed
-    _pending_agent_assignments.discard(f"{issue_number}:{completed_agent}")
+    _pending_agent_assignments.pop(f"{issue_number}:{completed_agent}", None)
 
     logger.info(
         "Agent '%s' completed on issue #%d (%d/%d agents done)",
@@ -2219,6 +2421,51 @@ async def _advance_pipeline(
         len(pipeline.completed_agents),
         len(pipeline.agents),
     )
+
+    # Close the completed agent's sub-issue
+    if pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(completed_agent)
+        if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
+            try:
+                await github_projects_service.update_issue_state(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=sub_info["number"],
+                    state="closed",
+                    state_reason="completed",
+                    labels_add=["done"],
+                    labels_remove=["in-progress"],
+                )
+                logger.info(
+                    "Closed sub-issue #%d for completed agent '%s'",
+                    sub_info["number"],
+                    completed_agent,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to close sub-issue #%d for agent '%s': %s",
+                    sub_info["number"],
+                    completed_agent,
+                    e,
+                )
+
+            # Update the sub-issue's project board Status to "Done"
+            try:
+                sub_node_id = sub_info.get("node_id", "")
+                if sub_node_id:
+                    await github_projects_service.update_sub_issue_project_status(
+                        access_token=access_token,
+                        project_id=project_id,
+                        sub_issue_node_id=sub_node_id,
+                        status_name="Done",
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Failed to update sub-issue #%d board status to Done: %s",
+                    sub_info["number"],
+                    e,
+                )
 
     # NOTE: Child PR merge now happens in post_agent_outputs_from_pr BEFORE the Done! comment
     # is posted. This ensures GitHub has time to process the merge before we assign the next agent.
@@ -2640,12 +2887,13 @@ async def check_in_progress_issues(
                 # Check if current agent has completed (via Done! comment marker)
                 current_agent = pipeline.current_agent
                 if current_agent:
-                    completed = await github_projects_service.check_agent_completion_comment(
+                    completed = await _check_agent_done_on_sub_or_parent(
                         access_token=access_token,
                         owner=task_owner,
                         repo=task_repo,
-                        issue_number=task.issue_number,
+                        parent_issue_number=task.issue_number,
                         agent_name=current_agent,
+                        pipeline=pipeline,
                     )
 
                     if completed:
@@ -3235,13 +3483,26 @@ async def recover_stalled_issues(
             # If the agent was just assigned (by the workflow or a previous
             # recovery), skip — Copilot needs time to create the WIP PR.
             pending_key = f"{issue_number}:{agent_name}"
-            if pending_key in _pending_agent_assignments:
-                logger.debug(
-                    "Recovery: issue #%d agent '%s' is in pending set — skipping",
-                    issue_number,
-                    agent_name,
-                )
-                continue
+            pending_ts = _pending_agent_assignments.get(pending_key)
+            if pending_ts is not None:
+                pending_age = (now - pending_ts).total_seconds()
+                if pending_age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
+                    logger.debug(
+                        "Recovery: issue #%d agent '%s' is in pending set (%.0fs ago) — skipping",
+                        issue_number,
+                        agent_name,
+                        pending_age,
+                    )
+                    continue
+                else:
+                    # Pending entry is stale — remove it and proceed with recovery
+                    logger.debug(
+                        "Recovery: issue #%d agent '%s' pending entry is stale (%.0fs) — clearing",
+                        issue_number,
+                        agent_name,
+                        pending_age,
+                    )
+                    _pending_agent_assignments.pop(pending_key, None)
 
             # ── Check condition A: Copilot is assigned ────────────────────
             copilot_assigned = await github_projects_service.is_copilot_assigned_to_issue(
@@ -3341,12 +3602,14 @@ async def recover_stalled_issues(
             # cycle) persists in issue comments.  If the marker exists,
             # the agent finished successfully and Steps 1-3 will advance
             # the pipeline — no recovery needed.
-            already_done = await github_projects_service.check_agent_completion_comment(
+            recovery_pipeline = get_pipeline_state(issue_number)
+            already_done = await _check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=issue_number,
+                parent_issue_number=issue_number,
                 agent_name=agent_name,
+                pipeline=recovery_pipeline,
             )
             if already_done:
                 logger.info(
@@ -3414,7 +3677,7 @@ async def recover_stalled_issues(
             if assigned:
                 # Also add to pending set so normal polling doesn't double-assign
                 pending_key = f"{issue_number}:{agent_name}"
-                _pending_agent_assignments.add(pending_key)
+                _pending_agent_assignments[pending_key] = now
 
                 results.append(
                     {

@@ -10,11 +10,20 @@ import httpx
 
 from src.config import get_settings
 from src.models.user import UserSession
+from src.services.database import get_db
+from src.services.session_store import (
+    delete_session as store_delete_session,
+)
+from src.services.session_store import (
+    get_session as store_get_session,
+)
+from src.services.session_store import (
+    save_session as store_save_session,
+)
 
 logger = logging.getLogger(__name__)
 
-# In-memory session storage (MVP)
-_sessions: dict[str, UserSession] = {}
+# In-memory OAuth state storage (short-lived, no persistence needed)
 _oauth_states: dict[str, datetime] = {}
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
@@ -154,8 +163,9 @@ class GitHubAuthService:
             token_expires_at=token_expires_at,
         )
 
-        # Store session
-        _sessions[str(session.session_id)] = session
+        # Store session in SQLite
+        db = get_db()
+        await store_save_session(db, session)
         logger.info("Created session for user %s", session.github_username)
 
         return session
@@ -197,10 +207,11 @@ class GitHubAuthService:
 
         expires_in = token_data.get("expires_in")
         if expires_in:
-            session.token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+            session.token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in)
 
-        session.updated_at = datetime.utcnow()
-        _sessions[str(session.session_id)] = session
+        session.updated_at = datetime.now(UTC)
+        db = get_db()
+        await store_save_session(db, session)
 
         logger.info("Refreshed token for user %s", session.github_username)
         return session
@@ -230,13 +241,14 @@ class GitHubAuthService:
             token_expires_at=None,  # PATs don't expire
         )
 
-        # Store session
-        _sessions[str(session.session_id)] = session
+        # Store session in SQLite
+        db = get_db()
+        await store_save_session(db, session)
         logger.info("Created session from PAT for user %s", session.github_username)
 
         return session
 
-    def get_session(self, session_id: str | UUID) -> UserSession | None:
+    async def get_session(self, session_id: str | UUID) -> UserSession | None:
         """
         Get session by ID.
 
@@ -244,11 +256,12 @@ class GitHubAuthService:
             session_id: Session ID to lookup
 
         Returns:
-            User session or None if not found
+            User session or None if not found/expired
         """
-        return _sessions.get(str(session_id))
+        db = get_db()
+        return await store_get_session(db, session_id)
 
-    def update_session(self, session: UserSession) -> None:
+    async def update_session(self, session: UserSession) -> None:
         """
         Update session in storage.
 
@@ -256,9 +269,10 @@ class GitHubAuthService:
             session: Session to update
         """
         session.updated_at = datetime.now(UTC)
-        _sessions[str(session.session_id)] = session
+        db = get_db()
+        await store_save_session(db, session)
 
-    def revoke_session(self, session_id: str | UUID) -> bool:
+    async def revoke_session(self, session_id: str | UUID) -> bool:
         """
         Revoke and remove session.
 
@@ -268,11 +282,11 @@ class GitHubAuthService:
         Returns:
             True if session was found and revoked
         """
-        session = _sessions.pop(str(session_id), None)
-        if session:
-            logger.info("Revoked session for user %s", session.github_username)
-            return True
-        return False
+        db = get_db()
+        deleted = await store_delete_session(db, session_id)
+        if deleted:
+            logger.info("Revoked session %s", session_id)
+        return deleted
 
 
 # Global service instance

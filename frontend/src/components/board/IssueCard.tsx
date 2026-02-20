@@ -2,7 +2,7 @@
  * IssueCard component - displays a board item as a card with metadata badges.
  */
 
-import type { BoardItem } from '@/types';
+import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 
 interface IssueCardProps {
@@ -10,7 +10,39 @@ interface IssueCardProps {
   onClick: (item: BoardItem) => void;
 }
 
+function SubIssueStateIcon({ state }: { state: string }) {
+  if (state === 'closed') {
+    return <span className="sub-issue-state sub-issue-state-closed" title="Closed">✓</span>;
+  }
+  return <span className="sub-issue-state sub-issue-state-open" title="Open">○</span>;
+}
+
+function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
+  const agentLabel = subIssue.assigned_agent
+    ? subIssue.assigned_agent.replace('speckit.', '')
+    : null;
+
+  return (
+    <a
+      className="sub-issue-row"
+      href={subIssue.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      title={subIssue.title}
+    >
+      <SubIssueStateIcon state={subIssue.state} />
+      {agentLabel && (
+        <span className="sub-issue-agent-badge">{agentLabel}</span>
+      )}
+      <span className="sub-issue-number">#{subIssue.number}</span>
+    </a>
+  );
+}
+
 export function IssueCard({ item, onClick }: IssueCardProps) {
+  const subIssues = item.sub_issues ?? [];
+
   return (
     <div
       className="board-issue-card"
@@ -39,6 +71,23 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
 
       {/* Title */}
       <div className="issue-card-title">{item.title}</div>
+
+      {/* Sub-Issues */}
+      {subIssues.length > 0 && (
+        <div className="issue-card-sub-issues">
+          <div className="sub-issues-header">
+            <SubIssuesIcon />
+            <span className="sub-issues-count">
+              {subIssues.filter((s) => s.state === 'closed').length}/{subIssues.length} sub-issues
+            </span>
+          </div>
+          <div className="sub-issues-list">
+            {subIssues.map((si) => (
+              <SubIssueRow key={si.id} subIssue={si} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Metadata badges */}
       <div className="issue-card-badges">
@@ -93,6 +142,14 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
         )}
       </div>
     </div>
+  );
+}
+
+function SubIssuesIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z" />
+    </svg>
   );
 }
 

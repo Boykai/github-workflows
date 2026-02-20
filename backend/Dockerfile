@@ -22,7 +22,10 @@ RUN find /usr/local/lib/python3.12 -name "copilot" -type f -executable 2>/dev/nu
 # Copy application code
 COPY src/ ./src/
 
-# Create non-root user
+# Create data directory for SQLite database (volume mount target)
+RUN mkdir -p /app/data
+
+# Create non-root user and set ownership
 RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 

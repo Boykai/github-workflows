@@ -27,6 +27,8 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://frontend
+    volumes:
+      - ghchat-data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health')"]
       interval: 30s
@@ -57,6 +59,10 @@ services:
       start_period: 5s
     networks:
       - ghchat-network
+
+volumes:
+  ghchat-data:
+    driver: local
 
 networks:
   ghchat-network:

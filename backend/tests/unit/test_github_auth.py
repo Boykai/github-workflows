@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 
 from src.models.user import UserSession
-from src.services.github_auth import GitHubAuthService, _oauth_states, _sessions
+from src.services.github_auth import GitHubAuthService, _oauth_states
 
 
 class TestGitHubAuthServiceOAuth:
@@ -16,7 +16,6 @@ class TestGitHubAuthServiceOAuth:
     def setup_method(self):
         """Clear state before each test."""
         _oauth_states.clear()
-        _sessions.clear()
 
     @patch("src.services.github_auth.get_settings")
     def test_generate_oauth_url_returns_url_and_state(self, mock_settings):
@@ -81,24 +80,29 @@ class TestGitHubAuthServiceOAuth:
 
 
 class TestGitHubAuthServiceSessions:
-    """Tests for session management."""
+    """Tests for session management (async, backed by session store)."""
 
-    def setup_method(self):
-        """Clear sessions before each test."""
-        _sessions.clear()
-
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    def test_get_session_returns_none_for_unknown_id(self, mock_settings):
+    async def test_get_session_returns_none_for_unknown_id(self, mock_settings, _mock_db):
         """Should return None for unknown session ID."""
         mock_settings.return_value = MagicMock()
 
         service = GitHubAuthService()
 
-        assert service.get_session("unknown_id") is None
-        assert service.get_session(uuid4()) is None
+        with patch(
+            "src.services.github_auth.store_get_session",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            assert await service.get_session("unknown_id") is None
+            assert await service.get_session(uuid4()) is None
 
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    def test_get_session_returns_session_for_valid_id(self, mock_settings):
+    async def test_get_session_returns_session_for_valid_id(self, mock_settings, _mock_db):
         """Should return session for valid ID."""
         mock_settings.return_value = MagicMock()
 
@@ -108,15 +112,21 @@ class TestGitHubAuthServiceSessions:
             github_username="testuser",
             access_token="test_token",
         )
-        _sessions[str(session.session_id)] = session
 
-        retrieved = service.get_session(session.session_id)
+        with patch(
+            "src.services.github_auth.store_get_session",
+            new_callable=AsyncMock,
+            return_value=session,
+        ):
+            retrieved = await service.get_session(session.session_id)
 
         assert retrieved is not None
         assert retrieved.github_username == "testuser"
 
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    def test_update_session_updates_timestamp(self, mock_settings):
+    async def test_update_session_updates_timestamp(self, mock_settings, _mock_db):
         """Should update the updated_at timestamp."""
         mock_settings.return_value = MagicMock()
 
@@ -133,13 +143,18 @@ class TestGitHubAuthServiceSessions:
 
         time.sleep(0.01)
 
-        service.update_session(session)
+        with patch(
+            "src.services.github_auth.store_save_session",
+            new_callable=AsyncMock,
+        ):
+            await service.update_session(session)
 
         assert session.updated_at > original_updated_at
-        assert str(session.session_id) in _sessions
 
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    def test_revoke_session_removes_session(self, mock_settings):
+    async def test_revoke_session_removes_session(self, mock_settings, _mock_db):
         """Should remove session from storage."""
         mock_settings.return_value = MagicMock()
 
@@ -149,21 +164,31 @@ class TestGitHubAuthServiceSessions:
             github_username="testuser",
             access_token="test_token",
         )
-        _sessions[str(session.session_id)] = session
 
-        result = service.revoke_session(session.session_id)
+        with patch(
+            "src.services.github_auth.store_delete_session",
+            new_callable=AsyncMock,
+            return_value=True,
+        ):
+            result = await service.revoke_session(session.session_id)
 
         assert result is True
-        assert str(session.session_id) not in _sessions
 
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    def test_revoke_session_returns_false_for_unknown_id(self, mock_settings):
+    async def test_revoke_session_returns_false_for_unknown_id(self, mock_settings, _mock_db):
         """Should return False for unknown session ID."""
         mock_settings.return_value = MagicMock()
 
         service = GitHubAuthService()
 
-        result = service.revoke_session("unknown_id")
+        with patch(
+            "src.services.github_auth.store_delete_session",
+            new_callable=AsyncMock,
+            return_value=False,
+        ):
+            result = await service.revoke_session("unknown_id")
 
         assert result is False
 
@@ -222,8 +247,9 @@ class TestGitHubAuthServiceTokenExchange:
         assert result["id"] == 12345678
 
     @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
     @patch("src.services.github_auth.get_settings")
-    async def test_create_session_creates_session_from_code(self, mock_settings):
+    async def test_create_session_creates_session_from_code(self, mock_settings, _mock_db):
         """Should create a complete session from OAuth code."""
         mock_settings.return_value = MagicMock(
             github_client_id="test_client_id",
@@ -254,11 +280,13 @@ class TestGitHubAuthServiceTokenExchange:
         service._client.post = AsyncMock(return_value=token_response)
         service._client.get = AsyncMock(return_value=user_response)
 
-        _sessions.clear()
-        session = await service.create_session("test_code")
+        with patch(
+            "src.services.github_auth.store_save_session",
+            new_callable=AsyncMock,
+        ):
+            session = await service.create_session("test_code")
 
         assert session.github_user_id == "12345678"
         assert session.github_username == "testuser"
         assert session.access_token == "gho_test_token"
         assert session.refresh_token == "ghr_refresh"
-        assert str(session.session_id) in _sessions

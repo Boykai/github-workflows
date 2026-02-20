@@ -2,17 +2,19 @@
  * Main application component.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { useUserSettings } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -27,7 +29,15 @@ const queryClient = new QueryClient({
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
-  const [activeView, setActiveView] = useState<'chat' | 'board'>('chat');
+  const { settings: userSettings } = useUserSettings();
+  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>('chat');
+
+  // Apply default_view from user settings on first load (FR-014)
+  useEffect(() => {
+    if (userSettings?.display?.default_view) {
+      setActiveView(userSettings.display.default_view);
+    }
+  }, [userSettings?.display?.default_view]);
   const {
     projects,
     selectedProject,
@@ -100,6 +110,12 @@ function AppContent() {
             >
               Project Board
             </button>
+            <button
+              className={`header-nav-btn ${activeView === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveView('settings')}
+            >
+              Settings
+            </button>
           </nav>
         </div>
         <div className="header-actions">
@@ -115,7 +131,12 @@ function AppContent() {
       </header>
 
       <main className="app-main">
-        {activeView === 'board' ? (
+        {activeView === 'settings' ? (
+          <SettingsPage
+            projects={projects.map((p) => ({ project_id: p.project_id, name: p.name }))}
+            selectedProjectId={selectedProject?.project_id}
+          />
+        ) : activeView === 'board' ? (
           <ProjectBoardPage
             selectedProjectId={selectedProject?.project_id}
             onProjectSelect={selectProject}
