@@ -1,5 +1,5 @@
 /**
- * API client service for Agent Projects.
+ * API client service for Ready Set Go.
  * Provides typed fetch wrapper with error handling.
  */
 

@@ -1,5 +1,5 @@
 {
-  "name": "Agent Projects",
+  "name": "Ready Set Go",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
