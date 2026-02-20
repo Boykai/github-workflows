@@ -19,7 +19,7 @@ Apply a purple background color (#7C3AED) to the app's root container by introdu
 **Project Type**: Web (frontend React SPA + backend Python API)  
 **Performance Goals**: N/A (no performance impact from CSS variable change)  
 **Constraints**: WCAG AA contrast ratio ≥ 4.5:1 for all text on purple background  
-**Scale/Scope**: 1 file change (frontend/src/index.css); no backend, database, or state management changes
+**Scale/Scope**: 2 file changes (frontend/src/index.css, frontend/src/App.css); no backend, database, or state management changes
 
 ## Constitution Check
 
@@ -72,7 +72,7 @@ specs/005-purple-background/
 frontend/
 ├── src/
 │   ├── index.css        # Global CSS variables and body styling (MODIFIED)
-│   ├── App.css          # Component-level styles (NO CHANGES - components have own backgrounds)
+│   ├── App.css          # Login/loading text color overrides for contrast (MODIFIED)
 │   ├── App.tsx          # Main application component (NO CHANGES)
 │   └── [other files unchanged]
 ├── index.html           # HTML entry point (NO CHANGES)
@@ -82,7 +82,7 @@ backend/
 └── [No changes - purple background is frontend-only concern]
 ```
 
-**Structure Decision**: Web application with React frontend. Changes isolated to the global CSS file (`frontend/src/index.css`). No backend, database, or state management involvement. This is a theming/style-layer-only update.
+**Structure Decision**: Web application with React frontend. Changes isolated to frontend CSS files (`frontend/src/index.css` for theming, `frontend/src/App.css` for text contrast). No backend, database, or state management involvement. This is a theming/style-layer-only update.
 
 ## Complexity Tracking
 
