@@ -28,6 +28,7 @@ Traditional DevOps workflows require developers to context-switch between their 
 │                                   (via Copilot SDK, or Azure OpenAI)         │
 │                                                                              │
 │  User clicks Confirm         ───▶  GitHub Issue created, added to Project    │
+│                                    Sub-issues created for each agent         │
 │                                    Status: 📋 Backlog                        │
 │                                                                              │
 │  ┌───────────────────── AUTOMATED AGENT PIPELINE ──────────────────────┐     │
@@ -62,7 +63,13 @@ Traditional DevOps workflows require developers to context-switch between their 
 │     Child branches are automatically deleted after merge                     │
 │                                                                              │
 │  📄 Agent outputs (.md files) are automatically extracted from the PR        │
-│     and posted as GitHub Issue comments by the polling service               │
+│     and posted as comments on the agent's SUB-ISSUE by the polling service   │
+│                                                                              │
+│  📌 SUB-ISSUE LIFECYCLE                                                      │
+│     Sub-issues created upfront: [agent-name] Parent Title                    │
+│     Copilot assigned to sub-issue (not parent)                               │
+│     Agent outputs and Done! markers posted on sub-issue                      │
+│     Sub-issue closed as completed when agent finishes                        │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -71,10 +78,10 @@ Traditional DevOps workflows require developers to context-switch between their 
 
 | Status | Agent(s) Assigned | What Happens | Transition Trigger |
 |--------|-------------------|--------------|-------------------|
-| 📋 **Backlog** | `speckit.specify` | Agent creates first PR (establishes main branch) and writes `spec.md` | `speckit.specify: Done!` comment detected |
-| 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential pipeline: each agent branches from main branch, child PR merged + branch deleted on completion | Both agents post `Done!` markers |
-| 🔄 **In Progress** | `speckit.implement` | Agent branches from main branch, implements code from `tasks.md`, child PR merged + branch deleted, main PR converted from draft to ready | Child PR completion detected (timeline events or not draft) |
-| 👀 **In Review** | `copilot-review` | Main PR contains all agent work (child PRs already merged), Copilot code review requested | Manual merge |
+| 📋 **Backlog** | `speckit.specify` | Sub-issue created, agent assigned; creates first PR (establishes main branch) and writes `spec.md`; sub-issue closed on completion | `speckit.specify: Done!` on sub-issue |
+| 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential pipeline: each agent assigned to its sub-issue, branches from main branch, child PR merged + branch deleted, sub-issue closed on completion | Both agents post `Done!` markers on their sub-issues |
+| 🔄 **In Progress** | `speckit.implement` | Agent assigned to sub-issue, branches from main branch, implements code from `tasks.md`, child PR merged + branch deleted, main PR converted from draft to ready, sub-issue closed | Child PR completion detected (timeline events or not draft) |
+| 👀 **In Review** | `copilot-review` | Main PR contains all agent work (child PRs already merged), Copilot code review requested; sub-issue closed when review completes | Manual merge |
 | ✅ **Done** | — | Work completed and merged | Manual or webhook on PR merge |
 
 ### Agent Pipeline Details
@@ -95,14 +102,19 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 
 ### Key Behaviors
 
+- **Sub-Issue-Per-Agent Workflow**: When a feature issue is confirmed, the system creates sub-issues upfront for every agent in the pipeline. Each sub-issue is titled `[agent-name] Parent Title` and added to the same GitHub Project. Copilot is assigned to the sub-issue (not the parent), and all agent output comments (`.md` files and `Done!` markers) are posted on the sub-issue. When an agent completes, its sub-issue is automatically closed as completed (`state=closed`, `state_reason=completed`). This provides per-agent visibility and prevents agents from posting on the wrong issue.
 - **Hierarchical PR Branching**: The first PR created for an issue establishes the "main branch" for that issue. All subsequent agents branch FROM this main branch (using the branch name as `base_ref`) and create their own child PRs targeting it. When a child agent completes, their PR is automatically squash-merged into the main branch and the child branch is deleted. By the time the issue reaches In Review, the main PR contains all agent work consolidated into a single branch.
 - **Main Branch Discovery**: The main branch is tracked per-issue in memory (including branch name, PR number, and latest HEAD SHA for audit purposes). If the server restarts, the system automatically discovers the main branch by scanning linked PRs for the issue before assigning the next agent.
-- **System-Side Output Posting**: When an agent's PR work completes (for `speckit.specify`, `speckit.plan`, `speckit.tasks`), the polling service automatically extracts `.md` files from the PR branch, posts them as GitHub Issue comments, and posts the `<agent>: Done!` marker to advance the pipeline.
+- **System-Side Output Posting**: When an agent's PR work completes (for `speckit.specify`, `speckit.plan`, `speckit.tasks`), the polling service automatically extracts `.md` files from the PR branch, posts them as comments on the agent's sub-issue, and posts the `<agent>: Done!` marker to advance the pipeline.
 - **speckit.implement Completion**: Unlike other agents, `speckit.implement` completion is detected via PR timeline events (`copilot_work_finished`, `review_requested`) or when the child PR is no longer a draft. When complete, its child PR is merged into the main branch, the main PR is converted from draft to ready for review, status is updated to "In Review", and Copilot code review is requested.
-- **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state by scanning issue comments for `Done!` markers.
+- **Sub-Issue Lifecycle**: Sub-issues are created open with `ai-generated` and `sub-issue` labels. When assigned, they receive an `in-progress` label. When the agent completes, the sub-issue is closed as completed with a `done` label added and `in-progress` removed, and the sub-issue's project board status is updated to "Done".
+- **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings, status columns) is persisted to SQLite alongside the in-memory cache. On server restart, the config is loaded from the `workflow_config` column in `project_settings`. A backfill mechanism migrates legacy `agent_pipeline_mappings` data to the full config format.
+- **Polling Auto-Start**: The background polling service automatically starts when a user confirms a proposal (chat) or recommendation (workflow), not only on explicit project selection. This ensures the pipeline runs immediately after issue creation.
+- **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state from the durable tracking table in the issue body and from issue comments for `Done!` markers. Sub-issue mappings are reconstructed by parsing `[agent-name]` prefixes from sub-issue titles.
 - **Automatic Branch Cleanup**: After a child PR is merged into the main branch, the child branch is automatically deleted from the repository to keep the branch list clean.
 - **Copilot Status Acceptance**: When Copilot starts working, it naturally moves issues to "In Progress". The polling service accepts this status change and updates the internal pipeline state accordingly — it does NOT fight Copilot by reverting the status, which would re-trigger the agent.
 - **Pipeline State Tracking**: Each issue with an active agent pipeline has its state tracked in memory, including which agents have completed and which is currently active. This prevents premature status transitions.
+- **Case-Insensitive Status Matching**: All status name lookups use case-insensitive matching via a `_ci_get()` helper, accommodating variations between GitHub Project board column names (e.g., "In progress" vs "In Progress").
 - **Double-Assignment Prevention**: Pending agent assignment flags are set BEFORE the GitHub API call and cleared only on failure. A per-issue recovery cooldown (5 minutes) prevents rapid re-assignment.
 
 ### Key Integrations
@@ -113,7 +125,8 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 | **Azure OpenAI** | Optional fallback AI provider for issue generation (requires separate API credentials) |
 | **GitHub Projects V2** | Manages the kanban board with status columns (GraphQL API) |
 | **GitHub Copilot** | Coding agent platform — custom Spec Kit agents run on it |
-| **Polling Service** | Background loop that detects agent completion, posts outputs, advances pipelines |
+| **SQLite** | Persistent storage for workflow configuration, sessions, and settings (WAL mode, auto-migrated) |
+| **Polling Service** | Background loop that detects agent completion, posts outputs to sub-issues, closes sub-issues, advances pipelines |
 | **WebSocket** | Real-time UI updates for task changes and agent progress |
 
 ---
@@ -124,13 +137,18 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Project Selection**: Browse and select from your GitHub Projects V2 boards
 - **Natural Language Issue Creation**: Describe features in plain English; AI generates structured GitHub Issues with user stories, requirements, and metadata
 - **Pluggable AI Provider**: GitHub Copilot (default, uses OAuth token) or Azure OpenAI (optional, uses API key) — configured via `AI_PROVIDER` env var
-- **Automated Agent Pipeline**: Issues flow through Spec Kit agents automatically — specify → plan → tasks → implement
+- **Automated Agent Pipeline**: Issues flow through Spec Kit agents automatically — specify → plan → tasks → implement → review
+- **Sub-Issue-Per-Agent Workflow**: Each agent gets its own sub-issue created upfront, providing per-agent visibility. Sub-issues are closed as completed when their agent finishes.
 - **Agent Configuration UI**: Drag-and-drop agent assignment per board column with presets (Spec Kit, GitHub Copilot, Custom) and custom agent support
 - **Agent Discovery**: Agents are discovered from `.github/agents/*.agent.md` in the repository, combined with built-in agents
 - **Hierarchical PR Branching**: First PR's branch becomes the "main" for the issue; subsequent agents branch from it, child PRs are squash-merged back, and child branches are automatically deleted
 - **Automatic Branch Cleanup**: Child branches are deleted from the repository after their PRs are merged into the main branch
-- **System-Side Output Posting**: Agent `.md` outputs are extracted from PRs and posted as issue comments automatically
+- **System-Side Output Posting**: Agent `.md` outputs are extracted from PRs and posted as sub-issue comments automatically
 - **Main Branch Discovery**: If the server restarts, the main branch is rediscovered from linked PRs before assigning the next agent
+- **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings per status) is persisted to SQLite so it survives server restarts. Falls back to legacy data with automatic backfill migration.
+- **Schema Migrations**: Numbered SQL migrations run at startup (currently 001 + 002), tracked by a `schema_version` table
+- **Polling Auto-Start**: Background polling automatically starts after confirming a proposal or recommendation, ensuring the pipeline runs without manual intervention
+- **Case-Insensitive Status Matching**: Status name lookups accommodate variations between GitHub board column names (e.g., "In progress" vs "In Progress")
 - **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, linked PR counts, and per-column agent configuration
 - **Status Updates via Chat**: Update task status using natural language commands
 - **Real-Time Sync**: Live updates via WebSocket with polling fallback
@@ -167,6 +185,11 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
                         │  │ │ (fallback)    │  │  │
                         │  │ └───────────────┘  │  │
                         │  └───────────────────┘  │
+                        │  ┌───────────────────┐  │
+                        │  │ SQLite Database    │  │
+                        │  │ (WAL mode)         │  │   ◀── Workflow config,
+                        │  │ data/settings.db   │  │       sessions, settings
+                        │  └───────────────────┘  │
                         └─────────────────────────┘
 ```
 
@@ -185,13 +208,15 @@ Set `AI_PROVIDER=copilot` (default) or `AI_PROVIDER=azure_openai` in `.env` to s
 
 The background polling service runs every 60 seconds (configurable) and executes these steps in order:
 
-1. **Step 0 — Post Agent Outputs**: For issues with active pipelines, detect completed PRs. For each completed agent:
+1. **Step 0 — Post Agent Outputs**: For issues with active pipelines (including reconstructed ones after restart), detect completed PRs. For each completed agent:
    - **Merge child PR first** into the main branch (before posting Done!)
    - Wait 2 seconds for GitHub to process the merge
-   - Extract `.md` files from the PR branch and post them as issue comments
-   - Post the `<agent>: Done!` marker
-   - Update the tracking table in the issue body (mark agent as ✅ Done)
+   - Extract `.md` files from the PR branch and post them as comments on the agent's **sub-issue** (not the parent)
+   - Post the `<agent>: Done!` marker on the sub-issue
+   - **Close the sub-issue** as completed (`state=closed`, `state_reason=completed`)
+   - Update the tracking table in the **parent issue** body (mark agent as ✅ Done)
    - Also captures the main branch when the first PR is detected
+   - On server restart, reconstructs pipeline state from the durable tracking table in the issue body and sub-issue mappings from `[agent-name]` title prefixes
 2. **Step 1 — Check Backlog**: Scan Backlog issues for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan` (branching from the main branch).
 3. **Step 2 — Check Ready**: Scan Ready issues for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance pipeline or transition to In Progress and assign `speckit.implement`.
 4. **Step 3 — Check In Progress**: Detect `speckit.implement` child PR completion (timeline events: `copilot_work_finished`, `review_requested`, or PR not draft) → merge child PR into main branch, delete child branch, convert main PR from draft to ready for review, transition to In Review, request Copilot code review. If Copilot moves an issue to "In Progress" before the pipeline expects it, the polling service **accepts the status change** and updates the pipeline state — it does NOT restore the old status (which would re-trigger the agent).
@@ -213,6 +238,7 @@ Each issue maintains a **tracking table** in its body that shows the full agent 
 | 2 | Ready | `speckit.plan` | ✅ Done |
 | 3 | Ready | `speckit.tasks` | 🔄 Active |
 | 4 | In Progress | `speckit.implement` | ⏳ Pending |
+| 5 | In Review | `copilot-review` | ⏳ Pending |
 ```
 
 **State values:**
@@ -494,6 +520,7 @@ npm run dev
 | `GITHUB_REDIRECT_URI` | No | `http://localhost:8000/api/v1/auth/github/callback` | OAuth callback URL |
 | `SESSION_SECRET_KEY` | Yes | — | Random hex string for session encryption |
 | `SESSION_EXPIRE_HOURS` | No | `8` | Session TTL in hours |
+| `DATABASE_PATH` | No | `data/settings.db` | SQLite database file path (map to Docker volume for persistence) |
 | `AI_PROVIDER` | No | `copilot` | AI provider: `copilot` (GitHub Copilot via OAuth) or `azure_openai` |
 | `COPILOT_MODEL` | No | `gpt-4o` | Model for Copilot completion provider |
 | `AZURE_OPENAI_ENDPOINT` | No | — | Azure OpenAI endpoint URL (only when `AI_PROVIDER=azure_openai`) |
@@ -636,6 +663,9 @@ github-workflows/
 │   │   │   ├── tasks.py      #   Task CRUD
 │   │   │   ├── workflow.py   #   Workflow & pipeline management
 │   │   │   └── webhooks.py   #   GitHub webhook handler
+│   │   ├── migrations/       # Database schema migrations
+│   │   │   ├── 001_initial_schema.sql      # Sessions, preferences, project settings, global settings
+│   │   │   └── 002_add_workflow_config_column.sql  # Full workflow config persistence
 │   │   ├── models/           # Pydantic data models
 │   │   │   ├── board.py      #   Board columns, items, custom fields
 │   │   │   ├── chat.py       #   Chat, workflow config, agent mappings, display names
@@ -692,7 +722,9 @@ github-workflows/
     ├── 001-github-project-chat/
     ├── 001-github-project-workflow/
     ├── 002-speckit-agent-assignment/
-    └── 004-agent-workflow-config-ui/
+    ├── 004-agent-workflow-config-ui/
+    ├── 005-sqlite-settings-storage/
+    └── 006-sqlite-settings-storage/
 ```
 
 ---
@@ -728,9 +760,16 @@ github-workflows/
 **Agent pipeline not advancing:**
 - Verify the polling service is running: `GET /api/v1/workflow/polling/status`
 - Check that your GitHub Project has the required status columns: Backlog, Ready, In Progress, In Review
+- Note: status names are matched case-insensitively, so "In progress" and "In Progress" both work
 - Review backend logs for agent assignment errors: `docker compose logs -f backend`
 - Manually trigger a check: `POST /api/v1/workflow/polling/check-all`
 - Check pipeline state for a specific issue: `GET /api/v1/workflow/pipeline-states/{issue_number}`
+
+**Workflow configuration lost after restart:**
+- Workflow config is persisted to SQLite. Verify the database volume is mounted: check `docker-compose.yml` for the `data/` volume
+- Check that `DATABASE_PATH` env var points to a persistent location (default: `data/settings.db`)
+- If migrating from an older version, the system auto-backfills the `workflow_config` column from legacy `agent_pipeline_mappings` data
+- Check logs for `Loaded workflow config from DB` or `Failed to load workflow config from DB` messages
 
 **speckit.implement not starting or completing:**
 - Ensure the `speckit.tasks: Done!` marker was posted on the issue
