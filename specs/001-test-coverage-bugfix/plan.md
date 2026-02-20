@@ -1,44 +1,44 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Improve Test Coverage to 85% and Fix Discovered Bugs
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-test-coverage-bugfix` | **Date**: 2026-02-20 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-test-coverage-bugfix/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Audit and expand the test suite for Tech Connect (React/TypeScript frontend + FastAPI/Python backend) to achieve a minimum of 85% aggregate code coverage. The approach uses existing Vitest + @vitest/coverage-v8 for frontend and Pytest + pytest-cov for backend. During this process, identify and resolve any bugs uncovered by the new tests, following the Arrange-Act-Assert pattern with isolated, deterministic tests.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x (frontend), Python 3.11+ (backend)  
+**Primary Dependencies**: React 18.3 + Vitest 4.0 + Testing Library (frontend), FastAPI + Pytest 7.4 + pytest-cov (backend)  
+**Storage**: N/A — no new storage; testing covers existing aiosqlite-backed services  
+**Testing**: Vitest + @vitest/coverage-v8 (frontend), Pytest + pytest-cov + pytest-asyncio (backend)  
+**Target Platform**: Web application — browser (frontend), Linux server (backend)  
+**Project Type**: web (frontend + backend)  
+**Performance Goals**: N/A — quality improvement, not performance  
+**Constraints**: Minimum 85% aggregate test coverage across frontend and backend  
+**Scale/Scope**: ~45 frontend source files (hooks, components, services, pages), ~30 backend source files (API routes, models, services, prompts)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | `spec.md` contains 4 prioritized user stories (P1–P3) with Given-When-Then acceptance scenarios and clear scope boundaries |
+| II. Template-Driven Workflow | ✅ PASS | Using `plan-template.md` canonical template; all sections populated |
+| III. Agent-Orchestrated Execution | ✅ PASS | Separate agents for specify → plan → tasks → implement; each produces defined artifacts |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests are explicitly the core deliverable of this feature — mandated by the specification itself |
+| V. Simplicity and DRY | ✅ PASS | No new abstractions introduced; testing existing code with existing frameworks; no premature generalization |
+
+**Gate Result**: ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/001-test-coverage-bugfix/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -48,57 +48,46 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
+│   ├── api/             # Route handlers: auth, board, chat, projects, settings, tasks, webhooks, workflow
+│   ├── models/          # Pydantic models: board, chat, project, settings, task, user
+│   ├── services/        # Business logic: ai_agent, cache, copilot_polling, database, github_auth, github_projects, session_store, settings_store, websocket, workflow_orchestrator, agent_tracking, completion_providers
+│   ├── prompts/         # AI prompt templates: task_generation, issue_generation
+│   ├── migrations/      # Database migration scripts
+│   ├── config.py        # Application configuration
+│   ├── constants.py     # Shared constants
+│   ├── exceptions.py    # Custom exception classes
+│   └── main.py          # FastAPI application entry point
 └── tests/
+    ├── unit/            # Unit tests for services, models, routes
+    ├── integration/     # Integration tests (e.g., agent assignment)
+    ├── test_api_e2e.py  # End-to-end API tests
+    └── conftest.py      # Shared fixtures and mocks
 
 frontend/
 ├── src/
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   ├── auth/        # LoginButton
+│   │   ├── board/       # ProjectBoard, IssueCard, BoardColumn, AgentConfigRow, etc.
+│   │   ├── chat/        # ChatInterface, MessageBubble, preview components
+│   │   ├── common/      # ErrorDisplay, RateLimitIndicator
+│   │   ├── settings/    # GlobalSettings, AIPreferences, DisplayPreferences, etc.
+│   │   └── sidebar/     # ProjectSelector, ProjectSidebar, TaskCard
+│   ├── hooks/           # Custom hooks: useAuth, useProjects, useChat, useSettings, etc.
+│   ├── pages/           # ProjectBoardPage, SettingsPage
+│   ├── services/        # api.ts — HTTP client and API functions
+│   ├── types/           # TypeScript type definitions
+│   └── test/            # Test setup (happy-dom, mocks)
+├── e2e/                 # Playwright E2E tests
+├── vitest.config.ts     # Vitest configuration
+└── playwright.config.ts # Playwright configuration
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application layout with separate `frontend/` and `backend/` directories. Tests live within each project: `backend/tests/` (unit, integration, e2e) and `frontend/src/**/*.test.{ts,tsx}` (co-located unit tests) plus `frontend/e2e/` (E2E tests via Playwright).
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations detected — no entries required.
