@@ -7,6 +7,7 @@
   --color-danger: #cf222e;
   --color-bg: #ffffff;
   --color-bg-secondary: #f6f8fa;
+  --color-bg-app: #7C3AED;
   --color-border: #d0d7de;
   --color-text: #24292f;
   --color-text-secondary: #57606a;
@@ -23,6 +24,7 @@ html.dark-mode-active {
   --color-danger: #f85149;
   --color-bg: #0d1117;
   --color-bg-secondary: #161b22;
+  --color-bg-app: #7C3AED;
   --color-border: #30363d;
   --color-text: #e6edf3;
   --color-text-secondary: #8b949e;
@@ -40,7 +42,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
-  background: var(--color-bg-secondary);
+  background: var(--color-bg-app);
 }
 
 button {
