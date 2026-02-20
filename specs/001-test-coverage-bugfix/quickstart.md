@@ -62,11 +62,15 @@ cd backend && python -m pytest --cov=src --cov-report=term-missing 2>&1 | tee /t
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 
+// vi.mock must be at module scope (hoisted before imports)
+vi.mock('../services/api', () => ({ fetchData: vi.fn() }));
+import { fetchData } from '../services/api';
+
 describe('useExample', () => {
   it('should return expected value', async () => {
     // Arrange
     const mockData = { id: 1, name: 'test' };
-    vi.mock('../services/api', () => ({ fetchData: vi.fn().mockResolvedValue(mockData) }));
+    vi.mocked(fetchData).mockResolvedValue(mockData);
 
     // Act
     const { result } = renderHook(() => useExample());
