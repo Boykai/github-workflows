@@ -17,7 +17,7 @@
 
 **Purpose**: Verify baseline and confirm current title state before making changes
 
-- [ ] T001 Verify current title is "Agent Projects" in frontend/index.html, frontend/src/App.tsx, and frontend/e2e/ test files
+- [x] T001 Verify current title is "Agent Projects" in frontend/index.html, frontend/src/App.tsx, and frontend/e2e/ test files
 
 ---
 
@@ -39,9 +39,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [P] [US1] Update HTML page title from "Agent Projects" to "Front" in frontend/index.html (line 7)
-- [ ] T003 [P] [US1] Update login page header from "Agent Projects" to "Front" in frontend/src/App.tsx (line 72)
-- [ ] T004 [P] [US1] Update authenticated header from "Agent Projects" to "Front" in frontend/src/App.tsx (line 89)
+- [x] T002 [P] [US1] Update HTML page title from "Agent Projects" to "Front" in frontend/index.html (line 7)
+- [x] T003 [P] [US1] Update login page header from "Agent Projects" to "Front" in frontend/src/App.tsx (line 72)
+- [x] T004 [P] [US1] Update authenticated header from "Agent Projects" to "Front" in frontend/src/App.tsx (line 89)
 
 **Checkpoint**: Browser tab and both application headers now display "Front". User Story 1 is fully functional and testable independently.
 
@@ -55,14 +55,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [P] [US2] Update title assertion on line 12 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
-- [ ] T006 [P] [US2] Update title assertion on line 24 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
-- [ ] T007 [P] [US2] Update title assertion on line 38 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
-- [ ] T008 [P] [US2] Update title regex assertion on line 62 of frontend/e2e/auth.spec.ts from /Agent Projects/i to /Front/i
-- [ ] T009 [P] [US2] Update title assertion on line 99 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
-- [ ] T010 [P] [US2] Update title assertion on line 43 of frontend/e2e/ui.spec.ts from "Agent Projects" to "Front"
-- [ ] T011 [P] [US2] Update title assertion on line 67 of frontend/e2e/ui.spec.ts from "Agent Projects" to "Front"
-- [ ] T012 [P] [US2] Update title assertion on line 69 of frontend/e2e/integration.spec.ts from "Agent Projects" to "Front"
+- [x] T005 [P] [US2] Update title assertion on line 12 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
+- [x] T006 [P] [US2] Update title assertion on line 24 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
+- [x] T007 [P] [US2] Update title assertion on line 38 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
+- [x] T008 [P] [US2] Update title regex assertion on line 62 of frontend/e2e/auth.spec.ts from /Agent Projects/i to /Front/i
+- [x] T009 [P] [US2] Update title assertion on line 99 of frontend/e2e/auth.spec.ts from "Agent Projects" to "Front"
+- [x] T010 [P] [US2] Update title assertion on line 43 of frontend/e2e/ui.spec.ts from "Agent Projects" to "Front"
+- [x] T011 [P] [US2] Update title assertion on line 67 of frontend/e2e/ui.spec.ts from "Agent Projects" to "Front"
+- [x] T012 [P] [US2] Update title assertion on line 69 of frontend/e2e/integration.spec.ts from "Agent Projects" to "Front"
 
 **Checkpoint**: Zero occurrences of "Agent Projects" remain in user-facing frontend code and E2E tests.
 
@@ -72,8 +72,8 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T013 Run grep search for "Agent Projects" across frontend/index.html, frontend/src/App.tsx, and frontend/e2e/ to confirm zero matches
-- [ ] T014 Run quickstart.md validation steps to confirm browser tab and headers display "Front"
+- [x] T013 Run grep search for "Agent Projects" across frontend/index.html, frontend/src/App.tsx, and frontend/e2e/ to confirm zero matches
+- [x] T014 Run quickstart.md validation steps to confirm browser tab and headers display "Front"
 
 ---
 
