@@ -40,7 +40,7 @@ These test assertions must be updated to match the new title.
 | # | File | Line | Current Value | New Value |
 |---|------|------|---------------|-----------|
 | 8 | `frontend/e2e/auth.spec.ts` | 12 | `toContainText('Agent Projects')` | `toContainText('Happy Place')` |
-| 9 | `frontend/e2e/auth.spec.ts` | 24 | `toContainText('Agent Projects'` | `toContainText('Happy Place'` |
+| 9 | `frontend/e2e/auth.spec.ts` | 24 | `toContainText('Agent Projects')` | `toContainText('Happy Place')` |
 | 10 | `frontend/e2e/auth.spec.ts` | 38 | `toContainText('Agent Projects')` | `toContainText('Happy Place')` |
 | 11 | `frontend/e2e/auth.spec.ts` | 62 | `toHaveTitle(/Agent Projects/i)` | `toHaveTitle(/Happy Place/i)` |
 | 12 | `frontend/e2e/auth.spec.ts` | 99 | `toContainText('Agent Projects')` | `toContainText('Happy Place')` |
