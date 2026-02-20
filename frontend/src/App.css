@@ -7,7 +7,7 @@
   justify-content: center;
   height: 100vh;
   gap: 16px;
-  color: #ffffff;
+  color: var(--color-text-on-primary);
 }
 
 .spinner {
@@ -35,11 +35,11 @@
 
 .app-login h1 {
   font-size: 32px;
-  color: #ffffff;
+  color: var(--color-text-on-primary);
 }
 
 .app-login p {
-  color: #e6edf3;
+  color: var(--color-text-on-primary-secondary);
   margin-bottom: 16px;
 }
 
