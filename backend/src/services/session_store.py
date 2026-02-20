@@ -45,9 +45,7 @@ async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
     await db.commit()
 
 
-async def get_session(
-    db: aiosqlite.Connection, session_id: str | UUID
-) -> UserSession | None:
+async def get_session(db: aiosqlite.Connection, session_id: str | UUID) -> UserSession | None:
     """
     Load a session by ID. Returns None if not found or expired.
 
@@ -56,9 +54,7 @@ async def get_session(
     sid = str(session_id)
     logger.debug("Looking up session %s", sid)
 
-    cursor = await db.execute(
-        "SELECT * FROM user_sessions WHERE session_id = ?", (sid,)
-    )
+    cursor = await db.execute("SELECT * FROM user_sessions WHERE session_id = ?", (sid,))
     row = await cursor.fetchone()
 
     if row is None:
@@ -86,9 +82,7 @@ async def get_session(
         access_token=row["access_token"],
         refresh_token=row["refresh_token"],
         token_expires_at=(
-            datetime.fromisoformat(row["token_expires_at"])
-            if row["token_expires_at"]
-            else None
+            datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
         ),
         selected_project_id=row["selected_project_id"],
         created_at=datetime.fromisoformat(row["created_at"]),
@@ -103,16 +97,12 @@ async def delete_session(db: aiosqlite.Connection, session_id: str | UUID) -> bo
     """
     sid = str(session_id)
     logger.debug("Deleting session %s", sid)
-    cursor = await db.execute(
-        "DELETE FROM user_sessions WHERE session_id = ?", (sid,)
-    )
+    cursor = await db.execute("DELETE FROM user_sessions WHERE session_id = ?", (sid,))
     await db.commit()
     return cursor.rowcount > 0
 
 
-async def get_sessions_by_user(
-    db: aiosqlite.Connection, github_user_id: str
-) -> list[UserSession]:
+async def get_sessions_by_user(db: aiosqlite.Connection, github_user_id: str) -> list[UserSession]:
     """
     Get all sessions for a given GitHub user ID.
     """
@@ -125,9 +115,7 @@ async def get_sessions_by_user(
     sessions = []
     for row in rows:
         token_expires = (
-            datetime.fromisoformat(row["token_expires_at"])
-            if row["token_expires_at"]
-            else None
+            datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
         )
         sessions.append(
             UserSession(
@@ -153,13 +141,9 @@ async def purge_expired_sessions(db: aiosqlite.Connection) -> int:
     Returns the number of sessions purged.
     """
     settings = get_settings()
-    cutoff = (
-        datetime.now(UTC) - timedelta(hours=settings.session_expire_hours)
-    ).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(hours=settings.session_expire_hours)).isoformat()
 
-    cursor = await db.execute(
-        "DELETE FROM user_sessions WHERE updated_at < ?", (cutoff,)
-    )
+    cursor = await db.execute("DELETE FROM user_sessions WHERE updated_at < ?", (cutoff,))
     await db.commit()
     count = cursor.rowcount
     logger.debug("Purged %d expired sessions", count)

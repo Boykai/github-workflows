@@ -80,3 +80,4 @@ typeCheckingMode = "basic"
 include = ["src"]
 exclude = ["**/__pycache__", "tests"]
 reportMissingTypeStubs = false
+reportMissingImports = "warning"

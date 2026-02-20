@@ -1603,7 +1603,10 @@ class GitHubProjectsService:
 
             logger.info(
                 "Updated issue #%d state to '%s' in %s/%s",
-                issue_number, state, owner, repo,
+                issue_number,
+                state,
+                owner,
+                repo,
             )
             return True
         except Exception as e:
@@ -2494,9 +2497,7 @@ class GitHubProjectsService:
         }
         """
         try:
-            data = await self._graphql(
-                access_token, query, {"issueId": sub_issue_node_id}
-            )
+            data = await self._graphql(access_token, query, {"issueId": sub_issue_node_id})
         except Exception as exc:
             logger.warning(
                 "GraphQL projectItems query failed for sub-issue %s: %s",
@@ -2505,11 +2506,7 @@ class GitHubProjectsService:
             )
             return False
 
-        nodes = (
-            data.get("node", {})
-            .get("projectItems", {})
-            .get("nodes", [])
-        )
+        nodes = data.get("node", {}).get("projectItems", {}).get("nodes", [])
 
         # Find the project item that belongs to *our* project
         item_id: str | None = None
@@ -4041,6 +4038,7 @@ class GitHubProjectsService:
 
         # Strip the tracking table from the parent body (it belongs to the parent)
         import re
+
         clean_body = re.sub(
             r"\n---\s*\n\s*##\s*🤖\s*Agent Pipeline.*",
             "",

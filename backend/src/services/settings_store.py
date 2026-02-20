@@ -3,6 +3,7 @@
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any
 
 import aiosqlite
 
@@ -177,7 +178,9 @@ async def upsert_project_settings(
         updates["updated_at"] = now
         cols = ", ".join(updates.keys())
         placeholders = ", ".join("?" for _ in updates)
-        logger.debug("Inserting project settings for user=%s project=%s", github_user_id, project_id)
+        logger.debug(
+            "Inserting project settings for user=%s project=%s", github_user_id, project_id
+        )
         await db.execute(
             f"INSERT INTO project_settings ({cols}) VALUES ({placeholders})",  # noqa: S608
             list(updates.values()),
@@ -288,7 +291,7 @@ def _merge_user_settings(
 ) -> EffectiveUserSettings:
     """Merge global defaults with optional user overrides into effective settings."""
 
-    def _pick(user_col: str, global_col: str | None = None) -> object:
+    def _pick(user_col: str, global_col: str | None = None) -> Any:
         """Return user value if not NULL, else global value."""
         g_col = global_col or user_col
         if user_row is not None and user_row[user_col] is not None:
@@ -337,8 +340,7 @@ def _build_project_section(
         raw = json.loads(project_row["agent_pipeline_mappings"])
         # raw is dict[str, list[dict]] — convert inner dicts to ProjectAgentMapping
         agent_mappings = {
-            status: [ProjectAgentMapping(**m) for m in mappings]
-            for status, mappings in raw.items()
+            status: [ProjectAgentMapping(**m) for m in mappings] for status, mappings in raw.items()
         }
 
     return ProjectSpecificSettings(

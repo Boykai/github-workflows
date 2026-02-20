@@ -52,7 +52,9 @@ def _ci_get(mappings: dict, key: str, default=None):
 
 def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
     """Extract ordered slug strings for a given status. Case-insensitive lookup."""
-    return [a.slug if hasattr(a, "slug") else str(a) for a in _ci_get(config.agent_mappings, status, [])]
+    return [
+        a.slug if hasattr(a, "slug") else str(a) for a in _ci_get(config.agent_mappings, status, [])
+    ]
 
 
 def get_status_order(config: WorkflowConfiguration) -> list[str]:
@@ -251,7 +253,9 @@ def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | No
         if row and row["workflow_config"]:
             raw = json.loads(row["workflow_config"])
             conn.close()
-            logger.info("Loaded workflow config from DB (workflow_config column) for project %s", project_id)
+            logger.info(
+                "Loaded workflow config from DB (workflow_config column) for project %s", project_id
+            )
             return WorkflowConfiguration(**raw)
 
         # Fall back to agent_pipeline_mappings only
@@ -271,7 +275,10 @@ def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | No
                     AgentAssignment(**a) if isinstance(a, dict) else AgentAssignment(slug=str(a))
                     for a in agents
                 ]
-            logger.info("Loaded workflow config from DB (agent_pipeline_mappings column) for project %s", project_id)
+            logger.info(
+                "Loaded workflow config from DB (agent_pipeline_mappings column) for project %s",
+                project_id,
+            )
             config = WorkflowConfiguration(
                 project_id=project_id,
                 repository_owner="",
@@ -289,7 +296,9 @@ def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | No
 
         return None
     except Exception:
-        logger.warning("Failed to load workflow config from DB for project %s", project_id, exc_info=True)
+        logger.warning(
+            "Failed to load workflow config from DB for project %s", project_id, exc_info=True
+        )
         return None
 
 
@@ -318,7 +327,10 @@ def _persist_workflow_config_to_db(
     config_json = config.model_dump_json()
     agent_mappings_json = json.dumps(
         {
-            status: [a.model_dump(mode="json") if hasattr(a, "model_dump") else {"slug": str(a)} for a in agents]
+            status: [
+                a.model_dump(mode="json") if hasattr(a, "model_dump") else {"slug": str(a)}
+                for a in agents
+            ]
             for status, agents in config.agent_mappings.items()
         }
     )
@@ -353,7 +365,9 @@ def _persist_workflow_config_to_db(
         conn.close()
         logger.info("Persisted workflow config to DB for project %s (user=%s)", project_id, user_id)
     except Exception:
-        logger.warning("Failed to persist workflow config to DB for project %s", project_id, exc_info=True)
+        logger.warning(
+            "Failed to persist workflow config to DB for project %s", project_id, exc_info=True
+        )
 
 
 def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:
@@ -1363,11 +1377,7 @@ class WorkflowOrchestrator:
                             access_token=ctx.access_token,
                             project_id=ctx.project_id,
                             sub_issue_node_id=sub_node_id,
-                            status_name=(
-                                config.status_in_progress
-                                if config
-                                else "In Progress"
-                            ),
+                            status_name=(config.status_in_progress if config else "In Progress"),
                         )
                 except Exception as e:
                     logger.warning(
@@ -1876,7 +1886,7 @@ class WorkflowOrchestrator:
 
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await self.create_all_sub_issues(ctx)
-            if agent_sub_issues:
+            if agent_sub_issues and ctx.issue_number is not None:
                 # Store in pipeline state so assign_agent_for_status can look them up
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,

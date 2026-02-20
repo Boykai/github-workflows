@@ -40,6 +40,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",
+    "happy-dom": "^20.6.3",
     "jsdom": "^27.4.0",
     "prettier": "^3.2.0",
     "typescript": "~5.4.0",

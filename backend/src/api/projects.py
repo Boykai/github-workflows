@@ -221,7 +221,7 @@ async def websocket_subscribe(
     # Get session from cookie to authenticate
     session_id = websocket.cookies.get(SESSION_COOKIE_NAME)
     try:
-        session = get_current_session(session_id)
+        session = await get_current_session(session_id)
     except Exception as e:
         logger.error("WebSocket authentication failed: %s", e)
         await websocket.close(code=1008, reason="Authentication required")

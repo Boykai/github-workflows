@@ -637,13 +637,11 @@ async def post_agent_outputs_from_pr(
                         )
 
                         # Reconstruct sub-issue mappings from GitHub API
-                        pipeline.agent_sub_issues = (
-                            await _reconstruct_sub_issue_mappings(
-                                access_token=access_token,
-                                owner=task_owner,
-                                repo=task_repo,
-                                issue_number=task.issue_number,
-                            )
+                        pipeline.agent_sub_issues = await _reconstruct_sub_issue_mappings(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
                         )
 
                         set_pipeline_state(task.issue_number, pipeline)

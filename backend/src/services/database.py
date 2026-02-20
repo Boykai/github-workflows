@@ -30,8 +30,10 @@ async def init_database() -> aiosqlite.Connection:
     settings = get_settings()
     db_path = settings.database_path
 
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    # Ensure directory exists (if a directory component is present)
+    dir_path = os.path.dirname(db_path)
+    if dir_path:
+        os.makedirs(dir_path, exist_ok=True)
 
     logger.info("Initializing database at %s", db_path)
 
@@ -186,7 +188,7 @@ async def seed_global_settings(db: aiosqlite.Connection) -> None:
     cursor = await db.execute("SELECT COUNT(*) as cnt FROM global_settings")
     row = await cursor.fetchone()
 
-    if row["cnt"] > 0:
+    if row is None or row["cnt"] > 0:
         logger.debug("Global settings already exist, skipping seed")
         return
 

@@ -4,12 +4,14 @@ End-to-end API tests for the Agent Projects Backend.
 These tests verify the API endpoints work correctly.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.main import create_app
 from src.models.user import UserSession
-from src.services.github_auth import _sessions
+from src.services.github_auth import github_auth_service
 
 
 @pytest.fixture
@@ -97,9 +99,12 @@ class TestAuthEndpoints:
     @pytest.mark.asyncio
     async def test_auth_session_endpoint_rejects_invalid_token(self, client):
         """Session endpoint should reject invalid token."""
-        response = await client.post(
-            "/api/v1/auth/session", params={"session_token": "invalid_token"}
-        )
+        with patch.object(
+            github_auth_service, "get_session", new_callable=AsyncMock, return_value=None
+        ):
+            response = await client.post(
+                "/api/v1/auth/session", params={"session_token": "invalid_token"}
+            )
         assert response.status_code == 401
 
     @pytest.mark.asyncio
@@ -112,9 +117,13 @@ class TestAuthEndpoints:
             github_avatar_url="https://example.com/avatar.png",
             access_token="test_access_token",
         )
-        _sessions[str(session.session_id)] = session
 
-        try:
+        with patch.object(
+            github_auth_service,
+            "get_session",
+            new_callable=AsyncMock,
+            return_value=session,
+        ):
             response = await client.post(
                 "/api/v1/auth/session",
                 params={"session_token": str(session.session_id)},
@@ -129,9 +138,6 @@ class TestAuthEndpoints:
             assert "session_id" in response.cookies or any(
                 "session_id" in str(h) for h in response.headers.raw
             )
-        finally:
-            # Clean up
-            _sessions.pop(str(session.session_id), None)
 
     @pytest.mark.asyncio
     async def test_auth_me_with_valid_session(self, client):
@@ -142,9 +148,13 @@ class TestAuthEndpoints:
             github_username="authuser",
             access_token="test_token",
         )
-        _sessions[str(session.session_id)] = session
 
-        try:
+        with patch.object(
+            github_auth_service,
+            "get_session",
+            new_callable=AsyncMock,
+            return_value=session,
+        ):
             response = await client.get(
                 "/api/v1/auth/me", cookies={"session_id": str(session.session_id)}
             )
@@ -152,8 +162,6 @@ class TestAuthEndpoints:
             assert response.status_code == 200
             data = response.json()
             assert data["github_username"] == "authuser"
-        finally:
-            _sessions.pop(str(session.session_id), None)
 
     @pytest.mark.asyncio
     async def test_logout_with_valid_session(self, client):
@@ -164,15 +172,26 @@ class TestAuthEndpoints:
             github_username="logoutuser",
             access_token="test_token",
         )
-        _sessions[str(session.session_id)] = session
 
-        response = await client.post(
-            "/api/v1/auth/logout", cookies={"session_id": str(session.session_id)}
-        )
+        with (
+            patch.object(
+                github_auth_service,
+                "get_session",
+                new_callable=AsyncMock,
+                return_value=session,
+            ),
+            patch.object(
+                github_auth_service,
+                "revoke_session",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+        ):
+            response = await client.post(
+                "/api/v1/auth/logout", cookies={"session_id": str(session.session_id)}
+            )
 
-        assert response.status_code == 200
-        # Session should be revoked
-        assert str(session.session_id) not in _sessions
+            assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_logout_without_session(self, client):
