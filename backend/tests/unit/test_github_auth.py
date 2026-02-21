@@ -290,3 +290,142 @@ class TestGitHubAuthServiceTokenExchange:
         assert session.github_username == "testuser"
         assert session.access_token == "gho_test_token"
         assert session.refresh_token == "ghr_refresh"
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_settings")
+    async def test_close_closes_http_client(self, mock_settings):
+        """Should close the underlying HTTP client."""
+        mock_settings.return_value = MagicMock()
+        service = GitHubAuthService()
+        service._client = AsyncMock()
+        await service.close()
+        service._client.aclose.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_settings")
+    async def test_create_session_raises_on_oauth_error(self, mock_settings):
+        """Should raise ValueError when token exchange returns an error."""
+        mock_settings.return_value = MagicMock(
+            github_client_id="cid",
+            github_client_secret="csec",
+            github_redirect_uri="http://localhost/cb",
+        )
+        service = GitHubAuthService()
+
+        error_response = MagicMock()
+        error_response.json.return_value = {
+            "error": "bad_verification_code",
+            "error_description": "The code has expired",
+        }
+        error_response.raise_for_status = MagicMock()
+        service._client.post = AsyncMock(return_value=error_response)
+
+        with pytest.raises(ValueError, match="OAuth error.*The code has expired"):
+            await service.create_session("expired_code")
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.store_save_session", new_callable=AsyncMock)
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
+    @patch("src.services.github_auth.get_settings")
+    async def test_refresh_token_happy_path(self, mock_settings, _mock_db, _mock_save):
+        """Should refresh tokens and update session."""
+        mock_settings.return_value = MagicMock(
+            github_client_id="cid",
+            github_client_secret="csec",
+        )
+        service = GitHubAuthService()
+
+        session = UserSession(
+            github_user_id="123",
+            github_username="user",
+            access_token="old_token",
+            refresh_token="old_refresh",
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "access_token": "new_token",
+            "refresh_token": "new_refresh",
+            "expires_in": 7200,
+        }
+        mock_resp.raise_for_status = MagicMock()
+        service._client.post = AsyncMock(return_value=mock_resp)
+
+        result = await service.refresh_token(session)
+
+        assert result.access_token == "new_token"
+        assert result.refresh_token == "new_refresh"
+        assert result.token_expires_at is not None
+        _mock_save.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_settings")
+    async def test_refresh_token_no_refresh_token_raises(self, mock_settings):
+        """Should raise ValueError when session has no refresh token."""
+        mock_settings.return_value = MagicMock()
+        service = GitHubAuthService()
+
+        session = UserSession(
+            github_user_id="123",
+            github_username="user",
+            access_token="tok",
+            refresh_token=None,
+        )
+
+        with pytest.raises(ValueError, match="No refresh token available"):
+            await service.refresh_token(session)
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.get_settings")
+    async def test_refresh_token_error_response_raises(self, mock_settings):
+        """Should raise ValueError when GitHub returns an error on refresh."""
+        mock_settings.return_value = MagicMock(
+            github_client_id="cid",
+            github_client_secret="csec",
+        )
+        service = GitHubAuthService()
+
+        session = UserSession(
+            github_user_id="123",
+            github_username="user",
+            access_token="tok",
+            refresh_token="ref",
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {
+            "error": "bad_refresh_token",
+            "error_description": "Token has been revoked",
+        }
+        mock_resp.raise_for_status = MagicMock()
+        service._client.post = AsyncMock(return_value=mock_resp)
+
+        with pytest.raises(ValueError, match="Token refresh error.*Token has been revoked"):
+            await service.refresh_token(session)
+
+    @pytest.mark.asyncio
+    @patch("src.services.github_auth.store_save_session", new_callable=AsyncMock)
+    @patch("src.services.github_auth.get_db", return_value=MagicMock())
+    @patch("src.services.github_auth.get_settings")
+    async def test_create_session_from_token(self, mock_settings, _mock_db, _mock_save):
+        """Should create a session from a Personal Access Token."""
+        mock_settings.return_value = MagicMock()
+        service = GitHubAuthService()
+
+        user_response = MagicMock()
+        user_response.json.return_value = {
+            "id": 99999,
+            "login": "patuser",
+            "avatar_url": "https://example.com/avatar.png",
+        }
+        user_response.raise_for_status = MagicMock()
+        service._client.get = AsyncMock(return_value=user_response)
+
+        session = await service.create_session_from_token("ghp_pat_token")
+
+        assert session.github_user_id == "99999"
+        assert session.github_username == "patuser"
+        assert session.access_token == "ghp_pat_token"
+        assert session.refresh_token is None
+        assert session.token_expires_at is None
+        _mock_save.assert_awaited_once()

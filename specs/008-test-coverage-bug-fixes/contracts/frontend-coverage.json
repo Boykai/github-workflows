@@ -1,0 +1,22 @@
+{
+  "$schema": "Coverage configuration contract for vitest.config.ts",
+  "coverage": {
+    "provider": "v8",
+    "enabled": false,
+    "include": ["src/**/*.{ts,tsx}"],
+    "exclude": [
+      "src/test/**",
+      "src/**/*.test.*",
+      "src/**/*.spec.*",
+      "src/vite-env.d.ts",
+      "src/main.tsx"
+    ],
+    "thresholds": {
+      "lines": 85,
+      "branches": 70,
+      "functions": 80,
+      "statements": 85
+    },
+    "reporter": ["text", "text-summary", "lcov"]
+  }
+}

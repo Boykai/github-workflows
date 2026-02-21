@@ -165,7 +165,9 @@ function AppContent() {
               onConfirmStatusChange={confirmStatusChange}
               onConfirmRecommendation={async (recommendationId) => {
                 const result = await confirmRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
+                if (result.success) {
+                  removePendingRecommendation(recommendationId);
+                }
                 refreshTasks();
                 return result;
               }}

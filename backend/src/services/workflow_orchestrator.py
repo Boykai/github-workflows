@@ -1904,6 +1904,30 @@ class WorkflowOrchestrator:
 
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 
+            # Check if agent assignment actually succeeded
+            pipeline = get_pipeline_state(ctx.issue_number) if ctx.issue_number else None
+            agent_error = pipeline.error if pipeline else None
+
+            if agent_error:
+                logger.warning(
+                    "Issue #%d created but agent assignment had errors: %s",
+                    ctx.issue_number,
+                    agent_error,
+                )
+                return WorkflowResult(
+                    success=False,
+                    issue_id=ctx.issue_id,
+                    issue_number=ctx.issue_number,
+                    issue_url=ctx.issue_url,
+                    project_item_id=ctx.project_item_id,
+                    current_status=status_name,
+                    message=(
+                        f"Issue #{ctx.issue_number} created and added to project, "
+                        f"but agent assignment failed: {agent_error}. "
+                        f"The system will retry automatically, or you can retry manually."
+                    ),
+                )
+
             return WorkflowResult(
                 success=True,
                 issue_id=ctx.issue_id,

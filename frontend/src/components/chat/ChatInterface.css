@@ -336,6 +336,11 @@
   background: rgba(34, 197, 94, 0.1);
 }
 
+.issue-recommendation-preview.partial-success {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .issue-recommendation-preview.rejected {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
@@ -556,9 +561,21 @@
   color: #22c55e;
 }
 
+.warning-icon {
+  font-size: 20px;
+  color: #f59e0b;
+}
+
 .rejected-icon {
   font-size: 20px;
   color: #ef4444;
+}
+
+.recovery-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #888);
+  font-style: italic;
 }
 
 .result-details p {
