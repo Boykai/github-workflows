@@ -1,104 +1,74 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add Green Background Color to App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `008-green-background` | **Date**: 2026-02-21 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/008-green-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a green background color (#4CAF50) to the application's root container by updating the existing CSS custom property `--color-bg` in `frontend/src/index.css`. The app already uses a centralized CSS custom property theming system with light/dark mode support. The change requires updating the `--color-bg` value in the `:root` selector and the `html.dark-mode-active` selector to use green shades, and ensuring foreground text colors maintain WCAG 2.1 AA contrast ratios against the new background.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.4, React 18.3, ES2022 target
+**Primary Dependencies**: React 18, Vite 5, @tanstack/react-query 5, CSS custom properties (no CSS framework)
+**Storage**: N/A (frontend-only change)
+**Testing**: Vitest (unit), Playwright (e2e)
+**Target Platform**: Web (Chrome, Firefox, Safari, Edge — latest stable)
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: Zero CLS from background color application; no FOUC
+**Constraints**: WCAG 2.1 AA contrast ratios (4.5:1 normal text, 3:1 large text)
+**Scale/Scope**: Single CSS file change; affects all pages via CSS custom property
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ Pass | spec.md complete with prioritized user stories, acceptance scenarios, and scope boundaries |
+| II. Template-Driven Workflow | ✅ Pass | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ Pass | Plan phase follows specify → plan → tasks → implement pipeline |
+| IV. Test Optionality with Clarity | ✅ Pass | Tests not explicitly mandated in spec; visual verification sufficient for CSS change. Existing tests should not break. |
+| V. Simplicity and DRY | ✅ Pass | Single CSS custom property update; no new abstractions; leverages existing theming system |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/008-green-background/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — theming approach research
+├── data-model.md        # Phase 1 output — CSS token model
+├── quickstart.md        # Phase 1 output — implementation guide
+├── contracts/           # Phase 1 output — style contract
+│   └── theme-tokens.md  # CSS custom property contract
+└── tasks.md             # Phase 2 output (created by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   ├── index.css          # Global CSS — contains :root custom properties (PRIMARY CHANGE TARGET)
+│   ├── App.css            # App component styles — uses var(--color-bg)
+│   ├── App.tsx            # Root component
+│   ├── main.tsx           # Entry point
+│   ├── hooks/
+│   │   └── useAppTheme.ts # Dark/light mode toggle hook
+│   └── components/
+│       ├── chat/
+│       │   └── ChatInterface.css  # Uses var(--color-bg), var(--color-bg-secondary)
+│       ├── sidebar/
+│       ├── board/
+│       ├── settings/
+│       └── auth/
+└── package.json
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with frontend/backend separation. This feature only modifies the frontend. The existing CSS custom property system in `frontend/src/index.css` is the centralized theming location. All component CSS files reference `var(--color-bg)` and `var(--color-bg-secondary)`, so changing the root definition propagates automatically.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations detected. No complexity justifications needed.
