@@ -48,7 +48,7 @@
 
 ### Implementation for User Story 1
 
-- [x] T005 [US1] Update `--color-bg` from `#ffffff` to `#4CAF50` and `--color-bg-secondary` from `#f6f8fa` to `#43A047` in `:root` selector in `frontend/src/index.css`
+- [x] T005 [US1] Update `--color-bg` from `#ffffff` to `#4CAF50` and `--color-bg-secondary` from `#f6f8fa` to `#45A849` in `:root` selector in `frontend/src/index.css`
 - [x] T006 [US1] Update `--color-bg` from `#0d1117` to `#2E7D32` and `--color-bg-secondary` from `#161b22` to `#1B5E20` in `html.dark-mode-active` selector in `frontend/src/index.css`
 - [x] T007 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for component surface elements in `frontend/src/App.css` (~17 background declarations, ~2 border declarations)
 - [x] T008 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for chat surface elements in `frontend/src/components/chat/ChatInterface.css` (~5 declarations)
