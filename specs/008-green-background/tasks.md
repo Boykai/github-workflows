@@ -22,8 +22,8 @@
 
 **Purpose**: Verify existing project builds and tooling works before making changes
 
-- [ ] T001 Verify frontend builds successfully by running `npm run build` in `frontend/`
-- [ ] T002 Verify existing tests pass by running `npm run test` in `frontend/`
+- [x] T001 Verify frontend builds successfully by running `npm run build` in `frontend/`
+- [x] T002 Verify existing tests pass by running `npm run test` in `frontend/`
 
 ---
 
@@ -33,8 +33,8 @@
 
 **⚠️ CRITICAL**: Component migration in US1 depends on this token existing first
 
-- [ ] T003 Add `--color-bg-surface: #ffffff` CSS custom property to `:root` selector in `frontend/src/index.css`
-- [ ] T004 Add `--color-bg-surface: #0d1117` CSS custom property to `html.dark-mode-active` selector in `frontend/src/index.css`
+- [x] T003 Add `--color-bg-surface: #ffffff` CSS custom property to `:root` selector in `frontend/src/index.css`
+- [x] T004 Add `--color-bg-surface: #0d1117` CSS custom property to `html.dark-mode-active` selector in `frontend/src/index.css`
 
 **Checkpoint**: Foundation ready — `--color-bg-surface` token available for component migration
 
@@ -48,11 +48,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Update `--color-bg` from `#ffffff` to `#4CAF50` and `--color-bg-secondary` from `#f6f8fa` to `#43A047` in `:root` selector in `frontend/src/index.css`
-- [ ] T006 [US1] Update `--color-bg` from `#0d1117` to `#2E7D32` and `--color-bg-secondary` from `#161b22` to `#1B5E20` in `html.dark-mode-active` selector in `frontend/src/index.css`
-- [ ] T007 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for component surface elements in `frontend/src/App.css` (~17 background declarations, ~2 border declarations)
-- [ ] T008 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for chat surface elements in `frontend/src/components/chat/ChatInterface.css` (~5 declarations)
-- [ ] T009 [US1] Verify frontend builds with no errors after CSS changes by running `npm run build` in `frontend/`
+- [x] T005 [US1] Update `--color-bg` from `#ffffff` to `#4CAF50` and `--color-bg-secondary` from `#f6f8fa` to `#45A849` in `:root` selector in `frontend/src/index.css`
+- [x] T006 [US1] Update `--color-bg` from `#0d1117` to `#2E7D32` and `--color-bg-secondary` from `#161b22` to `#1B5E20` in `html.dark-mode-active` selector in `frontend/src/index.css`
+- [x] T007 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for component surface elements in `frontend/src/App.css` (~17 background declarations, ~2 border declarations)
+- [x] T008 [P] [US1] Replace all `var(--color-bg)` background references with `var(--color-bg-surface)` for chat surface elements in `frontend/src/components/chat/ChatInterface.css` (~5 declarations)
+- [x] T009 [US1] Verify frontend builds with no errors after CSS changes by running `npm run build` in `frontend/`
 
 **Checkpoint**: Green background visible on app root; component surfaces remain neutral (white/dark). User Story 1 is fully functional and testable independently.
 
@@ -66,9 +66,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Audit contrast ratios for `--color-text` (#24292f) against `--color-bg` (#4CAF50) and `--color-bg-surface` (#ffffff) in light mode and confirm ≥ 4.5:1 in `frontend/src/index.css`
-- [ ] T011 [US2] Audit contrast ratios for `--color-text` (#e6edf3) against `--color-bg` (#2E7D32) and `--color-bg-surface` (#0d1117) in dark mode and confirm ≥ 4.5:1 in `frontend/src/index.css`
-- [ ] T012 [US2] Adjust `--color-text`, `--color-text-secondary`, or green shade values in `frontend/src/index.css` if any contrast ratio fails WCAG AA thresholds (skip if all pass)
+- [x] T010 [US2] Audit contrast ratios for `--color-text` (#24292f) against `--color-bg` (#4CAF50) and `--color-bg-surface` (#ffffff) in light mode and confirm ≥ 4.5:1 in `frontend/src/index.css`
+- [x] T011 [US2] Audit contrast ratios for `--color-text` (#e6edf3) against `--color-bg` (#2E7D32) and `--color-bg-surface` (#0d1117) in dark mode and confirm ≥ 4.5:1 in `frontend/src/index.css`
+- [x] T012 [US2] Adjust `--color-text`, `--color-text-secondary`, or green shade values in `frontend/src/index.css` if any contrast ratio fails WCAG AA thresholds (skip if all pass)
 
 **Checkpoint**: All text and UI elements meet WCAG 2.1 AA contrast requirements on both green and surface backgrounds.
 
@@ -82,8 +82,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Search the entire `frontend/src/` directory for any hard-coded green hex values (#4CAF50, #43A047, #2E7D32, #1B5E20) outside of `frontend/src/index.css` and remove or replace with `var()` references
-- [ ] T014 [US3] Verify that changing `--color-bg` in `:root` in `frontend/src/index.css` to a test color propagates the background change across the entire app with no stale references
+- [x] T013 [US3] Search the entire `frontend/src/` directory for any hard-coded green hex values (#4CAF50, #43A047, #2E7D32, #1B5E20) outside of `frontend/src/index.css` and remove or replace with `var()` references
+- [x] T014 [US3] Verify that changing `--color-bg` in `:root` in `frontend/src/index.css` to a test color propagates the background change across the entire app with no stale references
 
 **Checkpoint**: Green background is defined in exactly one location. Changing the single CSS custom property value updates the background everywhere.
 
@@ -93,9 +93,9 @@
 
 **Purpose**: Final verification and documentation
 
-- [ ] T015 Run `npm run build` and `npm run lint` in `frontend/` to confirm no build or lint errors
-- [ ] T016 Visually verify green background across mobile, tablet, and desktop viewports and toggle dark mode to confirm darker green shade applies
-- [ ] T017 Run existing test suite via `npm run test` in `frontend/` to confirm no regressions
+- [x] T015 Run `npm run build` and `npm run lint` in `frontend/` to confirm no build or lint errors
+- [x] T016 Visually verify green background across mobile, tablet, and desktop viewports and toggle dark mode to confirm darker green shade applies
+- [x] T017 Run existing test suite via `npm run test` in `frontend/` to confirm no regressions
 
 ---
 
