@@ -193,6 +193,13 @@ class MainBranchInfo(TypedDict):
 # Maps issue_number -> {branch: str, pr_number: int}
 _issue_main_branches: dict[int, MainBranchInfo] = {}
 
+# Global sub-issue mapping store that persists across pipeline state resets.
+# When pipeline state is removed during status transitions (e.g., Backlog → Ready),
+# the agent_sub_issues on PipelineState are lost.  This global store retains the
+# mapping so subsequent agents can still look up (and close) their sub-issues.
+# Maps issue_number → {agent_name → {"number": int, "node_id": str, "url": str}}
+_issue_sub_issue_map: dict[int, dict[str, dict]] = {}
+
 
 def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
     """Get workflow configuration for a project.
@@ -409,6 +416,31 @@ def get_issue_main_branch(issue_number: int) -> MainBranchInfo | None:
         Dict with 'branch' and 'pr_number' keys, or None if not set.
     """
     return _issue_main_branches.get(issue_number)
+
+
+def get_issue_sub_issues(issue_number: int) -> dict[str, dict]:
+    """Get the global sub-issue mapping for an issue.
+
+    This store persists across pipeline state resets so that agents
+    assigned after a status transition can still find their sub-issues.
+
+    Returns:
+        Dict mapping agent_name → {"number": int, "node_id": str, "url": str},
+        or empty dict if not set.
+    """
+    return _issue_sub_issue_map.get(issue_number, {})
+
+
+def set_issue_sub_issues(issue_number: int, mappings: dict[str, dict]) -> None:
+    """Store sub-issue mappings globally for an issue.
+
+    Called when sub-issues are created upfront (create_all_sub_issues) or
+    reconstructed from GitHub API.  Merges with existing mappings so that
+    partial reconstructions don't overwrite earlier data.
+    """
+    existing = _issue_sub_issue_map.get(issue_number, {})
+    existing.update(mappings)
+    _issue_sub_issue_map[issue_number] = existing
 
 
 def set_issue_main_branch(
@@ -809,6 +841,11 @@ class WorkflowOrchestrator:
                     e,
                 )
 
+        # Persist sub-issue mappings in the global store so they survive
+        # pipeline state resets during status transitions.
+        if agent_sub_issues and ctx.issue_number:
+            set_issue_sub_issues(ctx.issue_number, agent_sub_issues)
+
         return agent_sub_issues
 
     # ──────────────────────────────────────────────────────────────────
@@ -1197,7 +1234,8 @@ class WorkflowOrchestrator:
         # ── Look up pre-created Sub-Issue for this agent ─────────────
         # Sub-issues are created upfront in create_all_sub_issues() so
         # the user can see the full scope immediately.  Here we look up
-        # the existing sub-issue from the pipeline state.
+        # the existing sub-issue from the pipeline state, falling back to
+        # the global sub-issue store which survives pipeline state resets.
         sub_issue_node_id = ctx.issue_id  # fallback: parent issue
         sub_issue_number = ctx.issue_number  # fallback: parent issue number
         sub_issue_info: dict | None = None
@@ -1215,13 +1253,29 @@ class WorkflowOrchestrator:
                     agent_name,
                     ctx.issue_number,
                 )
-            else:
-                logger.warning(
-                    "No pre-created sub-issue found for agent '%s' on issue #%d — "
-                    "falling back to parent issue",
+
+        # Fall back to the global sub-issue store (survives pipeline resets)
+        if sub_issue_info is None:
+            global_subs = get_issue_sub_issues(ctx.issue_number)
+            pre_created = global_subs.get(agent_name)
+            if pre_created:
+                sub_issue_node_id = pre_created.get("node_id", ctx.issue_id)
+                sub_issue_number = pre_created.get("number", ctx.issue_number)
+                sub_issue_info = pre_created
+                logger.info(
+                    "Using sub-issue #%d from global store for agent '%s' (parent #%d)",
+                    sub_issue_number,
                     agent_name,
                     ctx.issue_number,
                 )
+
+        if sub_issue_info is None:
+            logger.warning(
+                "No pre-created sub-issue found for agent '%s' on issue #%d — "
+                "falling back to parent issue",
+                agent_name,
+                ctx.issue_number,
+            )
 
         # Fetch issue context for the agent's custom instructions.
         # Use the SUB-ISSUE data (not parent) so Copilot focuses only on

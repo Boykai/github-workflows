@@ -2555,3 +2555,223 @@ class TestWorkflowConfigDb:
         with patch("src.config.get_settings", side_effect=Exception("nope")):
             # Should not raise
             _persist_workflow_config_to_db("P1", cfg)
+
+
+class TestIssueSubIssueStore:
+    """Tests for the global sub-issue mapping store."""
+
+    def setup_method(self):
+        """Clear global sub-issue store before each test."""
+        from src.services.workflow_orchestrator import _issue_sub_issue_map
+
+        _issue_sub_issue_map.clear()
+
+    def teardown_method(self):
+        from src.services.workflow_orchestrator import _issue_sub_issue_map
+
+        _issue_sub_issue_map.clear()
+
+    def test_get_returns_empty_for_unknown_issue(self):
+        """Should return empty dict for unknown issue number."""
+        from src.services.workflow_orchestrator import get_issue_sub_issues
+
+        result = get_issue_sub_issues(999)
+        assert result == {}
+
+    def test_set_and_get_sub_issues(self):
+        """Should store and retrieve sub-issue mappings."""
+        from src.services.workflow_orchestrator import (
+            get_issue_sub_issues,
+            set_issue_sub_issues,
+        )
+
+        mappings = {
+            "speckit.specify": {"number": 100, "node_id": "I_100", "url": "https://..."},
+            "speckit.plan": {"number": 101, "node_id": "I_101", "url": "https://..."},
+        }
+        set_issue_sub_issues(42, mappings)
+        result = get_issue_sub_issues(42)
+        assert result == mappings
+        assert result["speckit.specify"]["number"] == 100
+        assert result["speckit.plan"]["number"] == 101
+
+    def test_set_merges_with_existing(self):
+        """Should merge new mappings with existing ones."""
+        from src.services.workflow_orchestrator import (
+            get_issue_sub_issues,
+            set_issue_sub_issues,
+        )
+
+        set_issue_sub_issues(42, {"speckit.specify": {"number": 100}})
+        set_issue_sub_issues(42, {"speckit.plan": {"number": 101}})
+
+        result = get_issue_sub_issues(42)
+        assert "speckit.specify" in result
+        assert "speckit.plan" in result
+        assert result["speckit.specify"]["number"] == 100
+        assert result["speckit.plan"]["number"] == 101
+
+    def test_set_overwrites_existing_agent(self):
+        """Should overwrite existing agent mapping."""
+        from src.services.workflow_orchestrator import (
+            get_issue_sub_issues,
+            set_issue_sub_issues,
+        )
+
+        set_issue_sub_issues(42, {"speckit.specify": {"number": 100}})
+        set_issue_sub_issues(42, {"speckit.specify": {"number": 200}})
+
+        result = get_issue_sub_issues(42)
+        assert result["speckit.specify"]["number"] == 200
+
+    def test_survives_pipeline_state_reset(self):
+        """Sub-issue mappings should persist after remove_pipeline_state()."""
+        from src.services.workflow_orchestrator import (
+            _pipeline_states,
+            get_issue_sub_issues,
+            remove_pipeline_state,
+            set_issue_sub_issues,
+            set_pipeline_state,
+        )
+
+        _pipeline_states.clear()
+
+        mappings = {
+            "speckit.specify": {"number": 100, "node_id": "I_100", "url": ""},
+            "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+        }
+        set_issue_sub_issues(42, mappings)
+
+        # Create and then remove pipeline state
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify"],
+            agent_sub_issues=mappings,
+        )
+        set_pipeline_state(42, pipeline)
+        remove_pipeline_state(42)
+
+        # Global store should still have the mappings
+        result = get_issue_sub_issues(42)
+        assert len(result) == 2
+        assert result["speckit.specify"]["number"] == 100
+        assert result["speckit.plan"]["number"] == 101
+
+        _pipeline_states.clear()
+
+
+class TestAssignAgentUsesGlobalSubIssueStore:
+    """Tests that assign_agent_for_status falls back to the global sub-issue store."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        """Clear global states between tests."""
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            _pipeline_states,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+
+    @pytest.fixture
+    def mock_github_service(self):
+        """Create mock GitHub service."""
+        service = Mock()
+        service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "test body", "title": "Test"}
+        )
+        service.format_issue_context_as_prompt = Mock(return_value="")
+        service.assign_copilot_to_issue = AsyncMock(return_value=True)
+        service.update_item_status_by_name = AsyncMock(return_value=True)
+        service.validate_assignee = AsyncMock()
+        service.assign_issue = AsyncMock()
+        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        service.update_issue_state = AsyncMock(return_value=True)
+        service.update_sub_issue_project_status = AsyncMock()
+        return service
+
+    @pytest.fixture
+    def orchestrator(self, mock_github_service):
+        """Create WorkflowOrchestrator with mocked services."""
+        return WorkflowOrchestrator(Mock(), mock_github_service)
+
+    @pytest.fixture
+    def config(self):
+        """Create a workflow configuration."""
+        return WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            status_done="Done",
+            agent_mappings={
+                "Ready": ["speckit.plan", "speckit.tasks"],
+            },
+        )
+
+    async def test_uses_global_store_when_pipeline_has_no_sub_issues(
+        self, orchestrator, mock_github_service, config,
+    ):
+        """When pipeline state has no sub-issue mappings (cleared during transition),
+        assign_agent_for_status should fall back to the global sub-issue store."""
+        from src.services.workflow_orchestrator import (
+            set_issue_sub_issues,
+            set_pipeline_state,
+            set_workflow_config,
+        )
+
+        set_workflow_config("PVT_123", config)
+
+        # Simulate: global store has sub-issue mappings from create_all_sub_issues
+        set_issue_sub_issues(42, {
+            "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
+        })
+
+        # Simulate: pipeline state was reset during transition (no agent_sub_issues)
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            agent_sub_issues={},  # Lost during remove_pipeline_state
+        )
+        set_pipeline_state(42, pipeline)
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_parent",
+            issue_number=42,
+            project_item_id="PVTI_123",
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = config
+
+        await orchestrator.assign_agent_for_status(ctx, "Ready", agent_index=0)
+
+        # The agent should have been assigned to the sub-issue, not the parent
+        call_args = mock_github_service.assign_copilot_to_issue.call_args
+        assert call_args is not None
+        # The issue_node_id should be from the sub-issue (I_101), not parent (I_parent)
+        assert call_args.kwargs.get("issue_node_id") == "I_101" or call_args[1].get("issue_node_id") == "I_101"

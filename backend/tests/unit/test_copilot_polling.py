@@ -3533,3 +3533,199 @@ class TestReconstructSubIssueMappings:
         )
 
         assert result == {}
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_persists_to_global_sub_issue_store(self, mock_service):
+        """Reconstructed mappings should be persisted to the global sub-issue store."""
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            get_issue_sub_issues,
+        )
+
+        _issue_sub_issue_map.clear()
+
+        mock_service.get_sub_issues = AsyncMock(
+            return_value=[
+                {"title": "[speckit.plan] Feature X", "number": 101, "node_id": "I_101"},
+                {"title": "[speckit.tasks] Feature X", "number": 102, "node_id": "I_102"},
+            ]
+        )
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert len(result) == 2
+
+        # Verify persisted to global store
+        global_subs = get_issue_sub_issues(42)
+        assert "speckit.plan" in global_subs
+        assert "speckit.tasks" in global_subs
+        assert global_subs["speckit.plan"]["number"] == 101
+        assert global_subs["speckit.tasks"]["number"] == 102
+
+        _issue_sub_issue_map.clear()
+
+
+class TestAdvancePipelineClosesSubIssueFromGlobalStore:
+    """Tests that _advance_pipeline closes sub-issues using the global store."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        """Clear global states between tests."""
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            _pipeline_states,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_closes_sub_issue_from_global_store_when_pipeline_has_none(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """When pipeline.agent_sub_issues is empty but the global store has
+        the mapping, _advance_pipeline should still close the sub-issue."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        # Global store has the sub-issue mapping
+        set_issue_sub_issues(42, {
+            "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
+        })
+
+        # Pipeline has NO agent_sub_issues (lost after status transition)
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+            agent_sub_issues={},
+        )
+
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        assert result["completed_agent"] == "speckit.plan"
+
+        # Verify sub-issue #101 was closed
+        mock_service.update_issue_state.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=101,
+            state="closed",
+            state_reason="completed",
+            labels_add=["done"],
+            labels_remove=["in-progress"],
+        )
+
+        # Verify sub-issue project board status updated to Done
+        mock_service.update_sub_issue_project_status.assert_called_once_with(
+            access_token="token",
+            project_id="PVT_123",
+            sub_issue_node_id="I_101",
+            status_name="Done",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_pipeline_sub_issues_take_precedence_over_global(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """When pipeline has sub-issue info, it should be used instead of global store."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        # Global store has different sub-issue numbers (stale)
+        set_issue_sub_issues(42, {
+            "speckit.plan": {"number": 999, "node_id": "I_999", "url": ""},
+        })
+
+        # Pipeline has the correct/current mapping
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+            agent_sub_issues={
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            },
+        )
+
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+
+        await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        # Should use pipeline's sub-issue #101, NOT global store's #999
+        mock_service.update_issue_state.assert_called_once()
+        call_args = mock_service.update_issue_state.call_args
+        assert call_args.kwargs["issue_number"] == 101

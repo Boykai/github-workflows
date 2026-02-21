@@ -40,11 +40,13 @@ from src.services.workflow_orchestrator import (
     find_next_actionable_status,
     get_agent_slugs,
     get_issue_main_branch,
+    get_issue_sub_issues,
     get_pipeline_state,
     get_workflow_config,
     get_workflow_orchestrator,
     remove_pipeline_state,
     set_issue_main_branch,
+    set_issue_sub_issues,
     set_pipeline_state,
     set_workflow_config,
     update_issue_main_branch_sha,
@@ -303,6 +305,8 @@ async def _reconstruct_sub_issue_mappings(
                 len(mappings),
                 issue_number,
             )
+            # Also persist to the global store so mappings survive pipeline resets
+            set_issue_sub_issues(issue_number, mappings)
         return mappings
     except Exception as e:
         logger.debug(
@@ -942,6 +946,19 @@ async def post_agent_outputs_from_pr(
                         "Posting agent '%s' markdown outputs on sub-issue #%d (parent #%d)",
                         current_agent,
                         comment_issue_number,
+                        task.issue_number,
+                    )
+
+            # Fall back to the global sub-issue store (survives pipeline resets)
+            if comment_issue_number is None:
+                global_subs = get_issue_sub_issues(task.issue_number)
+                sub_info = global_subs.get(current_agent)
+                if sub_info and sub_info.get("number"):
+                    comment_issue_number = sub_info["number"]
+                    logger.info(
+                        "Using sub-issue #%d from global store for agent '%s' (parent #%d)",
+                        comment_issue_number,
+                        current_agent,
                         task.issue_number,
                     )
 
@@ -2460,49 +2477,54 @@ async def _advance_pipeline(
     )
 
     # Close the completed agent's sub-issue
+    sub_info = None
     if pipeline.agent_sub_issues:
         sub_info = pipeline.agent_sub_issues.get(completed_agent)
-        if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
-            try:
-                await github_projects_service.update_issue_state(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=sub_info["number"],
-                    state="closed",
-                    state_reason="completed",
-                    labels_add=["done"],
-                    labels_remove=["in-progress"],
-                )
-                logger.info(
-                    "Closed sub-issue #%d for completed agent '%s'",
-                    sub_info["number"],
-                    completed_agent,
-                )
-            except Exception as e:
-                logger.warning(
-                    "Failed to close sub-issue #%d for agent '%s': %s",
-                    sub_info["number"],
-                    completed_agent,
-                    e,
-                )
+    # Fall back to the global sub-issue store (survives pipeline resets)
+    if not sub_info:
+        global_subs = get_issue_sub_issues(issue_number)
+        sub_info = global_subs.get(completed_agent)
+    if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
+        try:
+            await github_projects_service.update_issue_state(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_info["number"],
+                state="closed",
+                state_reason="completed",
+                labels_add=["done"],
+                labels_remove=["in-progress"],
+            )
+            logger.info(
+                "Closed sub-issue #%d for completed agent '%s'",
+                sub_info["number"],
+                completed_agent,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to close sub-issue #%d for agent '%s': %s",
+                sub_info["number"],
+                completed_agent,
+                e,
+            )
 
-            # Update the sub-issue's project board Status to "Done"
-            try:
-                sub_node_id = sub_info.get("node_id", "")
-                if sub_node_id:
-                    await github_projects_service.update_sub_issue_project_status(
-                        access_token=access_token,
-                        project_id=project_id,
-                        sub_issue_node_id=sub_node_id,
-                        status_name="Done",
-                    )
-            except Exception as e:
-                logger.warning(
-                    "Failed to update sub-issue #%d board status to Done: %s",
-                    sub_info["number"],
-                    e,
+        # Update the sub-issue's project board Status to "Done"
+        try:
+            sub_node_id = sub_info.get("node_id", "")
+            if sub_node_id:
+                await github_projects_service.update_sub_issue_project_status(
+                    access_token=access_token,
+                    project_id=project_id,
+                    sub_issue_node_id=sub_node_id,
+                    status_name="Done",
                 )
+        except Exception as e:
+            logger.warning(
+                "Failed to update sub-issue #%d board status to Done: %s",
+                sub_info["number"],
+                e,
+            )
 
     # NOTE: Child PR merge now happens in post_agent_outputs_from_pr AFTER the Done! comment
     # is posted and BEFORE the sub-issue is closed.
