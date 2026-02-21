@@ -54,7 +54,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -139,7 +139,7 @@
 /* Sidebar */
 .project-sidebar {
   width: 320px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -191,7 +191,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 13px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
 }
 
 .project-link {
@@ -262,7 +262,7 @@
 
 /* Task card */
 .task-card {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 12px;
@@ -319,7 +319,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
 }
 
 .chat-placeholder {
@@ -389,7 +389,7 @@
     box-shadow: 0 0 0 4px rgba(45, 164, 78, 0.2);
   }
   100% {
-    background: var(--color-bg);
+    background: var(--color-bg-surface);
     border-color: var(--color-border);
     box-shadow: none;
   }
@@ -566,7 +566,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
 }
 
 .board-page-header {
@@ -595,7 +595,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   font-size: 13px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   color: var(--color-text);
   min-width: 220px;
 }
@@ -809,7 +809,7 @@
 /* ============ Agent Tile ============ */
 
 .agent-tile {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 12px;
@@ -991,7 +991,7 @@
 }
 
 .agent-save-bar-btn--discard {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   color: var(--color-text);
 }
 
@@ -1047,7 +1047,7 @@
   left: 0;
   width: 280px;
   max-height: 340px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -1201,7 +1201,7 @@
   font-weight: 500;
   border: 1px solid var(--color-border);
   border-radius: 4px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.15s;
@@ -1228,7 +1228,7 @@
 }
 
 .agent-preset-dialog {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px 24px;
@@ -1289,7 +1289,7 @@
 /* ============ Issue Card ============ */
 
 .board-issue-card {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 12px;
@@ -1386,7 +1386,7 @@
 
 .issue-card-avatar {
   border-radius: 50%;
-  border: 2px solid var(--color-bg);
+  border: 2px solid var(--color-bg-surface);
   margin-left: -4px;
 }
 
@@ -1580,7 +1580,7 @@
 }
 
 .modal-content {
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   max-width: 640px;
@@ -1871,7 +1871,7 @@
 
 .modal-sub-issue-avatar {
   border-radius: 50%;
-  border: 2px solid var(--color-bg);
+  border: 2px solid var(--color-bg-surface);
   margin-left: -4px;
 }
 
@@ -2058,7 +2058,7 @@
   padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   color: var(--color-text);
   font-size: 13px;
 }
@@ -2068,7 +2068,7 @@
   padding: 6px 10px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--color-bg);
+  background: var(--color-bg-surface);
   color: var(--color-text);
   font-size: 13px;
   font-family: monospace;
