@@ -568,28 +568,30 @@ class TestParseIssueRecommendationResponse:
         with pytest.raises(ValueError, match="missing title"):
             service._parse_issue_recommendation_response(
                 '{"user_story": "story", "functional_requirements": ["R1"]}',
-                "i", "00000000-0000-0000-0000-000000000001",
+                "i",
+                "00000000-0000-0000-0000-000000000001",
             )
 
     def test_missing_user_story_raises(self, service):
         with pytest.raises(ValueError, match="missing user_story"):
             service._parse_issue_recommendation_response(
                 '{"title": "T", "functional_requirements": ["R1"]}',
-                "i", "00000000-0000-0000-0000-000000000001",
+                "i",
+                "00000000-0000-0000-0000-000000000001",
             )
 
     def test_missing_requirements_raises(self, service):
         with pytest.raises(ValueError, match="missing functional_requirements"):
             service._parse_issue_recommendation_response(
                 '{"title": "T", "user_story": "S"}',
-                "i", "00000000-0000-0000-0000-000000000001",
+                "i",
+                "00000000-0000-0000-0000-000000000001",
             )
 
     def test_long_title_truncated(self, service):
         long_title = "A" * 300
         content = (
-            f'{{"title": "{long_title}", "user_story": "S", '
-            f'"functional_requirements": ["R"]}}'
+            f'{{"title": "{long_title}", "user_story": "S", "functional_requirements": ["R"]}}'
         )
         rec = service._parse_issue_recommendation_response(
             content, "i", "00000000-0000-0000-0000-000000000001"
@@ -642,17 +644,17 @@ class TestParseIssueMetadata:
         assert len(meta.start_date) == 10  # YYYY-MM-DD
 
     def test_valid_dates_preserved(self, service):
-        meta = service._parse_issue_metadata({
-            "start_date": "2025-01-15",
-            "target_date": "2025-01-20",
-        })
+        meta = service._parse_issue_metadata(
+            {
+                "start_date": "2025-01-15",
+                "target_date": "2025-01-20",
+            }
+        )
         assert meta.start_date == "2025-01-15"
         assert meta.target_date == "2025-01-20"
 
     def test_labels_filtering(self, service):
-        meta = service._parse_issue_metadata({
-            "labels": ["feature", "invalid-label-xyz", "bug"]
-        })
+        meta = service._parse_issue_metadata({"labels": ["feature", "invalid-label-xyz", "bug"]})
         assert "feature" in meta.labels
         assert "bug" in meta.labels
         assert "invalid-label-xyz" not in meta.labels
@@ -684,12 +686,14 @@ class TestCalculateTargetDate:
 
     def test_xs_same_day(self, service):
         from datetime import datetime
+
         start = datetime(2025, 1, 15)
         result = service._calculate_target_date(start, IssueSize.XS)
         assert result == "2025-01-15"
 
     def test_xl_four_days(self, service):
         from datetime import datetime
+
         start = datetime(2025, 1, 15)
         result = service._calculate_target_date(start, IssueSize.XL)
         assert result == "2025-01-19"
@@ -739,7 +743,7 @@ class TestRepairTruncatedJson:
 
     def test_aggressive_repair_completely_unfixable(self, service):
         """Aggressive repair also fails → returns None."""
-        content = '{{{invalid'
+        content = "{{{invalid"
         result = service._repair_truncated_json(content)
         assert result is None
 
@@ -773,6 +777,7 @@ class TestGetAiAgentService:
             get_ai_agent_service,
             reset_ai_agent_service,
         )
+
         reset_ai_agent_service()
         with patch("src.services.ai_agent.create_completion_provider") as mock_create:
             mock_create.return_value = MockCompletionProvider()
@@ -787,6 +792,7 @@ class TestGetAiAgentService:
             get_ai_agent_service,
             reset_ai_agent_service,
         )
+
         reset_ai_agent_service()
         with patch("src.services.ai_agent.create_completion_provider") as mock_create:
             mock_create.return_value = MockCompletionProvider()

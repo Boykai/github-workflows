@@ -41,6 +41,7 @@ src/
 │   ├── board.py               # Project board (Kanban columns + items)
 │   ├── chat.py                # Chat messages, proposals, confirm/reject, auto-start polling
 │   ├── projects.py            # List/select projects, tasks, WebSocket, SSE
+│   ├── settings.py            # User preferences, global settings, project settings
 │   ├── tasks.py               # Create/update tasks (GitHub Issues + project items)
 │   ├── workflow.py            # Workflow config, pipeline state, polling control, agent discovery, auto-start polling
 │   └── webhooks.py            # GitHub webhook (PR ready_for_review)
@@ -49,6 +50,7 @@ src/
 │   ├── board.py               # Board columns, items, custom fields, linked PRs
 │   ├── chat.py                # ChatMessage, IssueRecommendation, WorkflowConfig, AgentMapping, display names…
 │   ├── project.py             # Project, StatusColumn
+│   ├── settings.py            # User preferences, global settings, project settings, update schemas
 │   ├── task.py                # Task / project item
 │   └── user.py                # User, session
 │
@@ -62,8 +64,11 @@ src/
 │   ├── cache.py               # In-memory TTL cache (for GitHub API responses)
 │   ├── completion_providers.py # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
 │   ├── copilot_polling.py     # Background polling loop + agent output posting + sub-issue management
+│   ├── database.py            # SQLite database connection, WAL mode, schema migrations
 │   ├── github_auth.py         # OAuth token exchange
 │   ├── github_projects.py     # GitHub GraphQL + REST client (projects, issues, PRs, Copilot assignment, sub-issues)
+│   ├── session_store.py       # Session CRUD (create, get, delete, cleanup expired sessions)
+│   ├── settings_store.py      # Settings persistence (user prefs, global settings, project settings)
 │   ├── websocket.py           # WebSocket connection manager, broadcast
 │   └── workflow_orchestrator.py  # Pipeline state machine, agent assignment, SQLite config persistence
 │
@@ -137,6 +142,33 @@ Manages per-issue pipeline state, hierarchical PR branching, **sub-issue creatio
 - `_reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart.
 - `_update_agent_tracking_state()` — Updates the tracking table in the issue body when agents are assigned or complete.
 
+### Session Store (`session_store.py`)
+
+Manages session lifecycle in SQLite:
+
+- `create_session()` — Creates a new session row with encrypted token data
+- `get_session()` — Retrieves a session by ID, returns `None` if expired
+- `delete_session()` — Removes a session (logout)
+- `cleanup_expired_sessions()` — Periodic cleanup of expired sessions (runs every `SESSION_CLEANUP_INTERVAL` seconds, default 3600)
+
+### Settings Store (`settings_store.py`)
+
+Manages user preferences, global settings, and per-project settings in SQLite:
+
+- `get_effective_user_settings()` / `upsert_user_preferences()` — CRUD for user preferences (AI, display, workflow defaults, notifications)
+- `get_global_settings()` / `update_global_settings()` — CRUD for global settings
+- `get_effective_project_settings()` / `upsert_project_settings()` — CRUD for project-specific settings
+- `flatten_user_preferences_update()` / `flatten_global_settings_update()` — Flatten nested update models for SQL upserts
+
+### Database Service (`database.py`)
+
+SQLite database lifecycle management:
+
+- `get_db()` — Singleton aiosqlite connection factory
+- `init_db()` — Creates database file, enables WAL mode, runs migrations
+- `close_db()` — Graceful shutdown
+- `run_migrations()` — Executes numbered SQL migration files in order, tracked by `schema_migrations` table
+
 ### Completion Providers (`completion_providers.py`)
 
 Pluggable AI completion layer used by `ai_agent.py` for issue generation:
@@ -159,7 +191,7 @@ All GitHub API interactions. Uses **Claude Opus 4.6** as the default model for C
 
 ## Database & Migrations
 
-The backend uses **SQLite** (WAL mode) for durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `./data/ghchat.db`).
+The backend uses **SQLite** (WAL mode) for durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`).
 
 ### Migration System
 
@@ -185,9 +217,11 @@ pytest tests/ -v --tb=short -q            # Quick summary
 ```
 
 The test suite covers:
-- **Unit**: Each service in isolation (AI agent, cache, polling, GitHub auth/projects, webhooks, workflow orchestrator, models)
+- **Unit**: Each service in isolation (AI agent, cache, completion providers, config, database, GitHub auth/projects, models, prompts, session store, settings store, polling, webhooks, WebSocket, workflow orchestrator, all API routes)
 - **Integration**: Custom agent assignment flow
 - **E2E**: Full API endpoint testing
+
+Total: **938 tests** across 27 test files.
 
 ## Environment
 

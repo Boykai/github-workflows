@@ -80,8 +80,8 @@ class CopilotCompletionProvider(CompletionProvider):
         """Get cached or create new CopilotClient for a given token."""
         key = self._token_key(github_token)
         if key not in self._clients:
-            from copilot import CopilotClient
-            from copilot.types import CopilotClientOptions
+            from copilot import CopilotClient  # type: ignore[reportMissingImports]
+            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
 
             options = CopilotClientOptions(github_token=github_token)
             client = CopilotClient(options=options)
@@ -108,8 +108,13 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._get_or_create_client(github_token)
 
-        from copilot.generated.session_events import SessionEventType
-        from copilot.types import MessageOptions, SessionConfig
+        from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
+            SessionEventType,
+        )
+        from copilot.types import (  # type: ignore[reportMissingImports]
+            MessageOptions,
+            SessionConfig,
+        )
 
         # Extract system message for session config, user message for prompt
         system_content = ""
@@ -206,7 +211,7 @@ class AzureOpenAICompletionProvider(CompletionProvider):
 
         # Try Azure OpenAI SDK first (openai package)
         try:
-            from openai import AzureOpenAI
+            from openai import AzureOpenAI  # type: ignore[reportMissingImports]
 
             self._client = AzureOpenAI(
                 azure_endpoint=settings.azure_openai_endpoint,

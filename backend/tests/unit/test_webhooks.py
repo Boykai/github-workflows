@@ -267,7 +267,12 @@ class TestHandleCopilotPrReady:
     @patch("src.api.webhooks.github_projects_service")
     async def test_linked_issue_found(self, mock_gps):
         mock_gps.get_linked_pull_requests = AsyncMock(return_value=[])
-        pr_data = {"number": 5, "user": {"login": "copilot"}, "body": "Fixes #10", "head": {"ref": "b"}}
+        pr_data = {
+            "number": 5,
+            "user": {"login": "copilot"},
+            "body": "Fixes #10",
+            "head": {"ref": "b"},
+        }
         result = await handle_copilot_pr_ready(pr_data, "owner", "repo", "token")
         assert result["status"] == "processed"
         assert result["issue_number"] == 10
@@ -276,7 +281,12 @@ class TestHandleCopilotPrReady:
     @patch("src.api.webhooks.github_projects_service")
     async def test_error_handling(self, mock_gps):
         mock_gps.get_linked_pull_requests = AsyncMock(side_effect=Exception("API fail"))
-        pr_data = {"number": 5, "user": {"login": "copilot"}, "body": "Fixes #10", "head": {"ref": "b"}}
+        pr_data = {
+            "number": 5,
+            "user": {"login": "copilot"},
+            "body": "Fixes #10",
+            "head": {"ref": "b"},
+        }
         result = await handle_copilot_pr_ready(pr_data, "owner", "repo", "token")
         assert result["status"] == "error"
 
@@ -395,9 +405,7 @@ class TestUpdateIssueStatusForCopilotPr:
         proj2 = MagicMock(project_id="proj-2")
         mock_gps.list_user_projects = AsyncMock(return_value=[proj1, proj2])
         mock_item = MagicMock(github_item_id="5", title="Issue #5")
-        mock_gps.get_project_items = AsyncMock(
-            side_effect=[Exception("fail"), [mock_item]]
-        )
+        mock_gps.get_project_items = AsyncMock(side_effect=[Exception("fail"), [mock_item]])
         mock_gps.update_item_status_by_name = AsyncMock(return_value=True)
         pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
@@ -462,6 +470,7 @@ class TestGithubWebhookEndpoint:
             mock_s.return_value = MagicMock(github_webhook_secret="")
             # Clear processed IDs for test isolation
             from src.api.webhooks import _processed_delivery_ids
+
             _processed_delivery_ids.discard("dedup-test-id")
 
             resp1 = await client.post(
@@ -507,6 +516,7 @@ class TestGithubWebhookEndpoint:
     async def test_webhook_valid_signature(self, client, webhook_secret):
         """Valid signature passes verification."""
         import json as json_mod
+
         body = json_mod.dumps({"action": "ping"}).encode()
         sig = self._sign(body, webhook_secret)
         with patch("src.api.webhooks.get_settings") as mock_s:

@@ -3065,8 +3065,13 @@ class TestUpdateIssueState:
         service._client.post = AsyncMock(return_value=Mock(status_code=200))
         service._client.delete = AsyncMock(return_value=Mock(status_code=200))
         result = await service.update_issue_state(
-            "tok", "o", "r", 1, "open",
-            labels_add=["bug"], labels_remove=["wontfix"],
+            "tok",
+            "o",
+            "r",
+            1,
+            "open",
+            labels_add=["bug"],
+            labels_remove=["wontfix"],
         )
         assert result is True
         service._client.post.assert_awaited_once()
@@ -3115,7 +3120,9 @@ class TestMergePullRequest:
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        with patch.object(service, "_graphql", new_callable=AsyncMock, side_effect=Exception("err")):
+        with patch.object(
+            service, "_graphql", new_callable=AsyncMock, side_effect=Exception("err")
+        ):
             result = await service.merge_pull_request("tok", "PR_1", pr_number=5)
         assert result is None
 
@@ -3173,7 +3180,9 @@ class TestUpdatePrBase:
     @pytest.mark.asyncio
     async def test_failure(self, service):
         service._client = AsyncMock()
-        service._client.patch = AsyncMock(return_value=Mock(status_code=422, text="Validation failed"))
+        service._client.patch = AsyncMock(
+            return_value=Mock(status_code=422, text="Validation failed")
+        )
         result = await service.update_pr_base("tok", "o", "r", 5, "main-branch")
         assert result is False
 
@@ -3200,26 +3209,40 @@ class TestCheckAgentCompletionComment:
                 {"body": "copilot-coding: Done!"},
             ]
         }
-        with patch.object(service, "get_issue_with_comments", new_callable=AsyncMock, return_value=issue_data):
-            result = await service.check_agent_completion_comment("tok", "o", "r", 1, "copilot-coding")
+        with patch.object(
+            service, "get_issue_with_comments", new_callable=AsyncMock, return_value=issue_data
+        ):
+            result = await service.check_agent_completion_comment(
+                "tok", "o", "r", 1, "copilot-coding"
+            )
         assert result is True
 
     @pytest.mark.asyncio
     async def test_not_found(self, service):
         issue_data = {"comments": [{"body": "Still working"}]}
-        with patch.object(service, "get_issue_with_comments", new_callable=AsyncMock, return_value=issue_data):
-            result = await service.check_agent_completion_comment("tok", "o", "r", 1, "copilot-coding")
+        with patch.object(
+            service, "get_issue_with_comments", new_callable=AsyncMock, return_value=issue_data
+        ):
+            result = await service.check_agent_completion_comment(
+                "tok", "o", "r", 1, "copilot-coding"
+            )
         assert result is False
 
     @pytest.mark.asyncio
     async def test_no_issue_data(self, service):
-        with patch.object(service, "get_issue_with_comments", new_callable=AsyncMock, return_value=None):
-            result = await service.check_agent_completion_comment("tok", "o", "r", 1, "copilot-coding")
+        with patch.object(
+            service, "get_issue_with_comments", new_callable=AsyncMock, return_value=None
+        ):
+            result = await service.check_agent_completion_comment(
+                "tok", "o", "r", 1, "copilot-coding"
+            )
         assert result is False
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        with patch.object(service, "get_issue_with_comments", new_callable=AsyncMock, side_effect=Exception("err")):
+        with patch.object(
+            service, "get_issue_with_comments", new_callable=AsyncMock, side_effect=Exception("err")
+        ):
             result = await service.check_agent_completion_comment("tok", "o", "r", 1, "agent")
         assert result is False
 
@@ -3300,7 +3323,9 @@ class TestLinkPullRequestToIssue:
 
     @pytest.mark.asyncio
     async def test_success(self, service):
-        with patch.object(service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "PR body"}):
+        with patch.object(
+            service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "PR body"}
+        ):
             service._client = AsyncMock()
             service._client.patch = AsyncMock(return_value=Mock(status_code=200))
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
@@ -3308,13 +3333,20 @@ class TestLinkPullRequestToIssue:
 
     @pytest.mark.asyncio
     async def test_already_linked(self, service):
-        with patch.object(service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "Closes #42\nSome text"}):
+        with patch.object(
+            service,
+            "get_pull_request",
+            new_callable=AsyncMock,
+            return_value={"body": "Closes #42\nSome text"},
+        ):
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
         assert result is True
 
     @pytest.mark.asyncio
     async def test_patch_failure(self, service):
-        with patch.object(service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "text"}):
+        with patch.object(
+            service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "text"}
+        ):
             service._client = AsyncMock()
             service._client.patch = AsyncMock(return_value=Mock(status_code=422, text="err"))
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
@@ -3322,7 +3354,9 @@ class TestLinkPullRequestToIssue:
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        with patch.object(service, "get_pull_request", new_callable=AsyncMock, side_effect=Exception("err")):
+        with patch.object(
+            service, "get_pull_request", new_callable=AsyncMock, side_effect=Exception("err")
+        ):
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
         assert result is False
 
@@ -3376,18 +3410,36 @@ class TestSetIssueMetadataGPS:
 
     @pytest.mark.asyncio
     async def test_sets_fields(self, service):
-        with patch.object(service, "update_project_item_field", new_callable=AsyncMock, return_value=True):
+        with patch.object(
+            service, "update_project_item_field", new_callable=AsyncMock, return_value=True
+        ):
             result = await service.set_issue_metadata(
-                "tok", "P1", "ITEM_1",
-                {"priority": "P1", "size": "M", "estimate_hours": 4, "start_date": "2026-01-01", "target_date": "2026-02-01"},
+                "tok",
+                "P1",
+                "ITEM_1",
+                {
+                    "priority": "P1",
+                    "size": "M",
+                    "estimate_hours": 4,
+                    "start_date": "2026-01-01",
+                    "target_date": "2026-02-01",
+                },
             )
         assert all(result.values())
 
     @pytest.mark.asyncio
     async def test_empty_metadata(self, service):
         result = await service.set_issue_metadata(
-            "tok", "P1", "ITEM_1",
-            {"priority": None, "size": None, "estimate_hours": None, "start_date": None, "target_date": None},
+            "tok",
+            "P1",
+            "ITEM_1",
+            {
+                "priority": None,
+                "size": None,
+                "estimate_hours": None,
+                "start_date": None,
+                "target_date": None,
+            },
         )
         assert result == {}
 
@@ -3409,7 +3461,9 @@ class TestUpdateProjectItemFieldExtended:
 
     @pytest.mark.asyncio
     async def test_date_field(self, service, mock_fields):
-        with patch.object(service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields):
+        with patch.object(
+            service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields
+        ):
             with patch.object(service, "_graphql", new_callable=AsyncMock, return_value={}):
                 result = await service.update_project_item_field(
                     "tok", "P1", "ITEM_1", "Start Date", "2026-01-01"
@@ -3418,7 +3472,9 @@ class TestUpdateProjectItemFieldExtended:
 
     @pytest.mark.asyncio
     async def test_text_field(self, service, mock_fields):
-        with patch.object(service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields):
+        with patch.object(
+            service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields
+        ):
             with patch.object(service, "_graphql", new_callable=AsyncMock, return_value={}):
                 result = await service.update_project_item_field(
                     "tok", "P1", "ITEM_1", "Notes", "Some text"
@@ -3427,7 +3483,9 @@ class TestUpdateProjectItemFieldExtended:
 
     @pytest.mark.asyncio
     async def test_unsupported_type(self, service, mock_fields):
-        with patch.object(service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields):
+        with patch.object(
+            service, "get_project_fields", new_callable=AsyncMock, return_value=mock_fields
+        ):
             result = await service.update_project_item_field(
                 "tok", "P1", "ITEM_1", "Custom", "value"
             )

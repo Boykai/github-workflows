@@ -94,9 +94,7 @@ class TestGetProjectTasks:
     async def test_returns_tasks(self, client, mock_github_service):
         t = _task()
         mock_github_service.get_project_items.return_value = [t]
-        resp = await client.get(
-            "/api/v1/projects/PVT_abc/tasks", params={"refresh": True}
-        )
+        resp = await client.get("/api/v1/projects/PVT_abc/tasks", params={"refresh": True})
         assert resp.status_code == 200
         data = resp.json()
         assert len(data["tasks"]) == 1
@@ -104,9 +102,7 @@ class TestGetProjectTasks:
 
     async def test_returns_empty_tasks(self, client, mock_github_service):
         mock_github_service.get_project_items.return_value = []
-        resp = await client.get(
-            "/api/v1/projects/PVT_abc/tasks", params={"refresh": True}
-        )
+        resp = await client.get("/api/v1/projects/PVT_abc/tasks", params={"refresh": True})
         assert resp.status_code == 200
         assert resp.json()["tasks"] == []
 
@@ -196,8 +192,13 @@ class TestStartCopilotPolling:
         """Happy path: get_project_repository returns repo info."""
         mock_gps.get_project_repository = AsyncMock(return_value=("owner", "repo"))
         with (
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": False}),
-            patch("src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock),
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch(
+                "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
+            ),
             patch("src.services.copilot_polling._polling_task", None),
         ):
             await _start_copilot_polling(session, "proj-1")
@@ -207,9 +208,13 @@ class TestStartCopilotPolling:
         """If polling is already running, stops it before restarting."""
         mock_gps.get_project_repository = AsyncMock(return_value=("o", "r"))
         with (
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": True}),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
             patch("src.services.copilot_polling.stop_polling") as mock_stop,
-            patch("src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock),
+            patch(
+                "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
+            ),
             patch("src.services.copilot_polling._polling_task", None),
             patch("asyncio.sleep", new_callable=AsyncMock),
         ):
@@ -222,8 +227,13 @@ class TestStartCopilotPolling:
         mock_gps.get_project_repository = AsyncMock(return_value=None)
         config = MagicMock(repository_owner="cfg-owner", repository_name="cfg-repo")
         with (
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": False}),
-            patch("src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock),
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch(
+                "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
+            ),
             patch("src.services.copilot_polling._polling_task", None),
             patch("src.api.workflow.get_workflow_config", return_value=config),
         ):
@@ -234,8 +244,13 @@ class TestStartCopilotPolling:
         """Falls back to settings when both repo and config are None."""
         mock_gps.get_project_repository = AsyncMock(return_value=None)
         with (
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": False}),
-            patch("src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock),
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch(
+                "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
+            ),
             patch("src.services.copilot_polling._polling_task", None),
             patch("src.api.workflow.get_workflow_config", return_value=None),
             patch("src.config.get_settings") as ms,
@@ -248,8 +263,13 @@ class TestStartCopilotPolling:
         """When no repo info available, polling is not started."""
         mock_gps.get_project_repository = AsyncMock(return_value=None)
         with (
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": False}),
-            patch("src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock) as mock_poll,
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch(
+                "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
+            ) as mock_poll,
             patch("src.api.workflow.get_workflow_config", return_value=None),
             patch("src.config.get_settings") as ms,
         ):

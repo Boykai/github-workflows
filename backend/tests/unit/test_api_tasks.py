@@ -111,9 +111,7 @@ class TestUpdateTaskStatus:
         )
         assert resp.status_code == 422
 
-    async def test_update_status_task_not_found(
-        self, client, mock_session, mock_github_service
-    ):
+    async def test_update_status_task_not_found(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = "PVT_abc"
         mock_github_service.get_project_items.return_value = []
         with patch("src.api.tasks.cache") as mock_cache:

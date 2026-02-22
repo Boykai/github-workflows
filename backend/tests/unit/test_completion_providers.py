@@ -87,7 +87,9 @@ class TestCopilotCompletionProvider:
     async def test_get_or_create_client_caches(self):
         CopilotCompletionProvider()
         mock_client = AsyncMock()
-        with patch("src.services.completion_providers.CopilotCompletionProvider._get_or_create_client") as mock_get:
+        with patch(
+            "src.services.completion_providers.CopilotCompletionProvider._get_or_create_client"
+        ) as mock_get:
             mock_get.return_value = mock_client
             # Just verify the interface - we can't import copilot SDK
             client = await mock_get("token123")
@@ -114,6 +116,7 @@ class TestCopilotCompletionProvider:
         async def fake_send(*args, **kwargs):
             # Simulate the copilot events
             from unittest.mock import MagicMock as MM
+
             msg_event = MM()
             msg_event.type = "assistant_message"
             msg_event.data.content = "Hello response"
@@ -136,12 +139,15 @@ class TestCopilotCompletionProvider:
         mock_event_type.SESSION_ERROR = "session_error"
 
         with (
-            patch.dict("sys.modules", {
-                "copilot": MagicMock(),
-                "copilot.types": MagicMock(),
-                "copilot.generated": MagicMock(),
-                "copilot.generated.session_events": MagicMock(SessionEventType=mock_event_type),
-            }),
+            patch.dict(
+                "sys.modules",
+                {
+                    "copilot": MagicMock(),
+                    "copilot.types": MagicMock(),
+                    "copilot.generated": MagicMock(),
+                    "copilot.generated.session_events": MagicMock(SessionEventType=mock_event_type),
+                },
+            ),
         ):
             # Have send trigger the callback with content + idle
             async def trigger_events(*args, **kwargs):
@@ -239,12 +245,15 @@ class TestAzureOpenAICompletionProvider:
 
         with (
             patch("asyncio.to_thread", new_callable=AsyncMock, return_value=mock_response),
-            patch.dict("sys.modules", {
-                "azure": MagicMock(),
-                "azure.ai": MagicMock(),
-                "azure.ai.inference": MagicMock(),
-                "azure.ai.inference.models": MagicMock(),
-            }),
+            patch.dict(
+                "sys.modules",
+                {
+                    "azure": MagicMock(),
+                    "azure.ai": MagicMock(),
+                    "azure.ai.inference": MagicMock(),
+                    "azure.ai.inference.models": MagicMock(),
+                },
+            ),
         ):
             result = await p.complete(
                 [{"role": "system", "content": "sys"}, {"role": "user", "content": "hi"}],

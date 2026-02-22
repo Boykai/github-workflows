@@ -176,8 +176,6 @@ class TestDevLogin:
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-                resp = await ac.post(
-                    "/api/v1/auth/dev-login", params={"github_token": "ghp_test"}
-                )
+                resp = await ac.post("/api/v1/auth/dev-login", params={"github_token": "ghp_test"})
         assert resp.status_code == 403
         app.dependency_overrides.clear()

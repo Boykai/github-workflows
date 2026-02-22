@@ -157,9 +157,7 @@ class TestFlattenUserPreferencesUpdate:
         assert result == {"theme": "dark"}
 
     def test_bool_to_int(self):
-        result = flatten_user_preferences_update(
-            {"display": {"sidebar_collapsed": True}}
-        )
+        result = flatten_user_preferences_update({"display": {"sidebar_collapsed": True}})
         assert result["sidebar_collapsed"] == 1
 
     def test_empty_returns_empty(self):

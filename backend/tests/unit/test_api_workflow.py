@@ -100,17 +100,13 @@ class TestRejectRecommendation:
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
         with patch(f"{WF}._recommendations", {rec_id: rec}):
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/reject"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 200
         assert resp.json()["recommendation_id"] == rec_id
         assert rec.status == RecommendationStatus.REJECTED
 
     async def test_reject_not_found(self, client):
-        resp = await client.post(
-            "/api/v1/workflow/recommendations/nonexistent/reject"
-        )
+        resp = await client.post("/api/v1/workflow/recommendations/nonexistent/reject")
         assert resp.status_code == 404
 
     async def test_reject_already_rejected(self, client, mock_session):
@@ -120,9 +116,7 @@ class TestRejectRecommendation:
         )
         rec_id = str(rec.recommendation_id)
         with patch(f"{WF}._recommendations", {rec_id: rec}):
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/reject"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 422  # ValidationError
 
 
@@ -207,9 +201,7 @@ class TestTransitions:
 
     async def test_filter_by_issue(self, client):
         with patch(f"{WF}.get_transitions", return_value=[]) as mock_get:
-            resp = await client.get(
-                "/api/v1/workflow/transitions", params={"issue_id": "I_1"}
-            )
+            resp = await client.get("/api/v1/workflow/transitions", params={"issue_id": "I_1"})
         assert resp.status_code == 200
         mock_get.assert_called_once_with(issue_id="I_1", limit=50)
 
@@ -254,9 +246,7 @@ class TestGetPipelineStateForIssue:
 
 
 class TestNotifyInReview:
-    async def test_send_notification(
-        self, client, mock_session, mock_websocket_manager
-    ):
+    async def test_send_notification(self, client, mock_session, mock_websocket_manager):
         mock_session.selected_project_id = TEST_PROJECT_ID
         resp = await client.post(
             "/api/v1/workflow/notify/in-review",
@@ -326,9 +316,7 @@ class TestStopPolling:
 
 class TestConfirmRecommendation:
     async def test_not_found(self, client):
-        resp = await client.post(
-            "/api/v1/workflow/recommendations/missing/confirm"
-        )
+        resp = await client.post("/api/v1/workflow/recommendations/missing/confirm")
         assert resp.status_code == 404
 
     async def test_already_confirmed(self, client, mock_session):
@@ -338,9 +326,7 @@ class TestConfirmRecommendation:
         )
         rec_id = str(rec.recommendation_id)
         with patch(f"{WF}._recommendations", {rec_id: rec}):
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/confirm"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
     async def test_no_project_selected(self, client, mock_session):
@@ -348,9 +334,7 @@ class TestConfirmRecommendation:
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
         with patch(f"{WF}._recommendations", {rec_id: rec}):
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/confirm"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
     async def test_confirm_success(
@@ -384,7 +368,9 @@ class TestConfirmRecommendation:
             patch(f"{WF}.set_workflow_config"),
             patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch(f"{WF}.get_agent_slugs", return_value=["copilot-coding"]),
-            patch("src.services.copilot_polling.get_polling_status", return_value={"is_running": True}),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
             patch("src.config.get_settings") as mock_settings,
         ):
             mock_settings.return_value = MagicMock(
@@ -392,9 +378,7 @@ class TestConfirmRecommendation:
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
             )
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/confirm"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
         assert resp.status_code == 200
         data = resp.json()
@@ -422,9 +406,7 @@ class TestConfirmRecommendation:
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_assignee="copilot")
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/confirm"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
         assert resp.status_code == 200
         assert resp.json()["success"] is False
@@ -436,6 +418,7 @@ class TestConfirmRecommendation:
         rec_id = str(rec.recommendation_id)
 
         import hashlib
+
         input_hash = hashlib.sha256(rec.original_input.encode()).hexdigest()
         fake_recent = {input_hash: (datetime.utcnow(), "other-rec-id")}
 
@@ -443,9 +426,7 @@ class TestConfirmRecommendation:
             patch(f"{WF}._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", fake_recent),
         ):
-            resp = await client.post(
-                f"/api/v1/workflow/recommendations/{rec_id}/confirm"
-            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
         assert resp.status_code == 422
 
@@ -470,6 +451,7 @@ class TestCheckDuplicate:
 
     def test_expired_entries_cleaned(self):
         import hashlib
+
         h = hashlib.sha256(b"old").hexdigest()
         _recent_requests[h] = (datetime.utcnow() - timedelta(minutes=10), "old-id")
         _check_duplicate("new", "rec-1")
@@ -622,9 +604,7 @@ class TestStartPolling:
         assert resp.status_code == 200
         assert "already running" in resp.json()["message"].lower()
 
-    async def test_start_success(
-        self, client, mock_session, mock_github_service
-    ):
+    async def test_start_success(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = ("o", "r")
         with (
@@ -642,9 +622,7 @@ class TestStartPolling:
         assert resp.status_code == 200
         assert "started" in resp.json()["message"].lower()
 
-    async def test_start_no_repo_configured(
-        self, client, mock_session, mock_github_service
-    ):
+    async def test_start_no_repo_configured(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = None
         with (
@@ -689,9 +667,7 @@ class TestCheckAllInProgressIssues:
         # Only 1 success should broadcast
         assert mock_websocket_manager.broadcast_to_project.await_count == 1
 
-    async def test_check_all_no_repo(
-        self, client, mock_session, mock_github_service
-    ):
+    async def test_check_all_no_repo(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = None
         with (
@@ -716,7 +692,9 @@ class TestCheckAllInProgressIssues:
                 return_value=[],
             ),
         ):
-            ms.return_value = MagicMock(default_repo_owner="def_owner", default_repo_name="def_repo")
+            ms.return_value = MagicMock(
+                default_repo_owner="def_owner", default_repo_name="def_repo"
+            )
             resp = await client.post("/api/v1/workflow/polling/check-all")
         assert resp.status_code == 200
 

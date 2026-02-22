@@ -128,16 +128,12 @@ class TestGetBoardData:
 
     async def test_github_error_on_board_data(self, client, mock_github_service):
         mock_github_service.get_board_data.side_effect = RuntimeError("timeout")
-        resp = await client.get(
-            "/api/v1/board/projects/PVT_error", params={"refresh": True}
-        )
+        resp = await client.get("/api/v1/board/projects/PVT_error", params={"refresh": True})
         assert resp.status_code == 502
 
     async def test_refresh_board_data(self, client, mock_github_service):
         bd = _make_board_data()
         mock_github_service.get_board_data.return_value = bd
-        resp = await client.get(
-            "/api/v1/board/projects/PVT_abc", params={"refresh": True}
-        )
+        resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
         assert resp.status_code == 200
         mock_github_service.get_board_data.assert_called_once()

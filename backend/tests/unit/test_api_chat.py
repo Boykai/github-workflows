@@ -75,19 +75,13 @@ class TestClearMessages:
 class TestSendMessageFeatureRequest:
     async def test_no_project_selected(self, client, mock_session):
         mock_session.selected_project_id = None
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "add dark mode"}
-        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 422
 
     async def test_ai_not_configured(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
-        with patch(
-            "src.api.chat.get_ai_agent_service", side_effect=ValueError("not configured")
-        ):
-            resp = await client.post(
-                "/api/v1/chat/messages", json={"content": "add dark mode"}
-            )
+        with patch("src.api.chat.get_ai_agent_service", side_effect=ValueError("not configured")):
+            resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         data = resp.json()
         assert "not configured" in data["content"].lower() or "AI features" in data["content"]
@@ -114,16 +108,12 @@ class TestSendMessageFeatureRequest:
     ):
         """If feature detection throws, falls through to status/task branch."""
         mock_session.selected_project_id = "PVT_1"
-        mock_ai_agent_service.detect_feature_request_intent.side_effect = RuntimeError(
-            "ai down"
-        )
+        mock_ai_agent_service.detect_feature_request_intent.side_effect = RuntimeError("ai down")
         mock_ai_agent_service.parse_status_change_request.return_value = None
         mock_ai_agent_service.generate_task_from_description.return_value = MagicMock(
             title="Dark mode", description="Add dark mode feature"
         )
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "add dark mode"}
-        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         # Falls through to task generation
         data = resp.json()
@@ -134,9 +124,7 @@ class TestSendMessageFeatureRequest:
 
 
 class TestSendMessageStatusChange:
-    async def test_status_change_found(
-        self, client, mock_session, mock_ai_agent_service
-    ):
+    async def test_status_change_found(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = False
 
@@ -174,9 +162,7 @@ class TestSendMessageStatusChange:
         data = resp.json()
         assert data["action_type"] == "status_update"
 
-    async def test_status_change_task_not_found(
-        self, client, mock_session, mock_ai_agent_service
-    ):
+    async def test_status_change_task_not_found(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = False
 
@@ -201,9 +187,7 @@ class TestSendMessageStatusChange:
 
 
 class TestSendMessageTaskGeneration:
-    async def test_generates_task_proposal(
-        self, client, mock_session, mock_ai_agent_service
-    ):
+    async def test_generates_task_proposal(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = False
         mock_ai_agent_service.parse_status_change_request.return_value = None
@@ -213,26 +197,18 @@ class TestSendMessageTaskGeneration:
         generated.description = "Fix the authentication flow bug in the login page"
         mock_ai_agent_service.generate_task_from_description.return_value = generated
 
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "fix the auth bug"}
-        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "fix the auth bug"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["action_type"] == "task_create"
         assert data["action_data"]["proposed_title"] == "Fix auth bug"
 
-    async def test_task_generation_error(
-        self, client, mock_session, mock_ai_agent_service
-    ):
+    async def test_task_generation_error(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = False
         mock_ai_agent_service.parse_status_change_request.return_value = None
-        mock_ai_agent_service.generate_task_from_description.side_effect = RuntimeError(
-            "AI error"
-        )
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "do something"}
-        )
+        mock_ai_agent_service.generate_task_from_description.side_effect = RuntimeError("AI error")
+        resp = await client.post("/api/v1/chat/messages", json={"content": "do something"})
         assert resp.status_code == 200
         assert "couldn't generate" in resp.json()["content"].lower()
 
@@ -334,9 +310,7 @@ class TestCancelProposal:
 
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
 
-        resp = await client.delete(
-            f"/api/v1/chat/proposals/{proposal.proposal_id}"
-        )
+        resp = await client.delete(f"/api/v1/chat/proposals/{proposal.proposal_id}")
         assert resp.status_code == 200
         assert resp.json()["message"] == "Proposal cancelled"
 
@@ -447,9 +421,7 @@ class TestResolveRepository:
             patch("src.api.chat.get_workflow_config", return_value=None),
             patch("src.config.get_settings") as mock_s,
         ):
-            mock_s.return_value = MagicMock(
-                default_repo_owner=None, default_repo_name=None
-            )
+            mock_s.return_value = MagicMock(default_repo_owner=None, default_repo_name=None)
             with pytest.raises(ValidationError, match="No repository found"):
                 await _resolve_repository(session)
 
@@ -468,9 +440,7 @@ class TestCancelProposalDirect:
         proposal = _proposal(other_id)
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
 
-        resp = await client.delete(
-            f"/api/v1/chat/proposals/{proposal.proposal_id}"
-        )
+        resp = await client.delete(f"/api/v1/chat/proposals/{proposal.proposal_id}")
         assert resp.status_code == 404
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
@@ -481,9 +451,7 @@ class TestCancelProposalDirect:
         proposal = _proposal(mock_session.session_id)
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
 
-        resp = await client.delete(
-            f"/api/v1/chat/proposals/{proposal.proposal_id}"
-        )
+        resp = await client.delete(f"/api/v1/chat/proposals/{proposal.proposal_id}")
         assert resp.status_code == 200
         assert proposal.status == ProposalStatus.CANCELLED
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
@@ -592,12 +560,8 @@ class TestConfirmProposalEdgeCases:
         """Feature request recommendation generation failure → error message."""
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = True
-        mock_ai_agent_service.generate_issue_recommendation.side_effect = RuntimeError(
-            "AI down"
-        )
+        mock_ai_agent_service.generate_issue_recommendation.side_effect = RuntimeError("AI down")
 
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "add dark mode"}
-        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         assert "couldn't generate" in resp.json()["content"].lower()

@@ -2957,7 +2957,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow(),
             agent_assigned_sha="old_sha",
         )
@@ -2979,7 +2984,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow(),
             agent_assigned_sha="same_sha",
         )
@@ -3001,7 +3011,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow(),
             agent_assigned_sha="same_sha",
         )
@@ -3024,7 +3039,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow() - timedelta(hours=2),
             agent_assigned_sha="",
         )
@@ -3047,7 +3067,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow(),
             agent_assigned_sha="",
         )
@@ -3069,7 +3094,12 @@ class TestCheckMainPrCompletionCommitBased:
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
             pipeline_started_at=datetime.utcnow(),
             agent_assigned_sha="",
         )
@@ -3080,7 +3110,12 @@ class TestCheckMainPrCompletionCommitBased:
     async def test_no_pr_details_returns_false(self, mock_service):
         mock_service.get_pull_request = AsyncMock(return_value=None)
         result = await _check_main_pr_completion(
-            "tok", "o", "r", 10, 42, "myagent",
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
         )
         assert result is False
 
@@ -3107,7 +3142,10 @@ class TestPollLoop:
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
-    @patch("src.services.copilot_polling.check_in_review_issues_for_copilot_review", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.check_in_review_issues_for_copilot_review",
+        new_callable=AsyncMock,
+    )
     @patch("src.services.copilot_polling.check_in_progress_issues", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.check_ready_issues", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.check_backlog_issues", new_callable=AsyncMock)
@@ -3115,8 +3153,15 @@ class TestPollLoop:
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("asyncio.sleep", new_callable=AsyncMock)
     async def test_single_poll_cycle(
-        self, mock_sleep, mock_service, mock_output, mock_backlog,
-        mock_ready, mock_progress, mock_review, mock_recover,
+        self,
+        mock_sleep,
+        mock_service,
+        mock_output,
+        mock_backlog,
+        mock_ready,
+        mock_progress,
+        mock_review,
+        mock_recover,
     ):
         from src.services.copilot_polling import _polling_state
 
@@ -3263,9 +3308,7 @@ class TestUpdateIssueTracking:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_returns_false_for_empty_body(self, mock_service):
         """Should return False when issue body is empty."""
-        mock_service.get_issue_with_comments = AsyncMock(
-            return_value={"body": "", "comments": []}
-        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": "", "comments": []})
 
         result = await _update_issue_tracking(
             access_token="token",
@@ -3379,9 +3422,7 @@ class TestUpdateIssueTracking:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_returns_false_on_exception(self, mock_service):
         """Should catch exceptions and return False."""
-        mock_service.get_issue_with_comments = AsyncMock(
-            side_effect=Exception("API error")
-        )
+        mock_service.get_issue_with_comments = AsyncMock(side_effect=Exception("API error"))
 
         result = await _update_issue_tracking(
             access_token="token",
@@ -3607,10 +3648,13 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         from src.services.workflow_orchestrator import set_issue_sub_issues
 
         # Global store has the sub-issue mapping
-        set_issue_sub_issues(42, {
-            "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
-            "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
-        })
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+                "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
+            },
+        )
 
         # Pipeline has NO agent_sub_issues (lost after status transition)
         pipeline = PipelineState(
@@ -3686,9 +3730,12 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         from src.services.workflow_orchestrator import set_issue_sub_issues
 
         # Global store has different sub-issue numbers (stale)
-        set_issue_sub_issues(42, {
-            "speckit.plan": {"number": 999, "node_id": "I_999", "url": ""},
-        })
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 999, "node_id": "I_999", "url": ""},
+            },
+        )
 
         # Pipeline has the correct/current mapping
         pipeline = PipelineState(

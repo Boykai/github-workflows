@@ -7,7 +7,6 @@ Covers:
 - Constants and cache key helpers
 """
 
-
 from src.config import Settings, get_settings
 from src.constants import (
     AGENT_DISPLAY_NAMES,
