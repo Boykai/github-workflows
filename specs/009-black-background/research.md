@@ -43,7 +43,7 @@
 | `--color-primary` | `#539bf5` | `#539bf5` | Primary action color (blue, preserved) |
 | `--color-secondary` | `#8b949e` | `#8b949e` | Secondary element color |
 | `--color-success` | `#3fb950` | `#3fb950` | Success indicators |
-| `--color-warning` | `#d29922` | `#d29922` |Warning indicators |
+| `--color-warning` | `#d29922` | `#d29922` | Warning indicators |
 | `--color-danger` | `#f85149` | `#f85149` | Danger/error indicators |
 | `--shadow` | `0 1px 3px rgba(0,0,0,0.6)` | `0 1px 3px rgba(0,0,0,0.8)` | Elevated shadow |
 
