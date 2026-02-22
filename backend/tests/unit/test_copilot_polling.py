@@ -1,32 +1,40 @@
 """Unit tests for Copilot PR polling service."""
 
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
 from src.services.copilot_polling import (
     _advance_pipeline,
+    _check_agent_done_on_parent,
     _check_child_pr_completion,
     _check_main_pr_completion,
     _claimed_child_prs,
     _filter_events_after,
     _find_completed_child_pr,
+    _get_tracking_state_from_issue,
     _merge_child_pr_if_applicable,
     _pending_agent_assignments,
+    _poll_loop,
     _posted_agent_outputs,
     _processed_issue_prs,
     _reconstruct_pipeline_state,
+    _reconstruct_sub_issue_mappings,
     _recovery_last_attempt,
     _transition_after_pipeline_complete,
+    _update_issue_tracking,
     check_backlog_issues,
     check_in_progress_issues,
+    check_in_review_issues_for_copilot_review,
     check_issue_for_copilot_completion,
     check_ready_issues,
+    ensure_copilot_review_requested,
     get_polling_status,
     post_agent_outputs_from_pr,
     process_in_progress_issue,
     recover_stalled_issues,
+    stop_polling,
 )
 from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
 
@@ -2726,3 +2734,1045 @@ class TestRecoverStalledIssues:
         assert results == []
         # Cooldown should still be set to avoid repeated checks
         assert 100 in _recovery_last_attempt
+
+
+# ────────────────────────────────────────────────────────────────────
+# ensure_copilot_review_requested  (~80 uncovered lines)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestEnsureCopilotReviewRequested:
+    """Tests for ensure_copilot_review_requested."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self):
+        _processed_issue_prs.clear()
+        yield
+        _processed_issue_prs.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_already_cached_returns_none(self, mock_service):
+        from src.services.copilot_polling import cache_key_review_requested
+
+        key = cache_key_review_requested(42)
+        _processed_issue_prs.add(key)
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_completed_pr_returns_none(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(return_value=None)
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_copilot_not_finished_returns_none(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"copilot_finished": False}
+        )
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_missing_pr_number_returns_none(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"copilot_finished": True, "number": None, "id": None}
+        )
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_already_reviewed_returns_none(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+        # Should have been cached
+        from src.services.copilot_polling import cache_key_review_requested
+
+        assert cache_key_review_requested(42) in _processed_issue_prs
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_review_requested_successfully(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
+        assert result is not None
+        assert result["action"] == "copilot_review_requested"
+        assert result["pr_number"] == 10
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_review_request_fails(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=False)
+
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
+        assert result is not None
+        assert result["status"] == "error"
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_exception_returns_none(self, mock_service):
+        mock_service.check_copilot_pr_completion = AsyncMock(side_effect=Exception("boom"))
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is None
+
+
+# ────────────────────────────────────────────────────────────────────
+# check_in_review_issues_for_copilot_review  (~41 uncovered lines)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckInReviewIssues:
+    """Tests for check_in_review_issues_for_copilot_review."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_in_review_tasks(self, mock_service, mock_ensure):
+        task = MagicMock(status="In Progress", issue_number=1)
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+        assert results == []
+        mock_ensure.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_processes_in_review_tasks(self, mock_service, mock_ensure):
+        task = MagicMock(
+            status="In Review",
+            issue_number=42,
+            repository_owner="o",
+            repository_name="r",
+            title="My Task",
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_ensure.return_value = {"action": "copilot_review_requested"}
+
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+        assert len(results) == 1
+        mock_ensure.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_none_results_filtered_out(self, mock_service, mock_ensure):
+        task = MagicMock(
+            status="In Review",
+            issue_number=42,
+            repository_owner="o",
+            repository_name="r",
+            title="T",
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_ensure.return_value = None  # already processed
+
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_exception_returns_empty(self, mock_service):
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("err"))
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_tasks_without_issue_number(self, mock_service, mock_ensure):
+        task = MagicMock(status="In Review", issue_number=None)
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+        assert results == []
+        mock_ensure.assert_not_awaited()
+
+
+# ────────────────────────────────────────────────────────────────────
+# _check_main_pr_completion — commit-based detection  (~114 uncovered lines)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckMainPrCompletionCommitBased:
+    """Tests for _check_main_pr_completion commit-based + Copilot-unassigned detection."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_new_commits_copilot_unassigned(self, mock_service):
+        """New commits + Copilot unassigned → True."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "new_sha_abc"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            access_token="tok",
+            owner="o",
+            repo="r",
+            main_pr_number=10,
+            issue_number=42,
+            agent_name="myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="old_sha_xyz",
+        )
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_new_commits_copilot_still_assigned(self, mock_service):
+        """New commits but Copilot still assigned → False (still working)."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "new_sha"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="old_sha",
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_sha_unchanged_copilot_unassigned(self, mock_service):
+        """SHA unchanged but Copilot unassigned → True (agent finished w/o changes)."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "same_sha"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="same_sha",
+        )
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_sha_unchanged_copilot_still_assigned(self, mock_service):
+        """SHA unchanged + Copilot still assigned → False."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "same_sha"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="same_sha",
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_sha_copilot_unassigned_fresh_commit(self, mock_service):
+        """No assigned SHA + Copilot unassigned + fresh commit → True."""
+        recent = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "abc", "committed_date": recent},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow() - timedelta(hours=2),
+            agent_assigned_sha="",
+        )
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_sha_copilot_unassigned_stale_commit(self, mock_service):
+        """No assigned SHA + Copilot unassigned + stale commit → False."""
+        old_time = (datetime.now(UTC) - timedelta(days=5)).isoformat()
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "abc", "committed_date": old_time},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="",
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_sha_copilot_still_assigned(self, mock_service):
+        """No assigned SHA + Copilot still assigned → False."""
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "is_draft": True,
+                "state": "OPEN",
+                "last_commit": {"sha": "abc"},
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+            pipeline_started_at=datetime.utcnow(),
+            agent_assigned_sha="",
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_pr_details_returns_false(self, mock_service):
+        mock_service.get_pull_request = AsyncMock(return_value=None)
+        result = await _check_main_pr_completion(
+            "tok",
+            "o",
+            "r",
+            10,
+            42,
+            "myagent",
+        )
+        assert result is False
+
+
+# ────────────────────────────────────────────────────────────────────
+# _poll_loop  (~89 uncovered lines)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestPollLoop:
+    """Tests for _poll_loop."""
+
+    @pytest.fixture(autouse=True)
+    def _reset_state(self):
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = False
+        _polling_state.poll_count = 0
+        _polling_state.errors_count = 0
+        _polling_state.last_error = None
+        _polling_state.last_poll_time = None
+        yield
+        _polling_state.is_running = False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.check_in_review_issues_for_copilot_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.check_in_progress_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.check_ready_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.check_backlog_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.post_agent_outputs_from_pr", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_single_poll_cycle(
+        self,
+        mock_sleep,
+        mock_service,
+        mock_output,
+        mock_backlog,
+        mock_ready,
+        mock_progress,
+        mock_review,
+        mock_recover,
+    ):
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+        mock_service.get_project_items = AsyncMock(return_value=[])
+        mock_output.return_value = []
+        mock_backlog.return_value = []
+        mock_ready.return_value = []
+        mock_progress.return_value = []
+        mock_review.return_value = []
+        mock_recover.return_value = []
+
+        # Stop after one cycle
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.poll_count == 1
+        assert _polling_state.last_poll_time is not None
+        mock_service.get_project_items.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_exception_increments_errors(self, mock_sleep, mock_service):
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("net err"))
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.errors_count == 1
+        assert _polling_state.last_error == "net err"
+
+    @pytest.mark.asyncio
+    async def test_not_running_exits_immediately(self):
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = False
+        await _poll_loop("tok", "P1", "o", "r", 60)
+        assert _polling_state.poll_count == 0
+
+
+# ────────────────────────────────────────────────────────────────────
+# stop_polling
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestStopPolling:
+    """Tests for stop_polling."""
+
+    def test_sets_is_running_false(self):
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+        stop_polling()
+        assert _polling_state.is_running is False
+
+    def test_cancels_polling_task(self):
+        import src.services.copilot_polling as cp
+
+        task = MagicMock()
+        task.done.return_value = False
+        cp._polling_task = task
+        cp._polling_state.is_running = True
+
+        stop_polling()
+
+        task.cancel.assert_called_once()
+        assert cp._polling_task is None
+
+    def test_no_task_no_error(self):
+        import src.services.copilot_polling as cp
+
+        cp._polling_task = None
+        stop_polling()  # should not raise
+
+
+# ────────────────────────────────────────────────────────────────────
+# _check_agent_done_on_parent  (line 177)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckAgentDoneOnParent:
+    """Tests for _check_agent_done_on_parent."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_delegates_to_check_completion_comment(self, mock_service):
+        """Should delegate directly to check_agent_completion_comment on parent issue."""
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=True)
+
+        result = await _check_agent_done_on_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="speckit.specify",
+        )
+
+        assert result is True
+        mock_service.check_agent_completion_comment.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_when_no_marker(self, mock_service):
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        result = await _check_agent_done_on_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="speckit.specify",
+        )
+
+        assert result is False
+
+
+# ────────────────────────────────────────────────────────────────────
+# _update_issue_tracking  (lines 217-245)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestUpdateIssueTracking:
+    """Tests for _update_issue_tracking — updates agent state in issue body."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_for_empty_body(self, mock_service):
+        """Should return False when issue body is empty."""
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": "", "comments": []})
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="active",
+        )
+
+        assert result is False
+        mock_service.update_issue_body.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_for_invalid_state(self, mock_service):
+        """Should return False for an unrecognized new_state value."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "some body text", "comments": []}
+        )
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="invalid_state",
+        )
+
+        assert result is False
+        mock_service.update_issue_body.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.mark_agent_active")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_true_when_no_change_needed(self, mock_service, mock_mark):
+        """Should return True without calling update_issue_body when body unchanged."""
+        original_body = "| 1 | Backlog | `speckit.specify` | 🔄 Active |"
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": original_body, "comments": []}
+        )
+        mock_mark.return_value = original_body  # No change
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="active",
+        )
+
+        assert result is True
+        mock_service.update_issue_body.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.mark_agent_active")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_marks_agent_active_and_updates(self, mock_service, mock_mark):
+        """Should call mark_agent_active and push updated body when state is 'active'."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "old body", "comments": []}
+        )
+        mock_mark.return_value = "updated body"
+        mock_service.update_issue_body = AsyncMock(return_value=True)
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="active",
+        )
+
+        assert result is True
+        mock_mark.assert_called_once_with("old body", "speckit.specify")
+        mock_service.update_issue_body.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            body="updated body",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.mark_agent_done")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_marks_agent_done_and_updates(self, mock_service, mock_mark):
+        """Should call mark_agent_done and push updated body when state is 'done'."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "old body", "comments": []}
+        )
+        mock_mark.return_value = "done body"
+        mock_service.update_issue_body = AsyncMock(return_value=True)
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="done",
+        )
+
+        assert result is True
+        mock_mark.assert_called_once_with("old body", "speckit.specify")
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_false_on_exception(self, mock_service):
+        """Should catch exceptions and return False."""
+        mock_service.get_issue_with_comments = AsyncMock(side_effect=Exception("API error"))
+
+        result = await _update_issue_tracking(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.specify",
+            new_state="active",
+        )
+
+        assert result is False
+
+
+# ────────────────────────────────────────────────────────────────────
+# _get_tracking_state_from_issue  (lines 263-269)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestGetTrackingStateFromIssue:
+    """Tests for _get_tracking_state_from_issue — fetches issue body + comments."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_body_and_comments(self, mock_service):
+        """Should return (body, comments) tuple from issue data."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "body": "Issue body text",
+                "comments": [{"body": "comment 1"}],
+            }
+        )
+
+        body, comments = await _get_tracking_state_from_issue(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert body == "Issue body text"
+        assert len(comments) == 1
+        assert comments[0]["body"] == "comment 1"
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_defaults_for_missing_keys(self, mock_service):
+        """Should return empty defaults when body/comments are missing."""
+        mock_service.get_issue_with_comments = AsyncMock(return_value={})
+
+        body, comments = await _get_tracking_state_from_issue(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert body == ""
+        assert comments == []
+
+
+# ────────────────────────────────────────────────────────────────────
+# _reconstruct_sub_issue_mappings  (lines 290-306)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestReconstructSubIssueMappings:
+    """Tests for _reconstruct_sub_issue_mappings — builds agent→sub-issue mapping."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_parses_bracketed_agent_names(self, mock_service):
+        """Should parse [agent-name] prefix from sub-issue titles."""
+        mock_service.get_sub_issues = AsyncMock(
+            return_value=[
+                {
+                    "title": "[speckit.specify] Write the specification",
+                    "number": 101,
+                    "node_id": "I_101",
+                    "html_url": "https://github.com/owner/repo/issues/101",
+                },
+                {
+                    "title": "[speckit.plan] Create the plan",
+                    "number": 102,
+                    "node_id": "I_102",
+                    "html_url": "https://github.com/owner/repo/issues/102",
+                },
+            ]
+        )
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert len(result) == 2
+        assert result["speckit.specify"]["number"] == 101
+        assert result["speckit.specify"]["node_id"] == "I_101"
+        assert result["speckit.plan"]["number"] == 102
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_titles_without_brackets(self, mock_service):
+        """Should skip sub-issues whose titles don't match [agent] pattern."""
+        mock_service.get_sub_issues = AsyncMock(
+            return_value=[
+                {"title": "No brackets here", "number": 103},
+                {"title": "[speckit.plan] Valid one", "number": 104, "node_id": "", "html_url": ""},
+            ]
+        )
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert len(result) == 1
+        assert "speckit.plan" in result
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_empty_on_exception(self, mock_service):
+        """Should return empty dict on API error."""
+        mock_service.get_sub_issues = AsyncMock(side_effect=Exception("API error"))
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert result == {}
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_empty_for_no_sub_issues(self, mock_service):
+        """Should return empty dict when there are no sub-issues."""
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert result == {}
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_persists_to_global_sub_issue_store(self, mock_service):
+        """Reconstructed mappings should be persisted to the global sub-issue store."""
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            get_issue_sub_issues,
+        )
+
+        _issue_sub_issue_map.clear()
+
+        mock_service.get_sub_issues = AsyncMock(
+            return_value=[
+                {"title": "[speckit.plan] Feature X", "number": 101, "node_id": "I_101"},
+                {"title": "[speckit.tasks] Feature X", "number": 102, "node_id": "I_102"},
+            ]
+        )
+
+        result = await _reconstruct_sub_issue_mappings(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert len(result) == 2
+
+        # Verify persisted to global store
+        global_subs = get_issue_sub_issues(42)
+        assert "speckit.plan" in global_subs
+        assert "speckit.tasks" in global_subs
+        assert global_subs["speckit.plan"]["number"] == 101
+        assert global_subs["speckit.tasks"]["number"] == 102
+
+        _issue_sub_issue_map.clear()
+
+
+class TestAdvancePipelineClosesSubIssueFromGlobalStore:
+    """Tests that _advance_pipeline closes sub-issues using the global store."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        """Clear global states between tests."""
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            _pipeline_states,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_closes_sub_issue_from_global_store_when_pipeline_has_none(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """When pipeline.agent_sub_issues is empty but the global store has
+        the mapping, _advance_pipeline should still close the sub-issue."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        # Global store has the sub-issue mapping
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+                "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
+            },
+        )
+
+        # Pipeline has NO agent_sub_issues (lost after status transition)
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+            agent_sub_issues={},
+        )
+
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        assert result["completed_agent"] == "speckit.plan"
+
+        # Verify sub-issue #101 was closed
+        mock_service.update_issue_state.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=101,
+            state="closed",
+            state_reason="completed",
+            labels_add=["done"],
+            labels_remove=["in-progress"],
+        )
+
+        # Verify sub-issue project board status updated to Done
+        mock_service.update_sub_issue_project_status.assert_called_once_with(
+            access_token="token",
+            project_id="PVT_123",
+            sub_issue_node_id="I_101",
+            status_name="Done",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_pipeline_sub_issues_take_precedence_over_global(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """When pipeline has sub-issue info, it should be used instead of global store."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        # Global store has different sub-issue numbers (stale)
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 999, "node_id": "I_999", "url": ""},
+            },
+        )
+
+        # Pipeline has the correct/current mapping
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+            agent_sub_issues={
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            },
+        )
+
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+
+        await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        # Should use pipeline's sub-issue #101, NOT global store's #999
+        mock_service.update_issue_state.assert_called_once()
+        call_args = mock_service.update_issue_state.call_args
+        assert call_args.kwargs["issue_number"] == 101

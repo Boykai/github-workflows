@@ -30,7 +30,16 @@ export function IssueRecommendationPreview({
     setError(null);
     try {
       const workflowResult = await onConfirm(recommendation.recommendation_id);
-      setResult(workflowResult);
+      if (!workflowResult.success) {
+        // Backend returned a structured error (HTTP 200 with success: false)
+        setError(workflowResult.message || 'Failed to create issue');
+        // Still store result so we can show partial success (issue created but agent failed)
+        if (workflowResult.issue_number) {
+          setResult(workflowResult);
+        }
+      } else {
+        setResult(workflowResult);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create issue');
     } finally {
@@ -73,6 +82,38 @@ export function IssueRecommendationPreview({
               View on GitHub →
             </a>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show partial success: issue created but workflow had errors (e.g., agent assignment failed)
+  if (result && !result.success && result.issue_number) {
+    return (
+      <div className="issue-recommendation-preview partial-success">
+        <div className="result-header">
+          <span className="warning-icon">⚠</span>
+          <h4>Issue Created with Warnings</h4>
+        </div>
+        <div className="result-details">
+          <p>
+            <strong>Issue #{result.issue_number}</strong>: {recommendation.proposed_title}
+          </p>
+          {result.issue_url && (
+            <a
+              href={result.issue_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="issue-link"
+            >
+              View on GitHub →
+            </a>
+          )}
+          {error && <div className="error-message">{error}</div>}
+          <p className="recovery-hint">
+            The issue was created but the agent pipeline encountered an error.
+            The system will automatically retry, or you can check the pipeline status.
+          </p>
         </div>
       </div>
     );

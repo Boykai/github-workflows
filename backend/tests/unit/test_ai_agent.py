@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from src.models.chat import IssuePriority, IssueSize, RecommendationStatus
 from src.services.ai_agent import (
     AIAgentService,
     GeneratedTask,
@@ -395,6 +396,27 @@ class TestIdentifyTargetTask:
         assert service.identify_target_task("task", []) is None
         assert service.identify_target_task("", [Mock(task_id="1", title="Task")]) is None
 
+    def test_identify_task_fuzzy_multiple_partial_matches(self, service):
+        """When multiple partial matches exist, fall through to fuzzy word overlap."""
+        tasks = [
+            Mock(task_id="1", title="fix login page"),
+            Mock(task_id="2", title="fix auth flow"),
+        ]
+        # "fix" is a substring of both titles → multiple partial matches
+        # Fuzzy: ref_words={"fix", "login"}, task1 overlap=2 (fix, login), task2 overlap=1 (fix)
+        result = service.identify_target_task("fix login", tasks)
+        assert result.task_id == "1"
+
+    def test_identify_task_no_overlap_returns_none(self, service):
+        """When no word overlap at all → returns None."""
+        tasks = [
+            Mock(task_id="1", title="build dashboard"),
+            Mock(task_id="2", title="add widget"),
+        ]
+        # "deploy server" has zero word overlap with either title
+        result = service.identify_target_task("deploy server", tasks)
+        assert result is None
+
 
 class TestIdentifyTargetStatus:
     """Tests for status reference matching."""
@@ -470,6 +492,315 @@ class TestParseJsonResponse:
         """Should raise ValueError on invalid JSON."""
         with pytest.raises(ValueError, match="Invalid JSON response"):
             service._parse_json_response("not json at all")
+
+
+class TestGenerateIssueRecommendation:
+    """Tests for issue recommendation generation flow."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_happy_path(self, service, mock_provider):
+        mock_provider.set_response(
+            '{"title": "CSV Export", "user_story": "As a user I want CSV", '
+            '"ui_ux_description": "Button", "functional_requirements": ["R1"], '
+            '"technical_notes": "Stream"}'
+        )
+        rec = await service.generate_issue_recommendation(
+            "Add CSV export", "MyProject", "00000000-0000-0000-0000-000000000001"
+        )
+        assert rec.title == "CSV Export"
+        assert rec.original_input == "Add CSV export"
+        assert rec.status == RecommendationStatus.PENDING
+        assert "ai-generated" in rec.metadata.labels
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_401_error(self, service, mock_provider):
+        mock_provider.set_error(Exception("401 Access denied"))
+        with pytest.raises(ValueError, match="authentication failed"):
+            await service.generate_issue_recommendation(
+                "input", "proj", "00000000-0000-0000-0000-000000000001"
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_404_error(self, service, mock_provider):
+        mock_provider.set_error(Exception("404 Resource not found"))
+        with pytest.raises(ValueError, match="not found"):
+            await service.generate_issue_recommendation(
+                "input", "proj", "00000000-0000-0000-0000-000000000001"
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_recommendation_generic_error(self, service, mock_provider):
+        mock_provider.set_error(Exception("Timeout"))
+        with pytest.raises(ValueError, match="Failed to generate recommendation"):
+            await service.generate_issue_recommendation(
+                "input", "proj", "00000000-0000-0000-0000-000000000001"
+            )
+
+
+class TestParseIssueRecommendationResponse:
+    """Tests for _parse_issue_recommendation_response."""
+
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_valid_response(self, service):
+        content = (
+            '{"title": "Feat", "user_story": "As a user", '
+            '"ui_ux_description": "Button", '
+            '"functional_requirements": ["R1"]}'
+        )
+        rec = service._parse_issue_recommendation_response(
+            content, "input", "00000000-0000-0000-0000-000000000001"
+        )
+        assert rec.title == "Feat"
+        assert rec.original_context == "input"
+
+    def test_missing_title_raises(self, service):
+        with pytest.raises(ValueError, match="missing title"):
+            service._parse_issue_recommendation_response(
+                '{"user_story": "story", "functional_requirements": ["R1"]}',
+                "i",
+                "00000000-0000-0000-0000-000000000001",
+            )
+
+    def test_missing_user_story_raises(self, service):
+        with pytest.raises(ValueError, match="missing user_story"):
+            service._parse_issue_recommendation_response(
+                '{"title": "T", "functional_requirements": ["R1"]}',
+                "i",
+                "00000000-0000-0000-0000-000000000001",
+            )
+
+    def test_missing_requirements_raises(self, service):
+        with pytest.raises(ValueError, match="missing functional_requirements"):
+            service._parse_issue_recommendation_response(
+                '{"title": "T", "user_story": "S"}',
+                "i",
+                "00000000-0000-0000-0000-000000000001",
+            )
+
+    def test_long_title_truncated(self, service):
+        long_title = "A" * 300
+        content = (
+            f'{{"title": "{long_title}", "user_story": "S", "functional_requirements": ["R"]}}'
+        )
+        rec = service._parse_issue_recommendation_response(
+            content, "i", "00000000-0000-0000-0000-000000000001"
+        )
+        assert len(rec.title) == 256
+        assert rec.title.endswith("...")
+
+
+class TestParseIssueMetadata:
+    """Tests for _parse_issue_metadata."""
+
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_default_metadata(self, service):
+        meta = service._parse_issue_metadata({})
+        assert meta.priority == IssuePriority.P2
+        assert meta.size == IssueSize.M
+        assert meta.estimate_hours == 4.0
+        assert "ai-generated" in meta.labels
+        assert "feature" in meta.labels
+
+    def test_custom_priority_and_size(self, service):
+        meta = service._parse_issue_metadata({"priority": "P1", "size": "XL"})
+        assert meta.priority == IssuePriority.P1
+        assert meta.size == IssueSize.XL
+
+    def test_invalid_priority_defaults(self, service):
+        meta = service._parse_issue_metadata({"priority": "INVALID"})
+        assert meta.priority == IssuePriority.P2
+
+    def test_invalid_size_defaults(self, service):
+        meta = service._parse_issue_metadata({"size": "HUGE"})
+        assert meta.size == IssueSize.M
+
+    def test_estimate_hours_bounds(self, service):
+        meta = service._parse_issue_metadata({"estimate_hours": 100})
+        assert meta.estimate_hours == 40.0
+        meta2 = service._parse_issue_metadata({"estimate_hours": 0.1})
+        assert meta2.estimate_hours == 0.5
+
+    def test_invalid_estimate_hours(self, service):
+        meta = service._parse_issue_metadata({"estimate_hours": "not-a-number"})
+        assert meta.estimate_hours == 4.0
+
+    def test_invalid_date_gets_default(self, service):
+        meta = service._parse_issue_metadata({"start_date": "not-a-date"})
+        # Should fall back to today
+        assert len(meta.start_date) == 10  # YYYY-MM-DD
+
+    def test_valid_dates_preserved(self, service):
+        meta = service._parse_issue_metadata(
+            {
+                "start_date": "2025-01-15",
+                "target_date": "2025-01-20",
+            }
+        )
+        assert meta.start_date == "2025-01-15"
+        assert meta.target_date == "2025-01-20"
+
+    def test_labels_filtering(self, service):
+        meta = service._parse_issue_metadata({"labels": ["feature", "invalid-label-xyz", "bug"]})
+        assert "feature" in meta.labels
+        assert "bug" in meta.labels
+        assert "invalid-label-xyz" not in meta.labels
+        assert "ai-generated" in meta.labels
+
+    def test_non_list_labels(self, service):
+        meta = service._parse_issue_metadata({"labels": "not-a-list"})
+        assert "ai-generated" in meta.labels
+        assert "feature" in meta.labels  # default type label added
+
+
+class TestIsValidDate:
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_valid_date(self, service):
+        assert service._is_valid_date("2025-01-15") is True
+
+    def test_invalid_date(self, service):
+        assert service._is_valid_date("not-a-date") is False
+        assert service._is_valid_date("2025/01/15") is False
+
+
+class TestCalculateTargetDate:
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_xs_same_day(self, service):
+        from datetime import datetime
+
+        start = datetime(2025, 1, 15)
+        result = service._calculate_target_date(start, IssueSize.XS)
+        assert result == "2025-01-15"
+
+    def test_xl_four_days(self, service):
+        from datetime import datetime
+
+        start = datetime(2025, 1, 15)
+        result = service._calculate_target_date(start, IssueSize.XL)
+        assert result == "2025-01-19"
+
+
+class TestRepairTruncatedJson:
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_repair_missing_closing_brace(self, service):
+        result = service._repair_truncated_json('{"key": "value"')
+        assert result == {"key": "value"}
+
+    def test_repair_missing_array_close(self, service):
+        result = service._repair_truncated_json('{"items": [1, 2')
+        assert result == {"items": [1, 2]}
+
+    def test_repair_truncated_string(self, service):
+        result = service._repair_truncated_json('{"key": "val')
+        assert result is not None
+        assert "key" in result
+
+    def test_non_truncated_returns_none(self, service):
+        result = service._repair_truncated_json('{"key": "value"}')
+        assert result is None
+
+    def test_unfixable_returns_none(self, service):
+        result = service._repair_truncated_json("completely broken")
+        assert result is None
+
+    def test_aggressive_repair_trims_to_comma(self, service):
+        """When simple repair fails, trim to last comma and re-close brackets."""
+        # The simple repair will produce invalid JSON because "bad_key has no value
+        # Aggressive path trims to last comma → keeps {"title": "hello"}
+        content = '{"title": "hello", "bad_key'
+        result = service._repair_truncated_json(content)
+        assert result is not None
+        assert result["title"] == "hello"
+
+    def test_aggressive_repair_with_nested_arrays(self, service):
+        """Aggressive repair when truncated inside nested structure."""
+        content = '{"items": ["a", "b"], "extra": {"nested": "val'
+        result = service._repair_truncated_json(content)
+        assert result is not None
+        assert result["items"] == ["a", "b"]
+
+    def test_aggressive_repair_completely_unfixable(self, service):
+        """Aggressive repair also fails → returns None."""
+        content = "{{{invalid"
+        result = service._repair_truncated_json(content)
+        assert result is None
+
+
+class TestParseJsonResponseExtended:
+    """Additional edge cases for _parse_json_response."""
+
+    @pytest.fixture
+    def service(self):
+        return AIAgentService(provider=MockCompletionProvider())
+
+    def test_json_embedded_in_text(self, service):
+        content = 'Here is the result: {"title": "Test"} end of response'
+        result = service._parse_json_response(content)
+        assert result["title"] == "Test"
+
+    def test_truncated_json_with_repair(self, service):
+        content = '{"title": "Test", "items": [1, 2'
+        result = service._parse_json_response(content)
+        assert result["title"] == "Test"
+
+    def test_truncated_code_fence(self, service):
+        content = '```json\n{"title": "Truncated"'
+        result = service._parse_json_response(content)
+        assert result["title"] == "Truncated"
+
+
+class TestGetAiAgentService:
+    def test_singleton_creation(self):
+        from src.services.ai_agent import (
+            get_ai_agent_service,
+            reset_ai_agent_service,
+        )
+
+        reset_ai_agent_service()
+        with patch("src.services.ai_agent.create_completion_provider") as mock_create:
+            mock_create.return_value = MockCompletionProvider()
+            svc1 = get_ai_agent_service()
+            svc2 = get_ai_agent_service()
+            assert svc1 is svc2
+            mock_create.assert_called_once()
+        reset_ai_agent_service()
+
+    def test_reset_clears_singleton(self):
+        from src.services.ai_agent import (
+            get_ai_agent_service,
+            reset_ai_agent_service,
+        )
+
+        reset_ai_agent_service()
+        with patch("src.services.ai_agent.create_completion_provider") as mock_create:
+            mock_create.return_value = MockCompletionProvider()
+            svc1 = get_ai_agent_service()
+            reset_ai_agent_service()
+            svc2 = get_ai_agent_service()
+            assert svc1 is not svc2
+        reset_ai_agent_service()
 
 
 class TestCompletionProviders:

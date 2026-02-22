@@ -30,6 +30,7 @@ from src.services.workflow_orchestrator import (
     get_transitions,
     get_workflow_config,
     get_workflow_orchestrator,
+    set_pipeline_state,
     set_workflow_config,
 )
 
@@ -320,6 +321,144 @@ async def reject_recommendation(
         "message": "Recommendation rejected",
         "recommendation_id": recommendation_id,
     }
+
+
+@router.post("/pipeline/{issue_number}/retry")
+async def retry_pipeline(
+    issue_number: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """
+    Retry a failed or stalled agent assignment for an issue.
+
+    Looks up the pipeline state for the given issue number and retries
+    the current agent assignment. This is useful when:
+    - Agent assignment failed due to transient errors
+    - The pipeline is stuck after a network failure
+    - The user wants to manually kick off the next agent
+    """
+    if not session.selected_project_id:
+        raise ValidationError("No project selected")
+
+    state = get_pipeline_state(issue_number)
+    if not state:
+        raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
+
+    if state.project_id != session.selected_project_id:
+        raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
+
+    if state.is_complete:
+        return {"message": "Pipeline already complete", "issue_number": issue_number}
+
+    current_agent = state.current_agent
+    if not current_agent:
+        return {"message": "No pending agent to retry", "issue_number": issue_number}
+
+    # Get config and build context
+    config = get_workflow_config(state.project_id)
+    if not config:
+        raise ValidationError("No workflow configuration found for this project")
+
+    # Resolve repository info
+    repo_info = await github_projects_service.get_project_repository(
+        session.access_token,
+        session.selected_project_id,
+    )
+
+    if repo_info:
+        owner, repo = repo_info
+    else:
+        owner = config.repository_owner
+        repo = config.repository_name
+
+    if not owner or not repo:
+        from src.config import get_settings
+
+        settings = get_settings()
+        owner = owner or settings.default_repo_owner or ""
+        repo = repo or settings.default_repo_name or ""
+
+    if not owner or not repo:
+        raise ValidationError("No repository configured for this project")
+
+    ctx = WorkflowContext(
+        session_id=str(session.session_id),
+        project_id=state.project_id,
+        access_token=session.access_token,
+        repository_owner=owner,
+        repository_name=repo,
+        config=config,
+    )
+
+    # Get issue info
+    try:
+        issue_data = await github_projects_service.get_issue_with_comments(
+            access_token=session.access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        ctx.issue_id = issue_data.get("node_id", "")
+        ctx.issue_number = issue_number
+        ctx.issue_url = issue_data.get("html_url", "")
+    except Exception as e:
+        raise ValidationError(f"Failed to fetch issue #{issue_number}: {e}") from e
+
+    # Clear the error state so retry proceeds
+    state.error = None
+    set_pipeline_state(issue_number, state)
+
+    # Clear any pending assignment dedup guards for this agent
+    try:
+        from src.services.copilot_polling import _pending_agent_assignments
+
+        pending_key = f"{issue_number}:{current_agent}"
+        _pending_agent_assignments.pop(pending_key, None)
+    except ImportError:
+        pass
+
+    # Retry the assignment
+    orchestrator = get_workflow_orchestrator()
+    success = await orchestrator.assign_agent_for_status(
+        ctx, state.status, agent_index=state.current_agent_index
+    )
+
+    if success:
+        logger.info(
+            "Retry succeeded: agent '%s' assigned to issue #%d",
+            current_agent,
+            issue_number,
+        )
+
+        # Send WebSocket notification
+        await connection_manager.broadcast_to_project(
+            state.project_id,
+            {
+                "type": "agent_assigned",
+                "issue_number": issue_number,
+                "agent_name": current_agent,
+                "status": state.status,
+            },
+        )
+
+        return {
+            "message": f"Successfully retried agent '{current_agent}' on issue #{issue_number}",
+            "issue_number": issue_number,
+            "agent": current_agent,
+            "success": True,
+        }
+    else:
+        logger.warning(
+            "Retry failed: agent '%s' on issue #%d",
+            current_agent,
+            issue_number,
+        )
+        return {
+            "message": f"Retry failed for agent '{current_agent}' on issue #{issue_number}",
+            "issue_number": issue_number,
+            "agent": current_agent,
+            "success": False,
+        }
 
 
 @router.get("/config", response_model=WorkflowConfiguration)

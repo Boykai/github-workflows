@@ -157,6 +157,7 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Self-Healing Recovery**: Background detection and automatic re-assignment of stalled agent pipelines with per-issue cooldowns
 - **Double-Assignment Prevention**: Pending agent assignments are tracked to prevent race conditions in concurrent polling loops
 - **Workflow Configuration**: Customize agent mappings, status columns, and assignees per project
+- **Settings Management**: Unified settings UI for user preferences (AI, display, workflow defaults, notifications), global settings, and per-project configuration — all persisted to SQLite with optimistic updates
 - **Responsive UI**: Modern React interface with dark/light mode and TanStack Query state management
 
 ## Architecture
@@ -520,7 +521,7 @@ npm run dev
 | `GITHUB_REDIRECT_URI` | No | `http://localhost:8000/api/v1/auth/github/callback` | OAuth callback URL |
 | `SESSION_SECRET_KEY` | Yes | — | Random hex string for session encryption |
 | `SESSION_EXPIRE_HOURS` | No | `8` | Session TTL in hours |
-| `DATABASE_PATH` | No | `data/settings.db` | SQLite database file path (map to Docker volume for persistence) |
+| `DATABASE_PATH` | No | `/app/data/settings.db` | SQLite database file path (map to Docker volume for persistence) |
 | `AI_PROVIDER` | No | `copilot` | AI provider: `copilot` (GitHub Copilot via OAuth) or `azure_openai` |
 | `COPILOT_MODEL` | No | `gpt-4o` | Model for Copilot completion provider |
 | `AZURE_OPENAI_ENDPOINT` | No | — | Azure OpenAI endpoint URL (only when `AI_PROVIDER=azure_openai`) |
@@ -537,6 +538,7 @@ npm run dev
 | `CACHE_TTL_SECONDS` | No | `300` | In-memory cache TTL in seconds |
 | `HOST` | No | `0.0.0.0` | Server host |
 | `PORT` | No | `8000` | Server port |
+| `SESSION_CLEANUP_INTERVAL` | No | `3600` | Interval in seconds for cleaning up expired sessions |
 
 ---
 
@@ -590,7 +592,7 @@ npm run test:e2e:headed   # E2E with browser visible
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/board/projects` | List projects with status field configuration |
-| GET | `/api/v1/board/{project_id}` | Get board data (columns + items) |
+| GET | `/api/v1/board/projects/{project_id}` | Get board data (columns + items) |
 
 ### Chat
 | Method | Path | Description |
@@ -607,11 +609,22 @@ npm run test:e2e:headed   # E2E with browser visible
 | POST | `/api/v1/tasks` | Create a task (GitHub Issue + project attachment) |
 | PATCH | `/api/v1/tasks/{id}/status` | Update task status |
 
+### Settings
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/settings/user` | Get effective user settings (preferences + defaults) |
+| PUT | `/api/v1/settings/user` | Update user preferences |
+| GET | `/api/v1/settings/global` | Get global settings |
+| PUT | `/api/v1/settings/global` | Update global settings |
+| GET | `/api/v1/settings/project/{project_id}` | Get effective project settings |
+| PUT | `/api/v1/settings/project/{project_id}` | Update project-specific settings |
+
 ### Workflow & Pipeline
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/v1/workflow/recommendations/{id}/confirm` | Confirm issue recommendation → full workflow |
 | POST | `/api/v1/workflow/recommendations/{id}/reject` | Reject recommendation |
+| POST | `/api/v1/workflow/pipeline/{issue_number}/retry` | Retry a failed/stalled agent assignment |
 | GET | `/api/v1/workflow/config` | Get workflow configuration |
 | PUT | `/api/v1/workflow/config` | Update workflow configuration |
 | GET | `/api/v1/workflow/agents` | List available agents (discovered from repo + built-in) |
@@ -660,6 +673,7 @@ github-workflows/
 │   │   │   ├── board.py      #   Project board (Kanban columns + items)
 │   │   │   ├── chat.py       #   Chat interface
 │   │   │   ├── projects.py   #   Project management
+│   │   │   ├── settings.py   #   User, global, and project settings
 │   │   │   ├── tasks.py      #   Task CRUD
 │   │   │   ├── workflow.py   #   Workflow & pipeline management
 │   │   │   └── webhooks.py   #   GitHub webhook handler
@@ -670,6 +684,7 @@ github-workflows/
 │   │   │   ├── board.py      #   Board columns, items, custom fields
 │   │   │   ├── chat.py       #   Chat, workflow config, agent mappings, display names
 │   │   │   ├── project.py    #   Projects, status columns
+│   │   │   ├── settings.py   #   User preferences, global settings, project settings
 │   │   │   ├── task.py       #   Tasks / project items
 │   │   │   └── user.py       #   User / session
 │   │   ├── services/         # Business logic
@@ -678,8 +693,11 @@ github-workflows/
 │   │   │   ├── cache.py                 # In-memory TTL cache
 │   │   │   ├── completion_providers.py  # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
 │   │   │   ├── copilot_polling.py       # Background polling + agent output posting
+│   │   │   ├── database.py              # SQLite database connection, migrations, WAL mode
 │   │   │   ├── github_auth.py           # OAuth token exchange
 │   │   │   ├── github_projects.py       # GitHub API (GraphQL + REST)
+│   │   │   ├── session_store.py         # Session CRUD (create, get, delete, cleanup)
+│   │   │   ├── settings_store.py        # Settings persistence (user prefs, global, project)
 │   │   │   ├── websocket.py             # WebSocket connection manager
 │   │   │   └── workflow_orchestrator.py  # Pipeline state + agent assignment
 │   │   ├── prompts/          # AI prompt templates
@@ -688,7 +706,7 @@ github-workflows/
 │   │   ├── exceptions.py     # Custom exceptions
 │   │   └── main.py           # FastAPI app entry point
 │   ├── tests/
-│   │   ├── unit/             # Unit tests (371+)
+│   │   ├── unit/             # Unit tests (938 tests across 27 test files)
 │   │   ├── integration/      # Integration tests
 │   │   ├── test_api_e2e.py   # API end-to-end tests
 │   │   └── conftest.py       # Test fixtures
@@ -704,11 +722,15 @@ github-workflows/
 │   │   │   ├── chat/         # ChatInterface, MessageBubble, TaskPreview,
 │   │   │   │                 # StatusChangePreview, IssueRecommendationPreview
 │   │   │   ├── common/       # ErrorDisplay, RateLimitIndicator
+│   │   │   ├── settings/     # AIPreferences, DisplayPreferences,
+│   │   │   │                 # WorkflowDefaults, NotificationPreferences,
+│   │   │   │                 # ProjectSettings, GlobalSettings, SettingsSection
 │   │   │   └── sidebar/      # ProjectSidebar, ProjectSelector, TaskCard
 │   │   ├── hooks/            # useAuth, useChat, useProjects, useWorkflow,
 │   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme,
-│   │   │                     # useAgentConfig, useAvailableAgents
-│   │   ├── pages/            # ProjectBoardPage
+│   │   │                     # useAgentConfig (includes useAvailableAgents),
+│   │   │                     # useSettings
+│   │   ├── pages/            # ProjectBoardPage, SettingsPage
 │   │   ├── services/         # API client (api.ts)
 │   │   └── types/            # TypeScript type definitions
 │   ├── e2e/                  # Playwright E2E tests
@@ -716,15 +738,13 @@ github-workflows/
 │   ├── vite.config.ts
 │   ├── vitest.config.ts
 │   └── playwright.config.ts
+├── scripts/                  # Development tooling
+│   ├── pre-commit            # Git pre-commit hook (ruff, pyright, eslint, tsc, vitest, build)
+│   └── setup-hooks.sh        # Install git hooks
 └── specs/                    # Feature specifications
-    ├── 001-app-title-update/
-    ├── 001-github-project-board/
-    ├── 001-github-project-chat/
-    ├── 001-github-project-workflow/
-    ├── 002-speckit-agent-assignment/
-    ├── 004-agent-workflow-config-ui/
-    ├── 005-sqlite-settings-storage/
-    └── 006-sqlite-settings-storage/
+    ├── 001-codebase-cleanup-refactor/
+    ├── 007-codebase-cleanup-refactor/
+    └── 008-test-coverage-bug-fixes/
 ```
 
 ---
