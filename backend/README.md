@@ -165,9 +165,9 @@ Manages user preferences, global settings, and per-project settings in SQLite:
 SQLite database lifecycle management:
 
 - `get_db()` — Singleton aiosqlite connection factory
-- `init_db()` — Creates database file, enables WAL mode, runs migrations
-- `close_db()` — Graceful shutdown
-- `run_migrations()` — Executes numbered SQL migration files in order, tracked by `schema_migrations` table
+- `init_database()` — Creates database file, enables WAL mode, runs migrations
+- `close_database()` — Graceful shutdown
+- `run_migrations()` — Executes numbered SQL migration files in order, tracked by `schema_version` table
 
 ### Completion Providers (`completion_providers.py`)
 

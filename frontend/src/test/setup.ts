@@ -78,7 +78,7 @@ Object.defineProperty(window, 'history', {
 // `vi.mock('@/services/api', () => createMockApi())` in one line.
 
 export interface MockApiShape {
-  ApiError: typeof Error;
+  ApiError: typeof import('@/services/api').ApiError;
   authApi: {
     login: Mock;
     setSessionFromToken: Mock;

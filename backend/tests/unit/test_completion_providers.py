@@ -113,21 +113,6 @@ class TestCopilotCompletionProvider:
 
         mock_session.on = capture_on
 
-        async def fake_send(*args, **kwargs):
-            # Simulate the copilot events
-            from unittest.mock import MagicMock as MM
-
-            msg_event = MM()
-            msg_event.type = "assistant_message"
-            msg_event.data.content = "Hello response"
-
-            idle_event = MM()
-            idle_event.type = "session_idle"
-
-            # We need the actual enum values. Since we can't import copilot,
-            # just inject the result directly into the client
-            pass
-
         # Pre-inject a cached client
         key = CopilotCompletionProvider._token_key("test-token")
         p._clients[key] = mock_client

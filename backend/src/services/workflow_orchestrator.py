@@ -428,7 +428,8 @@ def get_issue_sub_issues(issue_number: int) -> dict[str, dict]:
         Dict mapping agent_name → {"number": int, "node_id": str, "url": str},
         or empty dict if not set.
     """
-    return _issue_sub_issue_map.get(issue_number, {})
+    mappings = _issue_sub_issue_map.get(issue_number)
+    return dict(mappings) if mappings is not None else {}
 
 
 def set_issue_sub_issues(issue_number: int, mappings: dict[str, dict]) -> None:
@@ -482,6 +483,16 @@ def set_issue_main_branch(
 def clear_issue_main_branch(issue_number: int) -> None:
     """Clear the main branch tracking for an issue (e.g., when issue is closed)."""
     _issue_main_branches.pop(issue_number, None)
+
+
+def clear_issue_sub_issues(issue_number: int) -> None:
+    """Clear the global sub-issue mapping for an issue.
+
+    Should be called when the issue lifecycle is complete (e.g., moved to
+    Done/In Review or closed) to free memory.  Pair with
+    ``clear_issue_main_branch`` for full cleanup.
+    """
+    _issue_sub_issue_map.pop(issue_number, None)
 
 
 def update_issue_main_branch_sha(issue_number: int, head_sha: str) -> None:
