@@ -42,8 +42,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until the design token is established
 
-- [ ] T002 Add `--color-bg-blue` CSS custom property to `:root` block in frontend/src/index.css with a brand-appropriate blue value (e.g., #1E90FF) that meets WCAG AA contrast with existing `--color-text` (#24292f)
-- [ ] T003 Add `--color-bg-blue` CSS custom property to `html.dark-mode-active` block in frontend/src/index.css with an appropriate darker blue value that meets WCAG AA contrast with dark mode `--color-text` (#e6edf3)
+- [ ] T002 Add `--color-bg-blue` CSS custom property to `:root` block in frontend/src/index.css with a brand-appropriate blue value that meets WCAG AA contrast (≥4.5:1) with existing `--color-text` (#24292f) — validate contrast before committing
+- [ ] T003 Add `--color-bg-blue` CSS custom property to `html.dark-mode-active` block in frontend/src/index.css with an appropriate dark-mode blue value that meets WCAG AA contrast with dark mode `--color-text` (#e6edf3)
 
 **Checkpoint**: Blue background design token defined for both light and dark themes — user story implementation can now begin
 
@@ -137,7 +137,7 @@
 
 - **User Story 1 (P1)**: Can start after Foundational (Phase 2) — No dependencies on other stories
 - **User Story 2 (P1)**: Depends on US1 (needs blue background applied to test contrast against)
-- **User Story 3 (P2)**: Can start after Foundational (Phase 2) — Independent of other stories
+- **User Story 3 (P2)**: Can start after Foundational (Phase 2) — T010 (hardcoded value search) should run after US1 to catch any values introduced during implementation
 - **User Story 4 (P2)**: Depends on US1 (needs blue background applied to verify component rendering)
 
 ### Within Each User Story
@@ -216,7 +216,7 @@ With multiple developers:
 | Phase 5 (US3 — Token Maintainability) | 2 tasks |
 | Phase 6 (US4 — Component Compatibility) | 3 tasks |
 | Phase 7 (Polish) | 2 tasks |
-| Parallel opportunities | 3 sets (T002∥T003, US1∥US3, T012∥T013) |
+| Parallel opportunities | 2 sets (T002∥T003, T012∥T013) |
 | MVP scope | Phase 1 + 2 + 3 (User Story 1) — 6 tasks |
 | Key files modified | frontend/src/index.css, frontend/src/App.css |
 
