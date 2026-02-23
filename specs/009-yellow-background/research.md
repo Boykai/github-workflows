@@ -21,7 +21,7 @@
 
 ## R-002: Contrast Ratio Compliance (WCAG 2.1 AA)
 
-**Decision**: The existing dark text color `#24292f` against `#FFF9C4` achieves a contrast ratio of approximately 13.8:1, which significantly exceeds the WCAG 2.1 AA minimum of 4.5:1.
+**Decision**: The existing dark text color `#24292f` against `#FFF9C4` achieves a contrast ratio of approximately 12.6:1, which significantly exceeds the WCAG 2.1 AA minimum of 4.5:1.
 
 **Rationale**: Calculated using the WCAG relative luminance formula:
 - `#FFF9C4` luminance ≈ 0.929
