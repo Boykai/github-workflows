@@ -5,7 +5,7 @@
  * and that key text-on-background combinations meet WCAG 2.1 AA contrast (≥ 4.5:1).
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
