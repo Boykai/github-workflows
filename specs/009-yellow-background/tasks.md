@@ -65,11 +65,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Audit `--color-text` (#24292f) contrast against `#FFF9C4` in `frontend/src/index.css` — verify it meets 4.5:1 ratio (expected: passes, dark text on light yellow)
+- [ ] T007 [US2] Audit `--color-text` (#24292f) contrast against `#FFF9C4` in `frontend/src/index.css` — verify it meets 4.5:1 ratio and adjust if below (expected: passes, dark text on light yellow)
 - [ ] T008 [US2] Audit `--color-text-secondary` (#57606a) contrast against `#FFF9C4` in `frontend/src/index.css` — adjust if below 4.5:1 ratio
 - [ ] T009 [P] [US2] Verify button styles in `frontend/src/App.css` remain legible against yellow background — check `.login-button`, `.modal-github-btn`, and other button classes
 - [ ] T010 [P] [US2] Verify card, modal, and input component backgrounds in `frontend/src/App.css` retain their own background colors and remain visually distinct against yellow
-- [ ] T011 [US2] Verify `--color-secondary` (#6e7781) and `--color-warning` (#9a6700) tokens in `frontend/src/index.css` maintain sufficient contrast against yellow for any elements using them as foreground colors
+- [ ] T011 [US2] Verify `--color-secondary` (#6e7781) and `--color-warning` (#9a6700) tokens in `frontend/src/index.css` maintain sufficient contrast against yellow for any elements using them as foreground colors — adjust if below 4.5:1 ratio
 
 **Checkpoint**: All text and UI elements meet WCAG 2.1 AA contrast requirements against the yellow background. User Story 2 is complete.
 
