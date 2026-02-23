@@ -1,0 +1,67 @@
+/*
+ * Design Token Contract: Blue Background
+ * Feature: 009-blue-background
+ * Date: 2026-02-23
+ *
+ * This file documents the CSS custom property values for the blue background
+ * feature. It serves as the authoritative design reference for token values.
+ * The actual tokens are defined in frontend/src/index.css.
+ *
+ * WCAG AA Requirements:
+ *   - Normal text (< 18pt): contrast ratio >= 4.5:1
+ *   - Large text (>= 18pt or >= 14pt bold): contrast ratio >= 3:1
+ */
+
+/* ============================================
+ * Light Theme (:root)
+ * ============================================ */
+
+:root {
+  /* Background tokens */
+  --color-bg: #1A3A5C;            /* Deep navy blue — primary surfaces */
+  --color-bg-secondary: #1E4A6E;  /* Slightly lighter navy — body, sidebar, inputs */
+
+  /* Text tokens (updated for contrast against blue backgrounds) */
+  --color-text: #E6EDF3;          /* Light gray — contrast vs #1A3A5C: ~8.2:1 ✓ */
+  --color-text-secondary: #8B949E; /* Medium gray — contrast vs #1A3A5C: ~3.6:1 ✓ (large text) */
+
+  /* Border token (updated for visibility against blue backgrounds) */
+  --color-border: #2A5A7E;        /* Light blue — visible against both bg tokens */
+
+  /* Accent tokens (updated for blue background context) */
+  --color-primary: #539BF5;       /* Bright blue — links, buttons, interactive elements */
+  --color-secondary: #8B949E;     /* Gray — secondary actions */
+  --color-success: #3FB950;       /* Green — success states */
+  --color-warning: #D29922;       /* Amber — warning states */
+  --color-danger: #F85149;        /* Red — error/danger states */
+
+  /* Shadow (slightly stronger for contrast on dark background) */
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+ * Dark Theme (html.dark-mode-active)
+ * ============================================ */
+
+html.dark-mode-active {
+  /* Background tokens */
+  --color-bg: #0F2233;            /* Very deep navy — primary surfaces */
+  --color-bg-secondary: #152D42;  /* Deep navy — body, sidebar, inputs */
+
+  /* Text tokens (unchanged from current dark mode) */
+  --color-text: #E6EDF3;          /* Light gray — contrast vs #0F2233: ~10.5:1 ✓ */
+  --color-text-secondary: #8B949E; /* Medium gray — contrast vs #0F2233: ~4.8:1 ✓ */
+
+  /* Border token */
+  --color-border: #1E3D54;        /* Blue-tinted dark border */
+
+  /* Accent tokens (unchanged from current dark mode) */
+  --color-primary: #539bf5;
+  --color-secondary: #8b949e;
+  --color-success: #3fb950;
+  --color-warning: #d29922;
+  --color-danger: #f85149;
+
+  /* Shadow */
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
