@@ -7,8 +7,7 @@ Covers:
 - create_status_change_prompt()
 """
 
-from datetime import datetime, timedelta
-from src.utils import utcnow
+from datetime import timedelta
 
 from src.prompts.issue_generation import (
     FEATURE_REQUEST_DETECTION_PROMPT,
@@ -23,6 +22,7 @@ from src.prompts.task_generation import (
     create_status_change_prompt,
     create_task_generation_prompt,
 )
+from src.utils import utcnow
 
 # =============================================================================
 # Issue generation prompt

@@ -1,11 +1,10 @@
 """AI task proposal and issue recommendation models."""
 
-import re
 from datetime import datetime, timedelta
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from src.constants import LABELS
 from src.utils import utcnow
@@ -41,9 +40,7 @@ class AITaskProposal(BaseModel):
     status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(default=None, description="User-modified title")
     edited_description: str | None = Field(default=None, description="User-modified description")
-    created_at: datetime = Field(
-        default_factory=utcnow, description="Proposal creation time"
-    )
+    created_at: datetime = Field(default_factory=utcnow, description="Proposal creation time")
     expires_at: datetime = Field(
         default_factory=lambda: utcnow() + timedelta(minutes=10),
         description="Auto-expiration time",

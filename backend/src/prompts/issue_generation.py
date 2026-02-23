@@ -1,9 +1,9 @@
 """Prompt templates for AI-assisted GitHub issue generation."""
 
-from datetime import datetime, timedelta
-from src.utils import utcnow
+from datetime import timedelta
 
 from src.constants import LABELS
+from src.utils import utcnow
 
 # Backward-compatible alias — prefer ``LABELS`` for new code.
 PREDEFINED_LABELS = LABELS

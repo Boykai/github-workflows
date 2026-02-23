@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-from datetime import datetime
-from src.utils import utcnow
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.utils import utcnow
 
 from .state import (
     _polling_state,
@@ -68,7 +67,9 @@ async def _poll_loop(
             )
 
             # Fetch all project items once per poll cycle
-            all_tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+            all_tasks = await _cp.github_projects_service.get_project_items(
+                access_token, project_id
+            )
 
             # Step 0: Post agent .md outputs from completed PRs as issue comments
             # This runs first so Done! markers are available for steps 1-3

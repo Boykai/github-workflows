@@ -693,4 +693,3 @@ query($projectId: ID!, $first: Int!, $after: String) {
   }
 }
 """
-

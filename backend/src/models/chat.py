@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.utils import utcnow
+from src.constants import DEFAULT_AGENT_MAPPINGS  # noqa: F401  — backward compat
 
 # ---- Re-exports for backward compatibility --------------------------------
 from src.models.agent import (  # noqa: F401
@@ -22,12 +22,6 @@ from src.models.agent import (  # noqa: F401
     AgentSource,
     AvailableAgent,
     AvailableAgentsResponse,
-)
-from src.models.workflow import (  # noqa: F401
-    TriggeredBy,
-    WorkflowConfiguration,
-    WorkflowResult,
-    WorkflowTransition,
 )
 from src.models.recommendation import (  # noqa: F401
     AVAILABLE_LABELS,
@@ -41,7 +35,13 @@ from src.models.recommendation import (  # noqa: F401
     ProposalStatus,
     RecommendationStatus,
 )
-from src.constants import DEFAULT_AGENT_MAPPINGS  # noqa: F401  — backward compat
+from src.models.workflow import (  # noqa: F401
+    TriggeredBy,
+    WorkflowConfiguration,
+    WorkflowResult,
+    WorkflowTransition,
+)
+from src.utils import utcnow
 
 # ============================================================================
 # Chat-specific models

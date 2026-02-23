@@ -1,18 +1,15 @@
 """Issue body tracking helpers — shared across multiple polling sub-modules."""
 
 import logging
+from typing import Any
 
 import src.services.copilot_polling as _cp
-
-from .state import (
-    _pending_agent_assignments,
-)
 
 logger = logging.getLogger(__name__)
 
 
 def _get_sub_issue_number(
-    pipeline: "object | None",
+    pipeline: Any,
     agent_name: str,
     parent_issue_number: int,
 ) -> int:
@@ -173,7 +170,7 @@ async def _get_tracking_state_from_issue(
 
 def _get_sub_issue_numbers_for_issue(
     parent_issue_number: int,
-    pipeline: "object | None" = None,
+    pipeline: Any = None,
 ) -> list[int]:
     """Collect all known sub-issue numbers for a parent issue.
 
@@ -290,12 +287,16 @@ async def _get_linked_prs_including_sub_issues(
 
     # Link any newly-discovered sub-issue PRs to the parent so future
     # detection cycles find them directly via the parent's timeline.
-    new_prs = [p for p in all_prs if p.get("number") not in {
-        pr.get("number") for pr in (parent_prs or [])
-    }]
+    new_prs = [
+        p for p in all_prs if p.get("number") not in {pr.get("number") for pr in (parent_prs or [])}
+    ]
     if new_prs:
         await _link_prs_to_parent(
-            access_token, owner, repo, parent_issue_number, new_prs,
+            access_token,
+            owner,
+            repo,
+            parent_issue_number,
+            new_prs,
         )
 
     return all_prs

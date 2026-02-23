@@ -1,7 +1,6 @@
 """Unit tests for Copilot PR polling service."""
 
 from datetime import UTC, datetime, timedelta
-from src.utils import utcnow
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -38,6 +37,7 @@ from src.services.copilot_polling import (
     stop_polling,
 )
 from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
+from src.utils import utcnow
 
 
 @pytest.fixture
@@ -141,7 +141,9 @@ class TestCheckInProgressIssues:
         """Test that task's repository info is preferred over fallback."""
         mock_service.get_project_items = AsyncMock(return_value=[mock_task])
 
-        with patch("src.services.copilot_polling.pipeline.process_in_progress_issue") as mock_process:
+        with patch(
+            "src.services.copilot_polling.pipeline.process_in_progress_issue"
+        ) as mock_process:
             mock_process.return_value = None
 
             await check_in_progress_issues(
@@ -185,7 +187,9 @@ class TestCheckInProgressIssues:
         mock_task.status = "IN PROGRESS"  # Uppercase
         mock_service.get_project_items = AsyncMock(return_value=[mock_task])
 
-        with patch("src.services.copilot_polling.pipeline.process_in_progress_issue") as mock_process:
+        with patch(
+            "src.services.copilot_polling.pipeline.process_in_progress_issue"
+        ) as mock_process:
             mock_process.return_value = None
 
             await check_in_progress_issues(
@@ -205,7 +209,9 @@ class TestCheckInProgressIssues:
         mock_task.status = None
         mock_service.get_project_items = AsyncMock(return_value=[mock_task])
 
-        with patch("src.services.copilot_polling.pipeline.process_in_progress_issue") as mock_process:
+        with patch(
+            "src.services.copilot_polling.pipeline.process_in_progress_issue"
+        ) as mock_process:
             await check_in_progress_issues(
                 access_token="test-token",
                 project_id="PVT_123",

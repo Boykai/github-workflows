@@ -23,8 +23,8 @@ from src.models.recommendation import (
     ProposalStatus,
     RecommendationStatus,
 )
-from src.models.workflow import WorkflowConfiguration
 from src.models.user import UserSession
+from src.models.workflow import WorkflowConfiguration
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import (
     cache,

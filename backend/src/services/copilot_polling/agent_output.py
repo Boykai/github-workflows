@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-from datetime import datetime
-from src.utils import utcnow
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.utils import utcnow
 
 from .state import (
     _claimed_child_prs,
@@ -189,7 +188,6 @@ async def post_agent_outputs_from_pr(
                                     )
                                 )
                                 main_pr_num_recon = main_branch_recon.get("pr_number")
-                                main_branch_name = main_branch_recon.get("branch", "")
                                 for pr_recon in linked_prs_recon or []:
                                     pr_num_r = pr_recon.get("number")
                                     pr_state_r = (pr_recon.get("state") or "").upper()

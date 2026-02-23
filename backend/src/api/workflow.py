@@ -12,12 +12,12 @@ from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
 from src.models.agent import AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
+from src.models.user import UserSession
 from src.models.workflow import (
     WorkflowConfiguration,
     WorkflowResult,
     WorkflowTransition,
 )
-from src.models.user import UserSession
 from src.services.cache import cache, get_user_projects_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -715,7 +715,6 @@ async def start_copilot_polling(
 
     from src.services.copilot_polling import (
         get_polling_status,
-        poll_for_copilot_completion,
     )
 
     status = get_polling_status()

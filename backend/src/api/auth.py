@@ -120,6 +120,7 @@ async def set_session_cookie(
 
     # Set the session cookie
     from src.config import get_settings
+
     _settings = get_settings()
     response.set_cookie(
         key=SESSION_COOKIE_NAME,

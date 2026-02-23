@@ -1,7 +1,5 @@
 """Unit tests for Workflow Orchestrator - Agent mapping assignment."""
 
-from datetime import datetime
-from src.utils import utcnow
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
@@ -36,6 +34,7 @@ from src.services.workflow_orchestrator import (
     set_workflow_config,
     update_issue_main_branch_sha,
 )
+from src.utils import utcnow
 
 
 class TestHandleReadyStatusWithAgentMappings:
@@ -300,7 +299,11 @@ class TestHandleReadyStatusWithAgentMappings:
         workflow_context.config = None
 
         # Clear any global config
-        with patch("src.services.workflow_orchestrator.orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orchestrator.handle_ready_status(workflow_context)
 
         assert result is False
@@ -1485,7 +1488,11 @@ class TestTransitionToReady:
             access_token="tok",
             project_item_id="ITEM_1",
         )
-        with patch("src.services.workflow_orchestrator.orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orch.transition_to_ready(ctx)
         assert result is False
 
@@ -1546,7 +1553,11 @@ class TestAssignAgentGuardClauses:
             issue_id="I_1",
             issue_number=1,
         )
-        with patch("src.services.workflow_orchestrator.orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orch.assign_agent_for_status(ctx, "Ready")
         assert result is False
 
@@ -1670,7 +1681,9 @@ class TestGetWorkflowConfigWithDB:
     async def test_loads_from_db_and_caches(self):
         cfg = WorkflowConfiguration(project_id="P1", repository_owner="o", repository_name="r")
         with patch(
-            "src.services.workflow_orchestrator.config._load_workflow_config_from_db", new_callable=AsyncMock, return_value=cfg
+            "src.services.workflow_orchestrator.config._load_workflow_config_from_db",
+            new_callable=AsyncMock,
+            return_value=cfg,
         ):
             result = await get_workflow_config("P1")
         assert result is cfg
@@ -1679,7 +1692,9 @@ class TestGetWorkflowConfigWithDB:
     @pytest.mark.asyncio
     async def test_db_returns_none(self):
         with patch(
-            "src.services.workflow_orchestrator.config._load_workflow_config_from_db", new_callable=AsyncMock, return_value=None
+            "src.services.workflow_orchestrator.config._load_workflow_config_from_db",
+            new_callable=AsyncMock,
+            return_value=None,
         ):
             result = await get_workflow_config("MISSING")
         assert result is None
@@ -1699,7 +1714,8 @@ class TestSetWorkflowConfig:
     async def test_updates_cache_and_persists(self):
         cfg = WorkflowConfiguration(project_id="P1", repository_owner="o", repository_name="r")
         with patch(
-            "src.services.workflow_orchestrator.config._persist_workflow_config_to_db", new_callable=AsyncMock
+            "src.services.workflow_orchestrator.config._persist_workflow_config_to_db",
+            new_callable=AsyncMock,
         ) as mock_persist:
             await set_workflow_config("P1", cfg, "user123")
         assert _workflow_configs["P1"] is cfg

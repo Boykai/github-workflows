@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-from datetime import datetime
-from src.utils import utcnow
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.utils import utcnow
 
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
@@ -557,11 +556,7 @@ async def _reconstruct_pipeline_state(
                     repo=repo,
                     pr_number=existing_pr["number"],
                 )
-                h_sha = (
-                    pr_det.get("last_commit", {}).get("sha", "")
-                    if pr_det
-                    else ""
-                )
+                h_sha = pr_det.get("last_commit", {}).get("sha", "") if pr_det else ""
                 _cp.set_issue_main_branch(
                     issue_number,
                     existing_pr["head_ref"],
@@ -763,11 +758,7 @@ async def _advance_pipeline(
                     repo=repo,
                     pr_number=existing_pr["number"],
                 )
-                h_sha = (
-                    pr_det.get("last_commit", {}).get("sha", "")
-                    if pr_det
-                    else ""
-                )
+                h_sha = pr_det.get("last_commit", {}).get("sha", "") if pr_det else ""
                 _cp.set_issue_main_branch(
                     issue_number,
                     existing_pr["head_ref"],
@@ -776,8 +767,7 @@ async def _advance_pipeline(
                 )
                 main_branch_info = _cp.get_issue_main_branch(issue_number)
                 logger.info(
-                    "Reconstructed main branch '%s' (PR #%d) in "
-                    "_advance_pipeline for issue #%d",
+                    "Reconstructed main branch '%s' (PR #%d) in _advance_pipeline for issue #%d",
                     existing_pr["head_ref"],
                     existing_pr["number"],
                     issue_number,
@@ -802,8 +792,7 @@ async def _advance_pipeline(
         )
         if merge_result:
             logger.info(
-                "Safety-net merge: child PR for agent '%s' merged in "
-                "_advance_pipeline (issue #%d)",
+                "Safety-net merge: child PR for agent '%s' merged in _advance_pipeline (issue #%d)",
                 completed_agent,
                 issue_number,
             )
@@ -819,9 +808,7 @@ async def _advance_pipeline(
                 pr_number=main_branch_info["pr_number"],
             )
             if pr_det and pr_det.get("last_commit", {}).get("sha"):
-                _cp.update_issue_main_branch_sha(
-                    issue_number, pr_det["last_commit"]["sha"]
-                )
+                _cp.update_issue_main_branch_sha(issue_number, pr_det["last_commit"]["sha"])
         except Exception as e:
             logger.debug(
                 "Could not refresh HEAD SHA for issue #%d: %s",
@@ -1087,9 +1074,7 @@ async def _transition_after_pipeline_complete(
                     pr_number=main_branch_info["pr_number"],
                 )
                 if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                    _cp.update_issue_main_branch_sha(
-                        issue_number, pr_details["last_commit"]["sha"]
-                    )
+                    _cp.update_issue_main_branch_sha(issue_number, pr_details["last_commit"]["sha"])
             except Exception:
                 pass
         else:

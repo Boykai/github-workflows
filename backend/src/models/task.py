@@ -1,10 +1,11 @@
 """Task model for GitHub Project items."""
 
 from datetime import datetime
-from src.utils import utcnow
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
+
+from src.utils import utcnow
 
 
 class Task(BaseModel):
@@ -28,9 +29,7 @@ class Task(BaseModel):
     status_option_id: str = Field(..., description="Status field option ID")
     assignees: list[str] | None = Field(default=None, description="List of assigned user logins")
     created_at: datetime = Field(default_factory=utcnow, description="Task creation time")
-    updated_at: datetime = Field(
-        default_factory=utcnow, description="Last modification time"
-    )
+    updated_at: datetime = Field(default_factory=utcnow, description="Last modification time")
 
     model_config = {
         "json_schema_extra": {

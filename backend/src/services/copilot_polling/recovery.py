@@ -1,11 +1,10 @@
 """Self-healing recovery: detect and fix stalled agent pipelines."""
 
 import logging
-from datetime import datetime
-from src.utils import utcnow
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.utils import utcnow
 
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,

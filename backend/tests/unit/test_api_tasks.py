@@ -167,7 +167,11 @@ class TestResolveRepository:
         )
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=config),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=config,
+            ),
         ):
             owner, repo = await resolve_repository("token", "PVT_1")
         assert owner == "cfg_owner"
@@ -187,7 +191,11 @@ class TestResolveRepository:
         )
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("src.config.get_settings", return_value=settings),
         ):
             owner, repo = await resolve_repository("token", "PVT_1")
@@ -208,7 +216,11 @@ class TestResolveRepository:
         )
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("src.config.get_settings", return_value=settings),
         ):
             with pytest.raises(ValidationError):

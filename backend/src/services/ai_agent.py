@@ -13,7 +13,6 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from src.utils import utcnow
 from typing import Any
 from uuid import UUID
 
@@ -36,6 +35,7 @@ from src.services.completion_providers import (
     CompletionProvider,
     create_completion_provider,
 )
+from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +262,6 @@ class AIAgentService:
         Returns:
             IssueMetadata instance with validated values
         """
-        from datetime import datetime
 
         # Parse priority with default
         priority_str = metadata_data.get("priority", "P2").upper()

@@ -21,7 +21,6 @@ Covers:
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from src.utils import utcnow
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -34,6 +33,7 @@ from src.models.chat import (
     WorkflowTransition,
 )
 from src.models.user import UserSession
+from src.utils import utcnow
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -172,7 +172,9 @@ class TestListAgents:
     async def test_list_agents(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.list_available_agents.return_value = []
-        with patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()):
+        with patch(
+            f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+        ):
             resp = await client.get("/api/v1/workflow/agents")
         assert resp.status_code == 200
         assert "agents" in resp.json()
@@ -401,7 +403,9 @@ class TestConfirmRecommendation:
         with (
             patch(f"{WF}._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
-            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()),
+            patch(
+                f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+            ),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
             patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch("src.config.get_settings") as ms,
@@ -575,7 +579,9 @@ class TestCheckIssueCopilotCompletion:
         mock_github_service.get_project_repository.return_value = None
         result = {"status": "no_pr_found"}
         with (
-            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()),
+            patch(
+                f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+            ),
             patch(
                 "src.services.copilot_polling.check_issue_for_copilot_completion",
                 new_callable=AsyncMock,

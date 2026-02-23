@@ -806,11 +806,13 @@ async def _check_main_pr_completion(
                 )
 
                 # Check if Copilot is still assigned to the issue
-                copilot_still_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=issue_number,
+                copilot_still_assigned = (
+                    await _cp.github_projects_service.is_copilot_assigned_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                    )
                 )
 
                 if not copilot_still_assigned:
@@ -840,11 +842,13 @@ async def _check_main_pr_completion(
                 #   - The agent completed with no code changes
                 #   - The agent failed/timed out
                 #   - The assignment didn't take effect
-                copilot_still_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=issue_number,
+                copilot_still_assigned = (
+                    await _cp.github_projects_service.is_copilot_assigned_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                    )
                 )
                 if not copilot_still_assigned:
                     logger.warning(

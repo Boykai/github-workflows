@@ -6,8 +6,6 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, BeforeValidator, Field
 
-from src.constants import AGENT_DISPLAY_NAMES, DEFAULT_AGENT_MAPPINGS
-
 
 class AgentSource(StrEnum):
     """Source of an available agent."""

@@ -57,12 +57,56 @@ from src.services.workflow_orchestrator import (  # noqa: F401
     update_issue_main_branch_sha,
 )
 
+from .agent_output import (  # noqa: F401
+    post_agent_outputs_from_pr,
+)
+from .completion import (  # noqa: F401
+    _check_child_pr_completion,
+    _check_main_pr_completion,
+    _filter_events_after,
+    _find_completed_child_pr,
+    _merge_child_pr_if_applicable,
+    check_in_review_issues_for_copilot_review,
+    check_issue_for_copilot_completion,
+    ensure_copilot_review_requested,
+)
+from .helpers import (  # noqa: F401
+    _check_agent_done_on_parent,
+    _check_agent_done_on_sub_or_parent,
+    _get_linked_prs_including_sub_issues,
+    _get_sub_issue_number,
+    _get_sub_issue_numbers_for_issue,
+    _get_tracking_state_from_issue,
+    _link_prs_to_parent,
+    _reconstruct_sub_issue_mappings,
+    _update_issue_tracking,
+)
+from .pipeline import (  # noqa: F401
+    _advance_pipeline,
+    _get_or_reconstruct_pipeline,
+    _process_pipeline_completion,
+    _reconstruct_pipeline_state,
+    _transition_after_pipeline_complete,
+    check_backlog_issues,
+    check_in_progress_issues,
+    check_ready_issues,
+    process_in_progress_issue,
+)
+from .polling_loop import (  # noqa: F401
+    _poll_loop,
+    get_polling_status,
+    poll_for_copilot_completion,
+    stop_polling,
+)
+from .recovery import (  # noqa: F401
+    recover_stalled_issues,
+)
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Phase 2: Import sub-module contents.  The ``from .xxx import *`` idiom
 # brings every public name into THIS namespace so that existing
 # ``mock.patch("src.services.copilot_polling.<func>")`` targets still work.
 # ──────────────────────────────────────────────────────────────────────────────
-
 from .state import (  # noqa: F401
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     RECOVERY_COOLDOWN_SECONDS,
@@ -75,56 +119,6 @@ from .state import (  # noqa: F401
     _processed_issue_prs,
     _recovery_last_attempt,
     _system_marked_ready_prs,
-)
-
-from .helpers import (  # noqa: F401
-    _check_agent_done_on_parent,
-    _check_agent_done_on_sub_or_parent,
-    _get_linked_prs_including_sub_issues,
-    _get_sub_issue_number,
-    _get_sub_issue_numbers_for_issue,
-    _get_tracking_state_from_issue,
-    _link_prs_to_parent,
-    _reconstruct_sub_issue_mappings,
-    _update_issue_tracking,
-)
-
-from .completion import (  # noqa: F401
-    _check_child_pr_completion,
-    _check_main_pr_completion,
-    _filter_events_after,
-    _find_completed_child_pr,
-    _merge_child_pr_if_applicable,
-    check_in_review_issues_for_copilot_review,
-    check_issue_for_copilot_completion,
-    ensure_copilot_review_requested,
-)
-
-from .pipeline import (  # noqa: F401
-    _advance_pipeline,
-    _get_or_reconstruct_pipeline,
-    _process_pipeline_completion,
-    _reconstruct_pipeline_state,
-    _transition_after_pipeline_complete,
-    check_backlog_issues,
-    check_in_progress_issues,
-    check_ready_issues,
-    process_in_progress_issue,
-)
-
-from .agent_output import (  # noqa: F401
-    post_agent_outputs_from_pr,
-)
-
-from .recovery import (  # noqa: F401
-    recover_stalled_issues,
-)
-
-from .polling_loop import (  # noqa: F401
-    get_polling_status,
-    poll_for_copilot_completion,
-    stop_polling,
-    _poll_loop,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

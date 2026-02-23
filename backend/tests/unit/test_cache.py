@@ -1,11 +1,11 @@
 """Unit tests for cache service."""
 
 import time
-from datetime import datetime, timedelta
-from src.utils import utcnow
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from src.services.cache import CacheEntry, InMemoryCache
+from src.utils import utcnow
 
 
 class TestCacheEntry:

@@ -369,7 +369,11 @@ class TestResolveRepository:
         mock_config = MagicMock(repository_owner="wf_owner", repository_name="wf_repo")
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=mock_config),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=mock_config,
+            ),
         ):
             result = await _resolve_repository(session)
         assert result == ("wf_owner", "wf_repo")
@@ -387,7 +391,11 @@ class TestResolveRepository:
         mock_svc.get_project_repository.return_value = None
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("src.config.get_settings") as mock_s,
         ):
             mock_s.return_value = MagicMock(
@@ -410,7 +418,11 @@ class TestResolveRepository:
         mock_svc.get_project_repository.return_value = None
         with (
             patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             patch("src.config.get_settings") as mock_s,
         ):
             mock_s.return_value = MagicMock(default_repo_owner=None, default_repo_name=None)
@@ -459,8 +471,8 @@ class TestConfirmProposalEdgeCases:
         """Expired proposal → 422 with expiration message."""
         from datetime import timedelta
 
-        from src.utils import utcnow
         import src.api.chat as chat_mod
+        from src.utils import utcnow
 
         proposal = _proposal(mock_session.session_id)
         # Force expiration by setting expires_at in the past

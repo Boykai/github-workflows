@@ -75,7 +75,8 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
             if row and row["workflow_config"]:
                 raw = json.loads(row["workflow_config"])
                 logger.info(
-                    "Loaded workflow config from DB (workflow_config column) for project %s", project_id
+                    "Loaded workflow config from DB (workflow_config column) for project %s",
+                    project_id,
                 )
                 return WorkflowConfiguration(**raw)
 
@@ -92,7 +93,9 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                 agent_mappings: dict[str, list[AgentAssignment]] = {}
                 for status, agents in raw_mappings.items():
                     agent_mappings[status] = [
-                        AgentAssignment(**a) if isinstance(a, dict) else AgentAssignment(slug=str(a))
+                        AgentAssignment(**a)
+                        if isinstance(a, dict)
+                        else AgentAssignment(slug=str(a))
                         for a in agents
                     ]
                 logger.info(

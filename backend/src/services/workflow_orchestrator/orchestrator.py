@@ -1,11 +1,8 @@
 """WorkflowOrchestrator class — orchestrates the full GitHub issue creation and status workflow."""
 
 import logging
-from datetime import datetime
-from src.utils import utcnow
 from typing import TYPE_CHECKING
 
-from src.models.agent import AgentAssignment
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
     TriggeredBy,
@@ -14,6 +11,7 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body
+from src.utils import utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
@@ -32,7 +30,6 @@ from .transitions import (
     set_issue_main_branch,
     set_issue_sub_issues,
     set_pipeline_state,
-    update_issue_main_branch_sha,
 )
 
 if TYPE_CHECKING:
@@ -1279,6 +1276,10 @@ class WorkflowOrchestrator:
             ``(success, reviewer)``  where *reviewer* is the assigned login
             (or ``None`` if assignment failed / no reviewer resolved).
         """
+        if ctx.project_item_id is None:
+            logger.error("Cannot transition to In Review: project_item_id is None")
+            return False, None
+
         status_success = await self.github.update_item_status_by_name(
             access_token=ctx.access_token,
             project_id=ctx.project_id,
@@ -1307,6 +1308,10 @@ class WorkflowOrchestrator:
             )
 
         # Assign reviewer
+        if ctx.issue_number is None:
+            logger.error("Cannot assign reviewer: issue_number is None")
+            return False, None
+
         assign_success = await self.github.assign_issue(
             access_token=ctx.access_token,
             owner=ctx.repository_owner,
