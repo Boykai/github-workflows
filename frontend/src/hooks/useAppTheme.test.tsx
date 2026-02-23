@@ -71,13 +71,3 @@ describe('useAppTheme', () => {
   });
 });
 
-describe('blue background design token', () => {
-  it('defines --color-app-bg CSS variable in :root for light mode', () => {
-    const root = document.documentElement;
-    const styles = getComputedStyle(root);
-    // In happy-dom test env, CSS files aren't loaded, so we verify the token
-    // exists in our stylesheet by checking the source file directly.
-    // This test validates the token naming convention is used in the codebase.
-    expect(styles).toBeDefined();
-  });
-});
