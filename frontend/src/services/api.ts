@@ -329,7 +329,7 @@ export const workflowApi = {
   /**
    * Update workflow configuration.
    */
-  updateConfig(config: Partial<WorkflowConfiguration>): Promise<WorkflowConfiguration> {
+  updateConfig(config: WorkflowConfiguration): Promise<WorkflowConfiguration> {
     return request<WorkflowConfiguration>('/workflow/config', {
       method: 'PUT',
       body: JSON.stringify(config),

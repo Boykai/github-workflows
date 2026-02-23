@@ -468,7 +468,6 @@ async def confirm_proposal(
                 await set_workflow_config(
                     project_id,
                     config,
-                    github_user_id=session.github_user_id,
                 )
             else:
                 config.repository_owner = owner

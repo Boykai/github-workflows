@@ -2,7 +2,6 @@
 
 import json
 import logging
-from datetime import UTC, datetime
 from typing import Any
 
 import aiosqlite
@@ -22,6 +21,7 @@ from src.models.settings import (
     ThemeMode,
     WorkflowDefaults,
 )
+from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def _upsert_row(
             WHERE clause and, for inserts, merged into the data).
         updates: ``{column_name: value}`` dict of non-PK columns to set.
     """
-    now = datetime.now(UTC).isoformat()
+    now = utcnow().isoformat()
 
     # Check if row exists
     where = " AND ".join(f"{col} = ?" for col in pk_columns)
@@ -112,7 +112,7 @@ async def update_global_settings(
     if not updates:
         return await get_global_settings(db)
 
-    now = datetime.now(UTC).isoformat()
+    now = utcnow().isoformat()
     updates["updated_at"] = now
 
     set_clause = ", ".join(f"{col} = ?" for col in updates)

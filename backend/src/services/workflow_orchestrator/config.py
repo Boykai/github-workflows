@@ -40,14 +40,14 @@ async def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
 async def set_workflow_config(
     project_id: str,
     config: WorkflowConfiguration,
-    github_user_id: str | None = None,
 ) -> None:
     """Set workflow configuration for a project.
 
     Updates in-memory cache and persists to SQLite project_settings.
+    The config is always stored under the canonical ``__workflow__`` user.
     """
     _workflow_configs[project_id] = config
-    await _persist_workflow_config_to_db(project_id, config, github_user_id)
+    await _persist_workflow_config_to_db(project_id, config)
 
 
 async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | None:
@@ -130,7 +130,6 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
 async def _persist_workflow_config_to_db(
     project_id: str,
     config: WorkflowConfiguration,
-    github_user_id: str | None = None,
 ) -> None:
     """Persist workflow configuration to SQLite project_settings table.
 

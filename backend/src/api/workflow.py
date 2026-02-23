@@ -165,7 +165,6 @@ async def confirm_recommendation(
         await set_workflow_config(
             session.selected_project_id,
             config,
-            github_user_id=session.github_user_id,
         )
     else:
         # Update config with discovered repository
@@ -455,7 +454,6 @@ async def update_config(
     await set_workflow_config(
         session.selected_project_id,
         config_update,
-        github_user_id=session.github_user_id,
     )
     logger.info("Updated workflow config for project %s", session.selected_project_id)
 

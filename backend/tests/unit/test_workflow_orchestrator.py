@@ -1717,9 +1717,9 @@ class TestSetWorkflowConfig:
             "src.services.workflow_orchestrator.config._persist_workflow_config_to_db",
             new_callable=AsyncMock,
         ) as mock_persist:
-            await set_workflow_config("P1", cfg, "user123")
+            await set_workflow_config("P1", cfg)
         assert _workflow_configs["P1"] is cfg
-        mock_persist.assert_called_once_with("P1", cfg, "user123")
+        mock_persist.assert_called_once_with("P1", cfg)
 
 
 class TestFormatIssueBodyTechnicalNotes:

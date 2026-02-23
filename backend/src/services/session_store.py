@@ -21,6 +21,13 @@ def _row_to_session(row: aiosqlite.Row) -> UserSession:
     token_expires = (
         datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
     )
+    if token_expires is not None and token_expires.tzinfo is None:
+        token_expires = token_expires.replace(tzinfo=UTC)
+
+    created_at = datetime.fromisoformat(row["created_at"])
+    if created_at.tzinfo is None:
+        created_at = created_at.replace(tzinfo=UTC)
+
     updated_at = datetime.fromisoformat(row["updated_at"])
     if updated_at.tzinfo is None:
         updated_at = updated_at.replace(tzinfo=UTC)
@@ -34,7 +41,7 @@ def _row_to_session(row: aiosqlite.Row) -> UserSession:
         refresh_token=row["refresh_token"],
         token_expires_at=token_expires,
         selected_project_id=row["selected_project_id"],
-        created_at=datetime.fromisoformat(row["created_at"]),
+        created_at=created_at,
         updated_at=updated_at,
     )
 
