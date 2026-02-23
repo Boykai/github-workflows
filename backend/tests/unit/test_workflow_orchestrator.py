@@ -1845,7 +1845,12 @@ class TestHandleInProgressStatus:
     async def test_no_config_returns_false(self):
         orch = _make_orch()
         ctx = _make_ctx(config=None)
-        result = await orch.handle_in_progress_status(ctx)
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.handle_in_progress_status(ctx)
         assert result is False
 
     @pytest.mark.asyncio
@@ -1980,7 +1985,12 @@ class TestHandleCompletion:
     @pytest.mark.asyncio
     async def test_no_config_returns_false(self):
         orch = _make_orch()
-        result = await orch.handle_completion(_make_ctx(config=None))
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.handle_completion(_make_ctx(config=None))
         assert result is False
 
     @pytest.mark.asyncio
@@ -2045,7 +2055,12 @@ class TestCreateAllSubIssues:
     async def test_no_config_returns_empty(self):
         orch = _make_orch()
         ctx = _make_ctx(config=None)
-        result = await orch.create_all_sub_issues(ctx)
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.create_all_sub_issues(ctx)
         assert result == {}
 
     @pytest.mark.asyncio
@@ -2503,7 +2518,7 @@ class TestWorkflowConfigDb:
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
         conn.execute(
-            "CREATE TABLE project_settings (project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
+            "CREATE TABLE project_settings (github_user_id TEXT, project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
         )
         cfg_data = {
             "project_id": "P1",
@@ -2512,8 +2527,8 @@ class TestWorkflowConfigDb:
             "agent_mappings": {},
         }
         conn.execute(
-            "INSERT INTO project_settings (project_id, workflow_config) VALUES (?, ?)",
-            ("P1", json.dumps(cfg_data)),
+            "INSERT INTO project_settings (github_user_id, project_id, workflow_config) VALUES (?, ?, ?)",
+            ("__workflow__", "P1", json.dumps(cfg_data)),
         )
         conn.commit()
         conn.close()
@@ -2561,7 +2576,7 @@ class TestWorkflowConfigDb:
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
         conn.execute(
-            "CREATE TABLE project_settings (project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
+            "CREATE TABLE project_settings (github_user_id TEXT, project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
         )
         conn.commit()
         conn.close()

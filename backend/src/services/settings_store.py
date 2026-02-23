@@ -64,10 +64,10 @@ async def _upsert_row(
             list(all_data.values()),
         )
     else:
-        # UPDATE
-        updates["updated_at"] = now
-        set_clause = ", ".join(f"{col} = ?" for col in updates)
-        values = list(updates.values()) + list(pk_columns.values())
+        # UPDATE — copy to avoid mutating the caller's dict
+        update_cols = {**updates, "updated_at": now}
+        set_clause = ", ".join(f"{col} = ?" for col in update_cols)
+        values = list(update_cols.values()) + list(pk_columns.values())
         await db.execute(
             f"UPDATE {table} SET {set_clause} WHERE {where}",  # noqa: S608
             values,

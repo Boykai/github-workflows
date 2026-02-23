@@ -287,9 +287,8 @@ async def _get_linked_prs_including_sub_issues(
 
     # Link any newly-discovered sub-issue PRs to the parent so future
     # detection cycles find them directly via the parent's timeline.
-    new_prs = [
-        p for p in all_prs if p.get("number") not in {pr.get("number") for pr in (parent_prs or [])}
-    ]
+    parent_pr_numbers = {pr.get("number") for pr in (parent_prs or [])}
+    new_prs = [p for p in all_prs if p.get("number") not in parent_pr_numbers]
     if new_prs:
         await _link_prs_to_parent(
             access_token,

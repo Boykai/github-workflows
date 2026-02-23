@@ -66,9 +66,11 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
         async with aiosqlite.connect(db_path) as db:
             db.row_factory = aiosqlite.Row
 
-            # Try loading from the workflow_config column first (full config)
+            # Try loading from the workflow_config column first (full config).
+            # Filter by canonical user '__workflow__' to avoid nondeterministic
+            # results when multiple users have rows for the same project.
             cursor = await db.execute(
-                "SELECT workflow_config FROM project_settings WHERE project_id = ? AND workflow_config IS NOT NULL LIMIT 1",
+                "SELECT workflow_config FROM project_settings WHERE github_user_id = '__workflow__' AND project_id = ? AND workflow_config IS NOT NULL LIMIT 1",
                 (project_id,),
             )
             row = await cursor.fetchone()
@@ -82,7 +84,7 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
 
             # Fall back to agent_pipeline_mappings only
             cursor = await db.execute(
-                "SELECT agent_pipeline_mappings FROM project_settings WHERE project_id = ? AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
+                "SELECT agent_pipeline_mappings FROM project_settings WHERE github_user_id = '__workflow__' AND project_id = ? AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
                 (project_id,),
             )
             row = await cursor.fetchone()
@@ -154,8 +156,9 @@ async def _persist_workflow_config_to_db(
     )
     now = utcnow().isoformat()
 
-    # Use a placeholder user if not provided (backward compat)
-    user_id = github_user_id or "__workflow__"
+    # Always use canonical '__workflow__' user to keep config per-project,
+    # not per-user, ensuring deterministic load/persist pairing.
+    user_id = "__workflow__"
 
     try:
         async with aiosqlite.connect(db_path) as db:
