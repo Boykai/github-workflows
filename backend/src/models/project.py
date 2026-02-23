@@ -1,6 +1,7 @@
 """GitHub Project model with status columns."""
 
 from datetime import datetime
+from src.utils import utcnow
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -38,7 +39,7 @@ class GitHubProject(BaseModel):
     )
     item_count: int | None = Field(default=None, description="Total items in project")
     cached_at: datetime = Field(
-        default_factory=datetime.utcnow, description="When this data was fetched"
+        default_factory=utcnow, description="When this data was fetched"
     )
 
     model_config = {

@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, ApiError } from '@/services/api';
+import { STALE_TIME_LONG } from '@/constants';
 import type { User } from '@/types';
 
 interface UseAuthReturn {
@@ -60,7 +61,7 @@ export function useAuth(): UseAuthReturn {
     queryKey: ['auth', 'me'],
     queryFn: authApi.getCurrentUser,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: STALE_TIME_LONG,
     // Don't run query while processing token
     enabled: !isProcessingToken,
   });

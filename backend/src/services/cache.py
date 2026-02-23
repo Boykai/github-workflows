@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta
+from src.utils import utcnow
 from typing import Any, Generic, TypeVar
 
 from src.config import get_settings
@@ -16,12 +17,12 @@ class CacheEntry(Generic[T]):
 
     def __init__(self, value: T, ttl_seconds: int):
         self.value = value
-        self.expires_at = datetime.utcnow() + timedelta(seconds=ttl_seconds)
+        self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
 
     @property
     def is_expired(self) -> bool:
         """Check if entry has expired."""
-        return datetime.utcnow() > self.expires_at
+        return utcnow() > self.expires_at
 
 
 class InMemoryCache:

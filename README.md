@@ -158,40 +158,45 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Double-Assignment Prevention**: Pending agent assignments are tracked to prevent race conditions in concurrent polling loops
 - **Workflow Configuration**: Customize agent mappings, status columns, and assignees per project
 - **Settings Management**: Unified settings UI for user preferences (AI, display, workflow defaults, notifications), global settings, and per-project configuration — all persisted to SQLite with optimistic updates
-- **Responsive UI**: Modern React interface with dark/light mode and TanStack Query state management
+- **Responsive UI**: Modern React interface with dark/light mode, TanStack Query state management, and global error boundary
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────────────┐     ┌──────────────────┐
-│    Frontend      │────▶│       Backend            │────▶│  GitHub API      │
-│  React + Vite    │◀────│       FastAPI            │◀────│  GraphQL + REST  │
-│  TypeScript      │ WS  │                         │     │                  │
-│  TanStack Query  │     │  ┌───────────────────┐  │     │  ┌────────────┐  │
-└─────────────────┘     │  │ Workflow           │  │     │  │ Projects   │  │
-                        │  │ Orchestrator       │  │     │  │ V2 API     │  │
-                        │  └───────────────────┘  │     │  └────────────┘  │
-                        │  ┌───────────────────┐  │     │  ┌────────────┐  │
-                        │  │ Copilot Polling    │  │     │  │ Copilot    │  │
-                        │  │ Service            │  │     │  │ Assignment │  │
-                        │  └───────────────────┘  │     │  └────────────┘  │
-                        │  ┌───────────────────┐  │     └──────────────────┘
-                        │  │ AI Completion      │  │
-                        │  │ Providers          │  │
-                        │  │ ┌───────────────┐  │  │
-                        │  │ │ Copilot SDK   │  │  │   ◀── Default (OAuth)
-                        │  │ │ (default)     │  │  │
-                        │  │ ├───────────────┤  │  │
-                        │  │ │ Azure OpenAI  │  │  │   ◀── Optional (API key)
-                        │  │ │ (fallback)    │  │  │
-                        │  │ └───────────────┘  │  │
-                        │  └───────────────────┘  │
-                        │  ┌───────────────────┐  │
-                        │  │ SQLite Database    │  │
-                        │  │ (WAL mode)         │  │   ◀── Workflow config,
-                        │  │ data/settings.db   │  │       sessions, settings
-                        │  └───────────────────┘  │
-                        └─────────────────────────┘
+┌───────────────────────┐     ┌──────────────────────────────┐     ┌──────────────────┐
+│      Frontend          │────▶│           Backend             │────▶│    GitHub API     │
+│  React 18 + Vite 5     │◀────│           FastAPI             │◀────│  GraphQL + REST   │
+│  TypeScript ~5.4        │ WS  │                              │     │                  │
+│  TanStack Query v5      │     │  ┌────────────────────────┐  │     │  ┌────────────┐  │
+│  dnd-kit (drag-drop)    │     │  │ Workflow Orchestrator   │  │     │  │ Projects   │  │
+│  ErrorBoundary          │     │  │ (4 sub-modules)        │  │     │  │ V2 API     │  │
+└───────────────────────┘     │  └────────────────────────┘  │     │  └────────────┘  │
+                              │  ┌────────────────────────┐  │     │  ┌────────────┐  │
+                              │  │ Copilot Polling        │  │     │  │ Copilot    │  │
+                              │  │ Service (7 sub-modules)│  │     │  │ Assignment │  │
+                              │  └────────────────────────┘  │     │  └────────────┘  │
+                              │  ┌────────────────────────┐  │     └──────────────────┘
+                              │  │ GitHub Projects        │  │
+                              │  │ Service (2 sub-modules)│  │
+                              │  └────────────────────────┘  │
+                              │  ┌────────────────────────┐  │
+                              │  │ AI Completion Providers │  │
+                              │  │ ┌──────────────────┐   │  │
+                              │  │ │ Copilot SDK      │   │  │  ◀── Default (OAuth)
+                              │  │ ├──────────────────┤   │  │
+                              │  │ │ Azure OpenAI     │   │  │  ◀── Optional (API key)
+                              │  │ └──────────────────┘   │  │
+                              │  └────────────────────────┘  │
+                              │  ┌────────────────────────┐  │
+                              │  │ SQLite (aiosqlite)     │  │
+                              │  │ WAL mode, auto-migrate │  │  ◀── Workflow config,
+                              │  │ data/settings.db       │  │      sessions, settings
+                              │  └────────────────────────┘  │
+                              │  ┌────────────────────────┐  │
+                              │  │ FastAPI DI             │  │
+                              │  │ (dependencies.py)      │  │  ◀── app.state singletons
+                              │  └────────────────────────┘  │
+                              └──────────────────────────────┘
 ```
 
 ### AI Completion Provider Architecture
@@ -280,7 +285,7 @@ All custom Copilot agents use **Claude Opus 4.6** by default for reasoning and c
 - [Visual Studio Code](https://code.visualstudio.com/download) or [GitHub Codespaces](https://github.com/features/codespaces)
 - Docker and Docker Compose (recommended) OR:
   - Node.js 18+
-  - Python 3.12+
+  - Python 3.11+
 - GitHub OAuth App credentials
 - Azure OpenAI API credentials (optional — only needed if using `AI_PROVIDER=azure_openai`)
 
@@ -483,7 +488,7 @@ docker compose up --build -d
 
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
@@ -668,45 +673,65 @@ github-workflows/
 │       └── copilot-instructions.md
 ├── backend/
 │   ├── src/
-│   │   ├── api/              # API endpoints
-│   │   │   ├── auth.py       #   Authentication (OAuth)
+│   │   ├── api/              # API route handlers (8 modules)
+│   │   │   ├── auth.py       #   OAuth flow, sessions, dev-login
 │   │   │   ├── board.py      #   Project board (Kanban columns + items)
-│   │   │   ├── chat.py       #   Chat interface
-│   │   │   ├── projects.py   #   Project management
+│   │   │   ├── chat.py       #   Chat messages, proposals, confirm/reject
+│   │   │   ├── projects.py   #   Project selection, tasks, WebSocket, SSE
 │   │   │   ├── settings.py   #   User, global, and project settings
 │   │   │   ├── tasks.py      #   Task CRUD
-│   │   │   ├── workflow.py   #   Workflow & pipeline management
+│   │   │   ├── workflow.py   #   Workflow config, pipeline, polling control
 │   │   │   └── webhooks.py   #   GitHub webhook handler
-│   │   ├── migrations/       # Database schema migrations
-│   │   │   ├── 001_initial_schema.sql      # Sessions, preferences, project settings, global settings
-│   │   │   └── 002_add_workflow_config_column.sql  # Full workflow config persistence
-│   │   ├── models/           # Pydantic data models
+│   │   ├── migrations/       # SQL schema migrations (auto-run at startup)
+│   │   │   ├── 001_initial_schema.sql
+│   │   │   └── 002_add_workflow_config_column.sql
+│   │   ├── models/           # Pydantic v2 data models (7 modules)
+│   │   │   ├── agent.py      #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── board.py      #   Board columns, items, custom fields
-│   │   │   ├── chat.py       #   Chat, workflow config, agent mappings, display names
-│   │   │   ├── project.py    #   Projects, status columns
-│   │   │   ├── settings.py   #   User preferences, global settings, project settings
-│   │   │   ├── task.py       #   Tasks / project items
-│   │   │   └── user.py       #   User / session
-│   │   ├── services/         # Business logic
-│   │   │   ├── ai_agent.py              # AI issue generation (via CompletionProvider)
-│   │   │   ├── agent_tracking.py        # Agent pipeline tracking (issue body markdown)
-│   │   │   ├── cache.py                 # In-memory TTL cache
-│   │   │   ├── completion_providers.py  # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
-│   │   │   ├── copilot_polling.py       # Background polling + agent output posting
-│   │   │   ├── database.py              # SQLite database connection, migrations, WAL mode
-│   │   │   ├── github_auth.py           # OAuth token exchange
-│   │   │   ├── github_projects.py       # GitHub API (GraphQL + REST)
-│   │   │   ├── session_store.py         # Session CRUD (create, get, delete, cleanup)
-│   │   │   ├── settings_store.py        # Settings persistence (user prefs, global, project)
-│   │   │   ├── websocket.py             # WebSocket connection manager
-│   │   │   └── workflow_orchestrator.py  # Pipeline state + agent assignment
+│   │   │   ├── chat.py       #   ChatMessage, SenderType, ActionType
+│   │   │   ├── project.py    #   GitHubProject, StatusColumn
+│   │   │   ├── recommendation.py  # AITaskProposal, IssueRecommendation, labels
+│   │   │   ├── settings.py   #   User preferences, global/project settings
+│   │   │   ├── task.py       #   Task / project item
+│   │   │   ├── user.py       #   UserSession
+│   │   │   └── workflow.py   #   WorkflowConfiguration, WorkflowTransition
+│   │   ├── services/         # Business logic layer
+│   │   │   ├── github_projects/         # GitHub API package (decomposed)
+│   │   │   │   ├── service.py           #   GitHubProjectsService, shared httpx.AsyncClient
+│   │   │   │   └── graphql.py           #   GraphQL queries and mutations
+│   │   │   ├── copilot_polling/         # Background polling package (decomposed)
+│   │   │   │   ├── state.py             #   Module-level mutable state
+│   │   │   │   ├── helpers.py           #   Sub-issue lookup, tracking helpers
+│   │   │   │   ├── polling_loop.py      #   Start/stop/tick scheduling
+│   │   │   │   ├── agent_output.py      #   Agent output extraction and posting
+│   │   │   │   ├── pipeline.py          #   Pipeline advancement and transitions
+│   │   │   │   ├── recovery.py          #   Stalled issue recovery, cooldowns
+│   │   │   │   └── completion.py        #   PR completion detection (main + child)
+│   │   │   ├── workflow_orchestrator/   # Pipeline orchestration package (decomposed)
+│   │   │   │   ├── models.py            #   WorkflowContext, PipelineState, WorkflowState
+│   │   │   │   ├── config.py            #   Async config load/persist/defaults
+│   │   │   │   ├── transitions.py       #   Status transitions, branch tracking
+│   │   │   │   └── orchestrator.py      #   WorkflowOrchestrator class
+│   │   │   ├── ai_agent.py             #   AI issue generation (via CompletionProvider)
+│   │   │   ├── agent_tracking.py       #   Agent pipeline tracking (issue body markdown)
+│   │   │   ├── cache.py                #   In-memory TTL cache
+│   │   │   ├── completion_providers.py #   Pluggable LLM providers (Copilot / Azure)
+│   │   │   ├── database.py            #   aiosqlite connection, WAL mode, migrations
+│   │   │   ├── github_auth.py         #   OAuth token exchange
+│   │   │   ├── session_store.py       #   Session CRUD (async SQLite)
+│   │   │   ├── settings_store.py      #   Settings persistence (async SQLite)
+│   │   │   └── websocket.py           #   WebSocket connection manager
 │   │   ├── prompts/          # AI prompt templates
-│   │   ├── config.py         # Environment configuration (Pydantic Settings)
+│   │   │   ├── issue_generation.py    #   System/user prompts for issue creation
+│   │   │   └── task_generation.py     #   Task generation prompts
+│   │   ├── config.py         # Pydantic Settings from env / .env
 │   │   ├── constants.py      # Status names, agent mappings, display names
-│   │   ├── exceptions.py     # Custom exceptions
-│   │   └── main.py           # FastAPI app entry point
+│   │   ├── dependencies.py   # FastAPI DI helpers (app.state singletons)
+│   │   ├── exceptions.py     # Custom exception classes (AppException tree)
+│   │   ├── main.py           # FastAPI app factory, lifespan, CORS
+│   │   └── utils.py          # Shared helpers (utcnow, resolve_repository)
 │   ├── tests/
-│   │   ├── unit/             # Unit tests (938 tests across 27 test files)
+│   │   ├── unit/             # 25 unit test files
 │   │   ├── integration/      # Integration tests
 │   │   ├── test_api_e2e.py   # API end-to-end tests
 │   │   └── conftest.py       # Test fixtures
@@ -721,18 +746,19 @@ github-workflows/
 │   │   │   │                 # AgentSaveBar, AddAgentPopover, colorUtils
 │   │   │   ├── chat/         # ChatInterface, MessageBubble, TaskPreview,
 │   │   │   │                 # StatusChangePreview, IssueRecommendationPreview
-│   │   │   ├── common/       # ErrorDisplay, RateLimitIndicator
+│   │   │   ├── common/       # ErrorBoundary (React class + TanStack integration)
 │   │   │   ├── settings/     # AIPreferences, DisplayPreferences,
 │   │   │   │                 # WorkflowDefaults, NotificationPreferences,
 │   │   │   │                 # ProjectSettings, GlobalSettings, SettingsSection
 │   │   │   └── sidebar/      # ProjectSidebar, ProjectSelector, TaskCard
 │   │   ├── hooks/            # useAuth, useChat, useProjects, useWorkflow,
 │   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme,
-│   │   │                     # useAgentConfig (includes useAvailableAgents),
-│   │   │                     # useSettings
+│   │   │                     # useAgentConfig, useSettings, useSettingsForm
 │   │   ├── pages/            # ProjectBoardPage, SettingsPage
 │   │   ├── services/         # API client (api.ts)
-│   │   └── types/            # TypeScript type definitions
+│   │   ├── utils/            # generateId, formatTime
+│   │   ├── types/            # TypeScript type definitions (index.ts)
+│   │   └── constants.ts      # Named timing/polling/cache constants
 │   ├── e2e/                  # Playwright E2E tests
 │   ├── package.json
 │   ├── vite.config.ts
@@ -741,11 +767,51 @@ github-workflows/
 ├── scripts/                  # Development tooling
 │   ├── pre-commit            # Git pre-commit hook (ruff, pyright, eslint, tsc, vitest, build)
 │   └── setup-hooks.sh        # Install git hooks
-└── specs/                    # Feature specifications
+└── specs/                    # Feature specifications (Spec Kit output)
     ├── 001-codebase-cleanup-refactor/
     ├── 007-codebase-cleanup-refactor/
-    └── 008-test-coverage-bug-fixes/
+    ├── 008-test-coverage-bug-fixes/
+    └── 009-codebase-cleanup-refactor/
 ```
+
+---
+
+## Tech Stack
+
+### Backend
+| Technology | Version | Purpose |
+|---|---|---|
+| Python | ≥ 3.11 | Runtime |
+| FastAPI | ≥ 0.109 | Web framework |
+| Pydantic | ≥ 2.5 | Data validation (v2 with `model_config`) |
+| pydantic-settings | ≥ 2.1 | Environment configuration |
+| httpx | ≥ 0.26 | Shared async HTTP client (GitHub API) |
+| aiosqlite | — | Fully async SQLite (WAL mode) |
+| uvicorn | ≥ 0.27 | ASGI server |
+
+### Frontend
+| Technology | Version | Purpose |
+|---|---|---|
+| React | 18.x | UI framework |
+| TypeScript | ~5.4 | Type safety |
+| Vite | 5.x | Build tool & dev server |
+| TanStack Query | v5 | Server state management |
+| dnd-kit | 6.x / 9.x / 10.x | Drag-and-drop (agent config) |
+| socket.io-client | 4.x | WebSocket real-time sync |
+
+### Testing
+| Tool | Scope | Tests |
+|---|---|---|
+| pytest + pytest-asyncio | Backend unit/integration/e2e | 926+ tests across 27 files |
+| Vitest + React Testing Library | Frontend unit | 38+ tests |
+| Playwright | Frontend E2E | 3 spec files |
+
+### Infrastructure
+| Component | Details |
+|---|---|
+| Docker Compose | 2 services: `ghchat-backend` (port 8000) + `ghchat-frontend` (nginx, port 5173 → 80) |
+| SQLite | WAL mode, auto-migrated schema, `ghchat-data` Docker volume |
+| nginx | Frontend static serving + reverse proxy to backend `/api` |
 
 ---
 

@@ -1,67 +1,17 @@
 """Tests for main application factory and supporting classes (src/main.py).
 
 Covers:
-- RateLimiter class (check_limit, record_request, github remaining)
 - create_app() → correct routers, CORS, exception handlers
 - lifespan startup/shutdown
 - _session_cleanup_loop background task
 """
 
 import asyncio
-import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from httpx import ASGITransport, AsyncClient
 
-from src.main import RateLimiter, _session_cleanup_loop, create_app
-
-# ── RateLimiter ─────────────────────────────────────────────────────────────
-
-
-class TestRateLimiter:
-    def test_allows_first_request(self):
-        rl = RateLimiter(max_requests=10, window_seconds=60)
-        allowed, remaining = rl.check_limit("s1")
-        assert allowed is True
-        assert remaining == 10
-
-    def test_records_and_counts(self):
-        rl = RateLimiter(max_requests=5, window_seconds=60)
-        rl.record_request("s1", count=3)
-        allowed, remaining = rl.check_limit("s1")
-        assert allowed is True
-        assert remaining == 2
-
-    def test_blocks_when_exhausted(self):
-        rl = RateLimiter(max_requests=2, window_seconds=60)
-        rl.record_request("s1", count=2)
-        allowed, remaining = rl.check_limit("s1")
-        assert allowed is False
-        assert remaining == 0
-
-    def test_window_expiry(self):
-        rl = RateLimiter(max_requests=1, window_seconds=1)
-        rl.record_request("s1", count=1)
-        # Manually shift timestamps to the past
-        rl._requests["s1"] = [(time.time() - 2, 1)]
-        allowed, remaining = rl.check_limit("s1")
-        assert allowed is True
-        assert remaining == 1
-
-    def test_github_remaining(self):
-        rl = RateLimiter()
-        assert rl.get_github_remaining("s1") is None
-        rl.update_github_remaining("s1", 4500)
-        assert rl.get_github_remaining("s1") == 4500
-
-    def test_sessions_are_isolated(self):
-        rl = RateLimiter(max_requests=2, window_seconds=60)
-        rl.record_request("s1", count=2)
-        allowed_s1, _ = rl.check_limit("s1")
-        allowed_s2, remaining_s2 = rl.check_limit("s2")
-        assert allowed_s1 is False
-        assert allowed_s2 is True
-        assert remaining_s2 == 2
+from src.main import _session_cleanup_loop, create_app
 
 
 # ── create_app ──────────────────────────────────────────────────────────────

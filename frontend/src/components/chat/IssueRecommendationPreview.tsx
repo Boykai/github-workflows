@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import type { IssueCreateActionData, WorkflowResult } from '../../types';
+import type { IssueCreateActionData, WorkflowResult } from '@/types';
 import './ChatInterface.css';
 
 interface IssueRecommendationPreviewProps {
@@ -241,5 +241,3 @@ export function IssueRecommendationPreview({
     </div>
   );
 }
-
-export default IssueRecommendationPreview;

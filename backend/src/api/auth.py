@@ -16,9 +16,13 @@ router = APIRouter()
 
 
 async def get_current_session(
-    session_id: str | None = Cookie(None, alias=SESSION_COOKIE_NAME),
+    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserSession:
-    """Get current user session from cookie."""
+    """Get current user session from cookie.
+
+    Can be used as a FastAPI ``Depends()`` or called directly with a raw
+    session-id string (e.g. from a WebSocket query parameter).
+    """
     if not session_id:
         raise AuthenticationError("No session cookie")
 
@@ -29,11 +33,8 @@ async def get_current_session(
     return session
 
 
-async def get_session_dep(
-    session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
-) -> UserSession:
-    """Dependency for getting current session from cookie."""
-    return await get_current_session(session_id)
+# Backward-compatible alias — callers may use either name.
+get_session_dep = get_current_session
 
 
 @router.get("/github")
@@ -118,13 +119,15 @@ async def set_session_cookie(
         )
 
     # Set the session cookie
+    from src.config import get_settings
+    _settings = get_settings()
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=str(session.session_id),
         httponly=True,
-        secure=False,  # Allow HTTP for development
+        secure=_settings.cookie_secure,
         samesite="lax",
-        max_age=8 * 60 * 60,  # 8 hours
+        max_age=_settings.cookie_max_age,
         path="/",
     )
 
@@ -182,9 +185,9 @@ async def dev_login(
             key=SESSION_COOKIE_NAME,
             value=str(session.session_id),
             httponly=True,
-            secure=False,
+            secure=settings.cookie_secure,
             samesite="lax",
-            max_age=8 * 60 * 60,
+            max_age=settings.cookie_max_age,
             path="/",
         )
 

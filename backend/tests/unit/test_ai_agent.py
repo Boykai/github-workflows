@@ -418,54 +418,6 @@ class TestIdentifyTargetTask:
         assert result is None
 
 
-class TestIdentifyTargetStatus:
-    """Tests for status reference matching."""
-
-    @pytest.fixture
-    def service(self):
-        return AIAgentService(provider=MockCompletionProvider())
-
-    def test_identify_status_exact_match(self, service):
-        """Should find exact status match."""
-        statuses = ["Todo", "In Progress", "Done"]
-
-        assert service.identify_target_status("Done", statuses) == "Done"
-
-    def test_identify_status_case_insensitive(self, service):
-        """Should match case-insensitively."""
-        statuses = ["Todo", "In Progress", "Done"]
-
-        assert service.identify_target_status("done", statuses) == "Done"
-        assert service.identify_target_status("TODO", statuses) == "Todo"
-
-    def test_identify_status_partial_match(self, service):
-        """Should match partial references."""
-        statuses = ["Todo", "In Progress", "Done"]
-
-        assert service.identify_target_status("progress", statuses) == "In Progress"
-
-    def test_identify_status_aliases(self, service):
-        """Should recognize common status aliases."""
-        statuses = ["Todo", "In Progress", "Done"]
-
-        # "completed" is an alias for "done"
-        assert service.identify_target_status("completed", statuses) == "Done"
-        # "doing" is an alias for "in progress"
-        assert service.identify_target_status("doing", statuses) == "In Progress"
-
-    def test_identify_status_returns_none_for_unknown(self, service):
-        """Should return None for unrecognized statuses."""
-        statuses = ["Todo", "In Progress", "Done"]
-
-        assert service.identify_target_status("random status", statuses) is None
-
-    def test_identify_status_returns_none_for_empty(self, service):
-        """Should return None for empty inputs."""
-        assert service.identify_target_status("", []) is None
-        assert service.identify_target_status("done", []) is None
-        assert service.identify_target_status("", ["Todo"]) is None
-
-
 class TestParseJsonResponse:
     """Tests for JSON parsing helper."""
 

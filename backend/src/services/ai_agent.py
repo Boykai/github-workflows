@@ -13,10 +13,11 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from src.utils import utcnow
 from typing import Any
 from uuid import UUID
 
-from src.models.chat import (
+from src.models.recommendation import (
     IssueMetadata,
     IssuePriority,
     IssueRecommendation,
@@ -288,7 +289,7 @@ class AIAgentService:
             estimate_hours = 4.0
 
         # Parse dates with defaults
-        today = datetime.now()
+        today = utcnow()
         start_date = metadata_data.get("start_date", "")
         target_date = metadata_data.get("target_date", "")
 
@@ -310,13 +311,13 @@ class AIAgentService:
             labels = ["ai-generated"]
 
         # Filter to only include valid pre-defined labels
-        from src.prompts.issue_generation import PREDEFINED_LABELS
+        from src.constants import LABELS
 
         validated_labels = []
         for label in labels:
             if isinstance(label, str):
                 label_lower = label.lower()
-                if label_lower in PREDEFINED_LABELS:
+                if label_lower in LABELS:
                     validated_labels.append(label_lower)
                 else:
                     logger.debug("Skipping invalid label: %s", label)
@@ -528,51 +529,6 @@ class AIAgentService:
                 best_match = task
 
         return best_match if best_score > 0 else None
-
-    def identify_target_status(
-        self, status_reference: str, available_statuses: list[str]
-    ) -> str | None:
-        """
-        Find the best matching status for a reference string.
-
-        Args:
-            status_reference: Reference string from AI
-            available_statuses: List of available status names
-
-        Returns:
-            Best matching status name or None
-        """
-        if not status_reference or not available_statuses:
-            return None
-
-        ref_lower = status_reference.lower().strip()
-
-        # Exact match (case-insensitive)
-        for status in available_statuses:
-            if status.lower() == ref_lower:
-                return status
-
-        # Partial match
-        for status in available_statuses:
-            status_lower = status.lower()
-            if ref_lower in status_lower or status_lower in ref_lower:
-                return status
-
-        # Common aliases
-        aliases = {
-            "todo": ["to do", "backlog", "not started"],
-            "in progress": ["doing", "started", "working", "in-progress"],
-            "done": ["complete", "completed", "finished", "closed"],
-        }
-
-        for status in available_statuses:
-            status_key = status.lower()
-            if status_key in aliases:
-                for alias in aliases[status_key]:
-                    if alias in ref_lower or ref_lower in alias:
-                        return status
-
-        return None
 
     def _parse_json_response(self, content: str) -> dict:
         """Parse JSON from AI response, handling markdown code blocks, extra text, and truncation."""

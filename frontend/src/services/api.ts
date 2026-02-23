@@ -5,6 +5,7 @@
 
 import type {
   APIError,
+  AvailableAgent,
   ChatMessage,
   ChatMessageRequest,
   ChatMessagesResponse,
@@ -24,6 +25,8 @@ import type {
   GlobalSettingsUpdate,
   EffectiveProjectSettings,
   ProjectSettingsUpdate,
+  WorkflowResult,
+  WorkflowConfiguration,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -290,5 +293,53 @@ export const settingsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+};
+
+// ============ Workflow API ============
+
+export const workflowApi = {
+  /**
+   * Confirm an AI-generated issue recommendation.
+   */
+  confirmRecommendation(recommendationId: string): Promise<WorkflowResult> {
+    return request<WorkflowResult>(
+      `/workflow/recommendations/${recommendationId}/confirm`,
+      { method: 'POST' },
+    );
+  },
+
+  /**
+   * Reject an AI-generated issue recommendation.
+   */
+  rejectRecommendation(recommendationId: string): Promise<void> {
+    return request<void>(
+      `/workflow/recommendations/${recommendationId}/reject`,
+      { method: 'POST' },
+    );
+  },
+
+  /**
+   * Get the current workflow configuration.
+   */
+  getConfig(): Promise<WorkflowConfiguration> {
+    return request<WorkflowConfiguration>('/workflow/config');
+  },
+
+  /**
+   * Update workflow configuration.
+   */
+  updateConfig(config: Partial<WorkflowConfiguration>): Promise<WorkflowConfiguration> {
+    return request<WorkflowConfiguration>('/workflow/config', {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  },
+
+  /**
+   * List available agents.
+   */
+  listAgents(): Promise<{ agents: AvailableAgent[] }> {
+    return request<{ agents: AvailableAgent[] }>('/workflow/agents');
   },
 };

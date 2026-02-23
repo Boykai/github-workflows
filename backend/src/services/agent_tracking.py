@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.models.chat import AgentAssignment
+    from src.models.agent import AgentAssignment
 
 logger = logging.getLogger(__name__)
 

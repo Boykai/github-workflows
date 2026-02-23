@@ -2,6 +2,7 @@
 
 import time
 from datetime import datetime, timedelta
+from src.utils import utcnow
 from unittest.mock import MagicMock, patch
 
 from src.services.cache import CacheEntry, InMemoryCache
@@ -20,8 +21,8 @@ class TestCacheEntry:
         """Should calculate expiration time based on TTL."""
         entry = CacheEntry("test_value", ttl_seconds=60)
 
-        expected_min = datetime.utcnow() + timedelta(seconds=59)
-        expected_max = datetime.utcnow() + timedelta(seconds=61)
+        expected_min = utcnow() + timedelta(seconds=59)
+        expected_max = utcnow() + timedelta(seconds=61)
 
         assert expected_min <= entry.expires_at <= expected_max
 

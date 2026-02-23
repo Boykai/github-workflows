@@ -12,35 +12,10 @@ from src.models.user import UserSession
 from src.services.cache import cache, get_project_items_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
-from src.services.workflow_orchestrator import get_workflow_config
+from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-async def _resolve_repository_for_project(access_token: str, project_id: str) -> tuple[str, str]:
-    """Resolve repository owner and name for issue creation."""
-    # Try project items first
-    repo_info = await github_projects_service.get_project_repository(access_token, project_id)
-    if repo_info:
-        return repo_info
-
-    # Try workflow config
-    config = get_workflow_config(project_id)
-    if config and config.repository_owner and config.repository_name:
-        return config.repository_owner, config.repository_name
-
-    # Fall back to default repository from settings
-    from src.config import get_settings
-
-    settings = get_settings()
-    if settings.default_repo_owner and settings.default_repo_name:
-        return settings.default_repo_owner, settings.default_repo_name
-
-    raise ValidationError(
-        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
-        "or ensure the project has at least one linked issue."
-    )
 
 
 @router.post("", response_model=Task)
@@ -59,7 +34,7 @@ async def create_task(
     logger.info("Creating issue in project %s: %s", project_id, request.title)
 
     # Resolve repository info for issue creation
-    owner, repo = await _resolve_repository_for_project(session.access_token, project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     # Step 1: Create a real GitHub Issue via REST API
     issue = await github_projects_service.create_issue(

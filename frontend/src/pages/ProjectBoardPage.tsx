@@ -10,6 +10,7 @@ import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
+import { formatTimeAgo } from '@/utils/formatTime';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -60,14 +61,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
   };
 
   // Format last updated time
-  const formatLastUpdated = () => {
-    if (!lastUpdated) return '';
-    const now = new Date();
-    const diffSec = Math.floor((now.getTime() - lastUpdated.getTime()) / 1000);
-    if (diffSec < 60) return 'just now';
-    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-    return lastUpdated.toLocaleTimeString();
-  };
+  const formatLastUpdated = () => lastUpdated ? formatTimeAgo(lastUpdated) : '';
 
   return (
     <div className="board-page">

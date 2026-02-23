@@ -1,6 +1,5 @@
 """Chat API endpoints."""
 
-import asyncio
 import logging
 from typing import Annotated
 from uuid import UUID
@@ -12,17 +11,19 @@ from src.constants import DEFAULT_STATUS_COLUMNS
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
     ActionType,
-    AITaskProposal,
     ChatMessage,
     ChatMessageRequest,
     ChatMessagesResponse,
+    SenderType,
+)
+from src.models.recommendation import (
+    AITaskProposal,
     IssueRecommendation,
     ProposalConfirmRequest,
     ProposalStatus,
     RecommendationStatus,
-    SenderType,
-    WorkflowConfiguration,
 )
+from src.models.workflow import WorkflowConfiguration
 from src.models.user import UserSession
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import (
@@ -39,6 +40,7 @@ from src.services.workflow_orchestrator import (
     get_workflow_orchestrator,
     set_workflow_config,
 )
+from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -54,33 +56,7 @@ async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
     if not session.selected_project_id:
         raise ValidationError("No project selected")
-
-    project_id = session.selected_project_id
-
-    # Try project items first
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        project_id,
-    )
-    if repo_info:
-        return repo_info
-
-    # Try workflow config
-    config = get_workflow_config(project_id)
-    if config and config.repository_owner and config.repository_name:
-        return config.repository_owner, config.repository_name
-
-    # Fall back to default repository from settings
-    from src.config import get_settings
-
-    settings = get_settings()
-    if settings.default_repo_owner and settings.default_repo_name:
-        return settings.default_repo_owner, settings.default_repo_name
-
-    raise ValidationError(
-        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
-        "or ensure the project has at least one linked issue."
-    )
+    return await resolve_repository(session.access_token, session.selected_project_id)
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
@@ -481,7 +457,7 @@ async def confirm_proposal(
 
             settings = get_settings()
 
-            config = get_workflow_config(project_id)
+            config = await get_workflow_config(project_id)
             if not config:
                 config = WorkflowConfiguration(
                     project_id=project_id,
@@ -489,7 +465,7 @@ async def confirm_proposal(
                     repository_name=repo,
                     copilot_assignee=settings.default_assignee,
                 )
-                set_workflow_config(
+                await set_workflow_config(
                     project_id,
                     config,
                     github_user_id=session.github_user_id,
@@ -568,31 +544,15 @@ async def confirm_proposal(
 
             # Ensure Copilot polling is running so the pipeline advances
             # after agents complete their work (creates PRs).
-            try:
-                import src.services.copilot_polling as _cp_module
-                from src.services.copilot_polling import (
-                    get_polling_status,
-                    poll_for_copilot_completion,
-                )
+            from src.services.copilot_polling import ensure_polling_started
 
-                polling_status = get_polling_status()
-                if not polling_status["is_running"]:
-                    task = asyncio.create_task(
-                        poll_for_copilot_completion(
-                            access_token=session.access_token,
-                            project_id=project_id,
-                            owner=owner,
-                            repo=repo,
-                            interval_seconds=15,
-                        )
-                    )
-                    _cp_module._polling_task = task
-                    logger.info(
-                        "Auto-started Copilot polling from confirm_proposal for project %s",
-                        project_id,
-                    )
-            except Exception as poll_err:
-                logger.warning("Failed to start polling after issue creation: %s", poll_err)
+            await ensure_polling_started(
+                access_token=session.access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                caller="confirm_proposal",
+            )
 
         except Exception as e:
             logger.warning(

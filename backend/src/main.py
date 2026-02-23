@@ -2,8 +2,6 @@
 
 import asyncio
 import logging
-import time
-from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -39,57 +37,6 @@ async def _session_cleanup_loop() -> None:
             logger.exception("Error in session cleanup task")
 
 
-class RateLimiter:
-    """Simple in-memory rate limiter for GitHub API calls."""
-
-    def __init__(self, max_requests: int = 4000, window_seconds: int = 3600):
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        # {session_id: [(timestamp, count)]}
-        self._requests: dict[str, list[tuple[float, int]]] = defaultdict(list)
-        # Track GitHub API remaining limit per session
-        self._github_remaining: dict[str, int] = {}
-
-    def check_limit(self, session_id: str) -> tuple[bool, int]:
-        """
-        Check if request is within rate limit.
-
-        Returns:
-            Tuple of (allowed, remaining_requests)
-        """
-        now = time.time()
-        window_start = now - self.window_seconds
-
-        # Clean old entries
-        self._requests[session_id] = [
-            (ts, count) for ts, count in self._requests[session_id] if ts > window_start
-        ]
-
-        # Count requests in window
-        total = sum(count for _, count in self._requests[session_id])
-
-        if total >= self.max_requests:
-            return False, 0
-
-        return True, self.max_requests - total
-
-    def record_request(self, session_id: str, count: int = 1) -> None:
-        """Record a request for rate limiting."""
-        self._requests[session_id].append((time.time(), count))
-
-    def update_github_remaining(self, session_id: str, remaining: int) -> None:
-        """Update GitHub API remaining limit from response headers."""
-        self._github_remaining[session_id] = remaining
-
-    def get_github_remaining(self, session_id: str) -> int | None:
-        """Get last known GitHub API remaining limit."""
-        return self._github_remaining.get(session_id)
-
-
-# Global rate limiter instance
-rate_limiter = RateLimiter()
-
-
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler."""
@@ -103,6 +50,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     db = await init_database()
     await seed_global_settings(db)
     _app.state.db = db
+
+    # Register singleton services on app.state for DI (see dependencies.py)
+    from src.services.github_projects import github_projects_service
+    from src.services.websocket import connection_manager
+
+    _app.state.github_service = github_projects_service
+    _app.state.connection_manager = connection_manager
 
     # Start periodic session cleanup
     cleanup_task = asyncio.create_task(_session_cleanup_loop())

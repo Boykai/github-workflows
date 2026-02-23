@@ -135,10 +135,9 @@ async def select_project(
 
 async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
     """Start Copilot PR completion polling for the selected project."""
-    import src.services.copilot_polling as _cp_module
     from src.services.copilot_polling import (
+        ensure_polling_started,
         get_polling_status,
-        poll_for_copilot_completion,
         stop_polling,
     )
 
@@ -161,7 +160,7 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
         from src.api.workflow import get_workflow_config
         from src.config import get_settings
 
-        config = get_workflow_config(project_id)
+        config = await get_workflow_config(project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
@@ -178,24 +177,12 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
 
     owner, repo = repo_info
 
-    # Start polling as background task (15 second interval).
-    # Store the task reference so stop_polling() can cancel it.
-    task = asyncio.create_task(
-        poll_for_copilot_completion(
-            access_token=session.access_token,
-            project_id=project_id,
-            owner=owner,
-            repo=repo,
-            interval_seconds=15,
-        )
-    )
-    _cp_module._polling_task = task
-
-    logger.info(
-        "Auto-started Copilot PR polling for project %s (%s/%s)",
-        project_id,
-        owner,
-        repo,
+    await ensure_polling_started(
+        access_token=session.access_token,
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        caller="select_project",
     )
 
 
@@ -265,7 +252,7 @@ async def websocket_subscribe(
             )
 
         # Keep connection alive and periodically refresh
-        last_refresh = asyncio.get_event_loop().time()
+        last_refresh = asyncio.get_running_loop().time()
         refresh_interval = 5.0  # Refresh every 5 seconds
 
         while True:
@@ -279,7 +266,7 @@ async def websocket_subscribe(
 
             except TimeoutError:
                 # Check if we need to refresh
-                current_time = asyncio.get_event_loop().time()
+                current_time = asyncio.get_running_loop().time()
                 if current_time - last_refresh >= refresh_interval:
                     # Refresh and send updated tasks
                     tasks = await send_tasks()
@@ -348,7 +335,7 @@ async def sse_subscribe(
                             yield f"event: {change['type']}\ndata: {json.dumps(change)}\n\n"
 
                     # Send heartbeat
-                    yield f'event: heartbeat\ndata: {{"timestamp": "{asyncio.get_event_loop().time()}"}}\n\n'
+                    yield f'event: heartbeat\ndata: {{"timestamp": "{asyncio.get_running_loop().time()}"}}\n\n'
 
                 except Exception as e:
                     logger.error("SSE polling error: %s", e)

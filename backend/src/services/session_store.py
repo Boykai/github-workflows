@@ -12,6 +12,33 @@ from src.models.user import UserSession
 logger = logging.getLogger(__name__)
 
 
+def _row_to_session(row: aiosqlite.Row) -> UserSession:
+    """Convert a database row to a ``UserSession`` instance.
+
+    Centralises the column→field mapping so ``get_session()`` and
+    ``get_sessions_by_user()`` stay in sync.
+    """
+    token_expires = (
+        datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
+    )
+    updated_at = datetime.fromisoformat(row["updated_at"])
+    if updated_at.tzinfo is None:
+        updated_at = updated_at.replace(tzinfo=UTC)
+
+    return UserSession(
+        session_id=UUID(row["session_id"]),
+        github_user_id=row["github_user_id"],
+        github_username=row["github_username"],
+        github_avatar_url=row["github_avatar_url"],
+        access_token=row["access_token"],
+        refresh_token=row["refresh_token"],
+        token_expires_at=token_expires,
+        selected_project_id=row["selected_project_id"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+        updated_at=updated_at,
+    )
+
+
 async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
     """
     Persist a session to the database (INSERT OR REPLACE).
@@ -74,21 +101,7 @@ async def get_session(db: aiosqlite.Connection, session_id: str | UUID) -> UserS
         return None
 
     # Reconstruct UserSession from row
-    session = UserSession(
-        session_id=UUID(row["session_id"]),
-        github_user_id=row["github_user_id"],
-        github_username=row["github_username"],
-        github_avatar_url=row["github_avatar_url"],
-        access_token=row["access_token"],
-        refresh_token=row["refresh_token"],
-        token_expires_at=(
-            datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
-        ),
-        selected_project_id=row["selected_project_id"],
-        created_at=datetime.fromisoformat(row["created_at"]),
-        updated_at=updated_at,
-    )
-    return session
+    return _row_to_session(row)
 
 
 async def delete_session(db: aiosqlite.Connection, session_id: str | UUID) -> bool:
@@ -114,23 +127,7 @@ async def get_sessions_by_user(db: aiosqlite.Connection, github_user_id: str) ->
 
     sessions = []
     for row in rows:
-        token_expires = (
-            datetime.fromisoformat(row["token_expires_at"]) if row["token_expires_at"] else None
-        )
-        sessions.append(
-            UserSession(
-                session_id=UUID(row["session_id"]),
-                github_user_id=row["github_user_id"],
-                github_username=row["github_username"],
-                github_avatar_url=row["github_avatar_url"],
-                access_token=row["access_token"],
-                refresh_token=row["refresh_token"],
-                token_expires_at=token_expires,
-                selected_project_id=row["selected_project_id"],
-                created_at=datetime.fromisoformat(row["created_at"]),
-                updated_at=datetime.fromisoformat(row["updated_at"]),
-            )
-        )
+        sessions.append(_row_to_session(row))
     return sessions
 
 

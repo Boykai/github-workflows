@@ -3506,24 +3506,14 @@ class TestGetPrTimelineEvents:
         resp.json.return_value = events
         resp.raise_for_status = Mock()
 
-        mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client.get = AsyncMock(return_value=resp)
-
-        with patch("src.services.github_projects.httpx.AsyncClient", return_value=mock_client):
-            result = await service.get_pr_timeline_events("tok", "o", "r", 5)
+        service._client.get = AsyncMock(return_value=resp)
+        result = await service.get_pr_timeline_events("tok", "o", "r", 5)
         assert result == events
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
         import httpx as _httpx
 
-        mock_client = AsyncMock()
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-        mock_client.get = AsyncMock(side_effect=_httpx.HTTPError("err"))
-
-        with patch("src.services.github_projects.httpx.AsyncClient", return_value=mock_client):
-            result = await service.get_pr_timeline_events("tok", "o", "r", 5)
+        service._client.get = AsyncMock(side_effect=_httpx.HTTPError("err"))
+        result = await service.get_pr_timeline_events("tok", "o", "r", 5)
         assert result == []

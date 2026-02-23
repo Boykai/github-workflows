@@ -4,20 +4,9 @@
 
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { STALE_TIME_SHORT, PROPOSAL_EXPIRY_MS } from '@/constants';
 import { chatApi, tasksApi } from '@/services/api';
-import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData } from '@/types';
-
-// Extended proposal type for status changes
-interface StatusChangeProposal {
-  proposal_id: string;
-  task_id: string;
-  task_title: string;
-  current_status: string;
-  target_status: string;
-  status_option_id: string;
-  status_field_id: string;
-  status: string;
-}
+import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData, StatusChangeProposal } from '@/types';
 
 interface UseChatReturn {
   messages: ChatMessage[];
@@ -49,7 +38,7 @@ export function useChat(): UseChatReturn {
   } = useQuery({
     queryKey: ['chat', 'messages'],
     queryFn: chatApi.getMessages,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: STALE_TIME_SHORT,
   });
 
   // Send message mutation
@@ -68,7 +57,7 @@ export function useChat(): UseChatReturn {
             proposed_description: data.proposed_description as string || '',
             status: 'pending',
             created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+            expires_at: new Date(Date.now() + PROPOSAL_EXPIRY_MS).toISOString(),
           };
           setPendingProposals(prev => new Map(prev).set(proposal.proposal_id, proposal));
         }

@@ -140,23 +140,23 @@ class TestUpdateTaskStatus:
         mock_websocket_manager.broadcast_to_project.assert_called()
 
 
-# ── _resolve_repository_for_project ────────────────────────────────────────
+# ── resolve_repository (shared helper from src.utils) ──────────────────────
 
 
 class TestResolveRepository:
     async def test_resolve_from_project_repository(self):
-        from src.api.tasks import _resolve_repository_for_project
+        from src.utils import resolve_repository
 
         mock_svc = AsyncMock()
         mock_svc.get_project_repository.return_value = ("owner", "repo")
-        with patch("src.api.tasks.github_projects_service", mock_svc):
-            owner, repo = await _resolve_repository_for_project("token", "PVT_1")
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
+            owner, repo = await resolve_repository("token", "PVT_1")
         assert owner == "owner"
         assert repo == "repo"
 
     async def test_resolve_from_workflow_config(self):
-        from src.api.tasks import _resolve_repository_for_project
         from src.models.chat import WorkflowConfiguration
+        from src.utils import resolve_repository
 
         mock_svc = AsyncMock()
         mock_svc.get_project_repository.return_value = None
@@ -166,15 +166,15 @@ class TestResolveRepository:
             repository_name="cfg_repo",
         )
         with (
-            patch("src.api.tasks.github_projects_service", mock_svc),
-            patch("src.api.tasks.get_workflow_config", return_value=config),
+            patch("src.services.github_projects.github_projects_service", mock_svc),
+            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=config),
         ):
-            owner, repo = await _resolve_repository_for_project("token", "PVT_1")
+            owner, repo = await resolve_repository("token", "PVT_1")
         assert owner == "cfg_owner"
 
     async def test_resolve_from_default_settings(self):
-        from src.api.tasks import _resolve_repository_for_project
         from src.config import Settings
+        from src.utils import resolve_repository
 
         mock_svc = AsyncMock()
         mock_svc.get_project_repository.return_value = None
@@ -186,17 +186,17 @@ class TestResolveRepository:
             _env_file=None,
         )
         with (
-            patch("src.api.tasks.github_projects_service", mock_svc),
-            patch("src.api.tasks.get_workflow_config", return_value=None),
+            patch("src.services.github_projects.github_projects_service", mock_svc),
+            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings", return_value=settings),
         ):
-            owner, repo = await _resolve_repository_for_project("token", "PVT_1")
+            owner, repo = await resolve_repository("token", "PVT_1")
         assert owner == "def_owner"
 
     async def test_resolve_raises_when_nothing_found(self):
-        from src.api.tasks import _resolve_repository_for_project
         from src.config import Settings
         from src.exceptions import ValidationError
+        from src.utils import resolve_repository
 
         mock_svc = AsyncMock()
         mock_svc.get_project_repository.return_value = None
@@ -207,9 +207,9 @@ class TestResolveRepository:
             _env_file=None,
         )
         with (
-            patch("src.api.tasks.github_projects_service", mock_svc),
-            patch("src.api.tasks.get_workflow_config", return_value=None),
+            patch("src.services.github_projects.github_projects_service", mock_svc),
+            patch("src.services.workflow_orchestrator.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings", return_value=settings),
         ):
             with pytest.raises(ValidationError):
-                await _resolve_repository_for_project("token", "PVT_1")
+                await resolve_repository("token", "PVT_1")

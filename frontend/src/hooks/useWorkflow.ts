@@ -1,14 +1,15 @@
 /**
  * useWorkflow Hook
  *
- * Provides functions for confirming and rejecting AI-generated
- * issue recommendations, communicating with the workflow API.
+ * Provides TanStack Query mutations for confirming/rejecting
+ * AI-generated recommendations and managing workflow configuration.
+ * Uses the centralized API client from services/api.ts.
  */
 
-import { useState, useCallback } from 'react';
-import type { WorkflowResult, WorkflowConfiguration } from '../types';
-
-const API_BASE = '/api/v1';
+import { useCallback } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { workflowApi } from '@/services/api';
+import type { WorkflowResult, WorkflowConfiguration } from '@/types';
 
 interface UseWorkflowReturn {
   confirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
@@ -20,134 +21,61 @@ interface UseWorkflowReturn {
 }
 
 export function useWorkflow(): UseWorkflowReturn {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const confirmMutation = useMutation({
+    mutationFn: (recommendationId: string) =>
+      workflowApi.confirmRecommendation(recommendationId),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (recommendationId: string) =>
+      workflowApi.rejectRecommendation(recommendationId),
+  });
+
+  const getConfigMutation = useMutation({
+    mutationFn: () => workflowApi.getConfig(),
+  });
+
+  const updateConfigMutation = useMutation({
+    mutationFn: (config: Partial<WorkflowConfiguration>) =>
+      workflowApi.updateConfig(config),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workflow', 'config'] });
+    },
+  });
+
+  const isLoading =
+    confirmMutation.isPending ||
+    rejectMutation.isPending ||
+    getConfigMutation.isPending ||
+    updateConfigMutation.isPending;
+
+  const error =
+    confirmMutation.error?.message ??
+    rejectMutation.error?.message ??
+    getConfigMutation.error?.message ??
+    updateConfigMutation.error?.message ??
+    null;
 
   const confirmRecommendation = useCallback(
-    async (recommendationId: string): Promise<WorkflowResult> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `${API_BASE}/workflow/recommendations/${recommendationId}/confirm`,
-          {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to confirm: ${response.status}`);
-        }
-
-        const result: WorkflowResult = await response.json();
-        return result;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to confirm recommendation';
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
+    (recommendationId: string) => confirmMutation.mutateAsync(recommendationId),
+    [confirmMutation],
   );
 
   const rejectRecommendation = useCallback(
-    async (recommendationId: string): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(
-          `${API_BASE}/workflow/recommendations/${recommendationId}/reject`,
-          {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to reject: ${response.status}`);
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to reject recommendation';
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
+    (recommendationId: string) => rejectMutation.mutateAsync(recommendationId),
+    [rejectMutation],
   );
 
-  const getConfig = useCallback(async (): Promise<WorkflowConfiguration> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`${API_BASE}/workflow/config`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to get config: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to get workflow config';
-      setError(message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const getConfig = useCallback(
+    () => getConfigMutation.mutateAsync(),
+    [getConfigMutation],
+  );
 
   const updateConfig = useCallback(
-    async (config: Partial<WorkflowConfiguration>): Promise<WorkflowConfiguration> => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch(`${API_BASE}/workflow/config`, {
-          method: 'PUT',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(config),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Failed to update config: ${response.status}`);
-        }
-
-        return await response.json();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to update workflow config';
-        setError(message);
-        throw err;
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
+    (config: Partial<WorkflowConfiguration>) => updateConfigMutation.mutateAsync(config),
+    [updateConfigMutation],
   );
 
   return {
@@ -159,5 +87,3 @@ export function useWorkflow(): UseWorkflowReturn {
     error,
   };
 }
-
-export default useWorkflow;

@@ -6,6 +6,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
+import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
 
 interface SettingsSectionProps {
   title: string;
@@ -41,10 +42,10 @@ export function SettingsSection({
     try {
       await onSave();
       setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      setTimeout(() => setSaveStatus('idle'), TOAST_SUCCESS_MS);
     } catch {
       setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      setTimeout(() => setSaveStatus('idle'), TOAST_ERROR_MS);
     } finally {
       setSaving(false);
     }

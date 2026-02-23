@@ -6,10 +6,11 @@
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import type { AgentAssignment, WorkflowConfiguration, AvailableAgent } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import type { AgentAssignment, WorkflowConfiguration, AvailableAgent } from '@/types';
 import { useWorkflow } from './useWorkflow';
-
-const API_BASE = '/api/v1';
+import { generateId } from '@/utils/generateId';
+import { workflowApi } from '@/services/api';
 
 interface UseAgentConfigReturn {
   /** Local agent mappings state (editable) */
@@ -38,10 +39,6 @@ interface UseAgentConfigReturn {
   isLoaded: boolean;
   /** Load config from server */
   loadConfig: () => Promise<void>;
-}
-
-function generateId(): string {
-  return crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
 export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn {
@@ -194,44 +191,26 @@ interface UseAvailableAgentsReturn {
 }
 
 export function useAvailableAgents(projectId?: string | null): UseAvailableAgentsReturn {
-  const [agents, setAgents] = useState<AvailableAgent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const lastFetchedProjectRef = useRef<string | null | undefined>(undefined);
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['workflow', 'agents', projectId],
+    queryFn: async () => {
+      const result = await workflowApi.listAgents();
+      return result.agents ?? [];
+    },
+    enabled: !!projectId,
+    staleTime: Infinity,
+    gcTime: 10 * 60 * 1000,
+  });
 
-  const fetchAgents = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_BASE}/workflow/agents`, {
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch agents: ${response.status}`);
-      }
-      const data = await response.json();
-      setAgents(data.agents ?? []);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch agents';
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Refetch when projectId changes (different repo may have different agents)
-  useEffect(() => {
-    if (projectId !== lastFetchedProjectRef.current) {
-      lastFetchedProjectRef.current = projectId;
-      if (projectId) {
-        fetchAgents();
-      }
-    }
-  }, [projectId, fetchAgents]);
-
-  const refetch = useCallback(() => {
-    fetchAgents();
-  }, [fetchAgents]);
-
-  return { agents, isLoading, error, refetch };
+  return {
+    agents: data ?? [],
+    isLoading,
+    error: error?.message ?? null,
+    refetch,
+  };
 }

@@ -1,30 +1,12 @@
 """Prompt templates for AI-assisted GitHub issue generation."""
 
 from datetime import datetime, timedelta
+from src.utils import utcnow
 
-# Pre-defined labels that can be assigned to issues
-PREDEFINED_LABELS = [
-    # Type labels (pick ONE primary type)
-    "feature",  # New functionality
-    "bug",  # Bug fix
-    "enhancement",  # Improvement to existing feature
-    "refactor",  # Code refactoring
-    "documentation",  # Documentation updates
-    "testing",  # Test-related work
-    "infrastructure",  # DevOps, CI/CD, config
-    # Scope labels (pick all that apply)
-    "frontend",  # Frontend/UI work
-    "backend",  # Backend/API work
-    "database",  # Database changes
-    "api",  # API changes
-    # Domain labels (pick if relevant)
-    "security",  # Security-related
-    "performance",  # Performance optimization
-    "accessibility",  # A11y improvements
-    "ux",  # User experience
-    # Auto-applied
-    "ai-generated",  # Always included - marks AI-created issues
-]
+from src.constants import LABELS
+
+# Backward-compatible alias — prefer ``LABELS`` for new code.
+PREDEFINED_LABELS = LABELS
 
 ISSUE_GENERATION_SYSTEM_PROMPT = """You are an expert product manager helping structure feature requests into well-organized GitHub issues.
 
@@ -147,7 +129,7 @@ def create_issue_generation_prompt(user_input: str, project_name: str) -> list[d
         List of message dicts with role and content
     """
     # Calculate suggested dates (AI agent can complete quickly)
-    today = datetime.now()
+    today = utcnow()
     start_date = today.strftime("%Y-%m-%d")
     # Default target is tomorrow for typical features
     default_target = (today + timedelta(days=1)).strftime("%Y-%m-%d")

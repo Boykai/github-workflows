@@ -5,7 +5,7 @@ FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. 
 ## Setup
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 ```
@@ -29,59 +29,85 @@ When `DEBUG=true`:
 
 ## Architecture
 
+The backend follows a layered architecture: **API routes → Services → Models**, with three large service modules decomposed into focused sub-module packages. A `dependencies.py` module provides FastAPI DI helpers backed by `app.state` singletons registered in the lifespan handler.
+
 ```
 src/
-├── main.py                    # FastAPI app, lifecycle (startup → polling), CORS, routers
+├── main.py                    # FastAPI app factory, lifespan (DB init, DI registration), CORS
 ├── config.py                  # Pydantic Settings from env / .env
 ├── constants.py               # Status names, agent mappings, display names, cache key helpers
-├── exceptions.py              # Custom exception classes
+├── dependencies.py            # FastAPI DI helpers (app.state → Depends())
+├── exceptions.py              # Custom exception classes (AppException tree)
+├── utils.py                   # Shared helpers: utcnow(), resolve_repository()
 │
-├── api/                       # Route handlers
-│   ├── auth.py                # OAuth flow, sessions, dev-login
+├── api/                       # Route handlers (8 modules)
+│   ├── auth.py                # OAuth flow, consolidated session dependency
 │   ├── board.py               # Project board (Kanban columns + items)
 │   ├── chat.py                # Chat messages, proposals, confirm/reject, auto-start polling
 │   ├── projects.py            # List/select projects, tasks, WebSocket, SSE
 │   ├── settings.py            # User preferences, global settings, project settings
 │   ├── tasks.py               # Create/update tasks (GitHub Issues + project items)
-│   ├── workflow.py            # Workflow config, pipeline state, polling control, agent discovery, auto-start polling
+│   ├── workflow.py            # Workflow config, pipeline state, polling control, agent discovery
 │   └── webhooks.py            # GitHub webhook (PR ready_for_review)
 │
-├── models/                    # Pydantic v2 data models
+├── models/                    # Pydantic v2 data models (7 focused modules)
+│   ├── agent.py               # AgentSource, AgentAssignment, AvailableAgent
 │   ├── board.py               # Board columns, items, custom fields, linked PRs
-│   ├── chat.py                # ChatMessage, IssueRecommendation, WorkflowConfig, AgentMapping, display names…
-│   ├── project.py             # Project, StatusColumn
-│   ├── settings.py            # User preferences, global settings, project settings, update schemas
+│   ├── chat.py                # ChatMessage, SenderType, ActionType (+ backward-compat re-exports)
+│   ├── project.py             # GitHubProject, StatusColumn
+│   ├── recommendation.py     # AITaskProposal, IssueRecommendation, labels, priorities
+│   ├── settings.py            # User preferences, global settings, project settings
 │   ├── task.py                # Task / project item
-│   └── user.py                # User, session
+│   ├── user.py                # UserSession
+│   └── workflow.py            # WorkflowConfiguration, WorkflowTransition, TriggeredBy
 │
 ├── migrations/                # Numbered SQL migration scripts (auto-run at startup)
-│   ├── 001_initial_schema.sql # Sessions, preferences, project settings, global settings
-│   └── 002_add_workflow_config_column.sql  # Full workflow config JSON persistence
+│   ├── 001_initial_schema.sql
+│   └── 002_add_workflow_config_column.sql
 │
-├── services/                  # Business logic
+├── services/                  # Business logic layer
+│   ├── github_projects/       # GitHub API package (decomposed from monolithic file)
+│   │   ├── __init__.py        #   Re-exports GitHubProjectsService, github_projects_service
+│   │   ├── service.py         #   Main service class, shared httpx.AsyncClient, retry logic
+│   │   └── graphql.py         #   GraphQL query/mutation strings
+│   │
+│   ├── copilot_polling/       # Background polling package (decomposed, 7 sub-modules)
+│   │   ├── __init__.py        #   Re-exports all public names + ensure_polling_started()
+│   │   ├── state.py           #   Module-level mutable state (polling flags, caches, cooldowns)
+│   │   ├── helpers.py         #   Sub-issue lookup, tracking state helpers
+│   │   ├── polling_loop.py    #   Start/stop/tick scheduling
+│   │   ├── agent_output.py    #   Agent output extraction and posting to sub-issues
+│   │   ├── pipeline.py        #   Pipeline advancement, status transitions
+│   │   ├── recovery.py        #   Stalled issue recovery with cooldowns
+│   │   └── completion.py      #   PR completion detection (main + child PRs)
+│   │
+│   ├── workflow_orchestrator/  # Pipeline orchestration package (decomposed, 4 sub-modules)
+│   │   ├── __init__.py        #   Re-exports all public names
+│   │   ├── models.py          #   WorkflowContext, PipelineState, WorkflowState (leaf dep)
+│   │   ├── config.py          #   Async config load/persist/defaults, transition audit log
+│   │   ├── transitions.py     #   Pipeline state, branch tracking, sub-issue maps
+│   │   └── orchestrator.py    #   WorkflowOrchestrator class, assign_agent_for_status()
+│   │
 │   ├── ai_agent.py            # AI issue generation via pluggable CompletionProvider
-│   ├── agent_tracking.py      # Agent pipeline tracking (issue body markdown table)
+│   ├── agent_tracking.py      # Durable agent pipeline tracking (issue body markdown table)
 │   ├── cache.py               # In-memory TTL cache (for GitHub API responses)
 │   ├── completion_providers.py # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
-│   ├── copilot_polling.py     # Background polling loop + agent output posting + sub-issue management
-│   ├── database.py            # SQLite database connection, WAL mode, schema migrations
+│   ├── database.py            # aiosqlite connection, WAL mode, schema migrations
 │   ├── github_auth.py         # OAuth token exchange
-│   ├── github_projects.py     # GitHub GraphQL + REST client (projects, issues, PRs, Copilot assignment, sub-issues)
-│   ├── session_store.py       # Session CRUD (create, get, delete, cleanup expired sessions)
-│   ├── settings_store.py      # Settings persistence (user prefs, global settings, project settings)
-│   ├── websocket.py           # WebSocket connection manager, broadcast
-│   └── workflow_orchestrator.py  # Pipeline state machine, agent assignment, SQLite config persistence
+│   ├── session_store.py       # Session CRUD (async SQLite)
+│   ├── settings_store.py      # Settings persistence (async SQLite)
+│   └── websocket.py           # WebSocket connection manager, broadcast
 │
 └── prompts/                   # Prompt templates for AI completion providers
     ├── issue_generation.py    # System/user prompts for issue creation (concise JSON output)
-    └── task_generation.py     # Legacy task generation prompts
+    └── task_generation.py     # Task generation prompts
 ```
 
 ## Key Services
 
-### Copilot Polling Service (`copilot_polling.py`)
+### Copilot Polling Service (`services/copilot_polling/`)
 
-A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (default 60). **Auto-starts** when a user confirms a proposal (chat) or recommendation (workflow) — no manual start required. Each cycle:
+Decomposed into 7 focused sub-modules. A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (default 60). **Auto-starts** when a user confirms a proposal (chat) or recommendation (workflow) — no manual start required. Each cycle:
 
 1. **Step 0 — Post Agent Outputs**: For each issue with an active pipeline, check if the current agent's work is done on the agent's **sub-issue** (or parent if no sub-issue mapping exists). If so:
    - **Merge child PR first** into the main branch (before posting Done!)
@@ -110,6 +136,8 @@ A background `asyncio.Task` that runs every `COPILOT_POLLING_INTERVAL` seconds (
 
 **Double-Assignment Prevention**: The polling service tracks `_pending_agent_assignments` to avoid race conditions where concurrent polling loops could re-assign the same agent before Copilot has started working. The pending flag is set BEFORE the API call and cleared on failure. A per-issue recovery cooldown (5 minutes) prevents rapid re-assignment.
 
+**Sub-Modules**: `state.py` (mutable state, flags, caches), `helpers.py` (sub-issue lookup, tracking helpers), `polling_loop.py` (start/stop/tick scheduling), `agent_output.py` (extraction and posting to sub-issues), `pipeline.py` (advancement, status transitions), `recovery.py` (stalled issue recovery with cooldowns), `completion.py` (PR completion detection for main + child PRs).
+
 ### Agent Tracking Service (`agent_tracking.py`)
 
 Provides durable pipeline state via markdown tables embedded in GitHub Issue bodies:
@@ -123,24 +151,38 @@ Provides durable pipeline state via markdown tables embedded in GitHub Issue bod
 
 This tracking survives server restarts and provides visibility into pipeline progress directly on GitHub.
 
-### Workflow Orchestrator (`workflow_orchestrator.py`)
+### Workflow Orchestrator (`services/workflow_orchestrator/`)
 
-Manages per-issue pipeline state, hierarchical PR branching, **sub-issue creation**, and **SQLite-backed workflow config persistence**:
+Decomposed into 4 focused sub-modules managing per-issue pipeline state, hierarchical PR branching, **sub-issue creation**, and **async SQLite-backed workflow config persistence**:
 
-- **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings, status order) is persisted to SQLite via `_persist_workflow_config_to_db()` and loaded on startup via `_load_workflow_config_from_db()`. Uses sync `sqlite3` module (not aiosqlite) for reliability. An in-memory dict cache (`_cached_workflow_configs`) provides fast reads; writes go to both cache and DB.
-- **Case-Insensitive Lookups**: The `_ci_get()` helper performs case-insensitive dictionary key lookups throughout the orchestrator, preventing mismatches between config status names and GitHub project board column names (e.g., "in progress" vs "In Progress").
-- **Sub-Issue Creation**: `create_all_sub_issues()` creates one sub-issue per agent in the pipeline upfront when a workflow is confirmed. Each sub-issue title is prefixed with `[agent-name]` for later reconstruction. Sub-issue numbers are stored in `_sub_issue_numbers[parent_issue_number][agent_name]`.
-- **Main Branch Tracking**: `_issue_main_branches` dict maps issue numbers to their main PR branch info (`MainBranchInfo: {branch, pr_number, head_sha}`). The first PR created for an issue establishes the main branch via `set_issue_main_branch()`. All subsequent agents use `get_issue_main_branch()` to determine their `base_ref` — the main branch **name** is passed as `base_ref` so Copilot creates a child branch from it. The `head_sha` is tracked for audit purposes.
-- **Pipeline State Tracking**: `_pipeline_states` dict tracks active agent pipelines per issue, including which agents have completed and which is currently active. This prevents premature status transitions (e.g., waiting for `speckit.implement` to complete before transitioning to "In Review").
-- **Status Order**: `get_status_order(config)` returns all 4 statuses (`Backlog → Ready → In Progress → In Review`) including `copilot-review` for the In Review column.
-- **Retry-with-Backoff**: Agent assignments retry up to 3 times with exponential backoff (3s → 6s → 12s) to handle transient GitHub API errors, especially after PR merges.
-- **Early Pending Flags**: Pending agent assignments are set BEFORE the GitHub API call and cleared only on failure. This prevents race conditions in `execute_full_workflow` where a poll could overlap with the initial assignment.
-- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column using `_ci_get()`, checks for cached main branch or discovers it from existing PRs, and calls `assign_copilot_to_issue()` with the main branch name as `base_ref`.
-- `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`).
-- `_advance_pipeline()` / `_transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes. Sub-issues are closed as completed when their agent finishes.
-- `_check_child_pr_completion()` — For `speckit.implement`, checks if a child PR targeting the main branch exists and shows completion signals.
-- `_reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart.
-- `_update_agent_tracking_state()` — Updates the tracking table in the issue body when agents are assigned or complete.
+#### `models.py` — Data Models (leaf dependency, no service imports)
+- **`WorkflowContext`** — Immutable context for pipeline operations (issue, config, service refs)
+- **`PipelineState`** — Tracks active agent pipelines per issue (completed agents, current agent)
+- **`WorkflowState`** — Top-level state container (pipeline states, main branches, sub-issue maps)
+- **`MainBranchInfo`** — Branch name, PR number, head SHA for hierarchical branching
+- **`_ci_get()`** — Case-insensitive dictionary key lookup, prevents mismatches between config status names and GitHub project board column names
+
+#### `config.py` — Async Configuration Persistence
+- **Async aiosqlite** for config load/persist (migrated from sync sqlite3)
+- `load_workflow_config_from_db()` / `persist_workflow_config_to_db()` — Read/write workflow JSON to `project_settings.workflow_config`
+- `get_default_workflow_config()` — Builds default config from available Copilot agents
+- `log_transition()` — Audit trail for pipeline state transitions
+- In-memory dict cache for fast reads; writes go to both cache and DB
+
+#### `transitions.py` — Pipeline State Management
+- `advance_pipeline()` / `transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes
+- `set_issue_main_branch()` / `get_issue_main_branch()` — Main branch tracking for hierarchical PR branching
+- `update_sub_issue_map()` / `get_sub_issue_number()` — Sub-issue number mappings per parent issue per agent
+- `reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart
+
+#### `orchestrator.py` — WorkflowOrchestrator Class
+- `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, manages branch refs
+- `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`)
+- `create_all_sub_issues()` — Creates one sub-issue per agent upfront when a workflow is confirmed
+- `_check_child_pr_completion()` — For `speckit.implement`, checks child PR targeting the main branch
+- **Retry-with-Backoff**: Agent assignments retry up to 3 times with exponential backoff (3s → 6s → 12s)
+- **Early Pending Flags**: Set BEFORE the GitHub API call and cleared only on failure to prevent race conditions
+- Singleton factory via `get_workflow_orchestrator()`
 
 ### Session Store (`session_store.py`)
 
@@ -178,20 +220,25 @@ Pluggable AI completion layer used by `ai_agent.py` for issue generation:
 - **`AzureOpenAICompletionProvider`** (optional) — Uses `openai` SDK (or `azure-ai-inference` fallback). Static API key from env vars. `API_VERSION = "2024-02-15-preview"`.
 - **`create_completion_provider()`** — Factory that reads `settings.ai_provider` and returns the appropriate provider instance.
 
-### GitHub Projects Service (`github_projects.py`)
+### GitHub Projects Service (`services/github_projects/`)
 
-All GitHub API interactions. Uses **Claude Opus 4.6** as the default model for Copilot agents.
+Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claude Opus 4.6** as the default model for Copilot agents.
 
-- **GraphQL**: `list_projects`, `get_project_details`, `get_project_items`, `update_item_status`, `assign_copilot_to_issue` (GraphQL-first with REST fallback, model: `claude-opus-4.6`), `merge_pull_request` (squash merge child PRs into main branch), `mark_pr_ready_for_review`, `request_copilot_review`
-- **REST**: `create_issue`, `add_issue_to_project`, `create_issue_comment`, `update_issue_body`, `get_pr_changed_files`, `get_file_content_from_ref`, `update_pr`, `request_review`, `delete_branch` (clean up child branches after merge), `close_issue` (close sub-issues as completed)
-- **Sub-Issues**: `create_sub_issue()` — Creates a sub-issue linked to a parent issue, `list_sub_issues()` — Lists all sub-issues for a parent (used for mapping reconstruction)
-- `find_existing_pr_for_issue()` — Scans open PRs to discover the first/main PR for an issue
-- `get_pull_request()` — Returns PR details including `head_ref` and `base_ref` (used to verify child PRs target the main branch)
-- `format_issue_context_as_prompt()` — Builds the prompt sent to Copilot with issue context, agent instructions, output file mappings, and existing PR branch info
+#### `service.py` — GitHubProjectsService class
+- Shared `httpx.AsyncClient` with connection pooling
+- `_request_with_retry(idempotent=True)` — Generic retry wrapper for transient failures
+- `_graphql()` — GraphQL request routing through retry logic
+- **GraphQL**: `list_projects`, `get_project_details`, `get_project_items`, `update_item_status`, `assign_copilot_to_issue` (GraphQL-first with REST fallback, model: `claude-opus-4.6`), `merge_pull_request` (squash merge child PRs), `mark_pr_ready_for_review`, `request_copilot_review`
+- **REST**: `create_issue`, `add_issue_to_project`, `create_issue_comment`, `update_issue_body`, `get_pr_changed_files`, `get_file_content_from_ref`, `update_pr`, `request_review`, `delete_branch`, `close_issue`
+- **Sub-Issues**: `create_sub_issue()`, `list_sub_issues()` (for mapping reconstruction)
+- `find_existing_pr_for_issue()`, `get_pull_request()`, `format_issue_context_as_prompt()`
+
+#### `graphql.py` — GraphQL query/mutation strings
+- All GraphQL operations extracted as named constants for readability and reuse
 
 ## Database & Migrations
 
-The backend uses **SQLite** (WAL mode) for durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`).
+The backend uses **aiosqlite** (SQLite in WAL mode) for fully async durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`). All database access uses `async`/`await` — no blocking I/O on the event loop.
 
 ### Migration System
 
@@ -204,7 +251,7 @@ Numbered SQL migration files in `src/migrations/` are executed in order at start
 
 ### Workflow Config Storage
 
-Workflow configurations are serialized as JSON and stored in the `project_settings.workflow_config` column. On startup, configs are loaded from the DB into an in-memory cache. All writes go to both cache and DB for consistency. The sync `sqlite3` module is used (not `aiosqlite`) for reliability — DB operations are simple key-value reads/writes that complete quickly.
+Workflow configurations are serialized as JSON and stored in the `project_settings.workflow_config` column. On startup, configs are loaded from the DB into an in-memory cache. All writes go to both cache and DB for consistency. Uses async aiosqlite for all operations.
 
 ## Testing
 
@@ -221,7 +268,7 @@ The test suite covers:
 - **Integration**: Custom agent assignment flow
 - **E2E**: Full API endpoint testing
 
-Total: **938 tests** across 27 test files.
+Total: **926+ tests** across 27 test files (25 unit + 1 integration + 1 E2E).
 
 ## Environment
 
