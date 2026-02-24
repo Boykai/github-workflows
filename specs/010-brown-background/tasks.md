@@ -101,7 +101,7 @@
 
 - [ ] T017 [US4] Verify all brown background references in frontend/src/index.css use the --color-bg-brown token (or derived tokens like --color-bg, --color-bg-secondary) rather than hardcoded hex values
 - [ ] T018 [P] [US4] Verify no hardcoded brown hex values exist in frontend/src/App.css or frontend/src/components/chat/ChatInterface.css — all must reference CSS custom properties
-- [ ] T019 [US4] Add a design-decision comment block at the top of the :root section in frontend/src/index.css documenting the chosen brown shade, contrast ratios, and reference to spec FR-002
+- [ ] T019 [US4] Add a design-decision comment block at the top of the :root section in frontend/src/index.css documenting the chosen brown shade, contrast ratios, and reference to specs/010-brown-background/spec.md FR-002
 
 **Checkpoint**: Brown color defined as a single design token; changing it in one place updates the entire app
 
