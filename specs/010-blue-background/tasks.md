@@ -50,7 +50,7 @@
 
 - [ ] T004 [US1] Update `:root` `--color-bg` from current value to `#2563EB` in frontend/src/index.css
 - [ ] T005 [US1] Update `:root` `--color-bg-secondary` from current value to `#1D4ED8` in frontend/src/index.css
-- [ ] T006 [US1] Add inline `background-color: #1D4ED8` style to `<body>` tag in frontend/index.html for flash prevention (FR-009)
+- [ ] T006 [US1] Add inline `background-color: #1D4ED8` style to `<body>` tag in frontend/index.html to prevent flash of non-blue background on page load
 
 **Checkpoint**: Blue background visible across all screens. Text may not yet be fully accessible — proceed to US2 for contrast adjustments.
 
@@ -218,7 +218,7 @@ With multiple developers:
 
 - [P] tasks = different files or different token groups, no dependencies
 - [Story] label maps task to specific user story for traceability
-- Tests not included — not explicitly requested in the feature specification (Constitution check IV: Test Optionality with Clarity — PASS)
+- Tests not included — not explicitly requested in the feature specification
 - This is a CSS-only feature: visual verification via browser DevTools and contrast checkers is the primary validation method
 - All color values sourced from contracts/css-tokens.md with verified WCAG AA contrast ratios
 - Commit after each task or logical group
