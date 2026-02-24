@@ -3,23 +3,12 @@
  */
 
 import { useState, useRef, useEffect, FormEvent } from 'react';
-import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult } from '@/types';
+import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
 import { MessageBubble } from './MessageBubble';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import './ChatInterface.css';
-
-interface StatusChangeProposal {
-  proposal_id: string;
-  task_id: string;
-  task_title: string;
-  current_status: string;
-  target_status: string;
-  status_option_id: string;
-  status_field_id: string;
-  status: string;
-}
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];

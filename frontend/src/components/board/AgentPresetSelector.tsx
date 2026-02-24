@@ -6,9 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import type { AgentAssignment, AgentPreset } from '@/types';
-
-const generateId = (): string =>
-  crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
+import { generateId } from '@/utils/generateId';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
   return { id: generateId(), slug, display_name: displayName };

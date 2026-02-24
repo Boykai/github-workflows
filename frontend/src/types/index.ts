@@ -183,13 +183,6 @@ export type IssueLabel =
   | 'accessibility'
   | 'ux';
 
-export const AVAILABLE_LABELS: IssueLabel[] = [
-  'feature', 'bug', 'enhancement', 'refactor', 'documentation', 'testing', 'infrastructure',
-  'frontend', 'backend', 'database', 'api',
-  'ai-generated', 'good first issue', 'help wanted',
-  'security', 'performance', 'accessibility', 'ux'
-];
-
 export interface IssueMetadata {
   priority: IssuePriority;
   size: IssueSize;
@@ -299,6 +292,19 @@ export interface PipelineStateInfo {
 
 // ============ Board Types ============
 
+// ============ Status Change Proposal ============
+
+export interface StatusChangeProposal {
+  proposal_id: string;
+  task_id: string;
+  task_title: string;
+  current_status: string;
+  target_status: string;
+  status_option_id: string;
+  status_field_id: string;
+  status: string;
+}
+
 // ============ Settings Types (006-sqlite-settings-storage) ============
 
 export type AIProviderType = 'copilot' | 'azure_openai';
@@ -306,12 +312,6 @@ export type AIProviderType = 'copilot' | 'azure_openai';
 export type ThemeModeType = 'dark' | 'light';
 
 export type DefaultViewType = 'chat' | 'board' | 'settings';
-
-export type NotificationEventType =
-  | 'task_status_change'
-  | 'agent_completion'
-  | 'new_recommendation'
-  | 'chat_mention';
 
 export interface AIPreferences {
   provider: AIProviderType;

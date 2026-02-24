@@ -5,9 +5,8 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
+import { BOARD_POLL_INTERVAL_MS, STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse } from '@/types';
-
-const POLL_INTERVAL_MS = 15000; // 15 seconds
 
 interface UseProjectBoardOptions {
   /** Externally managed selected project ID (from session) */
@@ -54,7 +53,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
   } = useQuery({
     queryKey: ['board', 'projects'],
     queryFn: () => boardApi.listProjects(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: STALE_TIME_LONG,
   });
 
   // Fetch board data for selected project with polling
@@ -71,8 +70,8 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
       return result;
     },
     enabled: !!selectedProjectId,
-    staleTime: 10000, // 10 seconds
-    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: STALE_TIME_SHORT,
+    refetchInterval: BOARD_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
   });
 

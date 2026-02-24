@@ -4,8 +4,8 @@
  * Four toggle switches for per-event notification control.
  */
 
-import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { useSettingsForm } from '@/hooks/useSettingsForm';
 import type {
   NotificationPreferences as NotificationPreferencesType,
   UserPreferencesUpdate,
@@ -17,36 +17,15 @@ interface NotificationPreferencesProps {
 }
 
 export function NotificationPreferences({ settings, onSave }: NotificationPreferencesProps) {
-  const [taskStatusChange, setTaskStatusChange] = useState(settings.task_status_change);
-  const [agentCompletion, setAgentCompletion] = useState(settings.agent_completion);
-  const [newRecommendation, setNewRecommendation] = useState(settings.new_recommendation);
-  const [chatMention, setChatMention] = useState(settings.chat_mention);
-
-  useEffect(() => {
-    setTaskStatusChange(settings.task_status_change);
-    setAgentCompletion(settings.agent_completion);
-    setNewRecommendation(settings.new_recommendation);
-    setChatMention(settings.chat_mention);
-  }, [
-    settings.task_status_change,
-    settings.agent_completion,
-    settings.new_recommendation,
-    settings.chat_mention,
-  ]);
-
-  const isDirty =
-    taskStatusChange !== settings.task_status_change ||
-    agentCompletion !== settings.agent_completion ||
-    newRecommendation !== settings.new_recommendation ||
-    chatMention !== settings.chat_mention;
+  const { localState, setField, isDirty } = useSettingsForm(settings);
 
   const handleSave = async () => {
     await onSave({
       notifications: {
-        task_status_change: taskStatusChange,
-        agent_completion: agentCompletion,
-        new_recommendation: newRecommendation,
-        chat_mention: chatMention,
+        task_status_change: localState.task_status_change,
+        agent_completion: localState.agent_completion,
+        new_recommendation: localState.new_recommendation,
+        chat_mention: localState.chat_mention,
       },
     });
   };
@@ -62,8 +41,8 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         <label>
           <input
             type="checkbox"
-            checked={taskStatusChange}
-            onChange={(e) => setTaskStatusChange(e.target.checked)}
+            checked={localState.task_status_change}
+            onChange={(e) => setField('task_status_change', e.target.checked)}
           />
           Task status changes
         </label>
@@ -73,8 +52,8 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         <label>
           <input
             type="checkbox"
-            checked={agentCompletion}
-            onChange={(e) => setAgentCompletion(e.target.checked)}
+            checked={localState.agent_completion}
+            onChange={(e) => setField('agent_completion', e.target.checked)}
           />
           Agent completion
         </label>
@@ -84,8 +63,8 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         <label>
           <input
             type="checkbox"
-            checked={newRecommendation}
-            onChange={(e) => setNewRecommendation(e.target.checked)}
+            checked={localState.new_recommendation}
+            onChange={(e) => setField('new_recommendation', e.target.checked)}
           />
           New recommendations
         </label>
@@ -95,8 +74,8 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         <label>
           <input
             type="checkbox"
-            checked={chatMention}
-            onChange={(e) => setChatMention(e.target.checked)}
+            checked={localState.chat_mention}
+            onChange={(e) => setField('chat_mention', e.target.checked)}
           />
           Chat mentions
         </label>

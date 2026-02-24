@@ -7,6 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi } from '@/services/api';
+import { STALE_TIME_LONG } from '@/constants';
 import type {
   EffectiveUserSettings,
   UserPreferencesUpdate,
@@ -33,7 +34,7 @@ export function useUserSettings() {
   const query = useQuery<EffectiveUserSettings>({
     queryKey: settingsKeys.user(),
     queryFn: settingsApi.getUserSettings,
-    staleTime: 5 * 60 * 1000, // 5 min
+    staleTime: STALE_TIME_LONG,
   });
 
   const mutation = useMutation({
@@ -61,7 +62,7 @@ export function useGlobalSettings() {
   const query = useQuery<GlobalSettings>({
     queryKey: settingsKeys.global(),
     queryFn: settingsApi.getGlobalSettings,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_LONG,
   });
 
   const mutation = useMutation({
@@ -92,7 +93,7 @@ export function useProjectSettings(projectId: string | undefined) {
     queryKey: settingsKeys.project(projectId ?? ''),
     queryFn: () => settingsApi.getProjectSettings(projectId!),
     enabled: !!projectId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_LONG,
   });
 
   const mutation = useMutation({

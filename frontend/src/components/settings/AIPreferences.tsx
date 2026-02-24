@@ -4,8 +4,8 @@
  * Allows user to configure AI provider, model, and temperature.
  */
 
-import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { useSettingsForm } from '@/hooks/useSettingsForm';
 import type {
   AIPreferences as AIPreferencesType,
   AIProviderType,
@@ -18,25 +18,11 @@ interface AIPreferencesProps {
 }
 
 export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
-  const [provider, setProvider] = useState<AIProviderType>(settings.provider);
-  const [model, setModel] = useState(settings.model);
-  const [temperature, setTemperature] = useState(settings.temperature);
-
-  // Sync local state when settings change externally
-  useEffect(() => {
-    setProvider(settings.provider);
-    setModel(settings.model);
-    setTemperature(settings.temperature);
-  }, [settings.provider, settings.model, settings.temperature]);
-
-  const isDirty =
-    provider !== settings.provider ||
-    model !== settings.model ||
-    temperature !== settings.temperature;
+  const { localState, setField, isDirty } = useSettingsForm(settings);
 
   const handleSave = async () => {
     await onSave({
-      ai: { provider, model, temperature },
+      ai: { provider: localState.provider, model: localState.model, temperature: localState.temperature },
     });
   };
 
@@ -51,8 +37,8 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         <label htmlFor="ai-provider">Provider</label>
         <select
           id="ai-provider"
-          value={provider}
-          onChange={(e) => setProvider(e.target.value as AIProviderType)}
+          value={localState.provider}
+          onChange={(e) => setField('provider', e.target.value as AIProviderType)}
         >
           <option value="copilot">GitHub Copilot</option>
           <option value="azure_openai">Azure OpenAI</option>
@@ -64,15 +50,15 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         <input
           id="ai-model"
           type="text"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
+          value={localState.model}
+          onChange={(e) => setField('model', e.target.value)}
           placeholder="e.g. gpt-4o"
         />
       </div>
 
       <div className="settings-field">
         <label htmlFor="ai-temperature">
-          Temperature: {temperature.toFixed(1)}
+          Temperature: {localState.temperature.toFixed(1)}
         </label>
         <input
           id="ai-temperature"
@@ -80,8 +66,8 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
           min="0"
           max="2"
           step="0.1"
-          value={temperature}
-          onChange={(e) => setTemperature(parseFloat(e.target.value))}
+          value={localState.temperature}
+          onChange={(e) => setField('temperature', parseFloat(e.target.value))}
         />
         <div className="settings-range-labels">
           <span>Precise (0)</span>

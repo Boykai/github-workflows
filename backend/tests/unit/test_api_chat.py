@@ -245,8 +245,8 @@ class TestConfirmProposal:
 
         # Patch workflow functions to avoid side effects
         with (
-            patch("src.api.chat.get_workflow_config", return_value=None),
-            patch("src.api.chat.set_workflow_config"),
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
             patch("src.api.chat.get_agent_slugs", return_value=[]),
         ):
@@ -349,11 +349,9 @@ class TestResolveRepository:
             access_token="t",
             selected_project_id="PVT_1",
         )
-        with patch(
-            "src.api.chat.github_projects_service.get_project_repository",
-            new_callable=AsyncMock,
-            return_value=("owner", "repo"),
-        ):
+        mock_svc = AsyncMock()
+        mock_svc.get_project_repository.return_value = ("owner", "repo")
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
             result = await _resolve_repository(session)
         assert result == ("owner", "repo")
 
@@ -366,14 +364,16 @@ class TestResolveRepository:
             access_token="t",
             selected_project_id="PVT_1",
         )
+        mock_svc = AsyncMock()
+        mock_svc.get_project_repository.return_value = None
         mock_config = MagicMock(repository_owner="wf_owner", repository_name="wf_repo")
         with (
+            patch("src.services.github_projects.github_projects_service", mock_svc),
             patch(
-                "src.api.chat.github_projects_service.get_project_repository",
+                "src.services.workflow_orchestrator.get_workflow_config",
                 new_callable=AsyncMock,
-                return_value=None,
+                return_value=mock_config,
             ),
-            patch("src.api.chat.get_workflow_config", return_value=mock_config),
         ):
             result = await _resolve_repository(session)
         assert result == ("wf_owner", "wf_repo")
@@ -387,13 +387,15 @@ class TestResolveRepository:
             access_token="t",
             selected_project_id="PVT_1",
         )
+        mock_svc = AsyncMock()
+        mock_svc.get_project_repository.return_value = None
         with (
+            patch("src.services.github_projects.github_projects_service", mock_svc),
             patch(
-                "src.api.chat.github_projects_service.get_project_repository",
+                "src.services.workflow_orchestrator.get_workflow_config",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
-            patch("src.api.chat.get_workflow_config", return_value=None),
             patch("src.config.get_settings") as mock_s,
         ):
             mock_s.return_value = MagicMock(
@@ -412,13 +414,15 @@ class TestResolveRepository:
             access_token="t",
             selected_project_id="PVT_1",
         )
+        mock_svc = AsyncMock()
+        mock_svc.get_project_repository.return_value = None
         with (
+            patch("src.services.github_projects.github_projects_service", mock_svc),
             patch(
-                "src.api.chat.github_projects_service.get_project_repository",
+                "src.services.workflow_orchestrator.get_workflow_config",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
-            patch("src.api.chat.get_workflow_config", return_value=None),
             patch("src.config.get_settings") as mock_s,
         ):
             mock_s.return_value = MagicMock(default_repo_owner=None, default_repo_name=None)
@@ -465,13 +469,14 @@ class TestConfirmProposalEdgeCases:
 
     async def test_confirm_expired_proposal(self, client, mock_session):
         """Expired proposal → 422 with expiration message."""
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
         import src.api.chat as chat_mod
+        from src.utils import utcnow
 
         proposal = _proposal(mock_session.session_id)
         # Force expiration by setting expires_at in the past
-        proposal.expires_at = datetime.utcnow() - timedelta(hours=1)
+        proposal.expires_at = utcnow() - timedelta(hours=1)
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
 
         mock_session.selected_project_id = "PVT_1"
@@ -501,8 +506,8 @@ class TestConfirmProposalEdgeCases:
         mock_github_service.add_issue_to_project.return_value = "PVTI_20"
 
         with (
-            patch("src.api.chat.get_workflow_config", return_value=None),
-            patch("src.api.chat.set_workflow_config"),
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
             patch("src.api.chat.get_agent_slugs", return_value=[]),
         ):
@@ -538,8 +543,8 @@ class TestConfirmProposalEdgeCases:
         mock_github_service.add_issue_to_project.return_value = "PVTI_21"
 
         with (
-            patch("src.api.chat.get_workflow_config", return_value=None),
-            patch("src.api.chat.set_workflow_config"),
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
             patch("src.api.chat.get_agent_slugs", return_value=[]),
         ):

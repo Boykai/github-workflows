@@ -190,6 +190,8 @@ async def client(
         patch("src.api.projects.github_projects_service", mock_github_service),
         patch("src.api.tasks.github_projects_service", mock_github_service),
         patch("src.api.workflow.github_projects_service", mock_github_service),
+        # resolve_repository (src.utils) lazy-imports github_projects_service
+        patch("src.services.github_projects.github_projects_service", mock_github_service),
         # github_auth_service — patched where imported
         patch("src.api.auth.github_auth_service", mock_github_auth_service),
         patch("src.api.projects.github_auth_service", mock_github_auth_service),

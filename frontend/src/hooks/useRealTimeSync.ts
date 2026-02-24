@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS, WS_RECONNECT_DELAY_MS } from '@/constants';
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 
@@ -57,7 +58,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
     pollingIntervalRef.current = window.setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       setLastUpdate(new Date());
-    }, 5000); // Poll every 5 seconds
+    }, WS_FALLBACK_POLL_MS);
   }, [projectId, queryClient]);
 
   const stopPolling = useCallback(() => {
@@ -93,7 +94,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
           // Fall back to polling after timeout
           startPolling();
         }
-      }, 5000);
+      }, WS_CONNECTION_TIMEOUT_MS);
 
       ws.onopen = () => {
         clearTimeout(connectionTimeout);
@@ -122,7 +123,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
             if (projectId) {
               connect();
             }
-          }, 5000);
+          }, WS_RECONNECT_DELAY_MS);
         } else {
           // After max attempts, stay in polling mode
           startPolling();

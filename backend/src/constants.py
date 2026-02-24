@@ -91,3 +91,35 @@ def cache_key_agent_output(issue_number: int, agent: str, pr_number: int) -> str
 def cache_key_review_requested(issue_number: int) -> str:
     """Generate cache key for Copilot review request tracking."""
     return f"copilot_review_requested:{issue_number}"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Issue Labels  (single source of truth)
+# ──────────────────────────────────────────────────────────────────────────────
+# Canonical list of allowed issue labels.  IssueLabel enum in models/chat.py
+# is derived from this list — do NOT duplicate or redefine these values.
+
+LABELS: list[str] = [
+    # Type labels (pick ONE primary type)
+    "feature",
+    "bug",
+    "enhancement",
+    "refactor",
+    "documentation",
+    "testing",
+    "infrastructure",
+    # Scope labels (pick all that apply)
+    "frontend",
+    "backend",
+    "database",
+    "api",
+    # Status labels
+    "ai-generated",
+    "good first issue",
+    "help wanted",
+    # Domain labels
+    "security",
+    "performance",
+    "accessibility",
+    "ux",
+]

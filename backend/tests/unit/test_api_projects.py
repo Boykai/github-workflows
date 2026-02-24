@@ -235,7 +235,9 @@ class TestStartCopilotPolling:
                 "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
             ),
             patch("src.services.copilot_polling._polling_task", None),
-            patch("src.api.workflow.get_workflow_config", return_value=config),
+            patch(
+                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=config
+            ),
         ):
             await _start_copilot_polling(session, "proj-1")
 
@@ -252,7 +254,9 @@ class TestStartCopilotPolling:
                 "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
             ),
             patch("src.services.copilot_polling._polling_task", None),
-            patch("src.api.workflow.get_workflow_config", return_value=None),
+            patch(
+                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=None
+            ),
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_repo_owner="s-owner", default_repo_name="s-repo")
@@ -270,7 +274,9 @@ class TestStartCopilotPolling:
             patch(
                 "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
             ) as mock_poll,
-            patch("src.api.workflow.get_workflow_config", return_value=None),
+            patch(
+                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=None
+            ),
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")

@@ -4,8 +4,8 @@
  * Allows user to configure theme, default view, and sidebar state.
  */
 
-import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { useSettingsForm } from '@/hooks/useSettingsForm';
 import type {
   DisplayPreferences as DisplayPreferencesType,
   ThemeModeType,
@@ -19,24 +19,11 @@ interface DisplayPreferencesProps {
 }
 
 export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps) {
-  const [theme, setTheme] = useState<ThemeModeType>(settings.theme);
-  const [defaultView, setDefaultView] = useState<DefaultViewType>(settings.default_view);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(settings.sidebar_collapsed);
-
-  useEffect(() => {
-    setTheme(settings.theme);
-    setDefaultView(settings.default_view);
-    setSidebarCollapsed(settings.sidebar_collapsed);
-  }, [settings.theme, settings.default_view, settings.sidebar_collapsed]);
-
-  const isDirty =
-    theme !== settings.theme ||
-    defaultView !== settings.default_view ||
-    sidebarCollapsed !== settings.sidebar_collapsed;
+  const { localState, setField, isDirty } = useSettingsForm(settings);
 
   const handleSave = async () => {
     await onSave({
-      display: { theme, default_view: defaultView, sidebar_collapsed: sidebarCollapsed },
+      display: { theme: localState.theme, default_view: localState.default_view, sidebar_collapsed: localState.sidebar_collapsed },
     });
   };
 
@@ -51,8 +38,8 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label htmlFor="display-theme">Theme</label>
         <select
           id="display-theme"
-          value={theme}
-          onChange={(e) => setTheme(e.target.value as ThemeModeType)}
+          value={localState.theme}
+          onChange={(e) => setField('theme', e.target.value as ThemeModeType)}
         >
           <option value="light">Light</option>
           <option value="dark">Dark</option>
@@ -63,8 +50,8 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label htmlFor="display-view">Default View</label>
         <select
           id="display-view"
-          value={defaultView}
-          onChange={(e) => setDefaultView(e.target.value as DefaultViewType)}
+          value={localState.default_view}
+          onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}
         >
           <option value="chat">Chat</option>
           <option value="board">Board</option>
@@ -76,8 +63,8 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label>
           <input
             type="checkbox"
-            checked={sidebarCollapsed}
-            onChange={(e) => setSidebarCollapsed(e.target.checked)}
+            checked={localState.sidebar_collapsed}
+            onChange={(e) => setField('sidebar_collapsed', e.target.checked)}
           />
           Sidebar collapsed by default
         </label>

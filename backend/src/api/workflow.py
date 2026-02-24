@@ -1,6 +1,5 @@
 """Workflow API endpoints for issue creation and management."""
 
-import asyncio
 import hashlib
 import logging
 from datetime import datetime, timedelta
@@ -11,14 +10,14 @@ from fastapi import APIRouter, Depends, Query
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import NotFoundError, ValidationError
-from src.models.chat import (
-    AvailableAgentsResponse,
-    RecommendationStatus,
+from src.models.agent import AvailableAgentsResponse
+from src.models.recommendation import RecommendationStatus
+from src.models.user import UserSession
+from src.models.workflow import (
     WorkflowConfiguration,
     WorkflowResult,
     WorkflowTransition,
 )
-from src.models.user import UserSession
 from src.services.cache import cache, get_user_projects_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -33,6 +32,7 @@ from src.services.workflow_orchestrator import (
     set_pipeline_state,
     set_workflow_config,
 )
+from src.utils import resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/workflow", tags=["Workflow"])
@@ -55,7 +55,7 @@ def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
         True if duplicate detected
     """
     # Clean old entries
-    now = datetime.utcnow()
+    now = utcnow()
     cutoff = now - timedelta(minutes=DUPLICATE_WINDOW_MINUTES)
     expired = [k for k, (ts, _) in _recent_requests.items() if ts < cutoff]
     for k in expired:
@@ -143,38 +143,8 @@ async def confirm_recommendation(
     if not session.selected_project_id:
         raise ValidationError("Please select a project first")
 
-    # Get repository info - first try from project items
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        session.selected_project_id,
-    )
-
-    if repo_info:
-        owner, repo = repo_info
-    else:
-        # Fall back to workflow config if already set
-        config = get_workflow_config(session.selected_project_id)
-        if config and config.repository_owner and config.repository_name:
-            owner, repo = config.repository_owner, config.repository_name
-        else:
-            # Fall back to default repository from settings
-            from src.config import get_settings
-
-            settings = get_settings()
-            if settings.default_repo_owner and settings.default_repo_name:
-                owner, repo = settings.default_repo_owner, settings.default_repo_name
-                logger.info("Using default repository from settings: %s/%s", owner, repo)
-            else:
-                # Fall back to parsing from project URL or username
-                owner, repo = _get_repository_info(session)
-                if not owner:
-                    owner = session.github_username or ""
-                if not repo:
-                    # If no repo found, we can't create issues
-                    raise ValidationError(
-                        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
-                        "or ensure the project has at least one linked issue."
-                    )
+    # Resolve repository info using shared 3-step fallback
+    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
     logger.info("Using repository %s/%s for issue creation", owner, repo)
 
@@ -184,7 +154,7 @@ async def confirm_recommendation(
     settings = get_settings()
 
     # Get or create workflow config
-    config = get_workflow_config(session.selected_project_id)
+    config = await get_workflow_config(session.selected_project_id)
     if not config:
         config = WorkflowConfiguration(
             project_id=session.selected_project_id,
@@ -192,10 +162,9 @@ async def confirm_recommendation(
             repository_name=repo,
             copilot_assignee=settings.default_assignee,
         )
-        set_workflow_config(
+        await set_workflow_config(
             session.selected_project_id,
             config,
-            github_user_id=session.github_user_id,
         )
     else:
         # Update config with discovered repository
@@ -224,7 +193,7 @@ async def confirm_recommendation(
         if result.success:
             # Update recommendation status
             recommendation.status = RecommendationStatus.CONFIRMED
-            recommendation.confirmed_at = datetime.utcnow()
+            recommendation.confirmed_at = utcnow()
 
             # Broadcast WebSocket notification for issue creation
             await connection_manager.broadcast_to_project(
@@ -250,7 +219,7 @@ async def confirm_recommendation(
                         "agent_name": backlog_slugs[0],
                         "status": "Backlog",
                         "next_agent": (backlog_slugs[1] if len(backlog_slugs) > 1 else None),
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": utcnow().isoformat(),
                     },
                 )
 
@@ -260,31 +229,15 @@ async def confirm_recommendation(
             )
 
             # Ensure Copilot polling is running so the pipeline advances
-            try:
-                import src.services.copilot_polling as _cp_module
-                from src.services.copilot_polling import (
-                    get_polling_status,
-                    poll_for_copilot_completion,
-                )
+            from src.services.copilot_polling import ensure_polling_started
 
-                polling_status = get_polling_status()
-                if not polling_status["is_running"]:
-                    task = asyncio.create_task(
-                        poll_for_copilot_completion(
-                            access_token=session.access_token,
-                            project_id=session.selected_project_id,
-                            owner=owner,
-                            repo=repo,
-                            interval_seconds=15,
-                        )
-                    )
-                    _cp_module._polling_task = task
-                    logger.info(
-                        "Auto-started Copilot polling from confirm_recommendation for project %s",
-                        session.selected_project_id,
-                    )
-            except Exception as poll_err:
-                logger.warning("Failed to start polling after workflow: %s", poll_err)
+            await ensure_polling_started(
+                access_token=session.access_token,
+                project_id=session.selected_project_id,
+                owner=owner,
+                repo=repo,
+                caller="confirm_recommendation",
+            )
 
         return result
 
@@ -355,7 +308,7 @@ async def retry_pipeline(
         return {"message": "No pending agent to retry", "issue_number": issue_number}
 
     # Get config and build context
-    config = get_workflow_config(state.project_id)
+    config = await get_workflow_config(state.project_id)
     if not config:
         raise ValidationError("No workflow configuration found for this project")
 
@@ -471,7 +424,7 @@ async def get_config(
     if not session.selected_project_id:
         raise NotFoundError("No project selected")
 
-    config = get_workflow_config(session.selected_project_id)
+    config = await get_workflow_config(session.selected_project_id)
     if not config:
         # Return default config
         owner, repo = _get_repository_info(session)
@@ -498,10 +451,9 @@ async def update_config(
     # Ensure project_id matches
     config_update.project_id = session.selected_project_id
 
-    set_workflow_config(
+    await set_workflow_config(
         session.selected_project_id,
         config_update,
-        github_user_id=session.github_user_id,
     )
     logger.info("Updated workflow config for project %s", session.selected_project_id)
 
@@ -528,7 +480,7 @@ async def list_agents(
     resolved_repo = repo
 
     if not resolved_owner or not resolved_repo:
-        config = get_workflow_config(session.selected_project_id)
+        config = await get_workflow_config(session.selected_project_id)
         if config:
             resolved_owner = resolved_owner or config.repository_owner
             resolved_repo = resolved_repo or config.repository_name
@@ -703,7 +655,7 @@ async def check_issue_copilot_completion(
     )
 
     if not repo_info:
-        config = get_workflow_config(session.selected_project_id)
+        config = await get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
@@ -761,7 +713,6 @@ async def start_copilot_polling(
 
     from src.services.copilot_polling import (
         get_polling_status,
-        poll_for_copilot_completion,
     )
 
     status = get_polling_status()
@@ -775,7 +726,7 @@ async def start_copilot_polling(
     )
 
     if not repo_info:
-        config = get_workflow_config(session.selected_project_id)
+        config = await get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:
@@ -789,21 +740,16 @@ async def start_copilot_polling(
 
     owner, repo = repo_info
 
-    # Start polling as background task
-    import asyncio
+    from src.services.copilot_polling import ensure_polling_started
 
-    import src.services.copilot_polling as _cp_module
-
-    task = asyncio.create_task(
-        poll_for_copilot_completion(
-            access_token=session.access_token,
-            project_id=session.selected_project_id,
-            owner=owner,
-            repo=repo,
-            interval_seconds=interval_seconds,
-        )
+    await ensure_polling_started(
+        access_token=session.access_token,
+        project_id=session.selected_project_id,
+        owner=owner,
+        repo=repo,
+        interval_seconds=interval_seconds,
+        caller="start_polling_endpoint",
     )
-    _cp_module._polling_task = task
 
     logger.info(
         "Started Copilot PR polling for project %s (interval: %ds)",
@@ -856,7 +802,7 @@ async def check_all_in_progress_issues(
     )
 
     if not repo_info:
-        config = get_workflow_config(session.selected_project_id)
+        config = await get_workflow_config(session.selected_project_id)
         if config and config.repository_owner and config.repository_name:
             repo_info = (config.repository_owner, config.repository_name)
         else:

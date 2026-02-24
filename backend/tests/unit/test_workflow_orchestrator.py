@@ -1,6 +1,5 @@
 """Unit tests for Workflow Orchestrator - Agent mapping assignment."""
 
-from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
@@ -35,6 +34,7 @@ from src.services.workflow_orchestrator import (
     set_workflow_config,
     update_issue_main_branch_sha,
 )
+from src.utils import utcnow
 
 
 class TestHandleReadyStatusWithAgentMappings:
@@ -299,7 +299,11 @@ class TestHandleReadyStatusWithAgentMappings:
         workflow_context.config = None
 
         # Clear any global config
-        with patch("src.services.workflow_orchestrator.get_workflow_config", return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orchestrator.handle_ready_status(workflow_context)
 
         assert result is False
@@ -626,14 +630,16 @@ class TestWorkflowConfigManagement:
 
         _workflow_configs.clear()
 
-    def test_get_workflow_config_returns_none_for_unknown(self):
+    @pytest.mark.asyncio
+    async def test_get_workflow_config_returns_none_for_unknown(self):
         """Should return None for unknown project ID."""
         from src.services.workflow_orchestrator import get_workflow_config
 
-        result = get_workflow_config("unknown_project")
+        result = await get_workflow_config("unknown_project")
         assert result is None
 
-    def test_set_and_get_workflow_config(self):
+    @pytest.mark.asyncio
+    async def test_set_and_get_workflow_config(self):
         """Should store and retrieve workflow config."""
         from src.services.workflow_orchestrator import (
             get_workflow_config,
@@ -646,8 +652,8 @@ class TestWorkflowConfigManagement:
             repository_name="repo",
         )
 
-        set_workflow_config("PVT_123", config)
-        result = get_workflow_config("PVT_123")
+        await set_workflow_config("PVT_123", config)
+        result = await get_workflow_config("PVT_123")
 
         assert result is not None
         assert result.project_id == "PVT_123"
@@ -1482,7 +1488,11 @@ class TestTransitionToReady:
             access_token="tok",
             project_item_id="ITEM_1",
         )
-        with patch("src.services.workflow_orchestrator.get_workflow_config", return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orch.transition_to_ready(ctx)
         assert result is False
 
@@ -1543,7 +1553,11 @@ class TestAssignAgentGuardClauses:
             issue_id="I_1",
             issue_number=1,
         )
-        with patch("src.services.workflow_orchestrator.get_workflow_config", return_value=None):
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             result = await orch.assign_agent_for_status(ctx, "Ready")
         assert result is False
 
@@ -1657,25 +1671,32 @@ class TestGetWorkflowConfigWithDB:
     def teardown_method(self):
         _workflow_configs.clear()
 
-    def test_returns_cached_config(self):
+    @pytest.mark.asyncio
+    async def test_returns_cached_config(self):
         cfg = WorkflowConfiguration(project_id="P1", repository_owner="o", repository_name="r")
         _workflow_configs["P1"] = cfg
-        assert get_workflow_config("P1") is cfg
+        assert await get_workflow_config("P1") is cfg
 
-    def test_loads_from_db_and_caches(self):
+    @pytest.mark.asyncio
+    async def test_loads_from_db_and_caches(self):
         cfg = WorkflowConfiguration(project_id="P1", repository_owner="o", repository_name="r")
         with patch(
-            "src.services.workflow_orchestrator._load_workflow_config_from_db", return_value=cfg
+            "src.services.workflow_orchestrator.config._load_workflow_config_from_db",
+            new_callable=AsyncMock,
+            return_value=cfg,
         ):
-            result = get_workflow_config("P1")
+            result = await get_workflow_config("P1")
         assert result is cfg
         assert _workflow_configs["P1"] is cfg
 
-    def test_db_returns_none(self):
+    @pytest.mark.asyncio
+    async def test_db_returns_none(self):
         with patch(
-            "src.services.workflow_orchestrator._load_workflow_config_from_db", return_value=None
+            "src.services.workflow_orchestrator.config._load_workflow_config_from_db",
+            new_callable=AsyncMock,
+            return_value=None,
         ):
-            result = get_workflow_config("MISSING")
+            result = await get_workflow_config("MISSING")
         assert result is None
         assert "MISSING" not in _workflow_configs
 
@@ -1689,14 +1710,16 @@ class TestSetWorkflowConfig:
     def teardown_method(self):
         _workflow_configs.clear()
 
-    def test_updates_cache_and_persists(self):
+    @pytest.mark.asyncio
+    async def test_updates_cache_and_persists(self):
         cfg = WorkflowConfiguration(project_id="P1", repository_owner="o", repository_name="r")
         with patch(
-            "src.services.workflow_orchestrator._persist_workflow_config_to_db"
+            "src.services.workflow_orchestrator.config._persist_workflow_config_to_db",
+            new_callable=AsyncMock,
         ) as mock_persist:
-            set_workflow_config("P1", cfg, "user123")
+            await set_workflow_config("P1", cfg)
         assert _workflow_configs["P1"] is cfg
-        mock_persist.assert_called_once_with("P1", cfg, "user123")
+        mock_persist.assert_called_once_with("P1", cfg)
 
 
 class TestFormatIssueBodyTechnicalNotes:
@@ -1822,7 +1845,12 @@ class TestHandleInProgressStatus:
     async def test_no_config_returns_false(self):
         orch = _make_orch()
         ctx = _make_ctx(config=None)
-        result = await orch.handle_in_progress_status(ctx)
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.handle_in_progress_status(ctx)
         assert result is False
 
     @pytest.mark.asyncio
@@ -1957,7 +1985,12 @@ class TestHandleCompletion:
     @pytest.mark.asyncio
     async def test_no_config_returns_false(self):
         orch = _make_orch()
-        result = await orch.handle_completion(_make_ctx(config=None))
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.handle_completion(_make_ctx(config=None))
         assert result is False
 
     @pytest.mark.asyncio
@@ -2022,7 +2055,12 @@ class TestCreateAllSubIssues:
     async def test_no_config_returns_empty(self):
         orch = _make_orch()
         ctx = _make_ctx(config=None)
-        result = await orch.create_all_sub_issues(ctx)
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.create_all_sub_issues(ctx)
         assert result == {}
 
     @pytest.mark.asyncio
@@ -2160,7 +2198,7 @@ class TestExecuteFullWorkflow:
                 "In Progress": [AgentAssignment(slug="speckit.implement")],
             }
         )
-        set_workflow_config("P1", cfg)
+        await set_workflow_config("P1", cfg)
         ctx = _make_ctx(config=cfg)
         rec = self._make_rec()
 
@@ -2184,7 +2222,7 @@ class TestExecuteFullWorkflow:
                 "In Progress": [AgentAssignment(slug="speckit.implement")],
             }
         )
-        set_workflow_config("P1", cfg)
+        await set_workflow_config("P1", cfg)
         ctx = _make_ctx(config=cfg)
         rec = self._make_rec()
 
@@ -2203,7 +2241,7 @@ class TestExecuteFullWorkflow:
     async def test_sub_issues_stored_in_pipeline_state(self):
         orch = _make_orch()
         cfg = _make_config()
-        set_workflow_config("P1", cfg)
+        await set_workflow_config("P1", cfg)
         ctx = _make_ctx(config=cfg)
         rec = self._make_rec()
 
@@ -2384,7 +2422,7 @@ class TestAssignAgentInnerPaths:
         cfg = _make_config(agent_mappings={"Backlog": [AgentAssignment(slug="myagent")]})
         ctx = _make_ctx(config=cfg)
         pending_key = f"{ctx.issue_number}:myagent"
-        _pending_agent_assignments[pending_key] = datetime.utcnow()
+        _pending_agent_assignments[pending_key] = utcnow()
 
         orch.github.find_existing_pr_for_issue = AsyncMock(return_value=None)
         orch.github.get_issue_with_comments = AsyncMock(return_value={"body": "b"})
@@ -2462,14 +2500,16 @@ class TestAssignAgentInnerPaths:
 class TestWorkflowConfigDb:
     """Tests for DB-backed workflow config persistence."""
 
-    def test_load_from_db_settings_error_returns_none(self):
+    @pytest.mark.asyncio
+    async def test_load_from_db_settings_error_returns_none(self):
         from src.services.workflow_orchestrator import _load_workflow_config_from_db
 
         with patch("src.config.get_settings", side_effect=Exception("oops")):
-            result = _load_workflow_config_from_db("P1")
+            result = await _load_workflow_config_from_db("P1")
         assert result is None
 
-    def test_load_from_db_workflow_config_column(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_load_from_db_workflow_config_column(self, tmp_path):
         import json
         import sqlite3
 
@@ -2478,7 +2518,7 @@ class TestWorkflowConfigDb:
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
         conn.execute(
-            "CREATE TABLE project_settings (project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
+            "CREATE TABLE project_settings (github_user_id TEXT, project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
         )
         cfg_data = {
             "project_id": "P1",
@@ -2487,8 +2527,8 @@ class TestWorkflowConfigDb:
             "agent_mappings": {},
         }
         conn.execute(
-            "INSERT INTO project_settings (project_id, workflow_config) VALUES (?, ?)",
-            ("P1", json.dumps(cfg_data)),
+            "INSERT INTO project_settings (github_user_id, project_id, workflow_config) VALUES (?, ?, ?)",
+            ("__workflow__", "P1", json.dumps(cfg_data)),
         )
         conn.commit()
         conn.close()
@@ -2496,11 +2536,12 @@ class TestWorkflowConfigDb:
         mock_settings = Mock()
         mock_settings.database_path = str(db)
         with patch("src.config.get_settings", return_value=mock_settings):
-            result = _load_workflow_config_from_db("P1")
+            result = await _load_workflow_config_from_db("P1")
         assert result is not None
         assert result.project_id == "P1"
 
-    def test_load_from_db_fallback_to_agent_pipeline_mappings(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_load_from_db_fallback_to_agent_pipeline_mappings(self, tmp_path):
         import json
         import sqlite3
 
@@ -2522,11 +2563,12 @@ class TestWorkflowConfigDb:
         mock_settings = Mock()
         mock_settings.database_path = str(db)
         with patch("src.config.get_settings", return_value=mock_settings):
-            result = _load_workflow_config_from_db("P1")
+            result = await _load_workflow_config_from_db("P1")
         assert result is not None
         assert "Backlog" in result.agent_mappings
 
-    def test_load_from_db_no_row_returns_none(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_load_from_db_no_row_returns_none(self, tmp_path):
         import sqlite3
 
         from src.services.workflow_orchestrator import _load_workflow_config_from_db
@@ -2534,7 +2576,7 @@ class TestWorkflowConfigDb:
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
         conn.execute(
-            "CREATE TABLE project_settings (project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
+            "CREATE TABLE project_settings (github_user_id TEXT, project_id TEXT, workflow_config TEXT, agent_pipeline_mappings TEXT)"
         )
         conn.commit()
         conn.close()
@@ -2542,10 +2584,11 @@ class TestWorkflowConfigDb:
         mock_settings = Mock()
         mock_settings.database_path = str(db)
         with patch("src.config.get_settings", return_value=mock_settings):
-            result = _load_workflow_config_from_db("P1")
+            result = await _load_workflow_config_from_db("P1")
         assert result is None
 
-    def test_persist_insert(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_persist_insert(self, tmp_path):
         import sqlite3
 
         from src.services.workflow_orchestrator import _persist_workflow_config_to_db
@@ -2562,14 +2605,15 @@ class TestWorkflowConfigDb:
         mock_settings = Mock()
         mock_settings.database_path = str(db)
         with patch("src.config.get_settings", return_value=mock_settings):
-            _persist_workflow_config_to_db("P1", cfg)
+            await _persist_workflow_config_to_db("P1", cfg)
 
         conn = sqlite3.connect(str(db))
         row = conn.execute("SELECT * FROM project_settings WHERE project_id = 'P1'").fetchone()
         conn.close()
         assert row is not None
 
-    def test_persist_update(self, tmp_path):
+    @pytest.mark.asyncio
+    async def test_persist_update(self, tmp_path):
         import sqlite3
 
         from src.services.workflow_orchestrator import _persist_workflow_config_to_db
@@ -2589,7 +2633,7 @@ class TestWorkflowConfigDb:
         mock_settings = Mock()
         mock_settings.database_path = str(db)
         with patch("src.config.get_settings", return_value=mock_settings):
-            _persist_workflow_config_to_db("P1", cfg)
+            await _persist_workflow_config_to_db("P1", cfg)
 
         conn = sqlite3.connect(str(db))
         row = conn.execute(
@@ -2598,13 +2642,14 @@ class TestWorkflowConfigDb:
         conn.close()
         assert row[0] is not None
 
-    def test_persist_settings_error_silent(self):
+    @pytest.mark.asyncio
+    async def test_persist_settings_error_silent(self):
         from src.services.workflow_orchestrator import _persist_workflow_config_to_db
 
         cfg = _make_config()
         with patch("src.config.get_settings", side_effect=Exception("nope")):
             # Should not raise
-            _persist_workflow_config_to_db("P1", cfg)
+            await _persist_workflow_config_to_db("P1", cfg)
 
 
 class TestIssueSubIssueStore:
@@ -2790,7 +2835,7 @@ class TestAssignAgentUsesGlobalSubIssueStore:
             set_workflow_config,
         )
 
-        set_workflow_config("PVT_123", config)
+        await set_workflow_config("PVT_123", config)
 
         # Simulate: global store has sub-issue mappings from create_all_sub_issues
         set_issue_sub_issues(

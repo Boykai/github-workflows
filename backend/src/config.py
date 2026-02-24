@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     # Database
     database_path: str = "/app/data/settings.db"
 
+    # Cookie
+    cookie_secure: bool = False  # Set True in production (HTTPS)
+    cookie_max_age: int = 8 * 60 * 60  # 8 hours in seconds
+
     # Session cleanup interval in seconds
     session_cleanup_interval: int = 3600
 

@@ -5,8 +5,8 @@
  * notifications, and allowed models.
  */
 
-import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { useSettingsForm } from '@/hooks/useSettingsForm';
 import type {
   GlobalSettings as GlobalSettingsType,
   GlobalSettingsUpdate,
@@ -21,44 +21,64 @@ interface GlobalSettingsProps {
   onSave: (update: GlobalSettingsUpdate) => Promise<void>;
 }
 
-export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsProps) {
-  // AI
-  const [provider, setProvider] = useState<AIProviderType>('copilot');
-  const [model, setModel] = useState('gpt-4o');
-  const [temperature, setTemperature] = useState(0.7);
-  // Display
-  const [theme, setTheme] = useState<ThemeModeType>('light');
-  const [defaultView, setDefaultView] = useState<DefaultViewType>('chat');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // Workflow
-  const [defaultRepo, setDefaultRepo] = useState('');
-  const [defaultAssignee, setDefaultAssignee] = useState('');
-  const [pollingInterval, setPollingInterval] = useState(60);
-  // Notifications
-  const [taskStatusChange, setTaskStatusChange] = useState(true);
-  const [agentCompletion, setAgentCompletion] = useState(true);
-  const [newRecommendation, setNewRecommendation] = useState(true);
-  const [chatMention, setChatMention] = useState(true);
-  // Allowed models
-  const [allowedModels, setAllowedModels] = useState('');
+/** Flat form state derived from the nested GlobalSettingsType. */
+interface GlobalFormState {
+  provider: AIProviderType;
+  model: string;
+  temperature: number;
+  theme: ThemeModeType;
+  default_view: DefaultViewType;
+  sidebar_collapsed: boolean;
+  default_repository: string;
+  default_assignee: string;
+  copilot_polling_interval: number;
+  task_status_change: boolean;
+  agent_completion: boolean;
+  new_recommendation: boolean;
+  chat_mention: boolean;
+  allowed_models: string;
+}
 
-  useEffect(() => {
-    if (!settings) return;
-    setProvider(settings.ai.provider);
-    setModel(settings.ai.model);
-    setTemperature(settings.ai.temperature);
-    setTheme(settings.display.theme);
-    setDefaultView(settings.display.default_view);
-    setSidebarCollapsed(settings.display.sidebar_collapsed);
-    setDefaultRepo(settings.workflow.default_repository ?? '');
-    setDefaultAssignee(settings.workflow.default_assignee);
-    setPollingInterval(settings.workflow.copilot_polling_interval);
-    setTaskStatusChange(settings.notifications.task_status_change);
-    setAgentCompletion(settings.notifications.agent_completion);
-    setNewRecommendation(settings.notifications.new_recommendation);
-    setChatMention(settings.notifications.chat_mention);
-    setAllowedModels(settings.allowed_models.join(', '));
-  }, [settings]);
+const DEFAULTS: GlobalFormState = {
+  provider: 'copilot',
+  model: 'gpt-4o',
+  temperature: 0.7,
+  theme: 'light',
+  default_view: 'chat',
+  sidebar_collapsed: false,
+  default_repository: '',
+  default_assignee: '',
+  copilot_polling_interval: 60,
+  task_status_change: true,
+  agent_completion: true,
+  new_recommendation: true,
+  chat_mention: true,
+  allowed_models: '',
+};
+
+function flatten(s: GlobalSettingsType): GlobalFormState {
+  return {
+    provider: s.ai.provider,
+    model: s.ai.model,
+    temperature: s.ai.temperature,
+    theme: s.display.theme,
+    default_view: s.display.default_view,
+    sidebar_collapsed: s.display.sidebar_collapsed,
+    default_repository: s.workflow.default_repository ?? '',
+    default_assignee: s.workflow.default_assignee,
+    copilot_polling_interval: s.workflow.copilot_polling_interval,
+    task_status_change: s.notifications.task_status_change,
+    agent_completion: s.notifications.agent_completion,
+    new_recommendation: s.notifications.new_recommendation,
+    chat_mention: s.notifications.chat_mention,
+    allowed_models: s.allowed_models.join(', '),
+  };
+}
+
+export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsProps) {
+  const { localState: f, setField, isDirty } = useSettingsForm(
+    settings ? flatten(settings) : DEFAULTS,
+  );
 
   if (isLoading || !settings) {
     return (
@@ -68,38 +88,22 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
     );
   }
 
-  const isDirty =
-    provider !== settings.ai.provider ||
-    model !== settings.ai.model ||
-    temperature !== settings.ai.temperature ||
-    theme !== settings.display.theme ||
-    defaultView !== settings.display.default_view ||
-    sidebarCollapsed !== settings.display.sidebar_collapsed ||
-    (defaultRepo || null) !== (settings.workflow.default_repository || null) ||
-    defaultAssignee !== settings.workflow.default_assignee ||
-    pollingInterval !== settings.workflow.copilot_polling_interval ||
-    taskStatusChange !== settings.notifications.task_status_change ||
-    agentCompletion !== settings.notifications.agent_completion ||
-    newRecommendation !== settings.notifications.new_recommendation ||
-    chatMention !== settings.notifications.chat_mention ||
-    allowedModels !== settings.allowed_models.join(', ');
-
   const handleSave = async () => {
     const update: GlobalSettingsUpdate = {
-      ai: { provider, model, temperature },
-      display: { theme, default_view: defaultView, sidebar_collapsed: sidebarCollapsed },
+      ai: { provider: f.provider, model: f.model, temperature: f.temperature },
+      display: { theme: f.theme, default_view: f.default_view, sidebar_collapsed: f.sidebar_collapsed },
       workflow: {
-        default_repository: defaultRepo || null,
-        default_assignee: defaultAssignee,
-        copilot_polling_interval: pollingInterval,
+        default_repository: f.default_repository || null,
+        default_assignee: f.default_assignee,
+        copilot_polling_interval: f.copilot_polling_interval,
       },
       notifications: {
-        task_status_change: taskStatusChange,
-        agent_completion: agentCompletion,
-        new_recommendation: newRecommendation,
-        chat_mention: chatMention,
+        task_status_change: f.task_status_change,
+        agent_completion: f.agent_completion,
+        new_recommendation: f.new_recommendation,
+        chat_mention: f.chat_mention,
       },
-      allowed_models: allowedModels
+      allowed_models: f.allowed_models
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean),
@@ -119,32 +123,32 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="settings-subsection-title">AI</h4>
       <div className="settings-field">
         <label htmlFor="global-ai-provider">Provider</label>
-        <select id="global-ai-provider" value={provider} onChange={(e) => setProvider(e.target.value as AIProviderType)}>
+        <select id="global-ai-provider" value={f.provider} onChange={(e) => setField('provider', e.target.value as AIProviderType)}>
           <option value="copilot">GitHub Copilot</option>
           <option value="azure_openai">Azure OpenAI</option>
         </select>
       </div>
       <div className="settings-field">
         <label htmlFor="global-ai-model">Model</label>
-        <input id="global-ai-model" type="text" value={model} onChange={(e) => setModel(e.target.value)} />
+        <input id="global-ai-model" type="text" value={f.model} onChange={(e) => setField('model', e.target.value)} />
       </div>
       <div className="settings-field">
-        <label htmlFor="global-ai-temp">Temperature: {temperature.toFixed(1)}</label>
-        <input id="global-ai-temp" type="range" min="0" max="2" step="0.1" value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))} />
+        <label htmlFor="global-ai-temp">Temperature: {f.temperature.toFixed(1)}</label>
+        <input id="global-ai-temp" type="range" min="0" max="2" step="0.1" value={f.temperature} onChange={(e) => setField('temperature', parseFloat(e.target.value))} />
       </div>
 
       {/* Display */}
       <h4 className="settings-subsection-title">Display</h4>
       <div className="settings-field">
         <label htmlFor="global-theme">Theme</label>
-        <select id="global-theme" value={theme} onChange={(e) => setTheme(e.target.value as ThemeModeType)}>
+        <select id="global-theme" value={f.theme} onChange={(e) => setField('theme', e.target.value as ThemeModeType)}>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
       </div>
       <div className="settings-field">
         <label htmlFor="global-view">Default View</label>
-        <select id="global-view" value={defaultView} onChange={(e) => setDefaultView(e.target.value as DefaultViewType)}>
+        <select id="global-view" value={f.default_view} onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}>
           <option value="chat">Chat</option>
           <option value="board">Board</option>
           <option value="settings">Settings</option>
@@ -152,7 +156,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       </div>
       <div className="settings-field">
         <label>
-          <input type="checkbox" checked={sidebarCollapsed} onChange={(e) => setSidebarCollapsed(e.target.checked)} />
+          <input type="checkbox" checked={f.sidebar_collapsed} onChange={(e) => setField('sidebar_collapsed', e.target.checked)} />
           Sidebar collapsed by default
         </label>
       </div>
@@ -161,29 +165,29 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="settings-subsection-title">Workflow</h4>
       <div className="settings-field">
         <label htmlFor="global-repo">Default Repository</label>
-        <input id="global-repo" type="text" value={defaultRepo} onChange={(e) => setDefaultRepo(e.target.value)} placeholder="owner/repo" />
+        <input id="global-repo" type="text" value={f.default_repository} onChange={(e) => setField('default_repository', e.target.value)} placeholder="owner/repo" />
       </div>
       <div className="settings-field">
         <label htmlFor="global-assignee">Default Assignee</label>
-        <input id="global-assignee" type="text" value={defaultAssignee} onChange={(e) => setDefaultAssignee(e.target.value)} />
+        <input id="global-assignee" type="text" value={f.default_assignee} onChange={(e) => setField('default_assignee', e.target.value)} />
       </div>
       <div className="settings-field">
         <label htmlFor="global-polling">Polling Interval (seconds)</label>
-        <input id="global-polling" type="number" min="0" value={pollingInterval} onChange={(e) => setPollingInterval(parseInt(e.target.value, 10) || 0)} />
+        <input id="global-polling" type="number" min="0" value={f.copilot_polling_interval} onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)} />
       </div>
 
       {/* Notifications */}
       <h4 className="settings-subsection-title">Notifications</h4>
-      <div className="settings-field"><label><input type="checkbox" checked={taskStatusChange} onChange={(e) => setTaskStatusChange(e.target.checked)} /> Task status changes</label></div>
-      <div className="settings-field"><label><input type="checkbox" checked={agentCompletion} onChange={(e) => setAgentCompletion(e.target.checked)} /> Agent completion</label></div>
-      <div className="settings-field"><label><input type="checkbox" checked={newRecommendation} onChange={(e) => setNewRecommendation(e.target.checked)} /> New recommendations</label></div>
-      <div className="settings-field"><label><input type="checkbox" checked={chatMention} onChange={(e) => setChatMention(e.target.checked)} /> Chat mentions</label></div>
+      <div className="settings-field"><label><input type="checkbox" checked={f.task_status_change} onChange={(e) => setField('task_status_change', e.target.checked)} /> Task status changes</label></div>
+      <div className="settings-field"><label><input type="checkbox" checked={f.agent_completion} onChange={(e) => setField('agent_completion', e.target.checked)} /> Agent completion</label></div>
+      <div className="settings-field"><label><input type="checkbox" checked={f.new_recommendation} onChange={(e) => setField('new_recommendation', e.target.checked)} /> New recommendations</label></div>
+      <div className="settings-field"><label><input type="checkbox" checked={f.chat_mention} onChange={(e) => setField('chat_mention', e.target.checked)} /> Chat mentions</label></div>
 
       {/* Allowed Models */}
       <h4 className="settings-subsection-title">Allowed Models</h4>
       <div className="settings-field">
         <label htmlFor="global-models">Comma-separated model identifiers</label>
-        <input id="global-models" type="text" value={allowedModels} onChange={(e) => setAllowedModels(e.target.value)} placeholder="gpt-4o, gpt-4" />
+        <input id="global-models" type="text" value={f.allowed_models} onChange={(e) => setField('allowed_models', e.target.value)} placeholder="gpt-4o, gpt-4" />
       </div>
     </SettingsSection>
   );

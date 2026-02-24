@@ -7,7 +7,7 @@ Covers:
 - create_status_change_prompt()
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from src.prompts.issue_generation import (
     FEATURE_REQUEST_DETECTION_PROMPT,
@@ -22,6 +22,7 @@ from src.prompts.task_generation import (
     create_status_change_prompt,
     create_task_generation_prompt,
 )
+from src.utils import utcnow
 
 # =============================================================================
 # Issue generation prompt
@@ -49,13 +50,13 @@ class TestCreateIssueGenerationPrompt:
     def test_user_message_contains_dates(self):
         msgs = create_issue_generation_prompt("feature", "proj")
         user_content = msgs[1]["content"]
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = utcnow().strftime("%Y-%m-%d")
         assert today in user_content
 
     def test_user_message_contains_target_date(self):
         msgs = create_issue_generation_prompt("feature", "proj")
         user_content = msgs[1]["content"]
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        tomorrow = (utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
         assert tomorrow in user_content
 
     def test_user_message_role(self):

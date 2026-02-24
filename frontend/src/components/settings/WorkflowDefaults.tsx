@@ -4,8 +4,8 @@
  * Allows user to configure default repository, assignee, and polling interval.
  */
 
-import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { useSettingsForm } from '@/hooks/useSettingsForm';
 import type {
   WorkflowDefaults as WorkflowDefaultsType,
   UserPreferencesUpdate,
@@ -16,28 +16,30 @@ interface WorkflowDefaultsProps {
   onSave: (update: UserPreferencesUpdate) => Promise<void>;
 }
 
+// Internal shape with non-null `default_repository` for controlled inputs.
+interface WorkflowFormState {
+  default_repository: string;
+  default_assignee: string;
+  copilot_polling_interval: number;
+}
+
+function toFormState(s: WorkflowDefaultsType): WorkflowFormState {
+  return {
+    default_repository: s.default_repository ?? '',
+    default_assignee: s.default_assignee,
+    copilot_polling_interval: s.copilot_polling_interval,
+  };
+}
+
 export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
-  const [defaultRepo, setDefaultRepo] = useState(settings.default_repository ?? '');
-  const [defaultAssignee, setDefaultAssignee] = useState(settings.default_assignee);
-  const [pollingInterval, setPollingInterval] = useState(settings.copilot_polling_interval);
-
-  useEffect(() => {
-    setDefaultRepo(settings.default_repository ?? '');
-    setDefaultAssignee(settings.default_assignee);
-    setPollingInterval(settings.copilot_polling_interval);
-  }, [settings.default_repository, settings.default_assignee, settings.copilot_polling_interval]);
-
-  const isDirty =
-    (defaultRepo || null) !== (settings.default_repository || null) ||
-    defaultAssignee !== settings.default_assignee ||
-    pollingInterval !== settings.copilot_polling_interval;
+  const { localState, setField, isDirty } = useSettingsForm(toFormState(settings));
 
   const handleSave = async () => {
     await onSave({
       workflow: {
-        default_repository: defaultRepo || null,
-        default_assignee: defaultAssignee,
-        copilot_polling_interval: pollingInterval,
+        default_repository: localState.default_repository || null,
+        default_assignee: localState.default_assignee,
+        copilot_polling_interval: localState.copilot_polling_interval,
       },
     });
   };
@@ -54,8 +56,8 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
         <input
           id="workflow-repo"
           type="text"
-          value={defaultRepo}
-          onChange={(e) => setDefaultRepo(e.target.value)}
+          value={localState.default_repository}
+          onChange={(e) => setField('default_repository', e.target.value)}
           placeholder="owner/repo"
         />
       </div>
@@ -65,8 +67,8 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
         <input
           id="workflow-assignee"
           type="text"
-          value={defaultAssignee}
-          onChange={(e) => setDefaultAssignee(e.target.value)}
+          value={localState.default_assignee}
+          onChange={(e) => setField('default_assignee', e.target.value)}
           placeholder="GitHub username"
         />
       </div>
@@ -79,8 +81,8 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
           id="workflow-polling"
           type="number"
           min="0"
-          value={pollingInterval}
-          onChange={(e) => setPollingInterval(parseInt(e.target.value, 10) || 0)}
+          value={localState.copilot_polling_interval}
+          onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)}
         />
       </div>
     </SettingsSection>

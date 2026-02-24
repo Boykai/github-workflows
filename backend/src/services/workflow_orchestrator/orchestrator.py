@@ -1,526 +1,42 @@
-"""
-GitHub Issue Workflow Orchestrator
-
-This file contains all workflow logic in one place for easy reading and modification.
-
-WORKFLOW STATES:
-  ANALYZING → RECOMMENDATION_PENDING → CREATING → BACKLOG → READY → IN_PROGRESS → IN_REVIEW
-
-TRANSITIONS:
-  1. User message → AI generates recommendation (ANALYZING → RECOMMENDATION_PENDING)
-  2. User confirms → Create GitHub Issue (RECOMMENDATION_PENDING → CREATING)
-  3. Issue created → Add to project with Backlog status (CREATING → BACKLOG)
-  4. Auto-transition → Update to Ready status (BACKLOG → READY)
-  5. Status detection → Move to In Progress, assign Copilot (READY → IN_PROGRESS)
-  6. Completion detection → Move to In Review, assign owner (IN_PROGRESS → IN_REVIEW)
-"""
+"""WorkflowOrchestrator class — orchestrates the full GitHub issue creation and status workflow."""
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
-from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
-from src.models.chat import (
-    AgentAssignment,
-    IssueMetadata,
-    IssueRecommendation,
+from src.models.recommendation import IssueMetadata, IssueRecommendation
+from src.models.workflow import (
     TriggeredBy,
     WorkflowConfiguration,
     WorkflowResult,
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body
+from src.utils import utcnow
+
+from .config import _transitions, get_workflow_config
+from .models import (
+    PipelineState,
+    WorkflowContext,
+    WorkflowState,
+    _ci_get,
+    find_next_actionable_status,
+    get_agent_slugs,
+    get_status_order,
+)
+from .transitions import (
+    get_issue_main_branch,
+    get_issue_sub_issues,
+    get_pipeline_state,
+    set_issue_main_branch,
+    set_issue_sub_issues,
+    set_pipeline_state,
+)
 
 if TYPE_CHECKING:
     from src.services.ai_agent import AIAgentService
     from src.services.github_projects import GitHubProjectsService
 
 logger = logging.getLogger(__name__)
-
-
-def _ci_get(mappings: dict, key: str, default=None):
-    """Case-insensitive dict lookup for status names."""
-    if key in mappings:
-        return mappings[key]
-    key_lower = key.lower()
-    for k, v in mappings.items():
-        if k.lower() == key_lower:
-            return v
-    return default if default is not None else []
-
-
-def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
-    """Extract ordered slug strings for a given status. Case-insensitive lookup."""
-    return [
-        a.slug if hasattr(a, "slug") else str(a) for a in _ci_get(config.agent_mappings, status, [])
-    ]
-
-
-def get_status_order(config: WorkflowConfiguration) -> list[str]:
-    """Return the ordered list of pipeline statuses from configuration."""
-    return [
-        config.status_backlog,
-        config.status_ready,
-        config.status_in_progress,
-        config.status_in_review,
-    ]
-
-
-def get_next_status(config: WorkflowConfiguration, current_status: str) -> str | None:
-    """Return the next status in the pipeline, or None if at the end."""
-    order = get_status_order(config)
-    try:
-        idx = order.index(current_status)
-        if idx + 1 < len(order):
-            return order[idx + 1]
-    except ValueError:
-        pass
-    return None
-
-
-def find_next_actionable_status(config: WorkflowConfiguration, current_status: str) -> str | None:
-    """
-    Find the next status that has agents assigned (pass-through logic, T028).
-
-    Starting from the status *after* current_status, walk forward through the
-    pipeline. Return the first status that has agents or the final status in
-    the pipeline (even if it has no agents, to avoid infinite skipping).
-    Returns None if current_status is already the last one.
-    """
-    order = get_status_order(config)
-    try:
-        start = order.index(current_status) + 1
-    except ValueError:
-        return None
-
-    for i in range(start, len(order)):
-        candidate = order[i]
-        if get_agent_slugs(config, candidate) or i == len(order) - 1:
-            return candidate
-    return None
-
-
-class WorkflowState(Enum):
-    """Workflow states for tracking issue lifecycle."""
-
-    ANALYZING = "analyzing"
-    RECOMMENDATION_PENDING = "recommendation_pending"
-    CREATING = "creating"
-    BACKLOG = "backlog"
-    READY = "ready"
-    IN_PROGRESS = "in_progress"
-    IN_REVIEW = "in_review"
-    ERROR = "error"
-
-
-@dataclass
-class WorkflowContext:
-    """Context passed through workflow transitions."""
-
-    session_id: str
-    project_id: str
-    access_token: str
-    repository_owner: str = ""
-    repository_name: str = ""
-    recommendation_id: str | None = None
-    issue_id: str | None = None
-    issue_number: int | None = None
-    issue_url: str | None = None
-    project_item_id: str | None = None
-    current_state: WorkflowState = WorkflowState.ANALYZING
-    config: WorkflowConfiguration | None = None
-
-
-@dataclass
-class PipelineState:
-    """Tracks per-issue pipeline progress through sequential agents."""
-
-    issue_number: int
-    project_id: str
-    status: str
-    agents: list[str]
-    current_agent_index: int = 0
-    completed_agents: list[str] = field(default_factory=list)
-    started_at: datetime | None = None
-    error: str | None = None
-    agent_assigned_sha: str = ""  # HEAD SHA when the current agent was assigned
-    # Maps agent_name → sub-issue info for sub-issue-per-agent workflow
-    agent_sub_issues: dict[str, dict] = field(default_factory=dict)
-    # {agent_name: {"number": int, "node_id": str, "url": str}}
-
-    @property
-    def current_agent(self) -> str | None:
-        """Get the currently active agent, or None if pipeline is complete."""
-        if self.current_agent_index < len(self.agents):
-            return self.agents[self.current_agent_index]
-        return None
-
-    @property
-    def is_complete(self) -> bool:
-        """Check if all agents in the pipeline have completed."""
-        return self.current_agent_index >= len(self.agents)
-
-    @property
-    def next_agent(self) -> str | None:
-        """Get the next agent after the current one, or None if last."""
-        next_idx = self.current_agent_index + 1
-        if next_idx < len(self.agents):
-            return self.agents[next_idx]
-        return None
-
-
-# In-memory storage for workflow transitions (audit log)
-_transitions: list[WorkflowTransition] = []
-
-# In-memory storage for workflow configurations (per project)
-_workflow_configs: dict[str, WorkflowConfiguration] = {}
-
-# In-memory storage for pipeline states (per issue number)
-_pipeline_states: dict[int, PipelineState] = {}
-
-
-class MainBranchInfo(TypedDict):
-    """Typed info for an issue's main PR branch."""
-
-    branch: str
-    pr_number: int
-    head_sha: str  # Commit SHA of the branch head (needed for baseRef)
-
-
-# In-memory storage for the "main" PR branch per issue
-# The first PR's branch becomes the base for all subsequent agent branches
-# Maps issue_number -> {branch: str, pr_number: int}
-_issue_main_branches: dict[int, MainBranchInfo] = {}
-
-# Global sub-issue mapping store that persists across pipeline state resets.
-# When pipeline state is removed during status transitions (e.g., Backlog → Ready),
-# the agent_sub_issues on PipelineState are lost.  This global store retains the
-# mapping so subsequent agents can still look up (and close) their sub-issues.
-# Maps issue_number → {agent_name → {"number": int, "node_id": str, "url": str}}
-_issue_sub_issue_map: dict[int, dict[str, dict]] = {}
-
-
-def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:
-    """Get workflow configuration for a project.
-
-    Checks in-memory cache first, then falls back to SQLite project_settings.
-    """
-    cached = _workflow_configs.get(project_id)
-    if cached is not None:
-        return cached
-
-    # Fall back to SQLite
-    config = _load_workflow_config_from_db(project_id)
-    if config is not None:
-        _workflow_configs[project_id] = config
-    return config
-
-
-def set_workflow_config(
-    project_id: str,
-    config: WorkflowConfiguration,
-    github_user_id: str | None = None,
-) -> None:
-    """Set workflow configuration for a project.
-
-    Updates in-memory cache and persists to SQLite project_settings.
-    """
-    _workflow_configs[project_id] = config
-    _persist_workflow_config_to_db(project_id, config, github_user_id)
-
-
-def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | None:
-    """Load workflow configuration from SQLite project_settings table.
-
-    Uses synchronous sqlite3 to avoid event-loop issues with aiosqlite.
-    SQLite reads are fast (sub-millisecond) so this is safe to call from
-    any context (sync or async).
-    """
-    import json
-    import sqlite3
-
-    try:
-        from src.config import get_settings
-
-        db_path = get_settings().database_path
-    except Exception:
-        return None
-
-    try:
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-
-        # Try loading from the workflow_config column first (full config)
-        cursor = conn.execute(
-            "SELECT workflow_config FROM project_settings WHERE project_id = ? AND workflow_config IS NOT NULL LIMIT 1",
-            (project_id,),
-        )
-        row = cursor.fetchone()
-        if row and row["workflow_config"]:
-            raw = json.loads(row["workflow_config"])
-            conn.close()
-            logger.info(
-                "Loaded workflow config from DB (workflow_config column) for project %s", project_id
-            )
-            return WorkflowConfiguration(**raw)
-
-        # Fall back to agent_pipeline_mappings only
-        cursor = conn.execute(
-            "SELECT agent_pipeline_mappings FROM project_settings WHERE project_id = ? AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
-            (project_id,),
-        )
-        row = cursor.fetchone()
-        conn.close()
-
-        if row and row["agent_pipeline_mappings"]:
-            raw_mappings = json.loads(row["agent_pipeline_mappings"])
-            # Convert raw dicts to AgentAssignment objects
-            agent_mappings: dict[str, list[AgentAssignment]] = {}
-            for status, agents in raw_mappings.items():
-                agent_mappings[status] = [
-                    AgentAssignment(**a) if isinstance(a, dict) else AgentAssignment(slug=str(a))
-                    for a in agents
-                ]
-            logger.info(
-                "Loaded workflow config from DB (agent_pipeline_mappings column) for project %s",
-                project_id,
-            )
-            config = WorkflowConfiguration(
-                project_id=project_id,
-                repository_owner="",
-                repository_name="",
-                agent_mappings=agent_mappings,
-            )
-            # Backfill: persist the full config to workflow_config column
-            # so subsequent loads use the preferred path.
-            try:
-                _persist_workflow_config_to_db(project_id, config)
-                logger.info("Backfilled workflow_config column for project %s", project_id)
-            except Exception:
-                pass
-            return config
-
-        return None
-    except Exception:
-        logger.warning(
-            "Failed to load workflow config from DB for project %s", project_id, exc_info=True
-        )
-        return None
-
-
-def _persist_workflow_config_to_db(
-    project_id: str,
-    config: WorkflowConfiguration,
-    github_user_id: str | None = None,
-) -> None:
-    """Persist workflow configuration to SQLite project_settings table.
-
-    Uses synchronous sqlite3 for reliable writes from any context.
-    SQLite in WAL mode supports concurrent access from multiple connections.
-    """
-    import json
-    import sqlite3
-    from datetime import UTC, datetime
-
-    try:
-        from src.config import get_settings
-
-        db_path = get_settings().database_path
-    except Exception:
-        return
-
-    # Serialize config
-    config_json = config.model_dump_json()
-    agent_mappings_json = json.dumps(
-        {
-            status: [
-                a.model_dump(mode="json") if hasattr(a, "model_dump") else {"slug": str(a)}
-                for a in agents
-            ]
-            for status, agents in config.agent_mappings.items()
-        }
-    )
-    now = datetime.now(UTC).isoformat()
-
-    # Use a placeholder user if not provided (backward compat)
-    user_id = github_user_id or "__workflow__"
-
-    try:
-        conn = sqlite3.connect(db_path)
-        conn.execute("PRAGMA busy_timeout=5000;")
-
-        cursor = conn.execute(
-            "SELECT 1 FROM project_settings WHERE github_user_id = ? AND project_id = ?",
-            (user_id, project_id),
-        )
-        existing = cursor.fetchone()
-
-        if existing:
-            conn.execute(
-                "UPDATE project_settings SET agent_pipeline_mappings = ?, workflow_config = ?, updated_at = ? "
-                "WHERE github_user_id = ? AND project_id = ?",
-                (agent_mappings_json, config_json, now, user_id, project_id),
-            )
-        else:
-            conn.execute(
-                "INSERT INTO project_settings (github_user_id, project_id, agent_pipeline_mappings, workflow_config, updated_at) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (user_id, project_id, agent_mappings_json, config_json, now),
-            )
-        conn.commit()
-        conn.close()
-        logger.info("Persisted workflow config to DB for project %s (user=%s)", project_id, user_id)
-    except Exception:
-        logger.warning(
-            "Failed to persist workflow config to DB for project %s", project_id, exc_info=True
-        )
-
-
-def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:
-    """Get workflow transitions, optionally filtered by issue_id."""
-    if issue_id:
-        filtered = [t for t in _transitions if t.issue_id == issue_id]
-        return filtered[-limit:]
-    return _transitions[-limit:]
-
-
-def get_pipeline_state(issue_number: int) -> PipelineState | None:
-    """Get pipeline state for a specific issue."""
-    return _pipeline_states.get(issue_number)
-
-
-def get_all_pipeline_states() -> dict[int, PipelineState]:
-    """Get all pipeline states."""
-    return dict(_pipeline_states)
-
-
-def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
-    """Set or update pipeline state for an issue."""
-    _pipeline_states[issue_number] = state
-
-
-def remove_pipeline_state(issue_number: int) -> None:
-    """Remove pipeline state for an issue (e.g., after status transition)."""
-    _pipeline_states.pop(issue_number, None)
-
-
-def get_issue_main_branch(issue_number: int) -> MainBranchInfo | None:
-    """
-    Get the main PR branch for an issue.
-
-    The first PR's branch becomes the "main" branch for all subsequent
-    agent work on that issue.
-
-    Returns:
-        Dict with 'branch' and 'pr_number' keys, or None if not set.
-    """
-    return _issue_main_branches.get(issue_number)
-
-
-def get_issue_sub_issues(issue_number: int) -> dict[str, dict]:
-    """Get the global sub-issue mapping for an issue.
-
-    This store persists across pipeline state resets so that agents
-    assigned after a status transition can still find their sub-issues.
-
-    Returns:
-        Dict mapping agent_name → {"number": int, "node_id": str, "url": str},
-        or empty dict if not set.
-    """
-    mappings = _issue_sub_issue_map.get(issue_number)
-    return dict(mappings) if mappings is not None else {}
-
-
-def set_issue_sub_issues(issue_number: int, mappings: dict[str, dict]) -> None:
-    """Store sub-issue mappings globally for an issue.
-
-    Called when sub-issues are created upfront (create_all_sub_issues) or
-    reconstructed from GitHub API.  Merges with existing mappings so that
-    partial reconstructions don't overwrite earlier data.
-    """
-    existing = _issue_sub_issue_map.get(issue_number, {})
-    existing.update(mappings)
-    _issue_sub_issue_map[issue_number] = existing
-
-
-def set_issue_main_branch(
-    issue_number: int, branch: str, pr_number: int, head_sha: str = ""
-) -> None:
-    """
-    Set the main PR branch for an issue.
-
-    This should only be called once when the first PR is created for an issue.
-    All subsequent agents will branch from and merge back into this branch.
-
-    Args:
-        issue_number: GitHub issue number
-        branch: The first PR's head branch name (e.g., copilot/update-app-title-workflows)
-        pr_number: The first PR's number
-        head_sha: The commit SHA of the branch head (needed for baseRef)
-    """
-    if issue_number in _issue_main_branches:
-        logger.debug(
-            "Issue #%d already has main branch set to '%s', not overwriting",
-            issue_number,
-            _issue_main_branches[issue_number].get("branch"),
-        )
-        return
-    _issue_main_branches[issue_number] = {
-        "branch": branch,
-        "pr_number": pr_number,
-        "head_sha": head_sha,
-    }
-    logger.info(
-        "Set main branch for issue #%d: '%s' (PR #%d, SHA: %s)",
-        issue_number,
-        branch,
-        pr_number,
-        head_sha[:8] if head_sha else "none",
-    )
-
-
-def clear_issue_main_branch(issue_number: int) -> None:
-    """Clear the main branch tracking for an issue (e.g., when issue is closed)."""
-    _issue_main_branches.pop(issue_number, None)
-
-
-def clear_issue_sub_issues(issue_number: int) -> None:
-    """Clear the global sub-issue mapping for an issue.
-
-    Should be called when the issue lifecycle is complete (e.g., moved to
-    Done/In Review or closed) to free memory.  Pair with
-    ``clear_issue_main_branch`` for full cleanup.
-    """
-    _issue_sub_issue_map.pop(issue_number, None)
-
-
-def update_issue_main_branch_sha(issue_number: int, head_sha: str) -> None:
-    """
-    Update the HEAD SHA for an issue's main branch.
-
-    Called after merging a child PR into the main branch so the next agent
-    gets the correct (post-merge) commit SHA as its base_ref.
-
-    Args:
-        issue_number: GitHub issue number
-        head_sha: New HEAD SHA after the child PR merge
-    """
-    if issue_number not in _issue_main_branches:
-        logger.warning(
-            "Cannot update HEAD SHA for issue #%d — no main branch set",
-            issue_number,
-        )
-        return
-    old_sha = _issue_main_branches[issue_number].get("head_sha", "")
-    _issue_main_branches[issue_number]["head_sha"] = head_sha
-    logger.info(
-        "Updated HEAD SHA for issue #%d main branch '%s': %s → %s",
-        issue_number,
-        _issue_main_branches[issue_number].get("branch", ""),
-        old_sha[:8] if old_sha else "none",
-        head_sha[:8] if head_sha else "none",
-    )
 
 
 class WorkflowOrchestrator:
@@ -754,7 +270,7 @@ class WorkflowOrchestrator:
         Returns:
             Dict mapping agent_name → {"number": int, "node_id": str, "url": str}
         """
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config or not ctx.issue_number or not ctx.repository_owner:
             return {}
 
@@ -884,7 +400,7 @@ class WorkflowOrchestrator:
         body = self.format_issue_body(recommendation)
 
         # Append the agent pipeline tracking table to the issue body
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:
             status_order = get_status_order(config)
             body = append_tracking_to_body(body, config.agent_mappings, status_order)
@@ -941,7 +457,7 @@ class WorkflowOrchestrator:
         ctx.current_state = WorkflowState.BACKLOG
 
         # Explicitly set the Backlog status on the project item
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         backlog_status = config.status_backlog if config else "Backlog"
         status_set = await self.github.update_item_status_by_name(
             access_token=ctx.access_token,
@@ -1021,7 +537,7 @@ class WorkflowOrchestrator:
         if not ctx.project_item_id:
             raise ValueError("No project_item_id in context - add to project first")
 
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
@@ -1081,7 +597,7 @@ class WorkflowOrchestrator:
         Returns:
             True if agent assignment succeeded
         """
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
@@ -1223,6 +739,30 @@ class WorkflowOrchestrator:
                             head_sha[:8] if head_sha else "none",
                         )
 
+                        # An existing PR means a previous agent already
+                        # created the issue's "working branch".  ALL
+                        # subsequent agents — regardless of agent_index
+                        # within the current status — must branch FROM
+                        # this working branch, not from "main".
+                        #
+                        # agent_index is relative to the current status
+                        # (e.g. 0 for speckit.plan in Ready) but the
+                        # pipeline may be well past the first overall
+                        # agent.  Using the discovered branch ensures
+                        # every agent builds on previous work.
+                        base_ref = str(existing_pr["head_ref"])
+                        current_head_sha = head_sha
+                        logger.info(
+                            "Using discovered branch '%s' as base_ref "
+                            "for agent '%s' (index %d) on issue #%s "
+                            "(existing PR #%d)",
+                            base_ref,
+                            agent_name,
+                            agent_index,
+                            ctx.issue_number,
+                            existing_pr["number"],
+                        )
+
                         # Link the first PR to the GitHub Issue
                         try:
                             await self.github.link_pull_request_to_issue(
@@ -1336,7 +876,7 @@ class WorkflowOrchestrator:
 
             existing_ts = _pending_agent_assignments.get(pending_key)
             if existing_ts is not None:
-                age = (datetime.utcnow() - existing_ts).total_seconds()
+                age = (utcnow() - existing_ts).total_seconds()
                 if age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
                     logger.warning(
                         "Skipping duplicate assignment of agent '%s' on issue #%d "
@@ -1352,8 +892,8 @@ class WorkflowOrchestrator:
             # API call. This prevents a race where the polling/recovery loop sees
             # the issue between the unassign and re-assign steps and fires a
             # duplicate assignment.
-            _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
-            _pending_agent_assignments[pending_key] = datetime.utcnow()
+            _recovery_last_attempt[ctx.issue_number] = utcnow()
+            _pending_agent_assignments[pending_key] = utcnow()
             logger.debug(
                 "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
                 agent_name,
@@ -1457,7 +997,7 @@ class WorkflowOrchestrator:
                     _recovery_last_attempt,
                 )
 
-                _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
+                _recovery_last_attempt[ctx.issue_number] = utcnow()
             except ImportError:
                 pass
         else:
@@ -1502,7 +1042,7 @@ class WorkflowOrchestrator:
             completed_agents=[
                 a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
             ],
-            started_at=datetime.utcnow(),
+            started_at=utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,
             agent_sub_issues=agent_sub_issues,
@@ -1543,7 +1083,7 @@ class WorkflowOrchestrator:
         if ctx.project_item_id is None:
             raise ValueError("project_item_id required for handle_ready_to_in_progress")
 
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
@@ -1658,7 +1198,7 @@ class WorkflowOrchestrator:
         if ctx.project_item_id is None:
             raise ValueError("project_item_id required for handle_in_progress")
 
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
@@ -1702,7 +1242,44 @@ class WorkflowOrchestrator:
                         completed_pr["number"],
                     )
 
-        # Update status to In Review
+        # Update status to In Review, assign reviewer
+        success, reviewer = await self._transition_to_in_review(ctx, config)
+        if not success:
+            return False
+
+        if reviewer:
+            logger.info(
+                "Issue #%d transitioned to In Review, assigned to %s, PR #%d ready",
+                ctx.issue_number,
+                reviewer,
+                completed_pr["number"],
+            )
+        else:
+            logger.warning(
+                "Issue #%d transitioned to In Review but failed to assign reviewer",
+                ctx.issue_number,
+            )
+
+        return True
+
+    # ──────────────────────────────────────────────────────────────────
+    # Shared: transition to In Review + assign reviewer
+    # ──────────────────────────────────────────────────────────────────
+    async def _transition_to_in_review(
+        self,
+        ctx: WorkflowContext,
+        config: WorkflowConfiguration,
+    ) -> tuple[bool, str | None]:
+        """Update project status to In Review and assign a reviewer.
+
+        Returns:
+            ``(success, reviewer)``  where *reviewer* is the assigned login
+            (or ``None`` if assignment failed / no reviewer resolved).
+        """
+        if ctx.project_item_id is None:
+            logger.error("Cannot transition to In Review: project_item_id is None")
+            return False, None
+
         status_success = await self.github.update_item_status_by_name(
             access_token=ctx.access_token,
             project_id=ctx.project_id,
@@ -1719,7 +1296,7 @@ class WorkflowOrchestrator:
                 success=False,
                 error_message="Failed to update status to In Review",
             )
-            return False
+            return False, None
 
         # Determine reviewer (use configured or fall back to repo owner)
         reviewer = config.review_assignee
@@ -1731,6 +1308,10 @@ class WorkflowOrchestrator:
             )
 
         # Assign reviewer
+        if ctx.issue_number is None:
+            logger.error("Cannot assign reviewer: issue_number is None")
+            return False, None
+
         assign_success = await self.github.assign_issue(
             access_token=ctx.access_token,
             owner=ctx.repository_owner,
@@ -1749,21 +1330,14 @@ class WorkflowOrchestrator:
             assigned_user=reviewer if assign_success else None,
         )
 
-        if assign_success:
-            logger.info(
-                "Issue #%d transitioned to In Review, assigned to %s, PR #%d ready",
-                ctx.issue_number,
-                reviewer,
-                completed_pr["number"],
-            )
-        else:
+        if not assign_success:
             logger.warning(
-                "Issue #%d transitioned to In Review but failed to assign %s",
-                ctx.issue_number,
+                "Failed to assign reviewer %s to issue #%d",
                 reviewer,
+                ctx.issue_number,
             )
 
-        return True
+        return True, reviewer if assign_success else None
 
     # ──────────────────────────────────────────────────────────────────
     # STEP 6: Detect Completion Signal (T044)
@@ -1812,64 +1386,20 @@ class WorkflowOrchestrator:
         if ctx.project_item_id is None:
             raise ValueError("project_item_id required for handle_completion")
 
-        config = ctx.config or get_workflow_config(ctx.project_id)
+        config = ctx.config or await get_workflow_config(ctx.project_id)
         if not config:
             logger.warning("No workflow config for project %s", ctx.project_id)
             return False
 
         logger.info("Issue %s complete, transitioning to In Review", ctx.issue_id)
 
-        # Update status to In Review
-        status_success = await self.github.update_item_status_by_name(
-            access_token=ctx.access_token,
-            project_id=ctx.project_id,
-            item_id=ctx.project_item_id,
-            status_name=config.status_in_review,
-        )
-
-        if not status_success:
-            self.log_transition(
-                ctx=ctx,
-                from_status=config.status_in_progress,
-                to_status=config.status_in_review,
-                triggered_by=TriggeredBy.DETECTION,
-                success=False,
-                error_message="Failed to update status to In Review",
-            )
+        success, reviewer = await self._transition_to_in_review(ctx, config)
+        if not success:
             return False
 
-        # Determine reviewer (use configured or fall back to repo owner)
-        reviewer = config.review_assignee
         if not reviewer:
-            reviewer = await self.github.get_repository_owner(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-            )
-
-        # Assign reviewer
-        assign_success = await self.github.assign_issue(
-            access_token=ctx.access_token,
-            owner=ctx.repository_owner,
-            repo=ctx.repository_name,
-            issue_number=ctx.issue_number,
-            assignees=[reviewer] if reviewer else [],
-        )
-
-        ctx.current_state = WorkflowState.IN_REVIEW
-        self.log_transition(
-            ctx=ctx,
-            from_status=config.status_in_progress,
-            to_status=config.status_in_review,
-            triggered_by=TriggeredBy.DETECTION,
-            success=True,
-            assigned_user=reviewer if assign_success else None,
-        )
-
-        if not assign_success:
             logger.warning(
-                "Failed to assign reviewer %s to issue #%d",
-                reviewer,
+                "Failed to assign reviewer to issue #%d",
                 ctx.issue_number,
             )
 
@@ -1908,7 +1438,7 @@ class WorkflowOrchestrator:
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)
-            config = ctx.config or get_workflow_config(ctx.project_id)
+            config = ctx.config or await get_workflow_config(ctx.project_id)
             status_name = config.status_backlog if config else "Backlog"
 
             if config and not get_agent_slugs(config, status_name):
@@ -1941,7 +1471,7 @@ class WorkflowOrchestrator:
                         _recovery_last_attempt,
                     )
 
-                    _recovery_last_attempt[ctx.issue_number] = datetime.utcnow()
+                    _recovery_last_attempt[ctx.issue_number] = utcnow()
                     logger.debug(
                         "Set recovery cooldown for issue #%d before sub-issue creation",
                         ctx.issue_number,

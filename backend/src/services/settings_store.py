@@ -2,7 +2,6 @@
 
 import json
 import logging
-from datetime import UTC, datetime
 from typing import Any
 
 import aiosqlite
@@ -22,8 +21,59 @@ from src.models.settings import (
     ThemeMode,
     WorkflowDefaults,
 )
+from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
+
+
+# ── Generic Upsert Helper ──
+
+
+async def _upsert_row(
+    db: aiosqlite.Connection,
+    table: str,
+    pk_columns: dict[str, str],
+    updates: dict,
+) -> None:
+    """Insert or update a row in *table*.
+
+    Args:
+        db: Database connection.
+        table: Target table name.
+        pk_columns: ``{column_name: value}`` dict identifying the row (used in
+            WHERE clause and, for inserts, merged into the data).
+        updates: ``{column_name: value}`` dict of non-PK columns to set.
+    """
+    now = utcnow().isoformat()
+
+    # Check if row exists
+    where = " AND ".join(f"{col} = ?" for col in pk_columns)
+    cursor = await db.execute(
+        f"SELECT 1 FROM {table} WHERE {where}",  # noqa: S608
+        list(pk_columns.values()),
+    )
+    existing = await cursor.fetchone()
+
+    if existing is None:
+        # INSERT — merge PK columns into the data
+        all_data = {**pk_columns, **updates, "updated_at": now}
+        cols = ", ".join(all_data.keys())
+        placeholders = ", ".join("?" for _ in all_data)
+        await db.execute(
+            f"INSERT INTO {table} ({cols}) VALUES ({placeholders})",  # noqa: S608
+            list(all_data.values()),
+        )
+    else:
+        # UPDATE — copy to avoid mutating the caller's dict
+        update_cols = {**updates, "updated_at": now}
+        set_clause = ", ".join(f"{col} = ?" for col in update_cols)
+        values = list(update_cols.values()) + list(pk_columns.values())
+        await db.execute(
+            f"UPDATE {table} SET {set_clause} WHERE {where}",  # noqa: S608
+            values,
+        )
+
+    await db.commit()
 
 
 # ── Global Settings ──
@@ -62,7 +112,7 @@ async def update_global_settings(
     if not updates:
         return await get_global_settings(db)
 
-    now = datetime.now(UTC).isoformat()
+    now = utcnow().isoformat()
     updates["updated_at"] = now
 
     set_clause = ", ".join(f"{col} = ?" for col in updates)
@@ -107,33 +157,13 @@ async def upsert_user_preferences(
         github_user_id: GitHub user ID (primary key)
         updates: Flat dict of column_name → value pairs to upsert
     """
-    now = datetime.now(UTC).isoformat()
-
-    existing = await get_user_preferences_row(db, github_user_id)
-
-    if existing is None:
-        # INSERT new row
-        updates["github_user_id"] = github_user_id
-        updates["updated_at"] = now
-        cols = ", ".join(updates.keys())
-        placeholders = ", ".join("?" for _ in updates)
-        logger.debug("Inserting user preferences for %s", github_user_id)
-        await db.execute(
-            f"INSERT INTO user_preferences ({cols}) VALUES ({placeholders})",  # noqa: S608
-            list(updates.values()),
-        )
-    else:
-        # UPDATE existing row
-        updates["updated_at"] = now
-        set_clause = ", ".join(f"{col} = ?" for col in updates)
-        values = list(updates.values()) + [github_user_id]
-        logger.debug("Updating user preferences for %s", github_user_id)
-        await db.execute(
-            f"UPDATE user_preferences SET {set_clause} WHERE github_user_id = ?",  # noqa: S608
-            values,
-        )
-
-    await db.commit()
+    logger.debug("Upserting user preferences for %s", github_user_id)
+    await _upsert_row(
+        db,
+        table="user_preferences",
+        pk_columns={"github_user_id": github_user_id},
+        updates=updates,
+    )
 
 
 # ── Project Settings ──
@@ -168,34 +198,13 @@ async def upsert_project_settings(
         project_id: GitHub Project ID
         updates: Dict with board_display_config and/or agent_pipeline_mappings (JSON strings)
     """
-    now = datetime.now(UTC).isoformat()
-
-    existing = await get_project_settings_row(db, github_user_id, project_id)
-
-    if existing is None:
-        updates["github_user_id"] = github_user_id
-        updates["project_id"] = project_id
-        updates["updated_at"] = now
-        cols = ", ".join(updates.keys())
-        placeholders = ", ".join("?" for _ in updates)
-        logger.debug(
-            "Inserting project settings for user=%s project=%s", github_user_id, project_id
-        )
-        await db.execute(
-            f"INSERT INTO project_settings ({cols}) VALUES ({placeholders})",  # noqa: S608
-            list(updates.values()),
-        )
-    else:
-        updates["updated_at"] = now
-        set_clause = ", ".join(f"{col} = ?" for col in updates)
-        values = list(updates.values()) + [github_user_id, project_id]
-        logger.debug("Updating project settings for user=%s project=%s", github_user_id, project_id)
-        await db.execute(
-            f"UPDATE project_settings SET {set_clause} WHERE github_user_id = ? AND project_id = ?",  # noqa: S608
-            values,
-        )
-
-    await db.commit()
+    logger.debug("Upserting project settings for user=%s project=%s", github_user_id, project_id)
+    await _upsert_row(
+        db,
+        table="project_settings",
+        pk_columns={"github_user_id": github_user_id, "project_id": project_id},
+        updates=updates,
+    )
 
 
 # ── Merge Logic ──

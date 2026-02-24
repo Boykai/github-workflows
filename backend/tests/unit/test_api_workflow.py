@@ -33,6 +33,7 @@ from src.models.chat import (
     WorkflowTransition,
 )
 from src.models.user import UserSession
+from src.utils import utcnow
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -127,7 +128,7 @@ class TestGetConfig:
     async def test_returns_existing_config(self, client, mock_session):
         mock_session.selected_project_id = TEST_PROJECT_ID
         cfg = _workflow_config()
-        with patch(f"{WF}.get_workflow_config", return_value=cfg):
+        with patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=cfg):
             resp = await client.get("/api/v1/workflow/config")
         assert resp.status_code == 200
         assert resp.json()["repository_owner"] == "testowner"
@@ -135,7 +136,7 @@ class TestGetConfig:
     async def test_returns_default_when_no_config(self, client, mock_session):
         mock_session.selected_project_id = TEST_PROJECT_ID
         with (
-            patch(f"{WF}.get_workflow_config", return_value=None),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}._get_repository_info", return_value=("me", "")),
         ):
             resp = await client.get("/api/v1/workflow/config")
@@ -152,7 +153,7 @@ class TestUpdateConfig:
     async def test_update_config(self, client, mock_session):
         mock_session.selected_project_id = TEST_PROJECT_ID
         body = _workflow_config().model_dump(mode="json")
-        with patch(f"{WF}.set_workflow_config") as mock_set:
+        with patch(f"{WF}.set_workflow_config", new_callable=AsyncMock) as mock_set:
             resp = await client.put("/api/v1/workflow/config", json=body)
         assert resp.status_code == 200
         mock_set.assert_called_once()
@@ -171,7 +172,9 @@ class TestListAgents:
     async def test_list_agents(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.list_available_agents.return_value = []
-        with patch(f"{WF}.get_workflow_config", return_value=_workflow_config()):
+        with patch(
+            f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+        ):
             resp = await client.get("/api/v1/workflow/agents")
         assert resp.status_code == 200
         assert "agents" in resp.json()
@@ -364,8 +367,8 @@ class TestConfirmRecommendation:
         with (
             patch(f"{WF}._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
-            patch(f"{WF}.get_workflow_config", return_value=None),
-            patch(f"{WF}.set_workflow_config"),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
             patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch(f"{WF}.get_agent_slugs", return_value=["copilot-coding"]),
             patch(
@@ -400,8 +403,10 @@ class TestConfirmRecommendation:
         with (
             patch(f"{WF}._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
-            patch(f"{WF}.get_workflow_config", return_value=_workflow_config()),
-            patch(f"{WF}.set_workflow_config"),
+            patch(
+                f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+            ),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
             patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch("src.config.get_settings") as ms,
         ):
@@ -420,7 +425,7 @@ class TestConfirmRecommendation:
         import hashlib
 
         input_hash = hashlib.sha256(rec.original_input.encode()).hexdigest()
-        fake_recent = {input_hash: (datetime.utcnow(), "other-rec-id")}
+        fake_recent = {input_hash: (utcnow(), "other-rec-id")}
 
         with (
             patch(f"{WF}._recommendations", {rec_id: rec}),
@@ -453,7 +458,7 @@ class TestCheckDuplicate:
         import hashlib
 
         h = hashlib.sha256(b"old").hexdigest()
-        _recent_requests[h] = (datetime.utcnow() - timedelta(minutes=10), "old-id")
+        _recent_requests[h] = (utcnow() - timedelta(minutes=10), "old-id")
         _check_duplicate("new", "rec-1")
         assert h not in _recent_requests
 
@@ -529,7 +534,7 @@ class TestCheckIssueCopilotCompletion:
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = None
         with (
-            patch(f"{WF}.get_workflow_config", return_value=None),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
@@ -574,7 +579,9 @@ class TestCheckIssueCopilotCompletion:
         mock_github_service.get_project_repository.return_value = None
         result = {"status": "no_pr_found"}
         with (
-            patch(f"{WF}.get_workflow_config", return_value=_workflow_config()),
+            patch(
+                f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+            ),
             patch(
                 "src.services.copilot_polling.check_issue_for_copilot_completion",
                 new_callable=AsyncMock,
@@ -630,7 +637,7 @@ class TestStartPolling:
                 "src.services.copilot_polling.get_polling_status",
                 return_value={"is_running": False},
             ),
-            patch(f"{WF}.get_workflow_config", return_value=None),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
@@ -671,7 +678,7 @@ class TestCheckAllInProgressIssues:
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = None
         with (
-            patch(f"{WF}.get_workflow_config", return_value=None),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
@@ -684,7 +691,7 @@ class TestCheckAllInProgressIssues:
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.get_project_repository.return_value = None
         with (
-            patch(f"{WF}.get_workflow_config", return_value=None),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
             patch(
                 "src.services.copilot_polling.check_in_progress_issues",

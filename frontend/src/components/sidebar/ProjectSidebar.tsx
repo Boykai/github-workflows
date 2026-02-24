@@ -7,6 +7,8 @@ import type { Project, Task } from '@/types';
 import { ProjectSelector } from './ProjectSelector';
 import { TaskCard } from './TaskCard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
+import { formatTimeAgo } from '@/utils/formatTime';
+import { HIGHLIGHT_DURATION_MS } from '@/constants';
 
 interface ProjectSidebarProps {
   projects: Project[];
@@ -50,7 +52,7 @@ export function ProjectSidebar({
     if (updated.size > 0) {
       setRecentlyUpdated(updated);
       // Clear highlight after animation
-      const timer = setTimeout(() => setRecentlyUpdated(new Set()), 2000);
+      const timer = setTimeout(() => setRecentlyUpdated(new Set()), HIGHLIGHT_DURATION_MS);
       return () => clearTimeout(timer);
     }
 
@@ -61,14 +63,7 @@ export function ProjectSidebar({
   const tasksByStatus = groupTasksByStatus(tasks, selectedProject?.status_columns ?? []);
 
   // Format last update time
-  const formatLastUpdate = () => {
-    if (!lastUpdate) return '';
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - lastUpdate.getTime()) / 1000);
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return lastUpdate.toLocaleTimeString();
-  };
+  const formatLastUpdate = () => lastUpdate ? formatTimeAgo(lastUpdate) : '';
 
   return (
     <aside className={`project-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
