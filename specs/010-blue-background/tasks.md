@@ -23,8 +23,8 @@
 
 **Purpose**: Verify existing theming system and prepare for token updates
 
-- [ ] T001 Review existing CSS custom property system and document current token values in frontend/src/index.css
-- [ ] T002 [P] Audit child components for hardcoded background-color or background values that may conflict with blue theme in frontend/src/
+- [x] T001 Review existing CSS custom property system and document current token values in frontend/src/index.css
+- [x] T002 [P] Audit child components for hardcoded background-color or background values that may conflict with blue theme in frontend/src/
 
 ---
 
@@ -34,7 +34,7 @@
 
 **⚠️ CRITICAL**: Phase 1 audit results must be reviewed before proceeding to ensure no hardcoded backgrounds will conflict.
 
-- [ ] T003 Verify contracts/css-tokens.md contrast ratios against WCAG AA requirements (≥4.5:1 for normal text)
+- [x] T003 Verify contracts/css-tokens.md contrast ratios against WCAG AA requirements (≥4.5:1 for normal text)
 
 **Checkpoint**: Foundation ready — existing theming system confirmed, contrast ratios verified, user story implementation can begin.
 
@@ -48,9 +48,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update `:root` `--color-bg` from current value to `#2563EB` in frontend/src/index.css
-- [ ] T005 [US1] Update `:root` `--color-bg-secondary` from current value to `#1D4ED8` in frontend/src/index.css
-- [ ] T006 [US1] Add inline `background-color: #1D4ED8` style to `<body>` tag in frontend/index.html to prevent flash of non-blue background on page load
+- [x] T004 [US1] Update `:root` `--color-bg` from current value to `#2563EB` in frontend/src/index.css
+- [x] T005 [US1] Update `:root` `--color-bg-secondary` from current value to `#1D4ED8` in frontend/src/index.css
+- [x] T006 [US1] Add inline `background-color: #1D4ED8` style to `<body>` tag in frontend/index.html to prevent flash of non-blue background on page load
 
 **Checkpoint**: Blue background visible across all screens. Text may not yet be fully accessible — proceed to US2 for contrast adjustments.
 
@@ -64,9 +64,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [P] [US2] Update `:root` `--color-text` to `#FFFFFF` and `--color-text-secondary` to `#CBD5E1` in frontend/src/index.css
-- [ ] T008 [P] [US2] Update `:root` `--color-border` to `#3B82F6` and `--color-shadow` to `0 1px 3px rgba(0, 0, 0, 0.2)` in frontend/src/index.css
-- [ ] T009 [US2] Update `:root` semantic color tokens (`--color-primary: #93C5FD`, `--color-secondary: #94A3B8`, `--color-success: #4ADE80`, `--color-warning: #FBBF24`, `--color-danger: #F87171`) in frontend/src/index.css
+- [x] T007 [P] [US2] Update `:root` `--color-text` to `#FFFFFF` and `--color-text-secondary` to `#CBD5E1` in frontend/src/index.css
+- [x] T008 [P] [US2] Update `:root` `--color-border` to `#3B82F6` and `--color-shadow` to `0 1px 3px rgba(0, 0, 0, 0.2)` in frontend/src/index.css
+- [x] T009 [US2] Update `:root` semantic color tokens (`--color-primary: #93C5FD`, `--color-secondary: #94A3B8`, `--color-success: #4ADE80`, `--color-warning: #FBBF24`, `--color-danger: #F87171`) in frontend/src/index.css
 
 **Checkpoint**: Light mode blue background with fully accessible, readable content. All WCAG AA contrast ratios met. MVP is complete — app is usable with blue branding in light mode.
 
@@ -80,9 +80,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Verify blue background renders at viewport widths 320px, 768px, 1920px, and 2560px with no gaps or layout artifacts
-- [ ] T011 [US3] Verify blue background renders identically in Chrome, Firefox, Safari, and Edge (latest stable versions)
-- [ ] T012 [US3] Verify browser window resize from desktop to mobile width produces smooth background adaptation with no visual glitches
+- [x] T010 [US3] Verify blue background renders at viewport widths 320px, 768px, 1920px, and 2560px with no gaps or layout artifacts
+- [x] T011 [US3] Verify blue background renders identically in Chrome, Firefox, Safari, and Edge (latest stable versions)
+- [x] T012 [US3] Verify browser window resize from desktop to mobile width produces smooth background adaptation with no visual glitches
 
 **Checkpoint**: Blue background confirmed consistent across all target devices and browsers.
 
@@ -96,9 +96,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T013 [P] [US4] Update `html.dark-mode-active` `--color-bg` to `#1E3A5F` and `--color-bg-secondary` to `#162D4A` in frontend/src/index.css
-- [ ] T014 [P] [US4] Update `html.dark-mode-active` `--color-text-secondary` to `#94A3B8` and `--color-border` to `#2563EB` in frontend/src/index.css
-- [ ] T015 [US4] Update `html.dark-mode-active` semantic color tokens (`--color-primary: #60A5FA`, `--color-secondary: #94A3B8`, `--color-success: #4ADE80`, `--color-warning: #FBBF24`, `--color-danger: #F87171`) and `--shadow` to `0 1px 3px rgba(0, 0, 0, 0.4)` in frontend/src/index.css
+- [x] T013 [P] [US4] Update `html.dark-mode-active` `--color-bg` to `#1E3A5F` and `--color-bg-secondary` to `#162D4A` in frontend/src/index.css
+- [x] T014 [P] [US4] Update `html.dark-mode-active` `--color-text-secondary` to `#94A3B8` and `--color-border` to `#2563EB` in frontend/src/index.css
+- [x] T015 [US4] Update `html.dark-mode-active` semantic color tokens (`--color-primary: #60A5FA`, `--color-secondary: #94A3B8`, `--color-success: #4ADE80`, `--color-warning: #FBBF24`, `--color-danger: #F87171`) and `--shadow` to `0 1px 3px rgba(0, 0, 0, 0.4)` in frontend/src/index.css
 
 **Checkpoint**: Both light and dark mode display appropriate blue backgrounds with accessible, readable content.
 
@@ -108,9 +108,9 @@
 
 **Purpose**: Final verification and cleanup across all user stories
 
-- [ ] T016 [P] Resolve any hardcoded background conflicts identified in T002 audit across frontend/src/ component files
-- [ ] T017 Run production build verification (`npm run build`) in frontend/
-- [ ] T018 Run quickstart.md validation steps (local dev server, accessibility check, cross-browser test)
+- [x] T016 [P] Resolve any hardcoded background conflicts identified in T002 audit across frontend/src/ component files
+- [x] T017 Run production build verification (`npm run build`) in frontend/
+- [x] T018 Run quickstart.md validation steps (local dev server, accessibility check, cross-browser test)
 
 ---
 
