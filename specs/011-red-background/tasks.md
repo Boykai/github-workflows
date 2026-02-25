@@ -24,8 +24,8 @@
 
 **Purpose**: Audit existing styles and confirm the token-based theming architecture before making changes
 
-- [ ] T001 Audit current CSS custom property values in `frontend/src/index.css` `:root` and `html.dark-mode-active` selectors to document baseline token values
-- [ ] T002 Audit component-level CSS files under `frontend/src/components/` and `frontend/src/pages/` for any hardcoded background colors that would conflict with the new red background
+- [x] T001 Audit current CSS custom property values in `frontend/src/index.css` `:root` and `html.dark-mode-active` selectors to document baseline token values
+- [x] T002 Audit component-level CSS files under `frontend/src/components/` and `frontend/src/pages/` for any hardcoded background colors that would conflict with the new red background
 
 ---
 
@@ -47,11 +47,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Update light mode `--color-bg` from `#ffffff` to `#DC2626` in `:root` selector in `frontend/src/index.css`
-- [ ] T004 [US1] Update light mode `--color-bg-secondary` from `#f6f8fa` to `#B91C1C` in `:root` selector in `frontend/src/index.css`
-- [ ] T005 [US1] Update dark mode `--color-bg` from `#0d1117` to `#7F1D1D` in `html.dark-mode-active` selector in `frontend/src/index.css`
-- [ ] T006 [US1] Update dark mode `--color-bg-secondary` from `#161b22` to `#991B1B` in `html.dark-mode-active` selector in `frontend/src/index.css`
-- [ ] T007 [US1] Verify red background displays on all pages/routes by running `cd frontend && npm run dev` and navigating through the application
+- [x] T003 [US1] Update light mode `--color-bg` from `#ffffff` to `#DC2626` in `:root` selector in `frontend/src/index.css`
+- [x] T004 [US1] Update light mode `--color-bg-secondary` from `#f6f8fa` to `#B91C1C` in `:root` selector in `frontend/src/index.css`
+- [x] T005 [US1] Update dark mode `--color-bg` from `#0d1117` to `#7F1D1D` in `html.dark-mode-active` selector in `frontend/src/index.css`
+- [x] T006 [US1] Update dark mode `--color-bg-secondary` from `#161b22` to `#991B1B` in `html.dark-mode-active` selector in `frontend/src/index.css`
+- [x] T007 [US1] Verify red background displays on all pages/routes by running `cd frontend && npm run dev` and navigating through the application
 
 **Checkpoint**: At this point, the red background should be visible globally in both light and dark modes across all viewports
 
@@ -65,12 +65,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Update light mode `--color-text` from `#24292f` to `#FFFFFF` in `:root` selector in `frontend/src/index.css`
-- [ ] T009 [US2] Update light mode `--color-text-secondary` from `#57606a` to `#FCA5A5` in `:root` selector in `frontend/src/index.css`
-- [ ] T010 [US2] Update light mode `--color-border` from `#d0d7de` to `#FECACA` in `:root` selector in `frontend/src/index.css`
-- [ ] T011 [US2] Update dark mode `--color-border` from `#30363d` to `#7F1D1D` in `html.dark-mode-active` selector in `frontend/src/index.css`
-- [ ] T012 [US2] Verify all text, buttons, cards, modals, navigation, and forms remain readable against the red background in both light and dark modes
-- [ ] T013 [US2] Run existing frontend tests to confirm no regressions: `cd frontend && npm run test -- --run`
+- [x] T008 [US2] Update light mode `--color-text` from `#24292f` to `#FFFFFF` in `:root` selector in `frontend/src/index.css`
+- [x] T009 [US2] Update light mode `--color-text-secondary` from `#57606a` to `#FCA5A5` in `:root` selector in `frontend/src/index.css`
+- [x] T010 [US2] Update light mode `--color-border` from `#d0d7de` to `#FECACA` in `:root` selector in `frontend/src/index.css`
+- [x] T011 [US2] Update dark mode `--color-border` from `#30363d` to `#7F1D1D` in `html.dark-mode-active` selector in `frontend/src/index.css`
+- [x] T012 [US2] Verify all text, buttons, cards, modals, navigation, and forms remain readable against the red background in both light and dark modes
+- [x] T013 [US2] Run existing frontend tests to confirm no regressions: `cd frontend && npm run test -- --run`
 
 **Checkpoint**: At this point, all UI elements should be readable and accessible against the red background in both modes
 
@@ -84,8 +84,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Verify no hardcoded background colors were introduced during US1/US2 implementation — all background values must use `var(--color-bg)` or `var(--color-bg-secondary)` in `frontend/src/index.css` and component CSS files
-- [ ] T015 [US3] Confirm that changing the `--color-bg` token value in `:root` in `frontend/src/index.css` updates the background globally across the entire application on reload
+- [x] T014 [US3] Verify no hardcoded background colors were introduced during US1/US2 implementation — all background values must use `var(--color-bg)` or `var(--color-bg-secondary)` in `frontend/src/index.css` and component CSS files
+- [x] T015 [US3] Confirm that changing the `--color-bg` token value in `:root` in `frontend/src/index.css` updates the background globally across the entire application on reload
 
 **Checkpoint**: All user stories should now be independently functional — red background is applied, accessible, and maintainable
 
@@ -95,10 +95,10 @@
 
 **Purpose**: Final validation across browsers, viewports, and build pipeline
 
-- [ ] T016 Run full frontend build to confirm no errors: `cd frontend && npm run build`
-- [ ] T017 Run full frontend test suite to confirm no regressions: `cd frontend && npm run test -- --run`
-- [ ] T018 Visual verification across viewports (320px, 768px, 1024px, 1920px) per quickstart.md checklist
-- [ ] T019 Run quickstart.md validation checklist (light mode, dark mode, responsive, components intact)
+- [x] T016 Run full frontend build to confirm no errors: `cd frontend && npm run build`
+- [x] T017 Run full frontend test suite to confirm no regressions: `cd frontend && npm run test -- --run`
+- [x] T018 Visual verification across viewports (320px, 768px, 1024px, 1920px) per quickstart.md checklist
+- [x] T019 Run quickstart.md validation checklist (light mode, dark mode, responsive, components intact)
 
 ---
 
