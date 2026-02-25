@@ -20,6 +20,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - SQLite via aiosqlite (WAL mode, migration-managed schema) (008-test-coverage-bug-fixes)
 - Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend) (009-codebase-cleanup-refactor)
 - SQLite via aiosqlite (async), plus synchronous `sqlite3` in workflow_orchestrator (to be migrated) (009-codebase-cleanup-refactor)
+- TypeScript 5.x (frontend), Python 3.11 (backend) + React 18 + Vite (frontend), FastAPI (backend) (011-update-title-text)
+- N/A — no data model changes required (011-update-title-text)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -39,9 +41,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 011-update-title-text: Added TypeScript 5.x (frontend), Python 3.11 (backend) + React 18 + Vite (frontend), FastAPI (backend)
 - 009-codebase-cleanup-refactor: Added Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend)
 - 008-test-coverage-bug-fixes: Added Python ≥3.11 (Pyright targets 3.12), TypeScript ~5.4 (target ES2022) + FastAPI ≥0.109, React 18.3, TanStack Query 5.17, Pydantic 2.x, httpx, aiosqlite
-- 007-codebase-cleanup-refactor: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI, Pydantic v2, httpx, aiosqlite, github-copilot-sdk, agent-framework-core (backend); React 18, @tanstack/react-query v5, socket.io-client, Vite 5 (frontend)
 
 
 <!-- MANUAL ADDITIONS START -->
