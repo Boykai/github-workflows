@@ -83,7 +83,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     <div className="settings-page">
       <div className="settings-page-header">
         <h2>Settings</h2>
-        <p>Configure your preferences for Agent Projects.</p>
+        <p>Configure your preferences for Tim is Awesome.</p>
       </div>
 
       <div className="settings-sections">

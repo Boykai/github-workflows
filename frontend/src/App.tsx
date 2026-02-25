@@ -80,7 +80,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
-        <h1>Agent Projects</h1>
+        <h1>Tim is Awesome</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
@@ -97,7 +97,7 @@ function AppContent() {
     <div className="app-container">
       <header className="app-header">
         <div className="header-left">
-          <h1>Agent Projects</h1>
+          <h1>Tim is Awesome</h1>
           <nav className="header-nav">
             <button
               className={`header-nav-btn ${activeView === 'chat' ? 'active' : ''}`}

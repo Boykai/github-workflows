@@ -1,5 +1,5 @@
 {
-  "name": "Agent Projects",
+  "name": "Tim is Awesome",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",

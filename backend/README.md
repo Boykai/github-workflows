@@ -1,6 +1,6 @@
-# Agent Projects — Backend
+# Tim is Awesome — Backend
 
-FastAPI backend that powers Agent Projects and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, **sub-issue-per-agent workflow** with automatic lifecycle management, **SQLite-backed workflow config persistence**, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
+FastAPI backend that powers Tim is Awesome and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, **sub-issue-per-agent workflow** with automatic lifecycle management, **SQLite-backed workflow config persistence**, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
 
 ## Setup
 
