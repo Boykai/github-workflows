@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from src.config import get_settings, setup_logging
-from src.exceptions import AppException
+from src.exceptions import AppException, RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -95,15 +95,24 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Request-ID middleware (must be added after CORS — Starlette LIFO order)
+    from src.middleware.request_id import RequestIDMiddleware
+
+    app.add_middleware(RequestIDMiddleware)
+
     # Exception handlers
     @app.exception_handler(AppException)
     async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:
+        headers: dict[str, str] = {}
+        if isinstance(exc, RateLimitError):
+            headers["Retry-After"] = str(exc.retry_after)
         return JSONResponse(
             status_code=exc.status_code,
             content={
                 "error": exc.message,
                 "details": exc.details,
             },
+            headers=headers or None,
         )
 
     @app.exception_handler(Exception)

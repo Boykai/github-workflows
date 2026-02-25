@@ -1,5 +1,7 @@
 """GitHub OAuth authentication service."""
 
+from __future__ import annotations
+
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -20,11 +22,15 @@ from src.services.session_store import (
 from src.services.session_store import (
     save_session as store_save_session,
 )
+from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
 
-# In-memory OAuth state storage (short-lived, no persistence needed)
-_oauth_states: dict[str, datetime] = {}
+# OAuth state storage — bounded to prevent unbounded memory growth.
+# Expired entries are pruned on each new state generation.
+_oauth_states: BoundedDict[str, datetime] = BoundedDict(maxlen=1000)
+
+_OAUTH_STATE_TTL = timedelta(minutes=10)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
@@ -49,6 +55,9 @@ class GitHubAuthService:
         Returns:
             Tuple of (authorization_url, state)
         """
+        # Prune expired states on each generation to prevent stale buildup
+        _prune_expired_states()
+
         state = secrets.token_urlsafe(32)
         _oauth_states[state] = datetime.now(UTC)
 
@@ -76,8 +85,8 @@ class GitHubAuthService:
             return False
 
         created_at = _oauth_states.pop(state)
-        # State expires after 10 minutes
-        return datetime.now(UTC) - created_at < timedelta(minutes=10)
+        # State expires after the configured TTL
+        return datetime.now(UTC) - created_at < _OAUTH_STATE_TTL
 
     async def exchange_code_for_token(self, code: str) -> dict:
         """
@@ -287,6 +296,14 @@ class GitHubAuthService:
         if deleted:
             logger.info("Revoked session %s", session_id)
         return deleted
+
+
+def _prune_expired_states() -> None:
+    """Remove expired OAuth states from the bounded dict."""
+    now = datetime.now(UTC)
+    expired = [k for k, v in _oauth_states.items() if now - v >= _OAUTH_STATE_TTL]
+    for k in expired:
+        _oauth_states.pop(k, None)
 
 
 # Global service instance

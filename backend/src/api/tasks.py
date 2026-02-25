@@ -4,9 +4,10 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import ValidationError
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
 from src.services.cache import cache, get_project_items_cache_key
@@ -89,60 +90,23 @@ async def create_task(
     return task
 
 
-@router.patch("/{task_id}/status", response_model=Task)
+@router.patch("/{task_id}/status")
 async def update_task_status(
     task_id: str,
     status: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> Task:
-    """Update a task's status."""
-    # This endpoint requires task lookup and status field info
-    # For MVP, we'll implement basic functionality
+) -> JSONResponse:
+    """Update a task's status.
 
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
-
-    # Get project items to find the task
-    cache_key = get_project_items_cache_key(session.selected_project_id)
-    tasks = cache.get(cache_key)
-
-    if not tasks:
-        tasks = await github_projects_service.get_project_items(
-            session.access_token, session.selected_project_id
-        )
-        cache.set(cache_key, tasks)
-
-    # Find the task
-    target_task = None
-    for t in tasks:
-        if str(t.task_id) == task_id or t.github_item_id == task_id:
-            target_task = t
-            break
-
-    if not target_task:
-        raise NotFoundError(f"Task not found: {task_id}")
-
-    # For full implementation, we'd need to:
-    # 1. Get the status field ID and option ID for the target status
-    # 2. Call update_item_status with those IDs
-    # This is simplified for MVP
-
-    logger.info("Status update requested for task %s to %s", task_id, status)
-
-    # Update task object (in real implementation, would update GitHub)
-    target_task.status = status
-
-    # Invalidate cache
-    cache.delete(cache_key)
-
-    # Broadcast WebSocket message to connected clients
-    await connection_manager.broadcast_to_project(
-        session.selected_project_id,
-        {
-            "type": "task_update",
-            "task_id": task_id,
-            "status": status,
+    Not yet implemented — returns 501 until the full GitHub Projects V2
+    field-mutation flow is built.
+    """
+    return JSONResponse(
+        status_code=501,
+        content={
+            "error": "Not implemented",
+            "details": {
+                "message": "Task status update via GitHub Projects API is not yet implemented"
+            },
         },
     )
-
-    return target_task

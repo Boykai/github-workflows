@@ -173,19 +173,21 @@ async def client(
     - Global service singletons → AsyncMocks
     """
     from src.api.auth import get_session_dep
+    from src.dependencies import get_connection_manager, get_github_service
     from src.main import create_app
 
     app = create_app()
 
     # FastAPI dependency overrides
     app.dependency_overrides[get_session_dep] = lambda: mock_session
+    app.dependency_overrides[get_github_service] = lambda: mock_github_service
+    app.dependency_overrides[get_connection_manager] = lambda: mock_websocket_manager
 
     with (
         patch("src.services.database.get_db", return_value=mock_db),
         patch("src.services.database._connection", mock_db),
         patch("src.config.get_settings", return_value=mock_settings),
         # github_projects_service — patched in every API module that imports it
-        patch("src.api.chat.github_projects_service", mock_github_service),
         patch("src.api.board.github_projects_service", mock_github_service),
         patch("src.api.projects.github_projects_service", mock_github_service),
         patch("src.api.tasks.github_projects_service", mock_github_service),
@@ -198,7 +200,6 @@ async def client(
         # AI agent service
         patch("src.api.chat.get_ai_agent_service", return_value=mock_ai_agent_service),
         # connection_manager — patched in every API module that broadcasts
-        patch("src.api.chat.connection_manager", mock_websocket_manager),
         patch("src.api.projects.connection_manager", mock_websocket_manager),
         patch("src.api.tasks.connection_manager", mock_websocket_manager),
         patch("src.api.workflow.connection_manager", mock_websocket_manager),

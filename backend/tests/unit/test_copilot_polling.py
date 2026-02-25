@@ -1276,7 +1276,7 @@ class TestCheckChildPrCompletion:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=True)
 
         result = await _check_child_pr_completion(
             access_token="token",
@@ -1306,7 +1306,7 @@ class TestCheckChildPrCompletion:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
 
         result = await _check_child_pr_completion(
             access_token="token",
@@ -1392,7 +1392,7 @@ class TestCheckMainPrCompletion:
                 }
             ]
         )
-        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=True)
 
         result = await _check_main_pr_completion(
             access_token="token",
@@ -1406,7 +1406,7 @@ class TestCheckMainPrCompletion:
 
         assert result is True
         # Verify only fresh events were passed
-        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        call_args = mock_service.check_copilot_finished_events.call_args[0][0]
         assert len(call_args) == 1
         assert call_args[0]["event"] == "copilot_work_finished"
 
@@ -1425,7 +1425,7 @@ class TestCheckMainPrCompletion:
                 }
             ]
         )
-        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
 
         result = await _check_main_pr_completion(
             access_token="token",
@@ -1439,7 +1439,7 @@ class TestCheckMainPrCompletion:
 
         assert result is False
         # Verify stale events were filtered out
-        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        call_args = mock_service.check_copilot_finished_events.call_args[0][0]
         assert len(call_args) == 0
 
     @pytest.mark.asyncio
@@ -1450,7 +1450,7 @@ class TestCheckMainPrCompletion:
         mock_service.get_pr_timeline_events = AsyncMock(
             return_value=[{"event": "copilot_work_finished", "created_at": "2025-01-15T16:00:00Z"}]
         )
-        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=True)
 
         result = await _check_main_pr_completion(
             access_token="token",
@@ -1464,7 +1464,7 @@ class TestCheckMainPrCompletion:
 
         assert result is True
         # All events should be passed without filtering
-        call_args = mock_service._check_copilot_finished_events.call_args[0][0]
+        call_args = mock_service.check_copilot_finished_events.call_args[0][0]
         assert len(call_args) == 1
 
     @pytest.mark.asyncio
@@ -1473,7 +1473,7 @@ class TestCheckMainPrCompletion:
         """Should return False when main PR is draft and no completion events."""
         mock_service.get_pull_request = AsyncMock(return_value={"state": "OPEN", "is_draft": True})
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
 
         result = await _check_main_pr_completion(
             access_token="token",
@@ -2005,6 +2005,7 @@ class TestAdvancePipeline:
         _pipeline_states.clear()
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.connection_manager")
     @patch("src.services.copilot_polling.get_issue_main_branch")
@@ -2021,6 +2022,7 @@ class TestAdvancePipeline:
         mock_get_branch,
         mock_ws,
         mock_service,
+        mock_update_tracking,
     ):
         """Should advance pipeline and assign next agent."""
         pipeline = PipelineState(
@@ -2039,6 +2041,7 @@ class TestAdvancePipeline:
         mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
         mock_get_orchestrator.return_value = mock_orchestrator
         mock_config.return_value = MagicMock()
+        mock_update_tracking.return_value = True
 
         result = await _advance_pipeline(
             access_token="token",
@@ -2059,6 +2062,79 @@ class TestAdvancePipeline:
         assert result["agent_name"] == "speckit.tasks"
         assert "1/2" in result["pipeline_progress"]
         mock_orchestrator.assign_agent_for_status.assert_called_once()
+
+        # Verify the completed agent is marked ✅ Done in tracking
+        mock_update_tracking.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            agent_name="speckit.plan",
+            new_state="done",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_marks_completed_agent_done_in_tracking(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_service,
+        mock_update_tracking,
+    ):
+        """_advance_pipeline must mark the completed agent as Done in the
+        issue body tracking table so users see ✅ instead of stale 🔄."""
+        pipeline = PipelineState(
+            issue_number=99,
+            project_id="PVT_X",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+        )
+
+        mock_get_branch.return_value = None
+        mock_merge.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+        mock_update_tracking.return_value = True
+
+        await _advance_pipeline(
+            access_token="tok",
+            project_id="PVT_X",
+            item_id="PVTI_X",
+            owner="o",
+            repo="r",
+            issue_number=99,
+            issue_node_id="I_X",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="T",
+        )
+
+        mock_update_tracking.assert_called_once_with(
+            access_token="tok",
+            owner="o",
+            repo="r",
+            issue_number=99,
+            agent_name="speckit.plan",
+            new_state="done",
+        )
 
 
 class TestFindCompletedChildPr:
@@ -2106,7 +2182,7 @@ class TestFindCompletedChildPr:
         mock_service.get_pr_timeline_events = AsyncMock(
             return_value=[{"event": "copilot_work_finished"}]
         )
-        mock_service._check_copilot_finished_events = MagicMock(return_value=True)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=True)
 
         result = await _find_completed_child_pr(
             access_token="token",
@@ -2269,7 +2345,7 @@ class TestFindCompletedChildPr:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = MagicMock(return_value=False)
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
 
         result = await _find_completed_child_pr(
             access_token="token",
@@ -2933,7 +3009,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
@@ -2960,7 +3036,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
@@ -2978,7 +3054,7 @@ class TestCheckMainPrCompletionCommitBased:
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_sha_unchanged_copilot_unassigned(self, mock_service):
-        """SHA unchanged but Copilot unassigned → True (agent finished w/o changes)."""
+        """SHA unchanged but Copilot unassigned → False (no code committed, FR-007)."""
         mock_service.get_pull_request = AsyncMock(
             return_value={
                 "is_draft": True,
@@ -2987,7 +3063,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
@@ -3000,7 +3076,7 @@ class TestCheckMainPrCompletionCommitBased:
             pipeline_started_at=utcnow(),
             agent_assigned_sha="same_sha",
         )
-        assert result is True
+        assert result is False
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -3014,7 +3090,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
@@ -3042,7 +3118,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
@@ -3070,7 +3146,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
 
         result = await _check_main_pr_completion(
@@ -3097,7 +3173,7 @@ class TestCheckMainPrCompletionCommitBased:
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
-        mock_service._check_copilot_finished_events = Mock(return_value=False)
+        mock_service.check_copilot_finished_events = Mock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
 
         result = await _check_main_pr_completion(
@@ -3637,6 +3713,7 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         _issue_sub_issue_map.clear()
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.connection_manager")
     @patch("src.services.copilot_polling.get_workflow_orchestrator")
@@ -3649,6 +3726,7 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         mock_get_orchestrator,
         mock_ws,
         mock_service,
+        mock_update_tracking,
     ):
         """When pipeline.agent_sub_issues is empty but the global store has
         the mapping, _advance_pipeline should still close the sub-issue."""
@@ -3720,6 +3798,7 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         )
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.connection_manager")
     @patch("src.services.copilot_polling.get_workflow_orchestrator")
@@ -3732,6 +3811,7 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         mock_get_orchestrator,
         mock_ws,
         mock_service,
+        mock_update_tracking,
     ):
         """When pipeline has sub-issue info, it should be used instead of global store."""
         from src.services.workflow_orchestrator import set_issue_sub_issues
@@ -3783,3 +3863,169 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         mock_service.update_issue_state.assert_called_once()
         call_args = mock_service.update_issue_state.call_args
         assert call_args.kwargs["issue_number"] == 101
+
+
+class TestProcessPipelineCompletionBatchTracking:
+    """Tests that _process_pipeline_completion batch-updates the tracking
+    table when pipeline.is_complete is True (e.g. after reconstruction)."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        yield
+        _pipeline_states.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_batch_marks_all_completed_agents_done(
+        self,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """When pipeline.is_complete, _process_pipeline_completion should
+        batch-update all completed agents to ✅ Done in a single API call."""
+        from src.services.copilot_polling import _process_pipeline_completion
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=2,
+            completed_agents=["speckit.plan", "speckit.tasks"],
+        )
+
+        task = MagicMock()
+        task.issue_number = 42
+        task.github_item_id = "PVTI_123"
+        task.github_content_id = "I_123"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test Issue"
+
+        body_with_active = (
+            "Issue body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | Ready | `speckit.plan` | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.tasks` | 🔄 Active |\n"
+        )
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": body_with_active, "comments": []}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock(
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            agent_mappings={},
+        )
+
+        await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_123",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+        )
+
+        # Verify the tracking table was batch-updated
+        mock_service.update_issue_body.assert_called_once()
+        pushed_body = mock_service.update_issue_body.call_args.kwargs["body"]
+        assert "✅ Done" in pushed_body
+        assert "🔄 Active" not in pushed_body
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_batch_update_is_single_round_trip(
+        self,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+    ):
+        """The batch tracking update should fetch + push only once, not once per agent."""
+        from src.services.copilot_polling import _process_pipeline_completion
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=2,
+            completed_agents=["speckit.plan", "speckit.tasks"],
+        )
+
+        task = MagicMock()
+        task.issue_number = 42
+        task.github_item_id = "PVTI_123"
+        task.github_content_id = "I_123"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test"
+
+        body_with_active = (
+            "Body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | Ready | `speckit.plan` | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.tasks` | 🔄 Active |\n"
+        )
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": body_with_active, "comments": []}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock(
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            agent_mappings={},
+        )
+
+        await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_123",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+        )
+
+        # Single fetch + single push (not one per completed agent)
+        assert mock_service.get_issue_with_comments.call_count == 1
+        mock_service.update_issue_body.assert_called_once()
+
+        # The pushed body should have both agents as ✅ Done
+        pushed_body = mock_service.update_issue_body.call_args.kwargs["body"]
+        assert "✅ Done" in pushed_body
+        assert "🔄 Active" not in pushed_body

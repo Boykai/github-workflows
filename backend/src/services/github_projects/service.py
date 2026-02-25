@@ -44,6 +44,9 @@ from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
+# Configurable delay (seconds) before status/assignment updates to let GitHub sync.
+API_ACTION_DELAY_SECONDS: float = 2.0
+
 
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
@@ -54,6 +57,31 @@ class GitHubProjectsService:
     async def close(self):
         """Close HTTP client."""
         await self._client.aclose()
+
+    async def http_get(self, url: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
+        """Public HTTP GET — for call sites that need raw GitHub REST access.
+
+        Use ``_build_headers(token)`` to construct ``headers``.
+        """
+        return await self._client.get(url, headers=headers)
+
+    @staticmethod
+    def _build_headers(access_token: str) -> dict[str, str]:
+        """Build standard REST API headers for GitHub."""
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+    @staticmethod
+    def is_copilot_author(login: str) -> bool:
+        """Check if a login belongs to a Copilot agent.
+
+        Matches both "copilot" (substring) and known bot logins
+        like "copilot-swe-agent[bot]".
+        """
+        return "copilot" in (login or "").lower()
 
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
@@ -163,11 +191,7 @@ class GitHubProjectsService:
         Returns:
             GraphQL response data
         """
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        headers = self._build_headers(access_token)
         if extra_headers:
             headers.update(extra_headers)
 
@@ -785,8 +809,8 @@ class GitHubProjectsService:
         Returns:
             True if update succeeded
         """
-        # Add 2 second delay before status update (rate limiting / UX improvement)
-        await asyncio.sleep(2)
+        # Add delay before status update (rate limiting / UX improvement)
+        await asyncio.sleep(API_ACTION_DELAY_SECONDS)
 
         data = await self._graphql(
             access_token,
@@ -817,6 +841,11 @@ class GitHubProjectsService:
         """
         Create a GitHub Issue using REST API (T018).
 
+        Uses _request_with_retry for resilience against transient 429/503
+        errors (FR-008).  Issue creation is treated as idempotent here
+        because a failed request (5xx / rate-limit) means the issue was
+        NOT created, so retrying is safe.
+
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
@@ -828,20 +857,21 @@ class GitHubProjectsService:
         Returns:
             Dict with issue details: id, node_id, number, html_url
         """
-        response = await self._client.post(
-            f"https://api.github.com/repos/{owner}/{repo}/issues",
-            json={
-                "title": title,
-                "body": body,
-                "labels": labels or [],
-            },
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+        url = f"https://api.github.com/repos/{owner}/{repo}/issues"
+        headers = self._build_headers(access_token)
+        payload = {
+            "title": title,
+            "body": body,
+            "labels": labels or [],
+        }
+
+        response = await self._request_with_retry(
+            method="POST",
+            url=url,
+            headers=headers,
+            json=payload,
+            idempotent=True,
         )
-        response.raise_for_status()
         issue = response.json()
 
         logger.info("Created issue #%d in %s/%s", issue["number"], owner, repo)
@@ -872,11 +902,7 @@ class GitHubProjectsService:
             response = await self._client.patch(
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
                 json={"body": body},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
             response.raise_for_status()
             logger.info("Updated body of issue #%d in %s/%s", issue_number, owner, repo)
@@ -912,11 +938,7 @@ class GitHubProjectsService:
         Returns:
             True if update succeeded
         """
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        headers = self._build_headers(access_token)
 
         try:
             # Update state
@@ -1010,11 +1032,7 @@ class GitHubProjectsService:
         response = await self._client.patch(
             f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
             json={"assignees": assignees},
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=self._build_headers(access_token),
         )
 
         success = response.status_code == 200
@@ -1087,41 +1105,71 @@ class GitHubProjectsService:
         owner: str,
         repo: str,
         issue_number: int,
+        *,
+        max_pages: int = 10,
     ) -> dict:
         """
         Fetch issue details including title, body, and all comments.
+
+        Uses cursor-based pagination to retrieve all comments (FR-021).
+        Each page fetches up to 100 comments; pagination continues until
+        ``hasNextPage`` is False or ``max_pages`` is reached (safety cap).
 
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
             repo: Repository name
             issue_number: Issue number
+            max_pages: Maximum pagination requests (default 10 = 1000 comments)
 
         Returns:
             Dict with issue title, body, and comments list
         """
         try:
-            data = await self._graphql(
-                access_token,
-                GET_ISSUE_WITH_COMMENTS_QUERY,
-                {"owner": owner, "name": repo, "number": issue_number},
-            )
+            all_comments: list[dict] = []
+            title = ""
+            body = ""
+            cursor: str | None = None
 
-            issue = data.get("repository", {}).get("issue", {})
-            comments = issue.get("comments", {}).get("nodes", [])
+            for _page in range(max_pages):
+                variables: dict = {
+                    "owner": owner,
+                    "name": repo,
+                    "number": issue_number,
+                }
+                if cursor is not None:
+                    variables["after"] = cursor
 
-            return {
-                "title": issue.get("title", ""),
-                "body": issue.get("body", ""),
-                "comments": [
+                data = await self._graphql(
+                    access_token,
+                    GET_ISSUE_WITH_COMMENTS_QUERY,
+                    variables,
+                )
+
+                issue = data.get("repository", {}).get("issue", {})
+
+                # Capture title/body from the first page only
+                if not title:
+                    title = issue.get("title", "")
+                    body = issue.get("body", "")
+
+                comments_data = issue.get("comments", {})
+                nodes = comments_data.get("nodes", [])
+                all_comments.extend(
                     {
                         "author": c.get("author", {}).get("login", "unknown"),
                         "body": c.get("body", ""),
                         "created_at": c.get("createdAt", ""),
                     }
-                    for c in comments
-                ],
-            }
+                    for c in nodes
+                )
+
+                page_info = comments_data.get("pageInfo", {})
+                if not page_info.get("hasNextPage", False):
+                    break
+                cursor = page_info.get("endCursor")
+
+            return {"title": title, "body": body, "comments": all_comments}
         except Exception as e:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
             return {"title": "", "body": "", "comments": []}
@@ -1310,12 +1358,7 @@ class GitHubProjectsService:
             import json as json_mod
 
             url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "Content-Type": "application/json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
+            headers = {**self._build_headers(access_token), "Content-Type": "application/json"}
 
             # Use REST API to remove Copilot assignee
             # The assignee login for Copilot is "copilot-swe-agent[bot]"
@@ -1331,7 +1374,7 @@ class GitHubProjectsService:
                 # Verify Copilot was actually removed from assignees
                 result = response.json()
                 remaining = [a.get("login", "") for a in result.get("assignees", [])]
-                copilot_gone = not any("copilot" in a.lower() for a in remaining)
+                copilot_gone = not any(self.is_copilot_author(a) for a in remaining)
                 logger.info(
                     "Unassigned Copilot from issue #%d (remaining assignees: %s, copilot_removed: %s)",
                     issue_number,
@@ -1339,7 +1382,7 @@ class GitHubProjectsService:
                     copilot_gone,
                 )
                 # Give GitHub a moment to propagate the unassignment
-                await asyncio.sleep(2)
+                await asyncio.sleep(API_ACTION_DELAY_SECONDS)
                 return copilot_gone
             elif response.status_code == 404:
                 # Copilot was not assigned
@@ -1387,11 +1430,7 @@ class GitHubProjectsService:
         """
         try:
             url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
+            headers = self._build_headers(access_token)
             response = await self._client.get(url, headers=headers)
             if response.status_code != 200:
                 logger.warning(
@@ -1404,8 +1443,8 @@ class GitHubProjectsService:
             issue_data = response.json()
             assignees = issue_data.get("assignees", [])
             for assignee in assignees:
-                login = (assignee.get("login") or "").lower()
-                if "copilot" in login:
+                login = assignee.get("login") or ""
+                if self.is_copilot_author(login):
                     return True
 
             return False
@@ -1546,11 +1585,7 @@ class GitHubProjectsService:
             response = await self._client.post(
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code in (200, 201):
@@ -1676,11 +1711,7 @@ class GitHubProjectsService:
         """
         response = await self._client.get(
             f"https://api.github.com/repos/{owner}/{repo}/assignees/{username}",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=self._build_headers(access_token),
         )
 
         # 204 means user can be assigned
@@ -1705,11 +1736,7 @@ class GitHubProjectsService:
         """
         response = await self._client.get(
             f"https://api.github.com/repos/{owner}/{repo}",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=self._build_headers(access_token),
         )
         response.raise_for_status()
         repo_data = response.json()
@@ -2149,11 +2176,7 @@ class GitHubProjectsService:
                     "sort": "created",
                     "direction": "desc",
                 },
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code != 200:
@@ -2257,7 +2280,7 @@ class GitHubProjectsService:
                 if rest_prs:
                     # REST results already have head_ref, pick the best one
                     copilot_prs = [
-                        pr for pr in rest_prs if "copilot" in (pr.get("author", "") or "").lower()
+                        pr for pr in rest_prs if self.is_copilot_author(pr.get("author", ""))
                     ]
                     target_pr = (copilot_prs or rest_prs)[0]
                     result = {
@@ -2280,7 +2303,7 @@ class GitHubProjectsService:
             copilot_prs = [
                 pr
                 for pr in linked_prs
-                if pr.get("state") == "OPEN" and "copilot" in (pr.get("author", "") or "").lower()
+                if pr.get("state") == "OPEN" and self.is_copilot_author(pr.get("author", ""))
             ]
 
             open_prs = [pr for pr in linked_prs if pr.get("state") == "OPEN"]
@@ -2296,7 +2319,7 @@ class GitHubProjectsService:
                 )
                 if rest_prs:
                     copilot_rest = [
-                        pr for pr in rest_prs if "copilot" in (pr.get("author", "") or "").lower()
+                        pr for pr in rest_prs if self.is_copilot_author(pr.get("author", ""))
                     ]
                     target_rest = (copilot_rest or rest_prs)[0]
                     result = {
@@ -2674,11 +2697,7 @@ class GitHubProjectsService:
             # Use REST API to delete the branch reference
             response = await self._client.delete(
                 f"https://api.github.com/repos/{owner}/{repo}/git/refs/heads/{branch_name}",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code == 204:
@@ -2738,11 +2757,7 @@ class GitHubProjectsService:
             response = await self._client.patch(
                 f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
                 json={"base": base},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code == 200:
@@ -2827,11 +2842,7 @@ class GitHubProjectsService:
             response = await self._client.patch(
                 f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
                 json={"body": updated_body},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code == 200:
@@ -2898,7 +2909,7 @@ class GitHubProjectsService:
             # Check if any review was submitted by copilot
             for review in reviews:
                 author = review.get("author", {})
-                if author and author.get("login", "").lower() == "copilot":
+                if author and self.is_copilot_author(author.get("login", "")):
                     logger.info(
                         "Found existing Copilot review on PR #%d (state: %s)",
                         pr_number,
@@ -2932,11 +2943,7 @@ class GitHubProjectsService:
             List of timeline events
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/timeline"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        headers = self._build_headers(access_token)
 
         try:
             response = await self._client.get(url, headers=headers)
@@ -2950,7 +2957,7 @@ class GitHubProjectsService:
             )
             return []
 
-    def _check_copilot_finished_events(self, events: list[dict]) -> bool:
+    def check_copilot_finished_events(self, events: list[dict]) -> bool:
         """
         Check if Copilot has finished work based on timeline events.
 
@@ -2975,8 +2982,8 @@ class GitHubProjectsService:
             # Check for review_requested event from Copilot
             if event_type == "review_requested":
                 review_requester = event.get("review_requester", {})
-                requester_login = review_requester.get("login", "").lower()
-                if requester_login == "copilot":
+                requester_login = review_requester.get("login", "")
+                if self.is_copilot_author(requester_login):
                     logger.info(
                         "Found 'review_requested' event from Copilot for reviewer: %s",
                         event.get("requested_reviewer", {}).get("login"),
@@ -3034,7 +3041,7 @@ class GitHubProjectsService:
                 pr_number = int(raw_pr_number)
 
                 # Check if this is a Copilot-created PR
-                if "copilot" in author or author == "copilot-swe-agent[bot]":
+                if self.is_copilot_author(author):
                     logger.info(
                         "Found Copilot PR #%d for issue #%d: state=%s, is_draft=%s",
                         pr_number,
@@ -3114,7 +3121,7 @@ class GitHubProjectsService:
                         )
                         timeline_events = fresh_events
 
-                    copilot_finished = self._check_copilot_finished_events(timeline_events)
+                    copilot_finished = self.check_copilot_finished_events(timeline_events)
 
                     if copilot_finished:
                         logger.info(
@@ -3264,11 +3271,7 @@ class GitHubProjectsService:
             response = await self._client.post(
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues",
                 json={"sub_issue_id": sub_issue["id"]},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code in (200, 201):
@@ -3317,11 +3320,7 @@ class GitHubProjectsService:
         try:
             response = await self._client.get(
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/sub_issues",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
                 params={"per_page": 50},
             )
 
@@ -3445,11 +3444,7 @@ class GitHubProjectsService:
             response = await self._client.post(
                 f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
                 json={"body": body},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
             )
 
             if response.status_code in (200, 201):
@@ -3495,11 +3490,7 @@ class GitHubProjectsService:
         try:
             response = await self._client.get(
                 f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files",
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers=self._build_headers(access_token),
                 params={"per_page": 100},
             )
 
@@ -3548,9 +3539,8 @@ class GitHubProjectsService:
             response = await self._client.get(
                 f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
                 headers={
-                    "Authorization": f"Bearer {access_token}",
+                    **self._build_headers(access_token),
                     "Accept": "application/vnd.github.raw+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
                 },
                 params={"ref": ref},
             )
@@ -3715,11 +3705,7 @@ class GitHubProjectsService:
         if not owner or not repo:
             return agents
 
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        headers = self._build_headers(access_token)
 
         # List .github/agents/ directory via Contents API
         try:

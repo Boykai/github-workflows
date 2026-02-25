@@ -1,5 +1,7 @@
 """Database-backed session store replacing in-memory session dict."""
 
+from __future__ import annotations
+
 import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -8,8 +10,21 @@ import aiosqlite
 
 from src.config import get_settings
 from src.models.user import UserSession
+from src.services.encryption import EncryptionService
 
 logger = logging.getLogger(__name__)
+
+# Lazy singleton — initialised on first use from Settings.encryption_key
+_encryption_service: EncryptionService | None = None
+
+
+def _get_encryption_service() -> EncryptionService:
+    """Return the module-level EncryptionService, creating it on first call."""
+    global _encryption_service  # noqa: PLW0603
+    if _encryption_service is None:
+        settings = get_settings()
+        _encryption_service = EncryptionService(settings.encryption_key)
+    return _encryption_service
 
 
 def _row_to_session(row: aiosqlite.Row) -> UserSession:
@@ -32,13 +47,19 @@ def _row_to_session(row: aiosqlite.Row) -> UserSession:
     if updated_at.tzinfo is None:
         updated_at = updated_at.replace(tzinfo=UTC)
 
+    enc = _get_encryption_service()
+    access_token = enc.decrypt(row["access_token"]) if row["access_token"] else row["access_token"]
+    refresh_token = (
+        enc.decrypt(row["refresh_token"]) if row["refresh_token"] else row["refresh_token"]
+    )
+
     return UserSession(
         session_id=UUID(row["session_id"]),
         github_user_id=row["github_user_id"],
         github_username=row["github_username"],
         github_avatar_url=row["github_avatar_url"],
-        access_token=row["access_token"],
-        refresh_token=row["refresh_token"],
+        access_token=access_token,
+        refresh_token=refresh_token,
         token_expires_at=token_expires,
         selected_project_id=row["selected_project_id"],
         created_at=created_at,
@@ -55,6 +76,9 @@ async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
         session: UserSession to persist
     """
     logger.debug("Saving session %s for user %s", session.session_id, session.github_username)
+    enc = _get_encryption_service()
+    encrypted_access = enc.encrypt(session.access_token)
+    encrypted_refresh = enc.encrypt(session.refresh_token) if session.refresh_token else None
     await db.execute(
         """
         INSERT OR REPLACE INTO user_sessions (
@@ -68,8 +92,8 @@ async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
             session.github_user_id,
             session.github_username,
             session.github_avatar_url,
-            session.access_token,
-            session.refresh_token,
+            encrypted_access,
+            encrypted_refresh,
             session.token_expires_at.isoformat() if session.token_expires_at else None,
             session.selected_project_id,
             session.created_at.isoformat(),

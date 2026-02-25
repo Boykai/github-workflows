@@ -4,7 +4,12 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS, WS_RECONNECT_DELAY_MS } from '@/constants';
+import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS } from '@/constants';
+
+/** Maximum reconnection delay in milliseconds (30 seconds). */
+const MAX_RECONNECT_DELAY_MS = 30_000;
+/** Base reconnection delay in milliseconds. */
+const BASE_RECONNECT_DELAY_MS = 1_000;
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 
@@ -21,7 +26,6 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
   const pollingIntervalRef = useRef<number | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 3;
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -98,9 +102,9 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
 
       ws.onopen = () => {
         clearTimeout(connectionTimeout);
+        stopPolling();
         setStatus('connected');
         setLastUpdate(new Date());
-        // Keep polling as backup even with WebSocket
         reconnectAttempts.current = 0;
       };
 
@@ -116,18 +120,22 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         clearTimeout(connectionTimeout);
         wsRef.current = null;
 
-        // Only attempt reconnect a few times before giving up
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          reconnectAttempts.current++;
-          reconnectTimeoutRef.current = window.setTimeout(() => {
-            if (projectId) {
-              connect();
-            }
-          }, WS_RECONNECT_DELAY_MS);
-        } else {
-          // After max attempts, stay in polling mode
-          startPolling();
-        }
+        // Resume polling immediately while we attempt reconnection
+        startPolling();
+
+        // Exponential backoff: delay = min(BASE * 2^attempt, MAX) + jitter
+        const expDelay = Math.min(
+          BASE_RECONNECT_DELAY_MS * Math.pow(2, reconnectAttempts.current),
+          MAX_RECONNECT_DELAY_MS,
+        );
+        const jitter = Math.random() * BASE_RECONNECT_DELAY_MS;
+        reconnectAttempts.current++;
+
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          if (projectId) {
+            connect();
+          }
+        }, expDelay + jitter);
       };
 
       wsRef.current = ws;
@@ -135,7 +143,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
       // WebSocket not supported or blocked, use polling
       startPolling();
     }
-  }, [projectId, handleMessage, startPolling]);
+  }, [projectId, handleMessage, startPolling, stopPolling]);
 
   // Connect when project changes
   useEffect(() => {

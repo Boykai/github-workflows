@@ -2167,7 +2167,7 @@ class TestMarkPrReadyForReview:
 
 
 class TestCheckCopilotFinishedEvents:
-    """Tests for _check_copilot_finished_events helper method."""
+    """Tests for check_copilot_finished_events helper method."""
 
     @pytest.fixture
     def service(self):
@@ -2181,7 +2181,7 @@ class TestCheckCopilotFinishedEvents:
             {"event": "committed"},
             {"event": "copilot_work_finished"},
         ]
-        assert service._check_copilot_finished_events(events) is True
+        assert service.check_copilot_finished_events(events) is True
 
     def test_returns_true_for_review_requested_from_copilot(self, service):
         """Should return True when review_requested event from Copilot exists."""
@@ -2193,7 +2193,7 @@ class TestCheckCopilotFinishedEvents:
                 "requested_reviewer": {"login": "some-user"},
             },
         ]
-        assert service._check_copilot_finished_events(events) is True
+        assert service.check_copilot_finished_events(events) is True
 
     def test_returns_false_for_no_finish_events(self, service):
         """Should return False when no finish events exist."""
@@ -2202,7 +2202,7 @@ class TestCheckCopilotFinishedEvents:
             {"event": "committed"},
             {"event": "assigned"},
         ]
-        assert service._check_copilot_finished_events(events) is False
+        assert service.check_copilot_finished_events(events) is False
 
     def test_returns_false_for_review_requested_not_from_copilot(self, service):
         """Should return False when review_requested is from a user, not Copilot."""
@@ -2213,11 +2213,11 @@ class TestCheckCopilotFinishedEvents:
                 "requested_reviewer": {"login": "another-user"},
             },
         ]
-        assert service._check_copilot_finished_events(events) is False
+        assert service.check_copilot_finished_events(events) is False
 
     def test_returns_false_for_empty_events(self, service):
         """Should return False for empty events list."""
-        assert service._check_copilot_finished_events([]) is False
+        assert service.check_copilot_finished_events([]) is False
 
     def test_handles_missing_login_gracefully(self, service):
         """Should handle missing login field gracefully."""
@@ -2227,7 +2227,7 @@ class TestCheckCopilotFinishedEvents:
                 "review_requester": {},  # Missing login
             },
         ]
-        assert service._check_copilot_finished_events(events) is False
+        assert service.check_copilot_finished_events(events) is False
 
 
 class TestCheckCopilotPrCompletion:

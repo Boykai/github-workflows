@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.dependencies import require_admin
 from src.models.settings import (
     EffectiveProjectSettings,
     EffectiveUserSettings,
@@ -71,9 +72,9 @@ async def get_global_settings_endpoint(
 @router.put("/global", response_model=GlobalSettingsResponse)
 async def update_global_settings_endpoint(
     body: GlobalSettingsUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(require_admin)],
 ) -> GlobalSettingsResponse:
-    """Update global/instance-level settings (partial update)."""
+    """Update global/instance-level settings (partial update). Requires admin."""
     db = get_db()
 
     flat = flatten_global_settings_update(body.model_dump(exclude_unset=True))

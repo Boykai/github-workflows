@@ -1,8 +1,12 @@
 """Module-level mutable state and constants for the polling service."""
 
+from __future__ import annotations
+
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
+
+from src.utils import BoundedDict, BoundedSet
 
 
 @dataclass
@@ -25,20 +29,24 @@ _polling_state = PollingState()
 _polling_task: asyncio.Task | None = None
 
 # Track issues we've already processed to avoid duplicate updates
-_processed_issue_prs: set[str] = set()  # "issue_number:pr_number"
+_processed_issue_prs: BoundedSet[str] = BoundedSet(maxlen=1000)  # "issue_number:pr_number"
 
 # Track issues where we've already posted agent outputs to avoid duplicates
-_posted_agent_outputs: set[str] = set()  # "issue_number:agent_name:pr_number"
+_posted_agent_outputs: BoundedSet[str] = BoundedSet(
+    maxlen=500
+)  # "issue_number:agent_name:pr_number"
 
 # Track which child PRs have been claimed/attributed to an agent
 # This prevents subsequent agents from re-using already-completed child PRs
-_claimed_child_prs: set[str] = set()  # "issue_number:pr_number:agent_name"
+_claimed_child_prs: BoundedSet[str] = BoundedSet(maxlen=500)  # "issue_number:pr_number:agent_name"
 
 # Track agents that we've already assigned (pending Copilot to start working).
 # Maps "issue_number:agent_name" → datetime of assignment.
 # This prevents the polling loop from re-assigning the same agent every cycle
 # before Copilot has had time to create its child PR.
-_pending_agent_assignments: dict[str, datetime] = {}  # key -> assignment timestamp
+_pending_agent_assignments: BoundedDict[str, datetime] = BoundedDict(
+    maxlen=500
+)  # key -> assignment timestamp
 
 # Grace period (seconds) after assigning an agent before any recovery /
 # "agent never assigned" logic is allowed to fire for the same issue.
@@ -48,9 +56,14 @@ ASSIGNMENT_GRACE_PERIOD_SECONDS = 120
 # Track PRs that OUR system converted from draft → ready.
 # This prevents _check_main_pr_completion Signal 1 from misinterpreting
 # a non-draft PR as agent completion when we ourselves marked it ready.
-_system_marked_ready_prs: set[int] = set()  # pr_number
+_system_marked_ready_prs: BoundedSet[int] = BoundedSet(maxlen=500)  # pr_number
 
 # Recovery cooldown: tracks when we last attempted recovery for each issue.
 # Prevents re-assigning an agent every poll cycle — gives Copilot time to start.
-_recovery_last_attempt: dict[int, datetime] = {}  # issue_number -> last attempt time
+_recovery_last_attempt: BoundedDict[int, datetime] = BoundedDict(
+    maxlen=200
+)  # issue_number -> last attempt time
 RECOVERY_COOLDOWN_SECONDS = 300  # 5 minutes between recovery attempts per issue
+
+# Delay (seconds) after merging / before status updates to let GitHub sync.
+POST_ACTION_DELAY_SECONDS: float = 2.0

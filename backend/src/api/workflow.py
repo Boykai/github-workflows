@@ -313,26 +313,7 @@ async def retry_pipeline(
         raise ValidationError("No workflow configuration found for this project")
 
     # Resolve repository info
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        session.selected_project_id,
-    )
-
-    if repo_info:
-        owner, repo = repo_info
-    else:
-        owner = config.repository_owner
-        repo = config.repository_name
-
-    if not owner or not repo:
-        from src.config import get_settings
-
-        settings = get_settings()
-        owner = owner or settings.default_repo_owner or ""
-        repo = repo or settings.default_repo_name or ""
-
-    if not owner or not repo:
-        raise ValidationError("No repository configured for this project")
+    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
     ctx = WorkflowContext(
         session_id=str(session.session_id),
@@ -648,26 +629,8 @@ async def check_issue_copilot_completion(
     if not session.selected_project_id:
         raise ValidationError("No project selected")
 
-    # Get repository info
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        session.selected_project_id,
-    )
-
-    if not repo_info:
-        config = await get_workflow_config(session.selected_project_id)
-        if config and config.repository_owner and config.repository_name:
-            repo_info = (config.repository_owner, config.repository_name)
-        else:
-            from src.config import get_settings
-
-            settings = get_settings()
-            if settings.default_repo_owner and settings.default_repo_name:
-                repo_info = (settings.default_repo_owner, settings.default_repo_name)
-            else:
-                raise ValidationError("No repository configured for this project")
-
-    owner, repo = repo_info
+    # Resolve repository
+    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
     from src.services.copilot_polling import check_issue_for_copilot_completion
 
@@ -719,26 +682,8 @@ async def start_copilot_polling(
     if status["is_running"]:
         return {"message": "Polling is already running", "status": status}
 
-    # Get repository info
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        session.selected_project_id,
-    )
-
-    if not repo_info:
-        config = await get_workflow_config(session.selected_project_id)
-        if config and config.repository_owner and config.repository_name:
-            repo_info = (config.repository_owner, config.repository_name)
-        else:
-            from src.config import get_settings
-
-            settings = get_settings()
-            if settings.default_repo_owner and settings.default_repo_name:
-                repo_info = (settings.default_repo_owner, settings.default_repo_name)
-            else:
-                raise ValidationError("No repository configured for this project")
-
-    owner, repo = repo_info
+    # Resolve repository
+    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
     from src.services.copilot_polling import ensure_polling_started
 
@@ -795,26 +740,8 @@ async def check_all_in_progress_issues(
     if not session.selected_project_id:
         raise ValidationError("No project selected")
 
-    # Get repository info
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        session.selected_project_id,
-    )
-
-    if not repo_info:
-        config = await get_workflow_config(session.selected_project_id)
-        if config and config.repository_owner and config.repository_name:
-            repo_info = (config.repository_owner, config.repository_name)
-        else:
-            from src.config import get_settings
-
-            settings = get_settings()
-            if settings.default_repo_owner and settings.default_repo_name:
-                repo_info = (settings.default_repo_owner, settings.default_repo_name)
-            else:
-                raise ValidationError("No repository configured for this project")
-
-    owner, repo = repo_info
+    # Resolve repository
+    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
     from src.services.copilot_polling import check_in_progress_issues
 

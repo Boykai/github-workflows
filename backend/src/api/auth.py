@@ -71,13 +71,21 @@ async def github_callback(
         # Get frontend URL from settings (default: http://localhost:5173)
         frontend_url = settings.frontend_url
 
-        # Redirect to frontend with session token in URL
-        # Frontend will call /auth/session to set the cookie via the proxy
-        redirect_url = f"{frontend_url}?session_token={session.session_id}"
+        # Redirect to frontend — session token delivered via secure cookie only
+        redirect_url = f"{frontend_url}/auth/callback"
 
         redirect = RedirectResponse(
             url=redirect_url,
             status_code=status.HTTP_302_FOUND,
+        )
+        redirect.set_cookie(
+            key=SESSION_COOKIE_NAME,
+            value=str(session.session_id),
+            httponly=True,
+            secure=settings.cookie_secure,
+            samesite="lax",
+            max_age=settings.cookie_max_age,
+            path="/",
         )
 
         logger.info(
@@ -174,8 +182,8 @@ async def dev_login(
 
     if not settings.debug:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Dev login is only available in debug mode",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not Found",
         )
 
     try:

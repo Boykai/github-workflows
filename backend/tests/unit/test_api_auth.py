@@ -126,7 +126,9 @@ class TestGitHubCallback:
             follow_redirects=False,
         )
         assert resp.status_code == 302
-        assert "session_token=" in resp.headers["location"]
+        # Token now delivered via Set-Cookie, not in URL
+        assert "session_token" not in resp.headers["location"]
+        assert SESSION_COOKIE_NAME in resp.headers.get("set-cookie", "")
 
     async def test_callback_create_session_error(self, client, mock_github_auth_service):
         mock_github_auth_service.validate_state = MagicMock(return_value=True)
@@ -155,7 +157,7 @@ class TestDevLogin:
         assert data["github_username"] == mock_session.github_username
 
     async def test_dev_login_production_mode(self, mock_github_auth_service):
-        """dev-login returns 403 when debug=False."""
+        """dev-login returns 404 when debug=False."""
         from src.api.auth import get_session_dep
         from src.config import Settings
         from src.main import create_app
@@ -177,5 +179,5 @@ class TestDevLogin:
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
                 resp = await ac.post("/api/v1/auth/dev-login", params={"github_token": "ghp_test"})
-        assert resp.status_code == 403
+        assert resp.status_code == 404
         app.dependency_overrides.clear()

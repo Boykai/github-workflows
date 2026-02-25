@@ -624,7 +624,7 @@ async def post_agent_outputs_from_pr(
                             task.issue_number,
                         )
                         # Wait a moment for GitHub to fully process the merge
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
                     else:
                         logger.warning(
                             "Failed to merge child PR #%d for agent '%s' on issue #%d "
@@ -720,18 +720,6 @@ async def post_agent_outputs_from_pr(
                     "Failed to post Done! marker on issue #%d",
                     task.issue_number,
                 )
-
-            # Limit cache size
-            if len(_posted_agent_outputs) > 500:
-                to_remove = list(_posted_agent_outputs)[:250]
-                for key in to_remove:
-                    _posted_agent_outputs.discard(key)
-
-            # Also limit claimed child PRs cache
-            if len(_claimed_child_prs) > 500:
-                to_remove = list(_claimed_child_prs)[:250]
-                for key in to_remove:
-                    _claimed_child_prs.discard(key)
 
     except Exception as e:
         logger.error("Error posting agent outputs from PRs: %s", e)
