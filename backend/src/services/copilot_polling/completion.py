@@ -80,7 +80,7 @@ async def _merge_child_pr_if_applicable(
                 continue
 
             # Skip non-Copilot PRs
-            if "copilot" not in pr_author:
+            if not _cp.github_projects_service.is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs
@@ -330,7 +330,7 @@ async def _find_completed_child_pr(
                 continue
 
             # Skip non-Copilot PRs
-            if "copilot" not in pr_author:
+            if not _cp.github_projects_service.is_copilot_author(pr_author):
                 continue
 
             # Consider OPEN or MERGED PRs - child PRs get merged after completion
@@ -444,7 +444,7 @@ async def _find_completed_child_pr(
                 issue_number=pr_number,  # Note: PR number for timeline events
             )
 
-            copilot_finished = _cp.github_projects_service._check_copilot_finished_events(
+            copilot_finished = _cp.github_projects_service.check_copilot_finished_events(
                 timeline_events
             )
 
@@ -549,7 +549,7 @@ async def _check_child_pr_completion(
                 continue
 
             # Skip non-Copilot PRs
-            if "copilot" not in pr_author:
+            if not _cp.github_projects_service.is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs
@@ -603,7 +603,7 @@ async def _check_child_pr_completion(
                 issue_number=pr_number,
             )
 
-            copilot_finished = _cp.github_projects_service._check_copilot_finished_events(
+            copilot_finished = _cp.github_projects_service.check_copilot_finished_events(
                 timeline_events
             )
 
@@ -766,7 +766,7 @@ async def _check_main_pr_completion(
                 len(timeline_events),
             )
 
-        copilot_finished = _cp.github_projects_service._check_copilot_finished_events(fresh_events)
+        copilot_finished = _cp.github_projects_service.check_copilot_finished_events(fresh_events)
 
         if copilot_finished:
             logger.info(
@@ -860,11 +860,11 @@ async def _check_main_pr_completion(
                         issue_number,
                         agent_name,
                     )
-                    # Return True to trigger the completion flow, which will
-                    # allow the polling loop to advance and potentially re-assign
-                    # the agent. The Done! marker won't be posted without actual
-                    # output files, but the pipeline can attempt recovery.
-                    return True
+                    # Return False — without a SHA change we cannot confirm the
+                    # agent actually committed code.  Advancing the pipeline here
+                    # would be a false-positive (FR-007).  The operator should
+                    # re-assign the agent or manually advance the pipeline.
+                    return False
                 else:
                     logger.debug(
                         "Main PR #%d HEAD SHA unchanged (%s) for agent '%s', issue #%d "

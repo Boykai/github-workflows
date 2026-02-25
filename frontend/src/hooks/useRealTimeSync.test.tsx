@@ -444,4 +444,131 @@ describe('useRealTimeSync', () => {
       global.WebSocket = MockWebSocket;
     });
   });
+
+  describe('polling stops on WebSocket connect (T033/SC-007)', () => {
+    it('should stop polling when WebSocket opens', async () => {
+      vi.useFakeTimers();
+      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // Initially either polling or connecting (startPolling then connect race)
+      expect(['polling', 'connecting']).toContain(result.current.status);
+
+      // Simulate WebSocket connection success
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      // Polling should stop — clearInterval must be called
+      expect(clearIntervalSpy).toHaveBeenCalled();
+      expect(result.current.status).toBe('connected');
+
+      clearIntervalSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('should resume polling on WebSocket close', async () => {
+      vi.useFakeTimers();
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // Connect then disconnect
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+      expect(result.current.status).toBe('connected');
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.close();
+      });
+
+      // Should fall back to polling
+      expect(result.current.status).toBe('polling');
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('exponential backoff on reconnect (T033/SC-007)', () => {
+    it('should increase reconnect delay exponentially', async () => {
+      vi.useFakeTimers();
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // Close connection to trigger first reconnect
+      setTimeoutSpy.mockClear();
+      await act(async () => {
+        mockWebSocketInstances[0]?.close();
+      });
+
+      // First reconnect — base delay ~1000ms (1000 * 2^0 = 1000)
+      const firstCall = setTimeoutSpy.mock.calls.find(
+        ([, delay]) => typeof delay === 'number' && delay >= 1000 && delay <= 2000
+      );
+      expect(firstCall).toBeTruthy();
+
+      // Advance to trigger reconnect
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      // Close again for second reconnect
+      setTimeoutSpy.mockClear();
+      const ws2 = mockWebSocketInstances[mockWebSocketInstances.length - 1];
+      await act(async () => {
+        ws2?.close();
+      });
+
+      // Second reconnect — delay ~2000ms (1000 * 2^1 = 2000)
+      const secondCall = setTimeoutSpy.mock.calls.find(
+        ([, delay]) => typeof delay === 'number' && delay >= 2000 && delay <= 3500
+      );
+      expect(secondCall).toBeTruthy();
+
+      setTimeoutSpy.mockRestore();
+      vi.useRealTimers();
+    });
+
+    it('should cap reconnect delay at 30 seconds', async () => {
+      vi.useFakeTimers();
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: createWrapper(),
+      });
+
+      // Force many reconnect attempts to hit the cap
+      for (let i = 0; i < 8; i++) {
+        setTimeoutSpy.mockClear();
+        const ws = mockWebSocketInstances[mockWebSocketInstances.length - 1];
+        await act(async () => {
+          ws?.close();
+        });
+        await act(async () => {
+          vi.advanceTimersByTime(35000);
+        });
+      }
+
+      // After many attempts: 1000 * 2^7 = 128000, capped at 30000
+      // Find any setTimeout call — all delays should be ≤ 30000 + jitter
+      const allTimeoutDelays = setTimeoutSpy.mock.calls
+        .map(([, delay]) => delay)
+        .filter((d): d is number => typeof d === 'number' && d >= 1000);
+      
+      for (const delay of allTimeoutDelays) {
+        expect(delay).toBeLessThanOrEqual(31000); // 30000 + max jitter
+      }
+
+      setTimeoutSpy.mockRestore();
+      vi.useRealTimers();
+    });
+  });
 });

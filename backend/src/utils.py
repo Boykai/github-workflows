@@ -1,6 +1,136 @@
 """Shared utility functions for the backend application."""
 
+from __future__ import annotations
+
+from collections import OrderedDict
+from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
+from typing import Generic, TypeVar, overload
+
+T = TypeVar("T")
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+class BoundedSet(Generic[T]):
+    """Set with a maximum capacity that evicts oldest entries (FIFO).
+
+    Backed by an ``OrderedDict`` to maintain insertion order. When the
+    capacity is reached, the oldest entries are evicted automatically.
+    """
+
+    def __init__(self, maxlen: int) -> None:
+        if maxlen <= 0:
+            raise ValueError("maxlen must be > 0")
+        self._maxlen = maxlen
+        self._data: OrderedDict[T, None] = OrderedDict()
+
+    @property
+    def maxlen(self) -> int:
+        """Maximum capacity."""
+        return self._maxlen
+
+    # --- set-like interface ---------------------------------------------------
+
+    def add(self, item: T) -> None:
+        """Add *item*, evicting the oldest entry if at capacity."""
+        if item in self._data:
+            self._data.move_to_end(item)
+            return
+        if len(self._data) >= self._maxlen:
+            self._data.popitem(last=False)
+        self._data[item] = None
+
+    def discard(self, item: T) -> None:
+        self._data.pop(item, None)
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._data
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self) -> Iterator[T]:
+        return iter(self._data)
+
+    def clear(self) -> None:
+        self._data.clear()
+
+    def __repr__(self) -> str:
+        return f"BoundedSet(maxlen={self._maxlen}, size={len(self._data)})"
+
+
+class BoundedDict(Generic[K, V]):
+    """Dict with a maximum capacity that evicts oldest entries (FIFO).
+
+    Backed by an ``OrderedDict`` to maintain insertion order.
+    """
+
+    def __init__(self, maxlen: int) -> None:
+        if maxlen <= 0:
+            raise ValueError("maxlen must be > 0")
+        self._maxlen = maxlen
+        self._data: OrderedDict[K, V] = OrderedDict()
+
+    @property
+    def maxlen(self) -> int:
+        """Maximum capacity."""
+        return self._maxlen
+
+    def __setitem__(self, key: K, value: V) -> None:
+        if key in self._data:
+            self._data.move_to_end(key)
+            self._data[key] = value
+            return
+        if len(self._data) >= self._maxlen:
+            self._data.popitem(last=False)
+        self._data[key] = value
+
+    def __getitem__(self, key: K) -> V:
+        return self._data[key]
+
+    def __delitem__(self, key: K) -> None:
+        del self._data[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self._data
+
+    def __len__(self) -> int:
+        return len(self._data)
+
+    def __iter__(self) -> Iterator[K]:
+        return iter(self._data)
+
+    @overload
+    def get(self, key: K) -> V | None: ...
+    @overload
+    def get(self, key: K, default: V) -> V: ...
+    def get(self, key: K, default: V | None = None) -> V | None:
+        return self._data.get(key, default)
+
+    @overload
+    def pop(self, key: K) -> V: ...
+    @overload
+    def pop(self, key: K, default: V) -> V: ...
+    @overload
+    def pop(self, key: K, default: None) -> V | None: ...
+    def pop(self, key: K, *args: object) -> V | None:  # type: ignore[misc]
+        return self._data.pop(key, *args)  # type: ignore[arg-type]
+
+    def keys(self) -> KeysView[K]:
+        return self._data.keys()
+
+    def values(self) -> ValuesView[V]:
+        return self._data.values()
+
+    def items(self) -> ItemsView[K, V]:
+        return self._data.items()
+
+    def clear(self) -> None:
+        self._data.clear()
+
+    def __repr__(self) -> str:
+        return f"BoundedDict(maxlen={self._maxlen}, size={len(self._data)})"
 
 
 def utcnow() -> datetime:

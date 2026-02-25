@@ -237,13 +237,17 @@ mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $
 
 # GraphQL query to get issue details including title, body, and comments
 GET_ISSUE_WITH_COMMENTS_QUERY = """
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
     issue(number: $number) {
       id
       title
       body
-      comments(first: 100) {
+      comments(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           author {

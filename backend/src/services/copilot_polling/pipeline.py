@@ -102,6 +102,38 @@ async def _process_pipeline_completion(
     task_repo = task.repository_name or repo
 
     if pipeline.is_complete:
+        # Ensure all completed agents are marked ✅ Done in the tracking
+        # table.  After a container restart the tracking table may have
+        # stale 🔄 Active entries even though Done! comments exist.
+        # Batch into a single fetch→modify→push to avoid N round-trips.
+        if pipeline.completed_agents:
+            try:
+                issue_data = await _cp.github_projects_service.get_issue_with_comments(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                )
+                body = issue_data.get("body", "")
+                if body:
+                    updated_body = body
+                    for agent_name in pipeline.completed_agents:
+                        updated_body = _cp.mark_agent_done(updated_body, agent_name)
+                    if updated_body != body:
+                        await _cp.github_projects_service.update_issue_body(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=task.issue_number,
+                            body=updated_body,
+                        )
+            except Exception as e:
+                logger.warning(
+                    "Failed to batch-update tracking for issue #%d: %s",
+                    task.issue_number,
+                    e,
+                )
+
         # All agents done → transition to next status
         return await _transition_after_pipeline_complete(
             access_token=access_token,
@@ -218,7 +250,7 @@ async def _process_pipeline_completion(
                         pr
                         for pr in (linked_prs or [])
                         if int(pr.get("number", 0)) != main_branch_info["pr_number"]
-                        and "copilot" in pr.get("author", "").lower()
+                        and _cp.github_projects_service.is_copilot_author(pr.get("author", ""))
                     ]
                     # If there are completed agents but the current agent's PR doesn't exist,
                     # we need to trigger it. Count expected PRs vs actual child PRs.
@@ -680,6 +712,19 @@ async def _advance_pipeline(
         len(pipeline.agents),
     )
 
+    # Mark the completed agent as ✅ Done in the issue body tracking table.
+    # post_agent_outputs_from_pr (Step 0) also does this, but it can fail
+    # silently or be skipped when the Done! marker was posted externally.
+    # This defensive call ensures the tracking table stays in sync.
+    await _cp._update_issue_tracking(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        agent_name=completed_agent,
+        new_state="done",
+    )
+
     # Close the completed agent's sub-issue
     sub_info = None
     if pipeline.agent_sub_issues:
@@ -796,7 +841,7 @@ async def _advance_pipeline(
                 completed_agent,
                 issue_number,
             )
-            await asyncio.sleep(2)
+            await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
 
         # Refresh HEAD SHA so the next agent / next status branches
         # from the absolute latest (post-merge) state.
@@ -1463,8 +1508,8 @@ async def process_in_progress_issue(
             issue_number,
         )
 
-        # Add 2-second delay before status update (matching existing behavior)
-        await asyncio.sleep(2)
+        # Add delay before status update (matching existing behavior)
+        await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
 
         success = await _cp.github_projects_service.update_item_status_by_name(
             access_token=access_token,
@@ -1476,13 +1521,6 @@ async def process_in_progress_issue(
         if success:
             # Mark as processed to avoid duplicate updates
             _processed_issue_prs.add(cache_key)
-
-            # Limit cache size
-            if len(_processed_issue_prs) > 1000:
-                # Remove oldest entries
-                to_remove = list(_processed_issue_prs)[:500]
-                for key in to_remove:
-                    _processed_issue_prs.discard(key)
 
             logger.info(
                 "Successfully updated issue #%d to 'In Review' (PR #%d ready)",

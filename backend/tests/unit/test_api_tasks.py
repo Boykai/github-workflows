@@ -103,41 +103,25 @@ class TestCreateTask:
 
 
 class TestUpdateTaskStatus:
-    async def test_update_status_no_project(self, client, mock_session):
+    """Task status update endpoint now returns 501 Not Implemented."""
+
+    async def test_update_status_returns_501(self, client, mock_session):
         mock_session.selected_project_id = None
         resp = await client.patch(
             "/api/v1/tasks/PVTI_1/status",
             params={"status": "Done"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 501
+        body = resp.json()
+        assert body["error"] == "Not implemented"
 
-    async def test_update_status_task_not_found(self, client, mock_session, mock_github_service):
+    async def test_update_status_501_with_project(self, client, mock_session):
         mock_session.selected_project_id = "PVT_abc"
-        mock_github_service.get_project_items.return_value = []
-        with patch("src.api.tasks.cache") as mock_cache:
-            mock_cache.get.return_value = None
-            resp = await client.patch(
-                "/api/v1/tasks/PVTI_missing/status",
-                params={"status": "Done"},
-            )
-        assert resp.status_code == 404
-
-    async def test_update_status_success(
-        self, client, mock_session, mock_github_service, mock_websocket_manager
-    ):
-        mock_session.selected_project_id = "PVT_abc"
-        t = _task(github_item_id="PVTI_1")
-        mock_github_service.get_project_items.return_value = [t]
-        with patch("src.api.tasks.cache") as mock_cache:
-            mock_cache.get.return_value = None
-            resp = await client.patch(
-                "/api/v1/tasks/PVTI_1/status",
-                params={"status": "Done"},
-            )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["status"] == "Done"
-        mock_websocket_manager.broadcast_to_project.assert_called()
+        resp = await client.patch(
+            "/api/v1/tasks/PVTI_1/status",
+            params={"status": "Done"},
+        )
+        assert resp.status_code == 501
 
 
 # ── resolve_repository (shared helper from src.utils) ──────────────────────

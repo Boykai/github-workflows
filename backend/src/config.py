@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     # Copilot PR polling interval in seconds (0 to disable polling)
     copilot_polling_interval: int = 60
 
+    # Encryption — Fernet key for token-at-rest encryption
+    encryption_key: str | None = None
+
     # Database
     database_path: str = "/app/data/settings.db"
 

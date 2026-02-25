@@ -209,7 +209,9 @@ async def recover_stalled_issues(
                     pr_state = (pr.get("state") or "").upper()
                     pr_author = (pr.get("author") or "").lower()
 
-                    if pr_state != "OPEN" or "copilot" not in pr_author:
+                    if pr_state != "OPEN" or not _cp.github_projects_service.is_copilot_author(
+                        pr_author
+                    ):
                         continue
 
                     if not isinstance(pr_number, int):
@@ -382,11 +384,5 @@ async def recover_stalled_issues(
         logger.error("Error in recovery check: %s", e)
         _polling_state.errors_count += 1
         _polling_state.last_error = f"Recovery error: {e}"
-
-    # Limit cooldown cache size
-    if len(_recovery_last_attempt) > 200:
-        oldest = sorted(_recovery_last_attempt.items(), key=lambda kv: kv[1])[:100]
-        for key, _ in oldest:
-            _recovery_last_attempt.pop(key, None)
 
     return results

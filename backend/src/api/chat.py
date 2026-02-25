@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
 from src.constants import DEFAULT_STATUS_COLUMNS
+from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
     ActionType,
@@ -31,8 +32,6 @@ from src.services.cache import (
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
-from src.services.github_projects import github_projects_service
-from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -355,6 +354,8 @@ async def confirm_proposal(
     proposal_id: str,
     request: ProposalConfirmRequest | None,
     session: Annotated[UserSession, Depends(get_session_dep)],
+    github_projects_service=Depends(get_github_service),  # noqa: B008
+    connection_manager=Depends(get_connection_manager),  # noqa: B008
 ) -> AITaskProposal:
     """Confirm an AI task proposal and create the task."""
     proposal = _proposals.get(proposal_id)

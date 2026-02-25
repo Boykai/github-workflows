@@ -218,8 +218,18 @@ async def github_webhook(
             logger.warning("Invalid webhook signature")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid signature",
+                detail="Invalid or missing webhook signature",
             )
+    elif not settings.debug:
+        # In production, reject unsigned payloads when no secret is configured
+        logger.warning("Webhook received without signature in production mode")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing webhook signature",
+        )
+    else:
+        # Debug mode without secret — allow with warning
+        logger.warning("Webhook signature verification skipped (debug mode, no secret configured)")
 
     # Deduplicate by delivery ID
     if x_github_delivery:
@@ -404,7 +414,7 @@ async def update_issue_status_for_copilot_pr(
     try:
         # Try to find the project for this repository
         # First, list user's projects to find the matching one
-        projects_response = await github_projects_service._client.get(
+        projects_response = await github_projects_service.http_get(
             "https://api.github.com/user",
             headers={
                 "Authorization": f"Bearer {settings.github_webhook_token}",

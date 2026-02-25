@@ -22,6 +22,7 @@ from src.services.cache import (
 from src.services.github_auth import github_auth_service
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
+from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -149,33 +150,15 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
         # Give the cancelled task a chance to clean up
         await asyncio.sleep(0.1)
 
-    # Get repository info for the project
-    repo_info = await github_projects_service.get_project_repository(
-        session.access_token,
-        project_id,
-    )
-
-    if not repo_info:
-        # Try to get from workflow config or settings
-        from src.api.workflow import get_workflow_config
-        from src.config import get_settings
-
-        config = await get_workflow_config(project_id)
-        if config and config.repository_owner and config.repository_name:
-            repo_info = (config.repository_owner, config.repository_name)
-        else:
-            settings = get_settings()
-            if settings.default_repo_owner and settings.default_repo_name:
-                repo_info = (settings.default_repo_owner, settings.default_repo_name)
-
-    if not repo_info:
+    # Resolve repository info for the project
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception:
         logger.warning(
             "Could not determine repository for project %s, polling not started",
             project_id,
         )
         return
-
-    owner, repo = repo_info
 
     await ensure_polling_started(
         access_token=session.access_token,

@@ -39,6 +39,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _polling_state_objects():
+    """Lazy accessor for copilot_polling state — avoids circular import at module level."""
+    from src.services.copilot_polling import (
+        ASSIGNMENT_GRACE_PERIOD_SECONDS,
+        _pending_agent_assignments,
+        _recovery_last_attempt,
+    )
+
+    return _pending_agent_assignments, _recovery_last_attempt, ASSIGNMENT_GRACE_PERIOD_SECONDS
+
+
 class WorkflowOrchestrator:
     """Orchestrates the full GitHub issue creation and status workflow."""
 
@@ -867,40 +878,33 @@ class WorkflowOrchestrator:
         # race windows where multiple code-paths (polling steps, recovery,
         # status-transition) all converge on the same assignment.
         pending_key = f"{ctx.issue_number}:{agent_name}"
-        try:
-            from src.services.copilot_polling import (
-                ASSIGNMENT_GRACE_PERIOD_SECONDS,
-                _pending_agent_assignments,
-                _recovery_last_attempt,
-            )
+        pending, recovery, grace_period = _polling_state_objects()
 
-            existing_ts = _pending_agent_assignments.get(pending_key)
-            if existing_ts is not None:
-                age = (utcnow() - existing_ts).total_seconds()
-                if age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
-                    logger.warning(
-                        "Skipping duplicate assignment of agent '%s' on issue #%d "
-                        "(already assigned %.0fs ago, grace=%ds)",
-                        agent_name,
-                        ctx.issue_number,
-                        age,
-                        ASSIGNMENT_GRACE_PERIOD_SECONDS,
-                    )
-                    return True  # Treat as success — the original assignment is in flight
+        existing_ts = pending.get(pending_key)
+        if existing_ts is not None:
+            age = (utcnow() - existing_ts).total_seconds()
+            if age < grace_period:
+                logger.warning(
+                    "Skipping duplicate assignment of agent '%s' on issue #%d "
+                    "(already assigned %.0fs ago, grace=%ds)",
+                    agent_name,
+                    ctx.issue_number,
+                    age,
+                    grace_period,
+                )
+                return True  # Treat as success — the original assignment is in flight
 
-            # Pre-set recovery cooldown and pending flag BEFORE the assignment
-            # API call. This prevents a race where the polling/recovery loop sees
-            # the issue between the unassign and re-assign steps and fires a
-            # duplicate assignment.
-            _recovery_last_attempt[ctx.issue_number] = utcnow()
-            _pending_agent_assignments[pending_key] = utcnow()
-            logger.debug(
-                "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
-                agent_name,
-                ctx.issue_number,
-            )
-        except ImportError:
-            pass  # copilot_polling not available in tests
+        # Pre-set recovery cooldown and pending flag BEFORE the assignment
+        # API call. This prevents a race where the polling/recovery loop sees
+        # the issue between the unassign and re-assign steps and fires a
+        # duplicate assignment.
+        recovery[ctx.issue_number] = utcnow()
+        pending[pending_key] = utcnow()
+        logger.debug(
+            "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
+            agent_name,
+            ctx.issue_number,
+        )
 
         max_retries = 3
         base_delay = 3  # seconds
@@ -992,14 +996,8 @@ class WorkflowOrchestrator:
                     )
 
             # Refresh recovery cooldown timestamp now that assignment succeeded
-            try:
-                from src.services.copilot_polling import (
-                    _recovery_last_attempt,
-                )
-
-                _recovery_last_attempt[ctx.issue_number] = utcnow()
-            except ImportError:
-                pass
+            _, recovery_2, _ = _polling_state_objects()
+            recovery_2[ctx.issue_number] = utcnow()
         else:
             logger.warning(
                 "Failed to assign agent '%s' to issue #%s",
@@ -1007,14 +1005,8 @@ class WorkflowOrchestrator:
                 ctx.issue_number,
             )
             # Clear pending flag so recovery can retry later
-            try:
-                from src.services.copilot_polling import (
-                    _pending_agent_assignments,
-                )
-
-                _pending_agent_assignments.pop(pending_key, None)
-            except ImportError:
-                pass
+            pending_2, _, _ = _polling_state_objects()
+            pending_2.pop(pending_key, None)
 
         # Create / update pipeline state
         # Capture the HEAD SHA at assignment time for commit-based completion detection
@@ -1466,18 +1458,12 @@ class WorkflowOrchestrator:
             # _pending_agent_assignments) because the latter would cause the dedup
             # guard inside assign_agent_for_status to skip the actual assignment.
             if ctx.issue_number:
-                try:
-                    from src.services.copilot_polling import (
-                        _recovery_last_attempt,
-                    )
-
-                    _recovery_last_attempt[ctx.issue_number] = utcnow()
-                    logger.debug(
-                        "Set recovery cooldown for issue #%d before sub-issue creation",
-                        ctx.issue_number,
-                    )
-                except ImportError:
-                    pass
+                _, recovery_3, _ = _polling_state_objects()
+                recovery_3[ctx.issue_number] = utcnow()
+                logger.debug(
+                    "Set recovery cooldown for issue #%d before sub-issue creation",
+                    ctx.issue_number,
+                )
 
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await self.create_all_sub_issues(ctx)

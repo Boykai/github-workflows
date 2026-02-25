@@ -318,8 +318,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """Webhook token present but auth fails."""
         mock_settings.return_value.github_webhook_token = "bad-token"
         mock_resp = MagicMock(status_code=401, json=lambda: {})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
         assert result["status"] == "error"
@@ -332,8 +331,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """Token works but issue not found in any project."""
         mock_settings.return_value.github_webhook_token = "tok"
         mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
         mock_item = MagicMock(github_item_id="999", title="Unrelated")
@@ -349,8 +347,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """Full happy path - issue found and status updated."""
         mock_settings.return_value.github_webhook_token = "tok"
         mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
         mock_item = MagicMock(github_item_id="5", title="Issue #5")
@@ -368,8 +365,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """Issue found but update_item_status_by_name returns False."""
         mock_settings.return_value.github_webhook_token = "tok"
         mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
         mock_item = MagicMock(github_item_id="5", title="Issue #5")
@@ -386,8 +382,7 @@ class TestUpdateIssueStatusForCopilotPr:
     async def test_exception_during_project_lookup(self, mock_settings, mock_gps):
         """Exception raised during the whole project lookup flow."""
         mock_settings.return_value.github_webhook_token = "tok"
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(side_effect=Exception("Network error"))
+        mock_gps.http_get = AsyncMock(side_effect=Exception("Network error"))
         pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
         assert result["status"] == "error"
@@ -399,8 +394,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """When get_project_items fails for one project, continues to next."""
         mock_settings.return_value.github_webhook_token = "tok"
         mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         proj1 = MagicMock(project_id="proj-1")
         proj2 = MagicMock(project_id="proj-2")
         mock_gps.list_user_projects = AsyncMock(return_value=[proj1, proj2])
@@ -418,8 +412,7 @@ class TestUpdateIssueStatusForCopilotPr:
         """Issue matched by title containing '#N'."""
         mock_settings.return_value.github_webhook_token = "tok"
         mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
-        mock_gps._client = MagicMock()
-        mock_gps._client.get = AsyncMock(return_value=mock_resp)
+        mock_gps.http_get = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
         # github_item_id doesn't contain "5" but title does

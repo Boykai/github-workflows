@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from src.api.auth import router as auth_router
 from src.api.board import router as board_router
 from src.api.chat import router as chat_router
+from src.api.health import router as health_router
 from src.api.projects import router as projects_router
 from src.api.settings import router as settings_router
 from src.api.tasks import router as tasks_router
@@ -21,9 +22,4 @@ router.include_router(chat_router, prefix="/chat", tags=["chat"])
 router.include_router(workflow_router, tags=["workflow"])
 router.include_router(settings_router, prefix="/settings", tags=["settings"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
-
-
-@router.get("/health", tags=["health"])
-async def health_check():
-    """Health check endpoint for Docker and load balancers."""
-    return {"status": "healthy"}
+router.include_router(health_router, tags=["health"])
