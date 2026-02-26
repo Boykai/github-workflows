@@ -1,104 +1,71 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Move Chat Experience to Project-Board Page as Pop-Up Module & Simplify Homepage
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `011-chat-popup-homepage` | **Date**: 2026-02-26 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/011-chat-popup-homepage/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Relocate the chat interface from the homepage (currently the default "chat" view in `App.tsx`) to the project-board page as a floating pop-up module. The homepage becomes a minimal landing page showing only the navigation bar and a centered "Create Your App Here" CTA that links to the project board. The chat pop-up on the project-board page is a self-contained `ChatPopup` component with toggle button, open/close animation (CSS transitions), session-state persistence (React local state), and responsive/accessible design. No backend changes required — this is a frontend-only refactor.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.4, React 18.3  
+**Primary Dependencies**: React, @tanstack/react-query, socket.io-client, Vite 5.4  
+**Storage**: N/A (no new storage; chat pop-up open/closed state is in-memory React state)  
+**Testing**: Vitest (unit), Playwright (e2e)  
+**Target Platform**: Web (desktop + mobile browsers)  
+**Project Type**: Web application (frontend + backend)  
+**Performance Goals**: Smooth 60fps open/close animation; no chat-related network requests on homepage  
+**Constraints**: No new dependencies; use existing CSS transitions for animation; maintain all existing chat functionality  
+**Scale/Scope**: ~6 files modified/created in frontend; 0 backend changes
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with prioritized user stories, GWT scenarios, scope boundaries |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase produces plan.md, research.md, data-model.md, contracts/, quickstart.md |
+| IV. Test Optionality | ✅ PASS | Tests not explicitly mandated in spec; will be included only if existing test infrastructure is impacted |
+| V. Simplicity and DRY | ✅ PASS | Extract ChatPopup as single self-contained component; no premature abstractions; CSS transitions over new library |
+
+**Gate Result**: ✅ ALL PASS — Proceed to Phase 0
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/011-chat-popup-homepage/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (component contracts)
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
+│   ├── App.tsx                              # MODIFY: Replace chat view with homepage CTA; remove chat imports
+│   ├── App.css                              # MODIFY: Add homepage-hero styles; remove chat-section styles if unused
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── chat/
+│   │       ├── ChatInterface.tsx            # EXISTING: No changes needed
+│   │       ├── ChatInterface.css            # EXISTING: No changes needed
+│   │       ├── ChatPopup.tsx                # NEW: Self-contained chat pop-up with toggle, animation, state
+│   │       └── ChatPopup.css                # NEW: Popup positioning, animation, responsive styles
+│   └── pages/
+│       └── ProjectBoardPage.tsx             # MODIFY: Import and render ChatPopup
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application layout (frontend + backend). Only the `frontend/` directory is modified. The backend requires zero changes since this is a purely presentational/layout refactor. The chat API integration remains identical — it's just rendered in a different location.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations to justify — all changes follow simplicity principles.

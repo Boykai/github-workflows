@@ -22,6 +22,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - SQLite via aiosqlite (async), plus synchronous `sqlite3` in workflow_orchestrator (to be migrated) (009-codebase-cleanup-refactor)
 - Python ≥3.11 (pyright targets 3.12), TypeScript ~5.4 + FastAPI ≥0.109, React 18.3, TanStack Query v5, Vite 5, httpx ≥0.26, pydantic ≥2.5, aiosqlite ≥0.20, socket.io-client 4.7, dnd-kit 6.3 (010-bug-bash)
 - SQLite (WAL mode) via aiosqlite, file-backed at `/app/data/settings.db` (010-bug-bash)
+- TypeScript ~5.4, React 18.3 + React, @tanstack/react-query, socket.io-client, Vite 5.4 (011-chat-popup-homepage)
+- N/A (no new storage; chat pop-up open/closed state is in-memory React state) (011-chat-popup-homepage)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -41,9 +43,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 011-chat-popup-homepage: Added TypeScript ~5.4, React 18.3 + React, @tanstack/react-query, socket.io-client, Vite 5.4
 - 010-bug-bash: Added Python ≥3.11 (pyright targets 3.12), TypeScript ~5.4 + FastAPI ≥0.109, React 18.3, TanStack Query v5, Vite 5, httpx ≥0.26, pydantic ≥2.5, aiosqlite ≥0.20, socket.io-client 4.7, dnd-kit 6.3
 - 009-codebase-cleanup-refactor: Added Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend)
-- 008-test-coverage-bug-fixes: Added Python ≥3.11 (Pyright targets 3.12), TypeScript ~5.4 (target ES2022) + FastAPI ≥0.109, React 18.3, TanStack Query 5.17, Pydantic 2.x, httpx, aiosqlite
 
 
 <!-- MANUAL ADDITIONS START -->
