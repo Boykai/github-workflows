@@ -1,104 +1,72 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add Red Background Color to App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `011-red-background` | **Date**: 2026-02-26 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/011-red-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Update the application's primary background color to red (#E53E3E) by modifying the existing CSS custom property system in `frontend/src/index.css`. The change is centralized in the `:root` and `html.dark-mode-active` token definitions, applying to the `body` element via the existing `var(--color-bg-secondary)` usage. Foreground text colors will be adjusted to maintain WCAG AA contrast compliance against the new red background.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4, React 18.3.1, Python 3.11 (backend — not affected)
+**Primary Dependencies**: Vite 5.4, TanStack React Query 5.17, Socket.io-client 4.7
+**Storage**: N/A (frontend-only change)
+**Testing**: Vitest (unit), Playwright (e2e)
+**Target Platform**: Web — Chrome, Firefox, Safari, Edge; mobile/tablet/desktop viewports
+**Project Type**: web (frontend + backend)
+**Performance Goals**: N/A (CSS-only change, no runtime cost)
+**Constraints**: WCAG AA contrast ratios (4.5:1 normal text, 3:1 large text/interactive elements)
+**Scale/Scope**: Single CSS file change (`frontend/src/index.css`) affecting global theme tokens
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | `spec.md` exists with prioritized user stories (P1, P2), acceptance scenarios, and requirements |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase follows spec phase; outputs are well-defined |
+| IV. Test Optionality with Clarity | ✅ PASS | Spec mentions visual regression tests as SHOULD (optional). No mandatory test requirement. Existing test infrastructure (Vitest/Playwright) available if needed |
+| V. Simplicity and DRY | ✅ PASS | Change modifies 1 file (index.css) using existing CSS custom property infrastructure. No new abstractions. Single source of truth for color tokens |
+
+**Gate Result**: ✅ ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/011-red-background/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (N/A — no API changes)
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
+│   ├── index.css        # ← PRIMARY CHANGE: CSS custom property tokens
+│   ├── App.css          # Review for contrast/legibility
+│   ├── App.tsx          # No changes expected
+│   ├── components/      # Review for hardcoded backgrounds
+│   ├── hooks/
+│   │   └── useAppTheme.ts  # No changes expected (theme toggle logic)
 │   ├── pages/
 │   └── services/
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (frontend + backend). Only the frontend is affected by this feature. The change is isolated to CSS token definitions in `frontend/src/index.css`, with potential minor adjustments to component CSS files for contrast compliance.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations. No complexity justification needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+*Table intentionally left empty — all principles satisfied.*
