@@ -73,7 +73,7 @@ interface ProjectBoardPageProps {
 **File**: `frontend/src/App.tsx`
 
 **Changes**:
-- `activeView` default value changes from `'chat'` to `'chat'` (remains same type, but the `'chat'` view now renders the simplified homepage).
+- The `'chat'` view no longer renders the chat interface — it now renders the simplified homepage (nav + CTA only). The `activeView` type and default value remain unchanged; only the associated rendering behavior changes.
 - Removes `useChat()` and `useWorkflow()` hook calls.
 - Removes `ChatInterface`, `ProjectSidebar` imports for chat view.
 - Homepage view (`activeView === 'chat'`) renders only:
