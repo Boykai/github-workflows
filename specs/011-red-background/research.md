@@ -28,9 +28,9 @@ The spec recommends #E53E3E as the primary red background. We need to verify it 
 | Current `--color-text` (light) | `#24292f` | ~5.04:1 | ✅ PASS |
 | Current `--color-text-secondary` (light) | `#57606a` | ~3.14:1 | ❌ FAIL for normal text |
 
-**Decision**: Use `#E53E3E` as the red background color. For light mode, update `--color-text` to `#ffffff` (white) and `--color-text-secondary` to a lighter value (e.g., `#fce4e4` or `#ffd7d7`) to ensure contrast compliance. Components with their own backgrounds (cards, modals, headers) retain their existing backgrounds and text colors.
+**Decision**: Use `#E53E3E` as the red background color. The red surface is only visible in the gap areas between components (header, sidebar, main content). All text content is rendered inside components that have their own `--color-bg` (white/dark) backgrounds, so the existing `--color-text` values do not need modification. Any text that does appear directly on the red surface (e.g., loading/placeholder states) should be verified for contrast; if needed, those specific elements can receive a localized color override.
 
-**Rationale**: #E53E3E is the stakeholder-recommended value from the spec. White text on #E53E3E achieves 4.63:1 contrast, meeting WCAG AA for normal text. The body background change only affects the app-level surface; overlaid components (header, sidebar, cards) already define their own `--color-bg` backgrounds.
+**Rationale**: #E53E3E is the stakeholder-recommended value from the spec. White text on #E53E3E achieves 4.63:1 contrast, which meets WCAG AA for normal text (≥4.5:1), though it is close to the minimum threshold. The body background change only affects the app-level surface; overlaid components (header, sidebar, cards) already define their own `--color-bg` backgrounds, so their text contrast is unaffected.
 
 **Alternatives considered**:
 - `#C0392B` (darker red): Higher contrast with white text (~5.9:1) but spec recommends #E53E3E as starting point
@@ -113,9 +113,9 @@ All technical context items are resolved. No NEEDS CLARIFICATION remains.
 
 | Item | Resolution |
 |------|-----------|
-| Red hex value | #E53E3E (spec-recommended, WCAG AA compliant with white text) |
+| Red hex value | #E53E3E (spec-recommended, WCAG AA compliant with white text at 4.63:1, marginally above the 4.5:1 threshold) |
 | Implementation approach | Modify `--color-bg-secondary` token in `frontend/src/index.css` |
-| Contrast compliance | White text (#ffffff) on #E53E3E achieves 4.63:1 (meets WCAG AA) |
+| Contrast compliance | White text (#ffffff) on #E53E3E achieves 4.63:1 (meets WCAG AA ≥4.5:1). Text colors (`--color-text`) are not modified because text content appears inside components with their own `--color-bg` backgrounds |
 | Cross-browser support | CSS custom properties universally supported in target browsers |
 | Component impact | Isolated to body background; overlaid components use separate `--color-bg` token |
 | Fallback strategy | Add fallback value in body background declaration |

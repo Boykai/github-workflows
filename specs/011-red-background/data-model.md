@@ -24,10 +24,12 @@ The only "data" affected by this feature are CSS design tokens defined in `front
 
 ### Unchanged Tokens (referenced for completeness)
 
+These tokens are **not modified** because all text content renders inside components that define their own `--color-bg` backgrounds (white in light mode, dark in dark mode). The red `--color-bg-secondary` is only visible in the gap areas between these components.
+
 | Token | Value (Light) | Value (Dark) | Relationship |
 |-------|--------------|-------------|--------------|
 | `--color-bg` | `#ffffff` | `#0d1117` | Component-level backgrounds (cards, header, sidebar) — **not changed** |
-| `--color-text` | `#24292f` | `#e6edf3` | Primary text color — **not changed** |
+| `--color-text` | `#24292f` | `#e6edf3` | Primary text color — **not changed** (text appears inside components with `--color-bg` backgrounds) |
 | `--color-border` | `#d0d7de` | `#30363d` | Border color — **not changed** |
 
 ## State Transitions
