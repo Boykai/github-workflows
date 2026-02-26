@@ -4,11 +4,14 @@
 
 import { useState } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
+import { useChat } from '@/hooks/useChat';
+import { useWorkflow } from '@/hooks/useWorkflow';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
+import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo } from '@/utils/formatTime';
 import type { BoardItem } from '@/types';
@@ -33,6 +36,26 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     lastUpdated,
     selectProject,
   } = useProjectBoard({ selectedProjectId: externalProjectId, onProjectSelect });
+
+  // Chat hooks (moved from App.tsx so chat API calls only fire on the board page)
+  const {
+    messages,
+    pendingProposals,
+    pendingStatusChanges,
+    pendingRecommendations,
+    isSending,
+    sendMessage,
+    confirmProposal,
+    confirmStatusChange,
+    rejectProposal,
+    removePendingRecommendation,
+    clearChat,
+  } = useChat();
+
+  const {
+    confirmRecommendation,
+    rejectRecommendation,
+  } = useWorkflow();
 
   // Modal state (US2)
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
@@ -191,6 +214,33 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
       {selectedItem && (
         <IssueDetailModal item={selectedItem} onClose={handleCloseModal} />
       )}
+
+      {/* Chat Pop-Up Module */}
+      <ChatPopup
+        messages={messages}
+        pendingProposals={pendingProposals}
+        pendingStatusChanges={pendingStatusChanges}
+        pendingRecommendations={pendingRecommendations}
+        isSending={isSending}
+        onSendMessage={sendMessage}
+        onConfirmProposal={async (proposalId) => {
+          await confirmProposal(proposalId);
+        }}
+        onConfirmStatusChange={confirmStatusChange}
+        onConfirmRecommendation={async (recommendationId) => {
+          const result = await confirmRecommendation(recommendationId);
+          if (result.success) {
+            removePendingRecommendation(recommendationId);
+          }
+          return result;
+        }}
+        onRejectProposal={rejectProposal}
+        onRejectRecommendation={async (recommendationId) => {
+          await rejectRecommendation(recommendationId);
+          removePendingRecommendation(recommendationId);
+        }}
+        onNewChat={clearChat}
+      />
     </div>
   );
 }

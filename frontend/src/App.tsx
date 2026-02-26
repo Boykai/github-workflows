@@ -7,13 +7,9 @@ import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tans
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
-import { useChat } from '@/hooks/useChat';
-import { useWorkflow } from '@/hooks/useWorkflow';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useUserSettings } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
-import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
-import { ChatInterface } from '@/components/chat/ChatInterface';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import './App.css';
@@ -42,31 +38,8 @@ function AppContent() {
   const {
     projects,
     selectedProject,
-    tasks,
-    isLoading: projectsLoading,
-    tasksLoading,
     selectProject,
-    refreshTasks,
   } = useProjects(user?.selected_project_id);
-
-  const {
-    messages,
-    pendingProposals,
-    pendingStatusChanges,
-    pendingRecommendations,
-    isSending,
-    sendMessage,
-    confirmProposal,
-    confirmStatusChange,
-    rejectProposal,
-    removePendingRecommendation,
-    clearChat,
-  } = useChat();
-
-  const {
-    confirmRecommendation,
-    rejectRecommendation,
-  } = useWorkflow();
 
   if (authLoading) {
     return (
@@ -87,12 +60,6 @@ function AppContent() {
     );
   }
 
-  const handleConfirmProposal = async (proposalId: string) => {
-    await confirmProposal(proposalId);
-    // Refresh tasks after creating a new one
-    refreshTasks();
-  };
-
   return (
     <div className="app-container">
       <header className="app-header">
@@ -103,7 +70,7 @@ function AppContent() {
               className={`header-nav-btn ${activeView === 'chat' ? 'active' : ''}`}
               onClick={() => setActiveView('chat')}
             >
-              Chat
+              Home
             </button>
             <button
               className={`header-nav-btn ${activeView === 'board' ? 'active' : ''}`}
@@ -143,49 +110,12 @@ function AppContent() {
             onProjectSelect={selectProject}
           />
         ) : (
-          <>
-            <ProjectSidebar
-              projects={projects}
-              selectedProject={selectedProject}
-              tasks={tasks}
-              isLoading={projectsLoading}
-              tasksLoading={tasksLoading}
-              onProjectSelect={selectProject}
-            />
-
-            <section className="chat-section">
-              {selectedProject ? (
-                <ChatInterface
-              messages={messages}
-              pendingProposals={pendingProposals}
-              pendingStatusChanges={pendingStatusChanges}
-              pendingRecommendations={pendingRecommendations}
-              isSending={isSending}
-              onSendMessage={sendMessage}
-              onConfirmProposal={handleConfirmProposal}
-              onConfirmStatusChange={confirmStatusChange}
-              onConfirmRecommendation={async (recommendationId) => {
-                const result = await confirmRecommendation(recommendationId);
-                if (result.success) {
-                  removePendingRecommendation(recommendationId);
-                }
-                refreshTasks();
-                return result;
-              }}
-              onRejectProposal={rejectProposal}
-              onRejectRecommendation={async (recommendationId) => {
-                await rejectRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-              }}
-              onNewChat={clearChat}
-            />
-          ) : (
-            <div className="chat-placeholder">
-              <p>Select a project from the sidebar to start chatting</p>
-            </div>
-          )}
-        </section>
-          </>
+          <div className="homepage-hero">
+            <h2>Create Your App Here</h2>
+            <button className="homepage-cta-btn" onClick={() => setActiveView('board')}>
+              Get Started
+            </button>
+          </div>
         )}
       </main>
     </div>

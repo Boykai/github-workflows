@@ -327,6 +327,45 @@
   color: var(--color-text-secondary);
 }
 
+/* Homepage hero */
+.homepage-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 24px;
+}
+
+.homepage-hero h2 {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.homepage-cta-btn {
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.homepage-cta-btn:hover {
+  background: #0860ca;
+  transform: scale(1.03);
+}
+
+.homepage-cta-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* Sync Status Indicator */
 .sync-status {
   display: flex;
