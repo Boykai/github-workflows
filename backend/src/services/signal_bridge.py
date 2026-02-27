@@ -538,13 +538,16 @@ _PROJECT_TAG_RE = re.compile(r"#([\w-]+)")
 async def _process_inbound_ws_message(data: dict) -> None:
     """Process an inbound Signal message from the WebSocket stream.
 
+    The sidecar is a **linked device**, so we ONLY process
+    syncMessage.sentMessage "Note to Self" (destination == source).
+    All other envelope types (dataMessage from contacts, typing
+    indicators, read receipts) are silently ignored.
+
     Handles:
-    - dataMessage (normal inbound from another sender)
     - syncMessage.sentMessage "Note to Self" (user sent from primary device)
     - Phone hash lookup to find the linked user (FR-006)
     - Project routing via last_active_project_id
     - #project-name override (FR-013)
-    - Auto-reply for unlinked senders (FR-009)
     - Auto-reply for media/attachments (FR-010)
     - Message truncation at 100K chars
     """
@@ -554,29 +557,27 @@ async def _process_inbound_ws_message(data: dict) -> None:
     if not source:
         return  # Not a user message, skip
 
-    # ── Extract message text from dataMessage OR syncMessage ─────────
-    data_message = envelope.get("dataMessage")
+    # ── Extract message text from syncMessage only ─────────────────
+    # The sidecar runs as a **linked device**, so the ONLY messages
+    # we should process are syncMessage.sentMessage "Note to Self"
+    # (destination == source).  dataMessage envelopes are messages
+    # from OTHER people in the user's Signal contacts — the app must
+    # NEVER reply to those.
     sync_message = envelope.get("syncMessage")
 
-    message_text: str = ""
-    has_attachment: bool = False
+    if not sync_message:
+        return  # dataMessage, typing indicators, receipts — ignore
 
-    if data_message:
-        # Normal inbound message from another sender
-        message_text = data_message.get("message", "")
-        has_attachment = bool(data_message.get("attachments"))
-    elif sync_message:
-        # Linked-device sync — only process "Note to Self" messages
-        sent = sync_message.get("sentMessage")
-        if not sent:
-            return  # Read receipts, typing, etc.
-        dest = sent.get("destinationNumber") or sent.get("destination", "")
-        if dest != source:
-            return  # Message to someone else — not our business
-        message_text = sent.get("message", "")
-        has_attachment = bool(sent.get("attachments"))
-    else:
-        return  # Typing indicators, receipts, etc.
+    sent = sync_message.get("sentMessage")
+    if not sent:
+        return  # Read receipts, typing, etc.
+
+    dest = sent.get("destinationNumber") or sent.get("destination", "")
+    if dest != source:
+        return  # Message to someone else — not our business
+
+    message_text: str = sent.get("message", "")
+    has_attachment: bool = bool(sent.get("attachments"))
 
     # Auto-reply for attachments (FR-010)
     if has_attachment:
@@ -600,13 +601,10 @@ async def _process_inbound_ws_message(data: dict) -> None:
     conn = await get_connection_by_phone_hash(phone_hash)
 
     if not conn:
-        # Auto-reply for unlinked senders (FR-009)
-        settings = get_settings()
-        await _send_auto_reply(
-            source,
-            f"Your Signal number is not linked to an account. "
-            f"Visit {settings.frontend_url}/settings to connect your Signal account.",
-        )
+        # The user's phone is no longer linked — silently ignore.
+        # This can happen if they unlinked in the app but the sidecar
+        # is still running on their Signal account.
+        logger.debug("Ignoring Note-to-Self from unlinked phone %s", phone_hash[:8])
         return
 
     # Determine target project
