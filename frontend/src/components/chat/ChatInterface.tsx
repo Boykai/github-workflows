@@ -108,9 +108,9 @@ export function ChatInterface({
             <div className="mt-6 bg-muted/50 p-4 rounded-lg text-left w-full max-w-sm">
               <p className="font-medium text-foreground mb-2">Try something like:</p>
               <ul className="list-none space-y-2">
-                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Create a task to add user authentication"</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Add a bug fix for the login page crash"</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Set up CI/CD pipeline for the project"</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Add a bug fix for the login page crash</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Set up CI/CD pipeline for the project</li>
               </ul>
             </div>
           </div>

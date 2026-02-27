@@ -48,13 +48,18 @@ export function AddAgentPopover({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const dropdownHeight = 320; // max-h-80 = 20rem = 320px
-    const spaceBelow = window.innerHeight - rect.bottom - 8;
+    const dropdownWidth = 256; // w-64 = 16rem = 256px
+    const margin = 8;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
     const placeAbove = spaceBelow < dropdownHeight && rect.top > spaceBelow;
 
-    setPosition({
-      top: placeAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
-      left: rect.left,
-    });
+    let top = placeAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4;
+    top = Math.max(margin, Math.min(top, window.innerHeight - dropdownHeight - margin));
+
+    let left = rect.left;
+    left = Math.max(margin, Math.min(left, window.innerWidth - dropdownWidth - margin));
+
+    setPosition({ top, left });
   }, []);
 
   // Recalculate position when opened and on scroll/resize
