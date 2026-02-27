@@ -539,6 +539,8 @@ async def _process_inbound_ws_message(data: dict) -> None:
     """Process an inbound Signal message from the WebSocket stream.
 
     Handles:
+    - dataMessage (normal inbound from another sender)
+    - syncMessage.sentMessage "Note to Self" (user sent from primary device)
     - Phone hash lookup to find the linked user (FR-006)
     - Project routing via last_active_project_id
     - #project-name override (FR-013)
@@ -552,12 +554,29 @@ async def _process_inbound_ws_message(data: dict) -> None:
     if not source:
         return  # Not a user message, skip
 
+    # ── Extract message text from dataMessage OR syncMessage ─────────
     data_message = envelope.get("dataMessage")
-    if not data_message:
-        return  # Typing indicators, receipts, etc.
+    sync_message = envelope.get("syncMessage")
 
-    message_text = data_message.get("message", "")
-    has_attachment = bool(data_message.get("attachments"))
+    message_text: str = ""
+    has_attachment: bool = False
+
+    if data_message:
+        # Normal inbound message from another sender
+        message_text = data_message.get("message", "")
+        has_attachment = bool(data_message.get("attachments"))
+    elif sync_message:
+        # Linked-device sync — only process "Note to Self" messages
+        sent = sync_message.get("sentMessage")
+        if not sent:
+            return  # Read receipts, typing, etc.
+        dest = sent.get("destinationNumber") or sent.get("destination", "")
+        if dest != source:
+            return  # Message to someone else — not our business
+        message_text = sent.get("message", "")
+        has_attachment = bool(sent.get("attachments"))
+    else:
+        return  # Typing indicators, receipts, etc.
 
     # Auto-reply for attachments (FR-010)
     if has_attachment:
@@ -606,11 +625,34 @@ async def _process_inbound_ws_message(data: dict) -> None:
             message_text = message_text.replace(f"#{project_tag}", "").strip()
 
     if not project_id:
-        await _send_auto_reply(
-            source,
-            "No active project found. Please open a project in the app first, or use #project-name to specify one.",
-        )
-        return
+        # Try to list available projects so the user can pick one
+        project_list = await _list_user_projects(conn.github_user_id)
+        if project_list and len(project_list) == 1:
+            # Auto-select the only project
+            name, pid = project_list[0]
+            project_id = pid
+            await update_last_active_project(conn.github_user_id, project_id)
+            await _send_auto_reply(
+                source,
+                f"Auto-selected your only project: *{name}*",
+            )
+        elif project_list:
+            tags = "\n".join(
+                f"  • *#{p_name.lower().replace(' ', '-')}*" for p_name, _ in project_list
+            )
+            await _send_auto_reply(
+                source,
+                f"No active project selected. Include a project tag in your message:\n\n"
+                f"{tags}\n\n"
+                f"Example: *#project-name Add green background to app*",
+            )
+            return
+        else:
+            await _send_auto_reply(
+                source,
+                "No projects found. Open a project in the app first, then send a message here.",
+            )
+            return
 
     # Store message in chat system and create audit row
     await store_inbound_message(conn, message_text, project_id)
@@ -638,18 +680,51 @@ async def _send_auto_reply(recipient: str, text: str) -> None:
 async def _resolve_project_by_name(github_user_id: str, name: str) -> str | None:
     """Resolve a project name/tag to a project_id.
 
-    Looks up cached projects for the user and matches by name (case-insensitive).
+    Matches by name (case-insensitive, spaces→hyphens).
+    Uses _list_user_projects which falls back to GitHub API if cache is empty.
+    """
+    try:
+        projects = await _list_user_projects(github_user_id)
+        for p_name, p_id in projects:
+            if p_name.lower().replace(" ", "-") == name.lower() or p_name.lower() == name.lower():
+                return p_id
+        return None
+    except Exception:
+        return None
+
+
+async def _list_user_projects(github_user_id: str) -> list[tuple[str, str]]:
+    """Return [(name, project_id), ...] for the user's projects.
+
+    Attempts cache first; falls back to GitHub API using the user's
+    stored access token if cache is empty.
     """
     try:
         from src.services.cache import cache, get_user_projects_cache_key
 
-        cache_key = get_user_projects_cache_key(github_user_id)
-        projects = cache.get(cache_key)
-        if not projects:
-            return None
-        for p in projects:
-            if p.name.lower().replace(" ", "-") == name.lower() or p.name.lower() == name.lower():
-                return p.project_id
-        return None
+        projects = cache.get(get_user_projects_cache_key(github_user_id))
+        if projects:
+            return [(p.name, p.project_id) for p in projects]
+
+        # Cache empty — try fetching from GitHub directly
+        from src.services.database import get_db as _get_db
+        from src.services.github_projects import github_projects_service
+        from src.services.session_store import get_sessions_by_user
+
+        db = _get_db()
+        sessions = await get_sessions_by_user(db, github_user_id)
+        if not sessions:
+            return []
+        session = sorted(sessions, key=lambda s: s.updated_at, reverse=True)[0]
+        token = session.access_token
+        username = session.github_username
+        if not token or not username:
+            return []
+        fetched = await github_projects_service.list_user_projects(token, username)
+        if fetched:
+            cache.set(get_user_projects_cache_key(github_user_id), fetched)
+            return [(p.name, p.project_id) for p in fetched]
+        return []
     except Exception:
-        return None
+        logger.debug("Failed to list projects for user %s", github_user_id, exc_info=True)
+        return []
