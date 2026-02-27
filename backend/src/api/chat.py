@@ -1,5 +1,6 @@
 """Chat API endpoints."""
 
+import asyncio
 import logging
 from typing import Annotated
 from uuid import UUID
@@ -69,6 +70,37 @@ def add_message(session_id: UUID, message: ChatMessage) -> None:
     if key not in _messages:
         _messages[key] = []
     _messages[key].append(message)
+
+
+def _trigger_signal_delivery(
+    session: UserSession,
+    message: ChatMessage,
+    project_name: str | None = None,
+) -> None:
+    """Fire-and-forget Signal delivery for assistant/system messages.
+
+    Only delivers for non-user messages when the user has an active Signal connection.
+    """
+    if message.sender_type == SenderType.USER:
+        return
+
+    async def _deliver() -> None:
+        try:
+            from src.services.signal_delivery import deliver_chat_message_via_signal
+
+            await deliver_chat_message_via_signal(
+                github_user_id=session.github_user_id,
+                message=message,
+                project_name=project_name,
+                project_id=session.selected_project_id,
+            )
+        except Exception as e:
+            logger.debug("Signal delivery trigger failed (non-fatal): %s", e)
+
+    try:
+        asyncio.create_task(_deliver())
+    except RuntimeError:
+        pass  # No running event loop — skip silently
 
 
 @router.get("/messages", response_model=ChatMessagesResponse)
@@ -207,6 +239,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 },
             )
             add_message(session.session_id, assistant_message)
+            _trigger_signal_delivery(session, assistant_message, project_name)
 
             logger.info(
                 "Generated issue recommendation %s: %s",
@@ -288,6 +321,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 },
             )
             add_message(session.session_id, assistant_message)
+            _trigger_signal_delivery(session, assistant_message, project_name)
 
             return assistant_message
         else:
@@ -332,6 +366,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             },
         )
         add_message(session.session_id, assistant_message)
+        _trigger_signal_delivery(session, assistant_message, project_name)
 
         return assistant_message
 
@@ -444,6 +479,7 @@ async def confirm_proposal(
             },
         )
         add_message(session.session_id, confirm_message)
+        _trigger_signal_delivery(session, confirm_message)
 
         logger.info(
             "Created issue #%d from proposal %s: %s",

@@ -8,11 +8,39 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useUserSettings } from '@/hooks/useSettings';
+import { useUserSettings, useSignalBanners, useDismissBanner } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { Button } from '@/components/ui/button';
+
+/** Dismissible Signal conflict banner bar (FR-015). */
+function SignalBannerBar() {
+  const { banners } = useSignalBanners();
+  const { dismissBanner, isPending } = useDismissBanner();
+
+  if (banners.length === 0) return null;
+
+  return (
+    <div className="w-full border-b border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+      {banners.map((b) => (
+        <div key={b.id} className="flex items-center gap-2 px-4 py-2 text-sm">
+          <span className="text-lg">⚠️</span>
+          <span className="flex-1">{b.message}</span>
+          <button
+            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-amber-300 text-xs font-medium text-amber-700 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-600 dark:text-amber-100 dark:hover:bg-amber-800"
+            onClick={() => dismissBanner(b.id)}
+            disabled={isPending}
+            type="button"
+            aria-label="Dismiss Signal banner"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -122,7 +150,7 @@ function AppContent() {
           <LoginButton />
         </div>
       </header>
-
+      <SignalBannerBar />
       <main className="flex flex-1 overflow-hidden">
         {activeView === 'settings' ? (
           <SettingsPage

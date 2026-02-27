@@ -108,6 +108,7 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._get_or_create_client(github_token)
 
+        from copilot import PermissionHandler  # type: ignore[reportMissingImports]
         from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
             SessionEventType,
         )
@@ -127,7 +128,10 @@ class CopilotCompletionProvider(CompletionProvider):
 
         # Build typed session config
         # SystemMessageConfig is a Union of TypedDicts, so use a dict literal
-        session_kwargs: dict[str, Any] = {"model": self._model}
+        session_kwargs: dict[str, Any] = {
+            "model": self._model,
+            "on_permission_request": PermissionHandler.approve_all,  # pyright: ignore[reportAttributeAccessIssue]
+        }
         if system_content:
             session_kwargs["system_message"] = {"mode": "replace", "content": system_content}
         config = SessionConfig(**session_kwargs)

@@ -1,0 +1,353 @@
+openapi: "3.1.0"
+info:
+  title: Signal Messaging Integration API
+  version: "0.1.0"
+  description: >
+    API contracts for Signal messaging integration.
+    All endpoints are scoped under /api/v1/ and require session-cookie authentication.
+
+paths:
+  # ── Signal Connection Management (Settings view) ─────────────────────
+
+  /api/v1/signal/connection:
+    get:
+      operationId: getSignalConnection
+      summary: Get current Signal connection status
+      description: Returns the user's Signal connection or null if none exists. FR-002.
+      tags: [Signal]
+      responses:
+        "200":
+          description: Connection status (may be null if no connection)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalConnectionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    delete:
+      operationId: disconnectSignal
+      summary: Disconnect Signal account
+      description: >
+        Disconnects the user's Signal account, deletes encrypted PII,
+        and immediately stops all Signal message delivery. FR-003, FR-014.
+      tags: [Signal]
+      responses:
+        "200":
+          description: Disconnected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Signal account disconnected"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No Signal connection exists
+
+  /api/v1/signal/connection/link:
+    post:
+      operationId: initiateSignalLink
+      summary: Initiate Signal QR code linking flow
+      description: >
+        Generates a QR code for the user to scan from their Signal client.
+        Returns the QR code as a base64-encoded PNG image. FR-001.
+      tags: [Signal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalLinkRequest"
+      responses:
+        "200":
+          description: QR code generated for linking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalLinkResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: User already has an active Signal connection
+
+  /api/v1/signal/connection/link/status:
+    get:
+      operationId: checkLinkStatus
+      summary: Poll linking status after QR code display
+      description: >
+        Frontend polls this endpoint after displaying the QR code to detect
+        when the user has completed the scan. Returns current link status.
+      tags: [Signal]
+      responses:
+        "200":
+          description: Current linking status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalLinkStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No pending link request
+
+  # ── Signal Notification Preferences ──────────────────────────────────
+
+  /api/v1/signal/preferences:
+    get:
+      operationId: getSignalPreferences
+      summary: Get Signal notification preferences
+      description: Returns the user's Signal notification preferences. FR-007.
+      tags: [Signal]
+      responses:
+        "200":
+          description: Current preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalPreferencesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    put:
+      operationId: updateSignalPreferences
+      summary: Update Signal notification preferences
+      description: Update which message categories are forwarded to Signal. FR-007.
+      tags: [Signal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalPreferencesUpdate"
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalPreferencesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No Signal connection exists
+
+  # ── Signal Inbound Webhook (internal, from signal-cli-rest-api) ──────
+
+  /api/v1/signal/webhook/inbound:
+    post:
+      operationId: handleInboundSignalMessage
+      summary: Receive inbound Signal message
+      description: >
+        Internal endpoint called by the Signal message listener service
+        when a new inbound message arrives via WebSocket from signal-cli-rest-api.
+        Routes the message to the correct user's chat session. FR-006, FR-009.
+      tags: [Signal Internal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalInboundMessage"
+      responses:
+        "200":
+          description: Message processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  processed:
+                    type: boolean
+                  chat_message_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+        "422":
+          description: Unlinked sender or unsupported message type
+
+  # ── Conflict Banner ──────────────────────────────────────────────────
+
+  /api/v1/signal/banners:
+    get:
+      operationId: getSignalBanners
+      summary: Get active Signal conflict banners
+      description: Returns undismissed conflict banners for the current user. FR-015.
+      tags: [Signal]
+      responses:
+        "200":
+          description: Active banners (may be empty array)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalBannersResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/signal/banners/{banner_id}/dismiss:
+    post:
+      operationId: dismissSignalBanner
+      summary: Dismiss a conflict banner
+      description: Marks a banner as dismissed so it no longer appears. FR-015.
+      tags: [Signal]
+      parameters:
+        - name: banner_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Banner dismissed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Banner dismissed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Banner not found
+
+# ── Schemas ──────────────────────────────────────────────────────────────
+
+components:
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Not authenticated"
+
+  schemas:
+    # ── Connection ──
+    SignalConnectionResponse:
+      type: object
+      nullable: true
+      properties:
+        connection_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, connected, error, disconnected]
+        signal_identifier:
+          type: string
+          description: Masked phone number for display (e.g., "+1***...7890")
+          nullable: true
+        notification_mode:
+          type: string
+          enum: [all, actions_only, confirmations_only, none]
+        linked_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_active_project_id:
+          type: string
+          nullable: true
+
+    SignalLinkRequest:
+      type: object
+      properties:
+        device_name:
+          type: string
+          description: Name for the linked device (shown in Signal settings)
+          default: "Agent Projects"
+          maxLength: 50
+
+    SignalLinkResponse:
+      type: object
+      required: [qr_code_base64, expires_in_seconds]
+      properties:
+        qr_code_base64:
+          type: string
+          description: Base64-encoded PNG image of the QR code
+        expires_in_seconds:
+          type: integer
+          description: Seconds until this QR code expires (re-request after)
+          example: 60
+
+    SignalLinkStatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending, connected, failed, expired]
+        signal_identifier:
+          type: string
+          description: Masked phone number (only when status=connected)
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+
+    # ── Preferences ──
+    SignalPreferencesResponse:
+      type: object
+      required: [notification_mode]
+      properties:
+        notification_mode:
+          type: string
+          enum: [all, actions_only, confirmations_only, none]
+
+    SignalPreferencesUpdate:
+      type: object
+      required: [notification_mode]
+      properties:
+        notification_mode:
+          type: string
+          enum: [all, actions_only, confirmations_only, none]
+
+    # ── Inbound Message (internal) ──
+    SignalInboundMessage:
+      type: object
+      required: [source_number, message_text, timestamp]
+      properties:
+        source_number:
+          type: string
+          description: Sender's phone number in E.164 format
+        message_text:
+          type: string
+          description: Message content
+        timestamp:
+          type: string
+          format: date-time
+        has_attachment:
+          type: boolean
+          default: false
+
+    # ── Banners ──
+    SignalBanner:
+      type: object
+      required: [id, message, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    SignalBannersResponse:
+      type: object
+      required: [banners]
+      properties:
+        banners:
+          type: array
+          items:
+            $ref: "#/components/schemas/SignalBanner"

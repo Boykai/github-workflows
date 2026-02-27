@@ -425,6 +425,52 @@ export interface ProjectSettingsUpdate {
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
 }
 
+// ============ Signal Messaging Types (011-signal-chat-integration) ============
+
+export type SignalConnectionStatus = 'pending' | 'connected' | 'error' | 'disconnected';
+
+export type SignalNotificationMode = 'all' | 'actions_only' | 'confirmations_only' | 'none';
+
+export type SignalLinkStatus = 'pending' | 'connected' | 'failed' | 'expired';
+
+export interface SignalConnection {
+  connection_id: string | null;
+  status: SignalConnectionStatus | null;
+  signal_identifier: string | null;
+  notification_mode: SignalNotificationMode | null;
+  linked_at: string | null;
+  last_active_project_id: string | null;
+}
+
+export interface SignalLinkResponse {
+  qr_code_base64: string;
+  expires_in_seconds: number;
+}
+
+export interface SignalLinkStatusResponse {
+  status: SignalLinkStatus;
+  signal_identifier: string | null;
+  error_message: string | null;
+}
+
+export interface SignalPreferences {
+  notification_mode: SignalNotificationMode;
+}
+
+export interface SignalPreferencesUpdate {
+  notification_mode: SignalNotificationMode;
+}
+
+export interface SignalBanner {
+  id: string;
+  message: string;
+  created_at: string;
+}
+
+export interface SignalBannersResponse {
+  banners: SignalBanner[];
+}
+
 // ============ Board Types (continued) ============
 
 export type StatusColor =

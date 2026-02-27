@@ -27,6 +27,8 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://frontend
+      - SIGNAL_API_URL=${SIGNAL_API_URL:-http://signal-api:8080}
+      - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER:-}
     volumes:
       - ghchat-data:/app/data
     healthcheck:
@@ -35,9 +37,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    depends_on:
+      signal-api:
+        condition: service_healthy
     networks:
       - ghchat-network
-
   frontend:
     build:
       context: ./frontend
@@ -60,8 +64,30 @@ services:
     networks:
       - ghchat-network
 
+  signal-api:
+    image: bbernhard/signal-cli-rest-api:latest
+    container_name: ghchat-signal-api
+    restart: unless-stopped
+    environment:
+      - MODE=json-rpc
+      - DEFAULT_SIGNAL_TEXT_MODE=styled
+    volumes:
+      - signal-cli-config:/home/.local/share/signal-cli
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      - ghchat-network
+
 volumes:
   ghchat-data:
+    driver: local
+  signal-cli-config:
     driver: local
 
 networks:

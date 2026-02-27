@@ -27,6 +27,12 @@ import type {
   ProjectSettingsUpdate,
   WorkflowResult,
   WorkflowConfiguration,
+  SignalConnection,
+  SignalLinkResponse,
+  SignalLinkStatusResponse,
+  SignalPreferences,
+  SignalPreferencesUpdate,
+  SignalBannersResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -341,5 +347,75 @@ export const workflowApi = {
    */
   listAgents(): Promise<{ agents: AvailableAgent[] }> {
     return request<{ agents: AvailableAgent[] }>('/workflow/agents');
+  },
+};
+
+// ============ Signal API ============
+
+export const signalApi = {
+  /**
+   * Get current Signal connection status.
+   */
+  getConnection(): Promise<SignalConnection> {
+    return request<SignalConnection>('/signal/connection');
+  },
+
+  /**
+   * Initiate Signal QR code linking flow.
+   */
+  initiateLink(deviceName = 'Agent Projects'): Promise<SignalLinkResponse> {
+    return request<SignalLinkResponse>('/signal/connection/link', {
+      method: 'POST',
+      body: JSON.stringify({ device_name: deviceName }),
+    });
+  },
+
+  /**
+   * Poll linking status after QR code display.
+   */
+  checkLinkStatus(): Promise<SignalLinkStatusResponse> {
+    return request<SignalLinkStatusResponse>('/signal/connection/link/status');
+  },
+
+  /**
+   * Disconnect Signal account.
+   */
+  disconnect(): Promise<{ message: string }> {
+    return request<{ message: string }>('/signal/connection', {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Get Signal notification preferences.
+   */
+  getPreferences(): Promise<SignalPreferences> {
+    return request<SignalPreferences>('/signal/preferences');
+  },
+
+  /**
+   * Update Signal notification preferences.
+   */
+  updatePreferences(data: SignalPreferencesUpdate): Promise<SignalPreferences> {
+    return request<SignalPreferences>('/signal/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get active Signal conflict banners.
+   */
+  getBanners(): Promise<SignalBannersResponse> {
+    return request<SignalBannersResponse>('/signal/banners');
+  },
+
+  /**
+   * Dismiss a conflict banner.
+   */
+  dismissBanner(bannerId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/signal/banners/${bannerId}/dismiss`, {
+      method: 'POST',
+    });
   },
 };

@@ -12,6 +12,7 @@ import { DisplayPreferences } from '@/components/settings/DisplayPreferences';
 import { GlobalSettings } from '@/components/settings/GlobalSettings';
 import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
 import { ProjectSettings } from '@/components/settings/ProjectSettings';
+import { SignalConnection } from '@/components/settings/SignalConnection';
 import { WorkflowDefaults } from '@/components/settings/WorkflowDefaults';
 import { useUserSettings, useGlobalSettings } from '@/hooks/useSettings';
 import type { UserPreferencesUpdate, GlobalSettingsUpdate } from '@/types';
@@ -106,6 +107,9 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
         {userSettings && (
           <NotificationPreferences settings={userSettings.notifications} onSave={handleUserSave} />
         )}
+
+        {/* Signal Integration (011-signal-chat-integration) */}
+        <SignalConnection />
 
         {/* Project Settings (US8) */}
         <ProjectSettings
