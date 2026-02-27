@@ -436,6 +436,31 @@ async def store_inbound_message(
 _ws_listener_task: asyncio.Task | None = None
 
 
+async def send_welcome_message(phone: str) -> None:
+    """Send an introduction message after Signal account linking.
+
+    Explains available commands so the user can start chatting via Signal.
+    """
+    text = (
+        "\U0001f44b *Welcome to Agent Projects!*\n\n"
+        "Your Signal account is now connected. "
+        "You can chat with me just like the chat window in the app.\n\n"
+        "*Here's what you can do:*\n"
+        "\u2022 Describe a feature and I'll draft a GitHub issue\n"
+        "\u2022 Ask to update a task's status\n"
+        "\u2022 Describe a task and I'll create a proposal\n"
+        "\u2022 Reply *CONFIRM* to approve or *REJECT* to cancel proposals\n\n"
+        "Use *#project-name* to target a specific project.\n\n"
+        "_To start, make sure you have an active project in the app, "
+        "then send me a message here!_"
+    )
+    try:
+        await send_message(phone, text)
+        logger.info("Sent welcome message to newly linked Signal user")
+    except Exception as e:
+        logger.warning("Failed to send welcome message: %s", e)
+
+
 async def start_signal_ws_listener() -> None:
     """Start the WebSocket listener as a background task.
 
@@ -443,12 +468,20 @@ async def start_signal_ws_listener() -> None:
     from SIGNAL_PHONE_NUMBER env var or the signal-cli-rest-api sidecar.
     """
     global _ws_listener_task
+    if _ws_listener_task and not _ws_listener_task.done():
+        return  # Already running
     phone = await _get_registered_phone()
     if not phone:
         logger.warning("No registered Signal account — WebSocket listener not started")
         return
     _ws_listener_task = asyncio.create_task(_ws_listen_loop(phone))
     logger.info("Signal WebSocket listener started for %s", phone)
+
+
+async def restart_signal_ws_listener() -> None:
+    """Stop and restart the WS listener (e.g. after new account linking)."""
+    await stop_signal_ws_listener()
+    await start_signal_ws_listener()
 
 
 async def stop_signal_ws_listener() -> None:
@@ -581,6 +614,17 @@ async def _process_inbound_ws_message(data: dict) -> None:
 
     # Store message in chat system and create audit row
     await store_inbound_message(conn, message_text, project_id)
+
+    # Fire-and-forget AI processing and Signal reply
+    async def _safe_process() -> None:
+        try:
+            from src.services.signal_chat import process_signal_chat
+
+            await process_signal_chat(conn, message_text, project_id, source)
+        except Exception:
+            logger.exception("Signal AI processing failed")
+
+    asyncio.create_task(_safe_process())
 
 
 async def _send_auto_reply(recipient: str, text: str) -> None:

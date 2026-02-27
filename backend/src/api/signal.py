@@ -135,6 +135,24 @@ async def check_signal_link_status(
         phone = result["number"]
         # Create the connection record
         await create_connection(session.github_user_id, phone)
+
+        # Fire-and-forget: send welcome message and start WS listener
+        import asyncio
+
+        from src.services.signal_bridge import (
+            restart_signal_ws_listener,
+            send_welcome_message,
+        )
+
+        async def _post_link() -> None:
+            try:
+                await send_welcome_message(phone)
+                await restart_signal_ws_listener()
+            except Exception as e:
+                logger.warning("Post-link tasks failed (non-fatal): %s", e)
+
+        asyncio.create_task(_post_link())
+
         return SignalLinkStatusResponse(
             status=SignalLinkStatus.CONNECTED,
             signal_identifier=mask_phone_number(phone),
