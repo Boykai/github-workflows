@@ -77,26 +77,52 @@ async def request_qr_code_base64(device_name: str = "Agent Projects") -> str:
     return base64.b64encode(raw).decode()
 
 
+async def _get_registered_phone() -> str | None:
+    """Resolve the Signal phone number for this instance.
+
+    Priority:
+    1. SIGNAL_PHONE_NUMBER env var (explicit config).
+    2. First account registered on the signal-cli-rest-api sidecar
+       (auto-discovered after QR-code linking).
+
+    Returns an E.164 phone string or None.
+    """
+    settings = get_settings()
+    if settings.signal_phone_number:
+        return settings.signal_phone_number
+    # Auto-discover from sidecar
+    try:
+        accounts = await get_accounts()
+        if accounts:
+            return accounts[0]
+    except Exception as e:
+        logger.debug("Could not auto-discover Signal phone: %s", e)
+    return None
+
+
 async def check_link_complete() -> dict:
     """Check if the linking process completed.
 
     Returns a dict with keys: linked (bool), number (str|None).
+    Queries the signal-cli-rest-api /v1/accounts endpoint to discover
+    whether a phone number has been registered (via QR-code linking).
     """
-    settings = get_settings()
-    phone = settings.signal_phone_number
-    if not phone:
-        return {"linked": False, "number": None}
-
     url = f"{_signal_base_url()}/v1/accounts"
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             accounts = resp.json()
-            # accounts is a list of registered/linked numbers
-            if isinstance(accounts, list) and phone in accounts:
-                return {"linked": True, "number": phone}
-            return {"linked": False, "number": None}
+            if not isinstance(accounts, list) or not accounts:
+                return {"linked": False, "number": None}
+            # If env var is set, look for that specific number
+            settings = get_settings()
+            if settings.signal_phone_number:
+                if settings.signal_phone_number in accounts:
+                    return {"linked": True, "number": settings.signal_phone_number}
+                return {"linked": False, "number": None}
+            # No env var — return the first registered account
+            return {"linked": True, "number": accounts[0]}
     except Exception as e:
         logger.warning("Failed to check link status: %s", e)
         return {"linked": False, "number": None}
@@ -112,10 +138,11 @@ async def send_message(recipient: str, message: str, text_mode: str = "styled") 
 
     Returns True on success, raises on failure.
     """
-    settings = get_settings()
-    phone = settings.signal_phone_number
+    phone = await _get_registered_phone()
     if not phone:
-        raise ValueError("SIGNAL_PHONE_NUMBER not configured")
+        raise ValueError(
+            "No registered Signal account — set SIGNAL_PHONE_NUMBER or link via QR code"
+        )
 
     url = f"{_signal_base_url()}/v2/send"
     payload = {
@@ -412,13 +439,13 @@ _ws_listener_task: asyncio.Task | None = None
 async def start_signal_ws_listener() -> None:
     """Start the WebSocket listener as a background task.
 
-    Called from the FastAPI lifespan handler.
+    Called from the FastAPI lifespan handler.  Resolves the phone number
+    from SIGNAL_PHONE_NUMBER env var or the signal-cli-rest-api sidecar.
     """
     global _ws_listener_task
-    settings = get_settings()
-    phone = settings.signal_phone_number
+    phone = await _get_registered_phone()
     if not phone:
-        logger.warning("SIGNAL_PHONE_NUMBER not set — WebSocket listener not started")
+        logger.warning("No registered Signal account — WebSocket listener not started")
         return
     _ws_listener_task = asyncio.create_task(_ws_listen_loop(phone))
     logger.info("Signal WebSocket listener started for %s", phone)
