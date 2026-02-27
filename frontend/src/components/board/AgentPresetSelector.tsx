@@ -136,13 +136,13 @@ export function AgentPresetSelector({
 
   return (
     <>
-      <div className="agent-preset-selector">
+      <div className="flex items-center gap-1 ml-auto bg-muted/50 p-1 rounded-md border border-border/50">
         {PRESETS.map((preset) => {
           const isActive = matchesPreset(preset, currentMappings, columnNames);
           return (
             <button
               key={preset.id}
-              className={`agent-preset-btn${isActive ? ' agent-preset-btn--active' : ''}`}
+              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${isActive ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               onClick={() => handleClick(preset)}
               title={preset.description}
               type="button"
@@ -155,31 +155,31 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog */}
       {confirmPreset && (
-        <div className="agent-preset-dialog-overlay" onClick={handleCancel}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel}>
           <div
-            className="agent-preset-dialog"
+            className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Confirm preset"
           >
-            <h4 className="agent-preset-dialog-title">
+            <h4 className="text-lg font-semibold text-foreground m-0">
               Apply &ldquo;{confirmPreset.label}&rdquo; preset?
             </h4>
-            <p className="agent-preset-dialog-desc">
+            <p className="text-sm text-muted-foreground m-0">
               This will replace your current agent configuration. Unsaved changes will be reflected
               in the save bar.
             </p>
-            <div className="agent-preset-dialog-actions">
+            <div className="flex justify-end gap-3 mt-2">
               <button
-                className="agent-preset-dialog-btn agent-preset-dialog-btn--cancel"
+                className="px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
                 onClick={handleCancel}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="agent-preset-dialog-btn agent-preset-dialog-btn--confirm"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 onClick={handleConfirm}
                 type="button"
               >

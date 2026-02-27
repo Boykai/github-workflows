@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AgentAssignment, WorkflowConfiguration, AvailableAgent } from '@/types';
 import { useWorkflow } from './useWorkflow';
 import { generateId } from '@/utils/generateId';
@@ -42,7 +42,8 @@ interface UseAgentConfigReturn {
 }
 
 export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn {
-  const { getConfig, updateConfig } = useWorkflow();
+  const { updateConfig } = useWorkflow();
+  const queryClient = useQueryClient();
   const [serverConfig, setServerConfig] = useState<WorkflowConfiguration | null>(null);
   const [localMappings, setLocalMappings] = useState<Record<string, AgentAssignment[]>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -50,19 +51,27 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
   const [isLoaded, setIsLoaded] = useState(false);
   const serverMappingsRef = useRef<Record<string, AgentAssignment[]>>({});
 
+  // Stable loadConfig that only depends on projectId (not an unstable getConfig ref).
+  // The old version captured `getConfig` from useWorkflow which changed identity every
+  // render (it closes over the useQuery result object), causing an infinite re-render
+  // loop: loadConfig changes → useEffect fires → setState → re-render → repeat.
   const loadConfig = useCallback(async () => {
     if (!projectId) return;
     try {
-      const config = await getConfig();
-      setServerConfig(config);
-      const mappings = config.agent_mappings ?? {};
+      const result = await queryClient.fetchQuery({
+        queryKey: ['workflow', 'config'],
+        queryFn: () => workflowApi.getConfig(),
+        staleTime: 60_000,
+      });
+      setServerConfig(result);
+      const mappings = result.agent_mappings ?? {};
       serverMappingsRef.current = mappings;
       setLocalMappings(structuredClone(mappings));
       setIsLoaded(true);
     } catch {
       // Error handled by useWorkflow
     }
-  }, [projectId, getConfig]);
+  }, [projectId, queryClient]);
 
   // Load config when projectId changes
   useEffect(() => {

@@ -12,7 +12,7 @@ import { useUserSettings } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import './App.css';
+import { Button } from '@/components/ui/button';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,12 +27,33 @@ function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const { settings: userSettings } = useUserSettings();
-  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>('chat');
 
-  // Apply default_view from user settings on first load (FR-014)
+  // Derive initial view from URL hash so refresh stays on the current page.
+  const getViewFromHash = (): 'chat' | 'board' | 'settings' => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'board' || hash === 'settings') return hash;
+    return 'chat';
+  };
+
+  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>(getViewFromHash);
+
+  // Keep URL hash in sync when view changes
+  const changeView = (view: 'chat' | 'board' | 'settings') => {
+    setActiveView(view);
+    window.location.hash = view === 'chat' ? '' : view;
+  };
+
+  // Handle browser back/forward
   useEffect(() => {
-    if (userSettings?.display?.default_view) {
-      setActiveView(userSettings.display.default_view);
+    const onHashChange = () => setActiveView(getViewFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Apply default_view from user settings only when no hash is present (FR-014)
+  useEffect(() => {
+    if (!window.location.hash && userSettings?.display?.default_view) {
+      changeView(userSettings.display.default_view);
     }
   }, [userSettings?.display?.default_view]);
   const {
@@ -43,62 +64,66 @@ function AppContent() {
 
   if (authLoading) {
     return (
-      <div className="app-loading">
-        <div className="spinner" />
-        <p>Loading...</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="app-login">
-        <h1>Agent Projects</h1>
-        <p>Manage your GitHub Projects with natural language</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4 text-center">
+        <h1 className="text-4xl font-bold tracking-tight">Agent Projects</h1>
+        <p className="text-muted-foreground mb-4">Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
     );
   }
 
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-left">
-          <h1>Agent Projects</h1>
-          <nav className="header-nav">
-            <button
-              className={`header-nav-btn ${activeView === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveView('chat')}
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      <header className="flex items-center justify-between px-6 py-3 bg-background border-b border-border">
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-semibold tracking-tight">Agent Projects</h1>
+          <nav className="flex gap-1">
+            <Button
+              variant={activeView === 'chat' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('chat')}
             >
               Home
-            </button>
-            <button
-              className={`header-nav-btn ${activeView === 'board' ? 'active' : ''}`}
-              onClick={() => setActiveView('board')}
+            </Button>
+            <Button
+              variant={activeView === 'board' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('board')}
             >
               Project Board
-            </button>
-            <button
-              className={`header-nav-btn ${activeView === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveView('settings')}
+            </Button>
+            <Button
+              variant={activeView === 'settings' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('settings')}
             >
               Settings
-            </button>
+            </Button>
           </nav>
         </div>
-        <div className="header-actions">
-          <button 
-            className="theme-toggle-btn"
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            size="icon"
             onClick={toggleTheme}
             aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDarkMode ? '☀️' : '🌙'}
-          </button>
+          </Button>
           <LoginButton />
         </div>
       </header>
 
-      <main className="app-main">
+      <main className="flex flex-1 overflow-hidden">
         {activeView === 'settings' ? (
           <SettingsPage
             projects={projects.map((p) => ({ project_id: p.project_id, name: p.name }))}
@@ -110,11 +135,14 @@ function AppContent() {
             onProjectSelect={selectProject}
           />
         ) : (
-          <div className="homepage-hero">
-            <h2>Create Your App Here</h2>
-            <button className="homepage-cta-btn" onClick={() => setActiveView('board')}>
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
+            <h2 className="text-4xl font-bold tracking-tight">Create Your App Here</h2>
+            <Button 
+              size="lg"
+              onClick={() => changeView('board')}
+            >
               Get Started
-            </button>
+            </Button>
           </div>
         )}
       </main>

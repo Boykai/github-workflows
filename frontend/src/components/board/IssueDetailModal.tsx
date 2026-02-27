@@ -50,54 +50,43 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
     }
   };
 
-  const prStateClass = (state: string) => {
-    switch (state) {
-      case 'merged':
-        return 'pr-state-merged';
-      case 'closed':
-        return 'pr-state-closed';
-      default:
-        return 'pr-state-open';
-    }
-  };
-
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
-      <div className="modal-content" role="dialog" aria-modal="true" aria-label={item.title}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleBackdropClick}>
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4" role="dialog" aria-modal="true" aria-label={item.title}>
         {/* Header */}
-        <div className="modal-header">
-          <div className="modal-header-info">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             {item.repository && (
-              <span className="modal-repo">
+              <span>
                 {item.repository.owner}/{item.repository.name}
                 {item.number != null && ` #${item.number}`}
               </span>
             )}
             {item.content_type === 'draft_issue' && (
-              <span className="modal-draft-badge">Draft</span>
+              <span className="px-2 py-0.5 text-xs font-medium uppercase tracking-wider bg-muted text-muted-foreground rounded-sm">Draft</span>
             )}
           </div>
-          <button className="modal-close-btn" onClick={onClose} aria-label="Close modal">
+          <button className="p-2 rounded-md hover:bg-muted transition-colors" onClick={onClose} aria-label="Close modal">
             ✕
           </button>
         </div>
 
         {/* Title */}
-        <h2 className="modal-title">{item.title}</h2>
+        <h2 className="text-2xl font-bold mb-4">{item.title}</h2>
 
         {/* Status */}
-        <div className="modal-status">
-          <span className="modal-status-label">Status:</span>
-          <span className="modal-status-value">{item.status}</span>
+        <div className="flex items-center gap-2 mb-6">
+          <span className="text-sm font-medium text-muted-foreground">Status:</span>
+          <span className="px-2.5 py-0.5 text-sm font-medium bg-muted rounded-full">{item.status}</span>
         </div>
 
         {/* Custom fields */}
-        <div className="modal-fields">
+        <div className="flex flex-wrap gap-4 mb-6">
           {item.priority && (
-            <div className="modal-field">
-              <span className="modal-field-label">Priority</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</span>
               <span
-                className="modal-field-value"
+                className="text-sm font-medium"
                 style={
                   item.priority.color
                     ? { color: statusColorToCSS(item.priority.color) }
@@ -109,10 +98,10 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             </div>
           )}
           {item.size && (
-            <div className="modal-field">
-              <span className="modal-field-label">Size</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</span>
               <span
-                className="modal-field-value"
+                className="text-sm font-medium"
                 style={
                   item.size.color
                     ? { color: statusColorToCSS(item.size.color) }
@@ -124,28 +113,28 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             </div>
           )}
           {item.estimate != null && (
-            <div className="modal-field">
-              <span className="modal-field-label">Estimate</span>
-              <span className="modal-field-value">{item.estimate} points</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Estimate</span>
+              <span className="text-sm font-medium">{item.estimate} points</span>
             </div>
           )}
         </div>
 
         {/* Assignees */}
         {item.assignees.length > 0 && (
-          <div className="modal-section">
-            <h3 className="modal-section-title">Assignees</h3>
-            <div className="modal-assignees">
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2">Assignees</h3>
+            <div className="flex flex-wrap gap-2">
               {item.assignees.map((assignee) => (
-                <div key={assignee.login} className="modal-assignee">
+                <div key={assignee.login} className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md border border-border">
                   <img
                     src={assignee.avatar_url}
                     alt={assignee.login}
-                    className="modal-assignee-avatar"
-                    width={28}
-                    height={28}
+                    className="w-6 h-6 rounded-full"
+                    width={24}
+                    height={24}
                   />
-                  <span className="modal-assignee-name">{assignee.login}</span>
+                  <span className="text-sm font-medium">{assignee.login}</span>
                 </div>
               ))}
             </div>
@@ -154,48 +143,50 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
 
         {/* Body / Description */}
         {item.body && (
-          <div className="modal-section">
-            <h3 className="modal-section-title">Description</h3>
-            <div className="modal-body">{item.body}</div>
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2">Description</h3>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-4 rounded-md border border-border">{item.body}</div>
           </div>
         )}
 
         {/* Sub-Issues */}
         {item.sub_issues && item.sub_issues.length > 0 && (
-          <div className="modal-section">
-            <h3 className="modal-section-title">
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2">
               Sub-Issues ({item.sub_issues.filter((s) => s.state === 'closed').length}/{item.sub_issues.length} completed)
             </h3>
-            <div className="modal-sub-issues">
+            <div className="flex flex-col gap-2">
               {item.sub_issues.map((si: SubIssue) => (
                 <a
                   key={si.id}
                   href={si.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`modal-sub-issue-link ${si.state === 'closed' ? 'modal-sub-issue-closed' : 'modal-sub-issue-open'}`}
+                  className={`flex items-center gap-3 p-3 rounded-md border transition-colors no-underline ${si.state === 'closed' ? 'bg-muted/30 border-border/50 text-muted-foreground' : 'bg-card border-border hover:border-primary/50'}`}
                 >
-                  <span className={`modal-sub-issue-state ${si.state === 'closed' ? 'sub-issue-done' : 'sub-issue-pending'}`}>
+                  <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}>
                     {si.state === 'closed' ? '✓' : '○'}
                   </span>
-                  <span className="modal-sub-issue-info">
-                    {si.assigned_agent && (
-                      <span className="modal-sub-issue-agent">{si.assigned_agent}</span>
-                    )}
-                    <span className="modal-sub-issue-number">#{si.number}</span>
-                    <span className="modal-sub-issue-title">{si.title}</span>
+                  <span className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {si.assigned_agent && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">{si.assigned_agent}</span>
+                      )}
+                      <span className="text-xs font-medium text-muted-foreground">#{si.number}</span>
+                    </div>
+                    <span className="text-sm font-medium truncate">{si.title}</span>
                   </span>
                   {si.assignees.length > 0 && (
-                    <div className="modal-sub-issue-assignees">
+                    <div className="flex items-center -space-x-1.5">
                       {si.assignees.map((a) => (
                         <img
                           key={a.login}
                           src={a.avatar_url}
                           alt={a.login}
                           title={a.login}
-                          className="modal-sub-issue-avatar"
-                          width={20}
-                          height={20}
+                          className="w-6 h-6 rounded-full border-2 border-card"
+                          width={24}
+                          height={24}
                         />
                       ))}
                     </div>
@@ -208,22 +199,23 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
 
         {/* Linked PRs */}
         {item.linked_prs.length > 0 && (
-          <div className="modal-section">
-            <h3 className="modal-section-title">Linked Pull Requests</h3>
-            <div className="modal-prs">
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold mb-2">Linked Pull Requests</h3>
+            <div className="flex flex-col gap-2">
               {item.linked_prs.map((pr) => (
                 <a
                   key={pr.pr_id}
                   href={pr.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="modal-pr-link"
+                  className="flex items-center gap-3 p-3 rounded-md border border-border bg-card hover:border-primary/50 transition-colors no-underline"
                 >
-                  <span className={`modal-pr-state ${prStateClass(pr.state)}`}>
+                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
                     {prStateLabel(pr.state)}
                   </span>
-                  <span className="modal-pr-info">
-                    #{pr.number} {pr.title}
+                  <span className="text-sm font-medium text-foreground">
+                    <span className="text-muted-foreground mr-1">#{pr.number}</span>
+                    {pr.title}
                   </span>
                 </a>
               ))}
@@ -233,12 +225,12 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
 
         {/* Open in GitHub button */}
         {item.url && (
-          <div className="modal-actions">
+          <div className="flex justify-end mt-6 pt-4 border-t border-border">
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="modal-github-btn"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors rounded-md bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               Open in GitHub ↗
             </a>

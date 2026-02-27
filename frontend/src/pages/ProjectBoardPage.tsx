@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
+import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
@@ -36,6 +37,9 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     lastUpdated,
     selectProject,
   } = useProjectBoard({ selectedProjectId: externalProjectId, onProjectSelect });
+
+  // Real-time sync: WebSocket with polling fallback — drives board auto-refresh
+  const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId);
 
   // Chat hooks (moved from App.tsx so chat API calls only fire on the board page)
   const {
@@ -83,19 +87,16 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     setSelectedItem(null);
   };
 
-  // Format last updated time
-  const formatLastUpdated = () => lastUpdated ? formatTimeAgo(lastUpdated) : '';
-
   return (
-    <div className="board-page">
+    <div className="flex flex-col h-full p-6 gap-6 overflow-hidden">
       {/* Page Header */}
-      <div className="board-page-header">
-        <div className="board-page-header-left">
-          <h2 className="board-page-title">Project Board</h2>
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">Project Board</h2>
 
           {/* Project Selector */}
           <select
-            className="board-project-select"
+            className="flex h-9 w-[250px] items-center justify-between rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             value={selectedProjectId ?? ''}
             onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
             disabled={projectsLoading}
@@ -111,18 +112,34 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           </select>
         </div>
 
-        <div className="board-page-header-right">
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {/* Sync status */}
+          {selectedProjectId && (
+            <span className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${
+                syncStatus === 'connected' ? 'bg-green-500' :
+                syncStatus === 'polling' ? 'bg-yellow-500' :
+                syncStatus === 'connecting' ? 'bg-blue-500' :
+                'bg-red-500'
+              }`} />
+              {syncStatus === 'connected' && 'Live'}
+              {syncStatus === 'polling' && 'Polling'}
+              {syncStatus === 'connecting' && 'Connecting...'}
+              {syncStatus === 'disconnected' && 'Offline'}
+            </span>
+          )}
+
           {/* Refresh indicator */}
           {isFetching && !boardLoading && (
-            <span className="board-refresh-indicator" title="Refreshing...">
-              <span className="board-refresh-spinner" />
+            <span className="flex items-center justify-center" title="Refreshing...">
+              <span className="w-4 h-4 border-2 border-border border-t-primary rounded-full animate-spin" />
             </span>
           )}
 
           {/* Last updated */}
-          {lastUpdated && (
-            <span className="board-last-updated">
-              Updated {formatLastUpdated()}
+          {(lastUpdated || syncLastUpdate) && (
+            <span className="text-xs">
+              Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
             </span>
           )}
         </div>
@@ -130,9 +147,9 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {/* Error states */}
       {projectsError && (
-        <div className="board-error">
-          <span className="board-error-icon">⚠️</span>
-          <div className="board-error-content">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+          <span className="text-lg">⚠️</span>
+          <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
           </div>
@@ -140,14 +157,14 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
       )}
 
       {boardError && !boardLoading && (
-        <div className="board-error">
-          <span className="board-error-icon">⚠️</span>
-          <div className="board-error-content">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+          <span className="text-lg">⚠️</span>
+          <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
           </div>
           <button
-            className="board-retry-btn"
+            className="px-3 py-1.5 text-sm font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors ml-auto"
             onClick={() => selectProject(selectedProjectId!)}
           >
             Retry
@@ -157,22 +174,22 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
-        <div className="board-empty-state">
-          <div className="board-empty-icon">📋</div>
-          <h3>Select a project</h3>
-          <p>Choose a project from the dropdown above to view its board</p>
+        <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+          <div className="text-4xl mb-2">📋</div>
+          <h3 className="text-xl font-semibold">Select a project</h3>
+          <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>
         </div>
       )}
 
       {selectedProjectId && boardLoading && (
-        <div className="board-loading">
-          <div className="spinner" />
-          <p>Loading board...</p>
+        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+          <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground">Loading board...</p>
         </div>
       )}
 
       {selectedProjectId && !boardLoading && boardData && (
-        <>
+        <div className="flex flex-col flex-1 gap-6 overflow-hidden">
           {/* Agent Configuration Row */}
           <AgentConfigRow
             columns={boardData.columns}
@@ -199,15 +216,15 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           />
 
           {boardData.columns.every((col) => col.items.length === 0) ? (
-            <div className="board-empty-state">
-              <div className="board-empty-icon">📭</div>
-              <h3>No items yet</h3>
-              <p>This project has no items. Add items in GitHub to see them here.</p>
+            <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+              <div className="text-4xl mb-2">📭</div>
+              <h3 className="text-xl font-semibold">No items yet</h3>
+              <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
             </div>
           ) : (
             <ProjectBoard boardData={boardData} onCardClick={handleCardClick} />
           )}
-        </>
+        </div>
       )}
 
       {/* Detail Modal (US2) */}
