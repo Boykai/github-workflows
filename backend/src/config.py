@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"
     signal_phone_number: str | None = None
+    signal_webhook_secret: str | None = None
 
     # Cookie
     cookie_secure: bool = False  # Set True in production (HTTPS)

@@ -170,6 +170,13 @@ class SignalBannersResponse(BaseModel):
 
 def mask_phone_number(phone: str) -> str:
     """Mask a phone number for display: +1234567890 → +1***...7890"""
-    if len(phone) <= 4:
+    n = len(phone)
+    if n <= 4:
         return phone
-    return f"{phone[:2]}***...{phone[-4:]}"
+
+    # Show up to 2 leading and 4 trailing characters, but always leave
+    # at least one character masked in the middle.
+    prefix_len = min(2, n - 2)
+    suffix_len = min(4, n - prefix_len - 1)
+
+    return f"{phone[:prefix_len]}***...{phone[-suffix_len:]}"

@@ -5,6 +5,7 @@
  * plus mutations with optimistic updates and cache invalidation.
  */
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi, signalApi } from '@/services/api';
 import { STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
@@ -178,10 +179,12 @@ export function useSignalLinkStatus(enabled: boolean) {
   });
 
   // When link completes, invalidate connection query
-  const status = query.data?.status;
-  if (status === 'connected') {
-    queryClient.invalidateQueries({ queryKey: signalKeys.connection() });
-  }
+  const linkStatus = query.data?.status;
+  useEffect(() => {
+    if (linkStatus === 'connected') {
+      queryClient.invalidateQueries({ queryKey: signalKeys.connection() });
+    }
+  }, [linkStatus, queryClient]);
 
   return {
     linkStatus: query.data,

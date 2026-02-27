@@ -10,9 +10,10 @@ import logging
 from datetime import UTC
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from src.api.auth import get_session_dep
+from src.config import get_settings
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -32,13 +33,13 @@ from src.services.signal_bridge import (
     _hash_phone,
     check_link_complete,
     create_connection,
-    create_signal_message,
     disconnect_and_purge,
     dismiss_banner,
     get_banners_for_user,
     get_connection_by_phone_hash,
     get_connection_by_user,
     request_qr_code_base64,
+    store_inbound_message,
 )
 
 logger = logging.getLogger(__name__)
@@ -242,16 +243,24 @@ async def dismiss_signal_banner(
 @router.post("/webhook/inbound")
 async def handle_inbound_signal_message(
     body: SignalInboundMessage,
+    x_signal_secret: str | None = Header(None, alias="X-Signal-Webhook-Secret"),
 ) -> dict:
-    """Receive an inbound Signal message from the WS listener.
+    """Receive an inbound Signal message from external integrations.
 
-    Routes the message to the correct user's chat session and triggers
-    AI assistant processing. Creates a signal_messages audit row.
+    Protected by shared secret when SIGNAL_WEBHOOK_SECRET is configured.
+    The WebSocket listener calls store_inbound_message() directly.
     """
+    settings = get_settings()
+    if settings.signal_webhook_secret:
+        if x_signal_secret != settings.signal_webhook_secret:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid webhook secret",
+            )
+
     source = body.source_number
     phone_hash = _hash_phone(source)
 
-    # Look up the connection by phone hash
     conn = await get_connection_by_phone_hash(phone_hash)
     if not conn:
         raise HTTPException(
@@ -259,46 +268,14 @@ async def handle_inbound_signal_message(
             detail="Unlinked sender",
         )
 
-    # Reject attachments
     if body.has_attachment and not body.message_text:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Unsupported message type (attachment without text)",
+            detail="Only text messages are supported",
         )
 
-    # Route to the user's chat session
-    from uuid import uuid4
-
-    from src.models.chat import ChatMessage, SenderType
-
-    # Find or create a session for this user
-    # For Signal inbound, use the user's connection project as context
-    project_id = conn.last_active_project_id
-
-    # Create a user message in the chat
-    user_message = ChatMessage(
-        session_id=uuid4(),  # Signal messages get their own session context
-        sender_type=SenderType.USER,
-        content=body.message_text,
-    )
-
-    chat_message_id = str(user_message.message_id)
-
-    # Create audit row (direction=inbound)
-    from src.models.signal import SignalDeliveryStatus, SignalMessageDirection
-
-    await create_signal_message(
-        connection_id=conn.id,
-        direction=SignalMessageDirection.INBOUND,
-        chat_message_id=chat_message_id,
-        content_preview=body.message_text[:200],
-        delivery_status=SignalDeliveryStatus.DELIVERED,
-    )
-
-    logger.info(
-        "Inbound Signal message from user %s routed to project %s",
-        conn.github_user_id,
-        project_id,
+    chat_message_id = await store_inbound_message(
+        conn, body.message_text, conn.last_active_project_id
     )
 
     return {

@@ -356,6 +356,53 @@ async def update_last_active_project(github_user_id: str, project_id: str) -> No
     await db.commit()
 
 
+async def store_inbound_message(
+    conn: SignalConnection,
+    message_text: str,
+    project_id: str | None = None,
+) -> str:
+    """Store an inbound Signal message in the chat system and create audit row.
+
+    Creates a ChatMessage, adds it to the in-memory message store,
+    and inserts a signal_messages audit row (direction=inbound).
+
+    Returns the chat_message_id.
+    """
+    from uuid import NAMESPACE_URL, uuid5
+
+    from src.api.chat import add_message
+    from src.models.chat import ChatMessage, SenderType
+
+    # Deterministic session ID so all Signal messages for a user share one session
+    signal_session_id = uuid5(NAMESPACE_URL, f"signal:{conn.github_user_id}")
+
+    user_message = ChatMessage(
+        session_id=signal_session_id,
+        sender_type=SenderType.USER,
+        content=message_text,
+    )
+    add_message(signal_session_id, user_message)
+
+    chat_message_id = str(user_message.message_id)
+
+    await create_signal_message(
+        connection_id=conn.id,
+        direction=SignalMessageDirection.INBOUND,
+        chat_message_id=chat_message_id,
+        content_preview=message_text[:200],
+        delivery_status=SignalDeliveryStatus.DELIVERED,
+    )
+
+    logger.info(
+        "Stored inbound Signal message %s for user %s (project: %s)",
+        chat_message_id,
+        conn.github_user_id,
+        project_id,
+    )
+
+    return chat_message_id
+
+
 # ── WebSocket Inbound Listener (T018) ───────────────────────────────────
 
 # Global handle so main.py lifespan can cancel it
@@ -392,7 +439,10 @@ async def stop_signal_ws_listener() -> None:
 
 async def _ws_listen_loop(phone: str) -> None:
     """Persistent WebSocket listener with reconnection (5s/10s backoff)."""
-    url = f"ws://{_signal_base_url().replace('http://', '')}/v1/receive/{phone}"
+    base = _signal_base_url()
+    ws_scheme = "wss" if base.startswith("https://") else "ws"
+    netloc = base.split("://", 1)[-1].rstrip("/")
+    url = f"{ws_scheme}://{netloc}/v1/receive/{phone}"
 
     while True:
         try:
@@ -448,15 +498,16 @@ async def _process_inbound_ws_message(data: dict) -> None:
 
     message_text = data_message.get("message", "")
     has_attachment = bool(data_message.get("attachments"))
-    timestamp = data_message.get("timestamp")
 
     # Auto-reply for attachments (FR-010)
-    if has_attachment and not message_text:
+    if has_attachment:
         await _send_auto_reply(
             source,
             "⚠️ Only text messages are supported. Please send your message as text.",
         )
-        return
+        if not message_text:
+            return
+        # Attachment included a text caption — continue processing the text
 
     if not message_text:
         return
@@ -501,22 +552,8 @@ async def _process_inbound_ws_message(data: dict) -> None:
         )
         return
 
-    # Create audit row
-    await create_signal_message(
-        connection_id=conn.id,
-        direction=SignalMessageDirection.INBOUND,
-        content_preview=message_text[:200],
-        delivery_status=SignalDeliveryStatus.DELIVERED,
-    )
-
-    # Route to internal inbound handler
-    await _route_inbound_to_chat(
-        github_user_id=conn.github_user_id,
-        project_id=project_id,
-        message_text=message_text,
-        source_number=source,
-        timestamp=timestamp,
-    )
+    # Store message in chat system and create audit row
+    await store_inbound_message(conn, message_text, project_id)
 
 
 async def _send_auto_reply(recipient: str, text: str) -> None:
@@ -545,37 +582,3 @@ async def _resolve_project_by_name(github_user_id: str, name: str) -> str | None
         return None
     except Exception:
         return None
-
-
-async def _route_inbound_to_chat(
-    github_user_id: str,
-    project_id: str,
-    message_text: str,
-    source_number: str,
-    timestamp: int | None = None,
-) -> None:
-    """Route an inbound Signal message into the app's chat system.
-
-    Creates a user chat message and triggers AI workflow processing.
-    """
-    import httpx as _httpx
-
-    settings = get_settings()
-    # Call the internal inbound webhook endpoint
-    url = f"http://localhost:{settings.port}/api/v1/signal/webhook/inbound"
-    payload = {
-        "source_number": source_number,
-        "message_text": message_text,
-        "timestamp": datetime.now(UTC).isoformat(),
-        "has_attachment": False,
-    }
-
-    try:
-        async with _httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 200:
-                logger.info("Inbound Signal message routed to chat for user %s", github_user_id)
-            else:
-                logger.warning("Inbound webhook returned %d: %s", resp.status_code, resp.text[:200])
-    except Exception as e:
-        logger.error("Failed to route inbound message: %s", e)
