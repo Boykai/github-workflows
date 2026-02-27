@@ -16,7 +16,7 @@ Called as a fire-and-forget task from signal_bridge._process_inbound_ws_message.
 from __future__ import annotations
 
 import logging
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from src.constants import DEFAULT_STATUS_COLUMNS
 from src.models.chat import ActionType, ChatMessage, SenderType
@@ -131,6 +131,131 @@ async def process_signal_chat(
     await _run_ai_pipeline(conn, message_text, project_id, source_phone)
 
 
+# ── Workflow orchestration helper ────────────────────────────────────────
+
+
+async def _run_workflow_orchestration(
+    *,
+    token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    issue_node_id: str,
+    item_id: str,
+    session_id: UUID,
+) -> dict:
+    """Set up workflow config, create sub-issues, and assign the first agent.
+
+    Mirrors Step 3 of the web app's ``confirm_proposal`` flow.  Returns a
+    summary dict ``{"sub_issues": int, "agent": str | None, "error": str | None}``
+    for the caller to include in the user reply.
+    """
+    from src.config import get_settings
+    from src.models.workflow import WorkflowConfiguration
+    from src.services.copilot_polling import ensure_polling_started
+    from src.services.github_projects import github_projects_service as gh
+    from src.services.workflow_orchestrator import (
+        PipelineState,
+        WorkflowContext,
+        get_agent_slugs,
+        get_workflow_config,
+        get_workflow_orchestrator,
+        set_pipeline_state,
+        set_workflow_config,
+    )
+
+    result: dict = {"sub_issues": 0, "agent": None, "error": None}
+
+    try:
+        settings = get_settings()
+
+        # ── Load or bootstrap workflow config ──
+        config = await get_workflow_config(project_id)
+        if not config:
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+                copilot_assignee=settings.default_assignee,
+            )
+            await set_workflow_config(project_id, config)
+        else:
+            config.repository_owner = owner
+            config.repository_name = repo
+            if not config.copilot_assignee:
+                config.copilot_assignee = settings.default_assignee
+
+        # ── Set issue status to Backlog ──
+        backlog_status = config.status_backlog
+        await gh.update_item_status_by_name(
+            access_token=token,
+            project_id=project_id,
+            item_id=item_id,
+            status_name=backlog_status,
+        )
+        logger.info("Set issue #%d status to '%s' on project", issue_number, backlog_status)
+
+        # ── Build workflow context ──
+        ctx = WorkflowContext(
+            session_id=str(session_id),
+            project_id=project_id,
+            access_token=token,
+            repository_owner=owner,
+            repository_name=repo,
+            config=config,
+        )
+        ctx.issue_id = issue_node_id
+        ctx.issue_number = issue_number
+        ctx.project_item_id = item_id
+
+        orchestrator = get_workflow_orchestrator()
+
+        # ── Create all sub-issues upfront ──
+        agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
+        if agent_sub_issues:
+            pipeline_state = PipelineState(
+                issue_number=issue_number,
+                project_id=project_id,
+                status=backlog_status,
+                agents=[],
+                agent_sub_issues=agent_sub_issues,
+            )
+            set_pipeline_state(issue_number, pipeline_state)
+            result["sub_issues"] = len(agent_sub_issues)
+            logger.info(
+                "Pre-created %d sub-issues for issue #%d",
+                len(agent_sub_issues),
+                issue_number,
+            )
+
+        # ── Assign firstBacklog agent ──
+        await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+
+        backlog_slugs = get_agent_slugs(config, backlog_status)
+        if backlog_slugs:
+            result["agent"] = backlog_slugs[0]
+
+        # ── Start Copilot polling ──
+        await ensure_polling_started(
+            access_token=token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            caller="signal_confirm",
+        )
+
+    except Exception as e:
+        logger.warning(
+            "Issue #%d created but workflow orchestration failed: %s",
+            issue_number,
+            e,
+        )
+        result["error"] = str(e)[:200]
+
+    return result
+
+
 # ── CONFIRM / REJECT ────────────────────────────────────────────────────
 
 
@@ -187,12 +312,24 @@ async def _handle_confirm(
                 title=rec.title,
                 body="\n".join(body_parts),
             )
-            await gh.add_issue_to_project(
+            item_id = await gh.add_issue_to_project(
                 access_token=token,
                 project_id=pid,
                 issue_node_id=issue["node_id"],
             )
             cache.delete(get_project_items_cache_key(pid))
+
+            # ── Workflow orchestration (sub-issues + agent assignment) ──
+            wf = await _run_workflow_orchestration(
+                token=token,
+                project_id=pid,
+                owner=owner,
+                repo=repo,
+                issue_number=issue["number"],
+                issue_node_id=issue["node_id"],
+                item_id=item_id,
+                session_id=signal_sid,
+            )
 
             msg = ChatMessage(
                 session_id=signal_sid,
@@ -202,12 +339,21 @@ async def _handle_confirm(
                 action_data={"status": "confirmed", "issue_number": issue["number"]},
             )
             add_message(signal_sid, msg)
-            await _reply_with_audit(
-                conn,
-                source_phone,
-                f"✅ *Issue Created*\n\n*{rec.title}* — #{issue['number']}\n{issue['html_url']}",
-                msg,
-            )
+
+            # Build reply with orchestration details
+            reply_lines = [
+                "✅ *Issue Created*\n",
+                f"*{rec.title}* — #{issue['number']}",
+                issue["html_url"],
+            ]
+            if wf["sub_issues"]:
+                reply_lines.append(f"\n📌 {wf['sub_issues']} sub-issue(s) created")
+            if wf["agent"]:
+                reply_lines.append(f"🤖 Assigned to agent: _{wf['agent']}_")
+            if wf["error"]:
+                reply_lines.append(f"\n⚠️ Workflow: _{wf['error']}_")
+
+            await _reply_with_audit(conn, source_phone, "\n".join(reply_lines), msg)
             return
 
         # ── Task creation from proposal ──
@@ -227,13 +373,25 @@ async def _handle_confirm(
                 title=proposal.final_title,
                 body=proposal.final_description or "",
             )
-            await gh.add_issue_to_project(
+            item_id = await gh.add_issue_to_project(
                 access_token=token,
                 project_id=pid,
                 issue_node_id=issue["node_id"],
             )
             proposal.status = ProposalStatus.CONFIRMED
             cache.delete(get_project_items_cache_key(pid))
+
+            # ── Workflow orchestration (sub-issues + agent assignment) ──
+            wf = await _run_workflow_orchestration(
+                token=token,
+                project_id=pid,
+                owner=owner,
+                repo=repo,
+                issue_number=issue["number"],
+                issue_node_id=issue["node_id"],
+                item_id=item_id,
+                session_id=signal_sid,
+            )
 
             msg = ChatMessage(
                 session_id=signal_sid,
@@ -243,12 +401,21 @@ async def _handle_confirm(
                 action_data={"status": "confirmed", "issue_number": issue["number"]},
             )
             add_message(signal_sid, msg)
-            await _reply_with_audit(
-                conn,
-                source_phone,
-                f"✅ *Task Created*\n\n*{proposal.final_title}* — #{issue['number']}\n{issue['html_url']}",
-                msg,
-            )
+
+            # Build reply with orchestration details
+            reply_lines = [
+                "✅ *Task Created*\n",
+                f"*{proposal.final_title}* — #{issue['number']}",
+                issue["html_url"],
+            ]
+            if wf["sub_issues"]:
+                reply_lines.append(f"\n📌 {wf['sub_issues']} sub-issue(s) created")
+            if wf["agent"]:
+                reply_lines.append(f"🤖 Assigned to agent: _{wf['agent']}_")
+            if wf["error"]:
+                reply_lines.append(f"\n⚠️ Workflow: _{wf['error']}_")
+
+            await _reply_with_audit(conn, source_phone, "\n".join(reply_lines), msg)
             return
 
         # ── Status update ──
