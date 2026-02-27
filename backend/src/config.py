@@ -68,6 +68,10 @@ class Settings(BaseSettings):
     # Database
     database_path: str = "/app/data/settings.db"
 
+    # Signal integration
+    signal_api_url: str = "http://signal-api:8080"
+    signal_phone_number: str | None = None
+
     # Cookie
     cookie_secure: bool = False  # Set True in production (HTTPS)
     cookie_max_age: int = 8 * 60 * 60  # 8 hours in seconds

@@ -61,9 +61,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # Start periodic session cleanup
     cleanup_task = asyncio.create_task(_session_cleanup_loop())
 
+    # Start Signal WebSocket listener for inbound messages
+    from src.services.signal_bridge import start_signal_ws_listener, stop_signal_ws_listener
+
+    await start_signal_ws_listener()
+
     yield
 
-    # Shutdown: cancel cleanup task, close database
+    # Shutdown: stop Signal listener, cancel cleanup task, close database
+    await stop_signal_ws_listener()
     cleanup_task.cancel()
     try:
         await cleanup_task

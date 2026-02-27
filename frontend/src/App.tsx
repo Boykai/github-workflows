@@ -10,13 +10,40 @@ import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { useAppTheme } from '@/hooks/useAppTheme';
-import { useUserSettings } from '@/hooks/useSettings';
+import { useUserSettings, useSignalBanners, useDismissBanner } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import './App.css';
+
+/** Dismissible Signal conflict banner bar (FR-015). */
+function SignalBannerBar() {
+  const { banners } = useSignalBanners();
+  const { dismissBanner, isPending } = useDismissBanner();
+
+  if (banners.length === 0) return null;
+
+  return (
+    <div className="signal-banner-bar">
+      {banners.map((b) => (
+        <div key={b.id} className="signal-banner-bar-item">
+          <span className="signal-banner-bar-icon">⚠️</span>
+          <span className="signal-banner-bar-text">{b.message}</span>
+          <button
+            className="signal-banner-bar-dismiss"
+            onClick={() => dismissBanner(b.id)}
+            disabled={isPending}
+            type="button"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -130,6 +157,8 @@ function AppContent() {
           <LoginButton />
         </div>
       </header>
+
+      <SignalBannerBar />
 
       <main className="app-main">
         {activeView === 'settings' ? (

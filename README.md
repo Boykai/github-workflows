@@ -128,6 +128,7 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 | **SQLite** | Persistent storage for workflow configuration, sessions, and settings (WAL mode, auto-migrated) |
 | **Polling Service** | Background loop that detects agent completion, posts outputs to sub-issues, closes sub-issues, advances pipelines |
 | **WebSocket** | Real-time UI updates for task changes and agent progress |
+| **Signal (sidecar)** | Bidirectional Signal messaging via `bbernhard/signal-cli-rest-api` container |
 
 ---
 
@@ -157,7 +158,16 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **Self-Healing Recovery**: Background detection and automatic re-assignment of stalled agent pipelines with per-issue cooldowns
 - **Double-Assignment Prevention**: Pending agent assignments are tracked to prevent race conditions in concurrent polling loops
 - **Workflow Configuration**: Customize agent mappings, status columns, and assignees per project
-- **Settings Management**: Unified settings UI for user preferences (AI, display, workflow defaults, notifications), global settings, and per-project configuration — all persisted to SQLite with optimistic updates
+- **Signal Messaging Integration**: Connect your Signal account to receive chat messages on your phone and reply directly from Signal
+  - QR code linking flow in Settings (scan with Signal → Linked Devices)
+  - Outbound delivery: assistant/system messages forwarded to Signal with styled formatting, emoji headers, and deep links
+  - Inbound routing: reply from Signal → message appears in app chat and triggers AI workflow
+  - `#project-name` prefix to route Signal messages to a specific project
+  - Notification preferences: All Messages, Action Proposals Only, System Confirmations Only, or None
+  - Conflict detection: if another account links the same phone number, the displaced user sees a dismissible banner
+  - Retry with exponential backoff (4 attempts, 30s→8min) for delivery failures
+  - Phone numbers Fernet-encrypted at rest with SHA-256 hash for lookup
+- **Settings Management**: Unified settings UI for user preferences (AI, display, workflow defaults, notifications, Signal connection), global settings, and per-project configuration — all persisted to SQLite with optimistic updates
 - **Responsive UI**: Modern React interface with dark/light mode, TanStack Query state management, and global error boundary
 
 ## Architecture
@@ -177,9 +187,13 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
                               │  └────────────────────────┘  │     │  └────────────┘  │
                               │  ┌────────────────────────┐  │     └──────────────────┘
                               │  │ GitHub Projects        │  │
-                              │  │ Service (2 sub-modules)│  │
-                              │  └────────────────────────┘  │
-                              │  ┌────────────────────────┐  │
+                              │  │ Service (2 sub-modules)│  │     ┌──────────────────┐
+                              │  └────────────────────────┘  │     │ signal-cli-rest- │
+                              │  ┌────────────────────────┐  │ HTTP │ api (sidecar)    │
+                              │  │ Signal Bridge          │──│────▶│ ┌──────────────┐ │
+                              │  │ + Delivery + WS Listener│◀│─WS──│ │ Signal Relay │ │
+                              │  └────────────────────────┘  │     │ └──────────────┘ │
+                              │  ┌────────────────────────┐  │     └──────────────────┘
                               │  │ AI Completion Providers │  │
                               │  │ ┌──────────────────┐   │  │
                               │  │ │ Copilot SDK      │   │  │  ◀── Default (OAuth)
@@ -425,12 +439,72 @@ docker ps
 You should see:
 - `ghchat-backend` — Backend API (healthy)
 - `ghchat-frontend` — Frontend UI
+- `ghchat-signal-api` — Signal messaging sidecar (healthy)
 
 ---
 
 ## GitHub Webhook Setup (Optional)
 
 Enable real-time status updates when GitHub Copilot marks PRs as ready for review. The polling service handles this automatically, but webhooks provide faster detection.
+
+---
+
+## Signal Messaging Integration (Optional)
+
+Enable bidirectional Signal messaging so users receive chat notifications on Signal and can reply directly.
+
+### How It Works
+
+- **Backend** communicates with a `signal-cli-rest-api` sidecar via HTTP (send messages, generate QR codes) and WebSocket (receive inbound messages)
+- **Frontend** only talks to the Backend — never directly to the Signal sidecar
+- Phone numbers are Fernet-encrypted at rest in SQLite with SHA-256 hashes for lookup
+
+### Signal Setup Steps
+
+#### 1. Environment Variables
+
+The Signal sidecar and environment variables are already configured in `docker-compose.yml`. Add the phone number to `.env`:
+
+```env
+SIGNAL_PHONE_NUMBER=+1234567890
+```
+
+#### 2. Start Services
+
+```bash
+docker compose up -d
+```
+
+The `signal-api` sidecar will start with a health check. The backend waits for it to be healthy before starting.
+
+#### 3. Register the App's Signal Number
+
+Before users can link, register the app's dedicated Signal number:
+
+```bash
+# Register (replace +1234567890 with your dedicated number)
+docker compose exec signal-api curl -s -X POST "http://localhost:8080/v1/register/+1234567890"
+
+# Complete verification with the SMS code you receive
+docker compose exec signal-api curl -s -X POST "http://localhost:8080/v1/register/+1234567890/verify/123456"
+```
+
+#### 4. Link Your Signal Account
+
+1. Open the app → **Settings** → **Signal Connection**
+2. Click **Connect Signal** — a QR code appears
+3. On your phone: **Signal → Settings → Linked Devices → "+" → Scan QR code**
+4. The status updates to "Connected" with your masked phone number
+
+#### 5. Test the Integration
+
+- **Outbound**: Send a message in app chat → receive it on Signal within 30 seconds
+- **Inbound**: Reply from Signal → message appears in app chat and AI responds
+- **Project routing**: Prefix a Signal message with `#project-name` to route to a specific project
+- **Preferences**: In Settings, choose which messages to receive (All, Actions Only, Confirmations Only, None)
+- **Disconnect**: Click Disconnect in Settings → no more Signal messages
+
+---
 
 ### Setup Steps
 
@@ -539,6 +613,8 @@ npm run dev
 | `COPILOT_POLLING_INTERVAL` | No | `60` | Polling interval in seconds |
 | `FRONTEND_URL` | No | `http://localhost:5173` | Frontend URL for OAuth redirects |
 | `CORS_ORIGINS` | No | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
+| `SIGNAL_API_URL` | No | `http://signal-api:8080` | URL of the signal-cli-rest-api sidecar |
+| `SIGNAL_PHONE_NUMBER` | No | — | Dedicated Signal phone number (E.164 format, e.g. `+1234567890`) |
 | `DEBUG` | No | `false` | Enable debug mode (API docs, dev-login) |
 | `CACHE_TTL_SECONDS` | No | `300` | In-memory cache TTL in seconds |
 | `HOST` | No | `0.0.0.0` | Server host |
@@ -643,6 +719,18 @@ npm run test:e2e:headed   # E2E with browser visible
 | POST | `/api/v1/workflow/polling/check-issue/{issue_number}` | Manually check a specific issue |
 | POST | `/api/v1/workflow/polling/check-all` | Check all In Progress issues |
 
+### Signal
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/signal/connection` | Get Signal connection status |
+| POST | `/api/v1/signal/connection/link` | Generate QR code for linking |
+| GET | `/api/v1/signal/connection/link/status` | Poll link completion status |
+| DELETE | `/api/v1/signal/connection` | Disconnect Signal account |
+| GET | `/api/v1/signal/preferences` | Get notification preferences |
+| PUT | `/api/v1/signal/preferences` | Update notification preferences |
+| GET | `/api/v1/signal/banners` | Get active conflict banners |
+| POST | `/api/v1/signal/banners/{id}/dismiss` | Dismiss a conflict banner |
+
 ### Webhooks
 | Method | Path | Description |
 |--------|------|-------------|
@@ -673,25 +761,29 @@ github-workflows/
 │       └── copilot-instructions.md
 ├── backend/
 │   ├── src/
-│   │   ├── api/              # API route handlers (8 modules)
+│   │   ├── api/              # API route handlers (9 modules)
 │   │   │   ├── auth.py       #   OAuth flow, sessions, dev-login
 │   │   │   ├── board.py      #   Project board (Kanban columns + items)
 │   │   │   ├── chat.py       #   Chat messages, proposals, confirm/reject
 │   │   │   ├── projects.py   #   Project selection, tasks, WebSocket, SSE
 │   │   │   ├── settings.py   #   User, global, and project settings
+│   │   │   ├── signal.py     #   Signal connection, preferences, banners
 │   │   │   ├── tasks.py      #   Task CRUD
 │   │   │   ├── workflow.py   #   Workflow config, pipeline, polling control
 │   │   │   └── webhooks.py   #   GitHub webhook handler
 │   │   ├── migrations/       # SQL schema migrations (auto-run at startup)
 │   │   │   ├── 001_initial_schema.sql
-│   │   │   └── 002_add_workflow_config_column.sql
-│   │   ├── models/           # Pydantic v2 data models (7 modules)
+│   │   │   ├── 002_add_workflow_config_column.sql
+│   │   │   ├── 003_add_admin_column.sql
+│   │   │   └── 004_add_signal_tables.sql
+│   │   ├── models/           # Pydantic v2 data models (8 modules)
 │   │   │   ├── agent.py      #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── board.py      #   Board columns, items, custom fields
 │   │   │   ├── chat.py       #   ChatMessage, SenderType, ActionType
 │   │   │   ├── project.py    #   GitHubProject, StatusColumn
 │   │   │   ├── recommendation.py  # AITaskProposal, IssueRecommendation, labels
 │   │   │   ├── settings.py   #   User preferences, global/project settings
+│   │   │   ├── signal.py     #   Signal connection, message, banner models
 │   │   │   ├── task.py       #   Task / project item
 │   │   │   ├── user.py       #   UserSession
 │   │   │   └── workflow.py   #   WorkflowConfiguration, WorkflowTransition
@@ -720,6 +812,8 @@ github-workflows/
 │   │   │   ├── github_auth.py         #   OAuth token exchange
 │   │   │   ├── session_store.py       #   Session CRUD (async SQLite)
 │   │   │   ├── settings_store.py      #   Settings persistence (async SQLite)
+│   │   │   ├── signal_bridge.py       #   Signal HTTP client, DB helpers, WS listener
+│   │   │   ├── signal_delivery.py     #   Outbound Signal formatting & retry delivery
 │   │   │   └── websocket.py           #   WebSocket connection manager
 │   │   ├── prompts/          # AI prompt templates
 │   │   │   ├── issue_generation.py    #   System/user prompts for issue creation
@@ -749,7 +843,8 @@ github-workflows/
 │   │   │   ├── common/       # ErrorBoundary (React class + TanStack integration)
 │   │   │   ├── settings/     # AIPreferences, DisplayPreferences,
 │   │   │   │                 # WorkflowDefaults, NotificationPreferences,
-│   │   │   │                 # ProjectSettings, GlobalSettings, SettingsSection
+│   │   │   │                 # ProjectSettings, GlobalSettings, SettingsSection,
+│   │   │   │                 # SignalConnection
 │   │   │   └── sidebar/      # ProjectSidebar, ProjectSelector, TaskCard
 │   │   ├── hooks/            # useAuth, useChat, useProjects, useWorkflow,
 │   │   │                     # useRealTimeSync, useProjectBoard, useAppTheme,
@@ -771,7 +866,8 @@ github-workflows/
     ├── 001-codebase-cleanup-refactor/
     ├── 007-codebase-cleanup-refactor/
     ├── 008-test-coverage-bug-fixes/
-    └── 009-codebase-cleanup-refactor/
+    ├── 009-codebase-cleanup-refactor/
+    └── 011-signal-chat-integration/
 ```
 
 ---
@@ -809,9 +905,10 @@ github-workflows/
 ### Infrastructure
 | Component | Details |
 |---|---|
-| Docker Compose | 2 services: `ghchat-backend` (port 8000) + `ghchat-frontend` (nginx, port 5173 → 80) |
-| SQLite | WAL mode, auto-migrated schema, `ghchat-data` Docker volume |
+| Docker Compose | 3 services: `ghchat-backend` (port 8000) + `ghchat-frontend` (nginx, port 5173 → 80) + `ghchat-signal-api` (signal-cli sidecar) |
+| SQLite | WAL mode, auto-migrated schema (4 migrations), `ghchat-data` Docker volume |
 | nginx | Frontend static serving + reverse proxy to backend `/api` |
+| signal-cli-rest-api | Sidecar for Signal protocol, json-rpc mode, `signal-cli-config` Docker volume |
 
 ---
 
@@ -879,6 +976,25 @@ github-workflows/
 - Check `GITHUB_WEBHOOK_TOKEN` has `repo` and `project` scopes
 - Ensure webhook is configured for "Pull requests" events
 - Check webhook delivery logs in GitHub: Repo → Settings → Webhooks → Recent Deliveries
+
+**Signal QR code not appearing / connection fails:**
+- Ensure the `signal-api` container is healthy: `docker compose ps` should show `healthy`
+- Verify `SIGNAL_PHONE_NUMBER` is set and registered: `docker compose exec signal-api curl http://localhost:8080/v1/accounts`
+- Check backend logs for signal_bridge errors: `docker compose logs -f backend | grep signal`
+- If the number isn't registered yet, follow the registration steps in the Signal setup section
+
+**Signal messages not being delivered:**
+- Verify the user has an active connection: check Settings → Signal Connection shows "Connected"
+- Check notification preferences aren't set to "None"
+- Review the `signal_messages` table for delivery status: `failed` entries indicate retry exhaustion
+- Check backend logs for tenacity retry warnings: `docker compose logs -f backend | grep delivery`
+- Ensure the signal-api sidecar can reach Signal servers (not blocked by firewall)
+
+**Signal inbound messages not appearing in chat:**
+- Verify the WebSocket listener started: check backend startup logs for `Signal WS listener started`
+- Ensure the sender's phone number is linked to an account (unlinked numbers get an auto-reply)
+- Check that the user has an active project selected (the message routes to `last_active_project_id`)
+- Media/attachment messages are not supported — sender receives an auto-reply
 
 **Projects not showing:**
 - Ensure your GitHub token has `project` scope
