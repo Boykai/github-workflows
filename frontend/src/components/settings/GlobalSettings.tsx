@@ -123,7 +123,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">AI</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-ai-provider" className="text-sm font-medium text-foreground">Provider</label>
-        <select id="global-ai-provider" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.provider} onChange={(e) => setField('provider', e.target.value as AIProviderType)}>
+        <select id="global-ai-provider" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.provider} onChange={(e) => setField('provider', e.target.value as AIProviderType)}>
           <option value="copilot">GitHub Copilot</option>
           <option value="azure_openai">Azure OpenAI</option>
         </select>
@@ -141,14 +141,14 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Display</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-theme" className="text-sm font-medium text-foreground">Theme</label>
-        <select id="global-theme" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.theme} onChange={(e) => setField('theme', e.target.value as ThemeModeType)}>
+        <select id="global-theme" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.theme} onChange={(e) => setField('theme', e.target.value as ThemeModeType)}>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-view" className="text-sm font-medium text-foreground">Default View</label>
-        <select id="global-view" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_view} onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}>
+        <select id="global-view" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_view} onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}>
           <option value="chat">Chat</option>
           <option value="board">Board</option>
           <option value="settings">Settings</option>

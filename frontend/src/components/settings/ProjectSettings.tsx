@@ -112,7 +112,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
         <label htmlFor="project-selector" className="text-sm font-medium text-foreground">Project</label>
         <select
           id="project-selector"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
         >
@@ -173,7 +173,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             <label htmlFor="proj-agents" className="text-sm font-medium text-foreground">JSON (status → agent list)</label>
             <textarea
               id="proj-agents"
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
               rows={6}
               value={agentMappingsText}
               onChange={(e) => setAgentMappingsText(e.target.value)}

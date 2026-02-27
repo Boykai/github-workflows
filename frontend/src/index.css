@@ -73,4 +73,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Ensure native select/option elements respect the current theme */
+  select {
+    color-scheme: light;
+  }
+  .dark select {
+    color-scheme: dark;
+  }
+  select option {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }

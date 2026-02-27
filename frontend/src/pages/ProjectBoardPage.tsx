@@ -96,7 +96,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
           {/* Project Selector */}
           <select
-            className="flex h-9 w-[250px] items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-[250px] items-center justify-between rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             value={selectedProjectId ?? ''}
             onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
             disabled={projectsLoading}
