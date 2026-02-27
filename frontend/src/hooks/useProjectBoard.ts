@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
-import { BOARD_POLL_INTERVAL_MS, STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
+import { STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse } from '@/types';
 
 interface UseProjectBoardOptions {
@@ -56,7 +56,10 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     staleTime: STALE_TIME_LONG,
   });
 
-  // Fetch board data for selected project with polling
+  // Fetch board data for selected project.
+  // NOTE: No refetchInterval here — useRealTimeSync handles periodic
+  // refresh via WebSocket messages or its own polling fallback,
+  // preventing duplicate polling storms that freeze the UI.
   const {
     data: boardData,
     isLoading: boardLoading,
@@ -71,8 +74,6 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     },
     enabled: !!selectedProjectId,
     staleTime: STALE_TIME_SHORT,
-    refetchInterval: BOARD_POLL_INTERVAL_MS,
-    refetchIntervalInBackground: false,
   });
 
   const selectProject = useCallback((projectId: string) => {

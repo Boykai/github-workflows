@@ -97,10 +97,10 @@ export function AddAgentPopover({
   const assignedSlugs = new Set(assignedAgents.map((a) => a.slug));
 
   return (
-    <div className="add-agent-popover-container">
+    <div className="relative">
       <button
         ref={triggerRef}
-        className="add-agent-trigger-btn"
+        className="w-full py-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors border border-dashed border-border/50 hover:border-border"
         onClick={() => setIsOpen(!isOpen)}
         title={`Add agent to ${status}`}
         type="button"
@@ -109,12 +109,12 @@ export function AddAgentPopover({
       </button>
 
       {isOpen && (
-        <div ref={popoverRef} className="add-agent-popover" role="listbox" aria-label={`Add agent to ${status}`}>
+        <div ref={popoverRef} className="absolute top-full left-0 mt-1 w-64 bg-popover border border-border rounded-md shadow-md z-50 flex flex-col max-h-80 overflow-hidden" role="listbox" aria-label={`Add agent to ${status}`}>
           {/* Search filter */}
-          <div className="add-agent-popover-search">
+          <div className="p-2 border-b border-border bg-muted/30">
             <input
               type="text"
-              className="add-agent-popover-filter"
+              className="w-full px-2 py-1 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
               placeholder="Filter agents..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -124,18 +124,18 @@ export function AddAgentPopover({
 
           {/* Loading */}
           {isLoading && (
-            <div className="add-agent-popover-loading">
-              <span className="add-agent-popover-spinner" />
+            <div className="p-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               Loading agents...
             </div>
           )}
 
           {/* Error */}
           {error && !isLoading && (
-            <div className="add-agent-popover-error">
+            <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
               <span>⚠ {error}</span>
               <button
-                className="add-agent-popover-retry"
+                className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
                 onClick={onRetry}
                 type="button"
               >
@@ -146,9 +146,9 @@ export function AddAgentPopover({
 
           {/* Agent list */}
           {!isLoading && !error && (
-            <div className="add-agent-popover-list">
+            <div className="overflow-y-auto flex-1 p-1">
               {filteredAgents.length === 0 ? (
-                <div className="add-agent-popover-empty">
+                <div className="p-3 text-sm text-muted-foreground text-center">
                   {filter ? 'No matching agents' : 'No agents available'}
                 </div>
               ) : (
@@ -157,24 +157,24 @@ export function AddAgentPopover({
                   return (
                     <button
                       key={agent.slug}
-                      className={`add-agent-popover-item${isDuplicate ? ' add-agent-popover-item--duplicate' : ''}`}
+                      className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
                       onClick={() => handleSelect(agent)}
                       type="button"
                       role="option"
                       title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
                     >
-                      <div className="add-agent-popover-item-header">
-                        <span className="add-agent-popover-item-name">{agent.display_name}</span>
-                        <span className={`add-agent-popover-item-source add-agent-popover-item-source--${agent.source}`}>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-500/10 text-blue-500' : agent.source === 'repository' ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'}`}>
                           {agent.source}
                         </span>
                       </div>
                       {agent.description && (
-                        <div className="add-agent-popover-item-desc">{agent.description}</div>
+                        <div className="text-xs text-muted-foreground line-clamp-2 leading-snug">{agent.description}</div>
                       )}
-                      <div className="add-agent-popover-item-slug">{agent.slug}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground/70 truncate">{agent.slug}</div>
                       {isDuplicate && (
-                        <span className="add-agent-popover-item-badge">already assigned</span>
+                        <span className="absolute top-2 right-2 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">already assigned</span>
                       )}
                     </button>
                   );

@@ -37,10 +37,11 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
       isDirty={isDirty}
       onSave={handleSave}
     >
-      <div className="settings-field">
-        <label>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
             type="checkbox"
+            className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
             checked={localState.task_status_change}
             onChange={(e) => setField('task_status_change', e.target.checked)}
           />
@@ -48,10 +49,11 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         </label>
       </div>
 
-      <div className="settings-field">
-        <label>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
             type="checkbox"
+            className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
             checked={localState.agent_completion}
             onChange={(e) => setField('agent_completion', e.target.checked)}
           />
@@ -59,10 +61,11 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         </label>
       </div>
 
-      <div className="settings-field">
-        <label>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
             type="checkbox"
+            className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
             checked={localState.new_recommendation}
             onChange={(e) => setField('new_recommendation', e.target.checked)}
           />
@@ -70,10 +73,11 @@ export function NotificationPreferences({ settings, onSave }: NotificationPrefer
         </label>
       </div>
 
-      <div className="settings-field">
-        <label>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
             type="checkbox"
+            className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
             checked={localState.chat_mention}
             onChange={(e) => setField('chat_mention', e.target.checked)}
           />

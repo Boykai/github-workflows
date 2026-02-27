@@ -51,35 +51,38 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
       isDirty={isDirty}
       onSave={handleSave}
     >
-      <div className="settings-field">
-        <label htmlFor="workflow-repo">Default Repository</label>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="workflow-repo" className="text-sm font-medium text-foreground">Default Repository</label>
         <input
           id="workflow-repo"
           type="text"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.default_repository}
           onChange={(e) => setField('default_repository', e.target.value)}
           placeholder="owner/repo"
         />
       </div>
 
-      <div className="settings-field">
-        <label htmlFor="workflow-assignee">Default Assignee</label>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="workflow-assignee" className="text-sm font-medium text-foreground">Default Assignee</label>
         <input
           id="workflow-assignee"
           type="text"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.default_assignee}
           onChange={(e) => setField('default_assignee', e.target.value)}
           placeholder="GitHub username"
         />
       </div>
 
-      <div className="settings-field">
-        <label htmlFor="workflow-polling">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="workflow-polling" className="text-sm font-medium text-foreground">
           Copilot Polling Interval (seconds, 0 to disable)
         </label>
         <input
           id="workflow-polling"
           type="number"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           min="0"
           value={localState.copilot_polling_interval}
           onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)}

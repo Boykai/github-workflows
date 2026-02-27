@@ -8,7 +8,6 @@ import { MessageBubble } from './MessageBubble';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
-import './ChatInterface.css';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -85,33 +84,33 @@ export function ChatInterface({
   }, [input]);
 
   return (
-    <div className="chat-interface">
+    <div className="flex flex-col h-full bg-background">
       {messages.length > 0 && (
-        <div className="chat-header">
+        <div className="flex justify-end p-3 border-b border-border bg-background">
           <button
             type="button"
             onClick={onNewChat}
-            className="new-chat-button"
+            className="flex items-center gap-1.5 px-4 py-2 bg-muted text-foreground border border-border rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-muted/80 hover:border-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSending}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="shrink-0">
               <path d="M12 5v14M5 12h14" />
             </svg>
             New Chat
           </button>
         </div>
       )}
-      <div className="chat-messages">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
         {messages.length === 0 ? (
-          <div className="chat-empty">
-            <h3>Start a conversation</h3>
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Start a conversation</h3>
             <p>Describe a task you want to create, and I'll help you add it to your project.</p>
-            <div className="example-prompts">
-              <p>Try something like:</p>
-              <ul>
-                <li>"Create a task to add user authentication"</li>
-                <li>"Add a bug fix for the login page crash"</li>
-                <li>"Set up CI/CD pipeline for the project"</li>
+            <div className="mt-6 bg-muted/50 p-4 rounded-lg text-left w-full max-w-sm">
+              <p className="font-medium text-foreground mb-2">Try something like:</p>
+              <ul className="list-none space-y-2">
+                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Create a task to add user authentication"</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Add a bug fix for the login page crash"</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] before:text-primary">Set up CI/CD pipeline for the project"</li>
               </ul>
             </div>
           </div>
@@ -125,7 +124,7 @@ export function ChatInterface({
             const recommendation = recommendationId ? pendingRecommendations.get(recommendationId) : null;
 
             return (
-              <div key={message.message_id}>
+              <div key={message.message_id} className="flex flex-col gap-2">
                 <MessageBubble message={message} />
                 
                 {proposal && message.action_type === 'task_create' && (
@@ -159,11 +158,11 @@ export function ChatInterface({
         )}
 
         {isSending && (
-          <div className="chat-loading">
-            <div className="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+          <div className="self-start ml-11">
+            <div className="flex gap-1 p-3 bg-muted rounded-2xl">
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.32s' }}></span>
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.16s' }}></span>
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
             </div>
           </div>
         )}
@@ -171,7 +170,7 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="chat-input-form" onSubmit={handleSubmit}>
+      <form className="flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
         <textarea
           ref={inputRef}
           value={input}
@@ -180,12 +179,12 @@ export function ChatInterface({
           placeholder="Describe a feature request or task... (Shift+Enter for new line)"
           disabled={isSending}
           rows={2}
-          className="chat-input"
+          className="flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted"
         />
         <button
           type="submit"
           disabled={!input.trim() || isSending}
-          className="send-button"
+          className="w-11 h-11 p-0 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

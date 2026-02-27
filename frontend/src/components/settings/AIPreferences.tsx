@@ -33,10 +33,11 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
       isDirty={isDirty}
       onSave={handleSave}
     >
-      <div className="settings-field">
-        <label htmlFor="ai-provider">Provider</label>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="ai-provider" className="text-sm font-medium text-foreground">Provider</label>
         <select
           id="ai-provider"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.provider}
           onChange={(e) => setField('provider', e.target.value as AIProviderType)}
         >
@@ -45,31 +46,33 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         </select>
       </div>
 
-      <div className="settings-field">
-        <label htmlFor="ai-model">Model</label>
+      <div className="flex flex-col gap-2">
+        <label htmlFor="ai-model" className="text-sm font-medium text-foreground">Model</label>
         <input
           id="ai-model"
           type="text"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.model}
           onChange={(e) => setField('model', e.target.value)}
           placeholder="e.g. gpt-4o"
         />
       </div>
 
-      <div className="settings-field">
-        <label htmlFor="ai-temperature">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="ai-temperature" className="text-sm font-medium text-foreground">
           Temperature: {localState.temperature.toFixed(1)}
         </label>
         <input
           id="ai-temperature"
           type="range"
+          className="w-full accent-primary"
           min="0"
           max="2"
           step="0.1"
           value={localState.temperature}
           onChange={(e) => setField('temperature', parseFloat(e.target.value))}
         />
-        <div className="settings-range-labels">
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
           <span>Precise (0)</span>
           <span>Creative (2)</span>
         </div>

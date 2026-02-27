@@ -43,15 +43,15 @@ export function AgentConfigRow({
   // Loading skeleton (T030)
   if (!isLoaded) {
     return (
-      <div className="agent-config-row">
-        <div className="agent-config-row-header">
-          <span className="agent-config-row-title">🤖 Agent Pipeline</span>
+      <div className="flex flex-col bg-card border-b border-border">
+        <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/30">
+          <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
         </div>
-        <div className="agent-config-row-body">
-          <div className="agent-config-row-columns">
+        <div className="p-2 bg-muted/10">
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {columns.map((col) => (
-              <div key={col.status.option_id} className="agent-column-cell agent-column-cell--skeleton">
-                <div className="agent-tile-skeleton" />
+              <div key={col.status.option_id} className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border border-border/50 animate-pulse">
+                <div className="h-10 bg-muted rounded-md w-full" />
               </div>
             ))}
           </div>
@@ -61,25 +61,25 @@ export function AgentConfigRow({
   }
 
   return (
-    <div className="agent-config-row">
+    <div className="flex flex-col bg-card border-b border-border relative">
       {/* Header with toggle and presets */}
-      <div className="agent-config-row-header">
+      <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/30">
         <button
-          className="agent-config-row-toggle"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"
         >
           {isExpanded ? '▾' : '▸'}
         </button>
-        <span className="agent-config-row-title">🤖 Agent Pipeline</span>
+        <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
         {renderPresetSelector}
       </div>
 
       {/* Collapsible body */}
       {isExpanded && (
-        <div className="agent-config-row-body">
-          <div className="agent-config-row-columns">
+        <div className="p-2 bg-muted/10">
+          <div className="flex gap-4 overflow-x-auto pb-2">
             {columns.map((col) => {
               const status = col.status.name;
               const agents = localMappings[status] ?? [];

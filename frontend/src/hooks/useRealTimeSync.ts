@@ -36,6 +36,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         if (data.type === 'initial_data' || data.type === 'refresh') {
           // Force refresh to get the updated data
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
           return;
         }
@@ -44,6 +45,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         if (data.type === 'task_update' || data.type === 'task_created' || data.type === 'status_changed') {
           // Invalidate tasks query to refetch
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
         }
       } catch (e) {
@@ -61,6 +63,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
 
     pollingIntervalRef.current = window.setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
       setLastUpdate(new Date());
     }, WS_FALLBACK_POLL_MS);
   }, [projectId, queryClient]);
@@ -149,9 +152,9 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
   useEffect(() => {
     if (projectId) {
       reconnectAttempts.current = 0;
-      // Start with polling immediately so UI shows "Polling mode" instead of "Offline"
-      startPolling();
-      // Then try to upgrade to WebSocket
+      // Try WebSocket first. Polling starts only as a fallback
+      // (on WS error/close/timeout). Starting both simultaneously
+      // caused a polling storm that froze the UI.
       connect();
     } else {
       setStatus('disconnected');
@@ -168,7 +171,8 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [projectId, connect, startPolling, stopPolling]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- connect is stable enough; startPolling/stopPolling included via connect's closure
+  }, [projectId, connect]);
 
   return {
     status,

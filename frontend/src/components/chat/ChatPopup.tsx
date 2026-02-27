@@ -6,7 +6,6 @@
 import { useState } from 'react';
 import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
 import { ChatInterface } from './ChatInterface';
-import './ChatPopup.css';
 
 interface ChatPopupProps {
   messages: ChatMessage[];
@@ -42,7 +41,7 @@ export function ChatPopup({
   return (
     <>
       <button
-        className="chat-popup-toggle"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground border-none cursor-pointer flex items-center justify-center shadow-lg z-[1001] transition-transform hover:scale-105 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
@@ -57,7 +56,7 @@ export function ChatPopup({
         )}
       </button>
 
-      <div className={`chat-popup-panel ${isOpen ? 'open' : ''}`}>
+      <div className={`fixed bottom-24 right-6 w-[400px] h-[500px] bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-all duration-200 max-md:w-[calc(100vw-48px)] max-sm:w-screen max-sm:h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none ${isOpen ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto' : 'scale-95 translate-y-2 opacity-0 pointer-events-none'}`}>
         <ChatInterface
           messages={messages}
           pendingProposals={pendingProposals}
