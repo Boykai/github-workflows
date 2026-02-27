@@ -23,9 +23,9 @@
 
 **Purpose**: Verify project structure and confirm theming system baseline before making changes
 
-- [ ] T001 Verify frontend dependencies are installed by running `cd frontend && npm install`
-- [ ] T002 Verify current CSS custom property values in `frontend/src/index.css` match expected baseline (`:root` and `.dark` selectors)
-- [ ] T003 Confirm `frontend/src/index.css` body rule applies `@apply bg-background text-foreground` to verify token propagation path
+- [x] T001 Verify frontend dependencies are installed by running `cd frontend && npm install`
+- [x] T002 Verify current CSS custom property values in `frontend/src/index.css` match expected baseline (`:root` and `.dark` selectors)
+- [x] T003 Confirm `frontend/src/index.css` body rule applies `@apply bg-background text-foreground` to verify token propagation path
 
 ---
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update light-mode `--background` value from `0 0% 100%` to `270 50% 40%` in `:root` selector in `frontend/src/index.css`
-- [ ] T005 [US1] Update dark-mode `--background` value from `222.2 84% 4.9%` to `270 50% 20%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T006 [US1] Visually verify purple background renders on all pages/routes (Home, Project Board, Settings) in both light and dark mode
+- [x] T004 [US1] Update light-mode `--background` value from `0 0% 100%` to `270 50% 40%` in `:root` selector in `frontend/src/index.css`
+- [x] T005 [US1] Update dark-mode `--background` value from `222.2 84% 4.9%` to `270 50% 20%` in `.dark` selector in `frontend/src/index.css`
+- [x] T006 [US1] Visually verify purple background renders on all pages/routes (Home, Project Board, Settings) in both light and dark mode
 
 **Checkpoint**: At this point, the primary background surface should be purple on all pages. Text may not yet be readable — that is addressed in User Story 2.
 
@@ -63,19 +63,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Update light-mode `--foreground` value from `222.2 84% 4.9%` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T008 [P] [US2] Update light-mode `--primary` value to `210 40% 98%` and `--primary-foreground` to `270 50% 40%` in `:root` selector in `frontend/src/index.css`
-- [ ] T009 [P] [US2] Update light-mode `--secondary` value to `270 40% 50%` and `--secondary-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T010 [P] [US2] Update light-mode `--muted` value to `270 30% 50%` and `--muted-foreground` to `270 20% 80%` in `:root` selector in `frontend/src/index.css`
-- [ ] T011 [P] [US2] Update light-mode `--accent` value to `270 40% 50%` and `--accent-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T012 [P] [US2] Update light-mode `--destructive-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css` (destructive hue unchanged)
-- [ ] T013 [P] [US2] Update light-mode `--border` to `270 30% 55%`, `--input` to `270 30% 55%`, and `--ring` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T014 [US2] Update dark-mode `--primary-foreground` to `270 50% 20%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T015 [P] [US2] Update dark-mode `--secondary` to `270 40% 30%` and `--secondary-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T016 [P] [US2] Update dark-mode `--muted` to `270 30% 30%` and `--muted-foreground` to `270 20% 70%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T017 [P] [US2] Update dark-mode `--accent` to `270 40% 30%` and `--accent-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T018 [P] [US2] Update dark-mode `--border` to `270 30% 35%`, `--input` to `270 30% 35%`, and `--ring` to `270 30% 70%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T019 [US2] Verify WCAG AA contrast ratio ≥ 4.5:1 for all foreground/surface token combinations using a contrast checker tool
+- [x] T007 [US2] Update light-mode `--foreground` value from `222.2 84% 4.9%` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T008 [P] [US2] Update light-mode `--primary` value to `210 40% 98%` and `--primary-foreground` to `270 50% 40%` in `:root` selector in `frontend/src/index.css`
+- [x] T009 [P] [US2] Update light-mode `--secondary` value to `270 40% 50%` and `--secondary-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T010 [P] [US2] Update light-mode `--muted` value to `270 30% 50%` and `--muted-foreground` to `270 20% 80%` in `:root` selector in `frontend/src/index.css`
+- [x] T011 [P] [US2] Update light-mode `--accent` value to `270 40% 50%` and `--accent-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T012 [P] [US2] Update light-mode `--destructive-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css` (destructive hue unchanged)
+- [x] T013 [P] [US2] Update light-mode `--border` to `270 30% 55%`, `--input` to `270 30% 55%`, and `--ring` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T014 [US2] Update dark-mode `--primary-foreground` to `270 50% 20%` in `.dark` selector in `frontend/src/index.css`
+- [x] T015 [P] [US2] Update dark-mode `--secondary` to `270 40% 30%` and `--secondary-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
+- [x] T016 [P] [US2] Update dark-mode `--muted` to `270 30% 30%` and `--muted-foreground` to `270 20% 70%` in `.dark` selector in `frontend/src/index.css`
+- [x] T017 [P] [US2] Update dark-mode `--accent` to `270 40% 30%` and `--accent-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
+- [x] T018 [P] [US2] Update dark-mode `--border` to `270 30% 35%`, `--input` to `270 30% 35%`, and `--ring` to `270 30% 70%` in `.dark` selector in `frontend/src/index.css`
+- [x] T019 [US2] Verify WCAG AA contrast ratio ≥ 4.5:1 for all foreground/surface token combinations using a contrast checker tool
 
 **Checkpoint**: At this point, the purple background should be applied AND all text/interactive elements should be readable and meet WCAG AA standards.
 
@@ -89,10 +89,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Verify purple background renders correctly in Chrome (latest) by loading all pages
-- [ ] T021 [P] [US3] Verify purple background renders correctly in Firefox (latest) and matches Chrome appearance
-- [ ] T022 [P] [US3] Verify purple background renders correctly in Safari (latest) and matches Chrome appearance
-- [ ] T023 [P] [US3] Verify purple background renders correctly in Edge (latest) and matches Chrome appearance
+- [x] T020 [US3] Verify purple background renders correctly in Chrome (latest) by loading all pages
+- [x] T021 [P] [US3] Verify purple background renders correctly in Firefox (latest) and matches Chrome appearance
+- [x] T022 [P] [US3] Verify purple background renders correctly in Safari (latest) and matches Chrome appearance
+- [x] T023 [P] [US3] Verify purple background renders correctly in Edge (latest) and matches Chrome appearance
 
 **Checkpoint**: At this point, the purple background should render identically across all major browsers.
 
@@ -106,15 +106,15 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Update light-mode `--card` to `270 50% 45%` and `--card-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T025 [P] [US4] Update light-mode `--popover` to `270 50% 45%` and `--popover-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
-- [ ] T026 [US4] Update dark-mode `--card` to `270 50% 25%` and `--card-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T027 [P] [US4] Update dark-mode `--popover` to `270 50% 25%` and `--popover-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
-- [ ] T028 [US4] Visually audit header, sidebar, and navigation components for coherence with purple background
-- [ ] T029 [P] [US4] Visually audit card, modal, and popover components for distinct boundaries against purple background
-- [ ] T030 [P] [US4] Visually audit button variants (default, outline, secondary, ghost, destructive) for visibility and usability
-- [ ] T031 [P] [US4] Visually audit input fields, select dropdowns, and form elements for visible borders and text legibility
-- [ ] T032 [US4] Visually audit board columns, chat interface, and any content-rich pages for readability
+- [x] T024 [US4] Update light-mode `--card` to `270 50% 45%` and `--card-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T025 [P] [US4] Update light-mode `--popover` to `270 50% 45%` and `--popover-foreground` to `210 40% 98%` in `:root` selector in `frontend/src/index.css`
+- [x] T026 [US4] Update dark-mode `--card` to `270 50% 25%` and `--card-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
+- [x] T027 [P] [US4] Update dark-mode `--popover` to `270 50% 25%` and `--popover-foreground` to `210 40% 98%` in `.dark` selector in `frontend/src/index.css`
+- [x] T028 [US4] Visually audit header, sidebar, and navigation components for coherence with purple background
+- [x] T029 [P] [US4] Visually audit card, modal, and popover components for distinct boundaries against purple background
+- [x] T030 [P] [US4] Visually audit button variants (default, outline, secondary, ghost, destructive) for visibility and usability
+- [x] T031 [P] [US4] Visually audit input fields, select dropdowns, and form elements for visible borders and text legibility
+- [x] T032 [US4] Visually audit board columns, chat interface, and any content-rich pages for readability
 
 **Checkpoint**: All existing components remain visually correct and functional with the purple background.
 
@@ -128,10 +128,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Verify light-mode purple variant (`270 50% 40%`) displays correctly when application is in light mode
-- [ ] T034 [US5] Verify dark-mode purple variant (`270 50% 20%`) displays correctly when application is in dark mode
-- [ ] T035 [US5] Toggle between light and dark modes and confirm smooth transition with no flash of non-purple color
-- [ ] T036 [US5] Verify ThemeProvider (`frontend/src/components/ThemeProvider.tsx`) correctly toggles `.dark` class to switch between purple variants
+- [x] T033 [US5] Verify light-mode purple variant (`270 50% 40%`) displays correctly when application is in light mode
+- [x] T034 [US5] Verify dark-mode purple variant (`270 50% 20%`) displays correctly when application is in dark mode
+- [x] T035 [US5] Toggle between light and dark modes and confirm smooth transition with no flash of non-purple color
+- [x] T036 [US5] Verify ThemeProvider (`frontend/src/components/ThemeProvider.tsx`) correctly toggles `.dark` class to switch between purple variants
 
 **Checkpoint**: Purple background works correctly in both theme modes with smooth transitions.
 
@@ -141,11 +141,11 @@
 
 **Purpose**: Final validation, build verification, and cleanup
 
-- [ ] T037 Run frontend type checking with `cd frontend && npm run type-check`
-- [ ] T038 [P] Run frontend linting with `cd frontend && npm run lint`
-- [ ] T039 [P] Run frontend unit tests with `cd frontend && npm run test`
-- [ ] T040 Run frontend build with `cd frontend && npm run build`
-- [ ] T041 Run quickstart.md verification checklist from `specs/012-purple-background/quickstart.md`
+- [x] T037 Run frontend type checking with `cd frontend && npm run type-check`
+- [x] T038 [P] Run frontend linting with `cd frontend && npm run lint`
+- [x] T039 [P] Run frontend unit tests with `cd frontend && npm run test`
+- [x] T040 Run frontend build with `cd frontend && npm run build`
+- [x] T041 Run quickstart.md verification checklist from `specs/012-purple-background/quickstart.md`
 
 ---
 
