@@ -133,6 +133,16 @@ async def check_signal_link_status(
     result = await check_link_complete()
     if result.get("linked") and result.get("number"):
         phone = result["number"]
+
+        # Guard: prevent cross-user linking of the same phone number
+        phone_hash = _hash_phone(phone)
+        existing_for_phone = await get_connection_by_phone_hash(phone_hash)
+        if existing_for_phone and existing_for_phone.github_user_id != session.github_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This Signal number is already linked to another account",
+            )
+
         # Create the connection record
         await create_connection(session.github_user_id, phone)
 
@@ -269,12 +279,16 @@ async def handle_inbound_signal_message(
     The WebSocket listener calls store_inbound_message() directly.
     """
     settings = get_settings()
-    if settings.signal_webhook_secret:
-        if x_signal_secret != settings.signal_webhook_secret:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid webhook secret",
-            )
+    if not settings.signal_webhook_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Signal webhook not configured",
+        )
+    if x_signal_secret is None or x_signal_secret != settings.signal_webhook_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid webhook secret",
+        )
 
     source = body.source_number
     phone_hash = _hash_phone(source)

@@ -22,16 +22,17 @@ function SignalBannerBar() {
   if (banners.length === 0) return null;
 
   return (
-    <div className="signal-banner-bar">
+    <div className="w-full border-b border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
       {banners.map((b) => (
-        <div key={b.id} className="signal-banner-bar-item">
-          <span className="signal-banner-bar-icon">⚠️</span>
-          <span className="signal-banner-bar-text">{b.message}</span>
+        <div key={b.id} className="flex items-center gap-2 px-4 py-2 text-sm">
+          <span className="text-lg">⚠️</span>
+          <span className="flex-1">{b.message}</span>
           <button
-            className="signal-banner-bar-dismiss"
+            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-amber-300 text-xs font-medium text-amber-700 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-600 dark:text-amber-100 dark:hover:bg-amber-800"
             onClick={() => dismissBanner(b.id)}
             disabled={isPending}
             type="button"
+            aria-label="Dismiss Signal banner"
           >
             ✕
           </button>

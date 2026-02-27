@@ -25,8 +25,8 @@ services:
       - DEFAULT_SIGNAL_TEXT_MODE=styled
     volumes:
       - signal-cli-config:/home/.local/share/signal-cli
-    ports:
-      - "8080"  # Internal only — not exposed to host
+    expose:
+      - "8080"  # Internal only — accessible via Docker network
     restart: unless-stopped
 
 volumes:

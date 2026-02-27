@@ -3,7 +3,7 @@
 Formats chat messages for Signal's styled text mode, delivers them via
 signal_bridge.send_message, and tracks delivery status in signal_messages.
 
-Uses tenacity for exponential-backoff retry (30s → 2min → 8min).
+Uses tenacity for exponential-backoff retry (30s → 2min → 8min per FR-008).
 Fire-and-forget via asyncio.create_task so the chat response is not blocked.
 """
 
@@ -37,6 +37,16 @@ from src.services.signal_bridge import (
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Retry-eligible transport errors (excludes 4xx HTTPStatusError) ───────
+
+_RETRYABLE_ERRORS = (
+    httpx.ConnectError,
+    httpx.TimeoutException,
+    ConnectionError,
+    TimeoutError,
+    OSError,
+)
 
 # ── Message Formatting ───────────────────────────────────────────────────
 
@@ -173,8 +183,10 @@ def should_deliver(notification_mode: SignalNotificationMode, message: ChatMessa
 
 @retry(
     stop=stop_after_attempt(4),  # 1 initial + 3 retries
-    wait=wait_exponential(multiplier=30, min=30, max=480),  # 30s → 60s → 120s → 240s (capped 480s)
-    retry=retry_if_exception_type((httpx.HTTPError, ConnectionError, TimeoutError, OSError)),
+    wait=wait_exponential(
+        multiplier=30, exp_base=4, min=30, max=480
+    ),  # 30s → 120s → 480s per FR-008
+    retry=retry_if_exception_type(_RETRYABLE_ERRORS),
     before_sleep=before_sleep_log(logger, logging.WARNING),
     reraise=True,
 )

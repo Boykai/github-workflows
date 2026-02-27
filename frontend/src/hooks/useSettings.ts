@@ -174,7 +174,8 @@ export function useSignalLinkStatus(enabled: boolean) {
     queryKey: signalKeys.linkStatus(),
     queryFn: signalApi.checkLinkStatus,
     enabled,
-    refetchInterval: enabled ? 2000 : false,
+    refetchInterval: (query) =>
+      enabled && query.state.data?.status === 'pending' ? 2000 : false,
     staleTime: STALE_TIME_SHORT,
   });
 
@@ -199,7 +200,6 @@ export function useDisconnectSignal() {
   const mutation = useMutation({
     mutationFn: () => signalApi.disconnect(),
     onSuccess: () => {
-      queryClient.setQueryData(signalKeys.connection(), null);
       queryClient.invalidateQueries({ queryKey: signalKeys.connection() });
       queryClient.invalidateQueries({ queryKey: signalKeys.preferences() });
     },
