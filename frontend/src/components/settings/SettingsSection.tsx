@@ -52,41 +52,41 @@ export function SettingsSection({
   };
 
   return (
-    <div className="settings-section">
+    <div className="flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
       <button
-        className="settings-section-header"
+        className="flex items-start gap-3 p-5 w-full text-left bg-transparent hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
         onClick={() => setCollapsed((c) => !c)}
         type="button"
       >
-        <span className={`settings-section-chevron ${collapsed ? 'collapsed' : ''}`}>
+        <span className={`text-xs text-muted-foreground mt-1.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}>
           ▼
         </span>
-        <div className="settings-section-title-area">
-          <h3 className="settings-section-title">{title}</h3>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           {description && (
-            <p className="settings-section-description">{description}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </div>
       </button>
 
       {!collapsed && (
-        <div className="settings-section-body">
-          <div className="settings-section-content">{children}</div>
+        <div className="flex flex-col border-t border-border">
+          <div className="p-5 flex flex-col gap-6">{children}</div>
 
           {!hideSave && onSave && (
-            <div className="settings-section-footer">
+            <div className="flex items-center gap-4 p-5 pt-0">
               <button
-                className="settings-save-btn"
+                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleSave}
                 disabled={!isDirty || saving}
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
               {saveStatus === 'success' && (
-                <span className="settings-save-status success">Saved!</span>
+                <span className="text-sm font-medium text-green-500">Saved!</span>
               )}
               {saveStatus === 'error' && (
-                <span className="settings-save-status error">Failed to save</span>
+                <span className="text-sm font-medium text-destructive">Failed to save</span>
               )}
             </div>
           )}

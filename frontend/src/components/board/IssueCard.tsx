@@ -12,9 +12,9 @@ interface IssueCardProps {
 
 function SubIssueStateIcon({ state }: { state: string }) {
   if (state === 'closed') {
-    return <span className="sub-issue-state sub-issue-state-closed" title="Closed">✓</span>;
+    return <span className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-purple-500" title="Closed">✓</span>;
   }
-  return <span className="sub-issue-state sub-issue-state-open" title="Open">○</span>;
+  return <span className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-green-500" title="Open">○</span>;
 }
 
 function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
@@ -24,7 +24,7 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
 
   return (
     <a
-      className="sub-issue-row"
+      className="flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-md bg-muted/50 hover:bg-muted transition-colors text-foreground no-underline"
       href={subIssue.url}
       target="_blank"
       rel="noopener noreferrer"
@@ -33,9 +33,9 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
     >
       <SubIssueStateIcon state={subIssue.state} />
       {agentLabel && (
-        <span className="sub-issue-agent-badge">{agentLabel}</span>
+        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">{agentLabel}</span>
       )}
-      <span className="sub-issue-number">#{subIssue.number}</span>
+      <span className="text-muted-foreground ml-auto">#{subIssue.number}</span>
     </a>
   );
 }
@@ -45,7 +45,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
 
   return (
     <div
-      className="board-issue-card"
+      className="flex flex-col gap-2 p-3 bg-card rounded-md border border-border shadow-sm cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -58,30 +58,30 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
     >
       {/* Repository + Issue Number */}
       {item.repository && (
-        <div className="issue-card-repo">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
           {item.repository.owner}/{item.repository.name}
-          {item.number != null && <span className="issue-card-number">#{item.number}</span>}
+          {item.number != null && <span className="font-medium">#{item.number}</span>}
         </div>
       )}
       {item.content_type === 'draft_issue' && (
-        <div className="issue-card-repo">
-          <span className="issue-card-draft-badge">Draft</span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-muted text-muted-foreground rounded-sm">Draft</span>
         </div>
       )}
 
       {/* Title */}
-      <div className="issue-card-title">{item.title}</div>
+      <div className="text-sm font-medium leading-snug text-foreground">{item.title}</div>
 
       {/* Sub-Issues */}
       {subIssues.length > 0 && (
-        <div className="issue-card-sub-issues">
-          <div className="sub-issues-header">
+        <div className="flex flex-col gap-1.5 mt-1">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <SubIssuesIcon />
-            <span className="sub-issues-count">
+            <span>
               {subIssues.filter((s) => s.state === 'closed').length}/{subIssues.length} sub-issues
             </span>
           </div>
-          <div className="sub-issues-list">
+          <div className="flex flex-col gap-1">
             {subIssues.map((si) => (
               <SubIssueRow key={si.id} subIssue={si} />
             ))}
@@ -90,10 +90,10 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       )}
 
       {/* Metadata badges */}
-      <div className="issue-card-badges">
+      <div className="flex flex-wrap gap-1.5 mt-1">
         {item.priority && (
           <span
-            className="issue-card-badge badge-priority"
+            className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground"
             style={item.priority.color ? { borderColor: statusColorToCSS(item.priority.color) } : undefined}
           >
             {item.priority.name}
@@ -101,28 +101,28 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
         )}
         {item.size && (
           <span
-            className="issue-card-badge badge-size"
+            className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground"
             style={item.size.color ? { borderColor: statusColorToCSS(item.size.color) } : undefined}
           >
             {item.size.name}
           </span>
         )}
         {item.estimate != null && (
-          <span className="issue-card-badge badge-estimate">
+          <span className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground">
             {item.estimate}pt
           </span>
         )}
       </div>
 
       {/* Footer: Assignees + Linked PRs */}
-      <div className="issue-card-footer">
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
         {/* Assignees */}
-        <div className="issue-card-assignees">
+        <div className="flex items-center -space-x-1.5">
           {item.assignees.length > 0 ? (
             item.assignees.map((assignee) => (
               <img
                 key={assignee.login}
-                className="issue-card-avatar"
+                className="w-6 h-6 rounded-full border-2 border-card"
                 src={assignee.avatar_url}
                 alt={assignee.login}
                 title={assignee.login}
@@ -135,7 +135,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
 
         {/* Linked PRs */}
         {item.linked_prs.length > 0 && (
-          <span className="issue-card-pr-badge" title={`${item.linked_prs.length} linked PR(s)`}>
+          <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground" title={`${item.linked_prs.length} linked PR(s)`}>
             <PullRequestIcon />
             {item.linked_prs.length}
           </span>
