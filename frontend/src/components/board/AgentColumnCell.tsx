@@ -116,7 +116,7 @@ export function AgentColumnCell({
   const agentCount = agents.length;
 
   return (
-    <div className={`agent-column-cell${isModified ? ' agent-column-cell--modified' : ''}`}>
+    <div className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'}`}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -124,7 +124,7 @@ export function AgentColumnCell({
         modifiers={[restrictToVerticalAxis]}
       >
         <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-          <div className="agent-column-cell-stack">
+          <div className="flex flex-col gap-2 min-h-[2px]">
             {agents.map((agent) => (
               <SortableAgentTile
                 key={agent.id}
@@ -142,7 +142,7 @@ export function AgentColumnCell({
 
       {/* Soft limit warning (T021) */}
       {agentCount > 10 && (
-        <div className="agent-column-cell-warning">
+        <div className="text-xs text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md text-center mt-1">
           ⚠ {agentCount} agents assigned — consider reducing
         </div>
       )}

@@ -7,16 +7,12 @@ import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tans
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
-import { useChat } from '@/hooks/useChat';
-import { useWorkflow } from '@/hooks/useWorkflow';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useUserSettings, useSignalBanners, useDismissBanner } from '@/hooks/useSettings';
 import { LoginButton } from '@/components/auth/LoginButton';
-import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
-import { ChatInterface } from '@/components/chat/ChatInterface';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import './App.css';
+import { Button } from '@/components/ui/button';
 
 /** Dismissible Signal conflict banner bar (FR-015). */
 function SignalBannerBar() {
@@ -58,109 +54,103 @@ function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const { settings: userSettings } = useUserSettings();
-  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>('chat');
 
-  // Apply default_view from user settings on first load (FR-014)
+  // Derive initial view from URL hash so refresh stays on the current page.
+  const getViewFromHash = (): 'chat' | 'board' | 'settings' => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'board' || hash === 'settings') return hash;
+    return 'chat';
+  };
+
+  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>(getViewFromHash);
+
+  // Keep URL hash in sync when view changes
+  const changeView = (view: 'chat' | 'board' | 'settings') => {
+    setActiveView(view);
+    window.location.hash = view === 'chat' ? '' : view;
+  };
+
+  // Handle browser back/forward
   useEffect(() => {
-    if (userSettings?.display?.default_view) {
-      setActiveView(userSettings.display.default_view);
+    const onHashChange = () => setActiveView(getViewFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Apply default_view from user settings only when no hash is present (FR-014)
+  useEffect(() => {
+    if (!window.location.hash && userSettings?.display?.default_view) {
+      changeView(userSettings.display.default_view);
     }
   }, [userSettings?.display?.default_view]);
   const {
     projects,
     selectedProject,
-    tasks,
-    isLoading: projectsLoading,
-    tasksLoading,
     selectProject,
-    refreshTasks,
   } = useProjects(user?.selected_project_id);
-
-  const {
-    messages,
-    pendingProposals,
-    pendingStatusChanges,
-    pendingRecommendations,
-    isSending,
-    sendMessage,
-    confirmProposal,
-    confirmStatusChange,
-    rejectProposal,
-    removePendingRecommendation,
-    clearChat,
-  } = useChat();
-
-  const {
-    confirmRecommendation,
-    rejectRecommendation,
-  } = useWorkflow();
 
   if (authLoading) {
     return (
-      <div className="app-loading">
-        <div className="spinner" />
-        <p>Loading...</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="app-login">
-        <h1>Agent Projects</h1>
-        <p>Manage your GitHub Projects with natural language</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4 text-center">
+        <h1 className="text-4xl font-bold tracking-tight">Agent Projects</h1>
+        <p className="text-muted-foreground mb-4">Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
     );
   }
 
-  const handleConfirmProposal = async (proposalId: string) => {
-    await confirmProposal(proposalId);
-    // Refresh tasks after creating a new one
-    refreshTasks();
-  };
-
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-left">
-          <h1>Agent Projects</h1>
-          <nav className="header-nav">
-            <button
-              className={`header-nav-btn ${activeView === 'chat' ? 'active' : ''}`}
-              onClick={() => setActiveView('chat')}
+    <div className="flex flex-col h-screen bg-background text-foreground">
+      <header className="flex items-center justify-between px-6 py-3 bg-background border-b border-border">
+        <div className="flex items-center gap-6">
+          <h1 className="text-lg font-semibold tracking-tight">Agent Projects</h1>
+          <nav className="flex gap-1">
+            <Button
+              variant={activeView === 'chat' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('chat')}
             >
-              Chat
-            </button>
-            <button
-              className={`header-nav-btn ${activeView === 'board' ? 'active' : ''}`}
-              onClick={() => setActiveView('board')}
+              Home
+            </Button>
+            <Button
+              variant={activeView === 'board' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('board')}
             >
               Project Board
-            </button>
-            <button
-              className={`header-nav-btn ${activeView === 'settings' ? 'active' : ''}`}
-              onClick={() => setActiveView('settings')}
+            </Button>
+            <Button
+              variant={activeView === 'settings' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => changeView('settings')}
             >
               Settings
-            </button>
+            </Button>
           </nav>
         </div>
-        <div className="header-actions">
-          <button 
-            className="theme-toggle-btn"
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            size="icon"
             onClick={toggleTheme}
             aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDarkMode ? '☀️' : '🌙'}
-          </button>
+          </Button>
           <LoginButton />
         </div>
       </header>
-
       <SignalBannerBar />
-
-      <main className="app-main">
+      <main className="flex flex-1 overflow-hidden">
         {activeView === 'settings' ? (
           <SettingsPage
             projects={projects.map((p) => ({ project_id: p.project_id, name: p.name }))}
@@ -172,49 +162,15 @@ function AppContent() {
             onProjectSelect={selectProject}
           />
         ) : (
-          <>
-            <ProjectSidebar
-              projects={projects}
-              selectedProject={selectedProject}
-              tasks={tasks}
-              isLoading={projectsLoading}
-              tasksLoading={tasksLoading}
-              onProjectSelect={selectProject}
-            />
-
-            <section className="chat-section">
-              {selectedProject ? (
-                <ChatInterface
-              messages={messages}
-              pendingProposals={pendingProposals}
-              pendingStatusChanges={pendingStatusChanges}
-              pendingRecommendations={pendingRecommendations}
-              isSending={isSending}
-              onSendMessage={sendMessage}
-              onConfirmProposal={handleConfirmProposal}
-              onConfirmStatusChange={confirmStatusChange}
-              onConfirmRecommendation={async (recommendationId) => {
-                const result = await confirmRecommendation(recommendationId);
-                if (result.success) {
-                  removePendingRecommendation(recommendationId);
-                }
-                refreshTasks();
-                return result;
-              }}
-              onRejectProposal={rejectProposal}
-              onRejectRecommendation={async (recommendationId) => {
-                await rejectRecommendation(recommendationId);
-                removePendingRecommendation(recommendationId);
-              }}
-              onNewChat={clearChat}
-            />
-          ) : (
-            <div className="chat-placeholder">
-              <p>Select a project from the sidebar to start chatting</p>
-            </div>
-          )}
-        </section>
-          </>
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
+            <h2 className="text-4xl font-bold tracking-tight">Create Your App Here</h2>
+            <Button 
+              size="lg"
+              onClick={() => changeView('board')}
+            >
+              Get Started
+            </Button>
+          </div>
         )}
       </main>
     </div>

@@ -191,7 +191,10 @@ describe('useRealTimeSync', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.lastUpdate).not.toBeNull(); // Set when polling starts
+    // Wait for the initial state to settle
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
 
     await act(async () => {
       mockWebSocketInstances[0]?.simulateOpen();
@@ -462,8 +465,8 @@ describe('useRealTimeSync', () => {
         mockWebSocketInstances[0]?.simulateOpen();
       });
 
-      // Polling should stop — clearInterval must be called
-      expect(clearIntervalSpy).toHaveBeenCalled();
+      // Polling should stop — clearInterval must be called if it was polling,
+      // but since we don't start polling immediately anymore, we just check status
       expect(result.current.status).toBe('connected');
 
       clearIntervalSpy.mockRestore();

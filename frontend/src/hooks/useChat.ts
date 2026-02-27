@@ -4,7 +4,7 @@
 
 import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { STALE_TIME_SHORT, PROPOSAL_EXPIRY_MS } from '@/constants';
+import { STALE_TIME_MEDIUM, PROPOSAL_EXPIRY_MS } from '@/constants';
 import { chatApi, tasksApi } from '@/services/api';
 import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData, StatusChangeProposal } from '@/types';
 
@@ -38,7 +38,7 @@ export function useChat(): UseChatReturn {
   } = useQuery({
     queryKey: ['chat', 'messages'],
     queryFn: chatApi.getMessages,
-    staleTime: STALE_TIME_SHORT,
+    staleTime: STALE_TIME_MEDIUM,
   });
 
   // Send message mutation

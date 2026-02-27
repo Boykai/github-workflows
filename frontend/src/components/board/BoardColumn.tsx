@@ -15,19 +15,19 @@ export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
 
   return (
-    <div className="board-column">
+    <div className="flex flex-col w-[320px] shrink-0 bg-muted/30 rounded-lg border border-border overflow-hidden">
       {/* Column Header */}
-      <div className="board-column-header">
-        <div className="board-column-header-left">
+      <div className="flex items-center justify-between p-3 border-b border-border bg-muted/50">
+        <div className="flex items-center gap-2">
           <span
-            className="board-column-dot"
+            className="w-2.5 h-2.5 rounded-full"
             style={{ backgroundColor: dotColor }}
           />
-          <span className="board-column-name">{column.status.name}</span>
-          <span className="board-column-count">{column.item_count}</span>
+          <span className="font-semibold text-sm">{column.status.name}</span>
+          <span className="flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-background rounded-full text-muted-foreground border border-border">{column.item_count}</span>
         </div>
         {column.estimate_total > 0 && (
-          <span className="board-column-estimate" title="Total estimate points">
+          <span className="text-xs font-medium text-muted-foreground" title="Total estimate points">
             {column.estimate_total}pt
           </span>
         )}
@@ -35,13 +35,13 @@ export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
 
       {/* Column description */}
       {column.status.description && (
-        <div className="board-column-description">{column.status.description}</div>
+        <div className="px-3 py-2 text-xs text-muted-foreground border-b border-border bg-background/50">{column.status.description}</div>
       )}
 
       {/* Card list */}
-      <div className="board-column-cards">
+      <div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1">
         {column.items.length === 0 ? (
-          <div className="board-column-empty">No items</div>
+          <div className="text-sm text-muted-foreground text-center py-8 italic">No items</div>
         ) : (
           column.items.map((item) => (
             <IssueCard key={item.item_id} item={item} onClick={onCardClick} />

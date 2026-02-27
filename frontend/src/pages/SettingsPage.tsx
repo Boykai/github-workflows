@@ -71,23 +71,23 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
 
   if (userLoading) {
     return (
-      <div className="settings-page">
-        <div className="settings-loading">
-          <div className="spinner" />
-          <p>Loading settings...</p>
+      <div className="flex flex-col h-full p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+          <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground">Loading settings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="settings-page">
-      <div className="settings-page-header">
-        <h2>Settings</h2>
-        <p>Configure your preferences for Agent Projects.</p>
+    <div className="flex flex-col h-full p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold tracking-tight mb-2">Settings</h2>
+        <p className="text-muted-foreground">Configure your preferences for Agent Projects.</p>
       </div>
 
-      <div className="settings-sections">
+      <div className="flex flex-col gap-8">
         {/* AI Preferences (US3) */}
         {userSettings && (
           <AIPreferences settings={userSettings.ai} onSave={handleUserSave} />

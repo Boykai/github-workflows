@@ -18,30 +18,30 @@ export function StatusChangePreview({
   onReject,
 }: StatusChangePreviewProps) {
   return (
-    <div className="status-change-preview">
-      <div className="preview-header">
-        <span className="preview-label">Status Change</span>
+    <div className="bg-muted/50 border border-border rounded-lg overflow-hidden max-w-[500px] self-start ml-11">
+      <div className="bg-primary text-primary-foreground px-4 py-2 text-xs font-medium">
+        <span>Status Change</span>
       </div>
 
-      <div className="preview-content">
-        <p className="status-task-title">{taskTitle}</p>
+      <div className="p-4">
+        <p className="text-sm font-medium text-foreground mb-3">{taskTitle}</p>
 
-        <div className="status-change-flow">
-          <span className={`status-badge status-${currentStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+        <div className="flex items-center gap-3">
+          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
             {currentStatus}
           </span>
-          <span className="status-arrow">→</span>
-          <span className={`status-badge status-${targetStatus.toLowerCase().replace(/\s+/g, '-')}`}>
+          <span className="text-muted-foreground">→</span>
+          <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
             {targetStatus}
           </span>
         </div>
       </div>
 
-      <div className="preview-actions">
-        <button onClick={onReject} className="reject-button">
+      <div className="flex gap-2 p-3 bg-background border-t border-border">
+        <button onClick={onReject} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-muted text-muted-foreground border border-border hover:bg-border">
           Cancel
         </button>
-        <button onClick={onConfirm} className="confirm-button">
+        <button onClick={onConfirm} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-green-500 text-white border-none hover:bg-green-600">
           Update Status
         </button>
       </div>
