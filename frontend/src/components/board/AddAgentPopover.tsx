@@ -150,6 +150,7 @@ export function AddAgentPopover({
           placeholder="Filter agents..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
+          /* eslint-disable-next-line jsx-a11y/no-autofocus */
           autoFocus
         />
       </div>
@@ -193,6 +194,7 @@ export function AddAgentPopover({
                   onClick={() => handleSelect(agent)}
                   type="button"
                   role="option"
+                  aria-selected={false}
                   title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
                 >
                   <div className="flex items-center justify-between w-full">

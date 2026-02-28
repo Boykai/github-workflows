@@ -155,7 +155,8 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog */}
       {confirmPreset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
             onClick={(e) => e.stopPropagation()}
