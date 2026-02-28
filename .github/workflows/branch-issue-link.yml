@@ -1,0 +1,110 @@
+name: Branch Issue Link
+
+on:
+  create:
+
+# Default: no permissions. Each job grants only what it needs.
+permissions: {}
+
+concurrency:
+  group: branch-issue-link-${{ github.event.ref }}
+  cancel-in-progress: true
+
+jobs:
+  link-branch:
+    name: Link Branch to Issue
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch' && github.event.repository.fork == false
+    permissions:
+      issues: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Parse branch name
+        id: parse
+        run: |
+          BRANCH_NAME="${{ github.event.ref }}"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+
+          # Strip path prefix (feature/, bugfix/, etc.)
+          base_name="${BRANCH_NAME##*/}"
+
+          # Match: optional "issue-" prefix followed by digits (strip leading zeros)
+          if [[ "$base_name" =~ ^(issue-)?0*([0-9]+) ]]; then
+            ISSUE_NUMBER="${BASH_REMATCH[2]}"
+            echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "::debug::Extracted issue number $ISSUE_NUMBER from branch '$BRANCH_NAME'"
+          else
+            echo "::notice::Branch '$BRANCH_NAME' does not contain a recognizable issue number. No issue will be linked."
+          fi
+
+      - name: Check issue existence
+        id: check-issue
+        if: steps.parse.outputs.ISSUE_NUMBER != ''
+        run: |
+          ISSUE_NUMBER="${{ steps.parse.outputs.ISSUE_NUMBER }}"
+          BRANCH_NAME="${{ steps.parse.outputs.BRANCH_NAME }}"
+
+          if ! ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --repo "${{ github.repository }}" --json state,number 2>&1); then
+            echo "::warning::Issue #${ISSUE_NUMBER} was not found in this repository. Branch '${BRANCH_NAME}' will not be linked."
+            echo "ISSUE_EXISTS=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          ISSUE_STATE=$(echo "$ISSUE_JSON" | jq -r '.state')
+          echo "ISSUE_EXISTS=true" >> "$GITHUB_OUTPUT"
+          echo "ISSUE_STATE=$ISSUE_STATE" >> "$GITHUB_OUTPUT"
+
+          if [ "$ISSUE_STATE" = "CLOSED" ]; then
+            echo "::warning::Issue #${ISSUE_NUMBER} is closed. The branch link comment will still be posted."
+          fi
+
+      - name: Check for existing link
+        id: check-link
+        if: steps.parse.outputs.ISSUE_NUMBER != '' && steps.check-issue.outputs.ISSUE_EXISTS == 'true'
+        run: |
+          ISSUE_NUMBER="${{ steps.parse.outputs.ISSUE_NUMBER }}"
+          BRANCH_NAME="${{ steps.parse.outputs.BRANCH_NAME }}"
+
+          COMMENTS=$(gh issue view "$ISSUE_NUMBER" --repo "${{ github.repository }}" --json comments --jq '.comments[].body')
+
+          if echo "$COMMENTS" | grep -qF "<!-- branch-link: $BRANCH_NAME -->"; then
+            echo "ALREADY_LINKED=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Branch '$BRANCH_NAME' is already linked to issue #${ISSUE_NUMBER}"
+          else
+            echo "ALREADY_LINKED=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post branch link comment
+        if: >-
+          steps.parse.outputs.ISSUE_NUMBER != ''
+          && steps.check-issue.outputs.ISSUE_EXISTS == 'true'
+          && steps.check-link.outputs.ALREADY_LINKED != 'true'
+        run: |
+          ISSUE_NUMBER="${{ steps.parse.outputs.ISSUE_NUMBER }}"
+          BRANCH_NAME="${{ steps.parse.outputs.BRANCH_NAME }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          COMMENT_BODY="<!-- branch-link: ${BRANCH_NAME} -->
+          🔗 **Branch linked:** \`${BRANCH_NAME}\`
+
+          This branch was automatically linked to this issue by the [branch-issue-link](${RUN_URL}) workflow."
+
+          MAX_ATTEMPTS=3
+          for (( attempt=1; attempt<=MAX_ATTEMPTS; attempt++ )); do
+            if gh issue comment "$ISSUE_NUMBER" --repo "${{ github.repository }}" --body "$COMMENT_BODY"; then
+              echo "::debug::Successfully posted branch link comment on issue #${ISSUE_NUMBER}"
+              break
+            fi
+
+            if [ "$attempt" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::warning::Failed to post branch link comment after ${MAX_ATTEMPTS} attempts"
+              exit 0
+            fi
+
+            SLEEP_TIME=$((2 ** attempt))
+            echo "::debug::Attempt $attempt failed. Retrying in ${SLEEP_TIME}s..."
+            sleep "$SLEEP_TIME"
+          done
