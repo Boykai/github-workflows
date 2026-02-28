@@ -25,6 +25,7 @@ import type {
   GlobalSettingsUpdate,
   EffectiveProjectSettings,
   ProjectSettingsUpdate,
+  ModelsResponse,
   WorkflowResult,
   WorkflowConfiguration,
   SignalConnection,
@@ -299,6 +300,14 @@ export const settingsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+
+  /**
+   * Fetch available models for a provider (dynamic dropdown population).
+   */
+  fetchModels(provider: string, forceRefresh = false): Promise<ModelsResponse> {
+    const params = forceRefresh ? '?force_refresh=true' : '';
+    return request<ModelsResponse>(`/settings/models/${provider}${params}`);
   },
 };
 

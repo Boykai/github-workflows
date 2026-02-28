@@ -16,6 +16,7 @@ import type {
   GlobalSettingsUpdate,
   EffectiveProjectSettings,
   ProjectSettingsUpdate,
+  ModelsResponse,
   SignalConnection,
   SignalLinkResponse,
   SignalLinkStatusResponse,
@@ -31,6 +32,7 @@ export const settingsKeys = {
   user: () => [...settingsKeys.all, 'user'] as const,
   global: () => [...settingsKeys.all, 'global'] as const,
   project: (projectId: string) => [...settingsKeys.all, 'project', projectId] as const,
+  models: (provider: string) => [...settingsKeys.all, 'models', provider] as const,
 };
 
 // ── User Settings ──
@@ -120,7 +122,31 @@ export function useProjectSettings(projectId: string | undefined) {
   };
 }
 
-// ── Signal Connection Hooks ──
+// ── Model Options (Dynamic Fetching) ──
+
+/**
+ * Fetch available models for a given provider.
+ *
+ * Uses TanStack Query with stale-while-revalidate: cached data is served
+ * immediately on revisit, background refresh triggers when stale.
+ * Automatically refetches when the provider changes.
+ */
+export function useModelOptions(provider: string | undefined) {
+  const query = useQuery<ModelsResponse>({
+    queryKey: settingsKeys.models(provider ?? ''),
+    queryFn: () => settingsApi.fetchModels(provider!),
+    enabled: !!provider,
+    staleTime: STALE_TIME_LONG,
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  return {
+    data: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
 
 export const signalKeys = {
   all: ['signal'] as const,
