@@ -41,7 +41,7 @@ interface ChatPopupProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
