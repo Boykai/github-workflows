@@ -33,6 +33,9 @@ import type {
   SignalPreferences,
   SignalPreferencesUpdate,
   SignalBannersResponse,
+  McpConfiguration,
+  McpConfigurationListResponse,
+  McpConfigurationCreate,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -416,6 +419,36 @@ export const signalApi = {
   dismissBanner(bannerId: string): Promise<{ message: string }> {
     return request<{ message: string }>(`/signal/banners/${bannerId}/dismiss`, {
       method: 'POST',
+    });
+  },
+};
+
+// ============ MCP Configuration API ============
+
+export const mcpApi = {
+  /**
+   * List all MCP configurations for the authenticated user.
+   */
+  listMcps(): Promise<McpConfigurationListResponse> {
+    return request<McpConfigurationListResponse>('/settings/mcps');
+  },
+
+  /**
+   * Add a new MCP configuration.
+   */
+  createMcp(data: McpConfigurationCreate): Promise<McpConfiguration> {
+    return request<McpConfiguration>('/settings/mcps', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete an MCP configuration by ID.
+   */
+  deleteMcp(mcpId: string): Promise<{ message: string }> {
+    return request<{ message: string }>(`/settings/mcps/${mcpId}`, {
+      method: 'DELETE',
     });
   },
 };

@@ -10,6 +10,7 @@ import { useEffect, useCallback } from 'react';
 import { AIPreferences } from '@/components/settings/AIPreferences';
 import { DisplayPreferences } from '@/components/settings/DisplayPreferences';
 import { GlobalSettings } from '@/components/settings/GlobalSettings';
+import { McpSettings } from '@/components/settings/McpSettings';
 import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
 import { ProjectSettings } from '@/components/settings/ProjectSettings';
 import { SignalConnection } from '@/components/settings/SignalConnection';
@@ -110,6 +111,9 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
 
         {/* Signal Integration (011-signal-chat-integration) */}
         <SignalConnection />
+
+        {/* MCP Configurations (012-mcp-settings-config) */}
+        <McpSettings />
 
         {/* Project Settings (US8) */}
         <ProjectSettings
