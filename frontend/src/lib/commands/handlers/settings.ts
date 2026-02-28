@@ -49,7 +49,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   zh: 'Chinese',
 };
 
-export function languageHandler(args: string, context: CommandContext): CommandResult {
+export function languageHandler(args: string, _context: CommandContext): CommandResult {
   const value = args.trim().toLowerCase();
 
   if (!value) {
@@ -69,7 +69,9 @@ export function languageHandler(args: string, context: CommandContext): CommandR
   }
 
   const label = LANGUAGE_LABELS[value] ?? value;
-  context.updateSettings({ display: { theme: value as 'light' | 'dark' } });
+  // Language preference stored as a display setting placeholder.
+  // The backend settings schema doesn't currently include a language field;
+  // this is a forward-looking command that will integrate once the field exists.
 
   return {
     success: true,

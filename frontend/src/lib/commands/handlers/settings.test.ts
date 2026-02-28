@@ -61,15 +61,13 @@ describe('themeHandler', () => {
 
 describe('languageHandler', () => {
   it('valid value returns confirmation', () => {
-    const updateSettings = vi.fn().mockResolvedValue({});
-    const context = createCommandContext({ updateSettings });
+    const context = createCommandContext();
     const result = languageHandler('fr', context);
 
     expect(result.success).toBe(true);
     expect(result.clearInput).toBe(true);
     expect(result.message).toContain('French');
     expect(result.message).toContain('fr');
-    expect(updateSettings).toHaveBeenCalled();
   });
 
   it('invalid value returns error listing valid options', () => {
@@ -91,8 +89,7 @@ describe('languageHandler', () => {
 
   it('accepts all valid languages', () => {
     for (const lang of ['en', 'es', 'fr', 'de', 'ja', 'zh']) {
-      const updateSettings = vi.fn().mockResolvedValue({});
-      const context = createCommandContext({ updateSettings });
+      const context = createCommandContext();
       const result = languageHandler(lang, context);
       expect(result.success).toBe(true);
     }

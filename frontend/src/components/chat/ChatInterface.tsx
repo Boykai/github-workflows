@@ -67,20 +67,12 @@ export function ChatInterface({
   // Update autocomplete state when input changes
   useEffect(() => {
     const trimmed = input.trimStart();
-    if (trimmed.startsWith('#')) {
-      // Only show autocomplete if no space yet (still typing command name)
-      if (!trimmed.includes(' ') || trimmed.indexOf(' ') > trimmed.indexOf('#') + trimmed.slice(1).split(' ')[0].length) {
-        const filtered = filteredCommands.length > 0 ? filteredCommands : [];
-        if (filtered.length > 0) {
-          setAutocompleteCommands(filtered);
-          setShowAutocomplete(true);
-          setHighlightedIndex(0);
-        } else {
-          setShowAutocomplete(false);
-        }
-      } else {
-        setShowAutocomplete(false);
-      }
+    const shouldShow = trimmed.startsWith('#') && !trimmed.slice(1).includes(' ');
+
+    if (shouldShow && filteredCommands.length > 0) {
+      setAutocompleteCommands(filteredCommands);
+      setShowAutocomplete(true);
+      setHighlightedIndex(0);
     } else {
       setShowAutocomplete(false);
     }
@@ -259,7 +251,7 @@ export function ChatInterface({
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Describe a feature request or task... (Shift+Enter for new line, # for commands)"
+          placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
           className="flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted"
