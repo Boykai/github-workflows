@@ -126,23 +126,46 @@ async def update_project_settings_endpoint(
         )
 
         # Sync agent_pipeline_mappings to the canonical __workflow__ row so the
-        # workflow orchestrator picks up the user's configuration.  Also
-        # invalidate the in-memory config cache for this project.
+        # workflow orchestrator picks up the user's configuration.  We load the
+        # existing WorkflowConfiguration (if any), replace agent_mappings with
+        # the new values, and call set_workflow_config so that both the
+        # workflow_config column and the in-memory cache are updated.  This
+        # prevents stale workflow_config from shadowing the new mappings.
         if "agent_pipeline_mappings" in updates:
-            workflow_updates = {
-                "agent_pipeline_mappings": updates["agent_pipeline_mappings"],
-            }
-            await upsert_project_settings(db, "__workflow__", project_id, workflow_updates)
-            logger.info(
-                "Synced agent_pipeline_mappings to __workflow__ canonical row for project=%s",
-                project_id,
-            )
-            # Invalidate in-memory workflow config cache
             try:
-                from src.services.workflow_orchestrator.config import _workflow_configs
+                from src.models.workflow import WorkflowConfiguration
+                from src.services.workflow_orchestrator.config import (
+                    _parse_agent_mappings,
+                    get_workflow_config,
+                    set_workflow_config,
+                )
 
-                _workflow_configs.pop(project_id, None)
+                raw_mappings = json.loads(updates["agent_pipeline_mappings"])
+                new_agent_mappings = _parse_agent_mappings(raw_mappings)
+
+                existing_config = await get_workflow_config(project_id)
+                if existing_config is not None:
+                    new_config = existing_config.model_copy(
+                        update={"agent_mappings": new_agent_mappings}
+                    )
+                else:
+                    new_config = WorkflowConfiguration(
+                        project_id=project_id,
+                        repository_owner="",
+                        repository_name="",
+                        agent_mappings=new_agent_mappings,
+                    )
+
+                await set_workflow_config(project_id, new_config)
+                logger.info(
+                    "Synced agent_pipeline_mappings to workflow_config for project=%s",
+                    project_id,
+                )
             except Exception:
-                pass
+                logger.warning(
+                    "Failed to sync agent_pipeline_mappings to workflow_config for project=%s",
+                    project_id,
+                    exc_info=True,
+                )
 
     return await get_effective_project_settings(db, session.github_user_id, project_id)
