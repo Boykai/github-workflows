@@ -25,10 +25,10 @@
 
 **Purpose**: Create the workflow file with trigger configuration, permissions, and concurrency control
 
-- [ ] T001 Create workflow file `.github/workflows/branch-issue-link.yml` with `name: Branch Issue Link`, `on: create` trigger, top-level `permissions: {}`, and job skeleton (`link-branch` job targeting `ubuntu-latest`)
-- [ ] T002 [P] Configure job-level permissions with `issues: write` and `contents: read` in `.github/workflows/branch-issue-link.yml`
-- [ ] T003 [P] Add concurrency group `branch-issue-link-${{ github.event.ref }}` with `cancel-in-progress: true` in `.github/workflows/branch-issue-link.yml`
-- [ ] T004 [P] Add job-level condition `if: github.event.ref_type == 'branch' && github.event.repository.fork == false` to filter out tag events and fork events (FR-010) in `.github/workflows/branch-issue-link.yml`
+- [x] T001 Create workflow file `.github/workflows/branch-issue-link.yml` with `name: Branch Issue Link`, `on: create` trigger, top-level `permissions: {}`, and job skeleton (`link-branch` job targeting `ubuntu-latest`)
+- [x] T002 [P] Configure job-level permissions with `issues: write` and `contents: read` in `.github/workflows/branch-issue-link.yml`
+- [x] T003 [P] Add concurrency group `branch-issue-link-${{ github.event.ref }}` with `cancel-in-progress: true` in `.github/workflows/branch-issue-link.yml`
+- [x] T004 [P] Add job-level condition `if: github.event.ref_type == 'branch' && github.event.repository.fork == false` to filter out tag events and fork events (FR-010) in `.github/workflows/branch-issue-link.yml`
 
 ---
 
@@ -38,7 +38,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add "Parse branch name" step in `.github/workflows/branch-issue-link.yml` that: (1) reads branch name from `${{ github.event.ref }}`, (2) strips path prefix via `base_name="${BRANCH_NAME##*/}"`, (3) matches with bash regex `[[ "$base_name" =~ ^(issue-)?0*([0-9]+) ]]` to extract the leading issue number with leading-zero removal into `BASH_REMATCH[2]`, (4) writes `ISSUE_NUMBER` to `$GITHUB_OUTPUT` if matched (per contracts/branch-issue-link-workflow.md Step 1 regex logic)
+- [x] T005 Add "Parse branch name" step in `.github/workflows/branch-issue-link.yml` that: (1) reads branch name from `${{ github.event.ref }}`, (2) strips path prefix via `base_name="${BRANCH_NAME##*/}"`, (3) matches with bash regex `[[ "$base_name" =~ ^(issue-)?0*([0-9]+) ]]` to extract the leading issue number with leading-zero removal into `BASH_REMATCH[2]`, (4) writes `ISSUE_NUMBER` to `$GITHUB_OUTPUT` if matched (per contracts/branch-issue-link-workflow.md Step 1 regex logic)
 
 **Checkpoint**: Branch name parsing works for all documented patterns (`042-fix-navigation` → 42, `feature/issue-15-add-search` → 15, `007-feature` → 7, `hotfix-urgent` → no match). User story implementation can now begin.
 
@@ -52,8 +52,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Add "Check issue existence" step that runs `gh issue view $ISSUE_NUMBER --json state,number` to verify the issue exists and capture its state (`OPEN`/`CLOSED`), setting `ISSUE_STATE` output via `$GITHUB_OUTPUT`, conditioned on `steps.parse.outputs.ISSUE_NUMBER != ''` in `.github/workflows/branch-issue-link.yml`
-- [ ] T007 [US1] Add "Post branch link comment" step that constructs the comment body with hidden idempotency marker `<!-- branch-link: {BRANCH_NAME} -->` followed by visible text `🔗 **Branch linked:** \`{BRANCH_NAME}\`` and workflow run URL, then posts via `gh issue comment $ISSUE_NUMBER --body "$COMMENT_BODY"`, conditioned on successful issue existence check in `.github/workflows/branch-issue-link.yml`
+- [x] T006 [US1] Add "Check issue existence" step that runs `gh issue view $ISSUE_NUMBER --json state,number` to verify the issue exists and capture its state (`OPEN`/`CLOSED`), setting `ISSUE_STATE` output via `$GITHUB_OUTPUT`, conditioned on `steps.parse.outputs.ISSUE_NUMBER != ''` in `.github/workflows/branch-issue-link.yml`
+- [x] T007 [US1] Add "Post branch link comment" step that constructs the comment body with hidden idempotency marker `<!-- branch-link: {BRANCH_NAME} -->` followed by visible text `🔗 **Branch linked:** \`{BRANCH_NAME}\`` and workflow run URL, then posts via `gh issue comment $ISSUE_NUMBER --body "$COMMENT_BODY"`, conditioned on successful issue existence check in `.github/workflows/branch-issue-link.yml`
 
 **Checkpoint**: User Story 1 fully functional — branches matching naming conventions automatically get linked to their issues via comments.
 
@@ -67,8 +67,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Add "Check for existing link" step in `.github/workflows/branch-issue-link.yml` between the issue existence check and comment posting that: (1) fetches comments via `gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body'`, (2) pipes output through `grep -F "<!-- branch-link: $BRANCH_NAME -->"` to search for the idempotency marker, (3) sets `ALREADY_LINKED=true` in `$GITHUB_OUTPUT` if grep exits 0, (4) logs `echo "::notice::Branch is already linked to issue #${ISSUE_NUMBER}"` when duplicate detected
-- [ ] T009 [US2] Add condition `steps.check-link.outputs.ALREADY_LINKED != 'true'` to the "Post branch link comment" step to skip posting when the branch is already linked in `.github/workflows/branch-issue-link.yml`
+- [x] T008 [US2] Add "Check for existing link" step in `.github/workflows/branch-issue-link.yml` between the issue existence check and comment posting that: (1) fetches comments via `gh issue view $ISSUE_NUMBER --json comments --jq '.comments[].body'`, (2) pipes output through `grep -F "<!-- branch-link: $BRANCH_NAME -->"` to search for the idempotency marker, (3) sets `ALREADY_LINKED=true` in `$GITHUB_OUTPUT` if grep exits 0, (4) logs `echo "::notice::Branch is already linked to issue #${ISSUE_NUMBER}"` when duplicate detected
+- [x] T009 [US2] Add condition `steps.check-link.outputs.ALREADY_LINKED != 'true'` to the "Post branch link comment" step to skip posting when the branch is already linked in `.github/workflows/branch-issue-link.yml`
 
 **Checkpoint**: User Story 2 fully functional — duplicate branch references are never created. Idempotency verified through marker-based deduplication.
 
@@ -82,7 +82,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Add notice annotation `echo "::notice::Branch '{BRANCH_NAME}' does not contain a recognizable issue number. No issue will be linked."` when the parse step finds no match (FR-005), and ensure subsequent steps are skipped via their conditions on `ISSUE_NUMBER` output in `.github/workflows/branch-issue-link.yml`
+- [x] T010 [US3] Add notice annotation `echo "::notice::Branch '{BRANCH_NAME}' does not contain a recognizable issue number. No issue will be linked."` when the parse step finds no match (FR-005), and ensure subsequent steps are skipped via their conditions on `ISSUE_NUMBER` output in `.github/workflows/branch-issue-link.yml`
 
 **Checkpoint**: User Story 3 fully functional — unrecognized branch names produce a visible notice without errors or failures.
 
@@ -96,8 +96,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T011 [US4] Add error handling to the "Check issue existence" step: when `gh issue view` returns a non-zero exit code (issue not found), output `::warning::Issue #${ISSUE_NUMBER} was not found in this repository. Branch '${BRANCH_NAME}' will not be linked.` and set `ISSUE_EXISTS=false` output to skip subsequent steps (FR-006) in `.github/workflows/branch-issue-link.yml`
-- [ ] T012 [US4] Add closed-issue warning: when the issue state is `CLOSED`, output `::warning::Issue #${ISSUE_NUMBER} is closed. The branch link comment will still be posted.` and allow the workflow to continue with comment posting (FR-007) in `.github/workflows/branch-issue-link.yml`
+- [x] T011 [US4] Add error handling to the "Check issue existence" step: when `gh issue view` returns a non-zero exit code (issue not found), output `::warning::Issue #${ISSUE_NUMBER} was not found in this repository. Branch '${BRANCH_NAME}' will not be linked.` and set `ISSUE_EXISTS=false` output to skip subsequent steps (FR-006) in `.github/workflows/branch-issue-link.yml`
+- [x] T012 [US4] Add closed-issue warning: when the issue state is `CLOSED`, output `::warning::Issue #${ISSUE_NUMBER} is closed. The branch link comment will still be posted.` and allow the workflow to continue with comment posting (FR-007) in `.github/workflows/branch-issue-link.yml`
 
 **Checkpoint**: User Story 4 fully functional — non-existent and closed issues produce descriptive warnings. Non-existent issues skip linking; closed issues still receive the link comment.
 
@@ -107,9 +107,9 @@
 
 **Purpose**: Add retry logic for transient failures, final validation, and documentation
 
-- [ ] T013 [P] Implement retry logic in the "Post branch link comment" step in `.github/workflows/branch-issue-link.yml` using a bash for-loop (3 attempts) that: (1) runs `gh issue comment` and checks exit code, (2) on non-zero exit code sleeps with exponential backoff (`sleep $((2 ** attempt))` → 2s, 4s, 8s), (3) breaks on success (exit code 0), (4) after all retries exhausted outputs `::warning::Failed to post branch link comment after 3 attempts` and exits 0 to avoid blocking (FR-008)
-- [ ] T014 [P] Add `env` block at the job level setting `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` for `gh` CLI authentication in `.github/workflows/branch-issue-link.yml`
-- [ ] T015 Validate workflow syntax by running `actionlint .github/workflows/branch-issue-link.yml` (or `yamllint` if actionlint is unavailable) and fix any issues
+- [x] T013 [P] Implement retry logic in the "Post branch link comment" step in `.github/workflows/branch-issue-link.yml` using a bash for-loop (3 attempts) that: (1) runs `gh issue comment` and checks exit code, (2) on non-zero exit code sleeps with exponential backoff (`sleep $((2 ** attempt))` → 2s, 4s, 8s), (3) breaks on success (exit code 0), (4) after all retries exhausted outputs `::warning::Failed to post branch link comment after 3 attempts` and exits 0 to avoid blocking (FR-008)
+- [x] T014 [P] Add `env` block at the job level setting `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` for `gh` CLI authentication in `.github/workflows/branch-issue-link.yml`
+- [x] T015 Validate workflow syntax by running `actionlint .github/workflows/branch-issue-link.yml` (or `yamllint` if actionlint is unavailable) and fix any issues
 - [ ] T016 Run quickstart.md manual validation scenarios: create a test branch with issue number, verify comment posted; create branch without issue number, verify notice logged; verify idempotency by re-triggering
 
 ---
