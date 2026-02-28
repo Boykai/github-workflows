@@ -103,3 +103,10 @@ npx playwright test             # E2E tests
 - Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
+
+## Active Technologies
+- Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend) (014-human-agent-pipeline)
+- SQLite (WAL mode) via aiosqlite — no new tables required (reuses existing pipeline state and sub-issue tracking) (014-human-agent-pipeline)
+
+## Recent Changes
+- 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
