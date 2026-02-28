@@ -1,104 +1,103 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add MCP Configuration Support for GitHub Agents in Settings Page
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `012-mcp-settings-config` | **Date**: 2026-02-28 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/012-mcp-settings-config/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add MCP (Model Context Protocol) configuration management to the Settings page, allowing authenticated GitHub OAuth users to add, view, and remove MCP server configurations scoped to their GitHub account. The implementation adds a new `mcp_configurations` SQLite table, REST API endpoints under `/api/v1/settings/mcps`, and a new `McpSettings` frontend component integrated into the existing Settings page. Server-side SSRF validation ensures endpoint URLs are safe. See [research.md](./research.md) for decision rationale.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript/React (frontend)  
+**Primary Dependencies**: FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, shadcn/ui tokens (frontend)  
+**Storage**: SQLite (WAL mode) via aiosqlite — new `mcp_configurations` table (migration 006)  
+**Testing**: pytest (backend), Vitest + React Testing Library (frontend)  
+**Target Platform**: Linux server (Docker), modern browsers  
+**Project Type**: Web application (frontend + backend)  
+**Performance Goals**: MCP list loads within 3 seconds (SC-006), add/remove operations reflect within 5 seconds (SC-001, SC-002)  
+**Constraints**: Max 25 MCPs per user (FR-012), SSRF prevention on endpoint URLs (FR-010), OAuth session required for all operations  
+**Scale/Scope**: Single Settings page sub-section, 3 API endpoints, 1 new DB table, 1 new UI component
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Research Check (Phase 0 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with prioritized user stories (P1, P2), Given-When-Then scenarios, and edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | `speckit.plan` agent produces plan.md and Phase 0/1 artifacts |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; will follow existing test patterns if present |
+| V. Simplicity and DRY | ✅ PASS | Single table, reuses existing auth/settings patterns, no new abstractions |
+
+### Post-Design Check (Phase 1 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | All FR items (FR-001 through FR-013) have corresponding design artifacts |
+| II. Template-Driven Workflow | ✅ PASS | plan.md, research.md, data-model.md, contracts/, quickstart.md all generated |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan ready for handoff to `speckit.tasks` |
+| IV. Test Optionality | ✅ PASS | No test mandate; tests optional per constitution |
+| V. Simplicity and DRY | ✅ PASS | Reuses `_upsert_row`, `get_session_dep`, `SettingsSection`, existing API patterns. No new frameworks or abstractions. |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/012-mcp-settings-config/
+├── plan.md              # This file
+├── research.md          # Phase 0: Technical decisions and rationale
+├── data-model.md        # Phase 1: Entity definitions and migration SQL
+├── quickstart.md        # Phase 1: Development setup and testing guide
+├── contracts/
+│   └── mcp-api.md       # Phase 1: REST API contract (GET, POST, DELETE)
+├── checklists/
+│   └── requirements.md  # Requirements checklist
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
+│   ├── migrations/
+│   │   └── 006_add_mcp_configurations.sql   # New table
 │   ├── models/
+│   │   └── mcp.py                           # Pydantic models (request/response/row)
 │   ├── services/
+│   │   └── mcp_store.py                     # CRUD operations for mcp_configurations
 │   └── api/
-└── tests/
+│       ├── __init__.py                      # Register MCP router
+│       └── mcp.py                           # REST endpoints (GET, POST, DELETE)
+└── tests/                                   # Optional: pytest tests
 
 frontend/
 ├── src/
+│   ├── types/
+│   │   └── index.ts                         # Add MCP TypeScript interfaces
+│   ├── services/
+│   │   └── api.ts                           # Add mcpApi client methods
+│   ├── hooks/
+│   │   └── useMcpSettings.ts                # React hook for MCP async state
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── settings/
+│   │       └── McpSettings.tsx              # MCP settings UI component
+│   └── pages/
+│       └── SettingsPage.tsx                 # Add McpSettings section
+└── tests/                                   # Optional: Vitest tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). The repository already uses `backend/` and `frontend/` top-level directories with established patterns for models, services, API routes, components, pages, hooks, and types. All new files follow existing naming conventions and directory structure.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. All design decisions follow existing patterns.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
