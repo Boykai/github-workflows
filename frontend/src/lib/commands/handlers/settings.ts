@@ -68,7 +68,6 @@ export function languageHandler(args: string, context: CommandContext): CommandR
     };
   }
 
-  const oldLang = context.currentSettings?.display?.theme ?? 'en';
   const label = LANGUAGE_LABELS[value] ?? value;
   context.updateSettings({ display: { theme: value as 'light' | 'dark' } });
 

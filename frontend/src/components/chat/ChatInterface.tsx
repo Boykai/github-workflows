@@ -68,7 +68,6 @@ export function ChatInterface({
   useEffect(() => {
     const trimmed = input.trimStart();
     if (trimmed.startsWith('#')) {
-      const prefix = trimmed.slice(1).split(' ')[0];
       // Only show autocomplete if no space yet (still typing command name)
       if (!trimmed.includes(' ') || trimmed.indexOf(' ') > trimmed.indexOf('#') + trimmed.slice(1).split(' ')[0].length) {
         const filtered = filteredCommands.length > 0 ? filteredCommands : [];

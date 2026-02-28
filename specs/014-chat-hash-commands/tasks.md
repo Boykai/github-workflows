@@ -22,8 +22,8 @@
 
 **Purpose**: Create the directory structure and type definitions for the command system
 
-- [ ] T001 Create directory structure for command system: `frontend/src/lib/commands/` and `frontend/src/lib/commands/handlers/`
-- [ ] T002 Create command system TypeScript type definitions (`CommandDefinition`, `ParameterSchema`, `CommandContext`, `CommandResult`, `ParsedCommand`) in `frontend/src/lib/commands/types.ts`
+- [x] T001 Create directory structure for command system: `frontend/src/lib/commands/` and `frontend/src/lib/commands/handlers/`
+- [x] T002 Create command system TypeScript type definitions (`CommandDefinition`, `ParameterSchema`, `CommandContext`, `CommandResult`, `ParsedCommand`) in `frontend/src/lib/commands/types.ts`
 
 ---
 
@@ -33,10 +33,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement command registry with `Map<string, CommandDefinition>` storage and exported helper functions (`getCommand`, `getAllCommands`, `filterCommands`) in `frontend/src/lib/commands/registry.ts`
-- [ ] T004 Implement `parseCommand(input: string): ParsedCommand` function in `frontend/src/lib/commands/registry.ts` with rules: `#`-prefix detection, command name extraction (lowercase), argument parsing, whitespace normalization, case insensitivity, bare `#` handling, and `help` keyword alias
-- [ ] T005 [P] Create `SystemMessage` component for rendering command responses (distinct visual style using existing Tailwind theme classes: no avatar, muted background via theme-aware utility classes consistent with current chat message styling) in `frontend/src/components/chat/SystemMessage.tsx`
-- [ ] T006 [P] Add command-related test factories (`createCommandDefinition`, `createCommandContext`, `createCommandResult`, `createParsedCommand`) in `frontend/src/test/factories/index.ts`
+- [x] T003 Implement command registry with `Map<string, CommandDefinition>` storage and exported helper functions (`getCommand`, `getAllCommands`, `filterCommands`) in `frontend/src/lib/commands/registry.ts`
+- [x] T004 Implement `parseCommand(input: string): ParsedCommand` function in `frontend/src/lib/commands/registry.ts` with rules: `#`-prefix detection, command name extraction (lowercase), argument parsing, whitespace normalization, case insensitivity, bare `#` handling, and `help` keyword alias
+- [x] T005 [P] Create `SystemMessage` component for rendering command responses (distinct visual style using existing Tailwind theme classes: no avatar, muted background via theme-aware utility classes consistent with current chat message styling) in `frontend/src/components/chat/SystemMessage.tsx`
+- [x] T006 [P] Add command-related test factories (`createCommandDefinition`, `createCommandContext`, `createCommandResult`, `createParsedCommand`) in `frontend/src/test/factories/index.ts`
 
 **Checkpoint**: Foundation ready — command registry, parsing, system message display, and test factories are in place. User story implementation can now begin.
 
@@ -52,15 +52,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Write unit tests for help command handler (output contains all registered commands, format includes name/syntax/description, auto-updates when new commands are added) in `frontend/src/lib/commands/handlers/help.test.ts`
-- [ ] T008 [P] [US1] Write unit tests for command registry (registration, lookup by name, case-insensitive lookup, unknown command returns undefined, `getAllCommands` returns sorted list) in `frontend/src/lib/commands/registry.test.ts`
+- [x] T007 [P] [US1] Write unit tests for help command handler (output contains all registered commands, format includes name/syntax/description, auto-updates when new commands are added) in `frontend/src/lib/commands/handlers/help.test.ts`
+- [x] T008 [P] [US1] Write unit tests for command registry (registration, lookup by name, case-insensitive lookup, unknown command returns undefined, `getAllCommands` returns sorted list) in `frontend/src/lib/commands/registry.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `#help` command handler that iterates `getAllCommands()` and formats each command's name, syntax, and description into a readable system message in `frontend/src/lib/commands/handlers/help.ts`
-- [ ] T010 [US1] Register the `help` command in the command registry with name, description, syntax, handler, and no parameterSchema in `frontend/src/lib/commands/registry.ts`
-- [ ] T011 [US1] Create `useCommands` hook with `parseCommand()`, `executeCommand()`, and `isCommand()` functions, integrating with `useTheme()` and `useSettings()` to build `CommandContext` in `frontend/src/hooks/useCommands.ts`
-- [ ] T012 [US1] Write hook tests for `useCommands` covering: `parseCommand` returns correct `ParsedCommand`, `isCommand` identifies commands vs regular messages, `executeCommand` for `#help` returns formatted help output in `frontend/src/hooks/useCommands.test.tsx`
+- [x] T009 [US1] Implement `#help` command handler that iterates `getAllCommands()` and formats each command's name, syntax, and description into a readable system message in `frontend/src/lib/commands/handlers/help.ts`
+- [x] T010 [US1] Register the `help` command in the command registry with name, description, syntax, handler, and no parameterSchema in `frontend/src/lib/commands/registry.ts`
+- [x] T011 [US1] Create `useCommands` hook with `parseCommand()`, `executeCommand()`, and `isCommand()` functions, integrating with `useTheme()` and `useSettings()` to build `CommandContext` in `frontend/src/hooks/useCommands.ts`
+- [x] T012 [US1] Write hook tests for `useCommands` covering: `parseCommand` returns correct `ParsedCommand`, `isCommand` identifies commands vs regular messages, `executeCommand` for `#help` returns formatted help output in `frontend/src/hooks/useCommands.test.tsx`
 
 **Checkpoint**: `#help` and `help` commands are fully functional. Users can discover all available commands. This is the MVP — delivers standalone value.
 
@@ -76,16 +76,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US2] Write unit tests for settings command handlers covering: valid value applies setting and returns confirmation with old/new values, invalid value returns error listing valid options, missing argument returns usage message, each setting command (theme, language, notifications, view) in `frontend/src/lib/commands/handlers/settings.test.ts`
+- [x] T013 [P] [US2] Write unit tests for settings command handlers covering: valid value applies setting and returns confirmation with old/new values, invalid value returns error listing valid options, missing argument returns usage message, each setting command (theme, language, notifications, view) in `frontend/src/lib/commands/handlers/settings.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Implement `#theme` handler that validates against `light|dark|system`, reads current theme from `context.currentTheme`, calls `context.setTheme()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
-- [ ] T015 [P] [US2] Implement `#language` handler that validates against `en|es|fr|de|ja|zh`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
-- [ ] T016 [P] [US2] Implement `#notifications` handler that validates against `on|off`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
-- [ ] T017 [P] [US2] Implement `#view` handler that validates against `chat|board|settings`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
-- [ ] T018 [US2] Register all settings commands (theme, language, notifications, view) in the command registry with names, descriptions, syntax, handlers, and parameterSchemas in `frontend/src/lib/commands/registry.ts`
-- [ ] T019 [US2] Write hook tests for settings command execution covering: `executeCommand` for `#theme dark` calls `setTheme`, confirmation system message content, error message for invalid value in `frontend/src/hooks/useCommands.test.tsx`
+- [x] T014 [US2] Implement `#theme` handler that validates against `light|dark|system`, reads current theme from `context.currentTheme`, calls `context.setTheme()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
+- [x] T015 [P] [US2] Implement `#language` handler that validates against `en|es|fr|de|ja|zh`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
+- [x] T016 [P] [US2] Implement `#notifications` handler that validates against `on|off`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
+- [x] T017 [P] [US2] Implement `#view` handler that validates against `chat|board|settings`, reads current value from `context.currentSettings`, calls `context.updateSettings()`, and returns confirmation message in `frontend/src/lib/commands/handlers/settings.ts`
+- [x] T018 [US2] Register all settings commands (theme, language, notifications, view) in the command registry with names, descriptions, syntax, handlers, and parameterSchemas in `frontend/src/lib/commands/registry.ts`
+- [x] T019 [US2] Write hook tests for settings command execution covering: `executeCommand` for `#theme dark` calls `setTheme`, confirmation system message content, error message for invalid value in `frontend/src/hooks/useCommands.test.tsx`
 
 **Checkpoint**: All settings commands are functional. Users can update theme, language, notifications, and default view via chat. Changes propagate app-wide via existing ThemeProvider and settingsApi.
 
@@ -101,13 +101,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T020 [P] [US3] Write component tests for `CommandAutocomplete` covering: renders all commands when prefix is `#`, filters by typed prefix, keyboard navigation (ArrowDown/Up highlights items, Enter selects, Escape dismisses), mouse click selects, shows command name and description in `frontend/src/components/chat/CommandAutocomplete.test.tsx`
+- [x] T020 [P] [US3] Write component tests for `CommandAutocomplete` covering: renders all commands when prefix is `#`, filters by typed prefix, keyboard navigation (ArrowDown/Up highlights items, Enter selects, Escape dismisses), mouse click selects, shows command name and description in `frontend/src/components/chat/CommandAutocomplete.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Add `getFilteredCommands(prefix: string)` to `useCommands` hook that calls `filterCommands` from registry and returns matching `CommandDefinition[]` in `frontend/src/hooks/useCommands.ts`
-- [ ] T022 [US3] Implement `CommandAutocomplete` component with: overlay positioned above chat input, list of suggestions with `#` prefix and description, keyboard navigation state (highlighted index), ArrowUp/Down/Enter/Escape/Tab key handlers, click handlers, `role="listbox"` and `aria-activedescendant` accessibility attributes in `frontend/src/components/chat/CommandAutocomplete.tsx`
-- [ ] T023 [US3] Write hook tests for `getFilteredCommands` covering: returns all commands for empty prefix, filters by prefix, case-insensitive filtering, returns empty array for no matches in `frontend/src/hooks/useCommands.test.tsx`
+- [x] T021 [US3] Add `getFilteredCommands(prefix: string)` to `useCommands` hook that calls `filterCommands` from registry and returns matching `CommandDefinition[]` in `frontend/src/hooks/useCommands.ts`
+- [x] T022 [US3] Implement `CommandAutocomplete` component with: overlay positioned above chat input, list of suggestions with `#` prefix and description, keyboard navigation state (highlighted index), ArrowUp/Down/Enter/Escape/Tab key handlers, click handlers, `role="listbox"` and `aria-activedescendant` accessibility attributes in `frontend/src/components/chat/CommandAutocomplete.tsx`
+- [x] T023 [US3] Write hook tests for `getFilteredCommands` covering: returns all commands for empty prefix, filters by prefix, case-insensitive filtering, returns empty array for no matches in `frontend/src/hooks/useCommands.test.tsx`
 
 **Checkpoint**: Autocomplete overlay is functional. Users can discover and select commands interactively while typing.
 
@@ -123,14 +123,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US4] Write integration tests for command interception in ChatInterface covering: `#help` submission shows system message without calling chatApi, `#theme dark` changes theme without calling chatApi, regular message calls chatApi.sendMessage, unrecognized `#foobar` shows error without calling chatApi, `help` keyword is intercepted in `frontend/src/components/chat/ChatInterface.test.tsx`
+- [x] T024 [P] [US4] Write integration tests for command interception in ChatInterface covering: `#help` submission shows system message without calling chatApi, `#theme dark` changes theme without calling chatApi, regular message calls chatApi.sendMessage, unrecognized `#foobar` shows error without calling chatApi, `help` keyword is intercepted in `frontend/src/components/chat/ChatInterface.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Modify `useChat` hook to check `isCommand(input)` before calling `chatApi.sendMessage()`, and if command: call `executeCommand()`, create `SystemChatMessage` (with `sender_type: "system"`, client-side UUID, timestamp), and insert into local message list in `frontend/src/hooks/useChat.ts`
-- [ ] T026 [US4] Integrate `CommandAutocomplete` overlay into `ChatInterface.tsx`: render above chat input, trigger on `#` as first character, pass filtered commands, handle selection (insert command name into input), handle dismissal in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T027 [US4] Integrate `SystemMessage` component into chat message rendering in `ChatInterface.tsx` to display command responses with distinct styling for `sender_type: "system"` messages in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T028 [US4] Implement input preservation on error: when `executeCommand` returns `clearInput: false`, do not clear the chat input field, allowing users to correct their command in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T025 [US4] Modify `useChat` hook to check `isCommand(input)` before calling `chatApi.sendMessage()`, and if command: call `executeCommand()`, create `SystemChatMessage` (with `sender_type: "system"`, client-side UUID, timestamp), and insert into local message list in `frontend/src/hooks/useChat.ts`
+- [x] T026 [US4] Integrate `CommandAutocomplete` overlay into `ChatInterface.tsx`: render above chat input, trigger on `#` as first character, pass filtered commands, handle selection (insert command name into input), handle dismissal in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T027 [US4] Integrate `SystemMessage` component into chat message rendering in `ChatInterface.tsx` to display command responses with distinct styling for `sender_type: "system"` messages in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T028 [US4] Implement input preservation on error: when `executeCommand` returns `clearInput: false`, do not clear the chat input field, allowing users to correct their command in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Full command flow works end-to-end. Commands are intercepted client-side, system messages display inline, non-commands pass through to AI, errors preserve input.
 
@@ -144,11 +144,11 @@
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T029 [P] [US5] Write single-source-of-truth verification tests: register a new test command, verify it appears in `getAllCommands()`, verify `#help` handler output includes it, verify `filterCommands` returns it, verify it is executable via `executeCommand` in `frontend/src/lib/commands/registry.test.ts`
+- [x] T029 [P] [US5] Write single-source-of-truth verification tests: register a new test command, verify it appears in `getAllCommands()`, verify `#help` handler output includes it, verify `filterCommands` returns it, verify it is executable via `executeCommand` in `frontend/src/lib/commands/registry.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T030 [US5] Verify and document that the command registry `Map` in `registry.ts` is the single source of truth by ensuring `getAllCommands()` drives `#help` output, `filterCommands()` drives autocomplete, and `getCommand()` drives execution — add inline code comments confirming the pattern in `frontend/src/lib/commands/registry.ts`
+- [x] T030 [US5] Verify and document that the command registry `Map` in `registry.ts` is the single source of truth by ensuring `getAllCommands()` drives `#help` output, `filterCommands()` drives autocomplete, and `getCommand()` drives execution — add inline code comments confirming the pattern in `frontend/src/lib/commands/registry.ts`
 
 **Checkpoint**: Registry single-source-of-truth pattern is verified. Adding a new command requires only one registry entry.
 
@@ -162,11 +162,11 @@
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T031 [P] [US6] Write edge-case parsing tests: bare `#` returns helpful message, `#` mid-sentence is NOT a command, extra whitespace is normalized (`#theme   dark` works), mixed case is handled (`#Theme Dark`), empty string is not a command, whitespace-only string is not a command in `frontend/src/lib/commands/registry.test.ts`
-- [ ] T032 [P] [US6] Write edge-case settings handler tests: concurrent rapid settings updates apply correctly, setting to same value returns appropriate message, all valid values for each setting command are accepted in `frontend/src/lib/commands/handlers/settings.test.ts`
-- [ ] T033 [P] [US6] Write autocomplete edge-case tests: overlay closes when `#` is deleted, overlay closes on message submit, no matches shows appropriate state, Tab key selects like Enter, wrapping navigation (ArrowDown past last item wraps to first) in `frontend/src/components/chat/CommandAutocomplete.test.tsx`
-- [ ] T034 [P] [US6] Write full integration tests: complete flow from typing `#theme dark` → autocomplete appears → submit → theme changes → confirmation message appears → input cleared; error flow from `#theme rainbow` → error message → input preserved in `frontend/src/components/chat/ChatInterface.test.tsx`
-- [ ] T035 [US6] Run full frontend test suite to verify all command system tests pass and no existing tests regress: `cd frontend && npm test`
+- [x] T031 [P] [US6] Write edge-case parsing tests: bare `#` returns helpful message, `#` mid-sentence is NOT a command, extra whitespace is normalized (`#theme   dark` works), mixed case is handled (`#Theme Dark`), empty string is not a command, whitespace-only string is not a command in `frontend/src/lib/commands/registry.test.ts`
+- [x] T032 [P] [US6] Write edge-case settings handler tests: concurrent rapid settings updates apply correctly, setting to same value returns appropriate message, all valid values for each setting command are accepted in `frontend/src/lib/commands/handlers/settings.test.ts`
+- [x] T033 [P] [US6] Write autocomplete edge-case tests: overlay closes when `#` is deleted, overlay closes on message submit, no matches shows appropriate state, Tab key selects like Enter, wrapping navigation (ArrowDown past last item wraps to first) in `frontend/src/components/chat/CommandAutocomplete.test.tsx`
+- [x] T034 [P] [US6] Write full integration tests: complete flow from typing `#theme dark` → autocomplete appears → submit → theme changes → confirmation message appears → input cleared; error flow from `#theme rainbow` → error message → input preserved in `frontend/src/components/chat/ChatInterface.test.tsx`
+- [x] T035 [US6] Run full frontend test suite to verify all command system tests pass and no existing tests regress: `cd frontend && npm test`
 
 **Checkpoint**: Comprehensive test coverage achieved. All happy-path and edge-case scenarios are covered across registry, handlers, hook, autocomplete, and integration levels.
 
@@ -176,10 +176,10 @@
 
 **Purpose**: Final cleanup, documentation, and validation across all user stories
 
-- [ ] T036 [P] Code cleanup and consistent code style review across all command system files in `frontend/src/lib/commands/` and `frontend/src/hooks/useCommands.ts`
-- [ ] T037 [P] Verify accessibility: confirm `role="listbox"`, `role="option"`, and `aria-activedescendant` attributes are correctly set on autocomplete overlay in `frontend/src/components/chat/CommandAutocomplete.tsx`
-- [ ] T038 Run lint, type-check, and build to confirm no regressions: `cd frontend && npm run lint && npm run type-check && npm run build`
-- [ ] T039 Run quickstart.md validation: execute all commands from quickstart.md to verify developer workflow is accurate
+- [x] T036 [P] Code cleanup and consistent code style review across all command system files in `frontend/src/lib/commands/` and `frontend/src/hooks/useCommands.ts`
+- [x] T037 [P] Verify accessibility: confirm `role="listbox"`, `role="option"`, and `aria-activedescendant` attributes are correctly set on autocomplete overlay in `frontend/src/components/chat/CommandAutocomplete.tsx`
+- [x] T038 Run lint, type-check, and build to confirm no regressions: `cd frontend && npm run lint && npm run type-check && npm run build`
+- [x] T039 Run quickstart.md validation: execute all commands from quickstart.md to verify developer workflow is accurate
 
 ---
 

@@ -18,7 +18,7 @@ export function CommandAutocomplete({
   commands,
   highlightedIndex,
   onSelect,
-  onDismiss,
+  // onDismiss is handled by the parent component
   onHighlightChange,
 }: CommandAutocompleteProps) {
   const listRef = useRef<HTMLUListElement>(null);
