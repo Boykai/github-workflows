@@ -80,6 +80,7 @@ from .helpers import (  # noqa: F401
     _link_prs_to_parent,
     _reconstruct_sub_issue_mappings,
     _update_issue_tracking,
+    is_sub_issue,
 )
 from .pipeline import (  # noqa: F401
     _advance_pipeline,
@@ -149,6 +150,7 @@ __all__ = [
     "_update_issue_tracking",
     "_get_tracking_state_from_issue",
     "_reconstruct_sub_issue_mappings",
+    "is_sub_issue",
     # Completion / review
     "_merge_child_pr_if_applicable",
     "_find_completed_child_pr",
