@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
-from src.constants import DEFAULT_STATUS_COLUMNS
+from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
@@ -427,13 +427,26 @@ async def confirm_proposal(
 
     # Create the issue in GitHub
     try:
+        # Validate description does not exceed GitHub API limit
+        body = proposal.final_description or ""
+        if len(body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
+            raise ValidationError(
+                f"Issue body is {len(body)} characters, which exceeds the "
+                f"GitHub API limit of {GITHUB_ISSUE_BODY_MAX_LENGTH} characters. "
+                "Please shorten the description.",
+                details={
+                    "body_length": len(body),
+                    "max_length": GITHUB_ISSUE_BODY_MAX_LENGTH,
+                },
+            )
+
         # Step 1: Create a real GitHub Issue via REST API
         issue = await github_projects_service.create_issue(
             access_token=session.access_token,
             owner=owner,
             repo=repo,
             title=proposal.final_title,
-            body=proposal.final_description or "",
+            body=body,
         )
 
         issue_number = issue["number"]

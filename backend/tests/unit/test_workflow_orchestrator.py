@@ -926,6 +926,75 @@ class TestCreateIssueFromRecommendation:
         assert workflow_context.issue_number == 42
         mock_github_service.create_issue.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_rejects_oversized_body(self, orchestrator, workflow_context, mock_github_service):
+        """T015: create_issue_from_recommendation returns 422 when body exceeds 65,536 chars."""
+        from uuid import uuid4
+
+        from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+        from src.exceptions import ValidationError as AppValidationError
+        from src.models.chat import IssueRecommendation
+
+        # Create a recommendation with fields large enough that the assembled body exceeds the limit
+        huge_story = "X" * (GITHUB_ISSUE_BODY_MAX_LENGTH + 1)
+        recommendation = IssueRecommendation(
+            recommendation_id=uuid4(),
+            session_id=uuid4(),
+            title="Test Issue",
+            original_input="User request",
+            user_story=huge_story,
+            ui_ux_description="UI description",
+            functional_requirements=["Req 1"],
+        )
+
+        with pytest.raises(AppValidationError) as exc_info:
+            await orchestrator.create_issue_from_recommendation(workflow_context, recommendation)
+
+        assert exc_info.value.status_code == 422
+        assert "exceeds" in exc_info.value.message.lower()
+
+    @pytest.mark.asyncio
+    async def test_accepts_body_at_exactly_max_length(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
+        """T017: Body at exactly 65,536 chars succeeds."""
+        from uuid import uuid4
+
+        from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+        from src.models.chat import IssueRecommendation
+
+        recommendation = IssueRecommendation(
+            recommendation_id=uuid4(),
+            session_id=uuid4(),
+            title="Test Issue",
+            original_input="",
+            user_story="story",
+            ui_ux_description="ui",
+            functional_requirements=["req"],
+        )
+
+        mock_github_service.create_issue.return_value = {
+            "node_id": "I_124",
+            "number": 43,
+            "html_url": "https://github.com/owner/repo/issues/43",
+        }
+
+        # Monkey-patch format_issue_body to return exactly max_length
+        orchestrator.format_issue_body = lambda rec: "Z" * GITHUB_ISSUE_BODY_MAX_LENGTH
+
+        # Ensure no tracking table is appended (no config with agent_mappings)
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orchestrator.create_issue_from_recommendation(
+                workflow_context, recommendation
+            )
+
+        assert result["number"] == 43
+        mock_github_service.create_issue.assert_called_once()
+
 
 class TestAddToProjectWithBacklog:
     """Tests for add_to_project_with_backlog."""
@@ -1240,6 +1309,32 @@ class TestFormatIssueBody:
         body = orchestrator.format_issue_body(rec)
         assert "## Original Request" in body
         assert "Short text" in body
+
+    def test_body_preserves_markdown_formatting(self, orchestrator):
+        """T024: format_issue_body preserves raw markdown without escaping or modification."""
+        markdown_story = "As a **developer** with `code` and *emphasis*"
+        markdown_ui = (
+            "- bullet\n"
+            "- [link](https://example.com)\n\n"
+            "```python\nprint('hello')\n```\n\n"
+            "> blockquote\n\n"
+            "| A | B |\n|---|---|\n| 1 | 2 |"
+        )
+        rec = IssueRecommendation(
+            recommendation_id=uuid4(),
+            session_id=uuid4(),
+            original_input="test",
+            title="T",
+            user_story=markdown_story,
+            ui_ux_description=markdown_ui,
+            functional_requirements=["**bold req**", "`code req`"],
+        )
+        body = orchestrator.format_issue_body(rec)
+        # Verify markdown is preserved verbatim
+        assert markdown_story in body
+        assert markdown_ui in body
+        assert "- **bold req**" in body
+        assert "- `code req`" in body
 
 
 class TestUpdateAgentTrackingState:
