@@ -2,9 +2,7 @@
 
 from datetime import timedelta
 
-from src.constants import LABELS
 from src.utils import utcnow
-
 
 ISSUE_GENERATION_SYSTEM_PROMPT = """You are an expert product manager helping structure feature requests into well-organized GitHub issues.
 

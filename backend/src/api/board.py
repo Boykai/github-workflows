@@ -9,7 +9,7 @@ from src.api.auth import get_session_dep
 from src.exceptions import GitHubAPIError, NotFoundError
 from src.models.board import BoardDataResponse, BoardProjectListResponse
 from src.models.user import UserSession
-from src.services.cache import cache, cached_response, get_cache_key
+from src.services.cache import cached_response, get_cache_key
 from src.services.github_projects import github_projects_service
 
 logger = logging.getLogger(__name__)

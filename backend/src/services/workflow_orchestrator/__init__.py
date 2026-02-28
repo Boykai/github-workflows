@@ -7,7 +7,7 @@ Decomposed from a single 2048-line file into focused sub-modules:
 - transitions.py: Pipeline state, branch tracking, and sub-issue map management
 - orchestrator.py: WorkflowOrchestrator class and singleton factory
 
-All public names are re-exported here for backward compatibility.
+All public names are re-exported here as the package's public API surface.
 Existing ``from src.services.workflow_orchestrator import X`` imports continue to work.
 """
 

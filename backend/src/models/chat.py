@@ -13,7 +13,6 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-
 # ---- Re-exports (public API surface for models/chat) ---------------------
 from src.models.agent import (  # noqa: F401
     AgentAssignment,

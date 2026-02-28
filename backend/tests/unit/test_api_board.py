@@ -5,8 +5,6 @@ Covers:
 - GET /api/v1/board/projects/{project_id} → get_board_data
 """
 
-from unittest.mock import patch
-
 from src.models.board import (
     BoardColumn,
     BoardDataResponse,
@@ -80,6 +78,9 @@ class TestListBoardProjects:
         assert data["projects"][0]["name"] == "Test Board"
 
     async def test_uses_cache_on_second_call(self, client, mock_github_service):
+        from src.services.cache import cache
+
+        cache.clear()
         bp = _make_board_project()
         mock_github_service.list_board_projects.return_value = [bp]
 

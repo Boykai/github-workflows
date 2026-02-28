@@ -195,7 +195,11 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                     await _persist_workflow_config_to_db(project_id, config)
                     logger.info("Backfilled workflow_config column for project %s", project_id)
                 except Exception:
-                    logger.debug("Failed to backfill workflow_config for project %s", project_id, exc_info=True)
+                    logger.debug(
+                        "Failed to backfill workflow_config for project %s",
+                        project_id,
+                        exc_info=True,
+                    )
                 return config
 
             # Fallback: if no __workflow__ row exists, check for any user's
@@ -230,7 +234,11 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                         project_id,
                     )
                 except Exception:
-                    logger.debug("Failed to backfill workflow_config from user row for project %s", project_id, exc_info=True)
+                    logger.debug(
+                        "Failed to backfill workflow_config from user row for project %s",
+                        project_id,
+                        exc_info=True,
+                    )
                 return config
 
             return None

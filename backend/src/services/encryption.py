@@ -62,17 +62,17 @@ class EncryptionService:
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt Fernet token → plaintext.
 
-        Handles legacy (pre-encryption) plaintext values gracefully:
-        if *ciphertext* looks like a raw GitHub token (``gho_``,
+        Handles pre-encryption plaintext values gracefully: if
+        *ciphertext* looks like a raw GitHub token (``gho_``,
         ``ghp_``, ``ghr_`` prefix) it is returned as-is.
 
         Raises :class:`ValueError` only on genuinely corrupted
-        ciphertext (not legacy plaintext).
+        ciphertext (not plaintext tokens).
         """
         if self._fernet is None:
             return ciphertext
 
-        # Legacy plaintext detection — do not attempt decryption
+        # Plaintext token detection — do not attempt decryption
         if _is_plaintext_token(ciphertext):
             return ciphertext
 

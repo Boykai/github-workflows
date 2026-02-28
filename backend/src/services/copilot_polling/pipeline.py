@@ -1121,7 +1121,9 @@ async def _transition_after_pipeline_complete(
                 if pr_details and pr_details.get("last_commit", {}).get("sha"):
                     _cp.update_issue_main_branch_sha(issue_number, pr_details["last_commit"]["sha"])
             except Exception:
-                logger.debug("Failed to refresh main branch SHA for issue #%d", issue_number, exc_info=True)
+                logger.debug(
+                    "Failed to refresh main branch SHA for issue #%d", issue_number, exc_info=True
+                )
         else:
             # Try to find and capture the main branch from existing PRs
             logger.info(
