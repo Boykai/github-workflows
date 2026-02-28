@@ -22,18 +22,22 @@ async def _session_cleanup_loop() -> None:
 
     settings = get_settings()
     interval = settings.session_cleanup_interval
+    consecutive_failures = 0
 
     while True:
         try:
-            await asyncio.sleep(interval)
+            sleep_time = min(interval * (2**consecutive_failures), 300)
+            await asyncio.sleep(sleep_time)
             db = get_db()
             count = await purge_expired_sessions(db)
             if count > 0:
                 logger.info("Periodic cleanup: purged %d expired sessions", count)
+            consecutive_failures = 0
         except asyncio.CancelledError:
             logger.debug("Session cleanup task cancelled")
             break
         except Exception:
+            consecutive_failures += 1
             logger.exception("Error in session cleanup task")
 
 
@@ -66,17 +70,18 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
     await start_signal_ws_listener()
 
-    yield
-
-    # Shutdown: stop Signal listener, cancel cleanup task, close database
-    await stop_signal_ws_listener()
-    cleanup_task.cancel()
     try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        pass
-    await close_database()
-    logger.info("Shutting down Agent Projects API")
+        yield
+    finally:
+        # Shutdown: stop Signal listener, cancel cleanup task, close database
+        await stop_signal_ws_listener()
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+        await close_database()
+        logger.info("Shutting down Agent Projects API")
 
 
 def create_app() -> FastAPI:

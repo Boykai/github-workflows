@@ -24,9 +24,9 @@
 
 **Purpose**: No new project structure needed — all changes target existing files. This phase validates the current codebase state.
 
-- [ ] T001 Verify existing backend tests pass: `cd backend && pytest -v`
-- [ ] T002 Verify existing frontend tests pass: `cd frontend && npm test`
-- [ ] T003 Verify backend linting passes: `cd backend && ruff check src tests && ruff format --check src tests`
+- [x] T001 Verify existing backend tests pass: `cd backend && pytest -v`
+- [x] T002 Verify existing frontend tests pass: `cd frontend && npm test`
+- [x] T003 Verify backend linting passes: `cd backend && ruff check src tests && ruff format --check src tests`
 
 ---
 
@@ -48,8 +48,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Replace hardcoded strings in `DEFAULT_STATUS_COLUMNS` with `StatusNames` enum references in `backend/src/constants.py` — change `["Todo", "In Progress", "Done"]` to `[StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNames.DONE]` (note: `StatusNames.BACKLOG` resolves to the string `"Backlog"` at runtime)
-- [ ] T005 [US1] Update test assertion for default status columns in `backend/tests/unit/test_config.py` to expect `["Backlog", "In Progress", "Done"]` instead of `["Todo", "In Progress", "Done"]`
+- [x] T004 [US1] Replace hardcoded strings in `DEFAULT_STATUS_COLUMNS` with `StatusNames` enum references in `backend/src/constants.py` — change `["Todo", "In Progress", "Done"]` to `[StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNames.DONE]` (note: `StatusNames.BACKLOG` resolves to the string `"Backlog"` at runtime)
+- [x] T005 [US1] Update test assertion for default status columns in `backend/tests/unit/test_config.py` to expect `["Backlog", "In Progress", "Done"]` instead of `["Todo", "In Progress", "Done"]`
 
 **Checkpoint**: `DEFAULT_STATUS_COLUMNS` uses only canonical `StatusNames` values. Verify: `cd backend && pytest tests/unit/test_config.py -v`
 
@@ -63,7 +63,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Refactor `require_admin` in `backend/src/dependencies.py` — replace the two-step SELECT + UPDATE with an atomic `UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1 AND admin_github_user_id IS NULL`, check `cursor.rowcount` to determine success, re-read on `rowcount == 0` for idempotent handling, and raise 403 if another user was promoted
+- [x] T006 [US2] Refactor `require_admin` in `backend/src/dependencies.py` — replace the two-step SELECT + UPDATE with an atomic `UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1 AND admin_github_user_id IS NULL`, check `cursor.rowcount` to determine success, re-read on `rowcount == 0` for idempotent handling, and raise 403 if another user was promoted
 
 **Checkpoint**: Admin promotion is atomic — only one user can be promoted. Verify: `cd backend && pytest tests/unit/test_admin_authorization.py -v`
 
@@ -77,7 +77,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Refactor `lifespan()` in `backend/src/main.py` — initialize `cleanup_task = None` before a `try` block, move `yield` inside the `try`, move all cleanup (stop signal listener, cancel cleanup task, close database) into a `finally` block with None-guards for each resource
+- [x] T007 [US3] Refactor `lifespan()` in `backend/src/main.py` — initialize `cleanup_task = None` before a `try` block, move `yield` inside the `try`, move all cleanup (stop signal listener, cancel cleanup task, close database) into a `finally` block with None-guards for each resource
 
 **Checkpoint**: Startup failures trigger proper cleanup. Verify: `cd backend && pytest tests/unit/test_main.py -v`
 
@@ -91,8 +91,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T008 [P] [US4] Update `HEALTHCHECK CMD` in `backend/Dockerfile` — replace `python -c "import httpx; httpx.get('http://localhost:8000/api/v1/health')"` with `python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"`
-- [ ] T009 [P] [US4] Update backend healthcheck in `docker-compose.yml` — replace the `httpx` import in the test command with `urllib.request.urlopen`
+- [x] T008 [P] [US4] Update `HEALTHCHECK CMD` in `backend/Dockerfile` — replace `python -c "import httpx; httpx.get('http://localhost:8000/api/v1/health')"` with `python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"`
+- [x] T009 [P] [US4] Update backend healthcheck in `docker-compose.yml` — replace the `httpx` import in the test command with `urllib.request.urlopen`
 
 **Checkpoint**: Docker healthcheck uses stdlib only. Verify: Inspect `Dockerfile` and `docker-compose.yml` for `urllib.request`.
 
@@ -106,8 +106,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T010 [P] [US5] Add `effective_cookie_secure` property to `Settings` class in `backend/src/config.py` — returns `True` if `self.cookie_secure is True` OR `self.frontend_url.startswith("https://")`
-- [ ] T011 [US5] Update `_set_session_cookie()` in `backend/src/api/auth.py` — change `secure=settings.cookie_secure` to `secure=settings.effective_cookie_secure`
+- [x] T010 [P] [US5] Add `effective_cookie_secure` property to `Settings` class in `backend/src/config.py` — returns `True` if `self.cookie_secure is True` OR `self.frontend_url.startswith("https://")`
+- [x] T011 [US5] Update `_set_session_cookie()` in `backend/src/api/auth.py` — change `secure=settings.cookie_secure` to `secure=settings.effective_cookie_secure`
 
 **Checkpoint**: Cookie secure flag auto-detects HTTPS. Verify: `cd backend && pytest tests/unit/test_config.py -v`
 
@@ -121,7 +121,7 @@
 
 ### Implementation for User Story 6
 
-- [ ] T012 [US6] Verify `BoundedDict` in `backend/src/utils.py` already implements `get()`, `pop()`, `keys()`, `values()`, `items()`, `__iter__()`, `clear()`, and `__repr__()` — no code changes needed per research.md R6. Run: `cd backend && pytest tests/unit/test_utils.py -v`
+- [x] T012 [US6] Verify `BoundedDict` in `backend/src/utils.py` already implements `get()`, `pop()`, `keys()`, `values()`, `items()`, `__iter__()`, `clear()`, and `__repr__()` — no code changes needed per research.md R6. Run: `cd backend && pytest tests/unit/test_utils.py -v`
 
 **Checkpoint**: BoundedDict is confirmed complete. No changes required.
 
@@ -135,7 +135,7 @@
 
 ### Implementation for User Story 7
 
-- [ ] T013 [US7] Remove `jsdom` from `devDependencies` in `frontend/package.json` and run `cd frontend && npm install` to update `package-lock.json`
+- [x] T013 [US7] Remove `jsdom` from `devDependencies` in `frontend/package.json` and run `cd frontend && npm install` to update `package-lock.json`
 
 **Checkpoint**: Only `happy-dom` remains as DOM testing library. Verify: `cd frontend && npm test`
 
@@ -149,7 +149,7 @@
 
 ### Implementation for User Story 8
 
-- [ ] T014 [US8] Add `clear_settings_cache()` function to `backend/src/config.py` — delegates to `get_settings.cache_clear()`, placed immediately after the `get_settings()` function definition
+- [x] T014 [US8] Add `clear_settings_cache()` function to `backend/src/config.py` — delegates to `get_settings.cache_clear()`, placed immediately after the `get_settings()` function definition
 
 **Checkpoint**: Cache clearing utility is available. Verify: `cd backend && python -c "from src.config import clear_settings_cache; clear_settings_cache(); print('OK')"`
 
@@ -163,7 +163,7 @@
 
 ### Implementation for User Story 9
 
-- [ ] T015 [US9] Add exponential backoff to `_session_cleanup_loop` in `backend/src/main.py` — add `consecutive_failures = 0` counter, compute sleep as `min(interval * (2 ** consecutive_failures), 300)`, increment on failure, reset to 0 on success
+- [x] T015 [US9] Add exponential backoff to `_session_cleanup_loop` in `backend/src/main.py` — add `consecutive_failures = 0` counter, compute sleep as `min(interval * (2 ** consecutive_failures), 300)`, increment on failure, reset to 0 on success
 
 **Checkpoint**: Cleanup loop backs off on errors. Verify: `cd backend && pytest tests/unit/test_main.py -v`
 
@@ -177,7 +177,7 @@
 
 ### Implementation for User Story 10
 
-- [ ] T016 [US10] Update `env_file` in `Settings.model_config` in `backend/src/config.py` — change from `env_file="../.env"` to `env_file=("../.env", ".env")`
+- [x] T016 [US10] Update `env_file` in `Settings.model_config` in `backend/src/config.py` — change from `env_file="../.env"` to `env_file=("../.env", ".env")`
 
 **Checkpoint**: Env file resolves in both local and Docker contexts. Verify: `cd backend && pytest tests/unit/test_config.py -v`
 
@@ -187,11 +187,11 @@
 
 **Purpose**: Final validation across all user stories.
 
-- [ ] T017 Run full backend test suite: `cd backend && pytest -v`
-- [ ] T018 Run full frontend test suite: `cd frontend && npm test`
-- [ ] T019 Run backend linting: `cd backend && ruff check src tests && ruff format --check src tests`
-- [ ] T020 Run frontend linting: `cd frontend && npm run lint`
-- [ ] T021 Run quickstart.md validation — confirm all file paths and commands are accurate
+- [x] T017 Run full backend test suite: `cd backend && pytest -v`
+- [x] T018 Run full frontend test suite: `cd frontend && npm test`
+- [x] T019 Run backend linting: `cd backend && ruff check src tests && ruff format --check src tests`
+- [x] T020 Run frontend linting: `cd frontend && npm run lint`
+- [x] T021 Run quickstart.md validation — confirm all file paths and commands are accurate
 
 ---
 
