@@ -5,8 +5,6 @@ Covers:
 - GET /api/v1/board/projects/{project_id} → get_board_data
 """
 
-from unittest.mock import patch
-
 from src.models.board import (
     BoardColumn,
     BoardDataResponse,
@@ -80,6 +78,9 @@ class TestListBoardProjects:
         assert data["projects"][0]["name"] == "Test Board"
 
     async def test_uses_cache_on_second_call(self, client, mock_github_service):
+        from src.services.cache import cache
+
+        cache.clear()
         bp = _make_board_project()
         mock_github_service.list_board_projects.return_value = [bp]
 
@@ -87,11 +88,10 @@ class TestListBoardProjects:
         resp1 = await client.get("/api/v1/board/projects")
         assert resp1.status_code == 200
         # Second call — should use cache (service not called again)
-        with patch("src.api.board.cache") as mock_cache:
-            mock_cache.get.return_value = [bp]
-            resp2 = await client.get("/api/v1/board/projects")
-            assert resp2.status_code == 200
-            mock_cache.get.assert_called_once()
+        resp2 = await client.get("/api/v1/board/projects")
+        assert resp2.status_code == 200
+        # Service called only once (first call); second call served from cache
+        mock_github_service.list_board_projects.assert_called_once()
 
     async def test_refresh_bypasses_cache(self, client, mock_github_service):
         bp = _make_board_project()

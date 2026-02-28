@@ -1121,7 +1121,9 @@ async def _transition_after_pipeline_complete(
                 if pr_details and pr_details.get("last_commit", {}).get("sha"):
                     _cp.update_issue_main_branch_sha(issue_number, pr_details["last_commit"]["sha"])
             except Exception:
-                pass
+                logger.debug(
+                    "Failed to refresh main branch SHA for issue #%d", issue_number, exc_info=True
+                )
         else:
             # Try to find and capture the main branch from existing PRs
             logger.info(
@@ -1333,7 +1335,7 @@ async def check_in_progress_issues(
                             results.append(result)
                 continue
 
-            # No active pipeline — use legacy PR completion detection
+            # No active pipeline — use fallback PR completion detection
             result = await process_in_progress_issue(
                 access_token=access_token,
                 project_id=project_id,
@@ -1391,7 +1393,7 @@ async def process_in_progress_issue(
         Result dict if action was taken, None otherwise
     """
     try:
-        # Guard: If an active pipeline exists for this issue, skip legacy
+        # Guard: If an active pipeline exists for this issue, skip fallback
         # processing.  The pipeline-based path in check_in_progress_issues
         # is the authoritative handler.  This guard protects against race
         # conditions (e.g., concurrent poll loops) or callers that bypass
@@ -1400,7 +1402,7 @@ async def process_in_progress_issue(
         if pipeline and not pipeline.is_complete:
             logger.info(
                 "Issue #%d has active pipeline (status='%s', agent='%s') — "
-                "skipping legacy process_in_progress_issue",
+                "skipping fallback process_in_progress_issue",
                 issue_number,
                 pipeline.status,
                 pipeline.current_agent or "none",
@@ -1408,7 +1410,7 @@ async def process_in_progress_issue(
             return None
 
         # Fallback: Check for PR completion without active pipeline
-        # This handles legacy cases or issues without agent pipelines
+        # Fallback: check for PR completion for issues without agent pipelines
         finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
             access_token=access_token,
             owner=owner,
@@ -1480,7 +1482,7 @@ async def process_in_progress_issue(
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
             _system_marked_ready_prs.add(pr_number)
 
-        # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
+        # Step 1.5: Merge child PR into main branch if applicable (fallback handling)
         main_branch_info = _cp.get_issue_main_branch(issue_number)
         if main_branch_info:
             # Retrieve pipeline for sub-issue PR lookup

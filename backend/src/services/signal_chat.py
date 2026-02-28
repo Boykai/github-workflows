@@ -581,7 +581,7 @@ async def _run_ai_pipeline(
                 message_text, github_token=token
             )
         except Exception:
-            pass
+            logger.debug("Failed to detect feature request intent, continuing", exc_info=True)
 
         if is_feature:
             rec = await ai_service.generate_issue_recommendation(

@@ -328,7 +328,7 @@ class ModelFetcherService:
                     try:
                         self._rate_limit_remaining[cache_key] = int(remaining)
                     except (ValueError, TypeError):
-                        pass
+                        logger.debug("Could not parse rate limit remaining value", exc_info=True)
 
             return ModelsResponse(
                 status="success",

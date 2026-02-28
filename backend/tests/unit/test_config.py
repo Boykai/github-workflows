@@ -15,7 +15,6 @@ from src.constants import (
     CACHE_PREFIX_PROJECTS,
     DEFAULT_AGENT_MAPPINGS,
     DEFAULT_STATUS_COLUMNS,
-    NOTIFICATION_EVENT_TYPES,
     SESSION_COOKIE_NAME,
     StatusNames,
     cache_key_agent_output,
@@ -199,10 +198,6 @@ class TestConstants:
     def test_cache_prefixes_are_strings(self):
         assert isinstance(CACHE_PREFIX_PROJECTS, str)
         assert isinstance(CACHE_PREFIX_PROJECT_ITEMS, str)
-
-    def test_notification_event_types(self):
-        assert "task_status_change" in NOTIFICATION_EVENT_TYPES
-        assert len(NOTIFICATION_EVENT_TYPES) == 4
 
     def test_status_names(self):
         assert StatusNames.BACKLOG == "Backlog"

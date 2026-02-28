@@ -52,8 +52,7 @@ async def _check_agent_done_on_sub_or_parent(
     """Check if an agent's Done! marker exists on the parent issue (preferred) or sub-issue.
 
     Done! markers are now posted on the **parent** issue only.  Falls back to
-    the sub-issue for backward compatibility with issues created before this
-    policy change.
+    the sub-issue for issues created before this policy change.
     """
     # Check parent issue first (new canonical location for Done! markers)
     done = await _cp.github_projects_service.check_agent_completion_comment(
@@ -66,7 +65,7 @@ async def _check_agent_done_on_sub_or_parent(
     if done:
         return True
 
-    # Fall back to sub-issue for backward compat (old issues had Done! on sub-issue)
+    # Fall back to sub-issue (old issues had Done! on sub-issue)
     sub_number = _get_sub_issue_number(pipeline, agent_name, parent_issue_number)
     if sub_number != parent_issue_number:
         return await _cp.github_projects_service.check_agent_completion_comment(

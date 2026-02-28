@@ -23,10 +23,10 @@
 
 **Purpose**: Establish baseline state — verify all tests pass and tooling works before any code changes
 
-- [ ] T001 Run full backend test suite (`cd backend && pytest -v`) and record baseline pass count
-- [ ] T002 [P] Run full frontend test suite (`cd frontend && npm test`) and record baseline pass count
-- [ ] T003 [P] Run backend linting baseline (`cd backend && ruff check src/ tests/`) and record zero-violation state
-- [ ] T004 [P] Run frontend linting and type-check baseline (`cd frontend && npm run lint && npm run type-check`) and record zero-violation state
+- [x] T001 Run full backend test suite (`cd backend && pytest -v`) and record baseline pass count
+- [x] T002 [P] Run full frontend test suite (`cd frontend && npm test`) and record baseline pass count
+- [x] T003 [P] Run backend linting baseline (`cd backend && ruff check src/ tests/`) and record zero-violation state
+- [x] T004 [P] Run frontend linting and type-check baseline (`cd frontend && npm run lint && npm run type-check`) and record zero-violation state
 
 ---
 
@@ -48,12 +48,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Evaluate plaintext token fallback in `backend/src/services/encryption.py` — audit database for `gho_` prefix tokens; if zero exist, remove the plaintext fallback branch from the `decrypt()` method (per research.md R1)
-- [ ] T006 [US1] Remove `custom_agent` field deprecation references across backend if fully migrated to `agent_mappings` — search `backend/src/` for `custom_agent` and remove stale references (per research.md R1)
-- [ ] T007 [P] [US1] Update "legacy" comments in `backend/src/services/copilot_polling/pipeline.py` to "fallback" terminology — these paths handle active non-pipeline issue cases and are not backwards compatibility shims (per research.md R1, data-model.md)
-- [ ] T008 [US1] Verify no remaining backwards compatibility patterns by running: `grep -rn "legacy\|backward\|compat\|deprecated" backend/src/ --include="*.py" | grep -v "test_\|\.pyc\|__pycache__"` and reviewing each match (per quickstart.md Story 1 verification)
-- [ ] T009 [US1] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after backwards compatibility removal
-- [ ] T010 [P] [US1] Run backend linting (`cd backend && ruff check src/ tests/`) to confirm zero new violations
+- [x] T005 [US1] Evaluate plaintext token fallback in `backend/src/services/encryption.py` — audit database for `gho_` prefix tokens; if zero exist, remove the plaintext fallback branch from the `decrypt()` method (per research.md R1)
+- [x] T006 [US1] Remove `custom_agent` field deprecation references across backend if fully migrated to `agent_mappings` — search `backend/src/` for `custom_agent` and remove stale references (per research.md R1)
+- [x] T007 [P] [US1] Update "legacy" comments in `backend/src/services/copilot_polling/pipeline.py` to "fallback" terminology — these paths handle active non-pipeline issue cases and are not backwards compatibility shims (per research.md R1, data-model.md)
+- [x] T008 [US1] Verify no remaining backwards compatibility patterns by running: `grep -rn "legacy\|backward\|compat\|deprecated" backend/src/ --include="*.py" | grep -v "test_\|\.pyc\|__pycache__"` and reviewing each match (per quickstart.md Story 1 verification)
+- [x] T009 [US1] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after backwards compatibility removal
+- [x] T010 [P] [US1] Run backend linting (`cd backend && ruff check src/ tests/`) to confirm zero new violations
 
 **Checkpoint**: All backwards compatibility shims removed. Codebase contains only current functionality code. All tests pass.
 
@@ -69,37 +69,37 @@
 
 #### Backend — Silent Exception Handlers (replace `pass` with `logger.debug()`)
 
-- [ ] T011 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/settings.py` (per data-model.md, line ~148)
-- [ ] T012 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/workflow.py` (ImportError handler, per data-model.md, line ~82)
-- [ ] T013 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/copilot_polling/agent_output.py` (per data-model.md, line ~312)
-- [ ] T014 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/copilot_polling/pipeline.py` (per data-model.md, line ~280)
-- [ ] T015 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/signal_chat.py` (per data-model.md, line ~240)
-- [ ] T016 [P] [US2] Replace silent exception handlers with `logger.debug()` in `backend/src/services/ai_agent.py` (json.JSONDecodeError handlers at lines ~550, ~585)
-- [ ] T017 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/model_fetcher.py` (ValueError/TypeError handler at line ~330)
-- [ ] T018 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/workflow_orchestrator/config.py` (per data-model.md, line ~232)
-- [ ] T019 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/chat.py` (RuntimeError handler at line ~286)
+- [x] T011 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/settings.py` (per data-model.md, line ~148)
+- [x] T012 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/workflow.py` (ImportError handler, per data-model.md, line ~82)
+- [x] T013 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/copilot_polling/agent_output.py` (per data-model.md, line ~312)
+- [x] T014 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/copilot_polling/pipeline.py` (per data-model.md, line ~280)
+- [x] T015 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/signal_chat.py` (per data-model.md, line ~240)
+- [x] T016 [P] [US2] Replace silent exception handlers with `logger.debug()` in `backend/src/services/ai_agent.py` (json.JSONDecodeError handlers at lines ~550, ~585)
+- [x] T017 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/model_fetcher.py` (ValueError/TypeError handler at line ~330)
+- [x] T018 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/services/workflow_orchestrator/config.py` (per data-model.md, line ~232)
+- [x] T019 [P] [US2] Replace silent exception handler with `logger.debug()` in `backend/src/api/chat.py` (RuntimeError handler at line ~286)
 
 #### Frontend — Unused Type Exports
 
-- [ ] T020 [P] [US2] Remove unused `IssueLabel` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "IssueLabel" frontend/src/`)
-- [ ] T021 [P] [US2] Remove unused `PipelineStateInfo` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "PipelineStateInfo" frontend/src/`)
-- [ ] T022 [P] [US2] Remove unused `AgentNotification` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "AgentNotification" frontend/src/`)
-- [ ] T023 [P] [US2] Remove unused `SignalConnectionStatus` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalConnectionStatus" frontend/src/`)
-- [ ] T024 [P] [US2] Remove unused `SignalNotificationMode` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalNotificationMode" frontend/src/`)
-- [ ] T025 [P] [US2] Remove unused `SignalLinkStatus` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalLinkStatus" frontend/src/`)
+- [x] T020 [P] [US2] Remove unused `IssueLabel` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "IssueLabel" frontend/src/`)
+- [x] T021 [P] [US2] Remove unused `PipelineStateInfo` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "PipelineStateInfo" frontend/src/`)
+- [x] T022 [P] [US2] Remove unused `AgentNotification` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "AgentNotification" frontend/src/`)
+- [x] T023 [P] [US2] Remove unused `SignalConnectionStatus` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalConnectionStatus" frontend/src/`)
+- [x] T024 [P] [US2] Remove unused `SignalNotificationMode` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalNotificationMode" frontend/src/`)
+- [x] T025 [P] [US2] Remove unused `SignalLinkStatus` type export from `frontend/src/types/index.ts` (verify zero imports with `grep -r "SignalLinkStatus" frontend/src/`)
 
 #### Cross-Stack — Unused Imports, Variables, and Unreachable Branches
 
-- [ ] T026 [US2] Run `ruff check src/ --select F401` in `backend/` and remove all unused imports flagged across `backend/src/`
-- [ ] T027 [P] [US2] Run `ruff check src/ --select F841` in `backend/` and remove all unused variables flagged across `backend/src/`
-- [ ] T028 [P] [US2] Audit `backend/src/constants.py` for stale constants no longer referenced by any module — remove unused entries
-- [ ] T029 [US2] Run frontend build (`cd frontend && npm run build`) and resolve any dead code warnings; run `npm run type-check` to confirm zero type errors after type export removal
+- [x] T026 [US2] Run `ruff check src/ --select F401` in `backend/` and remove all unused imports flagged across `backend/src/`
+- [x] T027 [P] [US2] Run `ruff check src/ --select F841` in `backend/` and remove all unused variables flagged across `backend/src/`
+- [x] T028 [P] [US2] Audit `backend/src/constants.py` for stale constants no longer referenced by any module — remove unused entries
+- [x] T029 [US2] Run frontend build (`cd frontend && npm run build`) and resolve any dead code warnings; run `npm run type-check` to confirm zero type errors after type export removal
 
 #### Verification
 
-- [ ] T030 [US2] Verify silent exception handlers replaced: `grep -rn "except.*:$" backend/src/ --include="*.py" -A1 | grep "pass$"` should return zero matches (per quickstart.md Story 2 verification)
-- [ ] T031 [US2] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions
-- [ ] T032 [P] [US2] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions
+- [x] T030 [US2] Verify silent exception handlers replaced: `grep -rn "except.*:$" backend/src/ --include="*.py" -A1 | grep "pass$"` should return zero matches (per quickstart.md Story 2 verification)
+- [x] T031 [US2] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions
+- [x] T032 [P] [US2] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions
 
 **Checkpoint**: All dead code eliminated. Every line of code serves a purpose. Static analysis passes clean. All tests pass.
 
@@ -115,21 +115,21 @@
 
 #### Backend — Cache Pattern Consolidation
 
-- [ ] T033 [US3] Create `cached_response()` async utility function in `backend/src/services/cache.py` following the pattern in research.md R4: accept `cache_key`, `refresh`, `fetch_fn`, `logger`, and `description` parameters
-- [ ] T034 [US3] Refactor cache patterns in `backend/src/api/board.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
-- [ ] T035 [P] [US3] Refactor cache patterns in `backend/src/api/projects.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
-- [ ] T036 [P] [US3] Refactor cache patterns in `backend/src/api/chat.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
+- [x] T033 [US3] Create `cached_response()` async utility function in `backend/src/services/cache.py` following the pattern in research.md R4: accept `cache_key`, `refresh`, `fetch_fn`, `logger`, and `description` parameters
+- [x] T034 [US3] Refactor cache patterns in `backend/src/api/board.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
+- [x] T035 [P] [US3] Refactor cache patterns in `backend/src/api/projects.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
+- [x] T036 [P] [US3] Refactor cache patterns in `backend/src/api/chat.py` to use the new `cached_response()` utility from `backend/src/services/cache.py`
 
 #### Frontend — Hook Deduplication
 
-- [ ] T037 [US3] Extract `hasAgentOrderChanged()` helper function in `frontend/src/hooks/useAgentConfig.ts` to consolidate the duplicated agent order comparison logic (lines ~108-120 vs ~122-133, per research.md R5)
-- [ ] T038 [US3] Refactor dirty-checking logic in `frontend/src/hooks/useAgentConfig.ts` to use the extracted `hasAgentOrderChanged()` helper
+- [x] T037 [US3] Extract `hasAgentOrderChanged()` helper function in `frontend/src/hooks/useAgentConfig.ts` to consolidate the duplicated agent order comparison logic (lines ~108-120 vs ~122-133, per research.md R5)
+- [x] T038 [US3] Refactor dirty-checking logic in `frontend/src/hooks/useAgentConfig.ts` to use the extracted `hasAgentOrderChanged()` helper
 
 #### Verification
 
-- [ ] T039 [US3] Verify cache pattern consolidation: `grep -rn "cache.get\|cache.set" backend/src/api/ --include="*.py"` should show reduced direct cache calls (per quickstart.md Story 3 verification)
-- [ ] T040 [US3] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after cache consolidation
-- [ ] T041 [P] [US3] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions after hook deduplication
+- [x] T039 [US3] Verify cache pattern consolidation: `grep -rn "cache.get\|cache.set" backend/src/api/ --include="*.py"` should show reduced direct cache calls (per quickstart.md Story 3 verification)
+- [x] T040 [US3] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after cache consolidation
+- [x] T041 [P] [US3] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions after hook deduplication
 
 **Checkpoint**: All identified duplication consolidated. Each pattern exists in exactly one shared location. All tests pass.
 
@@ -143,12 +143,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] If plaintext fallback was removed in T005, remove `test_legacy_plaintext_fallback_on_decrypt` test from `backend/tests/unit/test_token_encryption.py` with documented rationale (per research.md R6)
-- [ ] T043 [US4] Audit all backend tests (`backend/tests/`) for tests referencing removed code, deprecated behavior, or `custom_agent` field — remove stale tests with documented rationale per research.md R6 criteria
-- [ ] T044 [P] [US4] Audit all frontend tests for tests referencing removed types (`IssueLabel`, `PipelineStateInfo`, `AgentNotification`, `SignalConnectionStatus`, `SignalNotificationMode`, `SignalLinkStatus`) or removed code — remove stale tests with documented rationale
-- [ ] T045 [US4] Scan for perpetually skipped or disabled tests: `grep -rn "skip\|xfail\|@pytest.mark.skip\|xit\|xdescribe\|test.skip\|test.todo" backend/tests/ frontend/src/` — review each and either fix/re-enable or remove with documented rationale
-- [ ] T046 [US4] Run full backend test suite (`cd backend && pytest -v`) to confirm all remaining tests pass cleanly
-- [ ] T047 [P] [US4] Run full frontend test suite (`cd frontend && npm test`) to confirm all remaining tests pass cleanly
+- [x] T042 [US4] If plaintext fallback was removed in T005, remove `test_legacy_plaintext_fallback_on_decrypt` test from `backend/tests/unit/test_token_encryption.py` with documented rationale (per research.md R6)
+- [x] T043 [US4] Audit all backend tests (`backend/tests/`) for tests referencing removed code, deprecated behavior, or `custom_agent` field — remove stale tests with documented rationale per research.md R6 criteria
+- [x] T044 [P] [US4] Audit all frontend tests for tests referencing removed types (`IssueLabel`, `PipelineStateInfo`, `AgentNotification`, `SignalConnectionStatus`, `SignalNotificationMode`, `SignalLinkStatus`) or removed code — remove stale tests with documented rationale
+- [x] T045 [US4] Scan for perpetually skipped or disabled tests: `grep -rn "skip\|xfail\|@pytest.mark.skip\|xit\|xdescribe\|test.skip\|test.todo" backend/tests/ frontend/src/` — review each and either fix/re-enable or remove with documented rationale
+- [x] T046 [US4] Run full backend test suite (`cd backend && pytest -v`) to confirm all remaining tests pass cleanly
+- [x] T047 [P] [US4] Run full frontend test suite (`cd frontend && npm test`) to confirm all remaining tests pass cleanly
 
 **Checkpoint**: Test suite is clean — every test validates current behavior. Zero stale tests remain. All tests pass.
 
@@ -162,12 +162,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T048 [P] [US5] Audit and update stale inline comments in `backend/src/` that reference removed code, old patterns, or outdated behavior — update or remove each (FR-012)
-- [ ] T049 [P] [US5] Audit and update stale inline comments in `frontend/src/` that reference removed code, old patterns, or outdated behavior — update or remove each (FR-012)
-- [ ] T050 [US5] Run backend linting and formatting checks: `cd backend && ruff check src/ tests/ && ruff format --check src/ tests/` — fix any violations found (FR-011)
-- [ ] T051 [P] [US5] Run frontend linting and type-check: `cd frontend && npm run lint && npm run type-check` — fix any violations found (FR-011)
-- [ ] T052 [US5] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after best practice changes
-- [ ] T053 [P] [US5] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions after best practice changes
+- [x] T048 [P] [US5] Audit and update stale inline comments in `backend/src/` that reference removed code, old patterns, or outdated behavior — update or remove each (FR-012)
+- [x] T049 [P] [US5] Audit and update stale inline comments in `frontend/src/` that reference removed code, old patterns, or outdated behavior — update or remove each (FR-012)
+- [x] T050 [US5] Run backend linting and formatting checks: `cd backend && ruff check src/ tests/ && ruff format --check src/ tests/` — fix any violations found (FR-011)
+- [x] T051 [P] [US5] Run frontend linting and type-check: `cd frontend && npm run lint && npm run type-check` — fix any violations found (FR-011)
+- [x] T052 [US5] Run full backend test suite (`cd backend && pytest -v`) to confirm zero regressions after best practice changes
+- [x] T053 [P] [US5] Run full frontend test suite (`cd frontend && npm test`) to confirm zero regressions after best practice changes
 
 **Checkpoint**: Codebase follows current best practices. All linting, formatting, and type checks pass clean. All comments are accurate.
 
@@ -177,10 +177,10 @@
 
 **Purpose**: Final validation across all user stories and documentation cleanup
 
-- [ ] T054 [P] Measure LOC reduction: compare `wc -l` across `backend/src/` and `frontend/src/` before and after cleanup to confirm measurable reduction (SC-008)
-- [ ] T055 Run quickstart.md full verification checklist (all commands from quickstart.md Verification Commands section) to confirm end-to-end regression-free state
-- [ ] T056 [P] Update `specs/010-codebase-cleanup-refactor/` documentation if any implementation decisions deviated from the plan
-- [ ] T057 Final full test run: `cd backend && pytest -v` and `cd frontend && npm test` — all tests must pass with zero failures (SC-005)
+- [x] T054 [P] Measure LOC reduction: compare `wc -l` across `backend/src/` and `frontend/src/` before and after cleanup to confirm measurable reduction (SC-008)
+- [x] T055 Run quickstart.md full verification checklist (all commands from quickstart.md Verification Commands section) to confirm end-to-end regression-free state
+- [x] T056 [P] Update `specs/010-codebase-cleanup-refactor/` documentation if any implementation decisions deviated from the plan
+- [x] T057 Final full test run: `cd backend && pytest -v` and `cd frontend && npm test` — all tests must pass with zero failures (SC-005)
 
 ---
 

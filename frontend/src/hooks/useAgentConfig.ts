@@ -41,6 +41,15 @@ interface UseAgentConfigReturn {
   loadConfig: () => Promise<void>;
 }
 
+/** Compare two agent lists by slug to detect ordering/membership changes. */
+function hasAgentOrderChanged(
+  serverAgents: AgentAssignment[],
+  localAgents: AgentAssignment[]
+): boolean {
+  if (serverAgents.length !== localAgents.length) return true;
+  return serverAgents.some((agent, i) => agent.slug !== localAgents[i].slug);
+}
+
 export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn {
   const { updateConfig } = useWorkflow();
   const queryClient = useQueryClient();
@@ -109,25 +118,17 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     const server = serverMappingsRef.current;
     const statuses = new Set([...Object.keys(server), ...Object.keys(localMappings)]);
     for (const status of statuses) {
-      const serverAgents = server[status] ?? [];
-      const localAgents = localMappings[status] ?? [];
-      if (serverAgents.length !== localAgents.length) return true;
-      for (let i = 0; i < serverAgents.length; i++) {
-        if (serverAgents[i].slug !== localAgents[i].slug) return true;
-      }
+      if (hasAgentOrderChanged(server[status] ?? [], localMappings[status] ?? [])) return true;
     }
     return false;
   }, [localMappings]);
 
   const isColumnDirty = useCallback(
     (status: string): boolean => {
-      const serverAgents = serverMappingsRef.current[status] ?? [];
-      const localAgents = localMappings[status] ?? [];
-      if (serverAgents.length !== localAgents.length) return true;
-      for (let i = 0; i < serverAgents.length; i++) {
-        if (serverAgents[i].slug !== localAgents[i].slug) return true;
-      }
-      return false;
+      return hasAgentOrderChanged(
+        serverMappingsRef.current[status] ?? [],
+        localMappings[status] ?? []
+      );
     },
     [localMappings]
   );
