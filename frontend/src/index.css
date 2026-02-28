@@ -4,6 +4,12 @@
 
 @layer base {
   :root {
+    /* iOS safe area insets (FR-003) */
+    --safe-area-top: env(safe-area-inset-top);
+    --safe-area-bottom: env(safe-area-inset-bottom);
+    --safe-area-left: env(safe-area-inset-left);
+    --safe-area-right: env(safe-area-inset-right);
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -83,5 +89,58 @@
   select option {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+  /* Dynamic Type font scaling support (FR-010) */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Minimum 44×44pt touch target for iOS accessibility (FR-008) */
+.ios-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* iOS push/pop navigation transition animations (FR-005) */
+.ios-slide-in {
+  animation: ios-slide-in-right 0.3s ease-out;
+}
+
+.ios-slide-out {
+  animation: ios-slide-out-right 0.3s ease-in;
+}
+
+@keyframes ios-slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ios-slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Respect prefers-reduced-motion accessibility setting (FR-014) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

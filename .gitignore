@@ -68,6 +68,17 @@ backend/<MagicMock *
 *.db-wal
 *.db-shm
 
+# iOS / Capacitor
+frontend/ios/App/Pods/
+frontend/ios/App/App/public/
+frontend/ios/App/output/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
 # Misc
 *.tmp
 *.bak

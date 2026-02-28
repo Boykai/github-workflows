@@ -13,6 +13,9 @@ import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { Button } from '@/components/ui/button';
+import { SafeAreaWrapper } from '@/components/ios/SafeAreaWrapper';
+import { useIOSLifecycle } from '@/hooks/useIOSLifecycle';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 /** Dismissible Signal conflict banner bar (FR-015). */
 function SignalBannerBar() {
@@ -65,6 +68,12 @@ function AppContent() {
 
   const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>(getViewFromHash);
 
+  // iOS lifecycle state preservation (FR-006, FR-013)
+  useIOSLifecycle(activeView);
+
+  // iOS push notification registration (FR-007)
+  usePushNotifications();
+
   // Keep URL hash in sync when view changes
   const changeView = (view: 'chat' | 'board' | 'settings') => {
     setActiveView(view);
@@ -110,6 +119,7 @@ function AppContent() {
   }
 
   return (
+    <SafeAreaWrapper>
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="flex items-center justify-between px-6 py-3 bg-background border-b border-border">
         <div className="flex items-center gap-6">
@@ -119,6 +129,7 @@ function AppContent() {
               variant={activeView === 'chat' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => changeView('chat')}
+              className="ios-touch-target"
             >
               Home
             </Button>
@@ -126,6 +137,7 @@ function AppContent() {
               variant={activeView === 'board' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => changeView('board')}
+              className="ios-touch-target"
             >
               Project Board
             </Button>
@@ -133,6 +145,7 @@ function AppContent() {
               variant={activeView === 'settings' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => changeView('settings')}
+              className="ios-touch-target"
             >
               Settings
             </Button>
@@ -144,6 +157,7 @@ function AppContent() {
             size="icon"
             onClick={toggleTheme}
             aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="ios-touch-target"
           >
             {isDarkMode ? '☀️' : '🌙'}
           </Button>
@@ -168,6 +182,7 @@ function AppContent() {
             <Button 
               size="lg"
               onClick={() => changeView('board')}
+              className="ios-touch-target"
             >
               Get Started
             </Button>
@@ -175,6 +190,7 @@ function AppContent() {
         )}
       </main>
     </div>
+    </SafeAreaWrapper>
   );
 }
 
