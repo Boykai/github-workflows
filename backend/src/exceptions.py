@@ -59,3 +59,17 @@ class RateLimitError(AppException):
     def __init__(self, message: str = "Rate limit exceeded", retry_after: int = 60):
         super().__init__(message, status_code=status.HTTP_429_TOO_MANY_REQUESTS)
         self.retry_after = retry_after
+
+
+class McpValidationError(AppException):
+    """MCP configuration validation failed (e.g. SSRF, invalid URL)."""
+
+    def __init__(self, message: str):
+        super().__init__(message, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+class McpLimitExceededError(AppException):
+    """User has reached the maximum number of MCP configurations."""
+
+    def __init__(self, message: str):
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT)

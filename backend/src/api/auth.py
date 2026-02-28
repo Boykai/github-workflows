@@ -15,6 +15,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _set_session_cookie(response: Response, session_id: str) -> None:
+    """Set the session cookie with secure defaults on *response*.
+
+    Centralises cookie-flag configuration so that every endpoint that
+    issues a session cookie uses identical settings.
+    """
+    from src.config import get_settings
+
+    settings = get_settings()
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_id,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+        max_age=settings.cookie_max_age,
+        path="/",
+    )
+
+
 async def get_current_session(
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserSession:
@@ -78,15 +98,7 @@ async def github_callback(
             url=redirect_url,
             status_code=status.HTTP_302_FOUND,
         )
-        redirect.set_cookie(
-            key=SESSION_COOKIE_NAME,
-            value=str(session.session_id),
-            httponly=True,
-            secure=settings.cookie_secure,
-            samesite="lax",
-            max_age=settings.cookie_max_age,
-            path="/",
-        )
+        _set_session_cookie(redirect, str(session.session_id))
 
         logger.info(
             "Created session for user: %s, redirecting to frontend",
@@ -95,10 +107,10 @@ async def github_callback(
         return redirect
 
     except ValueError as e:
-        logger.error("OAuth error: %s", e)
+        logger.warning("OAuth token exchange failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Authentication failed",
         ) from e
     except Exception as e:
         logger.exception("Failed to create session: %s", e)
@@ -127,18 +139,7 @@ async def set_session_cookie(
         )
 
     # Set the session cookie
-    from src.config import get_settings
-
-    _settings = get_settings()
-    response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=str(session.session_id),
-        httponly=True,
-        secure=_settings.cookie_secure,
-        samesite="lax",
-        max_age=_settings.cookie_max_age,
-        path="/",
-    )
+    _set_session_cookie(response, str(session.session_id))
 
     logger.info("Set session cookie for user: %s", session.github_username)
     return UserResponse.from_session(session)
@@ -190,22 +191,14 @@ async def dev_login(
         session = await github_auth_service.create_session_from_token(github_token)
 
         # Set the session cookie
-        response.set_cookie(
-            key=SESSION_COOKIE_NAME,
-            value=str(session.session_id),
-            httponly=True,
-            secure=settings.cookie_secure,
-            samesite="lax",
-            max_age=settings.cookie_max_age,
-            path="/",
-        )
+        _set_session_cookie(response, str(session.session_id))
 
         logger.info("Dev login successful for user: %s", session.github_username)
         return UserResponse.from_session(session)
 
     except Exception as e:
-        logger.error("Dev login failed: %s", e)
+        logger.warning("Dev login failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid GitHub token: {e}",
+            detail="Authentication failed",
         ) from e
