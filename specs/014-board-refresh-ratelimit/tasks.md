@@ -47,7 +47,7 @@
 
 **Goal**: A clearly visible refresh button on the project board that triggers an immediate data reload from GitHub, with a tooltip indicating auto-refresh frequency and a spinner during refresh.
 
-**Independent Test**: Click the refresh button on the project board, verify the displayed data updates and a spinner shows during the operation. Hover over the button and verify tooltip "Auto-refreshes every 5 minutes" appears. Click rapidly 5 times and verify only 1 API call is made.
+**Independent Test**: Click the refresh button on the project board, verify the displayed data updates and a spinner shows during the operation. Hover over the button and verify tooltip "Auto-refreshes every 5 minutes" appears. Click rapidly 5 times within 1 second and verify that at most 1 refresh operation executes (concurrent requests are deduplicated).
 
 ### Implementation for User Story 1
 
@@ -64,7 +64,7 @@
 
 **Goal**: The board automatically refreshes every 5 minutes in the background, pauses when the tab is hidden, resumes with an immediate refresh when the tab becomes visible (if data is stale), and resets the timer on manual refresh or WebSocket events.
 
-**Independent Test**: Open the project board, wait 5+ minutes without interaction, verify data refreshes automatically. Switch to another tab for 6+ minutes, switch back, verify an immediate refresh occurs. Manually refresh and verify the 5-minute countdown resets.
+**Independent Test**: Open the project board, wait at least 5 minutes (one full AUTO_REFRESH_INTERVAL_MS cycle) without interaction, verify data refreshes automatically. Switch to another tab, wait until data is older than 5 minutes, switch back, verify an immediate refresh occurs upon tab becoming visible. Manually refresh and verify the 5-minute countdown resets from that point.
 
 ### Implementation for User Story 2
 
