@@ -51,7 +51,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleBackdropClick}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleBackdropClick} role="presentation">
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4" role="dialog" aria-modal="true" aria-label={item.title}>
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

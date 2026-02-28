@@ -136,7 +136,11 @@ export function ChatPopup({
           onMouseDown={onResizeStart}
           className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-10 max-sm:hidden"
           aria-label="Resize chat"
-          role="separator"
+          role="slider"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={50}
+          tabIndex={0}
         >
           <svg
             viewBox="0 0 16 16"
