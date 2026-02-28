@@ -23,10 +23,10 @@
 
 **Purpose**: Establish baseline understanding and audit context before making any changes
 
-- [ ] T001 Review current CI workflow configuration in .github/workflows/ci.yml and document all third-party action references, trigger patterns, and permission state
-- [ ] T002 [P] Run backend dependency audit against backend/pyproject.toml and record all findings
-- [ ] T003 [P] Run frontend dependency audit against frontend/package.json and frontend/package-lock.json and record all findings
-- [ ] T004 [P] Scan entire repository for hardcoded secrets, credentials, API keys, and tokens across all source, config, and workflow files
+- [X] T001 Review current CI workflow configuration in .github/workflows/ci.yml and document all third-party action references, trigger patterns, and permission state
+- [X] T002 [P] Run backend dependency audit against backend/pyproject.toml and record all findings
+- [X] T003 [P] Run frontend dependency audit against frontend/package.json and frontend/package-lock.json and record all findings
+- [X] T004 [P] Scan entire repository for hardcoded secrets, credentials, API keys, and tokens across all source, config, and workflow files
 
 ---
 
@@ -48,15 +48,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Pin actions/checkout from @v4 to full commit SHA in .github/workflows/ci.yml (backend, frontend, and docker job steps)
-- [ ] T006 [US1] Pin actions/setup-python from @v5 to full commit SHA in .github/workflows/ci.yml
-- [ ] T007 [US1] Pin actions/setup-node from @v4 to full commit SHA in .github/workflows/ci.yml
-- [ ] T008 [US1] Add top-level `permissions: {}` block (deny-all default) to .github/workflows/ci.yml
-- [ ] T009 [US1] Add job-level `permissions: { contents: read }` to the backend job in .github/workflows/ci.yml
-- [ ] T010 [US1] Add job-level `permissions: { contents: read }` to the frontend job in .github/workflows/ci.yml
-- [ ] T011 [US1] Add job-level `permissions: { contents: read }` to the docker job in .github/workflows/ci.yml
-- [ ] T012 [US1] Add inline comments with human-readable version tags next to each SHA-pinned action reference in .github/workflows/ci.yml
-- [ ] T013 [US1] Verify no insecure trigger patterns (pull_request_target with head checkout) exist in .github/workflows/ci.yml
+- [X] T005 [US1] Pin actions/checkout from @v4 to full commit SHA in .github/workflows/ci.yml (backend, frontend, and docker job steps)
+- [X] T006 [US1] Pin actions/setup-python from @v5 to full commit SHA in .github/workflows/ci.yml
+- [X] T007 [US1] Pin actions/setup-node from @v4 to full commit SHA in .github/workflows/ci.yml
+- [X] T008 [US1] Add top-level `permissions: {}` block (deny-all default) to .github/workflows/ci.yml
+- [X] T009 [US1] Add job-level `permissions: { contents: read }` to the backend job in .github/workflows/ci.yml
+- [X] T010 [US1] Add job-level `permissions: { contents: read }` to the frontend job in .github/workflows/ci.yml
+- [X] T011 [US1] Add job-level `permissions: { contents: read }` to the docker job in .github/workflows/ci.yml
+- [X] T012 [US1] Add inline comments with human-readable version tags next to each SHA-pinned action reference in .github/workflows/ci.yml
+- [X] T013 [US1] Verify no insecure trigger patterns (pull_request_target with head checkout) exist in .github/workflows/ci.yml
 
 **Checkpoint**: CI workflow is fully hardened — all actions SHA-pinned, permissions least-privilege, no insecure triggers
 
@@ -70,12 +70,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Verify .env and .env.local are excluded via .gitignore
-- [ ] T015 [P] [US2] Verify .env.example contains only placeholder values with descriptive comments in .env.example
-- [ ] T016 [P] [US2] Verify docker-compose.yml uses ${VAR_NAME} substitution for all sensitive values in docker-compose.yml
-- [ ] T017 [P] [US2] Verify backend config loads all secrets from environment variables via pydantic-settings in backend/src/config.py
-- [ ] T018 [P] [US2] Verify test fixtures use only dummy/mock values in backend/tests/
-- [ ] T019 [US2] Document secrets management audit results as findings in the security findings report
+- [X] T014 [P] [US2] Verify .env and .env.local are excluded via .gitignore
+- [X] T015 [P] [US2] Verify .env.example contains only placeholder values with descriptive comments in .env.example
+- [X] T016 [P] [US2] Verify docker-compose.yml uses ${VAR_NAME} substitution for all sensitive values in docker-compose.yml
+- [X] T017 [P] [US2] Verify backend config loads all secrets from environment variables via pydantic-settings in backend/src/config.py
+- [X] T018 [P] [US2] Verify test fixtures use only dummy/mock values in backend/tests/
+- [X] T019 [US2] Document secrets management audit results as findings in the security findings report
 
 **Checkpoint**: Secrets audit complete — zero real credentials in codebase confirmed and documented
 
@@ -89,13 +89,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] Run pip-audit or equivalent against backend/pyproject.toml and document all critical/high findings
-- [ ] T021 [P] [US3] Run npm audit against frontend/package-lock.json and document all critical/high findings
-- [ ] T022 [US3] Update backend dependencies in backend/pyproject.toml to remediate any critical or high-severity CVEs found
-- [ ] T023 [US3] Update frontend dependencies in frontend/package.json and regenerate frontend/package-lock.json to remediate any critical or high-severity advisories found
-- [ ] T024 [US3] Verify all existing backend tests pass after dependency updates
-- [ ] T025 [US3] Verify all existing frontend tests pass after dependency updates
-- [ ] T026 [US3] Document all dependency findings and remediations (or accepted risks) in the security findings report
+- [X] T020 [P] [US3] Run pip-audit or equivalent against backend/pyproject.toml and document all critical/high findings
+- [X] T021 [P] [US3] Run npm audit against frontend/package-lock.json and document all critical/high findings
+- [X] T022 [US3] Update backend dependencies in backend/pyproject.toml to remediate any critical or high-severity CVEs found
+- [X] T023 [US3] Update frontend dependencies in frontend/package.json and regenerate frontend/package-lock.json to remediate any critical or high-severity advisories found
+- [X] T024 [US3] Verify all existing backend tests pass after dependency updates
+- [X] T025 [US3] Verify all existing frontend tests pass after dependency updates
+- [X] T026 [US3] Document all dependency findings and remediations (or accepted risks) in the security findings report
 
 **Checkpoint**: Dependency trees clean — zero critical/high CVEs remain (or accepted risks documented)
 
@@ -109,11 +109,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [P] [US4] Review and verify OAuth state parameter validation (secrets.token_urlsafe, TTL, single-use pop, bounded dict) in backend/src/services/github_auth.py
-- [ ] T028 [P] [US4] Review and verify session cookie flags (HttpOnly, SameSite=lax, configurable Secure, max_age) in backend/src/api/auth.py
-- [ ] T029 [P] [US4] Review and verify admin authorization enforcement via require_admin() dependency in backend/src/dependencies.py
-- [ ] T030 [P] [US4] Review and verify EncryptionService startup warning when ENCRYPTION_KEY is not configured in backend/src/services/encryption.py
-- [ ] T031 [US4] Document authentication and authorization audit findings in the security findings report
+- [X] T027 [P] [US4] Review and verify OAuth state parameter validation (secrets.token_urlsafe, TTL, single-use pop, bounded dict) in backend/src/services/github_auth.py
+- [X] T028 [P] [US4] Review and verify session cookie flags (HttpOnly, SameSite=lax, configurable Secure, max_age) in backend/src/api/auth.py
+- [X] T029 [P] [US4] Review and verify admin authorization enforcement via require_admin() dependency in backend/src/dependencies.py
+- [X] T030 [P] [US4] Review and verify EncryptionService startup warning when ENCRYPTION_KEY is not configured in backend/src/services/encryption.py
+- [X] T031 [US4] Document authentication and authorization audit findings in the security findings report
 
 **Checkpoint**: Auth hardening verified — all controls confirmed operational and documented
 
@@ -127,13 +127,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T032 [US5] Replace `detail=str(e)` with generic "Authentication failed" message in the OAuth callback error handler in backend/src/api/auth.py and log original exception at WARNING level
-- [ ] T033 [US5] Replace `detail=f"Invalid GitHub token: {e}"` with generic "Authentication failed" message in the dev-login error handler in backend/src/api/auth.py and log original exception at WARNING level
-- [ ] T034 [P] [US5] Review generic exception handler in backend/src/main.py to confirm it returns "Internal server error" without leaking details
-- [ ] T035 [P] [US5] Review backend logging patterns to confirm %s formatting is used (no f-strings with user data) and no credentials appear in logs across backend/src/
-- [ ] T036 [P] [US5] Verify React frontend does not use dangerouslySetInnerHTML or other XSS vectors across frontend/src/
-- [ ] T037 [P] [US5] Verify backend uses parameterized SQL queries (no string concatenation) across backend/src/
-- [ ] T038 [US5] Document input validation and data exposure findings in the security findings report
+- [X] T032 [US5] Replace `detail=str(e)` with generic "Authentication failed" message in the OAuth callback error handler in backend/src/api/auth.py and log original exception at WARNING level
+- [X] T033 [US5] Replace `detail=f"Invalid GitHub token: {e}"` with generic "Authentication failed" message in the dev-login error handler in backend/src/api/auth.py and log original exception at WARNING level
+- [X] T034 [P] [US5] Review generic exception handler in backend/src/main.py to confirm it returns "Internal server error" without leaking details
+- [X] T035 [P] [US5] Review backend logging patterns to confirm %s formatting is used (no f-strings with user data) and no credentials appear in logs across backend/src/
+- [X] T036 [P] [US5] Verify React frontend does not use dangerouslySetInnerHTML or other XSS vectors across frontend/src/
+- [X] T037 [P] [US5] Verify backend uses parameterized SQL queries (no string concatenation) across backend/src/
+- [X] T038 [US5] Document input validation and data exposure findings in the security findings report
 
 **Checkpoint**: Error responses sanitized, input validation confirmed, no data leakage in logs
 
@@ -147,11 +147,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T039 [US6] Extract duplicated cookie-setting logic from OAuth login and dev-login endpoints into a shared helper function in backend/src/api/auth.py
-- [ ] T040 [US6] Update the OAuth login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
-- [ ] T041 [US6] Update the dev-login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
-- [ ] T042 [US6] Verify all existing tests pass after cookie helper refactor
-- [ ] T043 [US6] Document security logic consolidation findings in the security findings report
+- [X] T039 [US6] Extract duplicated cookie-setting logic from OAuth login and dev-login endpoints into a shared helper function in backend/src/api/auth.py
+- [X] T040 [US6] Update the OAuth login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
+- [X] T041 [US6] Update the dev-login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
+- [X] T042 [US6] Verify all existing tests pass after cookie helper refactor
+- [X] T043 [US6] Document security logic consolidation findings in the security findings report
 
 **Checkpoint**: Duplicated security logic consolidated — each security concern has one canonical implementation
 
@@ -165,14 +165,14 @@
 
 ### Implementation for User Story 7
 
-- [ ] T044 [US7] Create security findings report at specs/012-deep-security-review/security-findings-report.md with header, methodology section, and severity classification system
-- [ ] T045 [US7] Document all GitHub Actions workflow findings (SHA pinning, permissions, triggers) with SEC-### IDs and severity ratings in specs/012-deep-security-review/security-findings-report.md
-- [ ] T046 [P] [US7] Document all secrets management findings in specs/012-deep-security-review/security-findings-report.md
-- [ ] T047 [P] [US7] Document all dependency vulnerability findings in specs/012-deep-security-review/security-findings-report.md
-- [ ] T048 [P] [US7] Document all authentication and authorization findings in specs/012-deep-security-review/security-findings-report.md
-- [ ] T049 [P] [US7] Document all input validation and data exposure findings in specs/012-deep-security-review/security-findings-report.md
-- [ ] T050 [US7] Add summary table with total counts by severity, remediation status breakdown, and accepted risk justifications in specs/012-deep-security-review/security-findings-report.md
-- [ ] T051 [US7] Add recommendations section for future enhancements (rate limiting, git secrets scanning in CI, Dependabot for SHA updates) in specs/012-deep-security-review/security-findings-report.md
+- [X] T044 [US7] Create security findings report at specs/012-deep-security-review/security-findings-report.md with header, methodology section, and severity classification system
+- [X] T045 [US7] Document all GitHub Actions workflow findings (SHA pinning, permissions, triggers) with SEC-### IDs and severity ratings in specs/012-deep-security-review/security-findings-report.md
+- [X] T046 [P] [US7] Document all secrets management findings in specs/012-deep-security-review/security-findings-report.md
+- [X] T047 [P] [US7] Document all dependency vulnerability findings in specs/012-deep-security-review/security-findings-report.md
+- [X] T048 [P] [US7] Document all authentication and authorization findings in specs/012-deep-security-review/security-findings-report.md
+- [X] T049 [P] [US7] Document all input validation and data exposure findings in specs/012-deep-security-review/security-findings-report.md
+- [X] T050 [US7] Add summary table with total counts by severity, remediation status breakdown, and accepted risk justifications in specs/012-deep-security-review/security-findings-report.md
+- [X] T051 [US7] Add recommendations section for future enhancements (rate limiting, git secrets scanning in CI, Dependabot for SHA updates) in specs/012-deep-security-review/security-findings-report.md
 
 **Checkpoint**: Security findings report complete — all findings documented, categorized, and actionable
 
@@ -182,13 +182,13 @@
 
 **Purpose**: Final validation across all user stories and cleanup
 
-- [ ] T052 Run all existing backend tests (pytest) to confirm zero regressions after all security changes
-- [ ] T053 Run all existing frontend tests (npm test) to confirm zero regressions after all security changes
-- [ ] T054 Run backend linting (ruff check, ruff format --check, pyright) to confirm code quality after changes
-- [ ] T055 Run frontend linting (npm run lint, npm run type-check) to confirm code quality after changes
-- [ ] T056 Run frontend build (npm run build) to confirm build succeeds after changes
-- [ ] T057 Run quickstart.md validation steps to confirm all verification commands pass
-- [ ] T058 Final review of security findings report for completeness and accuracy
+- [X] T052 Run all existing backend tests (pytest) to confirm zero regressions after all security changes
+- [X] T053 Run all existing frontend tests (npm test) to confirm zero regressions after all security changes
+- [X] T054 Run backend linting (ruff check, ruff format --check, pyright) to confirm code quality after changes
+- [X] T055 Run frontend linting (npm run lint, npm run type-check) to confirm code quality after changes
+- [X] T056 Run frontend build (npm run build) to confirm build succeeds after changes
+- [X] T057 Run quickstart.md validation steps to confirm all verification commands pass
+- [X] T058 Final review of security findings report for completeness and accuracy
 
 ---
 
