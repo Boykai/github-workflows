@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
+import pytest
+
 from src.api.workflow import _check_duplicate, _get_repository_info, _recent_requests
 from src.models.chat import (
     IssueRecommendation,
@@ -726,3 +728,169 @@ class TestStopPollingRunning:
         assert resp.status_code == 200
         assert "stopped" in resp.json()["message"].lower()
         mock_stop.assert_called_once()
+
+
+# ── Preserve full description tests ─────────────────────────────────────────
+
+
+class TestConfirmRecommendationPreservesFullDescription:
+    """T007, T011, T015, T017, T022: Verify confirm_recommendation preserves full descriptions."""
+
+    async def test_full_body_passed_via_format_issue_body(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T007: confirm_recommendation via format_issue_body passes full body unchanged."""
+        mock_session.selected_project_id = TEST_PROJECT_ID
+        long_story = "Z" * 5_000
+        rec = _recommendation(
+            session_id=mock_session.session_id,
+            user_story=long_story,
+        )
+        rec_id = str(rec.recommendation_id)
+
+        mock_github_service.get_project_repository.return_value = ("testowner", "testrepo")
+
+        wf_result = WorkflowResult(
+            success=True,
+            issue_id="I_100",
+            issue_number=100,
+            issue_url="https://github.com/testowner/testrepo/issues/100",
+            project_item_id="PVTI_100",
+            current_status="Backlog",
+            message="Created issue #100",
+        )
+        mock_orchestrator = AsyncMock()
+        mock_orchestrator.execute_full_workflow.return_value = wf_result
+
+        with (
+            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch(f"{WF}._recent_requests", {}),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
+            patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
+            patch(f"{WF}.get_agent_slugs", return_value=["copilot-coding"]),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
+            patch("src.config.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value = MagicMock(
+                default_assignee="copilot",
+                default_repo_owner="testowner",
+                default_repo_name="testrepo",
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 200
+        # The full recommendation (with long user_story) was passed to execute_full_workflow
+        call_args = mock_orchestrator.execute_full_workflow.call_args
+        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        assert passed_rec.user_story == long_story
+
+    @pytest.mark.parametrize("length", [256, 1024, 4096, 32768, 65536])
+    async def test_boundary_length_recommendations(
+        self, client, mock_session, mock_github_service, mock_websocket_manager, length
+    ):
+        """T011: Parametrized boundary tests for workflow recommendation path."""
+        mock_session.selected_project_id = TEST_PROJECT_ID
+        desc = "R" * length
+        rec = _recommendation(
+            session_id=mock_session.session_id,
+            user_story=desc,
+        )
+        rec_id = str(rec.recommendation_id)
+
+        mock_github_service.get_project_repository.return_value = ("testowner", "testrepo")
+
+        wf_result = WorkflowResult(
+            success=True,
+            issue_id="I_101",
+            issue_number=101,
+            issue_url="https://github.com/testowner/testrepo/issues/101",
+            project_item_id="PVTI_101",
+            current_status="Backlog",
+            message="Created issue #101",
+        )
+        mock_orchestrator = AsyncMock()
+        mock_orchestrator.execute_full_workflow.return_value = wf_result
+
+        with (
+            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch(f"{WF}._recent_requests", {}),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
+            patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
+            patch(f"{WF}.get_agent_slugs", return_value=[]),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
+            patch("src.config.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value = MagicMock(
+                default_assignee="copilot",
+                default_repo_owner="testowner",
+                default_repo_name="testrepo",
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 200
+        call_args = mock_orchestrator.execute_full_workflow.call_args
+        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        assert len(passed_rec.user_story) == length
+
+    async def test_rich_markdown_recommendation_preserved(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T022: Rich markdown in recommendation fields is preserved through workflow path."""
+        mock_session.selected_project_id = TEST_PROJECT_ID
+        markdown_story = (
+            "# User Story\n\n"
+            "As a **developer**, I want:\n"
+            "- `code blocks` preserved\n"
+            "- > blockquotes preserved\n"
+            "- [links](https://example.com) preserved\n\n"
+            "```js\nconsole.log('hello');\n```\n"
+        )
+        rec = _recommendation(
+            session_id=mock_session.session_id,
+            user_story=markdown_story,
+        )
+        rec_id = str(rec.recommendation_id)
+
+        mock_github_service.get_project_repository.return_value = ("testowner", "testrepo")
+
+        wf_result = WorkflowResult(
+            success=True,
+            issue_id="I_102",
+            issue_number=102,
+            issue_url="https://github.com/testowner/testrepo/issues/102",
+            project_item_id="PVTI_102",
+            current_status="Backlog",
+            message="Created issue #102",
+        )
+        mock_orchestrator = AsyncMock()
+        mock_orchestrator.execute_full_workflow.return_value = wf_result
+
+        with (
+            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch(f"{WF}._recent_requests", {}),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
+            patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
+            patch(f"{WF}.get_agent_slugs", return_value=[]),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
+            patch("src.config.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value = MagicMock(
+                default_assignee="copilot",
+                default_repo_owner="testowner",
+                default_repo_name="testrepo",
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 200
+        call_args = mock_orchestrator.execute_full_workflow.call_args
+        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        assert passed_rec.user_story == markdown_story
