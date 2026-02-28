@@ -16,8 +16,10 @@ from .config import (
     _persist_workflow_config_to_db,
     _transitions,
     _workflow_configs,
+    deduplicate_agent_mappings,
     get_transitions,
     get_workflow_config,
+    load_user_agent_mappings,
     set_workflow_config,
 )
 from .models import (
@@ -66,6 +68,8 @@ __all__ = [
     # config
     "get_workflow_config",
     "set_workflow_config",
+    "load_user_agent_mappings",
+    "deduplicate_agent_mappings",
     "get_transitions",
     "_workflow_configs",
     "_transitions",

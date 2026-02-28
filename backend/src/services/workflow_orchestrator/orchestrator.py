@@ -1468,13 +1468,17 @@ class WorkflowOrchestrator:
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await self.create_all_sub_issues(ctx)
             if agent_sub_issues and ctx.issue_number is not None:
-                # Store in pipeline state so assign_agent_for_status can look them up
+                # Populate agents for the initial status so the polling loop
+                # doesn't see an empty list and immediately consider the
+                # pipeline "complete" (is_complete = 0 >= len([]) = True).
+                initial_agents = get_agent_slugs(config, status_name) if config else []
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
                     status=status_name,
-                    agents=[],  # Will be set properly by assign_agent_for_status
+                    agents=initial_agents,
                     agent_sub_issues=agent_sub_issues,
+                    started_at=utcnow(),
                 )
                 set_pipeline_state(ctx.issue_number, pipeline_state)
                 logger.info(
