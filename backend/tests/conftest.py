@@ -212,8 +212,9 @@ async def client(
         patch("src.api.projects.connection_manager", mock_websocket_manager),
         patch("src.api.tasks.connection_manager", mock_websocket_manager),
         patch("src.api.workflow.connection_manager", mock_websocket_manager),
-        # get_db — patched for settings routes (direct call, not Depends)
+        # get_db — patched for settings and MCP routes (direct call, not Depends)
         patch("src.api.settings.get_db", return_value=mock_db),
+        patch("src.api.mcp.get_db", return_value=mock_db),
     ):
         transport = ASGITransport(app=app)
         async with AsyncClient(

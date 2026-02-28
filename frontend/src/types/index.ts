@@ -471,6 +471,27 @@ export interface SignalBannersResponse {
   banners: SignalBanner[];
 }
 
+// ============ MCP Configuration Types (012-mcp-settings-config) ============
+
+export interface McpConfiguration {
+  id: string;
+  name: string;
+  endpoint_url: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface McpConfigurationListResponse {
+  mcps: McpConfiguration[];
+  count: number;
+}
+
+export interface McpConfigurationCreate {
+  name: string;
+  endpoint_url: string;
+}
+
 // ============ Board Types (continued) ============
 
 export type StatusColor =

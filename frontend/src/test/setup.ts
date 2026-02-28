@@ -114,6 +114,11 @@ export interface MockApiShape {
     getProjectSettings: Mock;
     updateProjectSettings: Mock;
   };
+  mcpApi: {
+    listMcps: Mock;
+    createMcp: Mock;
+    deleteMcp: Mock;
+  };
 }
 
 /**
@@ -170,6 +175,11 @@ export function createMockApi(): MockApiShape {
       updateGlobalSettings: vi.fn(),
       getProjectSettings: vi.fn(),
       updateProjectSettings: vi.fn(),
+    },
+    mcpApi: {
+      listMcps: vi.fn(),
+      createMcp: vi.fn(),
+      deleteMcp: vi.fn(),
     },
   };
 }
