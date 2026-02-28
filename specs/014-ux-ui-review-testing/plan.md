@@ -1,104 +1,102 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Deep UX/UI Review, Polish & Meaningful Frontend Test Coverage
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `014-ux-ui-review-testing` | **Date**: 2026-02-28 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/014-ux-ui-review-testing/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Perform a comprehensive UX/UI audit of the customer-facing React frontend — covering visual consistency, accessibility (WCAG AA), interactive states, form validation, UI state handling, and responsive layouts — then add meaningful automated test coverage for critical user flows using Vitest (integration) and Playwright (E2E) with a behavior-driven approach. Integrate automated accessibility auditing into the CI pipeline via axe-core, centralize any remaining hardcoded design tokens, and document all discovered issues in a structured findings log with severity ratings.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4 / Node 20 (frontend), Python 3.12 (backend — unchanged)
+**Primary Dependencies**: React 18, Vite 5, Tailwind CSS 3.4, Radix UI, TanStack Query v5, dnd-kit, Socket.io-client, class-variance-authority, Lucide React
+**Storage**: N/A (frontend-only changes; backend SQLite unchanged)
+**Testing**: Vitest 4.0+ / @testing-library/react 16.3+ / happy-dom 20.6+ (unit/integration), Playwright 1.58+ (E2E), axe-core (accessibility auditing — new)
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge)
+**Project Type**: web (frontend focus within backend + frontend monorepo)
+**Performance Goals**: LCP ≤ 2.5s, FID ≤ 100ms, CLS ≤ 0.1 (Core Web Vitals "good" thresholds)
+**Constraints**: No new UI frameworks; reuse existing Tailwind + Radix + CVA stack; behavior-driven tests using getByRole/getByLabelText over test IDs; snapshot tests used sparingly
+**Scale/Scope**: 3 customer-facing views (Home, Project Board, Settings), 33+ components across 6 categories (ui, board, chat, settings, auth, common), 18 hooks, 9 API service namespaces, 9 existing unit tests
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | spec.md exists with 6 prioritized user stories (P1–P3), Given-When-Then acceptance scenarios, and clear scope boundaries |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase follows single-responsibility agent model; outputs are well-defined markdown documents |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests are *explicitly requested* in the feature specification (FR-003, FR-010); behavior-driven testing approach defined |
+| V. Simplicity and DRY | ✅ PASS | Reuses existing test infrastructure (createMockApi, renderWithProviders, factories); no new frameworks; extends rather than replaces |
+
+**Gate Result**: ✅ ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/014-ux-ui-review-testing/
+├── plan.md              # This file
+├── research.md          # Phase 0: Research findings
+├── data-model.md        # Phase 1: Audit entity model
+├── quickstart.md        # Phase 1: Developer quickstart for UX audit workflow
+├── contracts/           # Phase 1: Audit conventions and standards
+│   └── audit-standards.md
+└── tasks.md             # Phase 2 output (created by /speckit.tasks, NOT this phase)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   │   ├── ui/              # 3 primitives: button, card, input (CVA + Radix patterns)
+│   │   ├── board/           # 11 board components (columns, cards, modals, agent config)
+│   │   ├── chat/            # 6 chat components (interface, messages, previews)
+│   │   ├── settings/        # 12 settings components (sections, forms, dropdowns)
+│   │   ├── auth/            # 2 auth components (LoginButton + test)
+│   │   ├── common/          # 2 common components (ErrorBoundary + test)
+│   │   └── ThemeProvider.tsx # Theme context (light/dark/system)
+│   ├── hooks/               # 18 custom hooks (auth, projects, chat, settings, real-time)
+│   ├── pages/               # 2 pages: ProjectBoardPage, SettingsPage
+│   ├── services/            # API client (api.ts) with 9 namespaces
+│   ├── test/                # Test infrastructure
+│   │   ├── setup.ts         # Global mocks + createMockApi()
+│   │   ├── test-utils.tsx   # renderWithProviders, createTestQueryClient
+│   │   └── factories/       # Test data factories (user, project, task, etc.)
+│   ├── lib/                 # Utilities (cn() class merging)
+│   ├── App.tsx              # Root component with hash-based routing
+│   ├── index.css            # Design tokens (CSS variables for colors, radius)
+│   └── constants.ts         # Timing/polling constants (no design tokens)
+├── e2e/                     # Playwright E2E tests (to be populated)
+├── tailwind.config.js       # Tailwind configuration referencing CSS variables
+├── vitest.config.ts         # Vitest configuration (happy-dom)
+├── playwright.config.ts     # Playwright configuration (Chromium)
+└── eslint.config.js         # ESLint (React Hooks plugin — jsx-a11y to be added)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+.github/
+└── workflows/
+    └── ci.yml               # CI pipeline (frontend lint, type-check, test, build)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application — the repository uses a `backend/` + `frontend/` split. This feature focuses exclusively on the `frontend/` directory. All UX/UI changes, tests, and audit artifacts target the existing component/hook/page structure. No new directories are created beyond standard test file co-location.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations to justify. All principles are satisfied.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Constitution Re-Check (Post Phase 1 Design)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | All design artifacts trace back to spec.md requirements (FR-001 through FR-013) |
+| II. Template-Driven Workflow | ✅ PASS | plan.md, research.md, data-model.md, contracts/, quickstart.md all follow canonical structure |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase produced well-defined outputs for handoff to tasks phase |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests are the explicit subject of this feature; behavior-driven approach defined in research.md and contracts |
+| V. Simplicity and DRY | ✅ PASS | Design extends existing test infrastructure (factories, mock API, render helpers); axe-core is lightweight and standard; no unnecessary abstractions introduced |
+
+**Post-Design Gate Result**: ✅ ALL PASS — ready for Phase 2 (tasks generation via `/speckit.tasks`).
