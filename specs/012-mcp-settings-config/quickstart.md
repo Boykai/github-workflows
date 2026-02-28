@@ -17,10 +17,10 @@ This feature adds MCP (Model Context Protocol) configuration management to the S
 
 ```bash
 # From repo root — start all services
-docker-compose up -d
+docker compose up -d
 
 # Or run frontend/backend separately for dev:
-cd backend && pip install -r requirements.txt && uvicorn src.main:app --reload
+cd backend && pip install -e ".[dev]" && uvicorn src.main:app --reload
 cd frontend && npm install && npm run dev
 ```
 

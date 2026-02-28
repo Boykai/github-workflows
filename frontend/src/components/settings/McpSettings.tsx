@@ -159,13 +159,32 @@ function AddMcpForm({
 
   const getServerErrorMessage = (): string | null => {
     if (!serverError) return null;
+
     if (serverError instanceof ApiError) {
-      const detail = serverError.error?.error;
-      if (detail) return detail;
-      // Try to get detail from the error message
+      // Prefer standard AppException shape: { error: string }
+      const detailFromErrorField = serverError.error?.error;
+      if (detailFromErrorField) return detailFromErrorField;
+
+      // Also support FastAPI HTTPException shape: { detail: string }
+      const detailFromDetailField = (serverError.error as unknown as Record<string, unknown>)?.detail;
+      if (typeof detailFromDetailField === 'string' && detailFromDetailField.trim()) {
+        return detailFromDetailField;
+      }
+
+      // Fallback to the error message, but avoid showing literal "undefined"
+      if (serverError.message && serverError.message !== 'undefined') {
+        return serverError.message;
+      }
+
+      return 'An unexpected error occurred';
+    }
+
+    // Non-ApiError: use message if it looks meaningful
+    if (serverError.message && serverError.message !== 'undefined') {
       return serverError.message;
     }
-    return serverError.message;
+
+    return 'An unexpected error occurred';
   };
 
   const serverErrorMsg = getServerErrorMessage();
@@ -264,7 +283,7 @@ export function McpSettings() {
     createError,
     resetCreateError,
     deleteMcp,
-    isDeleting,
+    deletingId,
     deleteError,
     resetDeleteError,
     authError,
@@ -303,6 +322,22 @@ export function McpSettings() {
     },
     [deleteMcp, showSuccess, resetDeleteError],
   );
+
+  // Extract a human-readable message from a delete error
+  const getDeleteErrorMessage = (): string => {
+    if (!deleteError) return 'Failed to delete MCP configuration.';
+    if (deleteError instanceof ApiError) {
+      return (
+        deleteError.error?.error ||
+        (deleteError.error as unknown as Record<string, unknown>)?.detail as string ||
+        (deleteError.message !== 'undefined' ? deleteError.message : null) ||
+        'Failed to delete MCP configuration.'
+      );
+    }
+    return deleteError.message && deleteError.message !== 'undefined'
+      ? deleteError.message
+      : 'Failed to delete MCP configuration.';
+  };
 
   const handleLogin = useCallback(() => {
     authApi.login();
@@ -350,8 +385,9 @@ export function McpSettings() {
     );
   }
 
-  // Load error (non-auth)
-  if (error && !authError) {
+  // Load error (non-auth) — authError is already handled above so the
+  // redundant `!authError` guard has been removed for clarity.
+  if (error) {
     return (
       <SettingsSection
         title="MCP Configurations"
@@ -384,9 +420,7 @@ export function McpSettings() {
       {deleteError && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
           <p className="text-sm text-destructive">
-            {deleteError instanceof ApiError
-              ? deleteError.error?.error || deleteError.message
-              : deleteError.message}
+            {getDeleteErrorMessage()}
           </p>
         </div>
       )}
@@ -405,7 +439,7 @@ export function McpSettings() {
               key={mcp.id}
               mcp={mcp}
               onRemove={handleRemove}
-              isDeleting={isDeleting}
+              isDeleting={deletingId === mcp.id}
             />
           ))}
         </div>

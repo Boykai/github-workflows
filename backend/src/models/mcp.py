@@ -26,15 +26,3 @@ class McpConfigurationListResponse(BaseModel):
 
     mcps: list[McpConfigurationResponse]
     count: int
-
-
-class McpConfigurationRow(BaseModel):
-    """Represents an mcp_configurations database row."""
-
-    id: str
-    github_user_id: str
-    name: str
-    endpoint_url: str
-    is_active: int  # 0/1 in SQLite
-    created_at: str
-    updated_at: str

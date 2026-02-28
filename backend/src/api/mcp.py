@@ -1,11 +1,19 @@
-"""MCP configuration API endpoints — list, create, delete."""
+"""MCP configuration API endpoints — list, create, delete.
+
+Uses AppException subclasses (McpValidationError, McpLimitExceededError,
+NotFoundError) so that error responses follow the standard
+``{"error": "...", "details": {...}}`` shape handled by the global
+exception handler in ``src.main``.  This keeps the format consistent
+with the rest of the API and with the frontend ``ApiError`` parser.
+"""
 
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from src.api.auth import get_session_dep
+from src.exceptions import NotFoundError
 from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
@@ -39,13 +47,10 @@ async def create_mcp_configuration(
 ) -> McpConfigurationResponse:
     """Add a new MCP configuration for the authenticated user."""
     db = get_db()
-    try:
-        result = await create_mcp(db, session.github_user_id, body)
-    except ValueError as exc:
-        msg = str(exc)
-        if "Maximum of" in msg:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg) from exc
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg) from exc
+    # McpValidationError / McpLimitExceededError propagate to the global
+    # AppException handler, which returns the correct status code and
+    # ``{"error": "..."}`` payload automatically.
+    result = await create_mcp(db, session.github_user_id, body)
 
     logger.info("User %s created MCP %s", session.github_username, result.id)
     return result
@@ -61,10 +66,7 @@ async def delete_mcp_configuration(
     deleted = await delete_mcp(db, session.github_user_id, mcp_id)
 
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="MCP configuration not found",
-        )
+        raise NotFoundError("MCP configuration not found")
 
     logger.info("User %s deleted MCP %s", session.github_username, mcp_id)
     return {"message": "MCP configuration deleted"}

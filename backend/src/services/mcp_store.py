@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import aiosqlite
 
+from src.exceptions import McpLimitExceededError, McpValidationError
 from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
@@ -44,17 +45,28 @@ def validate_url_not_ssrf(url: str) -> str:
     if not hostname:
         raise ValueError("URL must have a valid hostname")
 
-    # Try to parse as IP address and check for private/reserved ranges
+    # Normalize hostname for consistent checks (strip whitespace, lowercase,
+    # remove trailing dot so "localhost." is treated the same as "localhost").
+    normalized_host = hostname.strip().lower().rstrip(".")
+
+    # Try to parse as IP address and check for private/reserved/unspecified ranges
     try:
-        ip = ipaddress.ip_address(hostname)
-        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
-            raise ValueError("URL points to a private or reserved IP address")
+        ip = ipaddress.ip_address(normalized_host)
     except ValueError as exc:
-        if "private or reserved" in str(exc):
-            raise
-        # Not an IP address — it's a hostname; check common localhost names
-        if hostname in ("localhost",):
+        # Not an IP address — it's a hostname; check common localhost-style names.
+        # Matching on the first DNS label catches "localhost", "localhost.localdomain", etc.
+        labels = normalized_host.split(".") if normalized_host else []
+        if labels and labels[0] == "localhost":
             raise ValueError("URL points to a private or reserved IP address") from exc
+    else:
+        if (
+            ip.is_private
+            or ip.is_reserved
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_unspecified
+        ):
+            raise ValueError("URL points to a private or reserved IP address")
 
     return url
 
@@ -62,9 +74,7 @@ def validate_url_not_ssrf(url: str) -> str:
 # ── CRUD Operations ──
 
 
-async def list_mcps(
-    db: aiosqlite.Connection, github_user_id: str
-) -> McpConfigurationListResponse:
+async def list_mcps(db: aiosqlite.Connection, github_user_id: str) -> McpConfigurationListResponse:
     """List all MCP configurations for a user.
 
     Args:
@@ -115,7 +125,10 @@ async def create_mcp(
         ValueError: If SSRF validation fails or user limit exceeded.
     """
     # Validate URL against SSRF
-    validate_url_not_ssrf(data.endpoint_url)
+    try:
+        validate_url_not_ssrf(data.endpoint_url)
+    except ValueError as exc:
+        raise McpValidationError(str(exc)) from exc
 
     # Check per-user limit
     cursor = await db.execute(
@@ -124,7 +137,9 @@ async def create_mcp(
     )
     row = await cursor.fetchone()
     if row and row["cnt"] >= MAX_MCPS_PER_USER:
-        raise ValueError(f"Maximum of {MAX_MCPS_PER_USER} MCP configurations per user reached")
+        raise McpLimitExceededError(
+            f"Maximum of {MAX_MCPS_PER_USER} MCP configurations per user reached"
+        )
 
     now = utcnow().isoformat()
     mcp_id = str(uuid.uuid4())

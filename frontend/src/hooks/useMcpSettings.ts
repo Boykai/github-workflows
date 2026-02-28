@@ -6,6 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { mcpApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
 import type {
@@ -25,6 +26,9 @@ export const mcpKeys = {
 
 export function useMcpSettings() {
   const queryClient = useQueryClient();
+  // Track which specific MCP ID is currently being deleted so that only
+  // that list item shows the "Removing…" indicator, not all of them.
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // List MCPs
   const query = useQuery<McpConfigurationListResponse>({
@@ -41,11 +45,17 @@ export function useMcpSettings() {
     },
   });
 
-  // Delete MCP mutation
+  // Delete MCP mutation — wraps mutateAsync to track the target ID
   const deleteMutation = useMutation<{ message: string }, Error, string>({
     mutationFn: (mcpId) => mcpApi.deleteMcp(mcpId),
+    onMutate: (mcpId) => {
+      setDeletingId(mcpId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mcpKeys.list() });
+    },
+    onSettled: () => {
+      setDeletingId(null);
     },
   });
 
@@ -68,7 +78,7 @@ export function useMcpSettings() {
     resetCreateError: createMutation.reset,
 
     deleteMcp: deleteMutation.mutateAsync,
-    isDeleting: deleteMutation.isPending,
+    deletingId,
     deleteError: deleteMutation.error,
     resetDeleteError: deleteMutation.reset,
 
