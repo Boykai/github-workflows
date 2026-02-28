@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/012-deep-security-review/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are NOT explicitly requested in the specification. Existing tests must continue to pass (SC-005, SC-010). No new test tasks are generated.
+**Tests**: Tests are NOT explicitly requested in the specification. Existing tests must continue to pass (spec success criteria: all existing auth tests pass, zero functional regressions). No new test tasks are generated.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -48,7 +48,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Pin actions/checkout from @v4 to full commit SHA in .github/workflows/ci.yml (all 3 occurrences: backend, frontend, docker jobs)
+- [ ] T005 [US1] Pin actions/checkout from @v4 to full commit SHA in .github/workflows/ci.yml (backend, frontend, and docker job steps)
 - [ ] T006 [US1] Pin actions/setup-python from @v5 to full commit SHA in .github/workflows/ci.yml
 - [ ] T007 [US1] Pin actions/setup-node from @v4 to full commit SHA in .github/workflows/ci.yml
 - [ ] T008 [US1] Add top-level `permissions: {}` block (deny-all default) to .github/workflows/ci.yml
@@ -127,8 +127,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T032 [US5] Replace `detail=str(e)` with generic "Authentication failed" message in OAuth callback error handler in backend/src/api/auth.py (around line 101) and log original exception at WARNING level
-- [ ] T033 [US5] Replace `detail=f"Invalid GitHub token: {e}"` with generic "Authentication failed" message in dev-login error handler in backend/src/api/auth.py (around line 210) and log original exception at WARNING level
+- [ ] T032 [US5] Replace `detail=str(e)` with generic "Authentication failed" message in the OAuth callback error handler in backend/src/api/auth.py and log original exception at WARNING level
+- [ ] T033 [US5] Replace `detail=f"Invalid GitHub token: {e}"` with generic "Authentication failed" message in the dev-login error handler in backend/src/api/auth.py and log original exception at WARNING level
 - [ ] T034 [P] [US5] Review generic exception handler in backend/src/main.py to confirm it returns "Internal server error" without leaking details
 - [ ] T035 [P] [US5] Review backend logging patterns to confirm %s formatting is used (no f-strings with user data) and no credentials appear in logs across backend/src/
 - [ ] T036 [P] [US5] Verify React frontend does not use dangerouslySetInnerHTML or other XSS vectors across frontend/src/
@@ -148,8 +148,8 @@
 ### Implementation for User Story 6
 
 - [ ] T039 [US6] Extract duplicated cookie-setting logic from OAuth login and dev-login endpoints into a shared helper function in backend/src/api/auth.py
-- [ ] T040 [US6] Update the OAuth login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py
-- [ ] T041 [US6] Update the dev-login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py
+- [ ] T040 [US6] Update the OAuth login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
+- [ ] T041 [US6] Update the dev-login endpoint to use the shared cookie-setting helper in backend/src/api/auth.py (depends on T039)
 - [ ] T042 [US6] Verify all existing tests pass after cookie helper refactor
 - [ ] T043 [US6] Document security logic consolidation findings in the security findings report
 
