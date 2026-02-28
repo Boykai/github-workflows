@@ -16,7 +16,7 @@ import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
-import { formatTimeAgo } from '@/utils/formatTime';
+import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -48,7 +48,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     rateLimitInfo,
     isRateLimitLow,
     resetTimer,
-  } = useBoardRefresh({ projectId: selectedProjectId });
+  } = useBoardRefresh({ projectId: selectedProjectId, boardData });
 
   // Real-time sync: WebSocket with polling fallback — drives board auto-refresh
   const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
@@ -168,7 +168,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             <strong>Rate limit reached</strong>
             <p>
               {refreshError.retryAfter
-                ? `Resets ${formatTimeAgo(refreshError.retryAfter)}.`
+                ? `Resets ${formatTimeUntil(refreshError.retryAfter)}.`
                 : refreshError.message}
             </p>
           </div>

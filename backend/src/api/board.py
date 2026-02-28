@@ -82,7 +82,6 @@ async def get_board_data(
             logger.info("Returning cached board data for project %s", project_id)
             if isinstance(cached, BoardDataResponse):
                 cached.rate_limit = _get_rate_limit_info()
-                return cached
             return cached
 
     logger.info("Fetching board data for project %s", project_id)

@@ -8,12 +8,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AUTO_REFRESH_INTERVAL_MS, RATE_LIMIT_LOW_THRESHOLD } from '@/constants';
-import type { RateLimitInfo, RefreshError } from '@/types';
+import type { RateLimitInfo, RefreshError, BoardDataResponse } from '@/types';
 import { ApiError } from '@/services/api';
 
 interface UseBoardRefreshOptions {
   /** Currently selected project ID */
   projectId: string | null;
+  /** Board data response (for extracting rate limit info reactively) */
+  boardData?: BoardDataResponse | null;
 }
 
 interface UseBoardRefreshReturn {
@@ -33,12 +35,19 @@ interface UseBoardRefreshReturn {
   resetTimer: () => void;
 }
 
-export function useBoardRefresh({ projectId }: UseBoardRefreshOptions): UseBoardRefreshReturn {
+export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions): UseBoardRefreshReturn {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<RefreshError | null>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
+
+  // Update rate limit info reactively from board data responses
+  useEffect(() => {
+    if (boardData?.rate_limit) {
+      setRateLimitInfo(boardData.rate_limit);
+    }
+  }, [boardData?.rate_limit]);
 
   const timerRef = useRef<number | null>(null);
   const isRefreshingRef = useRef(false);
@@ -58,11 +67,6 @@ export function useBoardRefresh({ projectId }: UseBoardRefreshOptions): UseBoard
 
     try {
       await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
-      // Fetch the latest data from the query cache after invalidation
-      const data = queryClient.getQueryData<{ rate_limit?: RateLimitInfo | null }>(['board', 'data', projectId]);
-      if (data?.rate_limit) {
-        setRateLimitInfo(data.rate_limit);
-      }
       setLastRefreshedAt(new Date());
       setError(null);
     } catch (err) {
