@@ -219,17 +219,17 @@
 
 ## Phase 8: User Story 6 — Performance Audit & Findings Documentation (Priority: P3)
 
-**Goal**: Audit page-level performance indicators (LCP, CLS, FID) on all customer-facing views, flag views with poor Core Web Vitals, and compile the complete structured findings log with all issues from all user stories.
+**Goal**: Audit page-level performance indicators (LCP, CLS, INP) on all customer-facing views, flag views with poor Core Web Vitals, and compile the complete structured findings log with all issues from all user stories.
 
-**Independent Test**: Run performance audit on every customer-facing view, verify LCP/CLS/FID scores are measured, verify findings log exists with severity-rated entries for all discovered issues.
+**Independent Test**: Run performance audit on every customer-facing view, verify LCP/CLS/INP scores are measured, verify findings log exists with severity-rated entries for all discovered issues.
 
 ### Implementation for User Story 6
 
-- [ ] T089 [P] [US6] Run Lighthouse performance audit on Home page and record LCP, CLS, FID scores in `frontend/docs/findings-log.md`
-- [ ] T090 [P] [US6] Run Lighthouse performance audit on Project Board page and record LCP, CLS, FID scores in `frontend/docs/findings-log.md`
-- [ ] T091 [P] [US6] Run Lighthouse performance audit on Settings page and record LCP, CLS, FID scores in `frontend/docs/findings-log.md`
+- [ ] T089 [P] [US6] Run Lighthouse performance audit on Home page and record LCP, CLS, INP scores in `frontend/docs/findings-log.md`
+- [ ] T090 [P] [US6] Run Lighthouse performance audit on Project Board page and record LCP, CLS, INP scores in `frontend/docs/findings-log.md`
+- [ ] T091 [P] [US6] Run Lighthouse performance audit on Settings page and record LCP, CLS, INP scores in `frontend/docs/findings-log.md`
 - [ ] T092 [US6] Analyze frontend bundle size via `npm run build` — check `frontend/dist/assets/` for large chunks, identify optimization opportunities (lazy loading, code splitting)
-- [ ] T093 [US6] Flag any views with poor Core Web Vitals (LCP > 2.5s, FID > 100ms, CLS > 0.1) and document recommended fixes in `frontend/docs/findings-log.md`
+- [ ] T093 [US6] Flag any views with poor Core Web Vitals (LCP > 2.5s, INP > 200ms, CLS > 0.1) and document recommended fixes in `frontend/docs/findings-log.md`
 - [ ] T094 [US6] Compile final findings log in `frontend/docs/findings-log.md` — verify every entry has ID, category, severity, affected view/component, description, expected behavior, status, requirement ref
 - [ ] T095 [US6] Verify all critical and major findings from the log are resolved (status: `fixed` or `wont-fix` with rationale)
 
