@@ -432,6 +432,14 @@ async def update_config(
     # Ensure project_id matches
     config_update.project_id = session.selected_project_id
 
+    # Deduplicate case-variant status keys (e.g. "In progress" vs "In Progress")
+    # that arise when board column names differ in casing from backend defaults.
+    from src.services.workflow_orchestrator.config import deduplicate_agent_mappings
+
+    config_update.agent_mappings = deduplicate_agent_mappings(  # type: ignore[assignment]
+        config_update.agent_mappings
+    )
+
     await set_workflow_config(
         session.selected_project_id,
         config_update,

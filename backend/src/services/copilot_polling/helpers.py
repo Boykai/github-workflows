@@ -1,11 +1,26 @@
 """Issue body tracking helpers — shared across multiple polling sub-modules."""
 
 import logging
+import re
 from typing import Any
 
 import src.services.copilot_polling as _cp
 
 logger = logging.getLogger(__name__)
+
+# Matches sub-issue titles created by the orchestrator: "[agent-name] Parent Title"
+_SUB_ISSUE_TITLE_RE = re.compile(r"^\[\S+\]\s")
+
+
+def is_sub_issue(task: Any) -> bool:
+    """Return True if the task is an agent sub-issue rather than a parent issue.
+
+    Sub-issues are created by the orchestrator with titles matching
+    ``[agent-name] Parent Title``.  The polling loop should skip them
+    to avoid wasting API calls and creating spurious pipeline states.
+    """
+    title = getattr(task, "title", None) or ""
+    return bool(_SUB_ISSUE_TITLE_RE.match(title))
 
 
 def _get_sub_issue_number(

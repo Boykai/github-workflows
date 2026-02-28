@@ -31,6 +31,7 @@ from src.services.copilot_polling import (
     check_ready_issues,
     ensure_copilot_review_requested,
     get_polling_status,
+    is_sub_issue,
     post_agent_outputs_from_pr,
     process_in_progress_issue,
     recover_stalled_issues,
@@ -78,6 +79,54 @@ def clear_processed_cache():
     yield
     _processed_issue_prs.clear()
     _claimed_child_prs.clear()
+
+
+class TestIsSubIssue:
+    """Tests for is_sub_issue helper that filters agent sub-issues from the polling loop."""
+
+    def test_parent_issue_not_sub_issue(self):
+        """Normal parent issues should not be detected as sub-issues."""
+        task = MagicMock()
+        task.title = "Conduct Deep Security Review of GitHub Workflows App"
+        assert is_sub_issue(task) is False
+
+    def test_sub_issue_with_agent_prefix(self):
+        """Sub-issues with [agent-name] prefix should be detected."""
+        task = MagicMock()
+        task.title = "[speckit.specify] Conduct Deep Security Review"
+        assert is_sub_issue(task) is True
+
+    def test_sub_issue_speckit_plan(self):
+        task = MagicMock()
+        task.title = "[speckit.plan] Conduct Deep Security Review"
+        assert is_sub_issue(task) is True
+
+    def test_sub_issue_copilot_review(self):
+        task = MagicMock()
+        task.title = "[copilot-review] Conduct Deep Security Review"
+        assert is_sub_issue(task) is True
+
+    def test_empty_title(self):
+        task = MagicMock()
+        task.title = ""
+        assert is_sub_issue(task) is False
+
+    def test_none_title(self):
+        task = MagicMock()
+        task.title = None
+        assert is_sub_issue(task) is False
+
+    def test_title_with_brackets_not_at_start(self):
+        """Titles with brackets in the middle should not match."""
+        task = MagicMock()
+        task.title = "Fix issue with [brackets] in title"
+        assert is_sub_issue(task) is False
+
+    def test_title_with_bracket_but_no_space_after(self):
+        """Pattern requires space after closing bracket."""
+        task = MagicMock()
+        task.title = "[tag]NoSpaceAfter"
+        assert is_sub_issue(task) is False
 
 
 class TestGetPollingStatus:

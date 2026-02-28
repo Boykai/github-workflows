@@ -50,6 +50,93 @@ async def set_workflow_config(
     await _persist_workflow_config_to_db(project_id, config)
 
 
+def _parse_agent_mappings(raw_mappings: dict) -> dict[str, list[AgentAssignment]]:
+    """Convert raw JSON agent mappings to AgentAssignment objects."""
+    agent_mappings: dict[str, list[AgentAssignment]] = {}
+    for status, agents in raw_mappings.items():
+        agent_mappings[status] = [
+            AgentAssignment(**a) if isinstance(a, dict) else AgentAssignment(slug=str(a))
+            for a in agents
+        ]
+    return agent_mappings
+
+
+def deduplicate_agent_mappings(
+    mappings: dict[str, list],
+) -> dict[str, list]:
+    """Merge case-variant status keys in agent_mappings.
+
+    GitHub project column names may differ in casing from the backend
+    defaults (e.g. ``"In progress"`` vs ``"In Progress"``).  When both
+    variants end up in agent_mappings the empty default-cased key can
+    shadow the populated board-cased key at lookup time.
+
+    This helper keeps one entry per case-insensitive status name.  When
+    duplicates exist the **non-empty** list wins; if both are non-empty
+    the first encountered value wins.
+    """
+    seen: dict[str, str] = {}  # lowercase → chosen key
+    result: dict[str, list] = {}
+    for key, agents in mappings.items():
+        lower = key.lower()
+        if lower not in seen:
+            seen[lower] = key
+            result[key] = agents
+        else:
+            existing_key = seen[lower]
+            # Keep the entry that has agents; prefer the first if both have agents
+            if not result[existing_key] and agents:
+                del result[existing_key]
+                seen[lower] = key
+                result[key] = agents
+            # else keep existing (it already has agents, or both are empty)
+    return result
+
+
+async def load_user_agent_mappings(
+    github_user_id: str, project_id: str
+) -> dict[str, list[AgentAssignment]] | None:
+    """Load user-specific agent pipeline mappings from project_settings.
+
+    Users configure their agent pipeline via the Settings UI, which stores
+    mappings under their own ``github_user_id``.  This helper retrieves those
+    user-specific mappings so they can be applied during workflow orchestration.
+    """
+    try:
+        from src.config import get_settings
+
+        db_path = get_settings().database_path
+    except Exception:
+        return None
+
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT agent_pipeline_mappings FROM project_settings "
+                "WHERE github_user_id = ? AND project_id = ? "
+                "AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
+                (github_user_id, project_id),
+            )
+            row = await cursor.fetchone()
+            if row and row["agent_pipeline_mappings"]:
+                raw_mappings = json.loads(row["agent_pipeline_mappings"])
+                logger.info(
+                    "Loaded user-specific agent mappings for user=%s project=%s",
+                    github_user_id,
+                    project_id,
+                )
+                return _parse_agent_mappings(raw_mappings)
+    except Exception:
+        logger.warning(
+            "Failed to load user agent mappings for user=%s project=%s",
+            github_user_id,
+            project_id,
+            exc_info=True,
+        )
+    return None
+
+
 async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguration | None:
     """Load workflow configuration from SQLite project_settings table.
 
@@ -82,7 +169,7 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                 )
                 return WorkflowConfiguration(**raw)
 
-            # Fall back to agent_pipeline_mappings only
+            # Fall back to agent_pipeline_mappings from __workflow__ user
             cursor = await db.execute(
                 "SELECT agent_pipeline_mappings FROM project_settings WHERE github_user_id = '__workflow__' AND project_id = ? AND agent_pipeline_mappings IS NOT NULL LIMIT 1",
                 (project_id,),
@@ -91,15 +178,7 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
 
             if row and row["agent_pipeline_mappings"]:
                 raw_mappings = json.loads(row["agent_pipeline_mappings"])
-                # Convert raw dicts to AgentAssignment objects
-                agent_mappings: dict[str, list[AgentAssignment]] = {}
-                for status, agents in raw_mappings.items():
-                    agent_mappings[status] = [
-                        AgentAssignment(**a)
-                        if isinstance(a, dict)
-                        else AgentAssignment(slug=str(a))
-                        for a in agents
-                    ]
+                agent_mappings = _parse_agent_mappings(raw_mappings)
                 logger.info(
                     "Loaded workflow config from DB (agent_pipeline_mappings column) for project %s",
                     project_id,
@@ -115,6 +194,41 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                 try:
                     await _persist_workflow_config_to_db(project_id, config)
                     logger.info("Backfilled workflow_config column for project %s", project_id)
+                except Exception:
+                    pass
+                return config
+
+            # Fallback: if no __workflow__ row exists, check for any user's
+            # agent_pipeline_mappings for this project.  This covers the case
+            # where a user configured their pipeline via the Settings UI but
+            # the canonical row was never created (the original bug).
+            cursor = await db.execute(
+                "SELECT agent_pipeline_mappings FROM project_settings "
+                "WHERE project_id = ? AND agent_pipeline_mappings IS NOT NULL "
+                "AND github_user_id != '__workflow__' LIMIT 1",
+                (project_id,),
+            )
+            row = await cursor.fetchone()
+            if row and row["agent_pipeline_mappings"]:
+                raw_mappings = json.loads(row["agent_pipeline_mappings"])
+                agent_mappings = _parse_agent_mappings(raw_mappings)
+                logger.info(
+                    "Loaded workflow config from DB (user fallback) for project %s",
+                    project_id,
+                )
+                config = WorkflowConfiguration(
+                    project_id=project_id,
+                    repository_owner="",
+                    repository_name="",
+                    agent_mappings=agent_mappings,
+                )
+                # Backfill to canonical __workflow__ row
+                try:
+                    await _persist_workflow_config_to_db(project_id, config)
+                    logger.info(
+                        "Backfilled workflow_config from user row for project %s",
+                        project_id,
+                    )
                 except Exception:
                     pass
                 return config
@@ -142,7 +256,11 @@ async def _persist_workflow_config_to_db(
     except Exception:
         return
 
-    # Serialize config
+    # Deduplicate case-variant status keys before serialising
+    deduped = deduplicate_agent_mappings(config.agent_mappings)
+
+    # Serialize config — use deduped mappings
+    config.agent_mappings = deduped  # type: ignore[assignment]
     config_json = config.model_dump_json()
     agent_mappings_json = json.dumps(
         {
@@ -150,7 +268,7 @@ async def _persist_workflow_config_to_db(
                 a.model_dump(mode="json") if hasattr(a, "model_dump") else {"slug": str(a)}
                 for a in agents
             ]
-            for status, agents in config.agent_mappings.items()
+            for status, agents in deduped.items()
         }
     )
     now = utcnow().isoformat()

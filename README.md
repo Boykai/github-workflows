@@ -109,12 +109,16 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **speckit.implement Completion**: Unlike other agents, `speckit.implement` completion is detected via PR timeline events (`copilot_work_finished`, `review_requested`) or when the child PR is no longer a draft. When complete, its child PR is merged into the main branch, the main PR is converted from draft to ready for review, status is updated to "In Review", and Copilot code review is requested.
 - **Sub-Issue Lifecycle**: Sub-issues are created open with `ai-generated` and `sub-issue` labels. When assigned, they receive an `in-progress` label. When the agent completes, the sub-issue is closed as completed with a `done` label added and `in-progress` removed, and the sub-issue's project board status is updated to "Done".
 - **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings, status columns) is persisted to SQLite alongside the in-memory cache. On server restart, the config is loaded from the `workflow_config` column in `project_settings`. A backfill mechanism migrates legacy `agent_pipeline_mappings` data to the full config format.
+- **User-Specific Agent Pipeline Mappings**: When a user confirms a proposal (chat or Signal), the system loads their personal agent pipeline configuration from the `project_settings` table and applies it to the workflow. This ensures each user's customised agent assignments are respected. A 3-tier DB fallback (user → `__workflow__` canonical → any-user with backfill) guarantees configuration is always found.
+- **Case-Insensitive Status Deduplication**: Both frontend and backend deduplicate agent_mappings keys by case-insensitive comparison before saving. When GitHub project column names (e.g., "In progress") differ in casing from backend defaults ("In Progress"), the non-empty mapping wins. The Settings UI syncs changes to the canonical `__workflow__` DB row and invalidates the in-memory config cache.
+- **Pipeline Initialisation Safety**: When sub-issues are created upfront, the `PipelineState` is initialised with the actual agent list for the initial status and a `started_at` timestamp. This prevents the polling loop from seeing an empty agents list (`is_complete = 0 >= len([]) = True`) and prematurely advancing the pipeline.
 - **Polling Auto-Start**: The background polling service automatically starts when a user confirms a proposal (chat) or recommendation (workflow), not only on explicit project selection. This ensures the pipeline runs immediately after issue creation.
 - **Pipeline Reconstruction**: If the server restarts mid-pipeline, it reconstructs pipeline state from the durable tracking table in the issue body and from issue comments for `Done!` markers. Sub-issue mappings are reconstructed by parsing `[agent-name]` prefixes from sub-issue titles.
 - **Automatic Branch Cleanup**: After a child PR is merged into the main branch, the child branch is automatically deleted from the repository to keep the branch list clean.
 - **Copilot Status Acceptance**: When Copilot starts working, it naturally moves issues to "In Progress". The polling service accepts this status change and updates the internal pipeline state accordingly — it does NOT fight Copilot by reverting the status, which would re-trigger the agent.
-- **Pipeline State Tracking**: Each issue with an active agent pipeline has its state tracked in memory, including which agents have completed and which is currently active. This prevents premature status transitions.
+- **Pipeline State Tracking**: Each issue with an active agent pipeline has its state tracked in memory, including which agents have completed and which is currently active. Pipeline states are initialised with actual agents and timestamps to prevent premature completion detection.
 - **Case-Insensitive Status Matching**: All status name lookups use case-insensitive matching via a `_ci_get()` helper, accommodating variations between GitHub Project board column names (e.g., "In progress" vs "In Progress").
+- **Case-Insensitive Status Deduplication**: Agent pipeline mappings are deduplicated by case-insensitive key comparison on save (backend) and load (frontend). When duplicates exist, the non-empty list wins.
 - **Double-Assignment Prevention**: Pending agent assignment flags are set BEFORE the GitHub API call and cleared only on failure. A per-issue recovery cooldown (5 minutes) prevents rapid re-assignment.
 
 ### Key Integrations
@@ -147,7 +151,9 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **System-Side Output Posting**: Agent `.md` outputs are extracted from PRs and posted as sub-issue comments automatically
 - **Main Branch Discovery**: If the server restarts, the main branch is rediscovered from linked PRs before assigning the next agent
 - **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings per status) is persisted to SQLite so it survives server restarts. Falls back to legacy data with automatic backfill migration.
-- **Schema Migrations**: Numbered SQL migrations run at startup (currently 001 + 002), tracked by a `schema_version` table
+- **User-Specific Agent Pipeline Mappings**: Each user's agent pipeline configuration (set via the Settings UI) is loaded and applied during workflow orchestration, with a 3-tier fallback: user-specific row → canonical `__workflow__` row → any-user fallback with automatic backfill.
+- **Case-Insensitive Status Deduplication**: Agent pipeline mappings are deduplicated on both frontend and backend to prevent case-variant status keys (e.g., "In progress" vs "In Progress") from shadowing each other. The non-empty mapping always wins.
+- **Schema Migrations**: Numbered SQL migrations run at startup (currently 001–004), tracked by a `schema_version` table
 - **Polling Auto-Start**: Background polling automatically starts after confirming a proposal or recommendation, ensuring the pipeline runs without manual intervention
 - **Case-Insensitive Status Matching**: Status name lookups accommodate variations between GitHub board column names (e.g., "In progress" vs "In Progress")
 - **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, linked PR counts, and per-column agent configuration
@@ -801,7 +807,7 @@ github-workflows/
 │   │   │   │   └── completion.py        #   PR completion detection (main + child)
 │   │   │   ├── workflow_orchestrator/   # Pipeline orchestration package (decomposed)
 │   │   │   │   ├── models.py            #   WorkflowContext, PipelineState, WorkflowState
-│   │   │   │   ├── config.py            #   Async config load/persist/defaults
+│   │   │   │   ├── config.py            #   Async config load/persist/defaults/dedup
 │   │   │   │   ├── transitions.py       #   Status transitions, branch tracking
 │   │   │   │   └── orchestrator.py      #   WorkflowOrchestrator class
 │   │   │   ├── ai_agent.py             #   AI issue generation (via CompletionProvider)
@@ -898,8 +904,8 @@ github-workflows/
 ### Testing
 | Tool | Scope | Tests |
 |---|---|---|
-| pytest + pytest-asyncio | Backend unit/integration/e2e | 926+ tests across 27 files |
-| Vitest + React Testing Library | Frontend unit | 38+ tests |
+| pytest + pytest-asyncio | Backend unit/integration/e2e | 934+ tests across 27 files |
+| Vitest + React Testing Library | Frontend unit | 42+ tests |
 | Playwright | Frontend E2E | 3 spec files |
 
 ### Infrastructure
@@ -947,12 +953,19 @@ github-workflows/
 - Review backend logs for agent assignment errors: `docker compose logs -f backend`
 - Manually trigger a check: `POST /api/v1/workflow/polling/check-all`
 - Check pipeline state for a specific issue: `GET /api/v1/workflow/pipeline-states/{issue_number}`
+- If the pipeline advances too quickly (multiple agents assigned simultaneously), ensure you're on the latest version — an earlier bug caused `PipelineState(agents=[])` to be seen as complete immediately
 
 **Workflow configuration lost after restart:**
 - Workflow config is persisted to SQLite. Verify the database volume is mounted: check `docker-compose.yml` for the `data/` volume
 - Check that `DATABASE_PATH` env var points to a persistent location (default: `data/settings.db`)
 - If migrating from an older version, the system auto-backfills the `workflow_config` column from legacy `agent_pipeline_mappings` data
 - Check logs for `Loaded workflow config from DB` or `Failed to load workflow config from DB` messages
+
+**Agent pipeline configuration not saving / wrong agents used:**
+- Pipeline mappings are stored per-user in the `project_settings` table. The Settings UI writes to the user's own row and syncs to the canonical `__workflow__` row.
+- If you see duplicate or empty status entries (e.g., both "In Progress" and "In progress"), the backend now deduplicates case-variant keys automatically on save.
+- Verify the pipeline config via `GET /api/v1/workflow/config` and check the `agent_mappings` field.
+- Check that the frontend hook (`useAgentConfig`) is deduplicating on load — clear browser cache if you see stale data.
 
 **speckit.implement not starting or completing:**
 - Ensure the `speckit.tasks: Done!` marker was posted on the issue

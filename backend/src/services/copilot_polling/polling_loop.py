@@ -71,6 +71,21 @@ async def _poll_loop(
                 access_token, project_id
             )
 
+            # Filter out agent sub-issues — they are on the board but should
+            # NOT be processed as standalone pipeline-tracked issues.  Processing
+            # them wastes API calls (linked PRs, comments) and can create
+            # spurious pipeline states that burn through the rate limit.
+            from .helpers import is_sub_issue
+
+            parent_tasks = [t for t in all_tasks if not is_sub_issue(t)]
+            sub_count = len(all_tasks) - len(parent_tasks)
+            if sub_count:
+                logger.debug(
+                    "Filtered out %d sub-issues from %d board items",
+                    sub_count,
+                    len(all_tasks),
+                )
+
             # Step 0: Post agent .md outputs from completed PRs as issue comments
             # This runs first so Done! markers are available for steps 1-3
             output_results = await _cp.post_agent_outputs_from_pr(
@@ -78,7 +93,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
-                tasks=all_tasks,
+                tasks=parent_tasks,
             )
 
             if output_results:
@@ -94,7 +109,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
-                tasks=all_tasks,
+                tasks=parent_tasks,
             )
 
             if backlog_results:
@@ -110,7 +125,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
-                tasks=all_tasks,
+                tasks=parent_tasks,
             )
 
             if ready_results:
@@ -126,7 +141,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
-                tasks=all_tasks,
+                tasks=parent_tasks,
             )
 
             if results:
@@ -157,7 +172,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
-                tasks=all_tasks,
+                tasks=parent_tasks,
             )
 
             if recovery_results:

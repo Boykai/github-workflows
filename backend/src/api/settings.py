@@ -125,4 +125,24 @@ async def update_project_settings_endpoint(
             project_id,
         )
 
+        # Sync agent_pipeline_mappings to the canonical __workflow__ row so the
+        # workflow orchestrator picks up the user's configuration.  Also
+        # invalidate the in-memory config cache for this project.
+        if "agent_pipeline_mappings" in updates:
+            workflow_updates = {
+                "agent_pipeline_mappings": updates["agent_pipeline_mappings"],
+            }
+            await upsert_project_settings(db, "__workflow__", project_id, workflow_updates)
+            logger.info(
+                "Synced agent_pipeline_mappings to __workflow__ canonical row for project=%s",
+                project_id,
+            )
+            # Invalidate in-memory workflow config cache
+            try:
+                from src.services.workflow_orchestrator.config import _workflow_configs
+
+                _workflow_configs.pop(project_id, None)
+            except Exception:
+                pass
+
     return await get_effective_project_settings(db, session.github_user_id, project_id)

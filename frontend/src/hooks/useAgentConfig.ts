@@ -64,9 +64,29 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
         staleTime: 60_000,
       });
       setServerConfig(result);
-      const mappings = result.agent_mappings ?? {};
-      serverMappingsRef.current = mappings;
-      setLocalMappings(structuredClone(mappings));
+      // Deduplicate case-variant status keys from the server response.
+      // GitHub project column names may differ in casing from backend
+      // defaults (e.g. "In progress" vs "In Progress"). Merge duplicates
+      // so only one entry per case-insensitive status name is kept.
+      const rawMappings = result.agent_mappings ?? {};
+      const deduped: Record<string, AgentAssignment[]> = {};
+      const seen = new Map<string, string>(); // lowercase → chosen key
+      for (const [key, agents] of Object.entries(rawMappings)) {
+        const lower = key.toLowerCase();
+        const existingKey = seen.get(lower);
+        if (existingKey === undefined) {
+          seen.set(lower, key);
+          deduped[key] = agents;
+        } else if ((!deduped[existingKey] || deduped[existingKey].length === 0) && agents.length > 0) {
+          // Replace the empty entry with the populated one
+          delete deduped[existingKey];
+          seen.set(lower, key);
+          deduped[key] = agents;
+        }
+        // else keep existing (already has agents, or both empty)
+      }
+      serverMappingsRef.current = deduped;
+      setLocalMappings(structuredClone(deduped));
       setIsLoaded(true);
     } catch {
       // Error handled by useWorkflow
@@ -114,25 +134,47 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
 
   const addAgent = useCallback((status: string, agent: AvailableAgent) => {
     setLocalMappings((prev) => {
-      const current = prev[status] ?? [];
+      // Find existing key with case-insensitive match to avoid creating
+      // duplicate entries like "In Progress" and "In progress".
+      const lowerStatus = status.toLowerCase();
+      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const current = prev[matchedKey] ?? [];
       const newAssignment: AgentAssignment = {
         id: generateId(),
         slug: agent.slug,
         display_name: agent.display_name,
       };
-      return { ...prev, [status]: [...current, newAssignment] };
+      // Use the board's column name (status) as the canonical key
+      const updated = { ...prev, [status]: [...current, newAssignment] };
+      // Remove the old key if it has different casing
+      if (matchedKey !== status) {
+        delete updated[matchedKey];
+      }
+      return updated;
     });
   }, []);
 
   const removeAgent = useCallback((status: string, agentInstanceId: string) => {
     setLocalMappings((prev) => {
-      const current = prev[status] ?? [];
-      return { ...prev, [status]: current.filter((a) => a.id !== agentInstanceId) };
+      // Case-insensitive key lookup
+      const lowerStatus = status.toLowerCase();
+      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const current = prev[matchedKey] ?? [];
+      return { ...prev, [matchedKey]: current.filter((a) => a.id !== agentInstanceId) };
     });
   }, []);
 
   const reorderAgents = useCallback((status: string, newOrder: AgentAssignment[]) => {
-    setLocalMappings((prev) => ({ ...prev, [status]: newOrder }));
+    setLocalMappings((prev) => {
+      // Case-insensitive key lookup
+      const lowerStatus = status.toLowerCase();
+      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const updated = { ...prev, [status]: newOrder };
+      if (matchedKey !== status) {
+        delete updated[matchedKey];
+      }
+      return updated;
+    });
   }, []);
 
   const applyPreset = useCallback((mappings: Record<string, AgentAssignment[]>) => {

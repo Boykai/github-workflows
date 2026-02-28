@@ -40,7 +40,7 @@ from src.services.workflow_orchestrator import (
     get_workflow_orchestrator,
     set_workflow_config,
 )
-from src.utils import resolve_repository
+from src.utils import resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -512,6 +512,19 @@ async def confirm_proposal(
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
 
+            # Apply user-specific agent pipeline mappings if available
+            from src.services.workflow_orchestrator.config import load_user_agent_mappings
+
+            user_mappings = await load_user_agent_mappings(session.github_user_id, project_id)
+            if user_mappings:
+                logger.info(
+                    "Applying user-specific agent pipeline mappings for user=%s project=%s",
+                    session.github_user_id,
+                    project_id,
+                )
+                config.agent_mappings = user_mappings
+                await set_workflow_config(project_id, config)
+
             # Set issue status to Backlog on the project
             backlog_status = config.status_backlog
             await github_projects_service.update_item_status_by_name(
@@ -549,12 +562,17 @@ async def confirm_proposal(
                     set_pipeline_state,
                 )
 
+                # Populate agents for the initial status so the polling loop
+                # doesn't see an empty list and immediately consider the
+                # pipeline "complete" (is_complete = 0 >= len([]) = True).
+                initial_agents = get_agent_slugs(config, backlog_status)
                 pipeline_state = PipelineState(
                     issue_number=issue_number,
                     project_id=project_id,
                     status=backlog_status,
-                    agents=[],
+                    agents=initial_agents,
                     agent_sub_issues=agent_sub_issues,
+                    started_at=utcnow(),
                 )
                 set_pipeline_state(issue_number, pipeline_state)
                 logger.info(

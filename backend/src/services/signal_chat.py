@@ -144,12 +144,18 @@ async def _run_workflow_orchestration(
     issue_node_id: str,
     item_id: str,
     session_id: UUID,
+    github_user_id: str = "",
 ) -> dict:
     """Set up workflow config, create sub-issues, and assign the first agent.
 
     Mirrors Step 3 of the web app's ``confirm_proposal`` flow.  Returns a
     summary dict ``{"sub_issues": int, "agent": str | None, "error": str | None}``
     for the caller to include in the user reply.
+
+    Args:
+        github_user_id: The GitHub user ID of the user who triggered the
+            workflow.  Used to load user-specific agent pipeline mappings
+            from their project settings.
     """
     from src.config import get_settings
     from src.models.workflow import WorkflowConfiguration
@@ -164,6 +170,8 @@ async def _run_workflow_orchestration(
         set_pipeline_state,
         set_workflow_config,
     )
+    from src.services.workflow_orchestrator.config import load_user_agent_mappings
+    from src.utils import utcnow
 
     result: dict = {"sub_issues": 0, "agent": None, "error": None}
 
@@ -185,6 +193,18 @@ async def _run_workflow_orchestration(
             config.repository_name = repo
             if not config.copilot_assignee:
                 config.copilot_assignee = settings.default_assignee
+
+        # ── Apply user-specific agent pipeline mappings ──
+        if github_user_id:
+            user_mappings = await load_user_agent_mappings(github_user_id, project_id)
+            if user_mappings:
+                logger.info(
+                    "Applying user-specific agent pipeline mappings for user=%s project=%s",
+                    github_user_id,
+                    project_id,
+                )
+                config.agent_mappings = user_mappings
+                await set_workflow_config(project_id, config)
 
         # ── Set issue status to Backlog ──
         backlog_status = config.status_backlog
@@ -214,12 +234,17 @@ async def _run_workflow_orchestration(
         # ── Create all sub-issues upfront ──
         agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
         if agent_sub_issues:
+            # Populate agents for the initial status so the polling loop
+            # doesn't see an empty list and immediately consider the
+            # pipeline "complete" (is_complete = 0 >= len([]) = True).
+            backlog_agents = get_agent_slugs(config, backlog_status)
             pipeline_state = PipelineState(
                 issue_number=issue_number,
                 project_id=project_id,
                 status=backlog_status,
-                agents=[],
+                agents=backlog_agents,
                 agent_sub_issues=agent_sub_issues,
+                started_at=utcnow(),
             )
             set_pipeline_state(issue_number, pipeline_state)
             result["sub_issues"] = len(agent_sub_issues)
@@ -329,6 +354,7 @@ async def _handle_confirm(
                 issue_node_id=issue["node_id"],
                 item_id=item_id,
                 session_id=signal_sid,
+                github_user_id=conn.github_user_id,
             )
 
             msg = ChatMessage(
@@ -391,6 +417,7 @@ async def _handle_confirm(
                 issue_node_id=issue["node_id"],
                 item_id=item_id,
                 session_id=signal_sid,
+                github_user_id=conn.github_user_id,
             )
 
             msg = ChatMessage(
