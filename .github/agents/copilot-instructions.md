@@ -103,3 +103,10 @@ npx playwright test             # E2E tests
 - Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
+
+## Active Technologies
+- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client) (014-board-refresh-ratelimit)
+- In-memory cache (`backend/src/services/cache.py` — `InMemoryCache` with TTL) (014-board-refresh-ratelimit)
+
+## Recent Changes
+- 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
