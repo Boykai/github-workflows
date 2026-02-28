@@ -103,3 +103,10 @@ npx playwright test             # E2E tests
 - Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
+
+## Active Technologies
+- TypeScript/React 18 (frontend), Python 3.11 (backend — unchanged), Swift (Capacitor native bridge) + Capacitor 6 (iOS shell), @capacitor/ios, @capacitor/push-notifications, @capacitor/status-bar, @capacitor/splash-screen, @capacitor/keyboard, @capacitor/app (lifecycle) (014-native-ios-support)
+- Existing SQLite backend (unchanged); Capacitor Preferences plugin for client-side state persistence (014-native-ios-support)
+
+## Recent Changes
+- 014-native-ios-support: Added TypeScript/React 18 (frontend), Python 3.11 (backend — unchanged), Swift (Capacitor native bridge) + Capacitor 6 (iOS shell), @capacitor/ios, @capacitor/push-notifications, @capacitor/status-bar, @capacitor/splash-screen, @capacitor/keyboard, @capacitor/app (lifecycle)
