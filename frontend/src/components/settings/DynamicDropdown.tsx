@@ -32,7 +32,10 @@ interface DynamicDropdownProps {
 }
 
 function formatTimeAgo(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '';
+  const diff = Date.now() - date.getTime();
+  if (diff < 0) return 'just now';
   const seconds = Math.floor(diff / 1000);
   if (seconds < 60) return 'just now';
   const minutes = Math.floor(seconds / 60);

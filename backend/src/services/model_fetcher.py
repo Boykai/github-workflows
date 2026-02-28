@@ -21,6 +21,7 @@ from src.models.settings import ModelOption, ModelsResponse
 logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_TTL = 600  # 10 minutes
+RATE_LIMIT_WARNING_THRESHOLD = 500  # Warn when remaining quota is below this value
 MAX_BACKOFF = 900  # 15 minutes
 DEFAULT_BACKOFF = 60  # 1 minute
 
@@ -401,7 +402,7 @@ class ModelFetcherService:
     def _is_rate_limit_warning(self, provider: str) -> bool:
         """Check if remaining rate limit is below 10%."""
         remaining = self._rate_limit_remaining.get(provider)
-        if remaining is not None and remaining < 500:  # ~10% of 5000
+        if remaining is not None and remaining < RATE_LIMIT_WARNING_THRESHOLD:
             return True
         return False
 
