@@ -547,7 +547,7 @@ class AIAgentService:
         try:
             return json.loads(content)
         except json.JSONDecodeError:
-            pass
+            logger.debug("Direct JSON parse failed, attempting extraction")
 
         # Try to extract the first JSON object from the text
         # Find the first '{' and match to its closing '}'

@@ -349,7 +349,7 @@ async def retry_pipeline(
         pending_key = f"{issue_number}:{current_agent}"
         _pending_agent_assignments.pop(pending_key, None)
     except ImportError:
-        pass
+        logger.debug("Could not import _pending_agent_assignments for dedup guard cleanup", exc_info=True)
 
     # Retry the assignment
     orchestrator = get_workflow_orchestrator()

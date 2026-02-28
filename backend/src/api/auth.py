@@ -53,7 +53,7 @@ async def get_current_session(
     return session
 
 
-# Backward-compatible alias — callers may use either name.
+# Alias — callers may use either name.
 get_session_dep = get_current_session
 
 

@@ -100,7 +100,7 @@ def _trigger_signal_delivery(
     try:
         asyncio.create_task(_deliver())
     except RuntimeError:
-        pass  # No running event loop — skip silently
+        logger.debug("No running event loop — skipping Signal delivery trigger")
 
 
 @router.get("/messages", response_model=ChatMessagesResponse)

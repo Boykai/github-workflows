@@ -310,7 +310,7 @@ async def post_agent_outputs_from_pr(
                                     issue_number=task.issue_number,
                                 )
                             except Exception:
-                                pass
+                                logger.debug("Failed to link PR #%d to issue #%d, continuing", pr_num, task.issue_number, exc_info=True)
 
                         # If this is a subsequent agent (main branch exists)
                         # and the PR is NOT the main PR itself, it must be a
