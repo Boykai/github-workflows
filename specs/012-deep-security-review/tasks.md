@@ -156,7 +156,7 @@
 ### Implementation for User Story 7
 
 - [ ] T037 [US7] Audit CORS configuration for overly permissive wildcards and verify allowed origins are restricted to trusted domains in backend/src/config.py (cors_origins) and backend/src/main.py (CORSMiddleware)
-- [ ] T038 [P] [US7] Add security headers middleware (X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Strict-Transport-Security, Content-Security-Policy, X-XSS-Protection) in backend/src/middleware/security_headers.py and register in backend/src/main.py
+- [ ] T038 [P] [US7] Add security headers middleware (X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Strict-Transport-Security, Content-Security-Policy, Referrer-Policy) in backend/src/middleware/security_headers.py and register in backend/src/main.py
 - [ ] T039 [P] [US7] Audit cookie attributes — verify session cookies use Secure=True, HttpOnly=True, SameSite=Lax in production and that cookie_secure defaults are safe in backend/src/config.py and backend/src/api/auth.py
 - [ ] T040 [P] [US7] Add security headers to frontend nginx configuration for production static file serving in frontend/nginx.conf
 - [ ] T041 [US7] Document transport security and headers findings and changes in docs/security-review-report.md
