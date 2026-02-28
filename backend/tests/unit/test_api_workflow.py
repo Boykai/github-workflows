@@ -580,7 +580,9 @@ class TestCheckIssueCopilotCompletion:
         result = {"status": "no_pr_found"}
         with (
             patch(
-                f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=_workflow_config(),
             ),
             patch(
                 "src.services.copilot_polling.check_issue_for_copilot_completion",
