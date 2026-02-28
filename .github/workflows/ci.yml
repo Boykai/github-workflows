@@ -41,8 +41,8 @@ jobs:
       - name: Type check with pyright
         run: pyright src
 
-      #- name: Run tests
-      #  run: pytest --cov=src --cov-report=term-missing
+      - name: Run tests
+        run: pytest --cov=src --cov-report=term-missing
 
   # Frontend tests run directly on the runner
   frontend:
