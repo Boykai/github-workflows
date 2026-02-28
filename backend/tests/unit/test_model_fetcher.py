@@ -15,12 +15,7 @@ import pytest
 
 from src.models.settings import ModelOption, ModelsResponse
 from src.services.database import seed_global_settings
-from src.services.model_fetcher import (
-    CacheEntry,
-    ModelFetcherService,
-    _model_fetcher_service,
-)
-
+from src.services.model_fetcher import CacheEntry, ModelFetcherService
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -194,9 +189,7 @@ class TestModelsEndpoint:
             "src.api.settings.get_model_fetcher_service",
             return_value=mock_service,
         ):
-            resp = await seeded_client.get(
-                "/api/v1/settings/models/copilot?force_refresh=true"
-            )
+            resp = await seeded_client.get("/api/v1/settings/models/copilot?force_refresh=true")
 
         assert resp.status_code == 200
         mock_service.get_models.assert_called_once_with(

@@ -11,7 +11,6 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any
 
 import httpx
 
@@ -56,6 +55,12 @@ class ModelFetchProvider(ABC):
         """Whether this provider requires user-specific credentials."""
         ...
 
+    # Optional rate-limit metadata populated after fetch_models() calls.
+    # Providers that track rate-limit headers should set these attributes.
+    _last_rate_limit_remaining: str | None = None
+    _last_rate_limit_reset: str | None = None
+    _last_retry_after: str | None = None
+
 
 # ── Provider Implementations ──
 
@@ -84,9 +89,7 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
             )
 
             # Store rate-limit info for the service layer
-            self._last_rate_limit_remaining = response.headers.get(
-                "X-RateLimit-Remaining"
-            )
+            self._last_rate_limit_remaining = response.headers.get("X-RateLimit-Remaining")
             self._last_rate_limit_reset = response.headers.get("X-RateLimit-Reset")
             self._last_retry_after = response.headers.get("Retry-After")
 
@@ -356,16 +359,14 @@ class ModelFetcherService:
                     models=cached.models,
                     fetched_at=cached.fetched_at.isoformat(),
                     cache_hit=True,
-                    message=f"Failed to fetch models. Using cached values.",
+                    message="Failed to fetch models. Using cached values.",
                 )
             return ModelsResponse(
                 status="error",
                 message=f"Failed to fetch models from {provider}. Please try again.",
             )
 
-    async def _background_refresh(
-        self, provider: str, token: str | None, cache_key: str
-    ) -> None:
+    async def _background_refresh(self, provider: str, token: str | None, cache_key: str) -> None:
         """Refresh cache in background without blocking the caller."""
         try:
             fetcher = PROVIDER_REGISTRY.get(provider)
