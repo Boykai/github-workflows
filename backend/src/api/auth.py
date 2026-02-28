@@ -28,7 +28,7 @@ def _set_session_cookie(response: Response, session_id: str) -> None:
         key=SESSION_COOKIE_NAME,
         value=session_id,
         httponly=True,
-        secure=settings.cookie_secure,
+        secure=settings.effective_cookie_secure,
         samesite="lax",
         max_age=settings.cookie_max_age,
         path="/",

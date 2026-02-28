@@ -191,7 +191,7 @@ class TestRateLimitError:
 
 class TestConstants:
     def test_default_status_columns(self):
-        assert DEFAULT_STATUS_COLUMNS == ["Todo", "In Progress", "Done"]
+        assert DEFAULT_STATUS_COLUMNS == ["Backlog", "In Progress", "Done"]
 
     def test_session_cookie_name(self):
         assert SESSION_COOKIE_NAME == "session_id"

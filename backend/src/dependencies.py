@@ -87,18 +87,23 @@ async def require_admin(
         admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if admin_user_id is None:
-        # Auto-promote first authenticated user
-        await db.execute(
-            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1",
+        # Auto-promote first authenticated user atomically to prevent race conditions
+        cursor = await db.execute(
+            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1 AND admin_github_user_id IS NULL",
             (session.github_user_id,),
         )
         await db.commit()
-        logger.info(
-            "Auto-promoted user %s (%s) as admin",
-            session.github_username,
-            session.github_user_id,
-        )
-        return session
+        if cursor.rowcount > 0:
+            logger.info(
+                "Auto-promoted user %s (%s) as admin",
+                session.github_username,
+                session.github_user_id,
+            )
+            return session
+        # Another user was promoted concurrently — re-read to check
+        cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
+        row = await cursor.fetchone()
+        admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if session.github_user_id != admin_user_id:
         raise HTTPException(
