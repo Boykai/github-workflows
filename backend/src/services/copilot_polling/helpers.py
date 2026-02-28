@@ -54,7 +54,20 @@ async def _check_agent_done_on_sub_or_parent(
     Done! markers are now posted on the **parent** issue only.  Falls back to
     the sub-issue for backward compatibility with issues created before this
     policy change.
+
+    For the Human agent, also checks if the sub-issue has been closed, and
+    validates that 'Done!' comments are from the assigned user only.
     """
+    # ── Human agent: dual completion signals ──────────────────────
+    if agent_name == "human":
+        return await _check_human_agent_done(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            parent_issue_number=parent_issue_number,
+            pipeline=pipeline,
+        )
+
     # Check parent issue first (new canonical location for Done! markers)
     done = await _cp.github_projects_service.check_agent_completion_comment(
         access_token=access_token,
@@ -78,6 +91,128 @@ async def _check_agent_done_on_sub_or_parent(
         )
 
     return False
+
+
+async def _check_human_agent_done(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    pipeline: "object | None" = None,
+) -> bool:
+    """Check if a Human agent step is complete.
+
+    Two completion signals:
+    1. The Human sub-issue has been closed.
+    2. The assigned user commented exactly 'Done!' on the parent issue.
+
+    Returns True if either signal is detected.
+    """
+    sub_number = _get_sub_issue_number(pipeline, "human", parent_issue_number)
+
+    # Signal 1: Check if the Human sub-issue has been closed
+    if sub_number != parent_issue_number:
+        try:
+            sub_issue_data = await _cp.github_projects_service.get_issue_with_comments(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_number,
+                max_pages=1,
+            )
+            # We check comments from this call too for Signal 2
+            # But first check if sub-issue is closed by checking its state
+            # The get_issue_with_comments uses GraphQL — check state via REST
+        except Exception as e:
+            logger.warning("Failed to fetch Human sub-issue #%d: %s", sub_number, e)
+
+        try:
+            closed = await _cp.github_projects_service.check_issue_closed(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_number,
+            )
+            if closed:
+                logger.info(
+                    "Human sub-issue #%d is closed — marking Human step complete (parent #%d)",
+                    sub_number,
+                    parent_issue_number,
+                )
+                return True
+        except Exception as e:
+            logger.warning("Failed to check Human sub-issue #%d state: %s", sub_number, e)
+
+    # Signal 2: Check if the assigned user commented exactly 'Done!' on the parent issue
+    try:
+        parent_data = await _cp.github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=parent_issue_number,
+        )
+        comments = parent_data.get("comments", [])
+
+        # Determine the Human sub-issue assignee for authorization
+        assignee = _get_human_sub_issue_assignee(pipeline, parent_issue_number)
+
+        for comment in reversed(comments):
+            body = comment.get("body", "").strip()
+            if body == "Done!":
+                comment_author = comment.get("author", "")
+                # If we know the assignee, only accept from them
+                if assignee and comment_author == assignee:
+                    logger.info(
+                        "Human step complete via 'Done!' comment from '%s' on parent issue #%d",
+                        comment_author,
+                        parent_issue_number,
+                    )
+                    return True
+                elif assignee and comment_author != assignee:
+                    logger.debug(
+                        "Ignoring 'Done!' comment from '%s' (expected '%s') on issue #%d",
+                        comment_author,
+                        assignee,
+                        parent_issue_number,
+                    )
+                elif not assignee:
+                    # No assignee known — accept from anyone as fallback
+                    logger.info(
+                        "Human step complete via 'Done!' comment from '%s' on issue #%d (no assignee known)",
+                        comment_author,
+                        parent_issue_number,
+                    )
+                    return True
+    except Exception as e:
+        logger.warning("Failed to check Human Done! comment on issue #%d: %s", parent_issue_number, e)
+
+    return False
+
+
+def _get_human_sub_issue_assignee(
+    pipeline: "object | None",
+    parent_issue_number: int,
+) -> str:
+    """Get the assignee of the Human sub-issue from pipeline state.
+
+    The assignee was set during sub-issue creation to the parent issue creator.
+    We store it in the sub-issue info for later validation.
+
+    Falls back to checking the global sub-issue store.
+    """
+    # Check pipeline state
+    if pipeline and getattr(pipeline, "agent_sub_issues", None):
+        sub_info = pipeline.agent_sub_issues.get("human")
+        if sub_info and sub_info.get("assignee"):
+            return sub_info["assignee"]
+
+    # Check global store
+    global_subs = _cp.get_issue_sub_issues(parent_issue_number)
+    sub_info = global_subs.get("human")
+    if sub_info and sub_info.get("assignee"):
+        return sub_info["assignee"]
+
+    return ""
 
 
 async def _check_agent_done_on_parent(

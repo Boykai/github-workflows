@@ -258,6 +258,9 @@ def check_last_comment_for_done(
     """
     Check the last issue comment for an "<agent>: Done!" marker.
 
+    Also supports the Human agent pattern: an exact "Done!" comment
+    (no agent prefix) returns "human" as the agent name.
+
     Args:
         comments: List of comment dicts with "body" key, ordered oldest-first
 
@@ -272,6 +275,9 @@ def check_last_comment_for_done(
     match = re.match(r"^(.+?):\s*Done!\s*$", last_body)
     if match:
         return match.group(1).strip()
+    # Match Human agent pattern: exact "Done!" with no prefix
+    if last_body == "Done!":
+        return "human"
     return None
 
 
