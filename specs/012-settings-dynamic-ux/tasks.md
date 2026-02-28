@@ -23,9 +23,9 @@
 
 **Purpose**: Backend and frontend scaffolding needed before any feature work begins
 
-- [ ] T001 Add `ModelOption` and `ModelsResponse` Pydantic models to backend/src/models/settings.py
-- [ ] T002 [P] Create provider interface `ModelFetchProvider` protocol and provider registry in backend/src/services/model_fetcher.py
-- [ ] T003 [P] Add `fetchModels(provider)` method to the `settingsApi` object in frontend/src/services/api.ts
+- [x] T001 Add `ModelOption` and `ModelsResponse` Pydantic models to backend/src/models/settings.py
+- [x] T002 [P] Create provider interface `ModelFetchProvider` protocol and provider registry in backend/src/services/model_fetcher.py
+- [x] T003 [P] Add `fetchModels(provider)` method to the `settingsApi` object in frontend/src/services/api.ts
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement `GitHubCopilotModelFetcher` class (implements `ModelFetchProvider`) with GitHub API call in backend/src/services/model_fetcher.py
-- [ ] T005 [P] Implement `AzureOpenAIModelFetcher` class (implements `ModelFetchProvider`, returns static list from env config) in backend/src/services/model_fetcher.py
-- [ ] T006 Implement `ModelFetcherService` with in-memory TTL cache (keyed by `{provider}:{token_hash}`, default TTL 600s) in backend/src/services/model_fetcher.py
-- [ ] T007 Add `GET /settings/models/{provider}` endpoint with `force_refresh` query param to backend/src/api/settings.py (delegates to `ModelFetcherService`)
-- [ ] T008 [P] Add `useModelOptions(provider)` TanStack Query hook with `staleTime: 5 min` and `enabled` flag to frontend/src/hooks/useSettings.ts
+- [x] T004 Implement `GitHubCopilotModelFetcher` class (implements `ModelFetchProvider`) with GitHub API call in backend/src/services/model_fetcher.py
+- [x] T005 [P] Implement `AzureOpenAIModelFetcher` class (implements `ModelFetchProvider`, returns static list from env config) in backend/src/services/model_fetcher.py
+- [x] T006 Implement `ModelFetcherService` with in-memory TTL cache (keyed by `{provider}:{token_hash}`, default TTL 600s) in backend/src/services/model_fetcher.py
+- [x] T007 Add `GET /settings/models/{provider}` endpoint with `force_refresh` query param to backend/src/api/settings.py (delegates to `ModelFetcherService`)
+- [x] T008 [P] Add `useModelOptions(provider)` TanStack Query hook with `staleTime: 5 min` and `enabled` flag to frontend/src/hooks/useSettings.ts
 
 **Checkpoint**: Foundation ready — backend can fetch and cache models, frontend can query backend. User story implementation can now begin.
 
@@ -53,10 +53,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Create `PrimarySettings` component rendering model provider, chat model, GitHub agent model, and Signal connection fields in frontend/src/components/settings/PrimarySettings.tsx
-- [ ] T010 [P] [US1] Create `AdvancedSettings` component with collapsible wrapper (collapsed by default) containing display, workflow, notification, allowed models, and project settings in frontend/src/components/settings/AdvancedSettings.tsx
-- [ ] T011 [US1] Refactor `SettingsPage` to render `PrimarySettings` at top and `AdvancedSettings` below in frontend/src/pages/SettingsPage.tsx
-- [ ] T012 [US1] Update `GlobalSettings` to extract primary AI fields into `PrimarySettings` scope in frontend/src/components/settings/GlobalSettings.tsx
+- [x] T009 [P] [US1] Create `PrimarySettings` component rendering model provider, chat model, GitHub agent model, and Signal connection fields in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T010 [P] [US1] Create `AdvancedSettings` component with collapsible wrapper (collapsed by default) containing display, workflow, notification, allowed models, and project settings in frontend/src/components/settings/AdvancedSettings.tsx
+- [x] T011 [US1] Refactor `SettingsPage` to render `PrimarySettings` at top and `AdvancedSettings` below in frontend/src/pages/SettingsPage.tsx
+- [x] T012 [US1] Update `GlobalSettings` to extract primary AI fields into `PrimarySettings` scope in frontend/src/components/settings/GlobalSettings.tsx
 
 **Checkpoint**: Settings page shows primary settings prominently and advanced settings collapsed. Fully functional and testable independently.
 
@@ -70,12 +70,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Create `DynamicDropdown` component with idle, loading (spinner + disabled), and success states in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T014 [US2] Integrate `DynamicDropdown` with `useModelOptions` hook for chat model selection in frontend/src/components/settings/PrimarySettings.tsx
-- [ ] T015 [US2] Integrate `DynamicDropdown` with `useModelOptions` hook for GitHub agent model selection in frontend/src/components/settings/PrimarySettings.tsx
-- [ ] T016 [US2] Add provider-change detection logic to clear and refetch model options when provider selection changes in frontend/src/components/settings/PrimarySettings.tsx
-- [ ] T017 [US2] Add `supports_dynamic_models` flag to `AIProvider` enum and expose in provider metadata in backend/src/models/settings.py
-- [ ] T018 [US2] Handle empty model list response by displaying "No models available for this provider" message in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T013 [US2] Create `DynamicDropdown` component with idle, loading (spinner + disabled), and success states in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T014 [US2] Integrate `DynamicDropdown` with `useModelOptions` hook for chat model selection in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T015 [US2] Integrate `DynamicDropdown` with `useModelOptions` hook for GitHub agent model selection in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T016 [US2] Add provider-change detection logic to clear and refetch model options when provider selection changes in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T017 [US2] Add `supports_dynamic_models` flag to `AIProvider` enum and expose in provider metadata in backend/src/models/settings.py
+- [x] T018 [US2] Handle empty model list response by displaying "No models available for this provider" message in frontend/src/components/settings/DynamicDropdown.tsx
 
 **Checkpoint**: Dynamic dropdowns populated from live provider API. Provider switching triggers refetch. Static providers show configured options. Testable independently.
 
@@ -89,10 +89,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add stale-while-revalidate behavior to `ModelFetcherService` — serve stale cache immediately, trigger `asyncio.create_task` for background refresh in backend/src/services/model_fetcher.py
-- [ ] T020 [US3] Expose `fetched_at` and `cache_hit` fields in the `/settings/models/{provider}` response from backend/src/api/settings.py
-- [ ] T021 [US3] Add freshness indicator component (e.g., "Last updated 5 minutes ago") adjacent to `DynamicDropdown` in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T022 [US3] Configure TanStack Query `gcTime` and `staleTime` in `useModelOptions` to serve cached data on page revisit in frontend/src/hooks/useSettings.ts
+- [x] T019 [US3] Add stale-while-revalidate behavior to `ModelFetcherService` — serve stale cache immediately, trigger `asyncio.create_task` for background refresh in backend/src/services/model_fetcher.py
+- [x] T020 [US3] Expose `fetched_at` and `cache_hit` fields in the `/settings/models/{provider}` response from backend/src/api/settings.py
+- [x] T021 [US3] Add freshness indicator component (e.g., "Last updated 5 minutes ago") adjacent to `DynamicDropdown` in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T022 [US3] Configure TanStack Query `gcTime` and `staleTime` in `useModelOptions` to serve cached data on page revisit in frontend/src/hooks/useSettings.ts
 
 **Checkpoint**: Cached dropdown values load instantly; freshness metadata displayed; background refresh works without blocking UI. Testable independently.
 
@@ -106,10 +106,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Add error and retry states to `DynamicDropdown` — display error message, retry button, and fallback to cached values in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T024 [US4] Implement retry logic in `useModelOptions` hook using TanStack Query `refetch` on retry button click in frontend/src/hooks/useSettings.ts
-- [ ] T025 [US4] Return structured error response with `status: "error"` and `message` from backend when fetch fails in backend/src/services/model_fetcher.py
-- [ ] T026 [US4] Handle "no cached values + error" state in `DynamicDropdown` — show error and retry with no selectable options in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T023 [US4] Add error and retry states to `DynamicDropdown` — display error message, retry button, and fallback to cached values in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T024 [US4] Implement retry logic in `useModelOptions` hook using TanStack Query `refetch` on retry button click in frontend/src/hooks/useSettings.ts
+- [x] T025 [US4] Return structured error response with `status: "error"` and `message` from backend when fetch fails in backend/src/services/model_fetcher.py
+- [x] T026 [US4] Handle "no cached values + error" state in `DynamicDropdown` — show error and retry with no selectable options in frontend/src/components/settings/DynamicDropdown.tsx
 
 **Checkpoint**: Fetch failures show user-friendly error with retry. Cached fallback works. No broken or empty dropdowns without recourse. Testable independently.
 
@@ -123,10 +123,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Add auth prerequisite check in `GET /settings/models/{provider}` — verify token existence via `github_auth.py` session lookup before fetching in backend/src/api/settings.py
-- [ ] T028 [US5] Return `{ status: "auth_required", message: "..." }` response when credentials are missing in backend/src/services/model_fetcher.py
-- [ ] T029 [US5] Add `auth_required` state rendering to `DynamicDropdown` — inline message with link/button to setup flow in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T030 [US5] Add Signal connection prerequisite check — display inline guidance when Signal is not configured in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T027 [US5] Add auth prerequisite check in `GET /settings/models/{provider}` — verify token existence via `github_auth.py` session lookup before fetching in backend/src/api/settings.py
+- [x] T028 [US5] Return `{ status: "auth_required", message: "..." }` response when credentials are missing in backend/src/services/model_fetcher.py
+- [x] T029 [US5] Add `auth_required` state rendering to `DynamicDropdown` — inline message with link/button to setup flow in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T030 [US5] Add Signal connection prerequisite check — display inline guidance when Signal is not configured in frontend/src/components/settings/PrimarySettings.tsx
 
 **Checkpoint**: Missing credentials show clear prerequisite message. No failed fetches attempted. Completing setup triggers automatic fetch. Testable independently.
 
@@ -140,10 +140,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T031 [US6] Parse `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `Retry-After` headers in `GitHubCopilotModelFetcher` in backend/src/services/model_fetcher.py
-- [ ] T032 [US6] Implement exponential backoff logic in `ModelFetcherService` — start at Retry-After value (or 60s default), double on consecutive 429s, cap at 15 min in backend/src/services/model_fetcher.py
-- [ ] T033 [US6] Set `rate_limit_warning` flag when remaining quota < 10% and include in `ModelsResponse` in backend/src/services/model_fetcher.py
-- [ ] T034 [US6] Add `rate_limited` state rendering to `DynamicDropdown` — non-blocking warning banner with cached values in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T031 [US6] Parse `X-RateLimit-Remaining`, `X-RateLimit-Reset`, and `Retry-After` headers in `GitHubCopilotModelFetcher` in backend/src/services/model_fetcher.py
+- [x] T032 [US6] Implement exponential backoff logic in `ModelFetcherService` — start at Retry-After value (or 60s default), double on consecutive 429s, cap at 15 min in backend/src/services/model_fetcher.py
+- [x] T033 [US6] Set `rate_limit_warning` flag when remaining quota < 10% and include in `ModelsResponse` in backend/src/services/model_fetcher.py
+- [x] T034 [US6] Add `rate_limited` state rendering to `DynamicDropdown` — non-blocking warning banner with cached values in frontend/src/components/settings/DynamicDropdown.tsx
 
 **Checkpoint**: Rate-limit warnings displayed proactively. Backoff prevents further 429s. Auto-retry works after cooldown. Testable independently.
 
@@ -157,10 +157,10 @@
 
 ### Implementation for User Story 7
 
-- [ ] T035 [US7] Add ARIA attributes to `DynamicDropdown` — `aria-busy`, `aria-label`, `aria-live="polite"` region for status announcements in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T036 [US7] Add `role="alert"` to error messages and ensure retry button is keyboard-focusable in frontend/src/components/settings/DynamicDropdown.tsx
-- [ ] T037 [US7] Add `aria-expanded` and `aria-controls` to the `AdvancedSettings` collapsible toggle in frontend/src/components/settings/AdvancedSettings.tsx
-- [ ] T038 [US7] Verify responsive layout of `PrimarySettings` and `AdvancedSettings` across 320px–2560px viewports in frontend/src/components/settings/PrimarySettings.tsx and frontend/src/components/settings/AdvancedSettings.tsx
+- [x] T035 [US7] Add ARIA attributes to `DynamicDropdown` — `aria-busy`, `aria-label`, `aria-live="polite"` region for status announcements in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T036 [US7] Add `role="alert"` to error messages and ensure retry button is keyboard-focusable in frontend/src/components/settings/DynamicDropdown.tsx
+- [x] T037 [US7] Add `aria-expanded` and `aria-controls` to the `AdvancedSettings` collapsible toggle in frontend/src/components/settings/AdvancedSettings.tsx
+- [x] T038 [US7] Verify responsive layout of `PrimarySettings` and `AdvancedSettings` across 320px–2560px viewports in frontend/src/components/settings/PrimarySettings.tsx and frontend/src/components/settings/AdvancedSettings.tsx
 
 **Checkpoint**: Full keyboard navigation, screen reader announcements for all states, responsive layout verified. Testable independently.
 
@@ -170,10 +170,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T039 [P] Update quickstart.md with verified setup and validation steps in specs/012-settings-dynamic-ux/quickstart.md
-- [ ] T040 In-flight fetch cancellation when provider changes rapidly (abort controller) in frontend/src/hooks/useSettings.ts
-- [ ] T041 [P] Cache invalidation on authentication status change — clear stale entries when user logs out or token expires in backend/src/services/model_fetcher.py
-- [ ] T042 Code cleanup — remove any unused imports or dead code introduced during feature implementation across all modified files
+- [x] T039 [P] Update quickstart.md with verified setup and validation steps in specs/012-settings-dynamic-ux/quickstart.md
+- [x] T040 In-flight fetch cancellation when provider changes rapidly (abort controller) in frontend/src/hooks/useSettings.ts
+- [x] T041 [P] Cache invalidation on authentication status change — clear stale entries when user logs out or token expires in backend/src/services/model_fetcher.py
+- [x] T042 Code cleanup — remove any unused imports or dead code introduced during feature implementation across all modified files
 
 ---
 

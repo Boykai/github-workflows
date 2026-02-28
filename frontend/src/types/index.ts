@@ -425,6 +425,23 @@ export interface ProjectSettingsUpdate {
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
 }
 
+// ============ Dynamic Model Fetching Types (012-settings-dynamic-ux) ============
+
+export interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+}
+
+export interface ModelsResponse {
+  status: 'success' | 'auth_required' | 'rate_limited' | 'error';
+  models: ModelOption[];
+  fetched_at: string | null;
+  cache_hit: boolean;
+  rate_limit_warning: boolean;
+  message: string | null;
+}
+
 // ============ Signal Messaging Types (011-signal-chat-integration) ============
 
 export type SignalConnectionStatus = 'pending' | 'connected' | 'error' | 'disconnected';
