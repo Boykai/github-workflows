@@ -27,11 +27,11 @@
 
 **Purpose**: Create the shared test helper modules, factory infrastructure, and directory structure needed by all subsequent phases.
 
-- [ ] T001 Create backend test helpers directory and __init__.py at backend/tests/helpers/__init__.py
-- [ ] T002 [P] Create backend test data factory module with make_user_session, make_project, make_task, make_board_column, make_chat_message, make_settings factory functions at backend/tests/helpers/factories.py
-- [ ] T003 [P] Create backend custom assertion helpers module with assert_api_error, assert_json_structure, assert_api_success helper functions at backend/tests/helpers/assertions.py
-- [ ] T004 [P] Create backend reusable mock builder module with pre-configured mock builders for database, GitHub API, AI agent, WebSocket, and Signal services at backend/tests/helpers/mocks.py
-- [ ] T005 [P] Create frontend test data factories directory and index module with createMockProject, createMockTask, createMockUser, createMockColumn, createMockChatMessage, createMockSettings factory functions at frontend/src/test/factories/index.ts
+- [X] T001 Create backend test helpers directory and __init__.py at backend/tests/helpers/__init__.py
+- [X] T002 [P] Create backend test data factory module with make_user_session, make_project, make_task, make_board_column, make_chat_message, make_settings factory functions at backend/tests/helpers/factories.py
+- [X] T003 [P] Create backend custom assertion helpers module with assert_api_error, assert_json_structure, assert_api_success helper functions at backend/tests/helpers/assertions.py
+- [X] T004 [P] Create backend reusable mock builder module with pre-configured mock builders for database, GitHub API, AI agent, WebSocket, and Signal services at backend/tests/helpers/mocks.py
+- [X] T005 [P] Create frontend test data factories directory and index module with createMockProject, createMockTask, createMockUser, createMockColumn, createMockChatMessage, createMockSettings factory functions at frontend/src/test/factories/index.ts
 
 ---
 
@@ -41,13 +41,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Run full backend test suite locally (cd backend && pytest -v) to establish baseline — document pass/fail counts and identify any currently broken tests
-- [ ] T007 Run full frontend unit test suite locally (cd frontend && npm test) to establish baseline — document pass/fail counts
+- [X] T006 Run full backend test suite locally (cd backend && pytest -v) to establish baseline — document pass/fail counts and identify any currently broken tests
+- [X] T007 Run full frontend unit test suite locally (cd frontend && npm test) to establish baseline — document pass/fail counts
 - [ ] T008 [P] Run backend coverage baseline report (cd backend && pytest --cov=src --cov-report=term-missing) and record per-module coverage percentages
 - [ ] T009 [P] Run frontend coverage baseline report (cd frontend && npm run test:coverage) and record per-module coverage percentages
-- [ ] T010 Fix any currently broken or failing backend tests discovered in T006 so the full suite passes before audit begins
-- [ ] T011 Fix any currently broken or failing frontend tests discovered in T007 so the full suite passes before audit begins
-- [ ] T012 Re-enable backend pytest step in CI pipeline by uncommenting lines 44-45 in .github/workflows/ci.yml — change commented `#- name: Run tests` and `#  run: pytest --cov=src --cov-report=term-missing` to active steps
+- [X] T010 Fix any currently broken or failing backend tests discovered in T006 so the full suite passes before audit begins
+- [X] T011 Fix any currently broken or failing frontend tests discovered in T007 so the full suite passes before audit begins
+- [X] T012 Re-enable backend pytest step in CI pipeline by uncommenting lines 44-45 in .github/workflows/ci.yml — change commented `#- name: Run tests` and `#  run: pytest --cov=src --cov-report=term-missing` to active steps
 
 **Checkpoint**: Foundation ready — all existing tests pass locally and in CI, backend tests re-enabled, baselines recorded. User story implementation can now begin.
 
@@ -146,7 +146,7 @@
 
 ### Backend: Missing Middleware Tests
 
-- [ ] T064 [P] [US2] Create unit tests for request ID middleware — request ID generation, propagation, header handling — at backend/tests/unit/test_middleware.py testing backend/src/middleware/request_id.py
+- [X] T064 [P] [US2] Create unit tests for request ID middleware — request ID generation, propagation, header handling — at backend/tests/unit/test_middleware.py testing backend/src/middleware/request_id.py
 
 ### Backend: Missing Copilot Polling Sub-module Tests
 
@@ -170,19 +170,19 @@
 
 ### Backend: Missing Utility and Other Module Tests
 
-- [ ] T076 [P] [US2] Create unit tests for backend utilities — all utility functions in backend/src/utils.py — at backend/tests/unit/test_utils.py
+- [X] T076 [P] [US2] Create unit tests for backend utilities — all utility functions in backend/src/utils.py — at backend/tests/unit/test_utils.py
 - [ ] T077 [P] [US2] Create unit tests for encryption service — key generation, encrypt/decrypt roundtrip, invalid key handling — at backend/tests/unit/test_encryption.py testing backend/src/services/encryption.py (expand beyond existing test_token_encryption.py)
 - [ ] T078 [P] [US2] Create unit tests for constants module — validate constant values and types — at backend/tests/unit/test_constants.py testing backend/src/constants.py
 - [ ] T079 [P] [US2] Create unit tests for dependencies module — dependency injection, service resolution — at backend/tests/unit/test_dependencies.py testing backend/src/dependencies.py
-- [ ] T080 [P] [US2] Create unit tests for exceptions module — custom exception creation, serialization, error codes — at backend/tests/unit/test_exceptions.py testing backend/src/exceptions.py
+- [X] T080 [P] [US2] Create unit tests for exceptions module — custom exception creation, serialization, error codes — at backend/tests/unit/test_exceptions.py testing backend/src/exceptions.py
 
 ### Frontend: Missing Hook Tests (10 untested hooks)
 
-- [ ] T081 [P] [US2] Create unit tests for useChat hook — message send/receive, loading states, error handling, real-time updates — at frontend/src/hooks/useChat.test.tsx testing frontend/src/hooks/useChat.ts
-- [ ] T082 [P] [US2] Create unit tests for useWorkflow hook — workflow step execution, status transitions, error states — at frontend/src/hooks/useWorkflow.test.tsx testing frontend/src/hooks/useWorkflow.ts
-- [ ] T083 [P] [US2] Create unit tests for useProjectBoard hook — board data fetching, column/card operations, drag-and-drop state — at frontend/src/hooks/useProjectBoard.test.tsx testing frontend/src/hooks/useProjectBoard.ts
+- [X] T081 [P] [US2] Create unit tests for useChat hook — message send/receive, loading states, error handling, real-time updates — at frontend/src/hooks/useChat.test.tsx testing frontend/src/hooks/useChat.ts
+- [X] T082 [P] [US2] Create unit tests for useWorkflow hook — workflow step execution, status transitions, error states — at frontend/src/hooks/useWorkflow.test.tsx testing frontend/src/hooks/useWorkflow.ts
+- [X] T083 [P] [US2] Create unit tests for useProjectBoard hook — board data fetching, column/card operations, drag-and-drop state — at frontend/src/hooks/useProjectBoard.test.tsx testing frontend/src/hooks/useProjectBoard.ts
 - [ ] T084 [P] [US2] Create unit tests for useSettings hook — settings loading, saving, validation, default values — at frontend/src/hooks/useSettings.test.tsx testing frontend/src/hooks/useSettings.ts
-- [ ] T085 [P] [US2] Create unit tests for useSettingsForm hook — form state management, validation, submission, dirty tracking — at frontend/src/hooks/useSettingsForm.test.tsx testing frontend/src/hooks/useSettingsForm.ts
+- [X] T085 [P] [US2] Create unit tests for useSettingsForm hook — form state management, validation, submission, dirty tracking — at frontend/src/hooks/useSettingsForm.test.tsx testing frontend/src/hooks/useSettingsForm.ts
 - [ ] T086 [P] [US2] Create unit tests for useAgentConfig hook — agent configuration loading, updating, preset selection — at frontend/src/hooks/useAgentConfig.test.tsx testing frontend/src/hooks/useAgentConfig.ts
 - [ ] T087 [P] [US2] Create unit tests for useAppTheme hook — theme switching, persistence, system preference detection — at frontend/src/hooks/useAppTheme.test.tsx testing frontend/src/hooks/useAppTheme.ts
 
@@ -194,8 +194,8 @@
 - [ ] T091 [P] [US2] Create unit tests for ChatInterface component — message list rendering, input handling, send action — at frontend/src/components/chat/ChatInterface.test.tsx testing frontend/src/components/chat/ChatInterface.tsx
 - [ ] T092 [P] [US2] Create unit tests for ChatPopup component — open/close toggle, position, message display — at frontend/src/components/chat/ChatPopup.test.tsx testing frontend/src/components/chat/ChatPopup.tsx
 - [ ] T093 [P] [US2] Create unit tests for MessageBubble component — message rendering, sender distinction, timestamp display — at frontend/src/components/chat/MessageBubble.test.tsx testing frontend/src/components/chat/MessageBubble.tsx
-- [ ] T094 [P] [US2] Create unit tests for LoginButton component — login trigger, loading state, error display — at frontend/src/components/auth/LoginButton.test.tsx testing frontend/src/components/auth/LoginButton.tsx
-- [ ] T095 [P] [US2] Create unit tests for ErrorBoundary component — error catching, fallback rendering, error reporting — at frontend/src/components/common/ErrorBoundary.test.tsx testing frontend/src/components/common/ErrorBoundary.tsx
+- [X] T094 [P] [US2] Create unit tests for LoginButton component — login trigger, loading state, error display — at frontend/src/components/auth/LoginButton.test.tsx testing frontend/src/components/auth/LoginButton.tsx
+- [X] T095 [P] [US2] Create unit tests for ErrorBoundary component — error catching, fallback rendering, error reporting — at frontend/src/components/common/ErrorBoundary.test.tsx testing frontend/src/components/common/ErrorBoundary.tsx
 - [ ] T096 [P] [US2] Create unit tests for GlobalSettings component — settings display, form interactions — at frontend/src/components/settings/GlobalSettings.test.tsx testing frontend/src/components/settings/GlobalSettings.tsx
 - [ ] T097 [P] [US2] Create unit tests for ProjectSettings component — project-specific settings display and editing — at frontend/src/components/settings/ProjectSettings.test.tsx testing frontend/src/components/settings/ProjectSettings.tsx
 - [ ] T098 [P] [US2] Create unit tests for IssueDetailModal component — modal rendering, detail display, close behavior — at frontend/src/components/board/IssueDetailModal.test.tsx testing frontend/src/components/board/IssueDetailModal.tsx
