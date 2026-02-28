@@ -30,6 +30,14 @@ export const WS_RECONNECT_DELAY_MS = 5_000;
 /** WebSocket connection timeout (5 seconds). */
 export const WS_CONNECTION_TIMEOUT_MS = 5_000;
 
+// ============ Auto-Refresh ============
+
+/** Board auto-refresh interval (5 minutes). */
+export const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+/** Rate limit remaining threshold for preemptive low-quota warning. */
+export const RATE_LIMIT_LOW_THRESHOLD = 10;
+
 // ============ Expiry / TTL ============
 
 /** AI task proposal expiry duration (10 minutes). */
