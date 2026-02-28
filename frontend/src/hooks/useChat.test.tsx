@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useChat } from './useChat';
 import * as api from '@/services/api';
 import type { ReactNode } from 'react';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 // Mock the API module
 vi.mock('@/services/api', () => ({
@@ -20,11 +21,21 @@ vi.mock('@/services/api', () => ({
   tasksApi: {
     updateStatus: vi.fn(),
   },
+  settingsApi: {
+    getUserSettings: vi.fn().mockResolvedValue({
+      ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
+      display: { theme: 'dark', default_view: 'board', sidebar_collapsed: false },
+      workflow: { auto_assign: true, default_status: 'Todo', polling_interval: 15 },
+      notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
+    }),
+    updateUserSettings: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 // Mock constants
 vi.mock('@/constants', () => ({
   STALE_TIME_MEDIUM: 0,
+  STALE_TIME_LONG: 0,
   PROPOSAL_EXPIRY_MS: 300000,
 }));
 
@@ -36,7 +47,7 @@ const mockChatApi = api.chatApi as unknown as {
   cancelProposal: ReturnType<typeof vi.fn>;
 };
 
-// Create wrapper with QueryClientProvider
+// Create wrapper with QueryClientProvider and ThemeProvider
 function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -47,9 +58,11 @@ function createWrapper() {
   });
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="test-theme">
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </ThemeProvider>
     );
   };
 }

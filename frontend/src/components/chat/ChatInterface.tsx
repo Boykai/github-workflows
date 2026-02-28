@@ -2,12 +2,15 @@
  * Chat interface component.
  */
 
-import { useState, useRef, useEffect, FormEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, FormEvent } from 'react';
 import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
 import { MessageBubble } from './MessageBubble';
+import { SystemMessage } from './SystemMessage';
+import { CommandAutocomplete } from './CommandAutocomplete';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
+import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -15,13 +18,17 @@ interface ChatInterfaceProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
   onRejectProposal: (proposalId: string) => void;
   onRejectRecommendation: (recommendationId: string) => Promise<void>;
   onNewChat: () => void;
+  /** Filtered commands for autocomplete overlay. */
+  filteredCommands?: CommandDefinition[];
+  /** Whether the current input is a command. */
+  isCommand?: (input: string) => boolean;
 }
 
 export function ChatInterface({
@@ -37,8 +44,13 @@ export function ChatInterface({
   onRejectProposal,
   onRejectRecommendation,
   onNewChat,
+  filteredCommands = [],
+  isCommand,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,16 +64,61 @@ export function ChatInterface({
     inputRef.current?.focus();
   }, []);
 
+  // Update autocomplete state when input changes
+  useEffect(() => {
+    const trimmed = input.trimStart();
+    const shouldShow = trimmed.startsWith('#') && !trimmed.slice(1).includes(' ');
+
+    if (shouldShow && filteredCommands.length > 0) {
+      setAutocompleteCommands(filteredCommands);
+      setShowAutocomplete(true);
+      setHighlightedIndex(0);
+    } else {
+      setShowAutocomplete(false);
+    }
+  }, [input, filteredCommands]);
+
+  const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
+    setInput(`#${command.name} `);
+    setShowAutocomplete(false);
+    inputRef.current?.focus();
+  }, []);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     const content = input.trim();
     if (content && !isSending) {
-      onSendMessage(content);
+      setShowAutocomplete(false);
+      const commandInput = isCommand ? isCommand(content) : false;
+      onSendMessage(content, { isCommand: commandInput });
       setInput('');
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showAutocomplete && autocompleteCommands.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1) % autocompleteCommands.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 + autocompleteCommands.length) % autocompleteCommands.length);
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        handleAutocompleteSelect(autocompleteCommands[highlightedIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -111,11 +168,20 @@ export function ChatInterface({
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Add a bug fix for the login page crash</li>
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Set up CI/CD pipeline for the project</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Type #help to see available commands</li>
               </ul>
             </div>
           </div>
         ) : (
           messages.map((message) => {
+            // Render system messages with distinct styling
+            if (message.sender_type === 'system') {
+              return (
+                <div key={message.message_id} className="flex flex-col gap-2">
+                  <SystemMessage message={message} />
+                </div>
+              );
+            }
             const actionData = message.action_data as Record<string, unknown> | undefined;
             const proposalId = actionData?.proposal_id as string | undefined;
             const recommendationId = actionData?.recommendation_id as string | undefined;
@@ -170,13 +236,22 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
+      <form className="relative flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
+        {showAutocomplete && (
+          <CommandAutocomplete
+            commands={autocompleteCommands}
+            highlightedIndex={highlightedIndex}
+            onSelect={handleAutocompleteSelect}
+            onDismiss={() => setShowAutocomplete(false)}
+            onHighlightChange={setHighlightedIndex}
+          />
+        )}
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Describe a feature request or task... (Shift+Enter for new line)"
+          placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
           className="flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted"
