@@ -6,7 +6,10 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [x] No implementation details in functional requirements (languages, frameworks, APIs)
+  > **Note**: The Assumptions section names the stack (Python/FastAPI, React/TypeScript)
+  > for scoping purposes — this is appropriate for a security review spec that must
+  > identify what is being audited, and does not prescribe implementation choices.
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed

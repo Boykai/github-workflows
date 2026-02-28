@@ -43,7 +43,8 @@ Test that API error responses don't leak internal details:
 cd backend && pip install -e ".[dev]"
 
 # Test OAuth callback with invalid state (should return generic error)
-curl -s http://localhost:8000/api/v1/auth/callback?code=invalid&state=invalid | python -m json.tool
+# Route is /github/callback under the /api/v1/auth router prefix.
+curl -s http://localhost:8000/api/v1/auth/github/callback?code=invalid&state=invalid | python -m json.tool
 # Expected: {"detail": "Invalid or expired OAuth state"}
 # NOT expected: {"detail": "KeyError: 'invalid'"}
 ```
