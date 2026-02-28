@@ -70,6 +70,7 @@ AGENT_DISPLAY_NAMES: dict[str, str] = {
     "speckit.implement": "Spec Kit - Implement",
     "copilot-review": "Copilot Review",
     "copilot": "GitHub Copilot",
+    "human": "Human",
 }
 
 

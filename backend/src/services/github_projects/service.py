@@ -1129,6 +1129,7 @@ class GitHubProjectsService:
             all_comments: list[dict] = []
             title = ""
             body = ""
+            author_login = ""
             cursor: str | None = None
 
             for _page in range(max_pages):
@@ -1148,10 +1149,11 @@ class GitHubProjectsService:
 
                 issue = data.get("repository", {}).get("issue", {})
 
-                # Capture title/body from the first page only
+                # Capture title/body/author from the first page only
                 if not title:
                     title = issue.get("title", "")
                     body = issue.get("body", "")
+                    author_login = (issue.get("author") or {}).get("login", "")
 
                 comments_data = issue.get("comments", {})
                 nodes = comments_data.get("nodes", [])
@@ -1169,10 +1171,10 @@ class GitHubProjectsService:
                     break
                 cursor = page_info.get("endCursor")
 
-            return {"title": title, "body": body, "comments": all_comments}
+            return {"title": title, "body": body, "comments": all_comments, "user": {"login": author_login}}
         except Exception as e:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
-            return {"title": "", "body": "", "comments": []}
+            return {"title": "", "body": "", "comments": [], "user": {"login": ""}}
 
     def format_issue_context_as_prompt(
         self,
@@ -1329,6 +1331,41 @@ class GitHubProjectsService:
                 issue_number,
                 e,
             )
+            return False
+
+    async def check_issue_closed(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> bool:
+        """
+        Check if a GitHub Issue is closed.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            True if the issue state is 'closed'
+        """
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
+            headers = self._build_headers(access_token)
+            response = await self._client.get(url, headers=headers)
+            if response.status_code != 200:
+                logger.warning(
+                    "Failed to check state for issue #%d: status %d",
+                    issue_number,
+                    response.status_code,
+                )
+                return False
+            return response.json().get("state", "") == "closed"
+        except Exception as e:
+            logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False
 
     async def unassign_copilot_from_issue(
@@ -3373,6 +3410,7 @@ class GitHubProjectsService:
             "speckit.tasks": "Generate granular implementation tasks from the plan. Each task should be a well-defined unit of work with clear inputs, outputs, and acceptance criteria.",
             "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
             "copilot": "Implement the requested changes. Write production-quality code with tests.",
+            "human": "This is a manual human task. Complete the work described below, then close this issue or comment 'Done!' on the parent issue to continue the pipeline.",
         }
 
         agent_desc = agent_descriptions.get(
@@ -3673,6 +3711,13 @@ class GitHubProjectsService:
             slug="speckit.implement",
             display_name="Spec Kit - Implement",
             description="Implements code changes based on the task list",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="human",
+            display_name="Human",
+            description="Manual human task — creates a sub-issue assigned to the issue creator",
             avatar_url=None,
             source=AgentSource.BUILTIN,
         ),
