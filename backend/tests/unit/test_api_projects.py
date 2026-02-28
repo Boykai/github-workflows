@@ -144,9 +144,13 @@ class TestCacheHitPaths:
     async def test_list_projects_cache_hit(self, client, mock_github_service):
         """Cache hit returns cached projects without calling GitHub."""
         p = _project()
-        with patch("src.api.projects.cache") as mock_cache:
-            mock_cache.get.return_value = [p]
-            resp = await client.get("/api/v1/projects")
+        # Pre-populate cache with the real cache instance
+        from src.services.cache import cache, get_user_projects_cache_key
+
+        cache_key = get_user_projects_cache_key("12345")
+        cache.set(cache_key, [p])
+
+        resp = await client.get("/api/v1/projects")
         assert resp.status_code == 200
         assert len(resp.json()["projects"]) == 1
         mock_github_service.list_user_projects.assert_not_called()
@@ -163,9 +167,13 @@ class TestCacheHitPaths:
     async def test_get_project_tasks_cache_hit(self, client, mock_github_service):
         """get_project_tasks returns cached tasks."""
         t = _task()
-        with patch("src.api.projects.cache") as mock_cache:
-            mock_cache.get.return_value = [t]
-            resp = await client.get("/api/v1/projects/PVT_abc/tasks")
+        # Pre-populate cache with the real cache instance
+        from src.services.cache import cache, get_project_items_cache_key
+
+        cache_key = get_project_items_cache_key("PVT_abc")
+        cache.set(cache_key, [t])
+
+        resp = await client.get("/api/v1/projects/PVT_abc/tasks")
         assert resp.status_code == 200
         assert len(resp.json()["tasks"]) == 1
         mock_github_service.get_project_items.assert_not_called()

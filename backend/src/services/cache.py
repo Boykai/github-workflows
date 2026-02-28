@@ -127,3 +127,39 @@ def get_project_items_cache_key(project_id: str) -> str:
     from src.constants import CACHE_PREFIX_PROJECT_ITEMS
 
     return get_cache_key(CACHE_PREFIX_PROJECT_ITEMS, project_id)
+
+
+async def cached_response(
+    cache_key: str,
+    refresh: bool,
+    fetch_fn,
+    log: logging.Logger,
+    description: str,
+    ttl_seconds: int | None = None,
+):
+    """Check cache (unless *refresh*), call *fetch_fn* on miss, and store result.
+
+    Parameters
+    ----------
+    cache_key:
+        Key to read/write in the global ``cache``.
+    refresh:
+        When *True*, skip the cache lookup and always call *fetch_fn*.
+    fetch_fn:
+        Async callable returning the value to cache.
+    log:
+        Logger instance for cache-hit messages.
+    description:
+        Human-readable label used in the log message (e.g. ``"board projects"``).
+    ttl_seconds:
+        Optional TTL override passed to ``cache.set()``.
+    """
+    if not refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            log.info("Returning cached %s", description)
+            return cached
+
+    result = await fetch_fn()
+    cache.set(cache_key, result, ttl_seconds=ttl_seconds)
+    return result

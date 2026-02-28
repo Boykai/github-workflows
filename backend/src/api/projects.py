@@ -16,6 +16,7 @@ from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
 from src.services.cache import (
     cache,
+    cached_response,
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
@@ -36,29 +37,17 @@ async def list_projects(
     """List user's accessible GitHub Projects."""
     cache_key = get_user_projects_cache_key(session.github_user_id)
 
-    # Check cache unless refresh requested
-    if not refresh:
-        cached = cache.get(cache_key)
-        if cached:
-            logger.info("Returning cached projects for user %s", session.github_username)
-            return ProjectListResponse(projects=cached)
+    async def _fetch():
+        logger.info("Fetching projects for user %s", session.github_username)
+        user_projects = await github_projects_service.list_user_projects(
+            session.access_token, session.github_username
+        )
+        # TODO: Also fetch org projects the user has access to
+        return user_projects
 
-    # Fetch from GitHub
-    logger.info("Fetching projects for user %s", session.github_username)
-
-    # Get user's personal projects
-    user_projects = await github_projects_service.list_user_projects(
-        session.access_token, session.github_username
+    all_projects = await cached_response(
+        cache_key, refresh, _fetch, logger, f"projects for user {session.github_username}"
     )
-
-    # TODO: Also fetch org projects the user has access to
-    # This requires listing orgs first, then querying each
-
-    all_projects = user_projects
-
-    # Cache results
-    cache.set(cache_key, all_projects)
-
     return ProjectListResponse(projects=all_projects)
 
 
@@ -96,20 +85,13 @@ async def get_project_tasks(
     """Get tasks/items for a project."""
     cache_key = get_project_items_cache_key(project_id)
 
-    # Check cache unless refresh requested
-    if not refresh:
-        cached = cache.get(cache_key)
-        if cached:
-            logger.info("Returning cached tasks for project %s", project_id)
-            return TaskListResponse(tasks=cached)
+    async def _fetch():
+        logger.info("Fetching tasks for project %s", project_id)
+        return await github_projects_service.get_project_items(session.access_token, project_id)
 
-    # Fetch from GitHub
-    logger.info("Fetching tasks for project %s", project_id)
-    tasks = await github_projects_service.get_project_items(session.access_token, project_id)
-
-    # Cache results
-    cache.set(cache_key, tasks)
-
+    tasks = await cached_response(
+        cache_key, refresh, _fetch, logger, f"tasks for project {project_id}"
+    )
     return TaskListResponse(tasks=tasks)
 
 
