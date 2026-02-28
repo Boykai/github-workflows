@@ -390,7 +390,7 @@ class WorkflowOrchestrator:
                                 owner=ctx.repository_owner,
                                 repo=ctx.repository_name,
                                 issue_number=ctx.issue_number,
-                                body="⚠️ Could not resolve issue creator for Human step assignment. Please manually assign the sub-issue.",
+                                body=f"⚠️ Could not resolve issue creator for Human step assignment. Please manually assign sub-issue #{sub_number}.",
                             )
                         except Exception as comment_err:
                             logger.warning(
