@@ -2,7 +2,7 @@
  * Main application component.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/hooks/useAuth';
@@ -68,17 +68,17 @@ function AppContent() {
 
   const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>(getViewFromHash);
 
+  // Keep URL hash in sync when view changes
+  const changeView = useCallback((view: 'chat' | 'board' | 'settings') => {
+    setActiveView(view);
+    window.location.hash = view === 'chat' ? '' : view;
+  }, []);
+
   // iOS lifecycle state preservation (FR-006, FR-013)
-  useIOSLifecycle(activeView);
+  useIOSLifecycle(activeView, changeView);
 
   // iOS push notification registration (FR-007)
   usePushNotifications();
-
-  // Keep URL hash in sync when view changes
-  const changeView = (view: 'chat' | 'board' | 'settings') => {
-    setActiveView(view);
-    window.location.hash = view === 'chat' ? '' : view;
-  };
 
   // Handle browser back/forward
   useEffect(() => {
@@ -92,7 +92,7 @@ function AppContent() {
     if (!window.location.hash && userSettings?.display?.default_view) {
       changeView(userSettings.display.default_view);
     }
-  }, [userSettings?.display?.default_view]);
+  }, [userSettings?.display?.default_view, changeView]);
   const {
     projects,
     selectedProject,

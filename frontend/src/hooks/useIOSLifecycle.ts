@@ -35,6 +35,7 @@ const APP_VERSION = '0.1.0';
 
 export function useIOSLifecycle(
   activeSection: 'board' | 'settings' | 'chat',
+  onRestoreSection?: (section: 'board' | 'settings' | 'chat') => void,
 ) {
   /** Persist the current navigation state to Preferences. */
   const saveState = useCallback(async () => {
@@ -105,7 +106,10 @@ export function useIOSLifecycle(
         };
 
         // Attempt to restore state on first mount
-        await restoreState();
+        const saved = await restoreState();
+        if (saved && onRestoreSection) {
+          onRestoreSection(saved.activeSection);
+        }
       } catch {
         // Plugin not available — running on web
       }
@@ -114,5 +118,5 @@ export function useIOSLifecycle(
     return () => {
       cleanup?.();
     };
-  }, [saveState, restoreState]);
+  }, [saveState, restoreState, onRestoreSection]);
 }

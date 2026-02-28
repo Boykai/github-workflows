@@ -127,7 +127,12 @@ export function usePushNotifications() {
           (action) => {
             const data = action.notification?.data;
             if (data?.route) {
-              window.location.hash = data.route as string;
+              const route = String(data.route);
+              // Only allow navigation to known app routes
+              const allowedRoutes = ['board', 'settings', 'chat', ''];
+              if (allowedRoutes.includes(route)) {
+                window.location.hash = route;
+              }
             }
           },
         );
