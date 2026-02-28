@@ -12,6 +12,15 @@ Provides shared fixtures for all backend tests:
 - client                            — httpx.AsyncClient wired to the FastAPI app
 """
 
+import os
+
+# Set test environment variables BEFORE any src imports can trigger
+# module-level Settings() instantiation (e.g. github_auth_service, cache).
+os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
+os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
+os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
+os.environ.setdefault("DATABASE_PATH", ":memory:")
+
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
