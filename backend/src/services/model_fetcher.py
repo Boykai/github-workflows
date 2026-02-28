@@ -11,8 +11,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-
-import httpx
+from typing import Any
 
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
@@ -66,61 +65,59 @@ class ModelFetchProvider(ABC):
 
 
 class GitHubCopilotModelFetcher(ModelFetchProvider):
-    """Fetches available models from the GitHub Copilot API.
+    """Fetches available models from the GitHub Copilot SDK.
 
-    Uses the user's OAuth token to query available models.
-    Parses rate-limit headers from the response.
+    Uses the Copilot SDK's ``CopilotClient.list_models()`` to retrieve
+    models, following the same client-caching pattern used by
+    ``CopilotCompletionProvider``.
     """
 
-    MODELS_URL = "https://api.github.com/copilot/models"
+    def __init__(self) -> None:
+        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
+
+    @staticmethod
+    def _token_key(token: str) -> str:
+        """Return a stable hash of the token for use as a cache key."""
+        return hashlib.sha256(token.encode()).hexdigest()[:16]
+
+    async def _get_or_create_client(self, github_token: str) -> Any:
+        """Get cached or create new CopilotClient for a given token."""
+        key = self._token_key(github_token)
+        if key not in self._clients:
+            from copilot import CopilotClient  # type: ignore[reportMissingImports]
+            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
+
+            options = CopilotClientOptions(github_token=github_token)
+            client = CopilotClient(options=options)
+            await client.start()
+            self._clients[key] = client
+            logger.info(
+                "Created new CopilotClient for model fetching (total cached: %d)",
+                len(self._clients),
+            )
+        return self._clients[key]
 
     async def fetch_models(self, token: str | None = None) -> list[ModelOption]:
         if not token:
             raise ValueError("GitHub OAuth token required for Copilot model fetching")
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(
-                self.MODELS_URL,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Accept": "application/json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
-            )
+        client = await self._get_or_create_client(token)
+        model_list = await client.list_models()
 
-            # Store rate-limit info for the service layer
-            self._last_rate_limit_remaining = response.headers.get("X-RateLimit-Remaining")
-            self._last_rate_limit_reset = response.headers.get("X-RateLimit-Reset")
-            self._last_retry_after = response.headers.get("Retry-After")
-
-            if response.status_code == 429:
-                raise RateLimitError(
-                    retry_after=self._last_retry_after,
-                    remaining=self._last_rate_limit_remaining,
-                    reset=self._last_rate_limit_reset,
+        models: list[ModelOption] = []
+        for info in model_list:
+            model_id = getattr(info, "id", "") or ""
+            model_name = getattr(info, "name", "") or model_id
+            if model_id:
+                models.append(
+                    ModelOption(
+                        id=model_id,
+                        name=model_name,
+                        provider="copilot",
+                    )
                 )
 
-            response.raise_for_status()
-
-            data = response.json()
-            models: list[ModelOption] = []
-
-            # Handle array response or object with models key
-            items = data if isinstance(data, list) else data.get("models", data.get("data", []))
-            for item in items:
-                if isinstance(item, dict):
-                    model_id = item.get("id") or item.get("name", "")
-                    model_name = item.get("name") or item.get("id", "")
-                    if model_id:
-                        models.append(
-                            ModelOption(
-                                id=model_id,
-                                name=model_name,
-                                provider="copilot",
-                            )
-                        )
-
-            return models
+        return models
 
     @property
     def provider_name(self) -> str:
