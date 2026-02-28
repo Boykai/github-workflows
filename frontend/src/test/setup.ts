@@ -113,6 +113,7 @@ export interface MockApiShape {
     updateGlobalSettings: Mock;
     getProjectSettings: Mock;
     updateProjectSettings: Mock;
+    fetchModels: Mock;
   };
   mcpApi: {
     listMcps: Mock;
@@ -175,6 +176,7 @@ export function createMockApi(): MockApiShape {
       updateGlobalSettings: vi.fn(),
       getProjectSettings: vi.fn(),
       updateProjectSettings: vi.fn(),
+      fetchModels: vi.fn(),
     },
     mcpApi: {
       listMcps: vi.fn(),
