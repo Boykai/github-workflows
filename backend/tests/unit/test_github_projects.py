@@ -1393,7 +1393,7 @@ class TestGetIssueWithComments:
                 issue_number=42,
             )
 
-            assert result == {"title": "", "body": "", "comments": []}
+            assert result == {"title": "", "body": "", "comments": [], "user": {"login": ""}}
 
 
 class TestFormatIssueContextAsPrompt:

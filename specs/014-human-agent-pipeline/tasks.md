@@ -21,8 +21,8 @@
 
 **Purpose**: Register the Human agent as a builtin constant so it is discoverable by the API and available in all pipelines
 
-- [ ] T001 Add `"human"` entry to `AGENT_DISPLAY_NAMES` dict in `backend/src/constants.py` with value `"Human"`
-- [ ] T002 Verify `"human"` is NOT added to `DEFAULT_AGENT_MAPPINGS` in `backend/src/constants.py` (Human is user-added, not default)
+- [x] T001 Add `"human"` entry to `AGENT_DISPLAY_NAMES` dict in `backend/src/constants.py` with value `"Human"`
+- [x] T002 Verify `"human"` is NOT added to `DEFAULT_AGENT_MAPPINGS` in `backend/src/constants.py` (Human is user-added, not default)
 
 ---
 
@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Extend `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` to detect `"human"` slug and resolve parent issue creator via `issue.user.login` for sub-issue assignee
-- [ ] T004 Add fallback handling in `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — if creator cannot be resolved, create sub-issue unassigned and post warning comment on parent issue
-- [ ] T005 Modify agent assignment logic in `backend/src/services/copilot_polling/pipeline.py` to skip Copilot workspace/PR assignment when active agent slug is `"human"` and instead mark step as active (🔄)
-- [ ] T006 Extend `_check_agent_done_on_sub_or_parent()` in `backend/src/services/copilot_polling/helpers.py` to check Human sub-issue state (`closed`) via GitHub API as a completion signal
-- [ ] T007 Extend comment-checking logic in `backend/src/services/agent_tracking.py` to support Human `Done!` pattern — exact `^Done!$` match with no agent prefix, authorized only from the sub-issue assignee
+- [x] T003 Extend `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` to detect `"human"` slug and resolve parent issue creator via `issue.user.login` for sub-issue assignee
+- [x] T004 Add fallback handling in `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — if creator cannot be resolved, create sub-issue unassigned and post warning comment on parent issue
+- [x] T005 Modify agent assignment logic in `backend/src/services/copilot_polling/pipeline.py` to skip Copilot workspace/PR assignment when active agent slug is `"human"` and instead mark step as active (🔄)
+- [x] T006 Extend `_check_agent_done_on_sub_or_parent()` in `backend/src/services/copilot_polling/helpers.py` to check Human sub-issue state (`closed`) via GitHub API as a completion signal
+- [x] T007 Extend comment-checking logic in `backend/src/services/agent_tracking.py` to support Human `Done!` pattern — exact `^Done!$` match with no agent prefix, authorized only from the sub-issue assignee
 
 **Checkpoint**: Foundation ready — Human agent appears in API, sub-issues are created and assigned correctly, completion detection works for both signals
 
@@ -50,8 +50,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add conditional rendering in `frontend/src/components/board/AgentTile.tsx` to display a person icon (User SVG from lucide-react) when agent slug is `"human"` instead of the default letter avatar
-- [ ] T009 [US1] Add 'Human' label styling in `frontend/src/components/board/AgentTile.tsx` to visually distinguish the Human agent card from automated agent cards (e.g., different badge color or icon treatment)
+- [x] T008 [US1] Add conditional rendering in `frontend/src/components/board/AgentTile.tsx` to display a person icon (User SVG from lucide-react) when agent slug is `"human"` instead of the default letter avatar
+- [x] T009 [US1] Add 'Human' label styling in `frontend/src/components/board/AgentTile.tsx` to visually distinguish the Human agent card from automated agent cards (e.g., different badge color or icon treatment)
 
 **Checkpoint**: User Story 1 complete — Human step is visible and visually distinct in all pipeline columns. This is the MVP.
 
@@ -65,9 +65,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Add Human-specific sub-issue body template in `backend/src/services/workflow_orchestrator/orchestrator.py` — body should instruct the human to close the sub-issue or comment 'Done!' on the parent issue
-- [ ] T011 [US2] Wire the issue creator assignment into `assign_issue()` call within `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` so the sub-issue is assigned at creation time
-- [ ] T012 [US2] Add warning comment logic in `backend/src/services/workflow_orchestrator/orchestrator.py` — when creator cannot be resolved, post `⚠️ Could not resolve issue creator for Human step assignment` on the parent issue
+- [x] T010 [US2] Add Human-specific sub-issue body template in `backend/src/services/workflow_orchestrator/orchestrator.py` — body should instruct the human to close the sub-issue or comment 'Done!' on the parent issue
+- [x] T011 [US2] Wire the issue creator assignment into `assign_issue()` call within `create_all_sub_issues()` in `backend/src/services/workflow_orchestrator/orchestrator.py` so the sub-issue is assigned at creation time
+- [x] T012 [US2] Add warning comment logic in `backend/src/services/workflow_orchestrator/orchestrator.py` — when creator cannot be resolved, post `⚠️ Could not resolve issue creator for Human step assignment` on the parent issue
 
 **Checkpoint**: User Story 2 complete — Human sub-issues are created and correctly assigned to the issue creator, with proper fallback handling.
 
@@ -81,9 +81,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add sub-issue state polling in `backend/src/services/copilot_polling/helpers.py` — on each polling cycle, fetch Human sub-issue state via GitHub API and trigger `_advance_pipeline()` if state is `closed`
-- [ ] T014 [US3] Add `Done!` comment author validation in `backend/src/services/copilot_polling/helpers.py` — compare comment author with Human sub-issue assignee before accepting as completion signal
-- [ ] T015 [US3] Verify idempotent advancement in `backend/src/services/copilot_polling/pipeline.py` — ensure `_advance_pipeline()` checks `pipeline.current_agent == "human"` before advancing so duplicate signals are no-ops
+- [x] T013 [US3] Add sub-issue state polling in `backend/src/services/copilot_polling/helpers.py` — on each polling cycle, fetch Human sub-issue state via GitHub API and trigger `_advance_pipeline()` if state is `closed`
+- [x] T014 [US3] Add `Done!` comment author validation in `backend/src/services/copilot_polling/helpers.py` — compare comment author with Human sub-issue assignee before accepting as completion signal
+- [x] T015 [US3] Verify idempotent advancement in `backend/src/services/copilot_polling/pipeline.py` — ensure `_advance_pipeline()` checks `pipeline.current_agent == "human"` before advancing so duplicate signals are no-ops
 
 **Checkpoint**: User Story 3 complete — pipeline correctly advances on either completion signal, with authorization and idempotency enforced.
 
@@ -97,8 +97,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Verify and adjust ordering logic in `backend/src/services/copilot_polling/pipeline.py` to ensure Human steps at any position (first, middle, last) correctly block downstream steps and advance when complete
-- [ ] T017 [US4] Verify pipeline column completion logic in `backend/src/services/copilot_polling/pipeline.py` — column should not be marked complete until a Human step at the last position finishes
+- [x] T016 [US4] Verify and adjust ordering logic in `backend/src/services/copilot_polling/pipeline.py` to ensure Human steps at any position (first, middle, last) correctly block downstream steps and advance when complete
+- [x] T017 [US4] Verify pipeline column completion logic in `backend/src/services/copilot_polling/pipeline.py` — column should not be marked complete until a Human step at the last position finishes
 
 **Checkpoint**: User Story 4 complete — Human steps work in all pipeline positions with correct blocking and advancement behavior.
 
@@ -108,7 +108,7 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T018 [P] Update `specs/014-human-agent-pipeline/checklists/requirements.md` to track FR-001 through FR-012 completion status
+- [x] T018 [P] Update `specs/014-human-agent-pipeline/checklists/requirements.md` to track FR-001 through FR-012 completion status
 - [ ] T019 Run `specs/014-human-agent-pipeline/quickstart.md` validation test cases (all 13 scenarios) end-to-end
 
 ---

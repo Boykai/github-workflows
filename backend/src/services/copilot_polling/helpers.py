@@ -113,20 +113,6 @@ async def _check_human_agent_done(
     # Signal 1: Check if the Human sub-issue has been closed
     if sub_number != parent_issue_number:
         try:
-            sub_issue_data = await _cp.github_projects_service.get_issue_with_comments(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=sub_number,
-                max_pages=1,
-            )
-            # We check comments from this call too for Signal 2
-            # But first check if sub-issue is closed by checking its state
-            # The get_issue_with_comments uses GraphQL — check state via REST
-        except Exception as e:
-            logger.warning("Failed to fetch Human sub-issue #%d: %s", sub_number, e)
-
-        try:
             closed = await _cp.github_projects_service.check_issue_closed(
                 access_token=access_token,
                 owner=owner,
