@@ -53,6 +53,7 @@ class GitHubProjectsService:
 
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
+        self._last_rate_limit: dict[str, int] | None = None
 
     async def close(self):
         """Close HTTP client."""
@@ -82,6 +83,29 @@ class GitHubProjectsService:
         like "copilot-swe-agent[bot]".
         """
         return "copilot" in (login or "").lower()
+
+    def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
+        """Extract and store rate limit headers from a GitHub API response."""
+        try:
+            limit = response.headers.get("X-RateLimit-Limit")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if limit is not None and remaining is not None and reset_at is not None:
+                limit_int = int(limit)
+                remaining_int = int(remaining)
+                reset_int = int(reset_at)
+                self._last_rate_limit = {
+                    "limit": limit_int,
+                    "remaining": remaining_int,
+                    "reset_at": reset_int,
+                    "used": limit_int - remaining_int,
+                }
+        except (ValueError, TypeError):
+            pass
+
+    def get_last_rate_limit(self) -> dict[str, int] | None:
+        """Return the last captured rate limit info, or None."""
+        return self._last_rate_limit
 
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
@@ -148,6 +172,7 @@ class GitHubProjectsService:
                         continue
 
                 response.raise_for_status()
+                self._extract_rate_limit_headers(response)
                 return response
 
             except httpx.HTTPStatusError as e:
