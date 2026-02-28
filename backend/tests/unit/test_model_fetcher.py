@@ -53,7 +53,7 @@ class TestModelFetcherService:
             mock_settings.return_value.azure_openai_deployment = "gpt-4o-deploy"
             result = await fetcher_service.get_models("azure_openai", token=None)
         assert result.status == "success"
-        assert len(result.models) >= 0  # May be 0 if no deployment configured
+        assert any(m.id == "gpt-4o-deploy" for m in result.models)
 
     async def test_cache_hit_on_second_call(self, fetcher_service):
         """Second call should return cached data."""

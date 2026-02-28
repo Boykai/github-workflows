@@ -163,8 +163,13 @@ class AzureOpenAIModelFetcher(ModelFetchProvider):
 # ── Errors ──
 
 
-class RateLimitError(Exception):
-    """Raised when the provider returns HTTP 429."""
+class ProviderRateLimitError(Exception):
+    """Raised when an external model provider returns HTTP 429.
+
+    Named ``ProviderRateLimitError`` to avoid confusion with the
+    application-level ``src.exceptions.RateLimitError`` used by the
+    global exception handler.
+    """
 
     def __init__(
         self,
@@ -175,7 +180,7 @@ class RateLimitError(Exception):
         self.retry_after = retry_after
         self.remaining = remaining
         self.reset = reset
-        super().__init__("Rate limit exceeded")
+        super().__init__("Provider rate limit exceeded")
 
 
 # ── Cache Entry ──
@@ -223,9 +228,11 @@ class ModelFetcherService:
     def __init__(self, ttl_seconds: int = DEFAULT_CACHE_TTL):
         self._cache: dict[str, CacheEntry] = {}
         self._ttl_seconds = ttl_seconds
-        self._backoff_until: dict[str, float] = {}  # provider → timestamp
-        self._backoff_duration: dict[str, float] = {}  # provider → current backoff
-        self._rate_limit_remaining: dict[str, int | None] = {}
+        # Backoff/rate-limit state keyed by cache_key (provider:token_hash)
+        # so that one user hitting 429 doesn't block all other users.
+        self._backoff_until: dict[str, float] = {}  # cache_key → timestamp
+        self._backoff_duration: dict[str, float] = {}  # cache_key → current backoff
+        self._rate_limit_remaining: dict[str, int | None] = {}  # cache_key → remaining
         _ensure_registry()
 
     @staticmethod
@@ -261,8 +268,8 @@ class ModelFetcherService:
         cache_key = self._cache_key(provider, token)
         cached = self._cache.get(cache_key)
 
-        # Check rate-limit backoff
-        backoff_until = self._backoff_until.get(provider, 0)
+        # Check rate-limit backoff (keyed per-user, not per-provider)
+        backoff_until = self._backoff_until.get(cache_key, 0)
         if time.time() < backoff_until and not force_refresh:
             # Still in backoff period — return cached if available
             if cached:
@@ -287,7 +294,7 @@ class ModelFetcherService:
                 models=cached.models,
                 fetched_at=cached.fetched_at.isoformat(),
                 cache_hit=True,
-                rate_limit_warning=self._is_rate_limit_warning(provider),
+                rate_limit_warning=self._is_rate_limit_warning(cache_key),
             )
 
         # Serve stale cache immediately and trigger background refresh
@@ -298,7 +305,7 @@ class ModelFetcherService:
                 models=cached.models,
                 fetched_at=cached.fetched_at.isoformat(),
                 cache_hit=True,
-                rate_limit_warning=self._is_rate_limit_warning(provider),
+                rate_limit_warning=self._is_rate_limit_warning(cache_key),
             )
 
         # Fresh fetch
@@ -311,15 +318,15 @@ class ModelFetcherService:
                 ttl_seconds=self._ttl_seconds,
             )
             # Reset backoff on success
-            self._backoff_until.pop(provider, None)
-            self._backoff_duration.pop(provider, None)
+            self._backoff_until.pop(cache_key, None)
+            self._backoff_duration.pop(cache_key, None)
 
             # Parse rate-limit info if available
             if hasattr(fetcher, "_last_rate_limit_remaining"):
                 remaining = fetcher._last_rate_limit_remaining
                 if remaining is not None:
                     try:
-                        self._rate_limit_remaining[provider] = int(remaining)
+                        self._rate_limit_remaining[cache_key] = int(remaining)
                     except (ValueError, TypeError):
                         pass
 
@@ -328,11 +335,11 @@ class ModelFetcherService:
                 models=models,
                 fetched_at=now.isoformat(),
                 cache_hit=False,
-                rate_limit_warning=self._is_rate_limit_warning(provider),
+                rate_limit_warning=self._is_rate_limit_warning(cache_key),
             )
 
-        except RateLimitError as e:
-            self._apply_backoff(provider, e.retry_after)
+        except ProviderRateLimitError as e:
+            self._apply_backoff(cache_key, e.retry_after)
             if cached:
                 return ModelsResponse(
                     status="rate_limited",
@@ -380,8 +387,8 @@ class ModelFetcherService:
         except Exception as e:
             logger.warning("Background refresh failed for %s: %s", provider, e)
 
-    def _apply_backoff(self, provider: str, retry_after: str | None) -> None:
-        """Apply exponential backoff for rate-limited provider."""
+    def _apply_backoff(self, key: str, retry_after: str | None) -> None:
+        """Apply exponential backoff, keyed per-user (cache_key)."""
         if retry_after:
             try:
                 wait_seconds = int(retry_after)
@@ -391,15 +398,15 @@ class ModelFetcherService:
             wait_seconds = DEFAULT_BACKOFF
 
         # Exponential backoff: double on consecutive rate limits
-        current = self._backoff_duration.get(provider, 0)
+        current = self._backoff_duration.get(key, 0)
         if current > 0:
             wait_seconds = min(current * 2, MAX_BACKOFF)
-        self._backoff_duration[provider] = wait_seconds
-        self._backoff_until[provider] = time.time() + wait_seconds
+        self._backoff_duration[key] = wait_seconds
+        self._backoff_until[key] = time.time() + wait_seconds
 
-    def _is_rate_limit_warning(self, provider: str) -> bool:
-        """Check if remaining rate limit is below 10%."""
-        remaining = self._rate_limit_remaining.get(provider)
+    def _is_rate_limit_warning(self, key: str) -> bool:
+        """Check if remaining rate limit is below warning threshold."""
+        remaining = self._rate_limit_remaining.get(key)
         if remaining is not None and remaining < RATE_LIMIT_WARNING_THRESHOLD:
             return True
         return False

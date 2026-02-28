@@ -47,13 +47,13 @@
 
 ## Phase 3: User Story 1 — Simplified Settings Layout (Priority: P1) 🎯 MVP
 
-**Goal**: Reorganize the Settings page so primary settings (model provider, chat model, GitHub agent model, Signal connection) are prominent at the top, and secondary/advanced settings are collapsed.
+**Goal**: Reorganize the Settings page so primary settings (model provider, chat model, temperature, Signal connection) are prominent at the top, and secondary/advanced settings are collapsed.
 
 **Independent Test**: Navigate to Settings page → primary settings visible without scrolling; advanced settings collapsed by default; expand advanced section → all secondary settings functional.
 
 ### Implementation for User Story 1
 
-- [x] T009 [P] [US1] Create `PrimarySettings` component rendering model provider, chat model, GitHub agent model, and Signal connection fields in frontend/src/components/settings/PrimarySettings.tsx
+- [x] T009 [P] [US1] Create `PrimarySettings` component rendering model provider, chat model, temperature, and Signal connection fields in frontend/src/components/settings/PrimarySettings.tsx
 - [x] T010 [P] [US1] Create `AdvancedSettings` component with collapsible wrapper (collapsed by default) containing display, workflow, notification, allowed models, and project settings in frontend/src/components/settings/AdvancedSettings.tsx
 - [x] T011 [US1] Refactor `SettingsPage` to render `PrimarySettings` at top and `AdvancedSettings` below in frontend/src/pages/SettingsPage.tsx
 - [x] T012 [US1] Update `GlobalSettings` to extract primary AI fields into `PrimarySettings` scope in frontend/src/components/settings/GlobalSettings.tsx

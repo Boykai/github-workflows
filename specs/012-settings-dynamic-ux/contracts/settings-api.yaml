@@ -8,8 +8,8 @@ info:
     endpoint for retrieving available models from external providers.
 
 servers:
-  - url: /api
-    description: Application API (relative path)
+  - url: /api/v1
+    description: Application API v1 (relative path)
 
 paths:
   /settings/models/{provider}:
@@ -97,10 +97,17 @@ paths:
                     cache_hit: false
                     rate_limit_warning: false
                     message: Failed to fetch models from GitHub. Please try again.
+                unknown_provider:
+                  summary: Unknown provider (returned as 200 with error status)
+                  value:
+                    status: error
+                    models: []
+                    fetched_at: null
+                    cache_hit: false
+                    rate_limit_warning: false
+                    message: "Unknown model provider: 'foo'. Supported providers: copilot, azure_openai"
         "401":
           description: User not authenticated to the application
-        "404":
-          description: Unknown provider
 
   /settings/user:
     get:
