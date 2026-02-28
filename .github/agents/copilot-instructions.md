@@ -103,3 +103,10 @@ npx playwright test             # E2E tests
 - Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
+
+## Active Technologies
+- Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI 0.109, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend) (010-codebase-cleanup-refactor)
+- SQLite via aiosqlite (async) (010-codebase-cleanup-refactor)
+
+## Recent Changes
+- 010-codebase-cleanup-refactor: Added Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI 0.109, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend)
