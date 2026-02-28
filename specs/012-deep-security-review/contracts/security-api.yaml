@@ -1,0 +1,229 @@
+# Security API Contracts
+
+## Overview
+
+This document defines the security-related API contracts for the GitHub Workflows application.
+These contracts specify the expected behavior of security middleware, headers, and endpoint protections
+that will be implemented as part of the deep security review.
+
+## 1. HTTP Security Headers Contract
+
+All API responses MUST include the following headers:
+
+```yaml
+# Applied by SecurityHeadersMiddleware to every response
+headers:
+  Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+  X-Content-Type-Options: "nosniff"
+  X-Frame-Options: "DENY"
+  Content-Security-Policy: "default-src 'none'; frame-ancestors 'none'"
+  Referrer-Policy: "strict-origin-when-cross-origin"
+  Permissions-Policy: "camera=(), microphone=(), geolocation=()"
+```
+
+## 2. CORS Policy Contract
+
+```yaml
+# Restricted CORS configuration (replaces current wildcard config)
+cors:
+  allow_origins:
+    - "${CORS_ORIGINS}"          # Configured via environment variable
+  allow_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+    - "OPTIONS"
+  allow_headers:
+    - "Content-Type"
+    - "Authorization"
+    - "X-Request-ID"
+  allow_credentials: true
+  max_age: 600                   # 10-minute preflight cache
+```
+
+## 3. Rate Limiting Contract
+
+```yaml
+# Per-endpoint rate limits
+rate_limits:
+  auth_endpoints:
+    paths:
+      - "/api/v1/auth/github"
+      - "/api/v1/auth/github/callback"
+      - "/api/v1/auth/dev-login"
+    limit: "10/minute"
+    key: "client_ip"
+
+  webhook_endpoint:
+    paths:
+      - "/api/v1/webhooks/github"
+    limit: "60/minute"
+    key: "client_ip"
+
+  api_endpoints:
+    paths:
+      - "/api/v1/*"
+    limit: "30/minute"
+    key: "session_id"
+    fallback_key: "client_ip"
+
+  health_check:
+    paths:
+      - "/health"
+    limit: "none"               # No rate limiting on health checks
+```
+
+### Rate Limit Response Headers
+
+```yaml
+# Included in all rate-limited responses
+headers:
+  X-RateLimit-Limit: "{max_requests}"
+  X-RateLimit-Remaining: "{remaining_requests}"
+  X-RateLimit-Reset: "{reset_timestamp_utc}"
+
+# When limit exceeded (HTTP 429)
+response:
+  status: 429
+  headers:
+    Retry-After: "{seconds_until_reset}"
+  body:
+    detail: "Rate limit exceeded. Try again in {seconds} seconds."
+```
+
+## 4. Authentication Endpoint Contracts
+
+### POST /api/v1/auth/logout
+
+```yaml
+request:
+  method: POST
+  headers:
+    Cookie: "session_id={valid_session_token}"
+response:
+  status: 200
+  headers:
+    Set-Cookie: "session_id=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"
+  body:
+    message: "Logged out successfully"
+```
+
+### GET /api/v1/auth/me
+
+```yaml
+request:
+  method: GET
+  headers:
+    Cookie: "session_id={valid_session_token}"
+response_authenticated:
+  status: 200
+  body:
+    username: string
+    avatar_url: string
+    is_admin: boolean
+response_unauthenticated:
+  status: 401
+  body:
+    detail: "Not authenticated"
+```
+
+## 5. Webhook Verification Contract
+
+```yaml
+# All webhook requests MUST include valid HMAC signature
+request:
+  method: POST
+  path: "/api/v1/webhooks/github"
+  headers:
+    X-Hub-Signature-256: "sha256={hmac_hex_digest}"
+    X-GitHub-Event: "{event_type}"
+    X-GitHub-Delivery: "{delivery_id}"
+  body: "{raw_json_payload}"
+
+verification:
+  algorithm: "HMAC-SHA256"
+  key: "${GITHUB_WEBHOOK_SECRET}"
+  comparison: "timing-safe (hmac.compare_digest)"
+
+response_valid:
+  status: 200
+response_invalid_signature:
+  status: 401
+  body:
+    detail: "Invalid webhook signature"
+response_missing_signature:
+  status: 400
+  body:
+    detail: "Missing webhook signature"
+```
+
+## 6. Session Cookie Contract
+
+```yaml
+# All session cookies MUST have these attributes
+cookie:
+  name: "session_id"
+  attributes:
+    HttpOnly: true              # Prevents JavaScript access
+    Secure: true                # HTTPS only (enforced in production)
+    SameSite: "Lax"             # CSRF protection
+    Path: "/"
+    Max-Age: 28800              # 8 hours (SESSION_EXPIRE_HOURS * 3600)
+```
+
+## 7. Error Response Contract (Security)
+
+```yaml
+# Security-related errors MUST NOT leak internal details
+error_responses:
+  authentication_failure:
+    status: 401
+    body:
+      detail: "Not authenticated"
+    # MUST NOT include: stack traces, internal error messages, session details
+
+  authorization_failure:
+    status: 403
+    body:
+      detail: "Insufficient permissions"
+    # MUST NOT include: role details, permission lists, admin status
+
+  rate_limit:
+    status: 429
+    body:
+      detail: "Rate limit exceeded"
+    headers:
+      Retry-After: "{seconds}"
+
+  validation_error:
+    status: 422
+    body:
+      detail: [{field, message}]
+    # MUST NOT include: SQL errors, internal field names, stack traces
+```
+
+## 8. GitHub Actions Workflow Security Contract
+
+```yaml
+# All workflow files MUST follow these conventions
+workflow_security:
+  permissions:
+    # Top-level default
+    default: "read-all"
+    # Per-job override to least privilege
+    per_job: true
+
+  actions:
+    # All third-party actions MUST be pinned to SHA
+    pinning: "sha256"
+    # Format: owner/action@{full_sha_commit}
+    format: "{owner}/{repo}@{40_char_sha}"
+
+  secrets:
+    # No secrets in plain text
+    interpolation: "${{ secrets.NAME }}"
+    # No untrusted input in run steps
+    untrusted_input_in_run: "forbidden"
+```
