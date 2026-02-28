@@ -160,7 +160,7 @@
 ### Implementation for User Story 7
 
 - [ ] T035 [P] [US7] Add all required usage description strings to `frontend/ios/App/App/Info.plist`: `NSUserNotificationsUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, and any other permission strings per contracts/capacitor-plugins.md Info.plist Required Entries
-- [ ] T036 [P] [US7] Create the privacy manifest file at `frontend/ios/App/App/PrivacyInfo.xcprivacy` declaring the app's data collection practices, API usage (required API reasons), and tracking domains per Apple's privacy manifest requirements (R8)
+- [ ] T036 [P] [US7] Create the privacy manifest file at `frontend/ios/App/App/PrivacyInfo.xcprivacy` declaring the app's data collection practices, API usage (required API reasons), and tracking domains per Apple's privacy manifest requirements (research.md R8)
 - [ ] T037 [P] [US7] Configure App Transport Security in `frontend/ios/App/App/Info.plist` to allow secure connections to the backend API endpoint while keeping `NSAllowsArbitraryLoads` set to `false` per contracts/capacitor-plugins.md
 - [ ] T038 [US7] Configure Xcode signing and capabilities in `frontend/ios/App/App.xcodeproj/`: set the development team, enable Push Notifications capability, and configure provisioning profiles for iOS 16+ distribution
 - [ ] T039 [US7] Validate the app passes Xcode's automated App Store submission checks (Archive → Validate App) and resolve any reported issues
@@ -225,7 +225,7 @@
 
 ## Parallel Example: User Story 1
 
-```bash
+```text
 # After T009 (iOS platform initialized) and T010 (Xcode project configured):
 
 # Launch these in parallel (different files, no dependencies):
@@ -236,7 +236,7 @@ Task T013: "Configure splash screen assets in frontend/ios/App/App/Assets.xcasse
 
 ## Parallel Example: User Story 5
 
-```bash
+```text
 # After Phase 2 foundational work is complete:
 
 # Launch these in parallel (different concerns, different files):
