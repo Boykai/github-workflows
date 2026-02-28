@@ -184,7 +184,8 @@ class TestStartCopilotPolling:
 
     @pytest.fixture
     def mock_gps(self):
-        with patch("src.api.projects.github_projects_service") as m:
+        # resolve_repository imports github_projects_service from src.services.github_projects
+        with patch("src.services.github_projects.github_projects_service") as m:
             yield m
 
     @pytest.mark.asyncio
@@ -236,7 +237,9 @@ class TestStartCopilotPolling:
             ),
             patch("src.services.copilot_polling._polling_task", None),
             patch(
-                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=config
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=config,
             ),
         ):
             await _start_copilot_polling(session, "proj-1")
@@ -255,7 +258,9 @@ class TestStartCopilotPolling:
             ),
             patch("src.services.copilot_polling._polling_task", None),
             patch(
-                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=None
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
             ),
             patch("src.config.get_settings") as ms,
         ):
@@ -275,7 +280,9 @@ class TestStartCopilotPolling:
                 "src.services.copilot_polling.poll_for_copilot_completion", new_callable=AsyncMock
             ) as mock_poll,
             patch(
-                "src.api.workflow.get_workflow_config", new_callable=AsyncMock, return_value=None
+                "src.services.workflow_orchestrator.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
             ),
             patch("src.config.get_settings") as ms,
         ):
