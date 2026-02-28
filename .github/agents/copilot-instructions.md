@@ -24,6 +24,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-30
 - SQLite (WAL mode) via aiosqlite, file-backed at `/app/data/settings.db` (010-bug-bash)
 - TypeScript, React 18 + React, Vite, Tailwind CSS, Shadcn UI (Radix UI), Lucide React (001-modern-ui-refresh)
 - N/A (UI only) (001-modern-ui-refresh)
+- SQLite via aiosqlite (existing — no schema changes required for security hardening) (012-deep-security-review)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) (001-github-project-chat)
 
@@ -43,9 +44,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 012-deep-security-review: Added Python 3.11+ (backend), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2, httpx, aiosqlite (backend); React 18, TanStack Query, Vite (frontend)
 - 011-signal-chat-integration: Added Python 3.11+ (backend), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2, httpx, aiosqlite (backend); React 18, TanStack Query, Vite (frontend)
 - 010-bug-bash: Added Python ≥3.11 (pyright targets 3.12), TypeScript ~5.4 + FastAPI ≥0.109, React 18.3, TanStack Query v5, Vite 5, httpx ≥0.26, pydantic ≥2.5, aiosqlite ≥0.20, socket.io-client 4.7, dnd-kit 6.3
-- 009-codebase-cleanup-refactor: Added Python 3.11+ (backend, pyright targets 3.12), TypeScript ~5.4 (frontend) + FastAPI, Pydantic 2.x, httpx, aiosqlite (backend); React 18, TanStack Query v5, Vite 5, dnd-kit (frontend)
 
 
 <!-- MANUAL ADDITIONS START -->
