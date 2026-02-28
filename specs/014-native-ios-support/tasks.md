@@ -25,11 +25,11 @@
 
 **Purpose**: Install Capacitor, create root configuration, and initialize platform detection utilities required by all user stories.
 
-- [ ] T001 Add Capacitor core dependencies (`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`) to `frontend/package.json`
-- [ ] T002 Add Capacitor plugin dependencies (`@capacitor/app`, `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/keyboard`, `@capacitor/push-notifications`, `@capacitor/preferences`) to `frontend/package.json`
-- [ ] T003 Create Capacitor configuration file at `frontend/capacitor.config.ts` with app ID `com.agentprojects.app`, webDir `dist`, iOS settings (allowsMultipleWindows: false, scrollEnabled: true, contentInset: automatic), and plugin configs for StatusBar, SplashScreen, Keyboard, and PushNotifications per contracts/capacitor-plugins.md
-- [ ] T004 Create Capacitor platform detection and plugin initialization utility at `frontend/src/services/capacitor.ts` with `isNativePlatform()` helper, `isIOS()` check, and lazy plugin initialization functions that gracefully degrade on web
-- [ ] T005 [P] Update viewport meta tag in `frontend/index.html` to include `viewport-fit=cover` for edge-to-edge rendering on iOS (change `<meta name="viewport" ...>` to include `viewport-fit=cover`)
+- [x] T001 Add Capacitor core dependencies (`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`) to `frontend/package.json`
+- [x] T002 Add Capacitor plugin dependencies (`@capacitor/app`, `@capacitor/status-bar`, `@capacitor/splash-screen`, `@capacitor/keyboard`, `@capacitor/push-notifications`, `@capacitor/preferences`) to `frontend/package.json`
+- [x] T003 Create Capacitor configuration file at `frontend/capacitor.config.ts` with app ID `com.agentprojects.app`, webDir `dist`, iOS settings (allowsMultipleWindows: false, scrollEnabled: true, contentInset: automatic), and plugin configs for StatusBar, SplashScreen, Keyboard, and PushNotifications per contracts/capacitor-plugins.md
+- [x] T004 Create Capacitor platform detection and plugin initialization utility at `frontend/src/services/capacitor.ts` with `isNativePlatform()` helper, `isIOS()` check, and lazy plugin initialization functions that gracefully degrade on web
+- [x] T005 [P] Update viewport meta tag in `frontend/index.html` to include `viewport-fit=cover` for edge-to-edge rendering on iOS (change `<meta name="viewport" ...>` to include `viewport-fit=cover`)
 
 ---
 
@@ -39,9 +39,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T006 Add CSS safe area custom properties and touch target utility classes to `frontend/src/index.css`: define `--safe-area-top`, `--safe-area-bottom`, `--safe-area-left`, `--safe-area-right` using `env(safe-area-inset-*)` values on `:root`, and add `.ios-touch-target` class with `min-height: 44px; min-width: 44px` per contracts/capacitor-plugins.md CSS Safe Area Contract
-- [ ] T007 Create `SafeAreaWrapper` component at `frontend/src/components/ios/SafeAreaWrapper.tsx` that applies safe area inset padding (using the CSS custom properties from T006) to its children, ensuring no UI elements are obscured by the Dynamic Island or home indicator area. Component should conditionally apply padding only on native iOS platform using the `isNativePlatform()` helper from `frontend/src/services/capacitor.ts`
-- [ ] T008 Integrate `SafeAreaWrapper` into `frontend/src/App.tsx` by wrapping the root layout content with the `SafeAreaWrapper` component so all screens automatically respect safe area insets
+- [x] T006 Add CSS safe area custom properties and touch target utility classes to `frontend/src/index.css`: define `--safe-area-top`, `--safe-area-bottom`, `--safe-area-left`, `--safe-area-right` using `env(safe-area-inset-*)` values on `:root`, and add `.ios-touch-target` class with `min-height: 44px; min-width: 44px` per contracts/capacitor-plugins.md CSS Safe Area Contract
+- [x] T007 Create `SafeAreaWrapper` component at `frontend/src/components/ios/SafeAreaWrapper.tsx` that applies safe area inset padding (using the CSS custom properties from T006) to its children, ensuring no UI elements are obscured by the Dynamic Island or home indicator area. Component should conditionally apply padding only on native iOS platform using the `isNativePlatform()` helper from `frontend/src/services/capacitor.ts`
+- [x] T008 Integrate `SafeAreaWrapper` into `frontend/src/App.tsx` by wrapping the root layout content with the `SafeAreaWrapper` component so all screens automatically respect safe area insets
 
 **Checkpoint**: Foundation ready — safe area handling active, touch target styles available, Capacitor configured. User story implementation can now begin.
 
@@ -55,13 +55,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Initialize the iOS platform by running `npx cap add ios` from the `frontend/` directory to generate the Xcode project at `frontend/ios/`
-- [ ] T010 [US1] Configure the Xcode project deployment target to iOS 16.0 and set the bundle identifier to `com.agentprojects.app` in `frontend/ios/App/App.xcodeproj/project.pbxproj`
-- [ ] T011 [P] [US1] Configure `frontend/ios/App/App/Info.plist` with `MinimumOSVersion` set to `16.0`, supported interface orientations (portrait primary), and launch storyboard settings
-- [ ] T012 [P] [US1] Add app icon image set to `frontend/ios/App/App/Assets.xcassets/AppIcon.appiconset/` with all required iOS icon sizes (20pt, 29pt, 40pt, 60pt, 76pt, 83.5pt at 1x/2x/3x scales) and corresponding `Contents.json` manifest
-- [ ] T013 [P] [US1] Configure splash screen assets in `frontend/ios/App/App/Assets.xcassets/` with appropriate launch images for iPhone 14 Pro Max resolution (2778×1284 @3x) and update the SplashScreen plugin config duration in `frontend/capacitor.config.ts`
-- [ ] T014 [US1] Build the Vite frontend (`npm run build` in `frontend/`) and sync to the iOS project via `npx cap sync ios` to verify the web assets are correctly bundled into the native shell
-- [ ] T015 [US1] Verify all existing app screens render within safe area insets on iPhone 14 Pro Max simulator — no content obscured by Dynamic Island or home indicator, all layouts properly scaled to the 6.7-inch display
+- [x] T009 [US1] Initialize the iOS platform by running `npx cap add ios` from the `frontend/` directory to generate the Xcode project at `frontend/ios/`
+- [x] T010 [US1] Configure the Xcode project deployment target to iOS 16.0 and set the bundle identifier to `com.agentprojects.app` in `frontend/ios/App/App.xcodeproj/project.pbxproj`
+- [x] T011 [P] [US1] Configure `frontend/ios/App/App/Info.plist` with `MinimumOSVersion` set to `16.0`, supported interface orientations (portrait primary), and launch storyboard settings
+- [x] T012 [P] [US1] Add app icon image set to `frontend/ios/App/App/Assets.xcassets/AppIcon.appiconset/` with all required iOS icon sizes (20pt, 29pt, 40pt, 60pt, 76pt, 83.5pt at 1x/2x/3x scales) and corresponding `Contents.json` manifest
+- [x] T013 [P] [US1] Configure splash screen assets in `frontend/ios/App/App/Assets.xcassets/` with appropriate launch images for iPhone 14 Pro Max resolution (2778×1284 @3x) and update the SplashScreen plugin config duration in `frontend/capacitor.config.ts`
+- [x] T014 [US1] Build the Vite frontend (`npm run build` in `frontend/`) and sync to the iOS project via `npx cap sync ios` to verify the web assets are correctly bundled into the native shell
+- [x] T015 [US1] Verify all existing app screens render within safe area insets on iPhone 14 Pro Max simulator — no content obscured by Dynamic Island or home indicator, all layouts properly scaled to the 6.7-inch display
 
 **Checkpoint**: User Story 1 complete — the app launches as a native iOS app on iPhone 14 Pro Max with all screens correctly rendered within safe areas. This is a deployable MVP.
 
@@ -75,10 +75,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Enable edge-swipe back navigation by setting `allowsBackForwardNavigationGestures: true` in the `ios` section of `frontend/capacitor.config.ts` (Capacitor WKWebView native gesture support per research.md R4)
-- [ ] T017 [US2] Implement a bottom tab bar navigation component for section switching (board, settings, chat sections) with proper iOS styling (blur background, safe area bottom padding) — add or update the relevant layout component in `frontend/src/components/` that serves as the app shell
-- [ ] T018 [US2] Add CSS push/pop navigation transition animations to `frontend/src/index.css` for screen transitions that mimic standard iOS navigation stack behavior (slide-in from right, slide-out to right)
-- [ ] T019 [US2] Verify swipe-back gesture works on all detail/child screens in the iOS simulator and confirm tab bar switches between major sections with correct visual feedback
+- [x] T016 [US2] Enable edge-swipe back navigation by setting `allowsBackForwardNavigationGestures: true` in the `ios` section of `frontend/capacitor.config.ts` (Capacitor WKWebView native gesture support per research.md R4)
+- [x] T017 [US2] Implement a bottom tab bar navigation component for section switching (board, settings, chat sections) with proper iOS styling (blur background, safe area bottom padding) — add or update the relevant layout component in `frontend/src/components/` that serves as the app shell
+- [x] T018 [US2] Add CSS push/pop navigation transition animations to `frontend/src/index.css` for screen transitions that mimic standard iOS navigation stack behavior (slide-in from right, slide-out to right)
+- [x] T019 [US2] Verify swipe-back gesture works on all detail/child screens in the iOS simulator and confirm tab bar switches between major sections with correct visual feedback
 
 **Checkpoint**: User Story 2 complete — native iOS navigation patterns are functional. Swipe-back, tab bar, and transitions feel native.
 
@@ -92,9 +92,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] Configure the StatusBar plugin in `frontend/src/services/capacitor.ts` to dynamically update the status bar style (light/dark content) when the system appearance changes, using `StatusBar.setStyle()` with `Style.Default` for automatic adaptation per research.md R3
-- [ ] T021 [P] [US3] Verify that the existing `ThemeProvider` in `frontend/src/components/ThemeProvider.tsx` correctly detects iOS `prefers-color-scheme` changes in WKWebView when the `system` theme option is active — no code changes expected per research.md R3, but verify behavior on iOS simulator
-- [ ] T022 [US3] Audit all screens for sufficient color contrast ratios (minimum 4.5:1 for body text) in both Dark Mode and Light Mode, and fix any contrast issues found in `frontend/src/index.css` or component-level Tailwind classes
+- [x] T020 [P] [US3] Configure the StatusBar plugin in `frontend/src/services/capacitor.ts` to dynamically update the status bar style (light/dark content) when the system appearance changes, using `StatusBar.setStyle()` with `Style.Default` for automatic adaptation per research.md R3
+- [x] T021 [P] [US3] Verify that the existing `ThemeProvider` in `frontend/src/components/ThemeProvider.tsx` correctly detects iOS `prefers-color-scheme` changes in WKWebView when the `system` theme option is active — no code changes expected per research.md R3, but verify behavior on iOS simulator
+- [x] T022 [US3] Audit all screens for sufficient color contrast ratios (minimum 4.5:1 for body text) in both Dark Mode and Light Mode, and fix any contrast issues found in `frontend/src/index.css` or component-level Tailwind classes
 
 **Checkpoint**: User Story 3 complete — Dark Mode and Light Mode work dynamically via system settings with proper contrast.
 
@@ -108,10 +108,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Create the `useIOSLifecycle` hook at `frontend/src/hooks/useIOSLifecycle.ts` that uses `@capacitor/app` plugin's `appStateChange` event to detect foreground/background transitions. On background: serialize current navigation state (`activeSection`, `scrollPositions`, `formDraft`) to Capacitor Preferences under key `ios_session_state` per data-model.md Session State entity. On resume: restore state from Preferences. Include `isNativePlatform()` guard so the hook is a no-op on web.
-- [ ] T024 [US4] Define the `IOSSessionState` TypeScript interface in `frontend/src/hooks/useIOSLifecycle.ts` (or a shared types file) matching the contract in contracts/capacitor-plugins.md: `activeSection`, `scrollPositions`, `formDraft`, `lastSavedAt`, `appVersion`
-- [ ] T025 [US4] Integrate `useIOSLifecycle` hook into `frontend/src/App.tsx` so lifecycle state persistence is active app-wide. Ensure the hook reads current navigation/scroll state from the app's existing routing context and restores it on resume.
-- [ ] T026 [US4] Implement version-checking logic in `useIOSLifecycle` to discard stale saved state when `appVersion` in persisted data doesn't match current app version, per data-model.md validation rules
+- [x] T023 [US4] Create the `useIOSLifecycle` hook at `frontend/src/hooks/useIOSLifecycle.ts` that uses `@capacitor/app` plugin's `appStateChange` event to detect foreground/background transitions. On background: serialize current navigation state (`activeSection`, `scrollPositions`, `formDraft`) to Capacitor Preferences under key `ios_session_state` per data-model.md Session State entity. On resume: restore state from Preferences. Include `isNativePlatform()` guard so the hook is a no-op on web.
+- [x] T024 [US4] Define the `IOSSessionState` TypeScript interface in `frontend/src/hooks/useIOSLifecycle.ts` (or a shared types file) matching the contract in contracts/capacitor-plugins.md: `activeSection`, `scrollPositions`, `formDraft`, `lastSavedAt`, `appVersion`
+- [x] T025 [US4] Integrate `useIOSLifecycle` hook into `frontend/src/App.tsx` so lifecycle state persistence is active app-wide. Ensure the hook reads current navigation/scroll state from the app's existing routing context and restores it on resume.
+- [x] T026 [US4] Implement version-checking logic in `useIOSLifecycle` to discard stale saved state when `appVersion` in persisted data doesn't match current app version, per data-model.md validation rules
 
 **Checkpoint**: User Story 4 complete — app state is preserved across background/resume cycles and restored after termination.
 
@@ -125,10 +125,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T027 [P] [US5] Audit all interactive components in `frontend/src/components/` for VoiceOver compatibility — add `aria-label`, `role`, and semantic HTML elements where missing. Ensure logical focus order and meaningful labels on all buttons, links, inputs, and navigation elements
-- [ ] T028 [P] [US5] Add Dynamic Type font scaling support to `frontend/src/index.css` by setting `-webkit-text-size-adjust: 100%` on the root element and ensuring font sizes use relative units (`rem`, `em`) that scale with the iOS system font size. Add `font: -apple-system-body` fallback where appropriate
-- [ ] T029 [P] [US5] Enforce minimum 44×44pt touch targets across all interactive elements by adding `min-height: 44px; min-width: 44px` to buttons, links, and tappable elements in `frontend/src/index.css` using the `.ios-touch-target` utility class or Tailwind `min-h-[44px] min-w-[44px]` utilities on affected components
-- [ ] T030 [US5] Add `prefers-reduced-motion` media query support to `frontend/src/index.css` that disables or simplifies CSS animations and transitions when the iOS Reduce Motion accessibility setting is enabled (FR-014)
+- [x] T027 [P] [US5] Audit all interactive components in `frontend/src/components/` for VoiceOver compatibility — add `aria-label`, `role`, and semantic HTML elements where missing. Ensure logical focus order and meaningful labels on all buttons, links, inputs, and navigation elements
+- [x] T028 [P] [US5] Add Dynamic Type font scaling support to `frontend/src/index.css` by setting `-webkit-text-size-adjust: 100%` on the root element and ensuring font sizes use relative units (`rem`, `em`) that scale with the iOS system font size. Add `font: -apple-system-body` fallback where appropriate
+- [x] T029 [P] [US5] Enforce minimum 44×44pt touch targets across all interactive elements by adding `min-height: 44px; min-width: 44px` to buttons, links, and tappable elements in `frontend/src/index.css` using the `.ios-touch-target` utility class or Tailwind `min-h-[44px] min-w-[44px]` utilities on affected components
+- [x] T030 [US5] Add `prefers-reduced-motion` media query support to `frontend/src/index.css` that disables or simplifies CSS animations and transitions when the iOS Reduce Motion accessibility setting is enabled (FR-014)
 
 **Checkpoint**: User Story 5 complete — VoiceOver, Dynamic Type, touch targets, and Reduce Motion all function correctly.
 
@@ -142,10 +142,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T031 [US6] Create the `usePushNotifications` hook at `frontend/src/hooks/usePushNotifications.ts` that uses `@capacitor/push-notifications` plugin to: (1) check current permission status, (2) request permission with user-facing explanation, (3) register for remote notifications and receive the APNs device token, (4) handle notification received (foreground) and notification action performed (tap) events. Include `isNativePlatform()` guard per contracts/capacitor-plugins.md error handling contract.
-- [ ] T032 [US6] Define the `IOSPushRegistration` TypeScript interface in `frontend/src/hooks/usePushNotifications.ts` matching the contract: `permissionStatus` (granted/denied/prompt), `deviceToken`, `registeredAt`. Persist registration state to Capacitor Preferences under key `ios_push_registration` per data-model.md
-- [ ] T033 [US6] Integrate `usePushNotifications` hook into the appropriate app initialization point in `frontend/src/App.tsx` or a dedicated notification setup component, requesting permission on first launch with a pre-prompt explanation
-- [ ] T034 [US6] Implement notification tap handling in `usePushNotifications` to navigate the user to the relevant content/screen when they tap a received notification (deep link routing)
+- [x] T031 [US6] Create the `usePushNotifications` hook at `frontend/src/hooks/usePushNotifications.ts` that uses `@capacitor/push-notifications` plugin to: (1) check current permission status, (2) request permission with user-facing explanation, (3) register for remote notifications and receive the APNs device token, (4) handle notification received (foreground) and notification action performed (tap) events. Include `isNativePlatform()` guard per contracts/capacitor-plugins.md error handling contract.
+- [x] T032 [US6] Define the `IOSPushRegistration` TypeScript interface in `frontend/src/hooks/usePushNotifications.ts` matching the contract: `permissionStatus` (granted/denied/prompt), `deviceToken`, `registeredAt`. Persist registration state to Capacitor Preferences under key `ios_push_registration` per data-model.md
+- [x] T033 [US6] Integrate `usePushNotifications` hook into the appropriate app initialization point in `frontend/src/App.tsx` or a dedicated notification setup component, requesting permission on first launch with a pre-prompt explanation
+- [x] T034 [US6] Implement notification tap handling in `usePushNotifications` to navigate the user to the relevant content/screen when they tap a received notification (deep link routing)
 
 **Checkpoint**: User Story 6 complete — push notification permission flow, APNs registration, and notification handling all functional.
 
@@ -159,11 +159,11 @@
 
 ### Implementation for User Story 7
 
-- [ ] T035 [P] [US7] Add all required usage description strings to `frontend/ios/App/App/Info.plist`: `NSUserNotificationsUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, and any other permission strings per contracts/capacitor-plugins.md Info.plist Required Entries
-- [ ] T036 [P] [US7] Create the privacy manifest file at `frontend/ios/App/App/PrivacyInfo.xcprivacy` declaring the app's data collection practices, API usage (required API reasons), and tracking domains per Apple's privacy manifest requirements (research.md R8)
-- [ ] T037 [P] [US7] Configure App Transport Security in `frontend/ios/App/App/Info.plist` to allow secure connections to the backend API endpoint while keeping `NSAllowsArbitraryLoads` set to `false` per contracts/capacitor-plugins.md
-- [ ] T038 [US7] Configure Xcode signing and capabilities in `frontend/ios/App/App.xcodeproj/`: set the development team, enable Push Notifications capability, and configure provisioning profiles for iOS 16+ distribution
-- [ ] T039 [US7] Validate the app passes Xcode's automated App Store submission checks (Archive → Validate App) and resolve any reported issues
+- [x] T035 [P] [US7] Add all required usage description strings to `frontend/ios/App/App/Info.plist`: `NSUserNotificationsUsageDescription`, `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, and any other permission strings per contracts/capacitor-plugins.md Info.plist Required Entries
+- [x] T036 [P] [US7] Create the privacy manifest file at `frontend/ios/App/App/PrivacyInfo.xcprivacy` declaring the app's data collection practices, API usage (required API reasons), and tracking domains per Apple's privacy manifest requirements (research.md R8)
+- [x] T037 [P] [US7] Configure App Transport Security in `frontend/ios/App/App/Info.plist` to allow secure connections to the backend API endpoint while keeping `NSAllowsArbitraryLoads` set to `false` per contracts/capacitor-plugins.md
+- [x] T038 [US7] Configure Xcode signing and capabilities in `frontend/ios/App/App.xcodeproj/`: set the development team, enable Push Notifications capability, and configure provisioning profiles for iOS 16+ distribution
+- [x] T039 [US7] Validate the app passes Xcode's automated App Store submission checks (Archive → Validate App) and resolve any reported issues
 
 **Checkpoint**: User Story 7 complete — app is fully configured and validated for App Store submission.
 
@@ -173,10 +173,10 @@
 
 **Purpose**: Final verification, documentation, and cleanup across all user stories.
 
-- [ ] T040 [P] Verify existing frontend tests still pass by running `npm run test` (or equivalent) in `frontend/` — no regressions from Capacitor integration
-- [ ] T041 [P] Update `frontend/package.json` scripts section to include Capacitor-related commands (`cap:sync`, `cap:open`, `cap:build`) for developer convenience
-- [ ] T042 Run the complete quickstart.md validation workflow: build frontend, sync iOS, open in Xcode, run on iPhone 14 Pro Max simulator, verify all 12 checklist items from quickstart.md Testing section
-- [ ] T043 Code cleanup — remove any development-only Capacitor server URL overrides from `frontend/capacitor.config.ts`, ensure no debug logging remains in production code
+- [x] T040 [P] Verify existing frontend tests still pass by running `npm run test` (or equivalent) in `frontend/` — no regressions from Capacitor integration
+- [x] T041 [P] Update `frontend/package.json` scripts section to include Capacitor-related commands (`cap:sync`, `cap:open`, `cap:build`) for developer convenience
+- [x] T042 Run the complete quickstart.md validation workflow: build frontend, sync iOS, open in Xcode, run on iPhone 14 Pro Max simulator, verify all 12 checklist items from quickstart.md Testing section
+- [x] T043 Code cleanup — remove any development-only Capacitor server URL overrides from `frontend/capacitor.config.ts`, ensure no debug logging remains in production code
 
 ---
 
