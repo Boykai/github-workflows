@@ -6,7 +6,7 @@
  * and prerequisite messages.
  */
 
-import { type ModelsResponse, type ModelOption } from '@/types';
+import { type ModelsResponse } from '@/types';
 
 interface DynamicDropdownProps {
   /** Current selected value */
