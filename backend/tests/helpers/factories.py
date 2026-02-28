@@ -153,11 +153,18 @@ def make_board_data(**overrides) -> BoardDataResponse:
 # ── Chat / Recommendations ──────────────────────────────────────────────────
 
 
-def make_chat_message(**overrides) -> ChatMessage:
-    """Create a ChatMessage with sensible test defaults."""
+def make_chat_message(session_id=None, **overrides) -> ChatMessage:
+    """Create a ChatMessage with sensible test defaults.
+
+    ``session_id`` and ``sender_type`` are required by the Pydantic model;
+    a random UUID is generated for ``session_id`` when not supplied.
+    """
+    from uuid import uuid4
+
     defaults: dict = {
+        "session_id": session_id or str(uuid4()),
         "content": "Hello, world!",
-        "sender": SenderType.USER,
+        "sender_type": SenderType.USER,
     }
     defaults.update(overrides)
     return ChatMessage(**defaults)
@@ -197,29 +204,41 @@ def make_task_proposal(session_id=None, **overrides) -> AITaskProposal:
 
 
 def make_user_preferences_row(**overrides) -> UserPreferencesRow:
-    """Create a UserPreferencesRow with sensible test defaults."""
+    """Create a UserPreferencesRow with sensible test defaults.
+
+    ``UserPreferencesRow`` uses explicit column fields (ai_provider, theme,
+    etc.), not a JSON blob — all preference columns default to ``None``
+    so only ``github_user_id`` is required.
+    """
     defaults: dict = {
         "github_user_id": "12345",
-        "preferences_json": "{}",
     }
     defaults.update(overrides)
     return UserPreferencesRow(**defaults)
 
 
 def make_global_settings_row(**overrides) -> GlobalSettingsRow:
-    """Create a GlobalSettingsRow with sensible test defaults."""
-    defaults: dict = {
-        "settings_json": "{}",
-    }
+    """Create a GlobalSettingsRow with sensible test defaults.
+
+    ``GlobalSettingsRow`` has explicit columns with built-in defaults
+    (ai_provider="copilot", ai_model="gpt-4o", etc.) so an empty
+    override dict already produces a valid row.
+    """
+    defaults: dict = {}
     defaults.update(overrides)
     return GlobalSettingsRow(**defaults)
 
 
 def make_project_settings_row(**overrides) -> ProjectSettingsRow:
-    """Create a ProjectSettingsRow with sensible test defaults."""
+    """Create a ProjectSettingsRow with sensible test defaults.
+
+    Both ``github_user_id`` and ``project_id`` are required.  JSON-string
+    columns (``board_display_config``, ``agent_pipeline_mappings``) default
+    to ``None`` in the model.
+    """
     defaults: dict = {
+        "github_user_id": "12345",
         "project_id": "PVT_abc",
-        "settings_json": "{}",
     }
     defaults.update(overrides)
     return ProjectSettingsRow(**defaults)

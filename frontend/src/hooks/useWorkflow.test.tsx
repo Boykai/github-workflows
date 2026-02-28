@@ -83,10 +83,19 @@ describe('useWorkflow', () => {
   });
 
   it('should fetch config on demand via getConfig', async () => {
+    // Use a type-accurate WorkflowConfiguration shape so the test reflects
+    // real API contracts (project_id, copilot_assignee, etc. are required).
     const mockConfig = {
+      project_id: 'PVT_1',
       repository_owner: 'owner',
       repository_name: 'repo',
-      auto_assign: true,
+      copilot_assignee: 'Copilot',
+      agent_mappings: {},
+      status_backlog: 'Backlog',
+      status_ready: 'Ready',
+      status_in_progress: 'In Progress',
+      status_in_review: 'In Review',
+      enabled: true,
     };
     mockWorkflowApi.getConfig.mockResolvedValue(mockConfig);
 
@@ -107,7 +116,8 @@ describe('useWorkflow', () => {
   });
 
   it('should update config', async () => {
-    const updatedConfig = { auto_assign: false };
+    // Partial update payload — uses real WorkflowConfiguration fields.
+    const updatedConfig = { enabled: false };
     mockWorkflowApi.updateConfig.mockResolvedValue(updatedConfig);
 
     const { result } = renderHook(() => useWorkflow(), {

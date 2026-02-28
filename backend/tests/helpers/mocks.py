@@ -63,13 +63,22 @@ def make_mock_websocket_manager(**overrides) -> AsyncMock:
 
 
 def make_mock_db_connection() -> MagicMock:
-    """Create a mock aiosqlite Connection for testing database operations."""
+    """Create a mock aiosqlite Connection for testing database operations.
+
+    In aiosqlite, ``fetchone`` / ``fetchall`` live on the **cursor** returned
+    by ``await db.execute(...)``, not on the connection itself.  This mock
+    mirrors that structure so tests exercise realistic call chains.
+    """
     mock = MagicMock(name="DatabaseConnection")
-    mock.execute = AsyncMock()
+
+    # Cursor mock — returned by execute() to match the real aiosqlite API.
+    mock_cursor = MagicMock(name="DatabaseCursor")
+    mock_cursor.fetchone = AsyncMock(return_value=None)
+    mock_cursor.fetchall = AsyncMock(return_value=[])
+
+    mock.execute = AsyncMock(return_value=mock_cursor)
     mock.executemany = AsyncMock()
     mock.executescript = AsyncMock()
     mock.commit = AsyncMock()
     mock.close = AsyncMock()
-    mock.fetchone = AsyncMock(return_value=None)
-    mock.fetchall = AsyncMock(return_value=[])
     return mock

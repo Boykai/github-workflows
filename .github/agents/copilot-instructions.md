@@ -1,6 +1,6 @@
 # codeagentworkflows Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-01-30
+Auto-generated from all feature plans. Last updated: 2026-02-28
 
 ## Active Technologies
 - In-memory session storage (MVP), Redis for token caching (future) (001-github-project-chat)

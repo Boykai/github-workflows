@@ -1,13 +1,21 @@
 /**
  * Unit tests for ErrorBoundary component.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
 
-// Suppress React error boundary console.error noise in test output
+// Suppress React error boundary console.error noise in test output.
+// The spy is stored so it can be restored in afterEach to prevent leaking
+// the mock into other test files.
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
 });
 
 function ThrowingComponent({ error }: { error: Error }) {

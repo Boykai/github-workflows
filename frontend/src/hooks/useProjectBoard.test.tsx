@@ -66,10 +66,12 @@ describe('useProjectBoard', () => {
   });
 
   it('should return projects after loading', async () => {
+    // Use type-accurate BoardProjectListResponse shape — status_field uses
+    // field_id (not id) to match the real BoardStatusField interface.
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { id: 'sf1', name: 'Status', options: [] } },
-        { project_id: 'PVT_2', name: 'Board Beta', url: 'https://github.com', owner_login: 'user', status_field: { id: 'sf2', name: 'Status', options: [] } },
+        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf1', options: [] } },
+        { project_id: 'PVT_2', name: 'Board Beta', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf2', options: [] } },
       ],
     };
 
@@ -89,14 +91,22 @@ describe('useProjectBoard', () => {
   });
 
   it('should fetch board data when selectedProjectId is provided', async () => {
+    // Use type-accurate shapes matching BoardProject / BoardDataResponse.
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { id: 'sf1', name: 'Status', options: [] } },
+        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf1', options: [] } },
       ],
     };
     const mockBoardData = {
       project: mockProjects.projects[0],
-      columns: [{ name: 'Todo', cards: [] }],
+      columns: [
+        {
+          status: { option_id: 'opt1', name: 'Todo', color: 'GRAY' },
+          items: [],
+          item_count: 0,
+          estimate_total: 0,
+        },
+      ],
     };
 
     mockBoardApi.listProjects.mockResolvedValue(mockProjects);
