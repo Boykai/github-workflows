@@ -50,7 +50,7 @@
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T004 [P] [US1] Add test that `AITaskProposal` accepts a 65,536-character `proposed_description` in backend/tests/unit/test_recommendation_models.py (new file)
-- [ ] T005 [P] [US1] Add test that `ProposalConfirmRequest` accepts a 65,536-character `edited_description` in backend/tests/unit/test_recommendation_models.py
+- [ ] T005 [US1] Add test that `ProposalConfirmRequest` accepts a 65,536-character `edited_description` in backend/tests/unit/test_recommendation_models.py (same file as T004)
 - [ ] T006 [P] [US1] Add test that `confirm_proposal()` passes the full `final_description` to `create_issue(body=...)` unchanged in backend/tests/unit/test_api_chat.py
 - [ ] T007 [P] [US1] Add test that `confirm_recommendation()` via `format_issue_body()` passes the full assembled body to `create_issue(body=...)` unchanged in backend/tests/unit/test_api_workflow.py
 
@@ -171,8 +171,8 @@
 
 ### Parallel Opportunities
 
-- T002, T003 can run in parallel (different fields in same file)
-- T004, T005, T006, T007 can all run in parallel (different test files/sections)
+- T002, T003 modify different fields in the same file — execute sequentially or coordinate edits
+- T004, T006, T007 can all run in parallel (different test files); T005 depends on T004 (same file)
 - T010, T011, T012 can all run in parallel (different test files/sections)
 - T015, T016, T017, T018 can all run in parallel (different test files/sections)
 - T021, T022, T023 can all run in parallel (different test files/sections)
