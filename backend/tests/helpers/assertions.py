@@ -71,6 +71,4 @@ def assert_json_values(data: dict, expected: dict[str, Any]) -> None:
     """
     for key, value in expected.items():
         assert key in data, f"Key '{key}' not found in response"
-        assert data[key] == value, (
-            f"Key '{key}': expected {value!r}, got {data[key]!r}"
-        )
+        assert data[key] == value, f"Key '{key}': expected {value!r}, got {data[key]!r}"

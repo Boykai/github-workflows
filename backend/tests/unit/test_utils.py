@@ -7,7 +7,6 @@ import pytest
 
 from src.utils import BoundedDict, BoundedSet, resolve_repository, utcnow
 
-
 # =============================================================================
 # BoundedSet
 # =============================================================================
@@ -310,7 +309,7 @@ class TestBoundedDict:
         bd["c"] = 3
 
         bd["a"] = 99  # move "a" to end with new value
-        bd["d"] = 4   # should evict "b" (now the oldest)
+        bd["d"] = 4  # should evict "b" (now the oldest)
 
         assert "b" not in bd
         assert list(bd.keys()) == ["c", "a", "d"]

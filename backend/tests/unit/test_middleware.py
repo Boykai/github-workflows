@@ -1,11 +1,7 @@
 """Tests for request ID middleware (src/middleware/request_id.py)."""
 
-import uuid
-from unittest.mock import AsyncMock
-
 import pytest
 from starlette.requests import Request
-from starlette.responses import Response
 from starlette.testclient import TestClient
 
 from src.middleware.request_id import RequestIDMiddleware, request_id_var

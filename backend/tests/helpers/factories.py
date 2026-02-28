@@ -21,8 +21,8 @@ from src.models.settings import GlobalSettingsRow, ProjectSettingsRow, UserPrefe
 from src.models.task import Task
 from src.models.user import UserSession
 
-
 # ── Identity ────────────────────────────────────────────────────────────────
+
 
 def make_user_session(**overrides) -> UserSession:
     """Create a UserSession with sensible test defaults."""
@@ -36,6 +36,7 @@ def make_user_session(**overrides) -> UserSession:
 
 
 # ── Tasks ───────────────────────────────────────────────────────────────────
+
 
 def make_task(**overrides) -> Task:
     """Create a Task with sensible test defaults."""
@@ -51,6 +52,7 @@ def make_task(**overrides) -> Task:
 
 
 # ── Projects ────────────────────────────────────────────────────────────────
+
 
 def make_status_column(**overrides) -> StatusColumn:
     """Create a StatusColumn with sensible test defaults."""
@@ -83,6 +85,7 @@ def make_project(**overrides) -> GitHubProject:
 
 
 # ── Board ───────────────────────────────────────────────────────────────────
+
 
 def make_board_project(**overrides) -> BoardProject:
     """Create a BoardProject with sensible test defaults."""
@@ -149,6 +152,7 @@ def make_board_data(**overrides) -> BoardDataResponse:
 
 # ── Chat / Recommendations ──────────────────────────────────────────────────
 
+
 def make_chat_message(**overrides) -> ChatMessage:
     """Create a ChatMessage with sensible test defaults."""
     defaults: dict = {
@@ -190,6 +194,7 @@ def make_task_proposal(session_id=None, **overrides) -> AITaskProposal:
 
 
 # ── Settings ────────────────────────────────────────────────────────────────
+
 
 def make_user_preferences_row(**overrides) -> UserPreferencesRow:
     """Create a UserPreferencesRow with sensible test defaults."""

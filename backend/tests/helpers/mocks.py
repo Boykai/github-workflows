@@ -29,9 +29,7 @@ def make_mock_github_service(**overrides) -> AsyncMock:
             "html_url": "https://github.com/owner/repo/issues/42",
         },
     )
-    mock.add_issue_to_project.return_value = overrides.pop(
-        "add_issue_to_project", "PVTI_new"
-    )
+    mock.add_issue_to_project.return_value = overrides.pop("add_issue_to_project", "PVTI_new")
     # Apply remaining overrides
     for method_name, return_value in overrides.items():
         getattr(mock, method_name).return_value = return_value
