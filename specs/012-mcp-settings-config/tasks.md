@@ -23,9 +23,9 @@
 
 **Purpose**: Database migration and shared backend models/services needed by all user stories
 
-- [ ] T001 Create MCP database migration in backend/src/migrations/006_add_mcp_configurations.sql
-- [ ] T002 [P] Create MCP Pydantic models (request/response/row) in backend/src/models/mcp.py
-- [ ] T003 [P] Add MCP TypeScript interfaces to frontend/src/types/index.ts
+- [x] T001 Create MCP database migration in backend/src/migrations/006_add_mcp_configurations.sql
+- [x] T002 [P] Create MCP Pydantic models (request/response/row) in backend/src/models/mcp.py
+- [x] T003 [P] Add MCP TypeScript interfaces to frontend/src/types/index.ts
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement MCP CRUD service (list, create, delete with per-user scoping and 25-MCP limit) in backend/src/services/mcp_store.py
-- [ ] T005 Implement SSRF URL validation helper (reject private/reserved IPs, enforce HTTP(S) scheme) in backend/src/services/mcp_store.py
-- [ ] T006 Create MCP API router with GET /settings/mcps, POST /settings/mcps, DELETE /settings/mcps/{mcp_id} endpoints in backend/src/api/mcp.py
-- [ ] T007 Register MCP API router in backend/src/api/__init__.py
-- [ ] T008 [P] Add MCP API client methods (listMcps, createMcp, deleteMcp) to frontend/src/services/api.ts
+- [x] T004 Implement MCP CRUD service (list, create, delete with per-user scoping and 25-MCP limit) in backend/src/services/mcp_store.py
+- [x] T005 Implement SSRF URL validation helper (reject private/reserved IPs, enforce HTTP(S) scheme) in backend/src/services/mcp_store.py
+- [x] T006 Create MCP API router with GET /settings/mcps, POST /settings/mcps, DELETE /settings/mcps/{mcp_id} endpoints in backend/src/api/mcp.py
+- [x] T007 Register MCP API router in backend/src/api/__init__.py
+- [x] T008 [P] Add MCP API client methods (listMcps, createMcp, deleteMcp) to frontend/src/services/api.ts
 
 **Checkpoint**: Backend API fully functional — all three MCP endpoints (GET, POST, DELETE) respond correctly with auth
 
@@ -53,9 +53,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Create useMcpSettings React hook with list query (GET /settings/mcps) and loading/error state in frontend/src/hooks/useMcpSettings.ts
-- [ ] T010 [US1] Create McpSettings component with MCP list display (name, active status), empty state, and loading indicator in frontend/src/components/settings/McpSettings.tsx
-- [ ] T011 [US1] Add McpSettings section to Settings page (visible only to authenticated users) in frontend/src/pages/SettingsPage.tsx
+- [x] T009 [US1] Create useMcpSettings React hook with list query (GET /settings/mcps) and loading/error state in frontend/src/hooks/useMcpSettings.ts
+- [x] T010 [US1] Create McpSettings component with MCP list display (name, active status), empty state, and loading indicator in frontend/src/components/settings/McpSettings.tsx
+- [x] T011 [US1] Add McpSettings section to Settings page (visible only to authenticated users) in frontend/src/pages/SettingsPage.tsx
 
 **Checkpoint**: User Story 1 complete — authenticated users can view their MCP list or see the empty state on the Settings page
 
@@ -69,8 +69,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Add createMcp mutation to useMcpSettings hook (POST /settings/mcps, optimistic list refresh, success/error state) in frontend/src/hooks/useMcpSettings.ts
-- [ ] T013 [US2] Add MCP creation form to McpSettings component (name input max 100 chars, endpoint URL input max 2048 chars, client-side validation, submit button, inline feedback) in frontend/src/components/settings/McpSettings.tsx
+- [x] T012 [US2] Add createMcp mutation to useMcpSettings hook (POST /settings/mcps, optimistic list refresh, success/error state) in frontend/src/hooks/useMcpSettings.ts
+- [x] T013 [US2] Add MCP creation form to McpSettings component (name input max 100 chars, endpoint URL input max 2048 chars, client-side validation, submit button, inline feedback) in frontend/src/components/settings/McpSettings.tsx
 
 **Checkpoint**: User Stories 1 AND 2 complete — users can view their MCP list and add new MCPs with inline validation and feedback
 
@@ -84,8 +84,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add deleteMcp mutation to useMcpSettings hook (DELETE /settings/mcps/{id}, optimistic list refresh, success/error state) in frontend/src/hooks/useMcpSettings.ts
-- [ ] T015 [US3] Add remove button with confirmation dialog and inline delete feedback to McpSettings component in frontend/src/components/settings/McpSettings.tsx
+- [x] T014 [US3] Add deleteMcp mutation to useMcpSettings hook (DELETE /settings/mcps/{id}, optimistic list refresh, success/error state) in frontend/src/hooks/useMcpSettings.ts
+- [x] T015 [US3] Add remove button with confirmation dialog and inline delete feedback to McpSettings component in frontend/src/components/settings/McpSettings.tsx
 
 **Checkpoint**: User Stories 1, 2, AND 3 complete — full CRUD lifecycle (view, add, remove) functional
 
@@ -99,8 +99,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Add 401 response detection and re-authentication prompt to useMcpSettings hook (catch 401 from any MCP API call, display session expired message with login link) in frontend/src/hooks/useMcpSettings.ts
-- [ ] T017 [US4] Add authentication error state UI (session expired banner with re-login button) to McpSettings component in frontend/src/components/settings/McpSettings.tsx
+- [x] T016 [US4] Add 401 response detection and re-authentication prompt to useMcpSettings hook (catch 401 from any MCP API call, display session expired message with login link) in frontend/src/hooks/useMcpSettings.ts
+- [x] T017 [US4] Add authentication error state UI (session expired banner with re-login button) to McpSettings component in frontend/src/components/settings/McpSettings.tsx
 
 **Checkpoint**: All user stories complete — full feature with graceful auth error handling
 
@@ -110,9 +110,9 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation
 
-- [ ] T018 [P] Verify SSRF validation rejects private IPs (127.0.0.1, 10.x, 172.16.x, 192.168.x, 169.254.x, ::1) and allows valid public URLs in backend/src/services/mcp_store.py
-- [ ] T019 [P] Verify 25 MCP per-user limit is enforced and returns 409 Conflict in backend/src/api/mcp.py
-- [ ] T020 Run quickstart.md manual validation (start app, add MCP, view list, remove MCP, verify empty state, test validation errors)
+- [x] T018 [P] Verify SSRF validation rejects private IPs (127.0.0.1, 10.x, 172.16.x, 192.168.x, 169.254.x, ::1) and allows valid public URLs in backend/src/services/mcp_store.py
+- [x] T019 [P] Verify 25 MCP per-user limit is enforced and returns 409 Conflict in backend/src/api/mcp.py
+- [x] T020 Run quickstart.md manual validation (start app, add MCP, view list, remove MCP, verify empty state, test validation errors)
 
 ---
 

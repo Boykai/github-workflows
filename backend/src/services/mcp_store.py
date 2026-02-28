@@ -44,10 +44,6 @@ def validate_url_not_ssrf(url: str) -> str:
     if not hostname:
         raise ValueError("URL must have a valid hostname")
 
-    # Check for localhost variations
-    if hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):  # noqa: S104
-        raise ValueError("URL points to a private or reserved IP address")
-
     # Try to parse as IP address and check for private/reserved ranges
     try:
         ip = ipaddress.ip_address(hostname)
@@ -56,8 +52,9 @@ def validate_url_not_ssrf(url: str) -> str:
     except ValueError as exc:
         if "private or reserved" in str(exc):
             raise
-        # Not an IP address — it's a hostname, which is fine
-        pass
+        # Not an IP address — it's a hostname; check common localhost names
+        if hostname in ("localhost",):
+            raise ValueError("URL points to a private or reserved IP address") from exc
 
     return url
 

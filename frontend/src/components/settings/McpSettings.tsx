@@ -108,7 +108,7 @@ function AddMcpForm({
   serverError,
   onClearError,
 }: {
-  onAdd: (name: string, url: string) => void;
+  onAdd: (name: string, url: string) => Promise<boolean>;
   isCreating: boolean;
   serverError: Error | null;
   onClearError: () => void;
@@ -145,11 +145,15 @@ function AddMcpForm({
     return valid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     onClearError();
     if (validate()) {
-      onAdd(name.trim(), endpointUrl.trim());
+      const success = await onAdd(name.trim(), endpointUrl.trim());
+      if (success) {
+        setName('');
+        setEndpointUrl('');
+      }
     }
   };
 
@@ -274,12 +278,14 @@ export function McpSettings() {
   }, []);
 
   const handleAdd = useCallback(
-    async (name: string, url: string) => {
+    async (name: string, url: string): Promise<boolean> => {
       try {
         await createMcp({ name, endpoint_url: url });
         showSuccess(`MCP "${name}" added successfully`);
+        return true;
       } catch {
         // Error is captured by the mutation state
+        return false;
       }
     },
     [createMcp, showSuccess],
