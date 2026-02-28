@@ -23,14 +23,17 @@ CACHE_PREFIX_BOARD_DATA = "board_data"
 def _get_rate_limit_info() -> RateLimitInfo | None:
     """Build RateLimitInfo from the last GitHub API response headers."""
     rl = github_projects_service.get_last_rate_limit()
-    if rl is None:
+    if not isinstance(rl, dict):
         return None
-    return RateLimitInfo(
-        limit=rl["limit"],
-        remaining=rl["remaining"],
-        reset_at=rl["reset_at"],
-        used=rl["used"],
-    )
+    try:
+        return RateLimitInfo(
+            limit=rl["limit"],
+            remaining=rl["remaining"],
+            reset_at=rl["reset_at"],
+            used=rl["used"],
+        )
+    except (KeyError, TypeError):
+        return None
 
 
 @router.get("/projects", response_model=BoardProjectListResponse)
@@ -92,7 +95,7 @@ async def get_board_data(
     except Exception as e:
         # Check if this is a rate limit error
         rl = github_projects_service.get_last_rate_limit()
-        if rl and rl["remaining"] == 0:
+        if isinstance(rl, dict) and rl.get("remaining") == 0:
             logger.warning("Rate limit exceeded while fetching board data for project %s", project_id)
             return JSONResponse(
                 status_code=429,

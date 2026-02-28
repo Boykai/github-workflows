@@ -23,8 +23,8 @@
 
 **Purpose**: Add shared constants and type definitions that all user stories depend on
 
-- [ ] T001 Add AUTO_REFRESH_INTERVAL_MS (300000) and RATE_LIMIT_LOW_THRESHOLD (10) constants to frontend/src/constants.ts
-- [ ] T002 [P] Add RateLimitInfo, RefreshErrorType, and RefreshError type definitions to frontend/src/types/index.ts
+- [x] T001 Add AUTO_REFRESH_INTERVAL_MS (300000) and RATE_LIMIT_LOW_THRESHOLD (10) constants to frontend/src/constants.ts
+- [x] T002 [P] Add RateLimitInfo, RefreshErrorType, and RefreshError type definitions to frontend/src/types/index.ts
 
 ---
 
@@ -34,10 +34,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add RateLimitInfo Pydantic model and add optional rate_limit field to BoardDataResponse in backend/src/models/board.py
-- [ ] T004 [P] Add etag and last_modified optional fields to CacheEntry in backend/src/services/cache.py
-- [ ] T005 Modify _request_with_retry and _graphql to extract X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers and store them on the service instance in backend/src/services/github_projects/service.py
-- [ ] T006 Update get_board_data and list_board_projects endpoints to populate rate_limit from service headers in responses and return HTTP 429 with rate_limit body on rate limit errors in backend/src/api/board.py
+- [x] T003 Add RateLimitInfo Pydantic model and add optional rate_limit field to BoardDataResponse in backend/src/models/board.py
+- [x] T004 [P] Add etag and last_modified optional fields to CacheEntry in backend/src/services/cache.py
+- [x] T005 Modify _request_with_retry and _graphql to extract X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers and store them on the service instance in backend/src/services/github_projects/service.py
+- [x] T006 Update get_board_data and list_board_projects endpoints to populate rate_limit from service headers in responses and return HTTP 429 with rate_limit body on rate limit errors in backend/src/api/board.py
 
 **Checkpoint**: Backend infrastructure ready — rate limit info flows from GitHub API → service → endpoint → response body. User story implementation can now begin.
 
@@ -51,10 +51,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Create RefreshButton component with refresh icon, spinning animation when isRefreshing is true, disabled state during refresh, and tooltip "Auto-refreshes every 5 minutes" in frontend/src/components/board/RefreshButton.tsx
-- [ ] T008 [US1] Create useBoardRefresh hook with manual refresh() trigger, isRefreshing deduplication guard, lastRefreshedAt timestamp, and error state management in frontend/src/hooks/useBoardRefresh.ts
-- [ ] T009 [US1] Update useProjectBoard to expose queryClient refetch and isFetching state for useBoardRefresh integration in frontend/src/hooks/useProjectBoard.ts
-- [ ] T010 [US1] Add RefreshButton to ProjectBoardPage header area, wire onRefresh to useBoardRefresh.refresh(), pass isRefreshing state in frontend/src/pages/ProjectBoardPage.tsx
+- [x] T007 [P] [US1] Create RefreshButton component with refresh icon, spinning animation when isRefreshing is true, disabled state during refresh, and tooltip "Auto-refreshes every 5 minutes" in frontend/src/components/board/RefreshButton.tsx
+- [x] T008 [US1] Create useBoardRefresh hook with manual refresh() trigger, isRefreshing deduplication guard, lastRefreshedAt timestamp, and error state management in frontend/src/hooks/useBoardRefresh.ts
+- [x] T009 [US1] Update useProjectBoard to expose queryClient refetch and isFetching state for useBoardRefresh integration in frontend/src/hooks/useProjectBoard.ts
+- [x] T010 [US1] Add RefreshButton to ProjectBoardPage header area, wire onRefresh to useBoardRefresh.refresh(), pass isRefreshing state in frontend/src/pages/ProjectBoardPage.tsx
 
 **Checkpoint**: Manual refresh button is visible, triggers data reload, shows spinner, prevents duplicate requests on rapid clicks. Tooltip displays on hover. User Story 1 is fully functional and testable independently.
 
@@ -68,9 +68,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Add 5-minute auto-refresh setInterval timer to useBoardRefresh that resets on every successful manual refresh in frontend/src/hooks/useBoardRefresh.ts
-- [ ] T012 [US2] Add Page Visibility API listener (document.visibilitychange) to useBoardRefresh to pause timer when tab hidden and resume with immediate refresh if stale > 5 minutes when tab visible in frontend/src/hooks/useBoardRefresh.ts
-- [ ] T013 [US2] Add onRefreshComplete callback to useRealTimeSync so WebSocket-triggered cache invalidations reset the useBoardRefresh auto-refresh timer in frontend/src/hooks/useRealTimeSync.ts
+- [x] T011 [US2] Add 5-minute auto-refresh setInterval timer to useBoardRefresh that resets on every successful manual refresh in frontend/src/hooks/useBoardRefresh.ts
+- [x] T012 [US2] Add Page Visibility API listener (document.visibilitychange) to useBoardRefresh to pause timer when tab hidden and resume with immediate refresh if stale > 5 minutes when tab visible in frontend/src/hooks/useBoardRefresh.ts
+- [x] T013 [US2] Add onRefreshComplete callback to useRealTimeSync so WebSocket-triggered cache invalidations reset the useBoardRefresh auto-refresh timer in frontend/src/hooks/useRealTimeSync.ts
 
 **Checkpoint**: Auto-refresh fires every 5 minutes, pauses when tab hidden, resumes on tab visible with immediate refresh if stale, timer resets on manual refresh and WebSocket events. User Story 2 is fully functional and testable independently.
 
@@ -84,9 +84,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add rate_limit field parsing from API response body in boardApi.getBoardData and boardApi.listProjects in frontend/src/services/api.ts
-- [ ] T015 [US3] Add rate limit error detection (429 / 403 with rate limit headers), RateLimitInfo state tracking, isRateLimitLow computed flag, and auto-clear on success to useBoardRefresh in frontend/src/hooks/useBoardRefresh.ts
-- [ ] T016 [US3] Add non-intrusive amber rate limit warning banner with reset countdown, red error banner for non-rate-limit failures, low quota preemptive warning, and auto-dismiss logic to ProjectBoardPage in frontend/src/pages/ProjectBoardPage.tsx
+- [x] T014 [US3] Add rate_limit field parsing from API response body in boardApi.getBoardData and boardApi.listProjects in frontend/src/services/api.ts
+- [x] T015 [US3] Add rate limit error detection (429 / 403 with rate limit headers), RateLimitInfo state tracking, isRateLimitLow computed flag, and auto-clear on success to useBoardRefresh in frontend/src/hooks/useBoardRefresh.ts
+- [x] T016 [US3] Add non-intrusive amber rate limit warning banner with reset countdown, red error banner for non-rate-limit failures, low quota preemptive warning, and auto-dismiss logic to ProjectBoardPage in frontend/src/pages/ProjectBoardPage.tsx
 
 **Checkpoint**: Rate limit errors show amber warning with countdown, non-rate-limit errors show red banner, low quota shows preemptive warning, all warnings auto-dismiss on success. User Story 3 is fully functional and testable independently.
 
@@ -100,9 +100,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Implement ETag-based conditional requests by sending If-None-Match header with stored ETag in _graphql and _request_with_retry in backend/src/services/github_projects/service.py
-- [ ] T018 [US4] Handle 304 Not Modified responses to refresh cache TTL without replacing cached data and update ETag storage in backend/src/services/cache.py
-- [ ] T019 [US4] Audit and verify request deduplication: confirm TanStack Query deduplicates concurrent fetches for same query key, confirm backend cache prevents duplicate GitHub API calls within TTL window in frontend/src/hooks/useProjectBoard.ts
+- [x] T017 [US4] Implement ETag-based conditional requests by sending If-None-Match header with stored ETag in _graphql and _request_with_retry in backend/src/services/github_projects/service.py
+- [x] T018 [US4] Handle 304 Not Modified responses to refresh cache TTL without replacing cached data and update ETag storage in backend/src/services/cache.py
+- [x] T019 [US4] Audit and verify request deduplication: confirm TanStack Query deduplicates concurrent fetches for same query key, confirm backend cache prevents duplicate GitHub API calls within TTL window in frontend/src/hooks/useProjectBoard.ts
 
 **Checkpoint**: Conditional requests use ETags, 304 responses preserve cached data, duplicate requests are eliminated. API calls per refresh cycle reduced. User Story 4 is fully functional and testable independently.
 
@@ -112,9 +112,9 @@
 
 **Purpose**: Final validation, documentation, and cross-cutting improvements across all user stories
 
-- [ ] T020 [P] Update quickstart.md with refresh feature manual testing steps and rate limit simulation instructions in specs/014-board-refresh-ratelimit/quickstart.md
-- [ ] T021 Validate all edge cases from spec.md: rapid clicks dedup, concurrent auto+manual refresh suppression, network loss handling, token expiry error display, 500/503 transient error retry
-- [ ] T022 Code cleanup: ensure consistent error handling patterns across all modified files and verify no regressions in existing board functionality
+- [x] T020 [P] Update quickstart.md with refresh feature manual testing steps and rate limit simulation instructions in specs/014-board-refresh-ratelimit/quickstart.md
+- [x] T021 Validate all edge cases from spec.md: rapid clicks dedup, concurrent auto+manual refresh suppression, network loss handling, token expiry error display, 500/503 transient error retry
+- [x] T022 Code cleanup: ensure consistent error handling patterns across all modified files and verify no regressions in existing board functionality
 
 ---
 
