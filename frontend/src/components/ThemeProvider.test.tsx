@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, userEvent, act } from '@/test/test-utils';
+import { render, screen, userEvent } from '@/test/test-utils';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
 /** Helper component that exposes theme context for testing. */
