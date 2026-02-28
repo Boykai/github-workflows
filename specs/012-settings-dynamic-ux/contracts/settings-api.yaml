@@ -1,0 +1,276 @@
+openapi: "3.1.0"
+info:
+  title: Settings API — Dynamic Model Fetching Extension
+  version: "1.0.0"
+  description: >
+    API contract for the dynamic model fetching feature added to the Settings page.
+    Extends the existing /settings endpoints with a new /settings/models/{provider}
+    endpoint for retrieving available models from external providers.
+
+servers:
+  - url: /api
+    description: Application API (relative path)
+
+paths:
+  /settings/models/{provider}:
+    get:
+      operationId: getModelsForProvider
+      summary: Fetch available models for a provider
+      description: >
+        Returns a list of available models for the specified provider. Results are
+        cached server-side with configurable TTL. Returns cached values immediately
+        if available; triggers background refresh when cache is stale.
+      tags:
+        - Settings
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: The model provider to fetch models from
+          schema:
+            type: string
+            enum:
+              - copilot
+              - azure_openai
+        - name: force_refresh
+          in: query
+          required: false
+          description: >
+            When true, bypasses the cache and fetches fresh values from the provider.
+            Use sparingly to respect rate limits.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Models retrieved successfully (from cache or fresh fetch)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelsResponse"
+              examples:
+                success:
+                  summary: Successful fetch with models
+                  value:
+                    status: success
+                    models:
+                      - id: gpt-4o
+                        name: GPT-4o
+                        provider: copilot
+                      - id: gpt-4o-mini
+                        name: GPT-4o Mini
+                        provider: copilot
+                      - id: o3-mini
+                        name: o3-mini
+                        provider: copilot
+                    fetched_at: "2026-02-28T01:00:00Z"
+                    cache_hit: true
+                    rate_limit_warning: false
+                    message: null
+                auth_required:
+                  summary: Provider credentials not configured
+                  value:
+                    status: auth_required
+                    models: []
+                    fetched_at: null
+                    cache_hit: false
+                    rate_limit_warning: false
+                    message: Connect your GitHub account to see available Copilot models
+                rate_limited:
+                  summary: Provider rate limit reached
+                  value:
+                    status: rate_limited
+                    models:
+                      - id: gpt-4o
+                        name: GPT-4o
+                        provider: copilot
+                    fetched_at: "2026-02-28T00:50:00Z"
+                    cache_hit: true
+                    rate_limit_warning: true
+                    message: GitHub API rate limit reached. Using cached values. Retry available in 45 seconds.
+                error:
+                  summary: Fetch failed
+                  value:
+                    status: error
+                    models: []
+                    fetched_at: null
+                    cache_hit: false
+                    rate_limit_warning: false
+                    message: Failed to fetch models from GitHub. Please try again.
+        "401":
+          description: User not authenticated to the application
+        "404":
+          description: Unknown provider
+
+  /settings/user:
+    get:
+      operationId: getUserSettings
+      summary: Get effective user settings
+      description: >
+        Returns the user's effective settings merged with global defaults.
+        Existing endpoint — unchanged by this feature.
+      tags:
+        - Settings
+      responses:
+        "200":
+          description: User settings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EffectiveUserSettings"
+    put:
+      operationId: updateUserSettings
+      summary: Update user settings
+      description: >
+        Partial update of user settings. Only provided fields are updated.
+        Existing endpoint — unchanged by this feature.
+      tags:
+        - Settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferencesUpdate"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EffectiveUserSettings"
+
+  /settings/global:
+    get:
+      operationId: getGlobalSettings
+      summary: Get global instance settings
+      tags:
+        - Settings
+      responses:
+        "200":
+          description: Global settings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GlobalSettingsResponse"
+    put:
+      operationId: updateGlobalSettings
+      summary: Update global settings (admin only)
+      tags:
+        - Settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GlobalSettingsUpdate"
+      responses:
+        "200":
+          description: Global settings updated
+
+components:
+  schemas:
+    ModelOption:
+      type: object
+      required:
+        - id
+        - name
+        - provider
+      properties:
+        id:
+          type: string
+          description: Unique model identifier
+          example: gpt-4o
+        name:
+          type: string
+          description: Human-readable display name
+          example: GPT-4o
+        provider:
+          type: string
+          description: Provider that owns this model
+          example: copilot
+
+    ModelsResponse:
+      type: object
+      required:
+        - status
+        - models
+        - cache_hit
+        - rate_limit_warning
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+            - auth_required
+            - rate_limited
+            - error
+          description: >
+            Fetch result status. "success" means models are available.
+            "auth_required" means provider credentials are missing.
+            "rate_limited" means API rate limit was hit (cached values may be present).
+            "error" means a transient failure occurred.
+        models:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModelOption"
+          description: List of available models (may include stale cached values on error/rate_limited)
+        fetched_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp of when models were last successfully fetched
+        cache_hit:
+          type: boolean
+          description: Whether the response was served from cache
+        rate_limit_warning:
+          type: boolean
+          description: Whether the provider's rate limit is being approached
+        message:
+          type: string
+          nullable: true
+          description: Human-readable message for auth_required, error, or rate_limited states
+
+    EffectiveUserSettings:
+      type: object
+      description: Existing user settings response — see backend/src/models/settings.py
+      properties:
+        ai:
+          type: object
+          properties:
+            provider:
+              type: string
+              enum: [copilot, azure_openai]
+            model:
+              type: string
+            temperature:
+              type: number
+        display:
+          type: object
+        workflow:
+          type: object
+        notifications:
+          type: object
+
+    GlobalSettingsResponse:
+      type: object
+      description: Existing global settings response — see backend/src/models/settings.py
+      properties:
+        ai:
+          type: object
+        display:
+          type: object
+        workflow:
+          type: object
+        notifications:
+          type: object
+        allowed_models:
+          type: array
+          items:
+            type: string
+
+    UserPreferencesUpdate:
+      type: object
+      description: Partial update — all fields optional
+
+    GlobalSettingsUpdate:
+      type: object
+      description: Partial update — all fields optional (admin only)

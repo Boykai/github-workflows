@@ -4,20 +4,23 @@ import json
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import require_admin
 from src.models.settings import (
+    AIProvider,
     EffectiveProjectSettings,
     EffectiveUserSettings,
     GlobalSettingsResponse,
     GlobalSettingsUpdate,
+    ModelsResponse,
     ProjectSettingsUpdate,
     UserPreferencesUpdate,
 )
 from src.models.user import UserSession
 from src.services.database import get_db
+from src.services.model_fetcher import get_model_fetcher_service
 from src.services.settings_store import (
     flatten_global_settings_update,
     flatten_user_preferences_update,
@@ -146,3 +149,32 @@ async def update_project_settings_endpoint(
                 pass
 
     return await get_effective_project_settings(db, session.github_user_id, project_id)
+
+
+# ── Dynamic Model Fetching ──────────────────────────────────────────────────
+
+
+@router.get("/models/{provider}", response_model=ModelsResponse)
+async def get_models_for_provider(
+    provider: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+    force_refresh: bool = Query(False, description="Bypass cache and fetch fresh values"),
+) -> ModelsResponse:
+    """Fetch available models for a provider.
+
+    Returns cached values when available. Checks authentication prerequisites
+    before attempting external fetches.
+    """
+    # Validate provider
+    valid_providers = [p.value for p in AIProvider]
+    if provider not in valid_providers:
+        return ModelsResponse(
+            status="error",
+            message=f"Unknown provider: {provider}. Valid providers: {', '.join(valid_providers)}",
+        )
+
+    # Use the session's access_token for providers that need auth
+    token = session.access_token if session else None
+
+    service = get_model_fetcher_service()
+    return await service.get_models(provider, token=token, force_refresh=force_refresh)

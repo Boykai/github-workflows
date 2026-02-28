@@ -18,6 +18,36 @@ class AIProvider(StrEnum):
     AZURE_OPENAI = "azure_openai"
 
 
+# ── Provider metadata ──
+
+PROVIDER_METADATA: dict[str, dict[str, bool]] = {
+    AIProvider.COPILOT: {"supports_dynamic_models": True, "requires_auth": True},
+    AIProvider.AZURE_OPENAI: {"supports_dynamic_models": False, "requires_auth": False},
+}
+
+
+# ── Dynamic model fetching models ──
+
+
+class ModelOption(BaseModel):
+    """A single model option returned by a provider."""
+
+    id: str
+    name: str
+    provider: str
+
+
+class ModelsResponse(BaseModel):
+    """Response from the /settings/models/{provider} endpoint."""
+
+    status: str  # "success", "auth_required", "rate_limited", "error"
+    models: list[ModelOption] = Field(default_factory=list)
+    fetched_at: str | None = None
+    cache_hit: bool = False
+    rate_limit_warning: bool = False
+    message: str | None = None
+
+
 class ThemeMode(StrEnum):
     """UI theme modes."""
 

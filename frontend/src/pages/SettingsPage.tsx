@@ -1,19 +1,14 @@
 /**
  * Settings page layout.
  *
- * Renders all settings sections: AI Preferences, Display Preferences,
- * Workflow Defaults, Notification Preferences, Project (placeholder),
- * and Global Settings. Includes unsaved changes warning (FR-037).
+ * Reorganized for UX simplification: Primary settings (AI configuration,
+ * Signal connection) at the top, Advanced settings collapsed below.
+ * Includes unsaved changes warning (FR-037).
  */
 
 import { useEffect, useCallback } from 'react';
-import { AIPreferences } from '@/components/settings/AIPreferences';
-import { DisplayPreferences } from '@/components/settings/DisplayPreferences';
-import { GlobalSettings } from '@/components/settings/GlobalSettings';
-import { NotificationPreferences } from '@/components/settings/NotificationPreferences';
-import { ProjectSettings } from '@/components/settings/ProjectSettings';
-import { SignalConnection } from '@/components/settings/SignalConnection';
-import { WorkflowDefaults } from '@/components/settings/WorkflowDefaults';
+import { PrimarySettings } from '@/components/settings/PrimarySettings';
+import { AdvancedSettings } from '@/components/settings/AdvancedSettings';
 import { useUserSettings, useGlobalSettings } from '@/hooks/useSettings';
 import type { UserPreferencesUpdate, GlobalSettingsUpdate } from '@/types';
 
@@ -88,41 +83,23 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
       </div>
 
       <div className="flex flex-col gap-8">
-        {/* AI Preferences (US3) */}
+        {/* Primary Settings: AI Configuration + Signal Connection */}
         {userSettings && (
-          <AIPreferences settings={userSettings.ai} onSave={handleUserSave} />
+          <PrimarySettings settings={userSettings.ai} onSave={handleUserSave} />
         )}
 
-        {/* Display Preferences (US5) */}
+        {/* Advanced Settings: Display, Workflow, Notifications, Project, Global */}
         {userSettings && (
-          <DisplayPreferences settings={userSettings.display} onSave={handleUserSave} />
+          <AdvancedSettings
+            userSettings={userSettings}
+            globalSettings={globalSettings}
+            globalLoading={globalLoading}
+            onUserSave={handleUserSave}
+            onGlobalSave={handleGlobalSave}
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+          />
         )}
-
-        {/* Workflow Defaults (US6) */}
-        {userSettings && (
-          <WorkflowDefaults settings={userSettings.workflow} onSave={handleUserSave} />
-        )}
-
-        {/* Notification Preferences (US7) */}
-        {userSettings && (
-          <NotificationPreferences settings={userSettings.notifications} onSave={handleUserSave} />
-        )}
-
-        {/* Signal Integration (011-signal-chat-integration) */}
-        <SignalConnection />
-
-        {/* Project Settings (US8) */}
-        <ProjectSettings
-          projects={projects}
-          selectedProjectId={selectedProjectId}
-        />
-
-        {/* Global Settings (US9) */}
-        <GlobalSettings
-          settings={globalSettings}
-          isLoading={globalLoading}
-          onSave={handleGlobalSave}
-        />
       </div>
     </div>
   );
