@@ -9,7 +9,7 @@ Audit and harden the chat-to-GitHub-issue pipeline so that user-provided issue d
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend)
+**Language/Version**: Python 3.11+ (backend; dev environment targets 3.12), TypeScript 5.4 / Node 20 (frontend)
 **Primary Dependencies**: FastAPI, Pydantic v2, httpx (backend); React 18, TanStack Query v5 (frontend)
 **Storage**: SQLite (aiosqlite, WAL mode) — in-memory for tests; in-memory dicts for proposals/recommendations (MVP)
 **Testing**: pytest 7.4+ / pytest-asyncio 0.23+ (backend), Vitest 4.0+ / @testing-library/react (frontend)

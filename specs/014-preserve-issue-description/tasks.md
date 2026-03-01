@@ -96,10 +96,10 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [x] T015 [P] [US3] Add test that `confirm_recommendation()` returns HTTP 422 when assembled body exceeds 65,536 chars in backend/tests/unit/test_api_workflow.py
-- [x] T016 [P] [US3] Add test that `confirm_proposal()` returns HTTP 422 when description exceeds 65,536 chars in backend/tests/unit/test_api_chat.py
-- [x] T017 [P] [US3] Add test that body at exactly 65,536 chars succeeds (boundary pass) in backend/tests/unit/test_api_workflow.py
-- [x] T018 [P] [US3] Add test that body at exactly 65,537 chars fails (boundary fail) in backend/tests/unit/test_api_chat.py
+- [x] T015 [P] [US3] Add test that `create_issue_from_recommendation()` raises `ValidationError`(422) when assembled body exceeds 65,536 chars in `backend/tests/unit/test_workflow_orchestrator.py`
+- [x] T016 [P] [US3] Add test that `confirm_proposal()` returns HTTP 422 when description exceeds 65,536 chars in `backend/tests/unit/test_api_chat.py`
+- [x] T017 [P] [US3] Add test that body at exactly 65,536 chars succeeds (boundary pass) in `backend/tests/unit/test_api_workflow.py`
+- [x] T018 [P] [US3] Add test that body at exactly 65,537 chars fails (boundary fail) in `backend/tests/unit/test_api_chat.py`
 
 ### Implementation for User Story 3
 

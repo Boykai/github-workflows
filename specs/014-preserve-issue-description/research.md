@@ -7,14 +7,14 @@
 
 ### Decision
 
-The pipeline has **no truncation on the actual API body path** — all existing truncation is display-only (preview text in chat messages). However, there are Pydantic `max_length` constraints on model fields that could reject long descriptions before they reach the API.
+The pipeline has **no additional truncation on the GitHub API body path beyond model-level limits** — all explicit truncation we add is display-only (preview text in chat messages). However, `ChatMessageRequest.content` enforces `max_length=100000` and is normalized by `sanitize_content()` (strips leading/trailing whitespace, removes `\x00` null bytes, collapses runs of 4+ consecutive newlines), and there are other Pydantic `max_length` constraints on downstream model fields that could reject long descriptions before they reach the API.
 
 ### Rationale
 
 A line-by-line audit of the data flow reveals:
 
-1. **User input** → `ChatMessageRequest.content` (no length limit in model)
-2. **AI processing** → `ai_agent.py:generate_issue_recommendation()` sends full input to LLM; title is truncated to 256 chars (line 233–234) but description fields are not truncated
+1. **User input** → `ChatMessageRequest.content` (`max_length=100000`; content is stripped, null bytes removed, and runs of 4+ newlines collapsed by `sanitize_content()` — content is not preserved byte-for-byte at this boundary)
+2. **AI processing** → `ai_agent.py:generate_issue_recommendation()` sends full normalized input to LLM; title is truncated to 256 chars (line 233–234) but description fields are not truncated
 3. **Storage** → `IssueRecommendation` stored in `_recommendations` dict (in-memory, no serialization limits)
 4. **Preview messages** → `chat.py:209` truncates `technical_notes[:300]` and `chat.py:359` truncates `description[:200]` — but these are **display-only** in the chat bubble, not the API payload
 5. **Confirmation** → `workflow.py:confirm_recommendation()` calls `orchestrator.format_issue_body()` which assembles full text, then calls `github.create_issue(body=body)`

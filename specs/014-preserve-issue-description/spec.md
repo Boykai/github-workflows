@@ -70,21 +70,21 @@ A user composes an issue description containing a variety of markdown elements: 
 
 ### Edge Cases
 
-- What happens when the description is empty (zero characters)? The system should handle this gracefully, either by creating an issue with an empty body or prompting the user to provide a description, consistent with existing behavior.
-- What happens when the description contains only whitespace or newlines? The system should preserve the whitespace exactly as provided.
-- What happens when the description contains Unicode characters, emoji, or non-ASCII text? All characters should be preserved verbatim without encoding issues.
-- What happens when the description contains special characters that might be interpreted as control sequences (e.g., backslashes, null bytes, HTML entities)? The system should pass these through to the GitHub API without modification.
-- What happens when the description is exactly at the 65,536-character boundary? The issue should be created successfully with the full content.
-- What happens when the description is 1 character over the 65,536-character limit? The user should be notified explicitly.
+- What happens when the description is empty (zero characters)? The system should handle this gracefully, either by creating an issue with an empty body or prompting the user to provide a description, consistent with existing `ChatMessageRequest` validation behavior. This feature does not relax or override any upstream rejection of empty input.
+- What happens when the description contains only whitespace or newlines? The system should behave consistently with existing `ChatMessageRequest` validation and sanitization (which may strip, normalize, or reject such input). For any text that is accepted after sanitization, the chat-to-issue flow must preserve that post-sanitization content exactly when sending to GitHub.
+- What happens when the description contains Unicode characters, emoji, or non-ASCII text? All such characters that are accepted by `ChatMessageRequest` after validation/sanitization should be preserved verbatim without encoding issues in the body sent to GitHub.
+- What happens when the description contains special characters that might be interpreted as control sequences (e.g., backslashes, null bytes, HTML entities)? Subject to existing `ChatMessageRequest` sanitization rules (e.g., removal of null bytes, normalization of excessive newlines), the system should pass the remaining text through to the GitHub API without further modification.
+- What happens when the description is exactly at the 65,536-character boundary (as measured after any prior sanitization)? The issue should be created successfully with the full content.
+- What happens when the description is 1 character over the 65,536-character limit (based on the text that would be sent to GitHub after sanitization)? The user should be notified explicitly.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST pass the complete, unmodified user-provided issue description text to the GitHub Issues API as the issue body, regardless of character count or line count.
-- **FR-002**: System MUST NOT silently truncate, summarize, or shorten any user-provided issue description at any stage of processing — including chat handling, state storage, prompt construction, or API call construction.
-- **FR-003**: System MUST preserve all formatting in the full description, including newlines, markdown syntax, bullet points, headers, code blocks, tables, links, and all other markdown elements.
-- **FR-004**: System MUST preserve all character types in the description, including Unicode characters, emoji, special characters, and whitespace.
+- **FR-001**: System MUST pass the complete, unmodified issue description text that has been accepted by `ChatMessageRequest` validation and sanitization to the GitHub Issues API as the issue body, regardless of character count or line count, subject only to GitHub's documented limits.
+- **FR-002**: System MUST NOT silently truncate, summarize, or shorten any issue description after it has been accepted by `ChatMessageRequest` — including during chat handling, state storage, prompt construction, or API call construction. Any rejection or normalization that occurs as part of `ChatMessageRequest` input validation/sanitization is out of scope for this requirement.
+- **FR-003**: System MUST preserve all formatting in the full, post-sanitization description, including newlines, markdown syntax, bullet points, headers, code blocks, tables, links, and all other markdown elements, without introducing additional formatting changes.
+- **FR-004**: System MUST preserve all character types present in the post-sanitization description, including Unicode characters, emoji, special characters, and whitespace, when constructing and sending the request payload to the GitHub Issues API. Characters removed or normalized by upstream validation/sanitization (e.g., null bytes) are out of scope for this requirement.
 - **FR-005**: System MUST correctly handle descriptions of varying lengths — from empty/single-character to the maximum supported by the GitHub API (65,536 characters) — without behavioral differences in content fidelity.
 - **FR-006**: System SHOULD notify the user explicitly if the description exceeds the GitHub API's hard content length limit (65,536 characters), rather than silently cutting the content.
 - **FR-007**: System MUST store and forward the full description text through all intermediate processing steps (e.g., chat message handling, state serialization, prompt construction, API payload building) without data loss.

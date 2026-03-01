@@ -675,7 +675,12 @@ class TestConfirmProposalPreservesFullDescription:
             json={},
         )
         assert resp.status_code == 422
-        assert "exceeds" in resp.json()["error"].lower()
+        resp_json = resp.json()
+        assert "exceeds" in resp_json["error"].lower()
+        # Verify structured details payload is preserved (not lost by
+        # exception re-wrapping) per the issue-creation contract.
+        assert resp_json["details"]["body_length"] == 65_537
+        assert resp_json["details"]["max_length"] == 65_536
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
     async def test_exactly_65537_chars_fails(
@@ -697,6 +702,10 @@ class TestConfirmProposalPreservesFullDescription:
             json={},
         )
         assert resp.status_code == 422
+        # Verify the 422 response includes the structured details payload.
+        resp_json = resp.json()
+        assert resp_json["details"]["body_length"] == 65_537
+        assert resp_json["details"]["max_length"] == 65_536
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
     async def test_rich_markdown_description_preserved(

@@ -14,7 +14,6 @@ from pydantic import ValidationError
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
 from src.models.recommendation import AITaskProposal, ProposalConfirmRequest
 
-
 # ── AITaskProposal ──────────────────────────────────────────────────────────
 
 

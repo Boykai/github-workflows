@@ -5,7 +5,9 @@
 
 ## Contract Summary
 
-All issue creation paths MUST pass the user-provided description to the GitHub API `body` field without any truncation, summarization, or modification. The assembled body MUST be validated against the GitHub API limit (65,536 characters) before the API call, with explicit user notification on exceeding the limit.
+All web API issue creation paths MUST pass the user-provided description to the GitHub API `body` field without any truncation, summarization, or modification. The assembled body MUST be validated against the GitHub API limit (65,536 characters) before the API call, with explicit user notification on exceeding the limit.
+
+> **Scope:** This contract covers the two web API endpoints below. The Signal chat pipeline (`signal_chat.py`) calls `github_projects_service.create_issue()` directly; centralizing the length check into the shared service layer (or a helper) is recommended as a follow-up to ensure all creation paths are covered.
 
 ## Endpoints Affected
 
@@ -29,10 +31,15 @@ All issue creation paths MUST pass the user-provided description to the GitHub A
 **Error Response** (422 — body too long):
 ```json
 {
-  "error": "Issue body exceeds GitHub API limit",
-  "details": "The assembled issue body is {n} characters, which exceeds the GitHub API limit of 65,536 characters. Please shorten the description and try again."
+  "error": "Issue body is {n} characters, which exceeds the GitHub API limit of 65,536 characters. Please shorten the description.",
+  "details": {
+    "body_length": 70000,
+    "max_length": 65536
+  }
 }
 ```
+
+> **Note:** The `details` field is always an object (not a string), matching the `AppException` handler in `main.py`.
 
 ### 2. POST `/api/v1/chat/proposals/{proposal_id}/confirm`
 
@@ -52,8 +59,11 @@ All issue creation paths MUST pass the user-provided description to the GitHub A
 **Error Response** (422 — body too long):
 ```json
 {
-  "error": "Issue body exceeds GitHub API limit",
-  "details": "The issue description is {n} characters, which exceeds the GitHub API limit of 65,536 characters. Please shorten the description and try again."
+  "error": "Issue body is {n} characters, which exceeds the GitHub API limit of 65,536 characters. Please shorten the description.",
+  "details": {
+    "body_length": 70000,
+    "max_length": 65536
+  }
 }
 ```
 

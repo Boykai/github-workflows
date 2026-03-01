@@ -784,7 +784,9 @@ class TestConfirmRecommendationPreservesFullDescription:
         assert resp.status_code == 200
         # The full recommendation (with long user_story) was passed to execute_full_workflow
         call_args = mock_orchestrator.execute_full_workflow.call_args
-        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        passed_rec = (
+            call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        )
         assert passed_rec.user_story == long_story
 
     @pytest.mark.parametrize("length", [256, 1024, 4096, 32768, 65536])
@@ -835,7 +837,9 @@ class TestConfirmRecommendationPreservesFullDescription:
 
         assert resp.status_code == 200
         call_args = mock_orchestrator.execute_full_workflow.call_args
-        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        passed_rec = (
+            call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        )
         assert len(passed_rec.user_story) == length
 
     async def test_rich_markdown_recommendation_preserved(
@@ -892,5 +896,69 @@ class TestConfirmRecommendationPreservesFullDescription:
 
         assert resp.status_code == 200
         call_args = mock_orchestrator.execute_full_workflow.call_args
-        passed_rec = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        passed_rec = (
+            call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("recommendation")
+        )
         assert passed_rec.user_story == markdown_story
+
+    async def test_oversized_recommendation_returns_422(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """Verify confirm_recommendation returns HTTP 422 when the assembled body exceeds 65,536 chars.
+
+        The workflow endpoint must re-raise AppException subclasses (including
+        ValidationError) rather than swallowing them into a 200 WorkflowResult(
+        success=False) — otherwise the structured 422 with body_length/max_length
+        details would never reach clients.
+        """
+        from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+        from src.exceptions import ValidationError as AppValidationError
+
+        mock_session.selected_project_id = TEST_PROJECT_ID
+        # Create a recommendation whose assembled body will exceed the limit
+        huge_story = "X" * (GITHUB_ISSUE_BODY_MAX_LENGTH + 1)
+        rec = _recommendation(
+            session_id=mock_session.session_id,
+            user_story=huge_story,
+        )
+        rec_id = str(rec.recommendation_id)
+
+        mock_github_service.get_project_repository.return_value = ("testowner", "testrepo")
+
+        # The orchestrator raises ValidationError when body exceeds limit
+        mock_orchestrator = AsyncMock()
+        mock_orchestrator.execute_full_workflow.side_effect = AppValidationError(
+            f"Issue body is {len(huge_story)} characters, which exceeds the "
+            f"GitHub API limit of {GITHUB_ISSUE_BODY_MAX_LENGTH} characters. "
+            "Please shorten the description.",
+            details={
+                "body_length": len(huge_story),
+                "max_length": GITHUB_ISSUE_BODY_MAX_LENGTH,
+            },
+        )
+
+        with (
+            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch(f"{WF}._recent_requests", {}),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
+            patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
+            patch(f"{WF}.get_agent_slugs", return_value=[]),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
+            patch("src.config.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value = MagicMock(
+                default_assignee="copilot",
+                default_repo_owner="testowner",
+                default_repo_name="testrepo",
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 422
+        resp_json = resp.json()
+        assert "exceeds" in resp_json["error"].lower()
+        # Verify the structured details payload propagates to the HTTP response.
+        assert resp_json["details"]["body_length"] == len(huge_story)
+        assert resp_json["details"]["max_length"] == GITHUB_ISSUE_BODY_MAX_LENGTH
