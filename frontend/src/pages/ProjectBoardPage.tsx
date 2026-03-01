@@ -12,6 +12,7 @@ import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
+import { CleanUpButton } from '@/components/board/CleanUpButton';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo } from '@/utils/formatTime';
@@ -113,6 +114,19 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {/* Clean Up Button */}
+          {selectedProjectId && boardData && (() => {
+            const firstItem = boardData.columns.flatMap(c => c.items).find(i => i.repository);
+            if (!firstItem?.repository) return null;
+            return (
+              <CleanUpButton
+                owner={firstItem.repository.owner}
+                repo={firstItem.repository.name}
+                projectId={selectedProjectId}
+              />
+            );
+          })()}
+
           {/* Sync status */}
           {selectedProjectId && (
             <span className="flex items-center gap-2">
