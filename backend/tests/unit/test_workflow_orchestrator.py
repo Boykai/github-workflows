@@ -927,7 +927,9 @@ class TestCreateIssueFromRecommendation:
         mock_github_service.create_issue.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_rejects_oversized_body(self, orchestrator, workflow_context, mock_github_service):
+    async def test_rejects_oversized_body(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
         """T015: create_issue_from_recommendation returns 422 when body exceeds 65,536 chars."""
         from uuid import uuid4
 
