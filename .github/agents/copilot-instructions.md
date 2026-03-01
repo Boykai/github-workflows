@@ -106,6 +106,11 @@ npx playwright test             # E2E tests
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
 ## Active Technologies
+- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
+- SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
+
+## Recent Changes
+- 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
 - Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend) (014-human-agent-pipeline)
 - SQLite (WAL mode) via aiosqlite — no new tables required (reuses existing pipeline state and sub-issue tracking) (014-human-agent-pipeline)
 

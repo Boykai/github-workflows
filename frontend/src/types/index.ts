@@ -509,6 +509,104 @@ export interface McpConfigurationCreate {
   endpoint_url: string;
 }
 
+// ============ Housekeeping Types (014-housekeeping-triggers) ============
+
+export type TemplateCategory = 'built-in' | 'custom';
+
+export type HousekeepingTriggerType = 'time' | 'count';
+
+export type TriggerEventType = 'scheduled' | 'count-based' | 'manual';
+
+export type TriggerStatus = 'success' | 'failure';
+
+export interface IssueTemplate {
+  id: string;
+  name: string;
+  title_pattern: string;
+  body_content: string;
+  category: TemplateCategory;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IssueTemplateCreate {
+  name: string;
+  title_pattern: string;
+  body_content: string;
+}
+
+export interface IssueTemplateUpdate {
+  name?: string;
+  title_pattern?: string;
+  body_content?: string;
+}
+
+export interface TemplateListResponse {
+  templates: IssueTemplate[];
+}
+
+export interface HousekeepingTask {
+  id: string;
+  name: string;
+  description?: string | null;
+  template_id: string;
+  template_name?: string | null;
+  sub_issue_config?: Record<string, unknown> | null;
+  trigger_type: HousekeepingTriggerType;
+  trigger_value: string;
+  last_triggered_at?: string | null;
+  last_triggered_issue_count: number;
+  enabled: boolean;
+  cooldown_minutes: number;
+  project_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HousekeepingTaskCreate {
+  name: string;
+  description?: string;
+  template_id: string;
+  sub_issue_config?: Record<string, unknown> | null;
+  trigger_type: HousekeepingTriggerType;
+  trigger_value: string;
+  cooldown_minutes?: number;
+  project_id: string;
+}
+
+export interface HousekeepingTaskUpdate {
+  name?: string;
+  description?: string;
+  template_id?: string;
+  sub_issue_config?: Record<string, unknown> | null;
+  trigger_type?: HousekeepingTriggerType;
+  trigger_value?: string;
+  cooldown_minutes?: number;
+}
+
+export interface HousekeepingTaskListResponse {
+  tasks: HousekeepingTask[];
+}
+
+export interface TriggerEvent {
+  id: string;
+  task_id: string;
+  timestamp: string;
+  trigger_type: TriggerEventType;
+  issue_url?: string | null;
+  issue_number?: number | null;
+  status: TriggerStatus;
+  error_details?: string | null;
+  sub_issues_created: number;
+}
+
+export interface TriggerHistoryResponse {
+  history: TriggerEvent[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 // ============ Board Types (continued) ============
 
 export type StatusColor =
