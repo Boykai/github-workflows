@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from src.api.auth import router as auth_router
 from src.api.board import router as board_router
 from src.api.chat import router as chat_router
+from src.api.cleanup import router as cleanup_router
 from src.api.health import router as health_router
 from src.api.mcp import router as mcp_router
 from src.api.projects import router as projects_router
@@ -26,4 +27,5 @@ router.include_router(settings_router, prefix="/settings", tags=["settings"])
 router.include_router(mcp_router, prefix="/settings", tags=["mcp"])
 router.include_router(signal_router, prefix="/signal", tags=["signal"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
+router.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 router.include_router(health_router, tags=["health"])
