@@ -128,6 +128,46 @@ async def process_signal_chat(
         await _handle_reject(conn, source_phone)
         return
 
+    # ── #agent command or active agent creation session ──
+    from src.services.agent_creator import get_active_session, handle_agent_command
+
+    agent_session_key = conn.github_user_id
+    is_agent_cmd = normalized.startswith("#agent")
+    active_agent = get_active_session(agent_session_key)
+
+    if is_agent_cmd or active_agent:
+        try:
+            from src.services.database import get_db
+            from src.utils import resolve_repository
+
+            db = get_db()
+            owner: str | None = None
+            repo: str | None = None
+            try:
+                owner, repo = await resolve_repository(
+                    await _get_user_access_token(conn.github_user_id) or "",
+                    project_id,
+                )
+            except Exception:
+                pass  # Signal flow can proceed without owner/repo
+
+            token = await _get_user_access_token(conn.github_user_id) or ""
+            agent_response = await handle_agent_command(
+                message=message_text,
+                session_key=agent_session_key,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                github_user_id=conn.github_user_id,
+                access_token=token,
+                db=db,
+            )
+            await _reply_with_audit(conn, source_phone, agent_response)
+        except Exception as exc:
+            logger.error("#agent via Signal failed: %s", exc)
+            await _reply(source_phone, f"Error processing #agent command: {exc}")
+        return
+
     await _run_ai_pipeline(conn, message_text, project_id, source_phone)
 
 
