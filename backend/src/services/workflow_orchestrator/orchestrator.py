@@ -3,6 +3,8 @@
 import logging
 from typing import TYPE_CHECKING
 
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.exceptions import ValidationError
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
     TriggeredBy,
@@ -464,6 +466,18 @@ class WorkflowOrchestrator:
             status_order = get_status_order(config)
             body = append_tracking_to_body(body, config.agent_mappings, status_order)
             logger.info("Appended agent pipeline tracking to issue body")
+
+        # Validate assembled body does not exceed GitHub API limit
+        if len(body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
+            raise ValidationError(
+                f"Issue body is {len(body)} characters, which exceeds the "
+                f"GitHub API limit of {GITHUB_ISSUE_BODY_MAX_LENGTH} characters. "
+                "Please shorten the description.",
+                details={
+                    "body_length": len(body),
+                    "max_length": GITHUB_ISSUE_BODY_MAX_LENGTH,
+                },
+            )
 
         issue = await self.github.create_issue(
             access_token=ctx.access_token,

@@ -700,3 +700,88 @@ query($projectId: ID!, $first: Int!, $after: String) {
   }
 }
 """
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent Creator: Repository info, branch, commit, and PR mutations
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Fetch repository node ID, default branch name, and HEAD SHA in one call
+GET_REPOSITORY_INFO_QUERY = """
+query($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    id
+    defaultBranchRef {
+      name
+      target {
+        ... on Commit {
+          oid
+        }
+      }
+    }
+  }
+}
+"""
+
+# Create a Git branch (ref). name MUST be fully qualified: refs/heads/<branch>
+CREATE_BRANCH_MUTATION = """
+mutation($repositoryId: ID!, $name: String!, $oid: GitObjectID!) {
+  createRef(input: {repositoryId: $repositoryId, name: $name, oid: $oid}) {
+    ref {
+      id
+      name
+    }
+  }
+}
+"""
+
+# Commit files to a branch without cloning. Contents must be Base64-encoded.
+# branch.branchName is the BARE name (no refs/heads/ prefix).
+CREATE_COMMIT_ON_BRANCH_MUTATION = """
+mutation(
+  $repoWithOwner: String!,
+  $branchName: String!,
+  $expectedHeadOid: GitObjectID!,
+  $message: CommitMessage!,
+  $fileChanges: FileChanges!
+) {
+  createCommitOnBranch(input: {
+    branch: {
+      repositoryNameWithOwner: $repoWithOwner,
+      branchName: $branchName
+    },
+    expectedHeadOid: $expectedHeadOid,
+    message: $message,
+    fileChanges: $fileChanges
+  }) {
+    commit {
+      oid
+      url
+    }
+  }
+}
+"""
+
+# Create a Pull Request. headRefName and baseRefName are bare branch names.
+CREATE_PULL_REQUEST_MUTATION = """
+mutation(
+  $repositoryId: ID!,
+  $title: String!,
+  $body: String!,
+  $headRefName: String!,
+  $baseRefName: String!
+) {
+  createPullRequest(input: {
+    repositoryId: $repositoryId,
+    title: $title,
+    body: $body,
+    headRefName: $headRefName,
+    baseRefName: $baseRefName
+  }) {
+    pullRequest {
+      id
+      number
+      url
+    }
+  }
+}
+"""

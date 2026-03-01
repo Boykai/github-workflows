@@ -13,12 +13,17 @@ const BASE_RECONNECT_DELAY_MS = 1_000;
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 
+interface UseRealTimeSyncOptions {
+  /** Callback when a WebSocket-triggered refresh occurs (resets auto-refresh timer). */
+  onRefreshTriggered?: () => void;
+}
+
 interface UseRealTimeSyncReturn {
   status: SyncStatus;
   lastUpdate: Date | null;
 }
 
-export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn {
+export function useRealTimeSync(projectId: string | null, options?: UseRealTimeSyncOptions): UseRealTimeSyncReturn {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<SyncStatus>('disconnected');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -26,6 +31,10 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
   const pollingIntervalRef = useRef<number | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
+  const onRefreshTriggeredRef = useRef(options?.onRefreshTriggered);
+
+  // Keep the callback ref up to date
+  onRefreshTriggeredRef.current = options?.onRefreshTriggered;
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -38,6 +47,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
+          onRefreshTriggeredRef.current?.();
           return;
         }
 
@@ -47,6 +57,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
+          onRefreshTriggeredRef.current?.();
         }
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
