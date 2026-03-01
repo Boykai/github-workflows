@@ -103,12 +103,12 @@ async def update_template(
     return result
 
 
-@router.delete("/templates/{template_id}")
+@router.delete("/templates/{template_id}", response_model=None)
 async def delete_template(
     template_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     force: bool = Query(False, description="Force delete even if referenced by tasks"),
-) -> dict:
+) -> dict | JSONResponse:
     """Delete a template."""
     svc = _get_service()
     result = await svc.delete_template(template_id, force=force)
@@ -261,12 +261,12 @@ async def toggle_task(
 # ── Manual Run ──────────────────────────────────────────────────────────
 
 
-@router.post("/tasks/{task_id}/run")
+@router.post("/tasks/{task_id}/run", response_model=None)
 async def run_task(
     task_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     force: bool = Query(False, description="Skip cooldown warning"),
-) -> dict:
+) -> dict | JSONResponse:
     """Manually trigger a housekeeping task."""
     svc = _get_service()
     result = await svc.run_task(task_id, force=force)

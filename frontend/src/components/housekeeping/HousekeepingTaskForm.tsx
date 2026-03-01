@@ -129,8 +129,8 @@ export function HousekeepingTaskForm({ projectId, task, onClose }: HousekeepingT
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Trigger Type</label>
+      <fieldset>
+        <legend className="block text-sm font-medium mb-1">Trigger Type</legend>
         <div className="flex gap-4">
           <label className="flex items-center gap-1.5 text-sm">
             <input
@@ -159,7 +159,7 @@ export function HousekeepingTaskForm({ projectId, task, onClose }: HousekeepingT
             Count-based
           </label>
         </div>
-      </div>
+      </fieldset>
 
       <div>
         <label htmlFor="trigger-value" className="block text-sm font-medium mb-1">

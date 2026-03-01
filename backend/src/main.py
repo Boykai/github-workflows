@@ -74,26 +74,6 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
 
     from src.services.database import close_database, init_database, seed_global_settings
 
-    db = await init_database()
-    await seed_global_settings(db)
-    _app.state.db = db
-
-    # Initialize housekeeping seed templates
-    from src.services.housekeeping.service import HousekeepingService
-
-    housekeeping_svc = HousekeepingService(db)
-    await housekeeping_svc.initialize()
-
-    # Register singleton services on app.state for DI (see dependencies.py)
-    from src.services.github_projects import github_projects_service
-    from src.services.websocket import connection_manager
-
-    _app.state.github_service = github_projects_service
-    _app.state.connection_manager = connection_manager
-
-    # Start periodic session cleanup
-    cleanup_task = asyncio.create_task(_session_cleanup_loop())
-
     # Start Signal WebSocket listener for inbound messages
     from src.services.signal_bridge import start_signal_ws_listener, stop_signal_ws_listener
 
@@ -108,6 +88,12 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         db = await init_database()
         await seed_global_settings(db)
         _app.state.db = db
+
+        # Initialize housekeeping seed templates
+        from src.services.housekeeping.service import HousekeepingService
+
+        housekeeping_svc = HousekeepingService(db)
+        await housekeeping_svc.initialize()
 
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service
