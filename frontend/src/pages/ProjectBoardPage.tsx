@@ -88,6 +88,11 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     setSelectedItem(null);
   };
 
+  // Derive repository info for cleanup button from the first board item with a repository
+  const cleanupRepo = selectedProjectId && boardData
+    ? boardData.columns.flatMap(c => c.items).find(i => i.repository)?.repository
+    : undefined;
+
   return (
     <div className="flex flex-col h-full p-6 gap-6 overflow-hidden">
       {/* Page Header */}
@@ -115,17 +120,13 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {/* Clean Up Button */}
-          {selectedProjectId && boardData && (() => {
-            const firstItem = boardData.columns.flatMap(c => c.items).find(i => i.repository);
-            if (!firstItem?.repository) return null;
-            return (
-              <CleanUpButton
-                owner={firstItem.repository.owner}
-                repo={firstItem.repository.name}
-                projectId={selectedProjectId}
-              />
-            );
-          })()}
+          {selectedProjectId && cleanupRepo && (
+            <CleanUpButton
+              owner={cleanupRepo.owner}
+              repo={cleanupRepo.name}
+              projectId={selectedProjectId}
+            />
+          )}
 
           {/* Sync status */}
           {selectedProjectId && (

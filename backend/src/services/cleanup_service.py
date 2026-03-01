@@ -535,11 +535,11 @@ async def execute_cleanup(
 
     # Update audit log
     completed_at = datetime.now(UTC).isoformat()
-    status = "completed" if not errors else "completed"
+    status = "completed" if not errors else "completed_with_errors"
     details_json = json.dumps({"results": [r.model_dump() for r in results]})
 
-    branches_preserved = len(request.branches_to_delete) - branches_deleted
-    prs_preserved = len(request.prs_to_close) - prs_closed
+    branches_failed = len([e for e in errors if e.item_type == "branch"])
+    prs_failed = len([e for e in errors if e.item_type == "pr"])
 
     await db.execute(
         """UPDATE cleanup_audit_logs SET
@@ -552,9 +552,9 @@ async def execute_cleanup(
             completed_at,
             status,
             branches_deleted,
-            branches_preserved,
+            branches_failed,
             prs_closed,
-            prs_preserved,
+            prs_failed,
             len(errors),
             details_json,
             operation_id,
@@ -565,9 +565,9 @@ async def execute_cleanup(
     return CleanupExecuteResponse(
         operation_id=operation_id,
         branches_deleted=branches_deleted,
-        branches_preserved=branches_preserved,
+        branches_preserved=branches_failed,
         prs_closed=prs_closed,
-        prs_preserved=prs_preserved,
+        prs_preserved=prs_failed,
         errors=errors,
         results=results,
     )
