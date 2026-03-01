@@ -139,38 +139,50 @@ async def _check_human_agent_done(
         )
         comments = parent_data.get("comments", [])
 
-        # Determine the Human sub-issue assignee for authorization
+        # Determine the Human sub-issue assignee for authorization.
+        # Fall back to the parent issue author if the pipeline doesn't
+        # have an explicit assignee recorded.  If neither is available
+        # we fail closed — no 'Done!' comment is accepted.
         assignee = _get_human_sub_issue_assignee(pipeline, parent_issue_number)
+        if not assignee:
+            parent_author_obj = parent_data.get("user") or {}
+            assignee = (
+                parent_author_obj.get("login", "") if isinstance(parent_author_obj, dict) else ""
+            )
 
-        for comment in reversed(comments):
-            body = comment.get("body", "").strip()
-            if body == "Done!":
-                comment_author = comment.get("author", "")
-                # If we know the assignee, only accept from them
-                if assignee and comment_author == assignee:
-                    logger.info(
-                        "Human step complete via 'Done!' comment from '%s' on parent issue #%d",
-                        comment_author,
-                        parent_issue_number,
-                    )
-                    return True
-                elif assignee and comment_author != assignee:
-                    logger.debug(
-                        "Ignoring 'Done!' comment from '%s' (expected '%s') on issue #%d",
-                        comment_author,
-                        assignee,
-                        parent_issue_number,
-                    )
-                elif not assignee:
-                    # No assignee known — accept from anyone as fallback
-                    logger.info(
-                        "Human step complete via 'Done!' comment from '%s' on issue #%d (no assignee known)",
-                        comment_author,
-                        parent_issue_number,
-                    )
-                    return True
+        if not assignee:
+            logger.debug(
+                "No authorized user determined for Human 'Done!' on parent issue #%d; "
+                "ignoring any 'Done!' comments (fail closed).",
+                parent_issue_number,
+            )
+        else:
+            for comment in reversed(comments):
+                # Exact match only — no .strip() per spec requirement.
+                # The GitHub API returns the raw comment body; only the
+                # literal string "Done!" (no surrounding whitespace) triggers
+                # Human step completion.
+                body = comment.get("body", "")
+                if body == "Done!":
+                    comment_author = comment.get("author", "")
+                    if comment_author == assignee:
+                        logger.info(
+                            "Human step complete via 'Done!' comment from '%s' on parent issue #%d",
+                            comment_author,
+                            parent_issue_number,
+                        )
+                        return True
+                    else:
+                        logger.debug(
+                            "Ignoring 'Done!' comment from '%s' (expected '%s') on issue #%d",
+                            comment_author,
+                            assignee,
+                            parent_issue_number,
+                        )
     except Exception as e:
-        logger.warning("Failed to check Human Done! comment on issue #%d: %s", parent_issue_number, e)
+        logger.warning(
+            "Failed to check Human Done! comment on issue #%d: %s", parent_issue_number, e
+        )
 
     return False
 
@@ -187,8 +199,9 @@ def _get_human_sub_issue_assignee(
     Falls back to checking the global sub-issue store.
     """
     # Check pipeline state
-    if pipeline and getattr(pipeline, "agent_sub_issues", None):
-        sub_info = pipeline.agent_sub_issues.get("human")
+    agent_sub_issues: dict = getattr(pipeline, "agent_sub_issues", None) or {}
+    if agent_sub_issues:
+        sub_info = agent_sub_issues.get("human")
         if sub_info and sub_info.get("assignee"):
             return sub_info["assignee"]
 

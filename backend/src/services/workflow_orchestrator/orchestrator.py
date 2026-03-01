@@ -958,13 +958,20 @@ class WorkflowOrchestrator:
             )
             set_pipeline_state(ctx.issue_number, pipeline_state)
 
+            # Log the actual human assignee so transition audit entries
+            # are useful.  Prefer the sub-issue assignee (set during
+            # create_all_sub_issues to the parent issue creator); fall back
+            # to a generic "human" label if unavailable.
+            human_assignee = sub_issue_info.get("assignee", "") if sub_issue_info else ""
+            assigned_label = f"human:{human_assignee}" if human_assignee else "human"
+
             self.log_transition(
                 ctx=ctx,
                 from_status=status,
                 to_status=status,
                 triggered_by=TriggeredBy.AUTOMATIC,
                 success=True,
-                assigned_user=f"human:{agent_name}",
+                assigned_user=assigned_label,
             )
 
             return True

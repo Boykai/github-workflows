@@ -270,13 +270,18 @@ def check_last_comment_for_done(
     if not comments:
         return None
 
-    last_body = comments[-1].get("body", "").strip()
-    # Match pattern: "speckit.specify: Done!" (must be the whole comment)
-    match = re.match(r"^(.+?):\s*Done!\s*$", last_body)
+    raw_body = comments[-1].get("body", "")
+    stripped_body = raw_body.strip()
+    # Match pattern: "speckit.specify: Done!" (must be the whole comment).
+    # Whitespace tolerance is intentional for agent patterns — editors or
+    # bots may emit trailing spaces.
+    match = re.match(r"^(.+?):\s*Done!\s*$", stripped_body)
     if match:
         return match.group(1).strip()
-    # Match Human agent pattern: exact "Done!" with no prefix
-    if last_body == "Done!":
+    # Match Human agent pattern: EXACT "Done!" with no whitespace tolerance.
+    # The spec requires the literal string "Done!" with no surrounding
+    # whitespace to trigger Human step completion.
+    if raw_body == "Done!":
         return "human"
     return None
 

@@ -8,6 +8,7 @@ import pytest
 from src.services.copilot_polling import (
     _advance_pipeline,
     _check_agent_done_on_parent,
+    _check_agent_done_on_sub_or_parent,
     _check_child_pr_completion,
     _check_main_pr_completion,
     _claimed_child_prs,
@@ -3423,6 +3424,252 @@ class TestCheckAgentDoneOnParent:
             repo="repo",
             parent_issue_number=42,
             agent_name="speckit.specify",
+        )
+
+        assert result is False
+
+
+# ────────────────────────────────────────────────────────────────────
+# _check_human_agent_done (Human dual-signal completion)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckHumanAgentDone:
+    """Tests for Human agent dual-signal completion detection.
+
+    Two signals can complete a Human step:
+      1. The Human sub-issue has been closed.
+      2. The assigned user commented exactly ``Done!`` on the parent issue.
+
+    Authorization rules:
+      - Only the known assignee (or parent issue author fallback) can trigger.
+      - ``Done!`` from a non-assignee is silently ignored.
+      - Whitespace variants like ``Done! `` or ``done!`` must NOT complete.
+      - When no authorized user can be determined, fail closed (no completion).
+    """
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_closed_sub_issue_returns_true(self, mock_service):
+        """Signal 1: A closed Human sub-issue completes the step."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=True)
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is True
+        mock_service.check_issue_closed.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=99,
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_done_comment_from_assignee_returns_true(self, mock_service):
+        """Signal 2: Exact 'Done!' from the assigned user completes the step."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "someone-else", "body": "Still working on it"},
+                    {"author": "creator", "body": "Done!"},
+                ],
+                "user": {"login": "creator"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_done_comment_from_non_assignee_returns_false(self, mock_service):
+        """'Done!' from an unauthorized user must NOT complete the step."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "intruder", "body": "Done!"},
+                ],
+                "user": {"login": "creator"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_done_with_trailing_whitespace_does_not_complete(self, mock_service):
+        """'Done! ' (with trailing space) must NOT match — exact string only."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "creator", "body": "Done! "},
+                ],
+                "user": {"login": "creator"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_lowercase_done_does_not_complete(self, mock_service):
+        """'done!' (case mismatch) must NOT match — case-sensitive exact string."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "creator", "body": "done!"},
+                ],
+                "user": {"login": "creator"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_assignee_falls_back_to_parent_author(self, mock_service):
+        """When no assignee is stored, the parent issue author should be used."""
+        pipeline = MagicMock()
+        # No assignee recorded in the pipeline sub-issue info
+        pipeline.agent_sub_issues = {"human": {"number": 99}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "issue-author", "body": "Done!"},
+                ],
+                "user": {"login": "issue-author"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_assignee_no_author_fails_closed(self, mock_service):
+        """When neither assignee nor parent author is known, fail closed."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "someone", "body": "Done!"},
+                ],
+                # No author information available
+                "user": {"login": ""},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        # Must fail closed — no authorized user could be determined
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_signals_returns_false(self, mock_service):
+        """When sub-issue is open and no 'Done!' comment exists, return False."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "creator"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "creator", "body": "Still working on it"},
+                ],
+                "user": {"login": "creator"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
         )
 
         assert result is False

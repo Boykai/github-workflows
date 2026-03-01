@@ -1171,7 +1171,12 @@ class GitHubProjectsService:
                     break
                 cursor = page_info.get("endCursor")
 
-            return {"title": title, "body": body, "comments": all_comments, "user": {"login": author_login}}
+            return {
+                "title": title,
+                "body": body,
+                "comments": all_comments,
+                "user": {"login": author_login},
+            }
         except Exception as e:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
             return {"title": "", "body": "", "comments": [], "user": {"login": ""}}
@@ -1355,14 +1360,10 @@ class GitHubProjectsService:
         try:
             url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
             headers = self._build_headers(access_token)
-            response = await self._client.get(url, headers=headers)
-            if response.status_code != 200:
-                logger.warning(
-                    "Failed to check state for issue #%d: status %d",
-                    issue_number,
-                    response.status_code,
-                )
-                return False
+            # Use _request_with_retry for consistent rate-limit / transient-
+            # error handling.  This endpoint runs in the polling loop and
+            # should be as resilient as other GitHub API calls.
+            response = await self._request_with_retry("GET", url, headers=headers)
             return response.json().get("state", "") == "closed"
         except Exception as e:
             logger.warning("Error checking issue #%d state: %s", issue_number, e)
