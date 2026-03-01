@@ -36,6 +36,7 @@ class TriggerStatus(StrEnum):
 
     SUCCESS = "success"
     FAILURE = "failure"
+    PENDING = "pending"  # Recorded when GitHub API integration is not yet wired
 
 
 # ── Issue Template Models ──
@@ -109,6 +110,15 @@ class HousekeepingTaskCreate(BaseModel):
     trigger_value: str = Field(..., min_length=1)
     cooldown_minutes: int = Field(default=5, ge=1)
     project_id: str
+    current_issue_count: int | None = Field(
+        default=None,
+        ge=0,
+        description=(
+            "For count-based triggers, the current number of issues in the "
+            "project.  Stored as the baseline so the task only fires after "
+            "*new* issues exceed the threshold."
+        ),
+    )
 
 
 class HousekeepingTaskUpdate(BaseModel):

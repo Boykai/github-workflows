@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS housekeeping_trigger_history (
     trigger_type TEXT NOT NULL CHECK(trigger_type IN ('scheduled', 'count-based', 'manual')),
     issue_url TEXT,
     issue_number INTEGER,
-    status TEXT NOT NULL CHECK(status IN ('success', 'failure')),
+    status TEXT NOT NULL CHECK(status IN ('success', 'failure', 'pending')),
     error_details TEXT,
     sub_issues_created INTEGER NOT NULL DEFAULT 0
 );

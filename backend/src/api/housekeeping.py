@@ -198,6 +198,7 @@ async def create_task(
             description=body.description,
             sub_issue_config=body.sub_issue_config,
             cooldown_minutes=body.cooldown_minutes,
+            current_issue_count=body.current_issue_count,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e

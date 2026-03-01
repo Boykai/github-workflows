@@ -160,6 +160,22 @@ class HousekeepingService:
         if referencing and not force:
             return {"error": "in_use", "referencing_tasks": referencing}
 
+        # When force-deleting, cascade to referencing tasks and their
+        # trigger history first to avoid FK constraint violations.
+        # The migration defines template_id as NOT NULL REFERENCES
+        # housekeeping_templates(id), so direct deletion would raise
+        # an IntegrityError.
+        if referencing and force:
+            for ref_task_id in referencing:
+                await self._db.execute(
+                    "DELETE FROM housekeeping_trigger_history WHERE task_id = ?",
+                    (ref_task_id,),
+                )
+            await self._db.execute(
+                "DELETE FROM housekeeping_tasks WHERE template_id = ?",
+                (template_id,),
+            )
+
         await self._db.execute("DELETE FROM housekeeping_templates WHERE id = ?", (template_id,))
         await self._db.commit()
         return {"deleted": True}
@@ -219,8 +235,16 @@ class HousekeepingService:
         description: str | None = None,
         sub_issue_config: dict | None = None,
         cooldown_minutes: int = 5,
+        current_issue_count: int | None = None,
     ) -> HousekeepingTask:
-        """Create a new housekeeping task with validation."""
+        """Create a new housekeeping task with validation.
+
+        Args:
+            current_issue_count: For count-based triggers, the current number
+                of issues in the project. Stored as the baseline so the task
+                only triggers after *new* issues exceed the threshold rather
+                than firing immediately against the historical total.
+        """
         # Validate template exists
         tmpl = await self.get_template(template_id)
         if not tmpl:
@@ -228,6 +252,13 @@ class HousekeepingService:
 
         # Validate trigger config
         self._validate_trigger(trigger_type, trigger_value)
+
+        # For count-based triggers, persist the current issue count as the
+        # baseline so the task measures *new* issues since creation.  If
+        # the caller omits this value the DB default of 0 is used, which
+        # would cause the task to fire immediately once
+        # current_issue_count >= trigger_value.
+        baseline_count = current_issue_count if current_issue_count is not None else 0
 
         task_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
@@ -237,8 +268,8 @@ class HousekeepingService:
             """INSERT INTO housekeeping_tasks
                (id, name, description, template_id, sub_issue_config,
                 trigger_type, trigger_value, cooldown_minutes, project_id,
-                created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                last_triggered_issue_count, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 task_id,
                 name,
@@ -249,6 +280,7 @@ class HousekeepingService:
                 trigger_value,
                 cooldown_minutes,
                 project_id,
+                baseline_count,
                 now,
                 now,
             ),
@@ -427,6 +459,17 @@ class HousekeepingService:
 
         # Execute
         event = await self._execute_task(task, TriggerEventType.MANUAL)
+
+        # Update last_triggered_at after successful execution.
+        # Manual runs are user-initiated so concurrency is less of a concern;
+        # the cooldown check above already guards against rapid re-runs.
+        now_iso = datetime.now(UTC).isoformat()
+        await self._db.execute(
+            "UPDATE housekeeping_tasks SET last_triggered_at = ?, updated_at = ? WHERE id = ?",
+            (now_iso, now_iso, task.id),
+        )
+        await self._db.commit()
+
         return {"trigger_event": event}
 
     # ── Evaluate Time-Based Triggers ────────────────────────────────────
@@ -456,16 +499,55 @@ class HousekeepingService:
                 continue
 
             if is_task_due(task.trigger_value, task.last_triggered_at):
-                event = await self._execute_task(task, TriggerEventType.SCHEDULED)
-                results.append(
-                    EvaluateTriggersResult(
-                        task_id=task.id,
-                        task_name=task.name,
-                        action="triggered",
-                        issue_url=event.issue_url,
+                # Atomically "claim" this task by updating last_triggered_at
+                # only if it still matches what we observed.  This prevents
+                # concurrent evaluators from both triggering the same task
+                # (the spec requires idempotent trigger evaluation).
+                now_iso = datetime.now(UTC).isoformat()
+
+                if task.last_triggered_at is None:
+                    # First-ever trigger: match NULL explicitly.
+                    cursor = await self._db.execute(
+                        """UPDATE housekeeping_tasks
+                           SET last_triggered_at = ?, updated_at = ?
+                           WHERE id = ? AND last_triggered_at IS NULL""",
+                        (now_iso, now_iso, task.id),
                     )
-                )
-                triggered += 1
+                else:
+                    # Subsequent triggers: compare against the known value.
+                    cursor = await self._db.execute(
+                        """UPDATE housekeeping_tasks
+                           SET last_triggered_at = ?, updated_at = ?
+                           WHERE id = ? AND last_triggered_at = ?""",
+                        (now_iso, now_iso, task.id, task.last_triggered_at),
+                    )
+                await self._db.commit()
+
+                if cursor.rowcount and cursor.rowcount > 0:
+                    # We won the race — keep in-memory state consistent.
+                    task.last_triggered_at = now_iso
+
+                    event = await self._execute_task(task, TriggerEventType.SCHEDULED)
+                    results.append(
+                        EvaluateTriggersResult(
+                            task_id=task.id,
+                            task_name=task.name,
+                            action="triggered",
+                            issue_url=event.issue_url,
+                        )
+                    )
+                    triggered += 1
+                else:
+                    # Another concurrent evaluator already triggered this task.
+                    results.append(
+                        EvaluateTriggersResult(
+                            task_id=task.id,
+                            task_name=task.name,
+                            action="skipped",
+                            reason="Already triggered by another evaluator",
+                        )
+                    )
+                    skipped += 1
             else:
                 results.append(
                     EvaluateTriggersResult(
@@ -500,13 +582,15 @@ class HousekeepingService:
             diff = current_issue_count - task.last_triggered_issue_count
             if diff >= threshold and self._cooldown_remaining(task) <= 0:
                 event = await self._execute_task(task, TriggerEventType.COUNT_BASED)
-                # Update issue count baseline
+                # Update issue count baseline and last_triggered_at
                 now = datetime.now(UTC).isoformat()
                 await self._db.execute(
                     """UPDATE housekeeping_tasks
-                       SET last_triggered_issue_count = ?, updated_at = ?
+                       SET last_triggered_issue_count = ?,
+                           last_triggered_at = ?,
+                           updated_at = ?
                        WHERE id = ?""",
-                    (current_issue_count, now, task.id),
+                    (current_issue_count, now, now, task.id),
                 )
                 await self._db.commit()
                 results.append(
@@ -551,26 +635,24 @@ class HousekeepingService:
                 "{task_name}", task.name
             )
 
-            # For now, record a successful trigger event
-            # In production, this would call the GitHub Issues API and
-            # the workflow orchestrator to create the parent + sub issues.
-            # The actual GitHub API integration depends on the project's
-            # access token configuration which is handled at the API layer.
+            # Record as PENDING because the GitHub API integration is not
+            # yet wired.  Using SUCCESS with issue_url=None would mislead
+            # downstream UI/history into treating this as a completed run.
+            # Once the GitHub Issues API call is implemented, promote the
+            # status to SUCCESS with the real issue_url and issue_number.
             event = await self._record_trigger_event(
                 task_id=task.id,
                 trigger_type=trigger_type,
-                status=TriggerStatus.SUCCESS,
-                issue_url=None,  # Set by actual GitHub API call
+                status=TriggerStatus.PENDING,
+                issue_url=None,
                 issue_number=None,
                 sub_issues_created=0,
             )
 
-            # Update last_triggered_at
-            await self._db.execute(
-                "UPDATE housekeeping_tasks SET last_triggered_at = ?, updated_at = ? WHERE id = ?",
-                (now.isoformat(), now.isoformat(), task.id),
-            )
-            await self._db.commit()
+            # NOTE: Callers are responsible for updating last_triggered_at
+            # (e.g. via atomic CAS in evaluate_triggers, or a simple UPDATE
+            # in run_task).  This keeps _execute_task focused on recording
+            # the trigger event and avoids double-updates.
 
             logger.info(
                 "Housekeeping task '%s' executed successfully (trigger=%s, title='%s')",
