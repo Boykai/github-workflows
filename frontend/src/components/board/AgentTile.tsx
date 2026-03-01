@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { User } from 'lucide-react';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 
 interface AgentTileProps {
@@ -30,6 +31,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
   const displayName = agent.display_name || agent.slug;
   const metadata = availableAgents?.find((a) => a.slug === agent.slug);
   const avatarLetter = displayName.charAt(0).toUpperCase();
+  const isHuman = agent.slug === 'human';
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,8 +59,10 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
         )}
 
         {/* Avatar */}
-        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium shrink-0 overflow-hidden" title={agent.slug}>
-          {metadata?.avatar_url ? (
+        <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden ${isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'}`} title={agent.slug}>
+          {isHuman ? (
+            <User className="w-3.5 h-3.5" />
+          ) : metadata?.avatar_url ? (
             <img src={metadata.avatar_url} alt={displayName} className="w-full h-full object-cover" />
           ) : (
             avatarLetter

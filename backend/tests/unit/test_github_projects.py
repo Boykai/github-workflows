@@ -1309,13 +1309,14 @@ class TestGetIssueWithComments:
 
     @pytest.mark.asyncio
     async def test_get_issue_with_comments_success(self, service):
-        """Should fetch issue title, body, and comments."""
+        """Should fetch issue title, body, comments, and user.login (author)."""
         mock_response = {
             "repository": {
                 "issue": {
                     "id": "I_123",
                     "title": "Test Issue",
                     "body": "Issue description here",
+                    "author": {"login": "issue-creator"},
                     "comments": {
                         "nodes": [
                             {
@@ -1352,6 +1353,10 @@ class TestGetIssueWithComments:
             assert result["comments"][0]["author"] == "user1"
             assert result["comments"][0]["body"] == "First comment"
             assert result["comments"][1]["author"] == "user2"
+            # Verify user.login is populated from the issue author field —
+            # this is critical for the Human agent sub-issue assignment
+            # feature which depends on knowing the issue creator.
+            assert result["user"]["login"] == "issue-creator"
 
     @pytest.mark.asyncio
     async def test_get_issue_with_comments_no_comments(self, service):
@@ -1393,7 +1398,7 @@ class TestGetIssueWithComments:
                 issue_number=42,
             )
 
-            assert result == {"title": "", "body": "", "comments": []}
+            assert result == {"title": "", "body": "", "comments": [], "user": {"login": ""}}
 
 
 class TestFormatIssueContextAsPrompt:
