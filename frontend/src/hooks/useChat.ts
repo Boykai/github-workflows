@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MEDIUM, PROPOSAL_EXPIRY_MS } from '@/constants';
 import { chatApi, tasksApi } from '@/services/api';
 import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData, StatusChangeProposal } from '@/types';
+import { useCommands } from '@/hooks/useCommands';
+import { generateId } from '@/utils/generateId';
 
 interface UseChatReturn {
   messages: ChatMessage[];
@@ -16,7 +18,7 @@ interface UseChatReturn {
   pendingProposals: Map<string, AITaskProposal>;
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, options?: { isCommand?: boolean }) => Promise<void>;
   confirmProposal: (proposalId: string, edits?: ProposalConfirmRequest) => Promise<void>;
   confirmStatusChange: (proposalId: string) => Promise<void>;
   rejectProposal: (proposalId: string) => Promise<void>;
@@ -29,6 +31,8 @@ export function useChat(): UseChatReturn {
   const [pendingProposals, setPendingProposals] = useState<Map<string, AITaskProposal>>(new Map());
   const [pendingStatusChanges, setPendingStatusChanges] = useState<Map<string, StatusChangeProposal>>(new Map());
   const [pendingRecommendations, setPendingRecommendations] = useState<Map<string, IssueCreateActionData>>(new Map());
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
+  const { isCommand, executeCommand } = useCommands();
 
   // Fetch messages
   const {
@@ -160,10 +164,53 @@ export function useChat(): UseChatReturn {
   });
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, options?: { isCommand?: boolean }) => {
+      // Check if this is a command — intercept before sending to AI
+      if (options?.isCommand || isCommand(content)) {
+        // Add user message to local messages
+        const userMsg: ChatMessage = {
+          message_id: generateId(),
+          session_id: 'local',
+          sender_type: 'user',
+          content,
+          timestamp: new Date().toISOString(),
+        };
+        setLocalMessages((prev) => [...prev, userMsg]);
+
+        // Execute command and create system response.
+        // Wrap in try/catch so handler rejections never leave the UI
+        // without feedback or create unhandled promise rejections.
+        try {
+          const result = await executeCommand(content);
+          const systemMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'system',
+            content: result.message,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, systemMsg]);
+        } catch (error) {
+          // Surface the failure as a system message so the user sees it
+          const errorMessage =
+            error instanceof Error && error.message
+              ? `Command failed: ${error.message}`
+              : 'Command failed due to an unexpected error.';
+          const systemErrorMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'system',
+            content: errorMessage,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, systemErrorMsg]);
+        }
+        return;
+      }
+
       await sendMutation.mutateAsync({ content });
     },
-    [sendMutation]
+    [sendMutation, isCommand, executeCommand]
   );
 
   const confirmProposal = useCallback(
@@ -200,6 +247,7 @@ export function useChat(): UseChatReturn {
       setPendingProposals(new Map());
       setPendingStatusChanges(new Map());
       setPendingRecommendations(new Map());
+      setLocalMessages([]);
       // Refetch messages (will be empty)
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
     },
@@ -210,7 +258,7 @@ export function useChat(): UseChatReturn {
   }, [clearChatMutation]);
 
   return {
-    messages: messagesData?.messages ?? [],
+    messages: [...(messagesData?.messages ?? []), ...localMessages],
     isLoading,
     isSending: sendMutation.isPending,
     error: error as Error | null,

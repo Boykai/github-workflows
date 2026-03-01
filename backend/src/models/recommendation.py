@@ -35,7 +35,7 @@ class AITaskProposal(BaseModel):
     original_input: str = Field(..., description="User's original natural language input")
     proposed_title: str = Field(..., max_length=256, description="AI-generated task title")
     proposed_description: str = Field(
-        ..., max_length=65535, description="AI-generated task description"
+        ..., max_length=65536, description="AI-generated task description"
     )
     status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(default=None, description="User-modified title")
@@ -84,7 +84,7 @@ class ProposalConfirmRequest(BaseModel):
 
     edited_title: str | None = Field(default=None, max_length=256, description="Edited title")
     edited_description: str | None = Field(
-        default=None, max_length=65535, description="Edited description"
+        default=None, max_length=65536, description="Edited description"
     )
 
 

@@ -139,6 +139,7 @@ function NotificationPreferenceSelector() {
         {options.map((opt) => (
           <label
             key={opt.value}
+            htmlFor={`signal-notification-${opt.value}`}
             className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors
               ${preferences.notification_mode === opt.value
                 ? 'border-primary bg-primary/5'
@@ -147,6 +148,7 @@ function NotificationPreferenceSelector() {
               ${isPending ? 'opacity-60 pointer-events-none' : ''}`}
           >
             <input
+              id={`signal-notification-${opt.value}`}
               type="radio"
               name="signal-notification-mode"
               value={opt.value}
