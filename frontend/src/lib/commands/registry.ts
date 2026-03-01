@@ -18,6 +18,11 @@ export function registerCommand(command: CommandDefinition): void {
   registry.set(command.name.toLowerCase(), command);
 }
 
+/** Remove a command from the registry (useful for test teardown). */
+export function unregisterCommand(name: string): void {
+  registry.delete(name.toLowerCase());
+}
+
 /** Look up a command by name (case-insensitive). */
 export function getCommand(name: string): CommandDefinition | undefined {
   return registry.get(name.toLowerCase());

@@ -156,4 +156,104 @@ describe('useChat', () => {
 
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
   });
+
+  // ── Command interception tests (AI review recommendation) ────────────────
+  // Verifies that # commands are intercepted client-side and never sent
+  // to the backend API, producing local system messages instead.
+
+  it('should intercept #help command and not call chatApi.sendMessage', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('#help');
+    });
+
+    // The command should NOT reach the backend
+    expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
+    // Should produce local user + system messages
+    expect(result.current.messages.length).toBeGreaterThanOrEqual(2);
+    const systemMsg = result.current.messages.find((m) => m.sender_type === 'system');
+    expect(systemMsg).toBeDefined();
+    expect(systemMsg!.content).toContain('Available Commands');
+  });
+
+  it('should intercept #help when passed via isCommand option', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('#help', { isCommand: true });
+    });
+
+    expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
+    const systemMsg = result.current.messages.find((m) => m.sender_type === 'system');
+    expect(systemMsg).toBeDefined();
+  });
+
+  it('should append a system error message when command execution throws', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Send a bare '#' which doesn't map to any command but IS a command input —
+    // the registry returns a failure result for unknown commands.
+    await act(async () => {
+      await result.current.sendMessage('#');
+    });
+
+    expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
+    const systemMsg = result.current.messages.find((m) => m.sender_type === 'system');
+    expect(systemMsg).toBeDefined();
+    // The message should indicate help is available
+    expect(systemMsg!.content).toContain('#help');
+  });
+
+  it('should NOT intercept regular chat messages as commands', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+    mockChatApi.sendMessage.mockResolvedValue({
+      message_id: 'msg_resp',
+      session_id: 's1',
+      sender_type: 'assistant',
+      content: 'Hello!',
+      timestamp: '2024-01-01T00:00:02Z',
+    });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('Hello world');
+    });
+
+    // Regular message should reach the backend (React Query's mutateAsync
+    // passes additional internal args, so verify just the first argument).
+    expect(mockChatApi.sendMessage).toHaveBeenCalled();
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello world' });
+  });
 });

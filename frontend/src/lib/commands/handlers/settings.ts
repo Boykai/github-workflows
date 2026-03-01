@@ -84,7 +84,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
 
 const VALID_NOTIFICATION_VALUES = ['on', 'off'] as const;
 
-export function notificationsHandler(args: string, context: CommandContext): CommandResult {
+export async function notificationsHandler(args: string, context: CommandContext): Promise<CommandResult> {
   const value = args.trim().toLowerCase();
 
   if (!value) {
@@ -105,14 +105,25 @@ export function notificationsHandler(args: string, context: CommandContext): Com
 
   const enabled = value === 'on';
   const oldValue = context.currentSettings?.notifications?.task_status_change ? 'on' : 'off';
-  context.updateSettings({
-    notifications: {
-      task_status_change: enabled,
-      agent_completion: enabled,
-      new_recommendation: enabled,
-      chat_mention: enabled,
-    },
-  });
+
+  // Await the settings mutation so we can surface failures to the user
+  // rather than returning success while the update silently rejects.
+  try {
+    await context.updateSettings({
+      notifications: {
+        task_status_change: enabled,
+        agent_completion: enabled,
+        new_recommendation: enabled,
+        chat_mention: enabled,
+      },
+    });
+  } catch {
+    return {
+      success: false,
+      message: `Failed to update notifications setting. Please try again.`,
+      clearInput: false,
+    };
+  }
 
   return {
     success: true,
@@ -125,7 +136,7 @@ export function notificationsHandler(args: string, context: CommandContext): Com
 
 const VALID_VIEWS = ['chat', 'board', 'settings'] as const;
 
-export function viewHandler(args: string, context: CommandContext): CommandResult {
+export async function viewHandler(args: string, context: CommandContext): Promise<CommandResult> {
   const value = args.trim().toLowerCase();
 
   if (!value) {
@@ -145,7 +156,18 @@ export function viewHandler(args: string, context: CommandContext): CommandResul
   }
 
   const oldView = context.currentSettings?.display?.default_view ?? 'chat';
-  context.updateSettings({ display: { default_view: value as 'chat' | 'board' | 'settings' } });
+
+  // Await the settings mutation so failures are reported to the user
+  // instead of silently rejecting with an unhandled promise.
+  try {
+    await context.updateSettings({ display: { default_view: value as 'chat' | 'board' | 'settings' } });
+  } catch {
+    return {
+      success: false,
+      message: `Failed to update default view setting. Please try again.`,
+      clearInput: false,
+    };
+  }
 
   return {
     success: true,

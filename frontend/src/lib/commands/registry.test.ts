@@ -1,7 +1,7 @@
 /**
  * Unit tests for command registry and parseCommand function.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 
 // Import from registry (which registers built-in commands on load)
 import {
@@ -10,6 +10,7 @@ import {
   filterCommands,
   parseCommand,
   registerCommand,
+  unregisterCommand,
 } from './registry';
 
 describe('CommandRegistry', () => {
@@ -169,6 +170,12 @@ describe('parseCommand', () => {
 });
 
 describe('Single Source of Truth (US5)', () => {
+  // Clean up the test command after this suite to prevent state leakage
+  // across test files running in the same Vitest worker.
+  afterAll(() => {
+    unregisterCommand('_test_ssot');
+  });
+
   it('newly registered command appears in getAllCommands', () => {
     const before = getAllCommands().length;
     registerCommand({

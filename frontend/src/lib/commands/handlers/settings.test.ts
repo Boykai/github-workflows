@@ -97,10 +97,10 @@ describe('languageHandler', () => {
 });
 
 describe('notificationsHandler', () => {
-  it('on value enables notifications', () => {
+  it('on value enables notifications', async () => {
     const updateSettings = vi.fn().mockResolvedValue({});
     const context = createCommandContext({ updateSettings });
-    const result = notificationsHandler('on', context);
+    const result = await notificationsHandler('on', context);
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('on');
@@ -109,10 +109,10 @@ describe('notificationsHandler', () => {
     }));
   });
 
-  it('off value disables notifications', () => {
+  it('off value disables notifications', async () => {
     const updateSettings = vi.fn().mockResolvedValue({});
     const context = createCommandContext({ updateSettings });
-    const result = notificationsHandler('off', context);
+    const result = await notificationsHandler('off', context);
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('off');
@@ -121,9 +121,9 @@ describe('notificationsHandler', () => {
     }));
   });
 
-  it('invalid value returns error', () => {
+  it('invalid value returns error', async () => {
     const context = createCommandContext();
-    const result = notificationsHandler('maybe', context);
+    const result = await notificationsHandler('maybe', context);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('maybe');
@@ -131,19 +131,28 @@ describe('notificationsHandler', () => {
     expect(result.message).toContain('off');
   });
 
-  it('missing argument returns usage message', () => {
+  it('missing argument returns usage message', async () => {
     const context = createCommandContext();
-    const result = notificationsHandler('', context);
+    const result = await notificationsHandler('', context);
     expect(result.success).toBe(false);
     expect(result.message).toContain('Missing value');
+  });
+
+  it('returns failure when updateSettings rejects', async () => {
+    const updateSettings = vi.fn().mockRejectedValue(new Error('Network error'));
+    const context = createCommandContext({ updateSettings });
+    const result = await notificationsHandler('on', context);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Failed to update');
   });
 });
 
 describe('viewHandler', () => {
-  it('valid value updates default view', () => {
+  it('valid value updates default view', async () => {
     const updateSettings = vi.fn().mockResolvedValue({});
     const context = createCommandContext({ updateSettings });
-    const result = viewHandler('chat', context);
+    const result = await viewHandler('chat', context);
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('chat');
@@ -152,9 +161,9 @@ describe('viewHandler', () => {
     }));
   });
 
-  it('invalid value returns error', () => {
+  it('invalid value returns error', async () => {
     const context = createCommandContext();
-    const result = viewHandler('dashboard', context);
+    const result = await viewHandler('dashboard', context);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('dashboard');
@@ -163,20 +172,29 @@ describe('viewHandler', () => {
     expect(result.message).toContain('settings');
   });
 
-  it('missing argument returns usage message', () => {
+  it('missing argument returns usage message', async () => {
     const context = createCommandContext();
-    const result = viewHandler('', context);
+    const result = await viewHandler('', context);
     expect(result.success).toBe(false);
     expect(result.message).toContain('Missing value');
   });
 
-  it('accepts all valid views', () => {
+  it('accepts all valid views', async () => {
     for (const view of ['chat', 'board', 'settings']) {
       const updateSettings = vi.fn().mockResolvedValue({});
       const context = createCommandContext({ updateSettings });
-      const result = viewHandler(view, context);
+      const result = await viewHandler(view, context);
       expect(result.success).toBe(true);
     }
+  });
+
+  it('returns failure when updateSettings rejects', async () => {
+    const updateSettings = vi.fn().mockRejectedValue(new Error('Server error'));
+    const context = createCommandContext({ updateSettings });
+    const result = await viewHandler('chat', context);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Failed to update');
   });
 });
 

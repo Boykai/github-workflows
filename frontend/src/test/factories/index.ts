@@ -145,7 +145,10 @@ export function createCommandContext(
     currentSettings: {
       ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
       display: { theme: 'dark' as 'light' | 'dark', default_view: 'board' as 'chat' | 'board' | 'settings', sidebar_collapsed: false },
-      workflow: { default_repository: null, default_assignee: null, copilot_polling_interval: 15 },
+      // default_assignee is typed as `string` in WorkflowDefaults — use empty
+      // string rather than null to match the interface and avoid hiding
+      // type mismatches in tests.
+      workflow: { default_repository: null, default_assignee: '', copilot_polling_interval: 15 },
       notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
     },
     currentTheme: 'dark',

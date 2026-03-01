@@ -8,6 +8,7 @@ import { STALE_TIME_MEDIUM, PROPOSAL_EXPIRY_MS } from '@/constants';
 import { chatApi, tasksApi } from '@/services/api';
 import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData, StatusChangeProposal } from '@/types';
 import { useCommands } from '@/hooks/useCommands';
+import { generateId } from '@/utils/generateId';
 
 interface UseChatReturn {
   messages: ChatMessage[];
@@ -168,7 +169,7 @@ export function useChat(): UseChatReturn {
       if (options?.isCommand || isCommand(content)) {
         // Add user message to local messages
         const userMsg: ChatMessage = {
-          message_id: crypto.randomUUID(),
+          message_id: generateId(),
           session_id: 'local',
           sender_type: 'user',
           content,
@@ -176,16 +177,34 @@ export function useChat(): UseChatReturn {
         };
         setLocalMessages((prev) => [...prev, userMsg]);
 
-        // Execute command and create system response
-        const result = await executeCommand(content);
-        const systemMsg: ChatMessage = {
-          message_id: crypto.randomUUID(),
-          session_id: 'local',
-          sender_type: 'system',
-          content: result.message,
-          timestamp: new Date().toISOString(),
-        };
-        setLocalMessages((prev) => [...prev, systemMsg]);
+        // Execute command and create system response.
+        // Wrap in try/catch so handler rejections never leave the UI
+        // without feedback or create unhandled promise rejections.
+        try {
+          const result = await executeCommand(content);
+          const systemMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'system',
+            content: result.message,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, systemMsg]);
+        } catch (error) {
+          // Surface the failure as a system message so the user sees it
+          const errorMessage =
+            error instanceof Error && error.message
+              ? `Command failed: ${error.message}`
+              : 'Command failed due to an unexpected error.';
+          const systemErrorMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'system',
+            content: errorMessage,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, systemErrorMsg]);
+        }
         return;
       }
 

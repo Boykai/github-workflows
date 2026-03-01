@@ -10,6 +10,7 @@ import { CommandAutocomplete } from './CommandAutocomplete';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
+import { useCommands } from '@/hooks/useCommands';
 import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
@@ -25,10 +26,6 @@ interface ChatInterfaceProps {
   onRejectProposal: (proposalId: string) => void;
   onRejectRecommendation: (recommendationId: string) => Promise<void>;
   onNewChat: () => void;
-  /** Filtered commands for autocomplete overlay. */
-  filteredCommands?: CommandDefinition[];
-  /** Whether the current input is a command. */
-  isCommand?: (input: string) => boolean;
 }
 
 export function ChatInterface({
@@ -44,8 +41,6 @@ export function ChatInterface({
   onRejectProposal,
   onRejectRecommendation,
   onNewChat,
-  filteredCommands = [],
-  isCommand,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -53,6 +48,10 @@ export function ChatInterface({
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Integrate command system directly so autocomplete works regardless of
+  // whether the parent passes command props (ChatPopup does not).
+  const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -64,19 +63,28 @@ export function ChatInterface({
     inputRef.current?.focus();
   }, []);
 
-  // Update autocomplete state when input changes
+  // Update autocomplete state when input changes.
+  // Derive filtered commands internally via useCommands() so autocomplete
+  // works even when the parent (e.g. ChatPopup) does not pass command props.
   useEffect(() => {
     const trimmed = input.trimStart();
     const shouldShow = trimmed.startsWith('#') && !trimmed.slice(1).includes(' ');
 
-    if (shouldShow && filteredCommands.length > 0) {
-      setAutocompleteCommands(filteredCommands);
-      setShowAutocomplete(true);
-      setHighlightedIndex(0);
+    if (shouldShow) {
+      // Extract the partial command name after '#' to filter the registry
+      const prefix = trimmed.slice(1);
+      const filtered = getFilteredCommands(prefix);
+      if (filtered.length > 0) {
+        setAutocompleteCommands(filtered);
+        setShowAutocomplete(true);
+        setHighlightedIndex(0);
+      } else {
+        setShowAutocomplete(false);
+      }
     } else {
       setShowAutocomplete(false);
     }
-  }, [input, filteredCommands]);
+  }, [input, getFilteredCommands]);
 
   const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
     setInput(`#${command.name} `);
@@ -89,8 +97,10 @@ export function ChatInterface({
     const content = input.trim();
     if (content && !isSending) {
       setShowAutocomplete(false);
-      const commandInput = isCommand ? isCommand(content) : false;
+      const commandInput = isCommandFn(content);
       onSendMessage(content, { isCommand: commandInput });
+      // Always clear input after submission — command-level input preservation
+      // is handled by the useChat hook via CommandResult.clearInput when needed.
       setInput('');
     }
   };
