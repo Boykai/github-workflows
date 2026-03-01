@@ -9,7 +9,7 @@ Add a 'Clean Up' button that allows project maintainers to remove stale branches
 
 ## Technical Context
 
-**Language/Version**: Python 3.11 (backend), TypeScript 5.4 / React 18 (frontend)
+**Language/Version**: Python 3.12 (backend), TypeScript 5.4 / React 18 (frontend)
 **Primary Dependencies**: FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend)
 **Storage**: SQLite (WAL mode) via aiosqlite — new `cleanup_audit_logs` table for audit trail (migration 008)
 **Testing**: pytest + pytest-asyncio (backend), Vitest + React Testing Library (frontend)
