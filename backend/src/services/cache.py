@@ -15,7 +15,9 @@ T = TypeVar("T")
 class CacheEntry(Generic[T]):
     """Cache entry with expiration and optional ETag support."""
 
-    def __init__(self, value: T, ttl_seconds: int, etag: str | None = None, last_modified: str | None = None):
+    def __init__(
+        self, value: T, ttl_seconds: int, etag: str | None = None, last_modified: str | None = None
+    ):
         self.value = value
         self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
         self.etag = etag
@@ -56,7 +58,14 @@ class InMemoryCache:
         logger.debug("Cache hit: %s", key)
         return entry.value
 
-    def set(self, key: str, value: Any, ttl_seconds: int | None = None, etag: str | None = None, last_modified: str | None = None) -> None:
+    def set(
+        self,
+        key: str,
+        value: Any,
+        ttl_seconds: int | None = None,
+        etag: str | None = None,
+        last_modified: str | None = None,
+    ) -> None:
         """
         Set value in cache.
 
