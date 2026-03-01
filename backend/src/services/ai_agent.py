@@ -700,6 +700,100 @@ class AIAgentService:
 
         return GeneratedTask(title=title, description=description)
 
+    # ──────────────────────────────────────────────────────────────────
+    # Agent Creator Methods
+    # ──────────────────────────────────────────────────────────────────
+
+    async def generate_agent_config(
+        self,
+        description: str,
+        status_column: str,
+        github_token: str | None = None,
+    ) -> dict:
+        """Generate an agent configuration from a natural language description.
+
+        Calls the LLM with a structured prompt and returns a dict with
+        ``name``, ``description``, and ``system_prompt`` keys.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert at designing GitHub automation agents. "
+                    "Given a user's description of what an agent should do, generate a JSON object with:\n"
+                    '- "name": A concise PascalCase agent name (e.g., "SecurityReviewer")\n'
+                    '- "description": A one-line summary of the agent\'s purpose\n'
+                    '- "system_prompt": A detailed system prompt (3-10 paragraphs) defining the agent\'s '
+                    "behavior, responsibilities, tone, and guidelines. Be specific and actionable.\n"
+                    '- "tools": A list of Copilot tool/capability identifiers the agent needs '
+                    '(e.g., ["list_projects", "get_project_items", "create_issue", "search_code"]). '
+                    "Choose from common GitHub Copilot tools.\n\n"
+                    "Respond ONLY with valid JSON, no markdown fences or extra text."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Create an agent that: {description}\n"
+                    f"This agent will be assigned to the '{status_column}' status column."
+                ),
+            },
+        ]
+
+        content = await self._call_completion(
+            messages, temperature=0.7, max_tokens=2000, github_token=github_token
+        )
+        result = self._parse_json_response(content)
+
+        # Validate required keys
+        for key in ("name", "description", "system_prompt"):
+            if key not in result:
+                raise ValueError(f"Generated config missing required key: {key}")
+
+        return result
+
+    async def edit_agent_config(
+        self,
+        current_config: dict,
+        edit_instruction: str,
+        github_token: str | None = None,
+    ) -> dict:
+        """Apply a natural language edit to an existing agent configuration.
+
+        Sends the current config + edit instruction to the LLM for targeted
+        modification and returns the updated config dict.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert at designing GitHub automation agents. "
+                    "The user wants to modify an existing agent configuration. "
+                    "Apply the requested change and return the complete updated JSON object with "
+                    'the same keys: "name", "description", "system_prompt".\n'
+                    "Respond ONLY with valid JSON, no markdown fences or extra text."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"Current configuration:\n{json.dumps(current_config, indent=2)}\n\n"
+                    f"Requested change: {edit_instruction}"
+                ),
+            },
+        ]
+
+        content = await self._call_completion(
+            messages, temperature=0.7, max_tokens=2000, github_token=github_token
+        )
+        result = self._parse_json_response(content)
+
+        for key in ("name", "description", "system_prompt"):
+            if key not in result:
+                raise ValueError(f"Edited config missing required key: {key}")
+
+        return result
+
 
 # Global service instance (lazy initialization)
 _ai_agent_service_instance: AIAgentService | None = None

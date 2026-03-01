@@ -804,3 +804,92 @@ class TestCompletionProviders:
 
         with pytest.raises(ValueError, match="Unknown AI provider"):
             create_completion_provider()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# generate_agent_config / edit_agent_config  (#001 agent creation feature)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestGenerateAgentConfig:
+    """Tests for generate_agent_config (used by #agent command)."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    async def test_returns_required_keys(self, service, mock_provider):
+        """Generated config must contain name, description, system_prompt."""
+        mock_provider.set_response(
+            '{"name": "SecurityReviewer", '
+            '"description": "Reviews PRs for security", '
+            '"system_prompt": "You are a security expert.", '
+            '"tools": ["search_code"]}'
+        )
+        config = await service.generate_agent_config(
+            description="Reviews PRs", status_column="In Review"
+        )
+        assert config["name"] == "SecurityReviewer"
+        assert config["description"] == "Reviews PRs for security"
+        assert config["system_prompt"] == "You are a security expert."
+
+    async def test_includes_tools_from_llm(self, service, mock_provider):
+        """When the LLM returns a tools list, it should be included."""
+        mock_provider.set_response(
+            '{"name": "Bot", "description": "d", "system_prompt": "p", '
+            '"tools": ["list_projects", "create_issue"]}'
+        )
+        config = await service.generate_agent_config(description="bot", status_column="Done")
+        assert config["tools"] == ["list_projects", "create_issue"]
+
+    async def test_missing_key_raises(self, service, mock_provider):
+        """Config missing a required key should raise ValueError."""
+        mock_provider.set_response('{"name": "Bot", "description": "d"}')
+        with pytest.raises(ValueError, match="system_prompt"):
+            await service.generate_agent_config(description="bot", status_column="Done")
+
+    async def test_passes_github_token(self, service, mock_provider):
+        mock_provider.set_response('{"name": "A", "description": "d", "system_prompt": "p"}')
+        await service.generate_agent_config(
+            description="a", status_column="s", github_token="tok-123"
+        )
+        assert mock_provider.last_github_token == "tok-123"
+
+
+class TestEditAgentConfig:
+    """Tests for edit_agent_config (used by #agent edit loop)."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    async def test_applies_edit(self, service, mock_provider):
+        mock_provider.set_response(
+            '{"name": "SecBot", "description": "Security bot", "system_prompt": "updated"}'
+        )
+        current = {
+            "name": "SecurityReviewer",
+            "description": "Reviews PRs",
+            "system_prompt": "original",
+        }
+        result = await service.edit_agent_config(
+            current_config=current, edit_instruction="rename to SecBot"
+        )
+        assert result["name"] == "SecBot"
+        assert result["system_prompt"] == "updated"
+
+    async def test_missing_key_raises(self, service, mock_provider):
+        mock_provider.set_response('{"name": "A", "description": "d"}')
+        with pytest.raises(ValueError, match="system_prompt"):
+            await service.edit_agent_config(
+                current_config={"name": "A", "description": "d", "system_prompt": "p"},
+                edit_instruction="change name",
+            )
