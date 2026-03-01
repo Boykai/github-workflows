@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
-from src.constants import DEFAULT_STATUS_COLUMNS
+from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
@@ -466,6 +466,23 @@ async def confirm_proposal(
     project_id = session.selected_project_id
     assert project_id is not None
 
+    # Validate description does not exceed GitHub API limit before attempting
+    # issue creation.  This check lives outside the try/except below so that the
+    # structured ValidationError (with body_length/max_length details) is never
+    # caught by the broad ``except Exception`` handler and re-wrapped — which
+    # would drop the ``details`` payload and return a misleading error message.
+    body = proposal.final_description or ""
+    if len(body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
+        raise ValidationError(
+            f"Issue body is {len(body)} characters, which exceeds the "
+            f"GitHub API limit of {GITHUB_ISSUE_BODY_MAX_LENGTH} characters. "
+            "Please shorten the description.",
+            details={
+                "body_length": len(body),
+                "max_length": GITHUB_ISSUE_BODY_MAX_LENGTH,
+            },
+        )
+
     # Create the issue in GitHub
     try:
         # Step 1: Create a real GitHub Issue via REST API
@@ -474,7 +491,7 @@ async def confirm_proposal(
             owner=owner,
             repo=repo,
             title=proposal.final_title,
-            body=proposal.final_description or "",
+            body=body,
         )
 
         issue_number = issue["number"]
