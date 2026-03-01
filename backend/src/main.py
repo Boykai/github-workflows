@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 async def _session_cleanup_loop() -> None:
-    """Periodic background task to purge expired sessions."""
+    """Periodic background task to purge expired sessions.
+
+    Uses exponential backoff on consecutive failures so transient DB
+    errors don't spin-loop, while preserving the configured base
+    interval on the success path.  The backoff cap is never lower than
+    the base interval itself.
+    """
     from src.services.database import get_db
     from src.services.session_store import purge_expired_sessions
 
@@ -26,7 +32,15 @@ async def _session_cleanup_loop() -> None:
 
     while True:
         try:
-            sleep_time = min(interval * (2**consecutive_failures), 300)
+            # On the success path keep the configured cadence; only apply
+            # capped exponential backoff when there have been failures.
+            if consecutive_failures == 0:
+                sleep_time = interval
+            else:
+                backoff = interval * (2**consecutive_failures)
+                cap = max(interval, 300)
+                sleep_time = min(backoff, cap)
+
             await asyncio.sleep(sleep_time)
             db = get_db()
             count = await purge_expired_sessions(db)
@@ -38,49 +52,69 @@ async def _session_cleanup_loop() -> None:
             break
         except Exception:
             consecutive_failures += 1
-            logger.exception("Error in session cleanup task")
+            logger.exception(
+                "Error in session cleanup task (consecutive_failures=%d)",
+                consecutive_failures,
+            )
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan handler."""
+    """Application lifespan handler.
+
+    The entire startup sequence is wrapped in ``try / finally`` so that
+    resources are always cleaned up — even when a later startup step
+    raises before ``yield``.  Each resource is guarded by a
+    ``None``/flag check so cleanup only tears down what was actually
+    initialised.
+    """
     settings = get_settings()
     setup_logging(settings.debug)
     logger.info("Starting Agent Projects API")
 
-    # Initialize SQLite database, run migrations, seed global settings
     from src.services.database import close_database, init_database, seed_global_settings
-
-    db = await init_database()
-    await seed_global_settings(db)
-    _app.state.db = db
-
-    # Register singleton services on app.state for DI (see dependencies.py)
-    from src.services.github_projects import github_projects_service
-    from src.services.websocket import connection_manager
-
-    _app.state.github_service = github_projects_service
-    _app.state.connection_manager = connection_manager
-
-    # Start periodic session cleanup
-    cleanup_task = asyncio.create_task(_session_cleanup_loop())
-
-    # Start Signal WebSocket listener for inbound messages
     from src.services.signal_bridge import start_signal_ws_listener, stop_signal_ws_listener
 
-    await start_signal_ws_listener()
+    # Track which resources were successfully initialised so the finally
+    # block only tears down what actually started.
+    db = None
+    cleanup_task: asyncio.Task | None = None
+    signal_started = False
 
     try:
+        # Initialize SQLite database, run migrations, seed global settings
+        db = await init_database()
+        await seed_global_settings(db)
+        _app.state.db = db
+
+        # Register singleton services on app.state for DI (see dependencies.py)
+        from src.services.github_projects import github_projects_service
+        from src.services.websocket import connection_manager
+
+        _app.state.github_service = github_projects_service
+        _app.state.connection_manager = connection_manager
+
+        # Start periodic session cleanup
+        cleanup_task = asyncio.create_task(_session_cleanup_loop())
+
+        # Start Signal WebSocket listener for inbound messages
+        await start_signal_ws_listener()
+        signal_started = True
+
         yield
     finally:
-        # Shutdown: stop Signal listener, cancel cleanup task, close database
-        await stop_signal_ws_listener()
-        cleanup_task.cancel()
-        try:
-            await cleanup_task
-        except asyncio.CancelledError:
-            pass
-        await close_database()
+        # Shutdown: stop Signal listener, cancel cleanup task, close database.
+        # Guards ensure we only tear down resources that were initialised.
+        if signal_started:
+            await stop_signal_ws_listener()
+        if cleanup_task is not None:
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
+        if db is not None:
+            await close_database()
         logger.info("Shutting down Agent Projects API")
 
 

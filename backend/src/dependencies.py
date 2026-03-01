@@ -82,9 +82,19 @@ async def require_admin(
     row = await cursor.fetchone()
 
     if row is None:
-        admin_user_id = None
-    else:
-        admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+        # The global_settings singleton row is missing; this is a server
+        # misconfiguration — seed_global_settings() should have created it.
+        logger.error(
+            "global_settings row with id=1 is missing when verifying admin user "
+            "(GitHub user id: %s)",
+            session.github_user_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error: admin settings are missing.",
+        )
+
+    admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if admin_user_id is None:
         # Auto-promote first authenticated user atomically to prevent race conditions
@@ -103,6 +113,19 @@ async def require_admin(
         # Another user was promoted concurrently — re-read to check
         cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
         row = await cursor.fetchone()
+        if row is None:
+            # The global_settings singleton row is missing — this should
+            # never happen since we just read it above.  Surface a clear
+            # 500 rather than an opaque AttributeError.
+            logger.error(
+                "global_settings row with id=1 is missing when verifying "
+                "admin user (GitHub user id: %s)",
+                session.github_user_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Server configuration error: admin settings are missing.",
+            )
         admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if session.github_user_id != admin_user_id:
