@@ -50,7 +50,7 @@ The database migration (`008_cleanup_audit_logs.sql`) runs automatically on back
 | `frontend/src/components/board/CleanUpButton.tsx` | Create | Button with tooltip trigger |
 | `frontend/src/components/board/CleanUpConfirmModal.tsx` | Create | Confirmation modal with item lists |
 | `frontend/src/components/board/CleanUpSummary.tsx` | Create | Post-operation summary/audit trail |
-| `frontend/src/components/board/ProjectBoard.tsx` | Modify | Add CleanUpButton to board header |
+| `frontend/src/pages/ProjectBoardPage.tsx` | Modify | Add CleanUpButton to board header |
 
 ## Implementation Order
 

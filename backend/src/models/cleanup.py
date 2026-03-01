@@ -1,5 +1,7 @@
 """Pydantic models for repository cleanup operations."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 # ── Request Models ──────────────────────────────────────────────────
@@ -101,7 +103,7 @@ class CleanupAuditLogRow(BaseModel):
     prs_closed: int
     prs_preserved: int
     errors_count: int
-    details: str  # JSON string
+    details: dict[str, Any] | None  # Parsed JSON object (stored as TEXT in SQLite)
 
 
 # ── History Response ────────────────────────────────────────────────

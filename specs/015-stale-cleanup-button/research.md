@@ -22,14 +22,15 @@
 
 **Decision**: Implement two backend endpoints:
 1. `POST /api/v1/cleanup/preflight` — Fetches all branches, PRs, and project board issues; computes and returns deletion/preservation lists without performing any mutations.
-2. `POST /api/v1/cleanup/execute` — Accepts the confirmed deletion list and performs sequential deletions with progress tracking via Server-Sent Events (SSE).
+2. `POST /api/v1/cleanup/execute` — Accepts the confirmed deletion list and performs the deletions sequentially, returning a single JSON response once execution is complete (no streamed progress events).
 
-**Rationale**: The spec (FR-002, FR-003) requires the confirmation modal to be populated from a preflight fetch, not at button render time. Separating preflight from execution ensures the user reviews an accurate, up-to-date list before any destructive action. SSE for the execute endpoint allows real-time progress updates (FR-009) without WebSocket complexity. The existing codebase uses SSE for task subscription (`projects.py` SSE endpoints). POST is used instead of GET for preflight because the request may include project board context and the response can be large.
+**Rationale**: The spec (FR-002, FR-003) requires the confirmation modal to be populated from a preflight fetch, not at button render time. Separating preflight from execution ensures the user reviews an accurate, up-to-date list before any destructive action. For execution, the current implementation performs the whole batch and then returns a single JSON result, while the frontend shows an indeterminate spinner during the operation. This keeps the implementation simple and consistent with existing JSON-based task flows, while still satisfying the core requirement that the user can initiate cleanup and be notified when it finishes. POST is used instead of GET for preflight because the request may include project board context and the response can be large.
 
 **Alternatives considered**:
 - Single endpoint with confirmation token: Simpler but conflates data retrieval with mutation intent; harder to retry preflight independently.
-- WebSocket for progress: More complex to implement; the existing codebase already uses SSE for similar real-time streaming patterns.
-- Polling for progress: Requires additional state management and doesn't provide real-time feedback.
+- SSE-based streaming progress for `/cleanup/execute`: Initially explored to provide fine-grained progress updates (FR-009), but deferred to keep the backend and frontend implementation aligned with the existing single-response pattern.
+- WebSocket for progress: More complex to implement and operate; not necessary given the current indeterminate-progress UX.
+- Polling for progress: Would require additional state management to track job IDs and introduces extra API surface area for limited UX benefit in this feature.
 
 ## R3: PR Closure Strategy
 

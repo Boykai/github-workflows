@@ -42,8 +42,10 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
     confirmExecute(owner, repo, projectId);
   };
 
-  const handleViewHistory = () => {
-    loadHistory(owner, repo);
+  const handleViewHistory = async () => {
+    // Await the history fetch before transitioning to the audit
+    // history view so users never see a misleading empty-state flash.
+    await loadHistory(owner, repo);
     showAuditHistory();
   };
 

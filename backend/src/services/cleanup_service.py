@@ -116,8 +116,17 @@ async def fetch_all_branches(
             headers=headers,
         )
         if response.status_code != 200:
-            logger.error("Failed to fetch branches page %d: %d", page, response.status_code)
-            break
+            logger.error(
+                "Failed to fetch branches page %d: HTTP %d",
+                page,
+                response.status_code,
+            )
+            # For a destructive feature, partial preflight data is unsafe.
+            # Raise instead of returning incomplete results that could
+            # misclassify branches that should be preserved.
+            raise RuntimeError(
+                f"Failed to fetch branches from GitHub: HTTP {response.status_code} on page {page}"
+            )
 
         page_branches = response.json()
         if not page_branches:
@@ -150,8 +159,17 @@ async def fetch_open_prs(
             headers=headers,
         )
         if response.status_code != 200:
-            logger.error("Failed to fetch PRs page %d: %d", page, response.status_code)
-            break
+            logger.error(
+                "Failed to fetch PRs page %d: HTTP %d",
+                page,
+                response.status_code,
+            )
+            # PR fetch failure is equally dangerous — branches that should
+            # be preserved via PR body references could be incorrectly
+            # slated for deletion.  Treat as a hard preflight failure.
+            raise RuntimeError(
+                f"Failed to fetch pull requests from GitHub: HTTP {response.status_code} on page {page}"
+            )
 
         page_prs = response.json()
         if not page_prs:
@@ -207,7 +225,14 @@ async def fetch_open_issues_on_board(
         )
         node = data.get("node")
         if not node:
-            break
+            # An empty node means the project_id is invalid or
+            # inaccessible.  If we silently return an empty issues list,
+            # preflight will classify ALL non-main branches/PRs as
+            # deletion candidates — extremely dangerous.  Fail loudly.
+            raise RuntimeError(
+                "Failed to fetch project board issues: GraphQL returned no node. "
+                "The project_id may be invalid or inaccessible."
+            )
 
         items_data = node.get("items", {})
         page_info = items_data.get("pageInfo", {})
@@ -493,14 +518,20 @@ async def execute_cleanup(
         # Rate limit delay
         await asyncio.sleep(DELETION_DELAY_SECONDS)
 
-    # Close PRs sequentially
+    # Close PRs sequentially using the shared retry helper for
+    # consistent rate-limit / transient-error handling (429, 503).
     headers = github_service._build_headers(access_token)
     for pr_number in request.prs_to_close:
         try:
-            response = await github_service._client.patch(
+            response = await github_service._request_with_retry(
+                "PATCH",
                 f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
                 json={"state": "closed"},
                 headers=headers,
+                # PR closure is NOT idempotent — closing an already-closed
+                # PR is fine, but we should not blindly retry on unknown
+                # errors for a state-changing mutation.
+                idempotent=False,
             )
             if response.status_code == 200:
                 results.append(
@@ -596,6 +627,18 @@ async def get_cleanup_history(
 
     operations = []
     for row in rows:
+        # details is stored as a JSON-encoded TEXT column in SQLite.
+        # Parse it into a dict so the API response matches the contract
+        # (frontend/contract expect a structured object, not a string).
+        raw_details = row[13]
+        parsed_details = None
+        if raw_details:
+            try:
+                parsed_details = json.loads(raw_details)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("Failed to parse details JSON for audit log %s", row[0])
+                parsed_details = None
+
         operations.append(
             CleanupAuditLogRow(
                 id=row[0],
@@ -611,7 +654,7 @@ async def get_cleanup_history(
                 prs_closed=row[10],
                 prs_preserved=row[11],
                 errors_count=row[12],
-                details=row[13],
+                details=parsed_details,
             )
         )
 

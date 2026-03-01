@@ -683,7 +683,7 @@ export interface CleanupAuditLogEntry {
   errors_count: number;
   details: {
     results: CleanupItemResult[];
-  };
+  } | null;
 }
 
 export interface CleanupHistoryResponse {
