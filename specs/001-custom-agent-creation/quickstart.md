@@ -70,7 +70,7 @@ Upon confirmation, the system creates (best-effort):
 cd backend && source .venv/bin/activate
 
 # Run tests for this feature
-pytest tests/unit/test_agent_creator.py -v
+pytest tests/test_agent_creator.py -v
 
 # Run all tests
 pytest tests/ -q

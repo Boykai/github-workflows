@@ -724,7 +724,10 @@ class AIAgentService:
                     '- "name": A concise PascalCase agent name (e.g., "SecurityReviewer")\n'
                     '- "description": A one-line summary of the agent\'s purpose\n'
                     '- "system_prompt": A detailed system prompt (3-10 paragraphs) defining the agent\'s '
-                    "behavior, responsibilities, tone, and guidelines. Be specific and actionable.\n\n"
+                    "behavior, responsibilities, tone, and guidelines. Be specific and actionable.\n"
+                    '- "tools": A list of Copilot tool/capability identifiers the agent needs '
+                    '(e.g., ["list_projects", "get_project_items", "create_issue", "search_code"]). '
+                    "Choose from common GitHub Copilot tools.\n\n"
                     "Respond ONLY with valid JSON, no markdown fences or extra text."
                 ),
             },

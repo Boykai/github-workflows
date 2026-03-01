@@ -60,6 +60,7 @@ class AgentCreationState(BaseModel):
 
     step: CreationStep = Field(default=CreationStep.PARSE)
     session_id: str = Field(..., description="Web chat session ID or Signal user ID")
+    github_user_id: str = Field(default="", description="GitHub user ID for created_by tracking")
     project_id: str | None = Field(default=None, description="Target GitHub Project node ID")
     owner: str | None = Field(default=None, description="Repository owner")
     repo: str | None = Field(default=None, description="Repository name")

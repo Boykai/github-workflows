@@ -137,21 +137,28 @@ async def process_signal_chat(
 
     if is_agent_cmd or active_agent:
         try:
+            from src.services.agent_creator import is_admin_user
             from src.services.database import get_db
             from src.utils import resolve_repository
 
             db = get_db()
+
+            # Enforce admin-only access (FR-002)
+            if not await is_admin_user(db, conn.github_user_id):
+                await _reply(source_phone, "⛔ The `#agent` command is restricted to admin users.")
+                return
+
+            token = await _get_user_access_token(conn.github_user_id) or ""
             owner: str | None = None
             repo: str | None = None
             try:
                 owner, repo = await resolve_repository(
-                    await _get_user_access_token(conn.github_user_id) or "",
+                    token,
                     project_id,
                 )
             except Exception:
                 pass  # Signal flow can proceed without owner/repo
 
-            token = await _get_user_access_token(conn.github_user_id) or ""
             agent_response = await handle_agent_command(
                 message=message_text,
                 session_key=agent_session_key,

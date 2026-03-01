@@ -28,6 +28,21 @@ from src.services.ai_agent import get_ai_agent_service
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedDict, utcnow
 
+
+async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
+    """Check whether *github_user_id* matches the admin in global_settings."""
+    try:
+        cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
+        row = await cursor.fetchone()
+        if row is None:
+            return False
+        admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+        return admin_id is not None and str(admin_id) == str(github_user_id)
+    except Exception:
+        logger.warning("Admin check failed — denying access")
+        return False
+
+
 logger = logging.getLogger(__name__)
 
 # ── Module-level state ─────────────────────────────────────────────────
@@ -80,6 +95,10 @@ async def handle_agent_command(
     Returns a markdown-formatted response string.
     """
     state = _agent_sessions.get(session_key)
+
+    # Enforce admin-only access (FR-002)
+    if not await is_admin_user(db, github_user_id):
+        return "⛔ The `#agent` command is restricted to admin users."
 
     if state is None:
         # New command — parse and initialise state
@@ -205,6 +224,7 @@ async def _handle_new_command(
 
     state = AgentCreationState(
         session_id=session_key,
+        github_user_id=github_user_id,
         project_id=project_id,
         owner=owner,
         repo=repo,
@@ -278,7 +298,7 @@ async def _handle_existing_session(
                 project_id=state.project_id,
                 owner=state.owner,
                 repo=state.repo,
-                github_user_id=state.session_id,
+                github_user_id=state.github_user_id,
                 access_token=access_token,
                 db=db,
                 project_columns=project_columns,
@@ -404,18 +424,14 @@ async def _generate_and_present_preview(
 
     slug = AgentPreview.name_to_slug(config["name"])
 
-    # Gather all available tools
-    tools: list[str] = []
-    if state.owner and state.repo:
-        try:
-            available = await github_projects_service.list_available_agents(
-                state.owner,
-                state.repo,
-                access_token,
-            )
-            tools = [a.slug for a in available]
-        except Exception:
-            logger.warning("Could not fetch available tools for preview")
+    # Use tools from AI-generated config if provided; otherwise empty list.
+    # These should be Copilot tool/capability identifiers, not agent slugs.
+    raw_tools = config.get("tools") or []
+    if isinstance(raw_tools, list):
+        tools: list[str] = [str(t) for t in raw_tools]
+    else:
+        logger.warning("Agent config 'tools' field is not a list; defaulting to empty")
+        tools = []
 
     preview = AgentPreview(
         name=config["name"],
@@ -593,7 +609,7 @@ async def _execute_creation_pipeline(
                 state.project_id,
                 state.owner,
                 state.repo,
-                state.session_id,
+                state.github_user_id,
                 utcnow().isoformat(),
             ),
         )
@@ -852,27 +868,35 @@ async def _execute_creation_pipeline(
     # ── Step 8: Move issue to "In Review" on project board ──
     if issue_node_id and state.project_id:
         try:
-            # Add issue to project first
-            add_data = await github_projects_service._graphql(
-                access_token,
-                "mutation($projectId: ID!, $contentId: ID!) { addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) { item { id } } }",
-                {"projectId": state.project_id, "contentId": issue_node_id},
+            # Add issue to project using public API method
+            item_id = await github_projects_service.add_issue_to_project(
+                access_token=access_token,
+                project_id=state.project_id,
+                issue_node_id=issue_node_id,
             )
-            item_id = ((add_data.get("addProjectV2ItemById") or {}).get("item") or {}).get("id")
-            if item_id:
+            if not item_id:
+                # Treat missing item ID as failure instead of silently succeeding
+                results.append(
+                    PipelineStepResult(
+                        step_name="Move issue to In Review",
+                        success=False,
+                        error="Failed to add issue to project — missing project item id",
+                    )
+                )
+            else:
                 await github_projects_service.update_item_status_by_name(
                     access_token=access_token,
                     project_id=state.project_id,
                     item_id=item_id,
                     status_name="In Review",
                 )
-            results.append(
-                PipelineStepResult(
-                    step_name="Move issue to In Review",
-                    success=True,
-                    detail=f"Issue #{issue_number} moved to In Review",
+                results.append(
+                    PipelineStepResult(
+                        step_name="Move issue to In Review",
+                        success=True,
+                        detail=f"Issue #{issue_number} moved to In Review",
+                    )
                 )
-            )
         except Exception as exc:
             logger.error("Step 8 (move issue) failed: %s", exc)
             results.append(
@@ -931,17 +955,26 @@ def _generate_issue_body(preview: AgentPreview) -> str:
     )
 
 
+def _yaml_quote(value: str) -> str:
+    """Safely quote a string for YAML using JSON encoding.
+
+    JSON strings are a valid subset of YAML scalars, so this ensures
+    special characters (``:`` ``#`` ``[`` ``]`` ``|`` ``>``) are escaped.
+    """
+    return json.dumps(value, ensure_ascii=False)
+
+
 def _generate_config_files(preview: AgentPreview) -> list[dict]:
     """Generate the 3 config files for commit: YAML config, prompt .md, README entry."""
-    # 1. Agent YAML config
+    # 1. Agent YAML config — use JSON-quoted strings to avoid YAML injection
     yaml_content = (
-        f"name: {preview.name}\n"
-        f"description: {preview.description}\n"
-        f"status_column: {preview.status_column}\n"
+        f"name: {_yaml_quote(preview.name)}\n"
+        f"description: {_yaml_quote(preview.description)}\n"
+        f"status_column: {_yaml_quote(preview.status_column)}\n"
         f"tools:\n"
     )
     for tool in preview.tools:
-        yaml_content += f"  - {tool}\n"
+        yaml_content += f"  - {_yaml_quote(tool)}\n"
 
     # 2. Prompt markdown
     prompt_content = f"# {preview.name} — System Prompt\n\n{preview.system_prompt}\n"
