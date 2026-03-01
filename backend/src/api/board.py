@@ -81,7 +81,9 @@ async def get_board_data(
         if cached:
             logger.info("Returning cached board data for project %s", project_id)
             if isinstance(cached, BoardDataResponse):
-                cached.rate_limit = _get_rate_limit_info()
+                # Return a shallow copy to avoid mutating the shared cache entry,
+                # which could leak stale rate_limit values across requests.
+                return cached.model_copy(update={"rate_limit": _get_rate_limit_info()})
             return cached
 
     logger.info("Fetching board data for project %s", project_id)
@@ -95,7 +97,9 @@ async def get_board_data(
         # Check if this is a rate limit error
         rl = github_projects_service.get_last_rate_limit()
         if isinstance(rl, dict) and rl.get("remaining") == 0:
-            logger.warning("Rate limit exceeded while fetching board data for project %s", project_id)
+            logger.warning(
+                "Rate limit exceeded while fetching board data for project %s", project_id
+            )
             return JSONResponse(
                 status_code=429,
                 content={

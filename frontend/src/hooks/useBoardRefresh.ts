@@ -42,6 +42,17 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
   const [error, setError] = useState<RefreshError | null>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
 
+  // Seed lastRefreshedAt from the TanStack Query cache so the Page Visibility
+  // handler doesn't treat every first tab-switch as "stale since epoch".
+  // This runs once when boardData first arrives (lastRefreshedAt is still null).
+  useEffect(() => {
+    if (lastRefreshedAt !== null || !projectId) return;
+    const queryState = queryClient.getQueryState(['board', 'data', projectId]);
+    if (queryState?.dataUpdatedAt) {
+      setLastRefreshedAt(new Date(queryState.dataUpdatedAt));
+    }
+  }, [projectId, lastRefreshedAt, queryClient, boardData]);
+
   // Update rate limit info reactively from board data responses
   useEffect(() => {
     if (boardData?.rate_limit) {

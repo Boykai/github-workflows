@@ -171,11 +171,16 @@ class GitHubProjectsService:
                         backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
                         continue
 
-                response.raise_for_status()
+                # Always extract rate limit headers — even from error responses
+                # (e.g. 403/429) — so downstream callers have accurate quota info.
                 self._extract_rate_limit_headers(response)
+                response.raise_for_status()
                 return response
 
             except httpx.HTTPStatusError as e:
+                # Capture rate limit headers from error responses so
+                # get_last_rate_limit() reflects the most recent state.
+                self._extract_rate_limit_headers(e.response)
                 if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
