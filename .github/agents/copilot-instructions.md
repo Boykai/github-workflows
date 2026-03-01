@@ -106,6 +106,11 @@ npx playwright test             # E2E tests
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
 ## Active Technologies
+- Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
+- SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
+
+## Recent Changes
+- 014-codebase-quality-refactor: Added Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend)
 - Python 3.12 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109 + Uvicorn, React 18 + Vite 5 + TanStack Query v5, httpx ≥0.26, aiosqlite ≥0.20, github-copilot-sdk, Pydantic ≥2.5
 - SQLite (WAL mode, file-backed at `/app/data/settings.db`) — agent pipeline mappings stored as JSON in `project_settings` table; custom agent configs stored in `agent_configs` table (migration 007)
 

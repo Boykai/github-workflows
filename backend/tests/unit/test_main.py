@@ -86,6 +86,60 @@ class TestLifespan:
 
             mock_close.assert_awaited_once()
 
+    async def test_lifespan_cleanup_on_startup_failure(self):
+        """Resources initialised before failure should still be cleaned up.
+
+        Validates the try/finally guard: if start_signal_ws_listener()
+        raises, the DB and cleanup task that were already started must
+        still be torn down, but stop_signal_ws_listener() must NOT be
+        called because Signal was never started.
+        """
+        from src.main import lifespan
+
+        mock_db = AsyncMock()
+        mock_app = MagicMock()
+
+        with (
+            patch("src.main.get_settings") as mock_s,
+            patch("src.main.setup_logging"),
+            patch(
+                "src.services.database.init_database",
+                new_callable=AsyncMock,
+                return_value=mock_db,
+            ),
+            patch(
+                "src.services.database.seed_global_settings",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.database.close_database",
+                new_callable=AsyncMock,
+            ) as mock_close,
+            patch(
+                "src.services.signal_bridge.start_signal_ws_listener",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("signal connect failed"),
+            ),
+            patch(
+                "src.services.signal_bridge.stop_signal_ws_listener",
+                new_callable=AsyncMock,
+            ) as mock_stop_signal,
+        ):
+            mock_s.return_value = MagicMock(
+                debug=True,
+                session_cleanup_interval=999999,
+            )
+            try:
+                async with lifespan(mock_app):
+                    pass  # pragma: no cover
+            except RuntimeError:
+                pass
+
+            # DB should still be closed even though startup failed
+            mock_close.assert_awaited_once()
+            # Signal was never started, so stop must NOT be called
+            mock_stop_signal.assert_not_awaited()
+
 
 class TestSessionCleanupLoop:
     """Tests for _session_cleanup_loop background task."""
@@ -137,6 +191,62 @@ class TestSessionCleanupLoop:
             mock_s.return_value = MagicMock(session_cleanup_interval=10)
             # Should not raise; should catch and continue until CancelledError
             await _session_cleanup_loop()
+
+    async def test_backoff_uses_base_interval_on_success(self):
+        """On success (consecutive_failures==0) sleep equals base interval.
+
+        Regression test: the original implementation used
+        ``min(interval * 2**0, 300)`` which capped the default 3600s
+        interval down to 300s, running cleanup 12x more often.
+        """
+        sleep_values: list[float] = []
+
+        async def _capture_sleep(seconds):
+            sleep_values.append(seconds)
+            raise asyncio.CancelledError
+
+        with (
+            patch("src.main.get_settings") as mock_s,
+            patch("src.main.asyncio.sleep", side_effect=_capture_sleep),
+            patch("src.services.database.get_db", return_value=MagicMock()),
+        ):
+            mock_s.return_value = MagicMock(session_cleanup_interval=3600)
+            await _session_cleanup_loop()
+
+        # First sleep should be the full configured interval, not capped to 300
+        assert sleep_values[0] == 3600
+
+    async def test_backoff_increases_on_consecutive_failures(self):
+        """After failures, sleep uses exponential backoff capped correctly."""
+        sleep_values: list[float] = []
+        call_count = 0
+
+        async def _capture_sleep(seconds):
+            nonlocal call_count
+            sleep_values.append(seconds)
+            call_count += 1
+            if call_count >= 3:
+                raise asyncio.CancelledError
+
+        with (
+            patch("src.main.get_settings") as mock_s,
+            patch("src.main.asyncio.sleep", side_effect=_capture_sleep),
+            patch("src.services.database.get_db", return_value=MagicMock()),
+            patch(
+                "src.services.session_store.purge_expired_sessions",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("DB error"),
+            ),
+        ):
+            mock_s.return_value = MagicMock(session_cleanup_interval=10)
+            await _session_cleanup_loop()
+
+        # 1st call: consecutive_failures=0 → sleep=10 (base interval)
+        assert sleep_values[0] == 10
+        # 2nd call: consecutive_failures=1 → min(10*2, max(10,300)) = 20
+        assert sleep_values[1] == 20
+        # 3rd call: consecutive_failures=2 → min(10*4, 300) = 40
+        assert sleep_values[2] == 40
 
 
 class TestGenericExceptionHandler:
