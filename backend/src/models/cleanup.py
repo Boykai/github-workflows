@@ -2,8 +2,8 @@
 
 from pydantic import BaseModel, Field
 
-
 # ── Request Models ──────────────────────────────────────────────────
+
 
 class CleanupPreflightRequest(BaseModel):
     """Request body for the preflight check."""
@@ -24,6 +24,7 @@ class CleanupExecuteRequest(BaseModel):
 
 
 # ── Response Models ─────────────────────────────────────────────────
+
 
 class BranchInfo(BaseModel):
     """Branch details for preflight response."""
@@ -83,6 +84,7 @@ class CleanupExecuteResponse(BaseModel):
 
 # ── Database Row Model ──────────────────────────────────────────────
 
+
 class CleanupAuditLogRow(BaseModel):
     """Represents a cleanup_audit_logs database row."""
 
@@ -103,6 +105,7 @@ class CleanupAuditLogRow(BaseModel):
 
 
 # ── History Response ────────────────────────────────────────────────
+
 
 class CleanupHistoryResponse(BaseModel):
     """Response for the audit history endpoint."""

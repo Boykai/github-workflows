@@ -23,9 +23,9 @@
 
 **Purpose**: Database migration, shared backend models, and shared frontend types needed by all user stories
 
-- [ ] T001 Create cleanup audit logs migration in backend/src/migrations/008_cleanup_audit_logs.sql
-- [ ] T002 [P] Create cleanup Pydantic models (request/response/row) in backend/src/models/cleanup.py
-- [ ] T003 [P] Add cleanup TypeScript interfaces (BranchInfo, PullRequestInfo, CleanupPreflightResponse, CleanupExecuteRequest, CleanupExecuteResponse, CleanupItemResult) to frontend/src/types/index.ts
+- [x] T001 Create cleanup audit logs migration in backend/src/migrations/008_cleanup_audit_logs.sql
+- [x] T002 [P] Create cleanup Pydantic models (request/response/row) in backend/src/models/cleanup.py
+- [x] T003 [P] Add cleanup TypeScript interfaces (BranchInfo, PullRequestInfo, CleanupPreflightResponse, CleanupExecuteRequest, CleanupExecuteResponse, CleanupItemResult) to frontend/src/types/index.ts
 
 ---
 
@@ -35,13 +35,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement cleanup service with preflight logic (fetch all branches via REST, fetch open PRs via REST, fetch open issues on project board via GraphQL, 3-layer cross-referencing strategy, permission check) in backend/src/services/cleanup_service.py
-- [ ] T005 Implement cleanup service execute logic for branch deletion (sequential DELETE /repos/{owner}/{repo}/git/refs/heads/{branch} with 200ms delay, main branch server-side rejection) in backend/src/services/cleanup_service.py
-- [ ] T006 Implement cleanup service execute logic for PR closure (sequential PATCH /repos/{owner}/{repo}/pulls/{number} with state=closed, 200ms delay between requests) in backend/src/services/cleanup_service.py
-- [ ] T007 Implement cleanup service audit trail logic (create audit log row on execute start, update on completion/failure, query history) in backend/src/services/cleanup_service.py
-- [ ] T008 Create cleanup API router with POST /cleanup/preflight, POST /cleanup/execute, GET /cleanup/history endpoints (auth via get_session_dep) in backend/src/api/cleanup.py
-- [ ] T009 Register cleanup API router with prefix /cleanup and tag "cleanup" in backend/src/api/__init__.py
-- [ ] T010 [P] Add cleanup API client methods (cleanupPreflight, cleanupExecute, cleanupHistory) to frontend/src/services/api.ts
+- [x] T004 Implement cleanup service with preflight logic (fetch all branches via REST, fetch open PRs via REST, fetch open issues on project board via GraphQL, 3-layer cross-referencing strategy, permission check) in backend/src/services/cleanup_service.py
+- [x] T005 Implement cleanup service execute logic for branch deletion (sequential DELETE /repos/{owner}/{repo}/git/refs/heads/{branch} with 200ms delay, main branch server-side rejection) in backend/src/services/cleanup_service.py
+- [x] T006 Implement cleanup service execute logic for PR closure (sequential PATCH /repos/{owner}/{repo}/pulls/{number} with state=closed, 200ms delay between requests) in backend/src/services/cleanup_service.py
+- [x] T007 Implement cleanup service audit trail logic (create audit log row on execute start, update on completion/failure, query history) in backend/src/services/cleanup_service.py
+- [x] T008 Create cleanup API router with POST /cleanup/preflight, POST /cleanup/execute, GET /cleanup/history endpoints (auth via get_session_dep) in backend/src/api/cleanup.py
+- [x] T009 Register cleanup API router with prefix /cleanup and tag "cleanup" in backend/src/api/__init__.py
+- [x] T010 [P] Add cleanup API client methods (cleanupPreflight, cleanupExecute, cleanupHistory) to frontend/src/services/api.ts
 
 **Checkpoint**: Backend API fully functional — preflight, execute, and history endpoints respond correctly with auth
 
@@ -55,10 +55,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Create useCleanup React hook with preflight query (POST /cleanup/preflight), workflow state machine (idle → loading → confirming → executing → summary → idle), and error state in frontend/src/hooks/useCleanup.ts
-- [ ] T012 [P] [US1] Create CleanUpConfirmModal component displaying branches_to_delete, branches_to_preserve, prs_to_close, prs_to_preserve lists with preservation reasons, confirm/cancel buttons, and empty-state handling (no items to delete → confirm disabled) in frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T013 [US1] Create CleanUpButton component with onClick that triggers preflight via useCleanup hook, loading spinner during preflight, and renders CleanUpConfirmModal when confirming state is active in frontend/src/components/board/CleanUpButton.tsx
-- [ ] T014 [US1] Add CleanUpButton to the board header area in frontend/src/components/board/ProjectBoard.tsx
+- [x] T011 [P] [US1] Create useCleanup React hook with preflight query (POST /cleanup/preflight), workflow state machine (idle → loading → confirming → executing → summary → idle), and error state in frontend/src/hooks/useCleanup.ts
+- [x] T012 [P] [US1] Create CleanUpConfirmModal component displaying branches_to_delete, branches_to_preserve, prs_to_close, prs_to_preserve lists with preservation reasons, confirm/cancel buttons, and empty-state handling (no items to delete → confirm disabled) in frontend/src/components/board/CleanUpConfirmModal.tsx
+- [x] T013 [US1] Create CleanUpButton component with onClick that triggers preflight via useCleanup hook, loading spinner during preflight, and renders CleanUpConfirmModal when confirming state is active in frontend/src/components/board/CleanUpButton.tsx
+- [x] T014 [US1] Add CleanUpButton to the board header area in frontend/src/components/board/ProjectBoard.tsx
 
 **Checkpoint**: User Story 1 complete — maintainer can click 'Clean Up', see the confirmation modal with categorized items, and cancel without deletions
 
@@ -72,10 +72,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add execute mutation to useCleanup hook (POST /cleanup/execute with confirmed branches_to_delete and prs_to_close, transition to executing state, then to summary state on response) in frontend/src/hooks/useCleanup.ts
-- [ ] T016 [US2] Add progress indicator UI to CleanUpButton component (visible during executing state, showing "Cleaning up..." with spinner) in frontend/src/components/board/CleanUpButton.tsx
-- [ ] T017 [US2] Create CleanUpSummary component displaying operation results (branches_deleted, prs_closed, branches_preserved, prs_preserved, errors list, per-item results with action/reason/error, dismiss button) in frontend/src/components/board/CleanUpSummary.tsx
-- [ ] T018 [US2] Render CleanUpSummary in CleanUpButton when workflow state is summary in frontend/src/components/board/CleanUpButton.tsx
+- [x] T015 [US2] Add execute mutation to useCleanup hook (POST /cleanup/execute with confirmed branches_to_delete and prs_to_close, transition to executing state, then to summary state on response) in frontend/src/hooks/useCleanup.ts
+- [x] T016 [US2] Add progress indicator UI to CleanUpButton component (visible during executing state, showing "Cleaning up..." with spinner) in frontend/src/components/board/CleanUpButton.tsx
+- [x] T017 [US2] Create CleanUpSummary component displaying operation results (branches_deleted, prs_closed, branches_preserved, prs_preserved, errors list, per-item results with action/reason/error, dismiss button) in frontend/src/components/board/CleanUpSummary.tsx
+- [x] T018 [US2] Render CleanUpSummary in CleanUpButton when workflow state is summary in frontend/src/components/board/CleanUpButton.tsx
 
 **Checkpoint**: User Stories 1 AND 2 complete — full clean-up workflow (click → review → confirm → progress → summary) functional
 
@@ -89,7 +89,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add descriptive tooltip to CleanUpButton (text: "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board") in frontend/src/components/board/CleanUpButton.tsx
+- [x] T019 [US3] Add descriptive tooltip to CleanUpButton (text: "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board") in frontend/src/components/board/CleanUpButton.tsx
 
 **Checkpoint**: User Story 3 complete — button tooltip provides clear discoverability
 
@@ -103,9 +103,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Add error handling to useCleanup hook for preflight failures (network errors, 422 invalid project, 429 rate limit) with user-facing error messages and transition back to idle state in frontend/src/hooks/useCleanup.ts
-- [ ] T021 [US4] Add inline error display to CleanUpButton for preflight errors (show error message with retry option, no modal opened) in frontend/src/components/board/CleanUpButton.tsx
-- [ ] T022 [US4] Enhance CleanUpSummary to distinguish successful deletions, failed deletions (with error reason), and preserved items in separate sections in frontend/src/components/board/CleanUpSummary.tsx
+- [x] T020 [US4] Add error handling to useCleanup hook for preflight failures (network errors, 422 invalid project, 429 rate limit) with user-facing error messages and transition back to idle state in frontend/src/hooks/useCleanup.ts
+- [x] T021 [US4] Add inline error display to CleanUpButton for preflight errors (show error message with retry option, no modal opened) in frontend/src/components/board/CleanUpButton.tsx
+- [x] T022 [US4] Enhance CleanUpSummary to distinguish successful deletions, failed deletions (with error reason), and preserved items in separate sections in frontend/src/components/board/CleanUpSummary.tsx
 
 **Checkpoint**: User Story 4 complete — errors are surfaced per-item with actionable messages, no silent failures
 
@@ -119,8 +119,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T023 [US5] Add permission error handling to useCleanup hook (detect has_permission=false in preflight response, set permission error state, do not transition to confirming) in frontend/src/hooks/useCleanup.ts
-- [ ] T024 [US5] Add permission error UI to CleanUpButton (display "You need at least push access to this repository to delete branches and close pull requests." when permission error state is set) in frontend/src/components/board/CleanUpButton.tsx
+- [x] T023 [US5] Add permission error handling to useCleanup hook (detect has_permission=false in preflight response, set permission error state, do not transition to confirming) in frontend/src/hooks/useCleanup.ts
+- [x] T024 [US5] Add permission error UI to CleanUpButton (display "You need at least push access to this repository to delete branches and close pull requests." when permission error state is set) in frontend/src/components/board/CleanUpButton.tsx
 
 **Checkpoint**: User Story 5 complete — users without permissions see a clear error before any modal or deletion
 
@@ -134,9 +134,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T025 [US6] Add audit history query to useCleanup hook (GET /cleanup/history with owner/repo params, store audit entries in state, expose showAuditHistory toggle) in frontend/src/hooks/useCleanup.ts
-- [ ] T026 [US6] Create CleanUpAuditHistory component displaying past cleanup operations (timestamp, counts, status) with per-item detail drill-down, accessible from board after summary is dismissed in frontend/src/components/board/CleanUpAuditHistory.tsx
-- [ ] T027 [US6] Add "View Audit History" link in CleanUpSummary dismiss footer and render CleanUpAuditHistory from CleanUpButton when audit history state is active in frontend/src/components/board/CleanUpButton.tsx
+- [x] T025 [US6] Add audit history query to useCleanup hook (GET /cleanup/history with owner/repo params, store audit entries in state, expose showAuditHistory toggle) in frontend/src/hooks/useCleanup.ts
+- [x] T026 [US6] Create CleanUpAuditHistory component displaying past cleanup operations (timestamp, counts, status) with per-item detail drill-down, accessible from board after summary is dismissed in frontend/src/components/board/CleanUpAuditHistory.tsx
+- [x] T027 [US6] Add "View Audit History" link in CleanUpSummary dismiss footer and render CleanUpAuditHistory from CleanUpButton when audit history state is active in frontend/src/components/board/CleanUpButton.tsx
 
 **Checkpoint**: User Story 6 complete — audit trail accessible for post-operation review
 
@@ -146,10 +146,10 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation
 
-- [ ] T028 [P] Verify main branch is unconditionally protected server-side (reject in execute endpoint even if included in request) in backend/src/api/cleanup.py
-- [ ] T029 [P] Verify sequential deletion with 200ms delay respects GitHub secondary rate limits in backend/src/services/cleanup_service.py
-- [ ] T030 [P] Verify 3-layer cross-referencing (naming convention, PR body references, timeline events) produces accurate categorization in backend/src/services/cleanup_service.py
-- [ ] T031 Run quickstart.md manual validation (start app, click Clean Up, review modal, confirm, view summary, check audit trail) per specs/015-stale-cleanup-button/quickstart.md
+- [x] T028 [P] Verify main branch is unconditionally protected server-side (reject in execute endpoint even if included in request) in backend/src/api/cleanup.py
+- [x] T029 [P] Verify sequential deletion with 200ms delay respects GitHub secondary rate limits in backend/src/services/cleanup_service.py
+- [x] T030 [P] Verify 3-layer cross-referencing (naming convention, PR body references, timeline events) produces accurate categorization in backend/src/services/cleanup_service.py
+- [x] T031 Run quickstart.md manual validation (start app, click Clean Up, review modal, confirm, view summary, check audit trail) per specs/015-stale-cleanup-button/quickstart.md
 
 ---
 

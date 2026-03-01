@@ -34,7 +34,9 @@ async def cleanup_preflight(
     """
     logger.info(
         "Cleanup preflight for %s/%s by user %s",
-        request.owner, request.repo, session.github_username,
+        request.owner,
+        request.repo,
+        session.github_username,
     )
     try:
         return await cleanup_service.preflight(
@@ -77,8 +79,11 @@ async def cleanup_execute(
 
     logger.info(
         "Cleanup execute for %s/%s by user %s: %d branches, %d PRs",
-        request.owner, request.repo, session.github_username,
-        len(request.branches_to_delete), len(request.prs_to_close),
+        request.owner,
+        request.repo,
+        session.github_username,
+        len(request.branches_to_delete),
+        len(request.prs_to_close),
     )
     try:
         return await cleanup_service.execute_cleanup(

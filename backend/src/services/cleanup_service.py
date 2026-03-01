@@ -112,8 +112,7 @@ async def fetch_all_branches(
 
     while True:
         response = await github_service._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}/branches"
-            f"?per_page={per_page}&page={page}",
+            f"https://api.github.com/repos/{owner}/{repo}/branches?per_page={per_page}&page={page}",
             headers=headers,
         )
         if response.status_code != 200:
@@ -280,11 +279,13 @@ async def preflight(
 
         # Main branch is always preserved
         if name == "main":
-            branches_to_preserve.append(BranchInfo(
-                name=name,
-                eligible_for_deletion=False,
-                preservation_reason="Default protected branch",
-            ))
+            branches_to_preserve.append(
+                BranchInfo(
+                    name=name,
+                    eligible_for_deletion=False,
+                    preservation_reason="Default protected branch",
+                )
+            )
             continue
 
         # Check naming convention linkage
@@ -299,14 +300,16 @@ async def preflight(
                 break
 
         if linked_issue is not None:
-            branches_to_preserve.append(BranchInfo(
-                name=name,
-                eligible_for_deletion=False,
-                linked_issue_number=linked_issue,
-                linked_issue_title=issue_titles.get(linked_issue),
-                linking_method=linking_method,
-                preservation_reason=f"Linked to open issue #{linked_issue} on project board",
-            ))
+            branches_to_preserve.append(
+                BranchInfo(
+                    name=name,
+                    eligible_for_deletion=False,
+                    linked_issue_number=linked_issue,
+                    linked_issue_title=issue_titles.get(linked_issue),
+                    linking_method=linking_method,
+                    preservation_reason=f"Linked to open issue #{linked_issue} on project board",
+                )
+            )
         else:
             # Check if any open PR references an open issue for this branch
             pr_linked = False
@@ -324,19 +327,23 @@ async def preflight(
                         break
 
             if pr_linked and linked_issue is not None:
-                branches_to_preserve.append(BranchInfo(
-                    name=name,
-                    eligible_for_deletion=False,
-                    linked_issue_number=linked_issue,
-                    linked_issue_title=issue_titles.get(linked_issue),
-                    linking_method=linking_method,
-                    preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
-                ))
+                branches_to_preserve.append(
+                    BranchInfo(
+                        name=name,
+                        eligible_for_deletion=False,
+                        linked_issue_number=linked_issue,
+                        linked_issue_title=issue_titles.get(linked_issue),
+                        linking_method=linking_method,
+                        preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
+                    )
+                )
             else:
-                branches_to_delete.append(BranchInfo(
-                    name=name,
-                    eligible_for_deletion=True,
-                ))
+                branches_to_delete.append(
+                    BranchInfo(
+                        name=name,
+                        eligible_for_deletion=True,
+                    )
+                )
 
     # 5. Categorize PRs
     prs_to_close: list[PullRequestInfo] = []
@@ -366,31 +373,37 @@ async def preflight(
         branch_preserved = head_branch in preserved_branch_names
 
         if linked_to_board and linked_issue is not None:
-            prs_to_preserve.append(PullRequestInfo(
-                number=pr_number,
-                title=pr_title,
-                head_branch=head_branch,
-                referenced_issues=referenced,
-                eligible_for_deletion=False,
-                preservation_reason=f"References open issue #{linked_issue} on project board",
-            ))
+            prs_to_preserve.append(
+                PullRequestInfo(
+                    number=pr_number,
+                    title=pr_title,
+                    head_branch=head_branch,
+                    referenced_issues=referenced,
+                    eligible_for_deletion=False,
+                    preservation_reason=f"References open issue #{linked_issue} on project board",
+                )
+            )
         elif branch_preserved:
-            prs_to_preserve.append(PullRequestInfo(
-                number=pr_number,
-                title=pr_title,
-                head_branch=head_branch,
-                referenced_issues=referenced,
-                eligible_for_deletion=False,
-                preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
-            ))
+            prs_to_preserve.append(
+                PullRequestInfo(
+                    number=pr_number,
+                    title=pr_title,
+                    head_branch=head_branch,
+                    referenced_issues=referenced,
+                    eligible_for_deletion=False,
+                    preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
+                )
+            )
         else:
-            prs_to_close.append(PullRequestInfo(
-                number=pr_number,
-                title=pr_title,
-                head_branch=head_branch,
-                referenced_issues=referenced,
-                eligible_for_deletion=True,
-            ))
+            prs_to_close.append(
+                PullRequestInfo(
+                    number=pr_number,
+                    title=pr_title,
+                    head_branch=head_branch,
+                    referenced_issues=referenced,
+                    eligible_for_deletion=True,
+                )
+            )
 
     return CleanupPreflightResponse(
         branches_to_delete=branches_to_delete,
@@ -448,15 +461,15 @@ async def execute_cleanup(
             continue
 
         try:
-            success = await github_service.delete_branch(
-                access_token, owner, repo, branch_name
-            )
+            success = await github_service.delete_branch(access_token, owner, repo, branch_name)
             if success:
-                results.append(CleanupItemResult(
-                    item_type="branch",
-                    identifier=branch_name,
-                    action="deleted",
-                ))
+                results.append(
+                    CleanupItemResult(
+                        item_type="branch",
+                        identifier=branch_name,
+                        action="deleted",
+                    )
+                )
                 branches_deleted += 1
             else:
                 item = CleanupItemResult(
@@ -490,11 +503,13 @@ async def execute_cleanup(
                 headers=headers,
             )
             if response.status_code == 200:
-                results.append(CleanupItemResult(
-                    item_type="pr",
-                    identifier=str(pr_number),
-                    action="closed",
-                ))
+                results.append(
+                    CleanupItemResult(
+                        item_type="pr",
+                        identifier=str(pr_number),
+                        action="closed",
+                    )
+                )
                 prs_closed += 1
             else:
                 item = CleanupItemResult(
@@ -534,10 +549,14 @@ async def execute_cleanup(
         errors_count = ?, details = ?
         WHERE id = ?""",
         (
-            completed_at, status,
-            branches_deleted, branches_preserved,
-            prs_closed, prs_preserved,
-            len(errors), details_json,
+            completed_at,
+            status,
+            branches_deleted,
+            branches_preserved,
+            prs_closed,
+            prs_preserved,
+            len(errors),
+            details_json,
             operation_id,
         ),
     )
@@ -577,21 +596,23 @@ async def get_cleanup_history(
 
     operations = []
     for row in rows:
-        operations.append(CleanupAuditLogRow(
-            id=row[0],
-            github_user_id=row[1],
-            owner=row[2],
-            repo=row[3],
-            project_id=row[4],
-            started_at=row[5],
-            completed_at=row[6],
-            status=row[7],
-            branches_deleted=row[8],
-            branches_preserved=row[9],
-            prs_closed=row[10],
-            prs_preserved=row[11],
-            errors_count=row[12],
-            details=row[13],
-        ))
+        operations.append(
+            CleanupAuditLogRow(
+                id=row[0],
+                github_user_id=row[1],
+                owner=row[2],
+                repo=row[3],
+                project_id=row[4],
+                started_at=row[5],
+                completed_at=row[6],
+                status=row[7],
+                branches_deleted=row[8],
+                branches_preserved=row[9],
+                prs_closed=row[10],
+                prs_preserved=row[11],
+                errors_count=row[12],
+                details=row[13],
+            )
+        )
 
     return CleanupHistoryResponse(operations=operations, count=len(operations))
