@@ -17,8 +17,8 @@ test.describe('Settings Flow', () => {
 
     // Tab through interactive elements
     await page.keyboard.press('Tab');
-    const focusedElement = page.locator(':focus');
-    await expect(focusedElement).toBeTruthy();
+    // Verify an element actually received focus (locator objects are always truthy)
+    await expect(page.locator(':focus')).toHaveCount(1);
 
     // Continue tabbing
     await page.keyboard.press('Tab');

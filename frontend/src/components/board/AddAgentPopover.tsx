@@ -193,8 +193,6 @@ export function AddAgentPopover({
                   className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
                   onClick={() => handleSelect(agent)}
                   type="button"
-                  role="option"
-                  aria-selected={false}
                   title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
                 >
                   <div className="flex items-center justify-between w-full">

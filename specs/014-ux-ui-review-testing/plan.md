@@ -15,7 +15,7 @@ Perform a comprehensive UX/UI audit of the customer-facing React frontend — co
 **Testing**: Vitest 4.0+ / @testing-library/react 16.3+ / happy-dom 20.6+ (unit/integration), Playwright 1.58+ (E2E), axe-core (accessibility auditing — new)
 **Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge)
 **Project Type**: web (frontend focus within backend + frontend monorepo)
-**Performance Goals**: LCP ≤ 2.5s, FID ≤ 100ms, CLS ≤ 0.1 (Core Web Vitals "good" thresholds)
+**Performance Goals**: LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1 (Core Web Vitals "good" thresholds)
 **Constraints**: No new UI frameworks; reuse existing Tailwind + Radix + CVA stack; behavior-driven tests using getByRole/getByLabelText over test IDs; snapshot tests used sparingly
 **Scale/Scope**: 3 customer-facing views (Home, Project Board, Settings), 33+ components across 6 categories (ui, board, chat, settings, auth, common), 18 hooks, 9 API service namespaces, 9 existing unit tests
 

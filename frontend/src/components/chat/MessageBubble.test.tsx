@@ -66,7 +66,8 @@ describe('MessageBubble', () => {
 
   it('displays formatted timestamp', () => {
     render(<MessageBubble message={createMessage({ timestamp: '2025-01-15T10:30:00Z' })} />);
-    const timeEl = screen.getByRole('time') ?? screen.getByText(/\d{1,2}:\d{2}/);
+    // getByRole('time') is invalid — <time> has no implicit ARIA role; query by text instead
+    const timeEl = screen.getByText(/\d{1,2}:\d{2}/);
     expect(timeEl).toBeInTheDocument();
   });
 

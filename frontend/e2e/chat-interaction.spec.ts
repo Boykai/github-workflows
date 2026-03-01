@@ -18,8 +18,8 @@ test.describe('Chat Interaction', () => {
     
     // Tab navigation should work
     await page.keyboard.press('Tab');
-    const focused = page.locator(':focus');
-    await expect(focused).toBeTruthy();
+    // Verify an element actually received focus (locator objects are always truthy)
+    await expect(page.locator(':focus')).toHaveCount(1);
   });
 
   test('should be responsive at mobile viewport', async ({ page }) => {

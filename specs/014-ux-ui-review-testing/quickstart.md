@@ -122,10 +122,10 @@ npm test
 2. Open Chrome DevTools → Lighthouse tab
 3. Select "Performance" category
 4. Run audit on each customer-facing view
-5. Record LCP, CLS, FID scores
+5. Record LCP, CLS, INP scores
 6. Flag views with poor Core Web Vitals:
    - LCP > 2.5s = poor
-   - FID > 100ms = poor
+   - INP > 200ms = poor
    - CLS > 0.1 = poor
 
 ### Bundle Analysis
@@ -188,7 +188,7 @@ ls -lh dist/assets/
 
 ### 6. Performance Audit & Documentation (User Story 6)
 - Run Lighthouse performance audit on all customer-facing views
-- Record LCP, CLS, FID scores
+- Record LCP, CLS, INP scores
 - Document all findings in structured findings log with severity ratings
 - Integrate a11y linting + test assertions into CI pipeline
 

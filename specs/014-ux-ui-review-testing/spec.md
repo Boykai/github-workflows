@@ -95,7 +95,7 @@ As an end user accessing the application on different devices, I want all layout
 
 ### User Story 6 - Performance Audit & Findings Documentation (Priority: P3)
 
-As a product team member, I want page-level performance indicators (LCP, CLS, FID) audited for all customer-facing views and all discovered issues documented in a structured findings log with severity ratings, so that fixes can be prioritized and tracked systematically.
+As a product team member, I want page-level performance indicators (LCP, CLS, INP) audited for all customer-facing views and all discovered issues documented in a structured findings log with severity ratings, so that fixes can be prioritized and tracked systematically.
 
 **Why this priority**: Performance issues are important but less immediately visible than visual bugs or accessibility failures. A documented findings log with severity ratings enables structured prioritization. This is P3 because it is diagnostic and tracking work that supports ongoing improvement.
 
@@ -103,7 +103,7 @@ As a product team member, I want page-level performance indicators (LCP, CLS, FI
 
 **Acceptance Scenarios**:
 
-1. **Given** any customer-facing view, **When** a performance audit is run, **Then** LCP, CLS, and FID scores are measured and any views with poor Core Web Vitals are flagged.
+1. **Given** any customer-facing view, **When** a performance audit is run, **Then** LCP, CLS, and INP scores are measured and any views with poor Core Web Vitals are flagged.
 2. **Given** all issues discovered during the UX/UI review, **When** a reviewer inspects the findings log, **Then** each issue is documented with a severity rating (critical, major, minor, or cosmetic), a description, and the affected view.
 3. **Given** the CI pipeline, **When** a pull request is submitted, **Then** automated accessibility and performance audits run and surface regressions as part of the review process.
 
@@ -133,7 +133,7 @@ As a product team member, I want page-level performance indicators (LCP, CLS, FI
 - **FR-008**: System MUST ensure all design tokens (colors, spacing, font sizes) are centralized and not hardcoded inline, so future design changes can be made in one place.
 - **FR-009**: System SHOULD review and fix responsive layouts across mobile (≤768px), tablet (769–1024px), and desktop (≥1025px) breakpoints to ensure no broken or overflowing elements.
 - **FR-010**: System SHOULD add regression test coverage for every UI bug discovered and fixed during the review, preventing silent recurrence.
-- **FR-011**: System SHOULD audit page-level performance indicators (LCP, CLS, FID) on all customer-facing views and flag any with poor Core Web Vitals scores.
+- **FR-011**: System SHOULD audit page-level performance indicators (LCP, CLS, INP) on all customer-facing views and flag any with poor Core Web Vitals scores.
 - **FR-012**: System SHOULD integrate automated accessibility and performance auditing into the CI pipeline so that regressions are surfaced on every pull request.
 - **FR-013**: System MUST document all discovered issues in a structured findings log with severity ratings (critical, major, minor, cosmetic) so fixes can be prioritized.
 
@@ -163,7 +163,7 @@ As a product team member, I want page-level performance indicators (LCP, CLS, FI
 - The project has an existing design system or a set of established best practices (e.g., consistent color palette, typography scale, spacing grid) that can be used as the reference for the visual audit. If no formal design system exists, industry-standard conventions and the existing codebase patterns will serve as the baseline.
 - "Customer-facing views" refers to all screens and pages that end users interact with in the application; internal admin tools or developer-only pages are excluded unless explicitly requested.
 - The CI pipeline is configurable and new automated audit steps can be added without significant infrastructure changes.
-- Performance audit thresholds follow Google's Core Web Vitals "good" thresholds: LCP ≤ 2.5s, FID ≤ 100ms, CLS ≤ 0.1.
+- Performance audit thresholds follow Google's Core Web Vitals "good" thresholds: LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1.
 - The findings log will be maintained as a structured document (e.g., a GitHub project board or markdown file) within the repository, not an external tool.
 - Snapshot tests will be used sparingly and only where intentional visual lock-in is documented and desired, per the project's technical notes.
 - Automated tests will follow behavior-driven conventions: finding elements by role, label, or visible text rather than test IDs, per the project's technical notes.

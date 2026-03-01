@@ -186,7 +186,7 @@ Audit performance using Chrome DevTools Lighthouse locally and document findings
 
 ### Rationale
 - **Current state**: No performance monitoring tooling exists in the project
-- **Local Lighthouse**: Zero-setup approach — run Lighthouse in Chrome DevTools on each customer-facing view, record LCP/CLS/FID scores
+- **Local Lighthouse**: Zero-setup approach — run Lighthouse in Chrome DevTools on each customer-facing view, record LCP/CLS/INP scores
 - **CI integration complexity**: Lighthouse CI requires a running server, which adds Docker/process management complexity to the CI pipeline; this is better as a standalone follow-up
 - **Quick wins to look for**: Bundle size analysis via `vite build --report`, React.lazy for route-level code splitting, image optimization, unnecessary large dependencies
 
