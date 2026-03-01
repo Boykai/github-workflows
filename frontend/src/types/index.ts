@@ -730,3 +730,79 @@ export interface BoardProjectListResponse {
   projects: BoardProject[];
   rate_limit?: RateLimitInfo | null;
 }
+
+// ============ Cleanup Types ============
+
+export interface BranchInfo {
+  name: string;
+  eligible_for_deletion: boolean;
+  linked_issue_number: number | null;
+  linked_issue_title: string | null;
+  linking_method: string | null;
+  preservation_reason: string | null;
+}
+
+export interface PullRequestInfo {
+  number: number;
+  title: string;
+  head_branch: string;
+  referenced_issues: number[];
+  eligible_for_deletion: boolean;
+  preservation_reason: string | null;
+}
+
+export interface CleanupPreflightResponse {
+  branches_to_delete: BranchInfo[];
+  branches_to_preserve: BranchInfo[];
+  prs_to_close: PullRequestInfo[];
+  prs_to_preserve: PullRequestInfo[];
+  open_issues_on_board: number;
+  has_permission: boolean;
+  permission_error: string | null;
+}
+
+export interface CleanupItemResult {
+  item_type: 'branch' | 'pr';
+  identifier: string;
+  action: 'deleted' | 'closed' | 'preserved' | 'failed';
+  reason: string | null;
+  error: string | null;
+}
+
+export interface CleanupExecuteRequest {
+  owner: string;
+  repo: string;
+  project_id: string;
+  branches_to_delete: string[];
+  prs_to_close: number[];
+}
+
+export interface CleanupExecuteResponse {
+  operation_id: string;
+  branches_deleted: number;
+  branches_preserved: number;
+  prs_closed: number;
+  prs_preserved: number;
+  errors: CleanupItemResult[];
+  results: CleanupItemResult[];
+}
+
+export interface CleanupAuditLogEntry {
+  id: string;
+  started_at: string;
+  completed_at: string | null;
+  status: string;
+  branches_deleted: number;
+  branches_preserved: number;
+  prs_closed: number;
+  prs_preserved: number;
+  errors_count: number;
+  details: {
+    results: CleanupItemResult[];
+  } | null;
+}
+
+export interface CleanupHistoryResponse {
+  operations: CleanupAuditLogEntry[];
+  count: number;
+}

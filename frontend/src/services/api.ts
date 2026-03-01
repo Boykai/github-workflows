@@ -37,6 +37,10 @@ import type {
   McpConfiguration,
   McpConfigurationListResponse,
   McpConfigurationCreate,
+  CleanupPreflightResponse,
+  CleanupExecuteRequest,
+  CleanupExecuteResponse,
+  CleanupHistoryResponse,
   IssueTemplate,
   IssueTemplateCreate,
   IssueTemplateUpdate,
@@ -478,6 +482,39 @@ export const mcpApi = {
     return request<{ message: string }>(`/settings/mcps/${mcpId}`, {
       method: 'DELETE',
     });
+  },
+};
+
+// ============ Cleanup API ============
+
+export const cleanupApi = {
+  /**
+   * Perform a preflight check: fetch branches, PRs, and project board issues.
+   */
+  preflight(owner: string, repo: string, projectId: string): Promise<CleanupPreflightResponse> {
+    return request<CleanupPreflightResponse>('/cleanup/preflight', {
+      method: 'POST',
+      body: JSON.stringify({ owner, repo, project_id: projectId }),
+    });
+  },
+
+  /**
+   * Execute the cleanup operation: delete branches and close PRs.
+   */
+  execute(data: CleanupExecuteRequest): Promise<CleanupExecuteResponse> {
+    return request<CleanupExecuteResponse>('/cleanup/execute', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get audit trail of past cleanup operations.
+   */
+  history(owner: string, repo: string, limit = 10): Promise<CleanupHistoryResponse> {
+    return request<CleanupHistoryResponse>(
+      `/cleanup/history?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&limit=${limit}`
+    );
   },
 };
 
