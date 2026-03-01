@@ -546,10 +546,6 @@ export interface BoardProject {
   status_field: BoardStatusField;
 }
 
-export interface BoardProjectListResponse {
-  projects: BoardProject[];
-}
-
 export interface BoardRepository {
   owner: string;
   name: string;
@@ -610,7 +606,29 @@ export interface BoardColumn {
   estimate_total: number;
 }
 
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  reset_at: number;
+  used: number;
+}
+
+export type RefreshErrorType = 'rate_limit' | 'network' | 'auth' | 'server' | 'unknown';
+
+export interface RefreshError {
+  type: RefreshErrorType;
+  message: string;
+  rateLimitInfo?: RateLimitInfo;
+  retryAfter?: Date;
+}
+
 export interface BoardDataResponse {
   project: BoardProject;
   columns: BoardColumn[];
+  rate_limit?: RateLimitInfo | null;
+}
+
+export interface BoardProjectListResponse {
+  projects: BoardProject[];
+  rate_limit?: RateLimitInfo | null;
 }

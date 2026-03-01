@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import contextvars
 import logging
 import re
 from datetime import datetime
@@ -52,12 +53,20 @@ logger = logging.getLogger(__name__)
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Request-scoped storage for rate limit info.  Each FastAPI async handler
+# runs in its own contextvars context, so this isolates rate limit data
+# per-request and prevents concurrent requests from overwriting each other.
+_request_rate_limit: contextvars.ContextVar[dict[str, int] | None] = contextvars.ContextVar(
+    "_request_rate_limit", default=None
+)
+
 
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
+        self._last_rate_limit: dict[str, int] | None = None
 
     async def close(self):
         """Close HTTP client."""
@@ -87,6 +96,44 @@ class GitHubProjectsService:
         like "copilot-swe-agent[bot]".
         """
         return "copilot" in (login or "").lower()
+
+    def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
+        """Extract and store rate limit headers from a GitHub API response.
+
+        Writes to the request-scoped ``_request_rate_limit`` context var so
+        concurrent requests (different users/tokens) cannot overwrite each
+        other's data.  Also keeps the instance-level ``_last_rate_limit`` as a
+        fallback for call sites outside an async request context.
+        """
+        try:
+            limit = response.headers.get("X-RateLimit-Limit")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if limit is not None and remaining is not None and reset_at is not None:
+                limit_int = int(limit)
+                remaining_int = int(remaining)
+                reset_int = int(reset_at)
+                info: dict[str, int] = {
+                    "limit": limit_int,
+                    "remaining": remaining_int,
+                    "reset_at": reset_int,
+                    "used": limit_int - remaining_int,
+                }
+                # Request-scoped (preferred — isolated per async handler)
+                _request_rate_limit.set(info)
+                # Instance-level fallback
+                self._last_rate_limit = info
+        except (ValueError, TypeError):
+            pass
+
+    def get_last_rate_limit(self) -> dict[str, int] | None:
+        """Return the most recent rate limit info for the current request.
+
+        Prefers the request-scoped context var (safe under concurrency),
+        falling back to the instance-level value for callers outside an
+        async request context.
+        """
+        return _request_rate_limit.get() or self._last_rate_limit
 
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
@@ -152,10 +199,16 @@ class GitHubProjectsService:
                         backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
                         continue
 
+                # Always extract rate limit headers — even from error responses
+                # (e.g. 403/429) — so downstream callers have accurate quota info.
+                self._extract_rate_limit_headers(response)
                 response.raise_for_status()
                 return response
 
             except httpx.HTTPStatusError as e:
+                # Capture rate limit headers from error responses so
+                # get_last_rate_limit() reflects the most recent state.
+                self._extract_rate_limit_headers(e.response)
                 if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",

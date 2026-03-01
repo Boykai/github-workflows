@@ -574,4 +574,120 @@ describe('useRealTimeSync', () => {
       vi.useRealTimers();
     });
   });
+
+  // ── onRefreshTriggered callback tests ──────────────────────────────
+
+  describe('onRefreshTriggered callback', () => {
+    it('should invoke onRefreshTriggered on initial_data message', async () => {
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      expect(onRefreshTriggered).toHaveBeenCalledTimes(1);
+    });
+
+    it('should invoke onRefreshTriggered on task_update message', async () => {
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'task_update' });
+      });
+
+      expect(onRefreshTriggered).toHaveBeenCalledTimes(1);
+    });
+
+    it('should invoke onRefreshTriggered on refresh message', async () => {
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
+      });
+
+      expect(onRefreshTriggered).toHaveBeenCalledTimes(1);
+    });
+
+    it('should invoke onRefreshTriggered on status_changed message', async () => {
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'status_changed' });
+      });
+
+      expect(onRefreshTriggered).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT invoke onRefreshTriggered for unknown message types', async () => {
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'unknown_type' });
+      });
+
+      expect(onRefreshTriggered).not.toHaveBeenCalled();
+    });
+
+    it('should NOT invoke onRefreshTriggered when callback is not provided', async () => {
+      // Render without onRefreshTriggered — should not throw
+      renderHook(
+        () => useRealTimeSync('PVT_123'),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      // Should not throw when sending a message without callback
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'task_update' });
+      });
+    });
+  });
 });
