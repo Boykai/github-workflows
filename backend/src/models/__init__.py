@@ -7,6 +7,12 @@ from src.models.agent import (
     AvailableAgent,
     AvailableAgentsResponse,
 )
+from src.models.agent_creator import (
+    AgentCreationState,
+    AgentPreview,
+    CreationStep,
+    PipelineStepResult,
+)
 from src.models.chat import (
     ActionType,
     ChatMessage,
@@ -43,6 +49,11 @@ __all__ = [
     "AgentSource",
     "AvailableAgent",
     "AvailableAgentsResponse",
+    # agent_creator
+    "AgentCreationState",
+    "AgentPreview",
+    "CreationStep",
+    "PipelineStepResult",
     # chat
     "ActionType",
     "ChatMessage",

@@ -25,6 +25,7 @@ import type {
   GlobalSettingsUpdate,
   EffectiveProjectSettings,
   ProjectSettingsUpdate,
+  ModelsResponse,
   WorkflowResult,
   WorkflowConfiguration,
   SignalConnection,
@@ -302,6 +303,24 @@ export const settingsApi = {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  },
+
+  /**
+   * Fetch available models for a provider (dynamic dropdown population).
+   *
+   * Accepts an optional `RequestInit` so callers (e.g. TanStack Query) can
+   * pass an `AbortSignal` for request cancellation.
+   */
+  fetchModels(
+    provider: string,
+    forceRefresh = false,
+    init?: RequestInit,
+  ): Promise<ModelsResponse> {
+    const params = forceRefresh ? '?force_refresh=true' : '';
+    return request<ModelsResponse>(
+      `/settings/models/${provider}${params}`,
+      init,
+    );
   },
 };
 
