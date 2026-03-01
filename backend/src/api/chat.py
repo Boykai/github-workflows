@@ -173,6 +173,47 @@ async def send_message(
     current_tasks = cache.get(tasks_cache_key) or []
 
     # ──────────────────────────────────────────────────────────────────
+    # PRIORITY 0: #agent command — custom agent creation
+    # ──────────────────────────────────────────────────────────────────
+    from src.services.agent_creator import (
+        get_active_session,
+        handle_agent_command,
+    )
+    from src.services.database import get_db
+
+    session_key = str(session.session_id)
+    is_agent_command = request.content.strip().lower().startswith("#agent")
+    active_agent_session = get_active_session(session_key)
+
+    if is_agent_command or active_agent_session:
+        try:
+            db = get_db()
+            owner, repo = await _resolve_repository(session)
+            agent_response_text = await handle_agent_command(
+                message=request.content,
+                session_key=session_key,
+                project_id=selected_project_id,
+                owner=owner,
+                repo=repo,
+                github_user_id=session.github_user_id,
+                access_token=session.access_token,
+                db=db,
+                project_columns=project_columns,
+            )
+        except Exception as exc:
+            logger.error("#agent command failed: %s", exc)
+            agent_response_text = f"**Error:** The `#agent` command encountered an error: {exc}"
+
+        agent_msg = ChatMessage(
+            session_id=session.session_id,
+            sender_type=SenderType.ASSISTANT,
+            content=agent_response_text,
+        )
+        add_message(session.session_id, agent_msg)
+        _trigger_signal_delivery(session, agent_msg, project_name)
+        return agent_msg
+
+    # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
     # ──────────────────────────────────────────────────────────────────
     ai_service = get_ai_agent_service()

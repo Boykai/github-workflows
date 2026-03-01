@@ -93,6 +93,28 @@ class TestSettings:
         assert s.default_repo_owner is None
         assert s.default_repo_name is None
 
+    # -- effective_cookie_secure property ------------------------------------
+
+    def test_effective_cookie_secure_default_http(self):
+        """With default cookie_secure=False and http frontend_url, returns False."""
+        s = self._make(frontend_url="http://localhost:5173")
+        assert s.effective_cookie_secure is False
+
+    def test_effective_cookie_secure_auto_detects_https(self):
+        """Auto-detects HTTPS from frontend_url when cookie_secure is False."""
+        s = self._make(frontend_url="https://app.example.com")
+        assert s.effective_cookie_secure is True
+
+    def test_effective_cookie_secure_explicit_true(self):
+        """Explicit cookie_secure=True always wins regardless of frontend_url."""
+        s = self._make(cookie_secure=True, frontend_url="http://localhost:5173")
+        assert s.effective_cookie_secure is True
+
+    def test_effective_cookie_secure_explicit_true_with_https(self):
+        """Both cookie_secure=True and HTTPS frontend → True."""
+        s = self._make(cookie_secure=True, frontend_url="https://app.example.com")
+        assert s.effective_cookie_secure is True
+
 
 class TestGetSettings:
     """Tests for get_settings() LRU caching."""
@@ -191,7 +213,7 @@ class TestRateLimitError:
 
 class TestConstants:
     def test_default_status_columns(self):
-        assert DEFAULT_STATUS_COLUMNS == ["Todo", "In Progress", "Done"]
+        assert DEFAULT_STATUS_COLUMNS == ["Backlog", "In Progress", "Done"]
 
     def test_session_cookie_name(self):
         assert SESSION_COOKIE_NAME == "session_id"

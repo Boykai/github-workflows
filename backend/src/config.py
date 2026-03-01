@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file="../.env",
+        env_file=("../.env", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # Ignore frontend vars like VITE_API_URL
@@ -99,11 +99,29 @@ class Settings(BaseSettings):
             return self.default_repository.split("/")[1]
         return None
 
+    @property
+    def effective_cookie_secure(self) -> bool:
+        """Return True if cookies should use the Secure flag.
+
+        Auto-detects HTTPS from ``frontend_url`` so that production
+        deployments behind TLS get secure cookies even when
+        ``cookie_secure`` is not explicitly set.
+        """
+        return self.cookie_secure or self.frontend_url.startswith("https://")
+
 
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()  # type: ignore[call-arg]  # pydantic-settings loads from env
+
+
+def clear_settings_cache() -> None:
+    """Clear the cached :func:`get_settings` instance.
+
+    Useful in test teardown to prevent ``MagicMock`` leaks between tests.
+    """
+    get_settings.cache_clear()
 
 
 # Logging configuration

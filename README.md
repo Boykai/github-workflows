@@ -153,7 +153,12 @@ The **Spec Kit** agents are custom GitHub Copilot agents defined in `.github/age
 - **SQLite Workflow Config Persistence**: Workflow configuration (agent mappings per status) is persisted to SQLite so it survives server restarts. Falls back to legacy data with automatic backfill migration.
 - **User-Specific Agent Pipeline Mappings**: Each user's agent pipeline configuration (set via the Settings UI) is loaded and applied during workflow orchestration, with a 3-tier fallback: user-specific row → canonical `__workflow__` row → any-user fallback with automatic backfill.
 - **Case-Insensitive Status Deduplication**: Agent pipeline mappings are deduplicated on both frontend and backend to prevent case-variant status keys (e.g., "In progress" vs "In Progress") from shadowing each other. The non-empty mapping always wins.
-- **Schema Migrations**: Numbered SQL migrations run at startup (currently 001–004), tracked by a `schema_version` table
+- **Custom Agent Creation via Chat (`#agent`)**: Create custom GitHub agents through a guided conversational flow — type `#agent <description> #<status>` in the chat or via Signal to generate an AI-powered agent with preview, iterative editing, and automated pipeline that saves config, creates a GitHub Issue, branch, commits configuration files, opens a PR, and moves the issue to "In Review"
+  - Fuzzy status column matching with ambiguity detection (handles `#in-review`, `#InReview`, `#IN_REVIEW` variations)
+  - AI-generated previews with natural language edit loop ("change the name to SecBot")
+  - 8-step creation pipeline with best-effort execution and per-step status reporting
+  - Works from both web chat and Signal messaging
+- **Schema Migrations**: Numbered SQL migrations run at startup (currently 001–007), tracked by a `schema_version` table
 - **Polling Auto-Start**: Background polling automatically starts after confirming a proposal or recommendation, ensuring the pipeline runs without manual intervention
 - **Case-Insensitive Status Matching**: Status name lookups accommodate variations between GitHub board column names (e.g., "In progress" vs "In Progress")
 - **Project Board View**: Interactive Kanban board with columns, issue cards, detail modals, priority/size badges, assignee avatars, linked PR counts, and per-column agent configuration
@@ -685,10 +690,12 @@ npm run test:e2e:headed   # E2E with browser visible
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v1/chat/messages` | Get chat messages for session |
-| POST | `/api/v1/chat/messages` | Send message, get AI response |
+| POST | `/api/v1/chat/messages` | Send message, get AI response (supports `#agent` command) |
 | DELETE | `/api/v1/chat/messages` | Clear chat history |
 | POST | `/api/v1/chat/proposals/{id}/confirm` | Confirm task proposal |
 | DELETE | `/api/v1/chat/proposals/{id}` | Cancel task proposal |
+
+> **`#agent` command:** Send `#agent <description> #<status-name>` via chat or Signal to start the guided agent creation flow. The system parses the command, resolves the status column (fuzzy matching), generates an AI preview, and on confirmation executes an 8-step pipeline (save config → create column → create issue → create branch → commit files → open PR → move to In Review → update pipeline mappings).
 
 ### Tasks
 | Method | Path | Description |
@@ -781,9 +788,13 @@ github-workflows/
 │   │   │   ├── 001_initial_schema.sql
 │   │   │   ├── 002_add_workflow_config_column.sql
 │   │   │   ├── 003_add_admin_column.sql
-│   │   │   └── 004_add_signal_tables.sql
-│   │   ├── models/           # Pydantic v2 data models (8 modules)
+│   │   │   ├── 004_add_signal_tables.sql
+│   │   │   ├── 005_signal_phone_hash_unique.sql
+│   │   │   ├── 006_add_mcp_configurations.sql
+│   │   │   └── 007_agent_configs.sql
+│   │   ├── models/           # Pydantic v2 data models (9 modules)
 │   │   │   ├── agent.py      #   AgentSource, AgentAssignment, AvailableAgent
+│   │   │   ├── agent_creator.py  # CreationStep, AgentPreview, AgentCreationState
 │   │   │   ├── board.py      #   Board columns, items, custom fields
 │   │   │   ├── chat.py       #   ChatMessage, SenderType, ActionType
 │   │   │   ├── project.py    #   GitHubProject, StatusColumn
@@ -810,6 +821,7 @@ github-workflows/
 │   │   │   │   ├── config.py            #   Async config load/persist/defaults/dedup
 │   │   │   │   ├── transitions.py       #   Status transitions, branch tracking
 │   │   │   │   └── orchestrator.py      #   WorkflowOrchestrator class
+│   │   │   ├── agent_creator.py         #   #agent command: guided agent creation flow
 │   │   │   ├── ai_agent.py             #   AI issue generation (via CompletionProvider)
 │   │   │   ├── agent_tracking.py       #   Agent pipeline tracking (issue body markdown)
 │   │   │   ├── cache.py                #   In-memory TTL cache
@@ -831,7 +843,7 @@ github-workflows/
 │   │   ├── main.py           # FastAPI app factory, lifespan, CORS
 │   │   └── utils.py          # Shared helpers (utcnow, resolve_repository)
 │   ├── tests/
-│   │   ├── unit/             # 25 unit test files
+│   │   ├── unit/             # 42 unit test files
 │   │   ├── integration/      # Integration tests
 │   │   ├── test_api_e2e.py   # API end-to-end tests
 │   │   └── conftest.py       # Test fixtures
@@ -869,6 +881,7 @@ github-workflows/
 │   ├── pre-commit            # Git pre-commit hook (ruff, pyright, eslint, tsc, vitest, build)
 │   └── setup-hooks.sh        # Install git hooks
 └── specs/                    # Feature specifications (Spec Kit output)
+    ├── 001-custom-agent-creation/
     ├── 001-codebase-cleanup-refactor/
     ├── 007-codebase-cleanup-refactor/
     ├── 008-test-coverage-bug-fixes/
@@ -904,15 +917,15 @@ github-workflows/
 ### Testing
 | Tool | Scope | Tests |
 |---|---|---|
-| pytest + pytest-asyncio | Backend unit/integration/e2e | 934+ tests across 27 files |
-| Vitest + React Testing Library | Frontend unit | 42+ tests |
+| pytest + pytest-asyncio | Backend unit/integration/e2e | 1086+ tests across 42 files |
+| Vitest + React Testing Library | Frontend unit | 75+ tests across 9 files |
 | Playwright | Frontend E2E | 3 spec files |
 
 ### Infrastructure
 | Component | Details |
 |---|---|
 | Docker Compose | 3 services: `ghchat-backend` (port 8000) + `ghchat-frontend` (nginx, port 5173 → 80) + `ghchat-signal-api` (signal-cli sidecar) |
-| SQLite | WAL mode, auto-migrated schema (4 migrations), `ghchat-data` Docker volume |
+| SQLite | WAL mode, auto-migrated schema (7 migrations), `ghchat-data` Docker volume |
 | nginx | Frontend static serving + reverse proxy to backend `/api` |
 | signal-cli-rest-api | Sidecar for Signal protocol, json-rpc mode, `signal-cli-config` Docker volume |
 

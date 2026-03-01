@@ -1,7 +1,23 @@
 """Application-wide constants."""
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Workflow Status Names
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class StatusNames:
+    """Standard workflow status column names."""
+
+    BACKLOG = "Backlog"
+    READY = "Ready"
+    IN_PROGRESS = "In Progress"
+    IN_REVIEW = "In Review"
+    DONE = "Done"
+
+
 # Default status columns for projects without custom columns
-DEFAULT_STATUS_COLUMNS = ["Todo", "In Progress", "Done"]
+DEFAULT_STATUS_COLUMNS = [StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNames.DONE]
 
 # Cache key prefixes
 CACHE_PREFIX_PROJECTS = "projects:user"
@@ -27,21 +43,6 @@ NOTIFICATION_EVENT_TYPES = [
     "new_recommendation",
     "chat_mention",
 ]
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Workflow Status Names
-# ──────────────────────────────────────────────────────────────────────────────
-
-
-class StatusNames:
-    """Standard workflow status column names."""
-
-    BACKLOG = "Backlog"
-    READY = "Ready"
-    IN_PROGRESS = "In Progress"
-    IN_REVIEW = "In Review"
-    DONE = "Done"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
