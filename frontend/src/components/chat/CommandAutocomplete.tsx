@@ -45,6 +45,7 @@ export function CommandAutocomplete({
         role="listbox"
         aria-label="Command suggestions"
         aria-activedescendant={activeId}
+        tabIndex={-1}
         className="bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto py-1"
       >
         {commands.map((cmd, index) => (
