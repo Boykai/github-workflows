@@ -504,6 +504,20 @@ export const cleanupApi = {
   execute(data: CleanupExecuteRequest): Promise<CleanupExecuteResponse> {
     return request<CleanupExecuteResponse>('/cleanup/execute', {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Get audit trail of past cleanup operations.
+   */
+  history(owner: string, repo: string, limit = 10): Promise<CleanupHistoryResponse> {
+    return request<CleanupHistoryResponse>(
+      `/cleanup/history?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&limit=${limit}`
+    );
+  },
+};
+
 // ============ Housekeeping API ============
 
 export const housekeepingApi = {
@@ -571,13 +585,6 @@ export const housekeepingApi = {
     });
   },
 
-  /**
-   * Get audit trail of past cleanup operations.
-   */
-  history(owner: string, repo: string, limit = 10): Promise<CleanupHistoryResponse> {
-    return request<CleanupHistoryResponse>(
-      `/cleanup/history?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&limit=${limit}`
-    );
   deleteTask(taskId: string): Promise<{ deleted: boolean }> {
     return request<{ deleted: boolean }>(`/housekeeping/tasks/${taskId}`, {
       method: 'DELETE',
