@@ -1,6 +1,6 @@
 # GitHub Workflows Chat — Development Guidelines
 
-Last updated: 2026-02-28
+Last updated: 2026-03-01
 
 ## Tech Stack
 
@@ -44,13 +44,14 @@ backend/
   src/
     api/              # FastAPI route handlers
     middleware/        # Request/response middleware
-    migrations/       # SQL migration files (001–005)
-    models/           # Pydantic models (board, chat, settings, task, user, etc.)
+    migrations/       # SQL migration files (001–007)
+    models/           # Pydantic models (board, chat, settings, task, user, agent_creator, etc.)
     prompts/          # AI prompt templates
     services/         # Business logic
       copilot_polling/ # Background polling loop for Copilot agent pipeline
       github_projects/ # GitHub GraphQL API client
       workflow_orchestrator/ # Agent pipeline config, state, transitions
+      agent_creator.py # #agent command: guided custom agent creation flow
   tests/
     unit/             # pytest unit tests
     integration/      # pytest integration tests
@@ -110,3 +111,13 @@ npx playwright test             # E2E tests
 
 ## Recent Changes
 - 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
+- Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
+- SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
+
+## Recent Changes
+- 014-codebase-quality-refactor: Added Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend)
+- Python 3.12 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109 + Uvicorn, React 18 + Vite 5 + TanStack Query v5, httpx ≥0.26, aiosqlite ≥0.20, github-copilot-sdk, Pydantic ≥2.5
+- SQLite (WAL mode, file-backed at `/app/data/settings.db`) — agent pipeline mappings stored as JSON in `project_settings` table; custom agent configs stored in `agent_configs` table (migration 007)
+
+## Recent Changes
+- 001-custom-agent-creation: `#agent` conversational command for creating custom GitHub agents from chat or Signal. New files: `models/agent_creator.py`, `services/agent_creator.py`, `migrations/007_agent_configs.sql`. Modified: `api/chat.py` (Priority 0 routing), `services/signal_chat.py` (Signal routing), `services/ai_agent.py` (generate/edit config), `services/github_projects/graphql.py` (4 new GraphQL constants), `services/github_projects/service.py` (repo info, branch, commit, PR methods). Full state machine: PARSE → RESOLVE_PROJECT → RESOLVE_STATUS → PREVIEW → EDIT_LOOP → EXECUTING → DONE.

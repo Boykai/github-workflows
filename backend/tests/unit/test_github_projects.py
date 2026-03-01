@@ -271,7 +271,7 @@ class TestParseProjects:
 
         assert len(projects) == 1
         assert len(projects[0].status_columns) == 3
-        assert projects[0].status_columns[0].name == "Todo"
+        assert projects[0].status_columns[0].name == "Backlog"
         assert projects[0].status_columns[1].name == "In Progress"
         assert projects[0].status_columns[2].name == "Done"
 
