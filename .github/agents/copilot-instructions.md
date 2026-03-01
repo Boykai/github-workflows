@@ -111,6 +111,8 @@ npx playwright test             # E2E tests
 
 ## Recent Changes
 - 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
+- Python 3.11+ (backend; dev environment targets 3.12), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic v2, httpx (backend); React 18, TanStack Query v5 (frontend) (014-preserve-issue-description)
+- SQLite (aiosqlite, WAL mode) — in-memory for tests; in-memory dicts for proposals/recommendations (MVP) (014-preserve-issue-description)
 - Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
 - SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
 
