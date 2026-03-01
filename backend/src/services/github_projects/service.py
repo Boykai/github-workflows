@@ -1,6 +1,8 @@
 """GitHub Projects V2 GraphQL service."""
 
 import asyncio
+import base64
+import contextvars
 import logging
 import re
 from datetime import datetime
@@ -16,7 +18,10 @@ from src.services.github_projects.graphql import (
     ASSIGN_COPILOT_MUTATION,
     BOARD_GET_PROJECT_ITEMS_QUERY,
     BOARD_LIST_PROJECTS_QUERY,
+    CREATE_BRANCH_MUTATION,
+    CREATE_COMMIT_ON_BRANCH_MUTATION,
     CREATE_DRAFT_ITEM_MUTATION,
+    CREATE_PULL_REQUEST_MUTATION,
     GET_ISSUE_LINKED_PRS_QUERY,
     GET_ISSUE_WITH_COMMENTS_QUERY,
     GET_PROJECT_FIELD_QUERY,
@@ -24,6 +29,7 @@ from src.services.github_projects.graphql import (
     GET_PROJECT_ITEMS_QUERY,
     GET_PROJECT_REPOSITORY_QUERY,
     GET_PULL_REQUEST_QUERY,
+    GET_REPOSITORY_INFO_QUERY,
     GET_SUGGESTED_ACTORS_QUERY,
     GITHUB_GRAPHQL_URL,
     INITIAL_BACKOFF_SECONDS,
@@ -47,12 +53,20 @@ logger = logging.getLogger(__name__)
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Request-scoped storage for rate limit info.  Each FastAPI async handler
+# runs in its own contextvars context, so this isolates rate limit data
+# per-request and prevents concurrent requests from overwriting each other.
+_request_rate_limit: contextvars.ContextVar[dict[str, int] | None] = contextvars.ContextVar(
+    "_request_rate_limit", default=None
+)
+
 
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
+        self._last_rate_limit: dict[str, int] | None = None
 
     async def close(self):
         """Close HTTP client."""
@@ -82,6 +96,44 @@ class GitHubProjectsService:
         like "copilot-swe-agent[bot]".
         """
         return "copilot" in (login or "").lower()
+
+    def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
+        """Extract and store rate limit headers from a GitHub API response.
+
+        Writes to the request-scoped ``_request_rate_limit`` context var so
+        concurrent requests (different users/tokens) cannot overwrite each
+        other's data.  Also keeps the instance-level ``_last_rate_limit`` as a
+        fallback for call sites outside an async request context.
+        """
+        try:
+            limit = response.headers.get("X-RateLimit-Limit")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if limit is not None and remaining is not None and reset_at is not None:
+                limit_int = int(limit)
+                remaining_int = int(remaining)
+                reset_int = int(reset_at)
+                info: dict[str, int] = {
+                    "limit": limit_int,
+                    "remaining": remaining_int,
+                    "reset_at": reset_int,
+                    "used": limit_int - remaining_int,
+                }
+                # Request-scoped (preferred — isolated per async handler)
+                _request_rate_limit.set(info)
+                # Instance-level fallback
+                self._last_rate_limit = info
+        except (ValueError, TypeError):
+            pass
+
+    def get_last_rate_limit(self) -> dict[str, int] | None:
+        """Return the most recent rate limit info for the current request.
+
+        Prefers the request-scoped context var (safe under concurrency),
+        falling back to the instance-level value for callers outside an
+        async request context.
+        """
+        return _request_rate_limit.get() or self._last_rate_limit
 
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
@@ -147,10 +199,16 @@ class GitHubProjectsService:
                         backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
                         continue
 
+                # Always extract rate limit headers — even from error responses
+                # (e.g. 403/429) — so downstream callers have accurate quota info.
+                self._extract_rate_limit_headers(response)
                 response.raise_for_status()
                 return response
 
             except httpx.HTTPStatusError as e:
+                # Capture rate limit headers from error responses so
+                # get_last_rate_limit() reflects the most recent state.
+                self._extract_rate_limit_headers(e.response)
                 if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
@@ -3679,6 +3737,202 @@ class GitHubProjectsService:
     ]
 
     _FRONTMATTER_RE = re.compile(r"^---\s*\r?\n(.*?)\r?\n---", re.DOTALL)
+
+    # ──────────────────────────────────────────────────────────────────
+    # Agent Creator: Repository info, branch, commit, and PR methods
+    # ──────────────────────────────────────────────────────────────────
+
+    async def get_repository_info(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+    ) -> dict:
+        """Fetch repository node ID, default branch name, and HEAD SHA.
+
+        Returns:
+            ``{"repository_id": str, "default_branch": str, "head_oid": str}``
+        """
+        data = await self._graphql(
+            access_token,
+            GET_REPOSITORY_INFO_QUERY,
+            {"owner": owner, "name": repo},
+        )
+        repo_data = data.get("repository")
+        if not repo_data:
+            raise ValueError(f"Repository {owner}/{repo} not found")
+
+        default_ref = repo_data.get("defaultBranchRef") or {}
+        return {
+            "repository_id": repo_data["id"],
+            "default_branch": default_ref.get("name", "main"),
+            "head_oid": (default_ref.get("target") or {}).get("oid", ""),
+        }
+
+    async def create_branch(
+        self,
+        access_token: str,
+        repository_id: str,
+        branch_name: str,
+        from_oid: str,
+    ) -> str | None:
+        """Create a Git branch from a given commit SHA.
+
+        Args:
+            access_token: GitHub OAuth token.
+            repository_id: Repository node ID.
+            branch_name: Bare branch name (e.g., ``agent/my-bot``).
+            from_oid: Commit SHA to branch from.
+
+        Returns:
+            Ref ID on success, ``None`` on failure.
+        """
+        qualified_name = f"refs/heads/{branch_name}"
+        try:
+            data = await self._graphql(
+                access_token,
+                CREATE_BRANCH_MUTATION,
+                {
+                    "repositoryId": repository_id,
+                    "name": qualified_name,
+                    "oid": from_oid,
+                },
+            )
+            ref_data = (data.get("createRef") or {}).get("ref") or {}
+            ref_id = ref_data.get("id")
+            logger.info("Created branch %s (ref=%s)", branch_name, ref_id)
+            return ref_id
+        except ValueError as exc:
+            error_msg = str(exc).lower()
+            # Branch already exists — treat as success for idempotent pipeline
+            if "already exists" in error_msg or "reference already exists" in error_msg:
+                logger.info("Branch %s already exists — treating as success", branch_name)
+                return "existing"
+            logger.error("Failed to create branch %s: %s", branch_name, exc)
+            return None
+
+    async def commit_files(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        branch_name: str,
+        head_oid: str,
+        files: list[dict],
+        message: str,
+    ) -> str | None:
+        """Commit files to a branch without cloning.
+
+        Args:
+            access_token: GitHub OAuth token.
+            owner: Repository owner.
+            repo: Repository name.
+            branch_name: Bare branch name.
+            head_oid: Expected HEAD OID for optimistic concurrency.
+            files: ``[{"path": "relative/path", "content": "text content"}]``
+            message: Commit message headline.
+
+        Returns:
+            Commit OID on success, ``None`` on failure.
+        """
+        additions = [
+            {
+                "path": f["path"],
+                "contents": base64.b64encode(f["content"].encode()).decode(),
+            }
+            for f in files
+        ]
+
+        max_attempts = 3
+        current_oid = head_oid
+        for attempt in range(1, max_attempts + 1):
+            try:
+                data = await self._graphql(
+                    access_token,
+                    CREATE_COMMIT_ON_BRANCH_MUTATION,
+                    {
+                        "repoWithOwner": f"{owner}/{repo}",
+                        "branchName": branch_name,
+                        "expectedHeadOid": current_oid,
+                        "message": {"headline": message},
+                        "fileChanges": {"additions": additions},
+                    },
+                )
+                commit = (data.get("createCommitOnBranch") or {}).get("commit") or {}
+                oid = commit.get("oid")
+                logger.info("Committed files to %s (oid=%s)", branch_name, oid)
+                return oid
+            except ValueError as exc:
+                error_msg = str(exc).lower()
+                if "expected head oid" in error_msg and attempt < max_attempts:
+                    # OID mismatch — fetch fresh HEAD and retry
+                    logger.warning(
+                        "OID mismatch on commit attempt %d/%d, refreshing HEAD",
+                        attempt,
+                        max_attempts,
+                    )
+                    try:
+                        repo_info = await self.get_repository_info(access_token, owner, repo)
+                        current_oid = repo_info["head_oid"]
+                    except Exception:
+                        pass
+                    continue
+                logger.error("Failed to commit files to %s: %s", branch_name, exc)
+                return None
+        return None
+
+    async def create_pull_request(
+        self,
+        access_token: str,
+        repository_id: str,
+        title: str,
+        body: str,
+        head_branch: str,
+        base_branch: str,
+        draft: bool = False,
+    ) -> dict | None:
+        """Create a Pull Request.
+
+        Args:
+            access_token: GitHub OAuth token.
+            repository_id: Repository node ID.
+            title: PR title.
+            body: PR body (markdown).
+            head_branch: Bare head branch name.
+            base_branch: Bare base branch name.
+            draft: Whether to create as draft.
+
+        Returns:
+            ``{"id": str, "number": int, "url": str}`` on success, ``None`` on failure.
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                CREATE_PULL_REQUEST_MUTATION,
+                {
+                    "repositoryId": repository_id,
+                    "title": title,
+                    "body": body,
+                    "headRefName": head_branch,
+                    "baseRefName": base_branch,
+                },
+            )
+            pr = (data.get("createPullRequest") or {}).get("pullRequest") or {}
+            result = {
+                "id": pr.get("id", ""),
+                "number": pr.get("number", 0),
+                "url": pr.get("url", ""),
+            }
+            logger.info("Created PR #%d: %s", result["number"], title)
+            return result
+        except ValueError as exc:
+            error_msg = str(exc).lower()
+            # PR already exists for this head→base — treat as existing
+            if "already exists" in error_msg or "pull request already exists" in error_msg:
+                logger.info("PR for %s→%s already exists", head_branch, base_branch)
+                return {"id": "", "number": 0, "url": "", "existing": True}
+            logger.error("Failed to create PR: %s", exc)
+            return None
 
     async def list_available_agents(
         self,

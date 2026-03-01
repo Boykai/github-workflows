@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
-from src.exceptions import NotFoundError, ValidationError
+from src.exceptions import AppException, NotFoundError, ValidationError
 from src.models.agent import AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
 from src.models.user import UserSession
@@ -241,6 +241,11 @@ async def confirm_recommendation(
 
         return result
 
+    except AppException:
+        # Re-raise application exceptions (e.g. ValidationError for body-too-long)
+        # so the global AppException handler returns the correct HTTP status (422)
+        # and preserves the structured ``details`` payload.
+        raise
     except Exception as e:
         logger.error("Workflow failed: %s", e)
         return WorkflowResult(

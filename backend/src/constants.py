@@ -1,27 +1,5 @@
 """Application-wide constants."""
 
-# Default status columns for projects without custom columns
-DEFAULT_STATUS_COLUMNS = ["Todo", "In Progress", "Done"]
-
-# Cache key prefixes
-CACHE_PREFIX_PROJECTS = "projects:user"
-CACHE_PREFIX_PROJECT_ITEMS = "project:items"
-
-# Session cookie name
-SESSION_COOKIE_NAME = "session_id"
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Notification Event Types
-# ──────────────────────────────────────────────────────────────────────────────
-
-NOTIFICATION_EVENT_TYPES = [
-    "task_status_change",
-    "agent_completion",
-    "new_recommendation",
-    "chat_mention",
-]
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Workflow Status Names
@@ -36,6 +14,35 @@ class StatusNames:
     IN_PROGRESS = "In Progress"
     IN_REVIEW = "In Review"
     DONE = "Done"
+
+
+# Default status columns for projects without custom columns
+DEFAULT_STATUS_COLUMNS = [StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNames.DONE]
+
+# Cache key prefixes
+CACHE_PREFIX_PROJECTS = "projects:user"
+CACHE_PREFIX_PROJECT_ITEMS = "project:items"
+
+# Session cookie name
+SESSION_COOKIE_NAME = "session_id"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GitHub API Limits
+# ──────────────────────────────────────────────────────────────────────────────
+
+GITHUB_ISSUE_BODY_MAX_LENGTH = 65_536
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Notification Event Types
+# ──────────────────────────────────────────────────────────────────────────────
+
+NOTIFICATION_EVENT_TYPES = [
+    "task_status_change",
+    "agent_completion",
+    "new_recommendation",
+    "chat_mention",
+]
 
 
 # ──────────────────────────────────────────────────────────────────────────────

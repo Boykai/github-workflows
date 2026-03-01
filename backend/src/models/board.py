@@ -61,12 +61,6 @@ class BoardProject(BaseModel):
     status_field: StatusField = Field(..., description="The Status field configuration")
 
 
-class BoardProjectListResponse(BaseModel):
-    """Response for listing board projects."""
-
-    projects: list[BoardProject]
-
-
 class Repository(BaseModel):
     """Repository reference for an issue/PR."""
 
@@ -155,8 +149,29 @@ class BoardColumn(BaseModel):
     )
 
 
+class RateLimitInfo(BaseModel):
+    """GitHub API rate limit status from response headers."""
+
+    limit: int = Field(..., description="Maximum requests per hour")
+    remaining: int = Field(..., description="Remaining requests in current window")
+    reset_at: int = Field(..., description="Unix timestamp when limit resets")
+    used: int = Field(..., description="Requests used in current window")
+
+
 class BoardDataResponse(BaseModel):
     """Response for board data with columns and items."""
 
     project: BoardProject = Field(..., description="Project metadata")
     columns: list[BoardColumn] = Field(..., description="Board columns with their items")
+    rate_limit: RateLimitInfo | None = Field(
+        default=None, description="GitHub API rate limit status"
+    )
+
+
+class BoardProjectListResponse(BaseModel):
+    """Response for listing board projects."""
+
+    projects: list[BoardProject]
+    rate_limit: RateLimitInfo | None = Field(
+        default=None, description="GitHub API rate limit status"
+    )

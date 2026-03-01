@@ -13,11 +13,13 @@ T = TypeVar("T")
 
 
 class CacheEntry(Generic[T]):
-    """Cache entry with expiration."""
+    """Cache entry with expiration and optional ETag support."""
 
-    def __init__(self, value: T, ttl_seconds: int):
+    def __init__(self, value: T, ttl_seconds: int, etag: str | None = None, last_modified: str | None = None):
         self.value = value
         self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
+        self.etag = etag
+        self.last_modified = last_modified
 
     @property
     def is_expired(self) -> bool:
@@ -54,7 +56,7 @@ class InMemoryCache:
         logger.debug("Cache hit: %s", key)
         return entry.value
 
-    def set(self, key: str, value: Any, ttl_seconds: int | None = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: int | None = None, etag: str | None = None, last_modified: str | None = None) -> None:
         """
         Set value in cache.
 
@@ -62,10 +64,43 @@ class InMemoryCache:
             key: Cache key
             value: Value to cache
             ttl_seconds: TTL in seconds (defaults to config value)
+            etag: Optional ETag from API response
+            last_modified: Optional Last-Modified header from API response
         """
         ttl = ttl_seconds or self._settings.cache_ttl_seconds
-        self._cache[key] = CacheEntry(value, ttl)
+        self._cache[key] = CacheEntry(value, ttl, etag=etag, last_modified=last_modified)
         logger.debug("Cache set: %s (TTL: %ds)", key, ttl)
+
+    def get_entry(self, key: str) -> CacheEntry[Any] | None:
+        """
+        Get the full cache entry (including ETag metadata).
+
+        Args:
+            key: Cache key
+
+        Returns:
+            CacheEntry or None if not found (does not check expiry)
+        """
+        return self._cache.get(key)
+
+    def refresh_ttl(self, key: str, ttl_seconds: int | None = None) -> bool:
+        """
+        Refresh TTL of an existing cache entry without replacing the value.
+
+        Args:
+            key: Cache key
+            ttl_seconds: New TTL in seconds (defaults to config value)
+
+        Returns:
+            True if entry existed and was refreshed
+        """
+        entry = self._cache.get(key)
+        if entry is None:
+            return False
+        ttl = ttl_seconds or self._settings.cache_ttl_seconds
+        entry.expires_at = utcnow() + timedelta(seconds=ttl)
+        logger.debug("Cache TTL refreshed: %s (TTL: %ds)", key, ttl)
+        return True
 
     def delete(self, key: str) -> bool:
         """
