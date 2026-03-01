@@ -108,6 +108,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
 - SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
+- Python 3.11 (backend), TypeScript 5.4 / React 18 (frontend) + FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend) (015-stale-cleanup-button)
+- SQLite (WAL mode) via aiosqlite — new `cleanup_audit_logs` table for audit trail (migration 008) (015-stale-cleanup-button)
 
 ## Recent Changes
 - 014-codebase-quality-refactor: Added Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend)
@@ -115,4 +117,5 @@ npx playwright test             # E2E tests
 - SQLite (WAL mode, file-backed at `/app/data/settings.db`) — agent pipeline mappings stored as JSON in `project_settings` table; custom agent configs stored in `agent_configs` table (migration 007)
 
 ## Recent Changes
+- 015-stale-cleanup-button: Added Python 3.11 (backend), TypeScript 5.4 / React 18 (frontend) + FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend)
 - 001-custom-agent-creation: `#agent` conversational command for creating custom GitHub agents from chat or Signal. New files: `models/agent_creator.py`, `services/agent_creator.py`, `migrations/007_agent_configs.sql`. Modified: `api/chat.py` (Priority 0 routing), `services/signal_chat.py` (Signal routing), `services/ai_agent.py` (generate/edit config), `services/github_projects/graphql.py` (4 new GraphQL constants), `services/github_projects/service.py` (repo info, branch, commit, PR methods). Full state machine: PARSE → RESOLVE_PROJECT → RESOLVE_STATUS → PREVIEW → EDIT_LOOP → EXECUTING → DONE.

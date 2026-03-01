@@ -1,104 +1,109 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add 'Clean Up' Button to Delete Stale Branches and PRs
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `015-stale-cleanup-button` | **Date**: 2026-03-01 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/015-stale-cleanup-button/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add a 'Clean Up' button that allows project maintainers to remove stale branches and pull requests from a GitHub repository while preserving `main` and any branch/PR linked to an open issue on the associated GitHub Projects v2 board. The implementation adds a backend API endpoint that performs a preflight fetch (all branches, open PRs, open project board issues), computes deletion/preservation lists with cross-referencing, and executes sequential deletions with rate-limit-aware batching. The frontend adds a button with tooltip, a confirmation modal displaying categorized items, a progress indicator during execution, and a post-operation summary/audit trail. See [research.md](./research.md) for decision rationale.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript 5.4 / React 18 (frontend)
+**Primary Dependencies**: FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend)
+**Storage**: SQLite (WAL mode) via aiosqlite — new `cleanup_audit_logs` table for audit trail (migration 008)
+**Testing**: pytest + pytest-asyncio (backend), Vitest + React Testing Library (frontend)
+**Target Platform**: Linux server (Docker), modern browsers
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: Preflight fetch and confirmation modal displayed within 10 seconds for up to 200 branches (SC-001); permission error within 3 seconds (SC-006)
+**Constraints**: Sequential or batched deletions to respect GitHub secondary rate limits; OAuth required with `repo` scope; `main` branch unconditionally protected
+**Scale/Scope**: 1 new backend service module, 1 new API endpoint group, 1 new DB migration, 3 new frontend components (button, modal, summary), 1 new hook, up to 200 branches per repository
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Research Check (Phase 0 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with 6 prioritized user stories (P1×2, P2×3, P3×1), Given-When-Then scenarios, 14 FRs, and 7 edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | `speckit.plan` agent produces plan.md and Phase 0/1 artifacts |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; will follow existing test patterns if present |
+| V. Simplicity and DRY | ✅ PASS | Reuses existing `GitHubProjectsService` methods (`delete_branch`, `_request_with_retry`), existing auth patterns, existing modal UI patterns |
+
+**Gate Result**: ALL PASS — proceed to Phase 0
+
+### Post-Design Check (Phase 1 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | All FR items (FR-001 through FR-014) have corresponding design artifacts in data-model.md and contracts/ |
+| II. Template-Driven Workflow | ✅ PASS | plan.md, research.md, data-model.md, contracts/, quickstart.md all generated |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan ready for handoff to `speckit.tasks` |
+| IV. Test Optionality | ✅ PASS | No test mandate; tests optional per constitution |
+| V. Simplicity and DRY | ✅ PASS | Reuses existing `GitHubProjectsService` for all GitHub API calls, existing `_request_with_retry` for rate limiting, existing `get_session_dep` for auth, existing modal patterns from `IssueDetailModal`. No new frameworks or abstractions. |
+
+**Gate Result**: ALL PASS — proceed to Phase 2 (tasks)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/015-stale-cleanup-button/
+├── plan.md              # This file
+├── research.md          # Phase 0: Technical decisions and rationale
+├── data-model.md        # Phase 1: Entity definitions and migration SQL
+├── quickstart.md        # Phase 1: Development setup and testing guide
+├── contracts/
+│   └── cleanup-api.md   # Phase 1: REST API contract (POST preflight, POST execute)
+├── checklists/
+│   └── requirements.md  # Requirements checklist
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
+│   ├── migrations/
+│   │   └── 008_cleanup_audit_logs.sql          # Audit trail table
 │   ├── models/
+│   │   └── cleanup.py                          # Pydantic models (request/response)
 │   ├── services/
+│   │   └── cleanup_service.py                  # Preflight, execution, audit logic
 │   └── api/
-└── tests/
+│       ├── __init__.py                         # Register cleanup router
+│       └── cleanup.py                          # REST endpoints (preflight, execute)
+└── tests/                                      # Optional: pytest tests
 
 frontend/
 ├── src/
+│   ├── types/
+│   │   └── index.ts                            # Add cleanup TypeScript interfaces
+│   ├── services/
+│   │   └── api.ts                              # Add cleanup API client methods
+│   ├── hooks/
+│   │   └── useCleanup.ts                       # React hook for cleanup workflow state
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── board/
+│   │       ├── CleanUpButton.tsx                # Button with tooltip
+│   │       ├── CleanUpConfirmModal.tsx          # Confirmation modal with item lists
+│   │       └── CleanUpSummary.tsx               # Post-operation summary/audit trail
+│   └── pages/
+│       └── BoardPage.tsx                        # Add CleanUpButton to board header (or ProjectBoard)
+└── tests/                                      # Optional: Vitest tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). The repository already uses `backend/` and `frontend/` top-level directories with established patterns for models, services, API routes, components, hooks, and types. All new files follow existing naming conventions. The cleanup service reuses `GitHubProjectsService` for all GitHub API interactions rather than duplicating API call logic.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. All design decisions follow existing patterns.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
