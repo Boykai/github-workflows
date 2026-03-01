@@ -28,7 +28,7 @@
 
 - [ ] T001 Run full backend CI suite (`ruff check`, `pyright`, `pytest`) and confirm all checks pass as the pre-cleanup baseline
 - [ ] T002 [P] Run full frontend CI suite (`eslint`, `tsc --noEmit`, `vitest run`, `vite build`) and confirm all checks pass as the pre-cleanup baseline
-- [ ] T003 [P] Capture pre-cleanup line count metrics for `backend/src/`, `backend/tests/`, and `frontend/src/` using `find | xargs wc -l`
+- [ ] T003 [P] Capture pre-cleanup line count metrics for `backend/src/`, `backend/tests/`, and `frontend/src/` using `find <dir> -type f \( -name '*.py' -o -name '*.ts' -o -name '*.tsx' \) | xargs wc -l`
 - [ ] T004 [P] Snapshot the public API route registry by extracting all `@router` decorator paths from `backend/src/api/*.py` into a reference list for post-cleanup regression comparison
 
 ---
@@ -152,7 +152,7 @@
 
 ### Test Artifact Cleanup
 
-- [ ] T051 [US4] Remove leftover test artifacts — delete `MagicMock` database files in the repository root (files matching `<MagicMock name=*>` pattern) and any other test-generated temporary files
+- [ ] T051 [US4] Remove leftover test artifacts — delete `MagicMock` database files in the repository root (files named `<MagicMock name='get_settings().database_path' id='…'>` created by leaked pytest mocks) and any other test-generated temporary files
 - [ ] T052 [US4] Run full CI suite (backend + frontend) and confirm all checks pass and no valid test coverage is lost
 
 **Checkpoint**: Test suite is clean and trustworthy. All remaining tests validate real, current behavior. CI passes.
