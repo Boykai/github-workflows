@@ -1,0 +1,52 @@
+name: Housekeeping Cron Trigger
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'GitHub Project node ID to evaluate triggers for'
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: housekeeping-cron-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  evaluate-triggers:
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Evaluate housekeeping triggers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'http://localhost:8000' }}
+          PROJECT_ID: ${{ github.event.inputs.project_id || vars.DEFAULT_PROJECT_ID || '' }}
+        run: |
+          if [ -z "$PROJECT_ID" ]; then
+            echo "No project_id configured. Set DEFAULT_PROJECT_ID variable or use workflow_dispatch."
+            exit 0
+          fi
+
+          echo "Evaluating housekeeping triggers for project: $PROJECT_ID"
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST "${API_BASE_URL}/api/v1/housekeeping/evaluate-triggers" \
+            -H "Content-Type: application/json" \
+            -d "{\"trigger_source\": \"scheduled\", \"project_id\": \"${PROJECT_ID}\"}" \
+            2>&1) || true
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Trigger evaluation completed successfully"
+          else
+            echo "::warning::Trigger evaluation returned HTTP $http_code"
+          fi
