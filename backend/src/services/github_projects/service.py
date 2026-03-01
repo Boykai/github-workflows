@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import contextvars
 import logging
 import re
 from datetime import datetime
@@ -52,12 +53,20 @@ logger = logging.getLogger(__name__)
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Request-scoped storage for rate limit info.  Each FastAPI async handler
+# runs in its own contextvars context, so this isolates rate limit data
+# per-request and prevents concurrent requests from overwriting each other.
+_request_rate_limit: contextvars.ContextVar[dict[str, int] | None] = contextvars.ContextVar(
+    "_request_rate_limit", default=None
+)
+
 
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
+        self._last_rate_limit: dict[str, int] | None = None
 
     async def close(self):
         """Close HTTP client."""
@@ -87,6 +96,44 @@ class GitHubProjectsService:
         like "copilot-swe-agent[bot]".
         """
         return "copilot" in (login or "").lower()
+
+    def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
+        """Extract and store rate limit headers from a GitHub API response.
+
+        Writes to the request-scoped ``_request_rate_limit`` context var so
+        concurrent requests (different users/tokens) cannot overwrite each
+        other's data.  Also keeps the instance-level ``_last_rate_limit`` as a
+        fallback for call sites outside an async request context.
+        """
+        try:
+            limit = response.headers.get("X-RateLimit-Limit")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if limit is not None and remaining is not None and reset_at is not None:
+                limit_int = int(limit)
+                remaining_int = int(remaining)
+                reset_int = int(reset_at)
+                info: dict[str, int] = {
+                    "limit": limit_int,
+                    "remaining": remaining_int,
+                    "reset_at": reset_int,
+                    "used": limit_int - remaining_int,
+                }
+                # Request-scoped (preferred — isolated per async handler)
+                _request_rate_limit.set(info)
+                # Instance-level fallback
+                self._last_rate_limit = info
+        except (ValueError, TypeError):
+            pass
+
+    def get_last_rate_limit(self) -> dict[str, int] | None:
+        """Return the most recent rate limit info for the current request.
+
+        Prefers the request-scoped context var (safe under concurrency),
+        falling back to the instance-level value for callers outside an
+        async request context.
+        """
+        return _request_rate_limit.get() or self._last_rate_limit
 
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
@@ -152,10 +199,16 @@ class GitHubProjectsService:
                         backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
                         continue
 
+                # Always extract rate limit headers — even from error responses
+                # (e.g. 403/429) — so downstream callers have accurate quota info.
+                self._extract_rate_limit_headers(response)
                 response.raise_for_status()
                 return response
 
             except httpx.HTTPStatusError as e:
+                # Capture rate limit headers from error responses so
+                # get_last_rate_limit() reflects the most recent state.
+                self._extract_rate_limit_headers(e.response)
                 if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
@@ -1134,6 +1187,7 @@ class GitHubProjectsService:
             all_comments: list[dict] = []
             title = ""
             body = ""
+            author_login = ""
             cursor: str | None = None
 
             for _page in range(max_pages):
@@ -1153,10 +1207,11 @@ class GitHubProjectsService:
 
                 issue = data.get("repository", {}).get("issue", {})
 
-                # Capture title/body from the first page only
+                # Capture title/body/author from the first page only
                 if not title:
                     title = issue.get("title", "")
                     body = issue.get("body", "")
+                    author_login = (issue.get("author") or {}).get("login", "")
 
                 comments_data = issue.get("comments", {})
                 nodes = comments_data.get("nodes", [])
@@ -1174,10 +1229,15 @@ class GitHubProjectsService:
                     break
                 cursor = page_info.get("endCursor")
 
-            return {"title": title, "body": body, "comments": all_comments}
+            return {
+                "title": title,
+                "body": body,
+                "comments": all_comments,
+                "user": {"login": author_login},
+            }
         except Exception as e:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
-            return {"title": "", "body": "", "comments": []}
+            return {"title": "", "body": "", "comments": [], "user": {"login": ""}}
 
     def format_issue_context_as_prompt(
         self,
@@ -1334,6 +1394,37 @@ class GitHubProjectsService:
                 issue_number,
                 e,
             )
+            return False
+
+    async def check_issue_closed(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> bool:
+        """
+        Check if a GitHub Issue is closed.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            True if the issue state is 'closed'
+        """
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
+            headers = self._build_headers(access_token)
+            # Use _request_with_retry for consistent rate-limit / transient-
+            # error handling.  This endpoint runs in the polling loop and
+            # should be as resilient as other GitHub API calls.
+            response = await self._request_with_retry("GET", url, headers=headers)
+            return response.json().get("state", "") == "closed"
+        except Exception as e:
+            logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False
 
     async def unassign_copilot_from_issue(
@@ -3378,6 +3469,7 @@ class GitHubProjectsService:
             "speckit.tasks": "Generate granular implementation tasks from the plan. Each task should be a well-defined unit of work with clear inputs, outputs, and acceptance criteria.",
             "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
             "copilot": "Implement the requested changes. Write production-quality code with tests.",
+            "human": "This is a manual human task. Complete the work described below, then close this issue or comment 'Done!' on the parent issue to continue the pipeline.",
         }
 
         agent_desc = agent_descriptions.get(
@@ -3678,6 +3770,13 @@ class GitHubProjectsService:
             slug="speckit.implement",
             display_name="Spec Kit - Implement",
             description="Implements code changes based on the task list",
+            avatar_url=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
+            slug="human",
+            display_name="Human",
+            description="Manual human task — creates a sub-issue assigned to the issue creator",
             avatar_url=None,
             source=AgentSource.BUILTIN,
         ),

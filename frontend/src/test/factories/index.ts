@@ -114,3 +114,67 @@ export function createMockSettings(
     ...overrides,
   };
 }
+
+// ── Command System ─────────────────────────────────────────────────────────
+
+import type {
+  CommandDefinition,
+  CommandContext,
+  CommandResult,
+  ParsedCommand,
+} from '@/lib/commands/types';
+
+export function createCommandDefinition(
+  overrides: Partial<CommandDefinition> = {},
+): CommandDefinition {
+  return {
+    name: 'test',
+    description: 'A test command',
+    syntax: '#test <value>',
+    handler: () => ({ success: true, message: 'OK', clearInput: true }),
+    ...overrides,
+  };
+}
+
+export function createCommandContext(
+  overrides: Partial<CommandContext> = {},
+): CommandContext {
+  return {
+    setTheme: () => {},
+    updateSettings: async () => {},
+    currentSettings: {
+      ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
+      display: { theme: 'dark' as 'light' | 'dark', default_view: 'board' as 'chat' | 'board' | 'settings', sidebar_collapsed: false },
+      // default_assignee is typed as `string` in WorkflowDefaults — use empty
+      // string rather than null to match the interface and avoid hiding
+      // type mismatches in tests.
+      workflow: { default_repository: null, default_assignee: '', copilot_polling_interval: 15 },
+      notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
+    },
+    currentTheme: 'dark',
+    ...overrides,
+  };
+}
+
+export function createCommandResult(
+  overrides: Partial<CommandResult> = {},
+): CommandResult {
+  return {
+    success: true,
+    message: 'Command executed successfully.',
+    clearInput: true,
+    ...overrides,
+  };
+}
+
+export function createParsedCommand(
+  overrides: Partial<ParsedCommand> = {},
+): ParsedCommand {
+  return {
+    isCommand: true,
+    name: 'test',
+    args: '',
+    raw: '#test',
+    ...overrides,
+  };
+}

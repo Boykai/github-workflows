@@ -276,6 +276,26 @@ class TestCheckLastCommentForDone:
     def test_whitespace_tolerance(self):
         assert check_last_comment_for_done([{"body": "  agent.x:  Done!  "}]) == "agent.x"
 
+    def test_human_exact_done(self):
+        """Exact 'Done!' with no agent prefix returns 'human'."""
+        assert check_last_comment_for_done([{"body": "Done!"}]) == "human"
+
+    def test_human_done_with_trailing_whitespace_rejected(self):
+        """'Done! ' (trailing space) must NOT match the Human pattern.
+
+        The spec requires the literal exact string 'Done!' to trigger
+        Human step completion — no whitespace tolerance.
+        """
+        assert check_last_comment_for_done([{"body": "Done! "}]) is None
+
+    def test_human_done_with_leading_whitespace_rejected(self):
+        """' Done!' (leading space) must NOT match the Human pattern."""
+        assert check_last_comment_for_done([{"body": " Done!"}]) is None
+
+    def test_human_done_case_sensitive(self):
+        """'done!' (lowercase) must NOT match — case-sensitive."""
+        assert check_last_comment_for_done([{"body": "done!"}]) is None
+
 
 # =============================================================================
 # append_tracking_to_body

@@ -243,6 +243,9 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
       id
       title
       body
+      author {
+        login
+      }
       comments(first: 100, after: $after) {
         pageInfo {
           hasNextPage

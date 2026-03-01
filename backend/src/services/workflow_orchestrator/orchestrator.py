@@ -3,6 +3,8 @@
 import logging
 from typing import TYPE_CHECKING
 
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.exceptions import ValidationError
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
     TriggeredBy,
@@ -295,6 +297,7 @@ class WorkflowOrchestrator:
             )
             parent_body = parent_issue_data.get("body", "")
             parent_title = parent_issue_data.get("title", f"Issue #{ctx.issue_number}")
+            parent_creator = (parent_issue_data.get("user") or {}).get("login", "")
         except Exception as e:
             logger.warning("Failed to fetch parent issue for sub-issue creation: %s", e)
             return {}
@@ -350,6 +353,53 @@ class WorkflowOrchestrator:
                     agent_name,
                     ctx.issue_number,
                 )
+
+                # Assign Human sub-issues to the parent issue creator
+                if agent_name == "human":
+                    sub_number = sub_issue.get("number")
+                    if parent_creator and sub_number:
+                        try:
+                            await self.github.assign_issue(
+                                access_token=ctx.access_token,
+                                owner=ctx.repository_owner,
+                                repo=ctx.repository_name,
+                                issue_number=sub_number,
+                                assignees=[parent_creator],
+                            )
+                            # Store assignee for completion validation
+                            agent_sub_issues[agent_name]["assignee"] = parent_creator
+                            logger.info(
+                                "Assigned Human sub-issue #%d to issue creator '%s'",
+                                sub_number,
+                                parent_creator,
+                            )
+                        except Exception as assign_err:
+                            logger.warning(
+                                "Failed to assign Human sub-issue #%d to '%s': %s",
+                                sub_number,
+                                parent_creator,
+                                assign_err,
+                            )
+                    elif sub_number:
+                        # Creator could not be resolved — post warning on parent
+                        logger.warning(
+                            "Could not resolve issue creator for Human step on issue #%d",
+                            ctx.issue_number,
+                        )
+                        try:
+                            await self.github.create_issue_comment(
+                                access_token=ctx.access_token,
+                                owner=ctx.repository_owner,
+                                repo=ctx.repository_name,
+                                issue_number=ctx.issue_number,
+                                body=f"⚠️ Could not resolve issue creator for Human step assignment. Please manually assign sub-issue #{sub_number}.",
+                            )
+                        except Exception as comment_err:
+                            logger.warning(
+                                "Failed to post warning comment on issue #%d: %s",
+                                ctx.issue_number,
+                                comment_err,
+                            )
 
                 # Add the sub-issue to the same GitHub Project as the parent
                 sub_node_id = sub_issue.get("node_id", "")
@@ -416,6 +466,18 @@ class WorkflowOrchestrator:
             status_order = get_status_order(config)
             body = append_tracking_to_body(body, config.agent_mappings, status_order)
             logger.info("Appended agent pipeline tracking to issue body")
+
+        # Validate assembled body does not exceed GitHub API limit
+        if len(body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
+            raise ValidationError(
+                f"Issue body is {len(body)} characters, which exceeds the "
+                f"GitHub API limit of {GITHUB_ISSUE_BODY_MAX_LENGTH} characters. "
+                "Please shorten the description.",
+                details={
+                    "body_length": len(body),
+                    "max_length": GITHUB_ISSUE_BODY_MAX_LENGTH,
+                },
+            )
 
         issue = await self.github.create_issue(
             access_token=ctx.access_token,
@@ -838,6 +900,95 @@ class WorkflowOrchestrator:
                 agent_name,
                 ctx.issue_number,
             )
+
+        # ── Human agent: skip Copilot assignment ─────────────────────
+        # Human agents don't use Copilot — the sub-issue is already
+        # assigned to the issue creator during create_all_sub_issues().
+        # Just mark the step as active and create the pipeline state.
+        if agent_name == "human":
+            logger.info(
+                "Human agent on issue #%d — skipping Copilot assignment, marking as active",
+                ctx.issue_number,
+            )
+
+            # Mark agent as 🔄 Active in the issue body tracking table
+            await self._update_agent_tracking_state(ctx, agent_name, "active")
+
+            # Mark the sub-issue as "in progress"
+            if sub_issue_info and sub_issue_number != ctx.issue_number:
+                try:
+                    await self.github.update_issue_state(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=sub_issue_number,
+                        state="open",
+                        labels_add=["in-progress"],
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to mark Human sub-issue #%d as in-progress: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
+                # Update the sub-issue's project board Status to "In Progress"
+                try:
+                    sub_node_id = sub_issue_info.get("node_id", "")
+                    if sub_node_id:
+                        await self.github.update_sub_issue_project_status(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            sub_issue_node_id=sub_node_id,
+                            status_name=(config.status_in_progress if config else "In Progress"),
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to update Human sub-issue #%d project board status: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
+            # Create / update pipeline state (same as normal agents)
+            existing_pipeline = get_pipeline_state(ctx.issue_number)
+            existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
+            agent_sub_issues = dict(existing_sub_issues)
+            if sub_issue_info:
+                agent_sub_issues[agent_name] = sub_issue_info
+
+            pipeline_state = PipelineState(
+                issue_number=ctx.issue_number,
+                project_id=ctx.project_id,
+                status=status,
+                agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                current_agent_index=agent_index,
+                completed_agents=[
+                    a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
+                ],
+                started_at=utcnow(),
+                error=None,
+                agent_assigned_sha="",
+                agent_sub_issues=agent_sub_issues,
+            )
+            set_pipeline_state(ctx.issue_number, pipeline_state)
+
+            # Log the actual human assignee so transition audit entries
+            # are useful.  Prefer the sub-issue assignee (set during
+            # create_all_sub_issues to the parent issue creator); fall back
+            # to a generic "human" label if unavailable.
+            human_assignee = sub_issue_info.get("assignee", "") if sub_issue_info else ""
+            assigned_label = f"human:{human_assignee}" if human_assignee else "human"
+
+            self.log_transition(
+                ctx=ctx,
+                from_status=status,
+                to_status=status,
+                triggered_by=TriggeredBy.AUTOMATIC,
+                success=True,
+                assigned_user=assigned_label,
+            )
+
+            return True
 
         # Fetch issue context for the agent's custom instructions.
         # Use the SUB-ISSUE data (not parent) so Copilot focuses only on

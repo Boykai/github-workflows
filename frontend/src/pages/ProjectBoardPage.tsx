@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
+import { useBoardRefresh } from '@/hooks/useBoardRefresh';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
@@ -13,9 +14,10 @@ import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { CleanUpButton } from '@/components/board/CleanUpButton';
+import { RefreshButton } from '@/components/board/RefreshButton';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
-import { formatTimeAgo } from '@/utils/formatTime';
+import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -39,8 +41,20 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     selectProject,
   } = useProjectBoard({ selectedProjectId: externalProjectId, onProjectSelect });
 
+  // Board refresh orchestration: manual refresh, auto-refresh, rate limit tracking
+  const {
+    refresh,
+    isRefreshing,
+    error: refreshError,
+    rateLimitInfo,
+    isRateLimitLow,
+    resetTimer,
+  } = useBoardRefresh({ projectId: selectedProjectId, boardData });
+
   // Real-time sync: WebSocket with polling fallback — drives board auto-refresh
-  const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId);
+  const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
+    onRefreshTriggered: resetTimer,
+  });
 
   // Chat hooks (moved from App.tsx so chat API calls only fire on the board page)
   const {
@@ -144,11 +158,12 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             </span>
           )}
 
-          {/* Refresh indicator */}
-          {isFetching && !boardLoading && (
-            <span className="flex items-center justify-center" title="Refreshing...">
-              <span className="w-4 h-4 border-2 border-border border-t-primary rounded-full animate-spin" />
-            </span>
+          {/* Manual refresh button */}
+          {selectedProjectId && (
+            <RefreshButton
+              onRefresh={refresh}
+              isRefreshing={isRefreshing || (isFetching && !boardLoading)}
+            />
           )}
 
           {/* Last updated */}
@@ -159,6 +174,43 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           )}
         </div>
       </div>
+
+      {/* Rate limit warning banner */}
+      {refreshError?.type === 'rate_limit' && (
+        <div className="flex items-start gap-3 p-4 rounded-md bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+          <span className="text-lg">⏳</span>
+          <div className="flex flex-col gap-1">
+            <strong>Rate limit reached</strong>
+            <p>
+              {refreshError.retryAfter
+                ? `Resets ${formatTimeUntil(refreshError.retryAfter)}.`
+                : refreshError.message}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Low rate limit preemptive warning */}
+      {isRateLimitLow && !refreshError && rateLimitInfo && (
+        <div className="flex items-start gap-3 p-4 rounded-md bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+          <span className="text-lg">⚠️</span>
+          <div className="flex flex-col gap-1">
+            <strong>Rate limit low</strong>
+            <p>Only {rateLimitInfo.remaining} API requests remaining.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Non-rate-limit refresh error banner */}
+      {refreshError && refreshError.type !== 'rate_limit' && (
+        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+          <span className="text-lg">⚠️</span>
+          <div className="flex flex-col gap-1">
+            <strong>Refresh failed</strong>
+            <p>{refreshError.message}</p>
+          </div>
+        </div>
+      )}
 
       {/* Error states */}
       {projectsError && (

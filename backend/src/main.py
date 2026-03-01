@@ -73,6 +73,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting Agent Projects API")
 
     from src.services.database import close_database, init_database, seed_global_settings
+
+    # Start Signal WebSocket listener for inbound messages
     from src.services.signal_bridge import start_signal_ws_listener, stop_signal_ws_listener
 
     # Track which resources were successfully initialised so the finally
@@ -86,6 +88,12 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         db = await init_database()
         await seed_global_settings(db)
         _app.state.db = db
+
+        # Initialize housekeeping seed templates
+        from src.services.housekeeping.service import HousekeepingService
+
+        housekeeping_svc = HousekeepingService(db)
+        await housekeeping_svc.initialize()
 
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service

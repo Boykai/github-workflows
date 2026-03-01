@@ -106,6 +106,23 @@ npx playwright test             # E2E tests
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
 ## Active Technologies
+- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
+- SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
+
+## Recent Changes
+- 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
+- Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend) (014-human-agent-pipeline)
+- SQLite (WAL mode) via aiosqlite — no new tables required (reuses existing pipeline state and sub-issue tracking) (014-human-agent-pipeline)
+
+## Recent Changes
+- 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
+- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client) (014-board-refresh-ratelimit)
+- In-memory cache (`backend/src/services/cache.py` — `InMemoryCache` with TTL) (014-board-refresh-ratelimit)
+
+## Recent Changes
+- 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
+- Python 3.11+ (backend; dev environment targets 3.12), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic v2, httpx (backend); React 18, TanStack Query v5 (frontend) (014-preserve-issue-description)
+- SQLite (aiosqlite, WAL mode) — in-memory for tests; in-memory dicts for proposals/recommendations (MVP) (014-preserve-issue-description)
 - Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
 - SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
 - Python 3.12 (backend), TypeScript 5.4 / React 18 (frontend) + FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend) (015-stale-cleanup-button)

@@ -570,3 +570,189 @@ class TestConfirmProposalEdgeCases:
         resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         assert "couldn't generate" in resp.json()["content"].lower()
+
+
+# ── Preserve full description tests ─────────────────────────────────────────
+
+
+class TestConfirmProposalPreservesFullDescription:
+    """T006, T010, T016, T018, T021: Verify confirm_proposal passes full descriptions unchanged."""
+
+    async def test_full_description_passed_unchanged(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T006: confirm_proposal passes the full final_description to create_issue(body=...)."""
+        import src.api.chat as chat_mod
+
+        long_desc = "A" * 10_000
+        proposal = _proposal(mock_session.session_id, proposed_description=long_desc)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "number": 30,
+            "node_id": "I_30",
+            "html_url": "https://github.com/owner/repo/issues/30",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_30"
+
+        with (
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.get_agent_slugs", return_value=[]),
+        ):
+            mock_orch.return_value.assign_agent_for_status = AsyncMock()
+            mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
+            resp = await client.post(
+                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+                json={},
+            )
+
+        assert resp.status_code == 200
+        # Verify the full body was passed to create_issue
+        call_kwargs = mock_github_service.create_issue.call_args
+        assert call_kwargs.kwargs["body"] == long_desc
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+    @pytest.mark.parametrize("length", [256, 1024, 4096, 32768, 65536])
+    async def test_boundary_length_descriptions_preserved(
+        self, client, mock_session, mock_github_service, mock_websocket_manager, length
+    ):
+        """T010: Parametrized boundary-length tests for proposal path."""
+        import src.api.chat as chat_mod
+
+        desc = "B" * length
+        proposal = _proposal(mock_session.session_id, proposed_description=desc)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "number": 31,
+            "node_id": "I_31",
+            "html_url": "https://github.com/owner/repo/issues/31",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_31"
+
+        with (
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.get_agent_slugs", return_value=[]),
+        ):
+            mock_orch.return_value.assign_agent_for_status = AsyncMock()
+            mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
+            resp = await client.post(
+                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+                json={},
+            )
+
+        assert resp.status_code == 200
+        call_kwargs = mock_github_service.create_issue.call_args
+        assert call_kwargs.kwargs["body"] == desc
+        assert len(call_kwargs.kwargs["body"]) == length
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+    async def test_oversized_description_returns_422(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T016: confirm_proposal returns HTTP 422 when description exceeds 65,536 chars."""
+        import src.api.chat as chat_mod
+
+        oversized_desc = "C" * 65_537
+        proposal = _proposal(mock_session.session_id, proposed_description=oversized_desc[:65_536])
+        # Bypass Pydantic max_length by setting the field directly
+        object.__setattr__(proposal, "proposed_description", oversized_desc)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+
+        resp = await client.post(
+            f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+            json={},
+        )
+        assert resp.status_code == 422
+        resp_json = resp.json()
+        assert "exceeds" in resp_json["error"].lower()
+        # Verify structured details payload is preserved (not lost by
+        # exception re-wrapping) per the issue-creation contract.
+        assert resp_json["details"]["body_length"] == 65_537
+        assert resp_json["details"]["max_length"] == 65_536
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+    async def test_exactly_65537_chars_fails(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T018: Body at exactly 65,537 chars fails with 422."""
+        import src.api.chat as chat_mod
+
+        desc = "D" * 65_537
+        proposal = _proposal(mock_session.session_id, proposed_description="short")
+        object.__setattr__(proposal, "proposed_description", desc)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+
+        resp = await client.post(
+            f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+            json={},
+        )
+        assert resp.status_code == 422
+        # Verify the 422 response includes the structured details payload.
+        resp_json = resp.json()
+        assert resp_json["details"]["body_length"] == 65_537
+        assert resp_json["details"]["max_length"] == 65_536
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+    async def test_rich_markdown_description_preserved(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """T021: Rich markdown description is preserved through proposal path."""
+        import src.api.chat as chat_mod
+
+        markdown_desc = (
+            "# Feature Request\n\n"
+            "## Overview\n\n"
+            "- bullet point 1\n"
+            "- bullet point 2\n"
+            "  - nested bullet\n\n"
+            "```python\ndef hello():\n    print('world')\n```\n\n"
+            "> blockquote with **bold** and *italic*\n\n"
+            "| Header1 | Header2 |\n|---------|----------|\n| cell1 | cell2 |\n\n"
+            "[link](https://example.com) and `inline code`\n\n"
+            "---\n\n"
+            "~~strikethrough~~ and 🚀 emoji\n"
+        )
+        proposal = _proposal(mock_session.session_id, proposed_description=markdown_desc)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "number": 32,
+            "node_id": "I_32",
+            "html_url": "https://github.com/owner/repo/issues/32",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_32"
+
+        with (
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.get_agent_slugs", return_value=[]),
+        ):
+            mock_orch.return_value.assign_agent_for_status = AsyncMock()
+            mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
+            resp = await client.post(
+                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+                json={},
+            )
+
+        assert resp.status_code == 200
+        call_kwargs = mock_github_service.create_issue.call_args
+        assert call_kwargs.kwargs["body"] == markdown_desc
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)

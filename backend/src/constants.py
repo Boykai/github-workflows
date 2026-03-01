@@ -28,6 +28,12 @@ SESSION_COOKIE_NAME = "session_id"
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# GitHub API Limits
+# ──────────────────────────────────────────────────────────────────────────────
+
+GITHUB_ISSUE_BODY_MAX_LENGTH = 65_536
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Notification Event Types
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -71,6 +77,7 @@ AGENT_DISPLAY_NAMES: dict[str, str] = {
     "speckit.implement": "Spec Kit - Implement",
     "copilot-review": "Copilot Review",
     "copilot": "GitHub Copilot",
+    "human": "Human",
 }
 
 
