@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AUTO_REFRESH_INTERVAL_MS, RATE_LIMIT_LOW_THRESHOLD } from '@/constants';
 import type { RateLimitInfo, RefreshError, BoardDataResponse } from '@/types';
-import { ApiError } from '@/services/api';
+import { ApiError, boardApi } from '@/services/api';
 
 interface UseBoardRefreshOptions {
   /** Currently selected project ID */
@@ -70,14 +70,23 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
     }
   }, []);
 
-  const doRefresh = useCallback(async () => {
+  const doRefresh = useCallback(async (forceRefresh = false) => {
     if (!projectId || isRefreshingRef.current) return;
 
     isRefreshingRef.current = true;
     setIsRefreshing(true);
 
     try {
-      await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
+      if (forceRefresh) {
+        // Manual refresh: bypass the backend cache by fetching with
+        // refresh=true and writing the result directly into TanStack Query.
+        const data = await boardApi.getBoardData(projectId, /* refresh */ true);
+        queryClient.setQueryData(['board', 'data', projectId], data);
+      } else {
+        // Auto-refresh: revalidate using the default queryFn which may
+        // serve backend-cached data — acceptable for periodic background refreshes.
+        await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
+      }
       setLastRefreshedAt(new Date());
       setError(null);
     } catch (err) {
@@ -105,7 +114,9 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
   }, [startTimer]);
 
   const refresh = useCallback(() => {
-    doRefresh();
+    // Manual refresh bypasses server cache (forceRefresh=true) so the user
+    // always sees the latest data from GitHub, not a stale backend cache hit.
+    doRefresh(/* forceRefresh */ true);
     // Reset the auto-refresh timer on manual refresh
     startTimer();
   }, [doRefresh, startTimer]);

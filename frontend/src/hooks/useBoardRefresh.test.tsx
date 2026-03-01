@@ -17,7 +17,8 @@ vi.mock('@/constants', () => ({
   RATE_LIMIT_LOW_THRESHOLD: 10,
 }));
 
-// Mock ApiError for parseRefreshError tests
+// Mock boardApi so manual refresh (forceRefresh=true) can be tested
+const mockGetBoardData = vi.fn().mockResolvedValue({ project: {}, columns: [] });
 vi.mock('@/services/api', () => ({
   ApiError: class ApiError extends Error {
     status: number;
@@ -28,6 +29,9 @@ vi.mock('@/services/api', () => ({
       this.status = status;
       this.error = error;
     }
+  },
+  boardApi: {
+    getBoardData: (...args: unknown[]) => mockGetBoardData(...args),
   },
 }));
 
@@ -45,6 +49,7 @@ function createWrapper(queryClient?: QueryClient) {
 describe('useBoardRefresh', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    mockGetBoardData.mockReset().mockResolvedValue({ project: {}, columns: [] });
   });
 
   afterEach(() => {
@@ -69,11 +74,11 @@ describe('useBoardRefresh', () => {
 
   // ---------- manual refresh ----------
 
-  it('should trigger invalidateQueries on manual refresh', async () => {
+  it('should call boardApi.getBoardData with refresh=true on manual refresh', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
 
     const { result } = renderHook(
       () => useBoardRefresh({ projectId: 'PVT_123' }),
@@ -84,8 +89,12 @@ describe('useBoardRefresh', () => {
       result.current.refresh();
     });
 
-    expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: ['board', 'data', 'PVT_123'] }),
+    // Manual refresh should bypass server cache
+    expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+    // And write the result directly into the TanStack Query cache
+    expect(setQueryDataSpy).toHaveBeenCalledWith(
+      ['board', 'data', 'PVT_123'],
+      expect.anything(),
     );
   });
 
@@ -93,7 +102,7 @@ describe('useBoardRefresh', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
 
     const { result } = renderHook(
       () => useBoardRefresh({ projectId: 'PVT_123' }),
@@ -113,13 +122,11 @@ describe('useBoardRefresh', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    let resolveInvalidate: () => void;
-    const invalidatePromise = new Promise<void>((resolve) => {
-      resolveInvalidate = resolve;
+    let resolveGetBoardData: (value: unknown) => void;
+    const pendingPromise = new Promise((resolve) => {
+      resolveGetBoardData = resolve;
     });
-    const invalidateSpy = vi
-      .spyOn(queryClient, 'invalidateQueries')
-      .mockReturnValue(invalidatePromise);
+    mockGetBoardData.mockReturnValue(pendingPromise);
 
     const { result } = renderHook(
       () => useBoardRefresh({ projectId: 'PVT_123' }),
@@ -133,12 +140,12 @@ describe('useBoardRefresh', () => {
       result.current.refresh();
     });
 
-    // Only one invalidateQueries call should be in-flight
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    // Only one getBoardData call should be in-flight
+    expect(mockGetBoardData).toHaveBeenCalledTimes(1);
 
-    // Resolve the pending invalidation
+    // Resolve the pending call
     await act(async () => {
-      resolveInvalidate!();
+      resolveGetBoardData!({ project: {}, columns: [] });
     });
   });
 
@@ -163,8 +170,30 @@ describe('useBoardRefresh', () => {
       vi.advanceTimersByTime(1100);
     });
 
-    // Timer should have fired a refresh
+    // Timer should have fired a refresh via invalidateQueries (not force-refresh)
     expect(invalidateSpy).toHaveBeenCalled();
+  });
+
+  it('should use invalidateQueries for auto-refresh (not force-refresh)', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    mockGetBoardData.mockClear();
+
+    renderHook(
+      () => useBoardRefresh({ projectId: 'PVT_123' }),
+      { wrapper: createWrapper(queryClient) },
+    );
+
+    // Advance past one interval to trigger auto-refresh
+    await act(async () => {
+      vi.advanceTimersByTime(1100);
+    });
+
+    // Auto-refresh should NOT call boardApi.getBoardData directly — it uses
+    // invalidateQueries to allow TanStack Query to refetch with its default queryFn.
+    expect(mockGetBoardData).not.toHaveBeenCalled();
   });
 
   it('should not start timer when projectId is null', () => {
@@ -187,6 +216,7 @@ describe('useBoardRefresh', () => {
       defaultOptions: { queries: { retry: false } },
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
 
     const { result } = renderHook(
       () => useBoardRefresh({ projectId: 'PVT_123' }),
