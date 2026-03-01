@@ -4,6 +4,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.models.housekeeping import (
@@ -120,11 +121,13 @@ async def delete_template(
             detail="Cannot delete built-in templates",
         )
     if result.get("error") == "in_use":
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "detail": "Template is referenced by active housekeeping tasks",
-                "referencing_tasks": result["referencing_tasks"],
+            content={
+                "error": "Template is referenced by active housekeeping tasks",
+                "details": {
+                    "referencing_tasks": result["referencing_tasks"],
+                },
             },
         )
     return result
@@ -273,13 +276,15 @@ async def run_task(
             detail="Housekeeping task not found",
         )
     if result.get("cooldown"):
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "detail": "Task was triggered recently",
-                "last_triggered_at": result["last_triggered_at"],
-                "cooldown_remaining_seconds": result["cooldown_remaining_seconds"],
-                "message": "Use ?force=true to override cooldown",
+            content={
+                "error": "Task was triggered recently",
+                "details": {
+                    "last_triggered_at": result["last_triggered_at"],
+                    "cooldown_remaining_seconds": result["cooldown_remaining_seconds"],
+                    "message": "Use ?force=true to override cooldown",
+                },
             },
         )
 

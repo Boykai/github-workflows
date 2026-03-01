@@ -26,12 +26,14 @@ export function RunNowButton({ taskId, taskName, disabled }: RunNowButtonProps) 
       await runTask.mutateAsync({ id: taskId, force });
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
-        // Cooldown conflict
+        // Cooldown conflict — extract cooldown info from error details
         const details = err.error?.details as Record<string, unknown> | undefined;
-        if (details) {
+        const lastTriggered = details?.last_triggered_at;
+        const remaining = details?.cooldown_remaining_seconds;
+        if (lastTriggered !== undefined) {
           setCooldownInfo({
-            last_triggered_at: String(details.last_triggered_at ?? ''),
-            cooldown_remaining_seconds: Number(details.cooldown_remaining_seconds ?? 0),
+            last_triggered_at: String(lastTriggered),
+            cooldown_remaining_seconds: Number(remaining ?? 0),
           });
           setShowCooldownDialog(true);
         }

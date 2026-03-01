@@ -107,6 +107,19 @@ class HousekeepingService:
             updated_at=now,
         )
 
+    # Allowed column names for dynamic SQL updates (SQL injection prevention)
+    _TEMPLATE_COLUMNS = {"name", "title_pattern", "body_content", "updated_at"}
+    _TASK_COLUMNS = {
+        "name",
+        "description",
+        "template_id",
+        "sub_issue_config",
+        "trigger_type",
+        "trigger_value",
+        "cooldown_minutes",
+        "updated_at",
+    }
+
     async def update_template(self, template_id: str, **kwargs: str | None) -> IssueTemplate | None:
         """Update a template. Returns None if not found."""
         tmpl = await self.get_template(template_id)
@@ -115,7 +128,7 @@ class HousekeepingService:
         if tmpl.category == TemplateCategory.BUILT_IN:
             raise PermissionError("Cannot modify built-in templates")
 
-        updates = {k: v for k, v in kwargs.items() if v is not None}
+        updates = {k: v for k, v in kwargs.items() if v is not None and k in self._TEMPLATE_COLUMNS}
         if not updates:
             return tmpl
 
@@ -241,7 +254,10 @@ class HousekeepingService:
             ),
         )
         await self._db.commit()
-        return await self.get_task(task_id)  # type: ignore[return-value]
+        task = await self.get_task(task_id)
+        if not task:
+            raise RuntimeError(f"Failed to retrieve newly created task {task_id}")
+        return task
 
     async def update_task(self, task_id: str, **kwargs) -> HousekeepingTask | None:
         """Update a task. Returns None if not found."""
@@ -251,7 +267,7 @@ class HousekeepingService:
 
         updates: dict = {}
         for key, value in kwargs.items():
-            if value is None:
+            if value is None or key not in self._TASK_COLUMNS:
                 continue
             if key == "template_id":
                 tmpl = await self.get_template(value)
@@ -260,8 +276,6 @@ class HousekeepingService:
                 updates[key] = value
             elif key == "sub_issue_config":
                 updates[key] = json.dumps(value) if value else None
-            elif key == "trigger_type" or key == "trigger_value":
-                updates[key] = value
             else:
                 updates[key] = value
 

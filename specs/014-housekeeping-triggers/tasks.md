@@ -25,8 +25,8 @@
 
 **Purpose**: Create the project structure and scaffolding for the housekeeping feature
 
-- [ ] T001 Create housekeeping service package with __init__.py in backend/src/services/housekeeping/__init__.py
-- [ ] T002 [P] Create database migration with housekeeping_templates, housekeeping_tasks, and housekeeping_trigger_history tables in backend/src/migrations/006_housekeeping.sql
+- [x] T001 Create housekeeping service package with __init__.py in backend/src/services/housekeeping/__init__.py
+- [x] T002 [P] Create database migration with housekeeping_templates, housekeeping_tasks, and housekeeping_trigger_history tables in backend/src/migrations/006_housekeeping.sql
 
 ---
 
@@ -36,13 +36,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create Pydantic models for IssueTemplate, HousekeepingTask, TriggerEvent, and all request/response schemas in backend/src/models/housekeeping.py
-- [ ] T004 [P] Define three built-in seed template data structures (Security and Privacy Review, Test Coverage Refresh, Bug Bash) in backend/src/services/housekeeping/seed.py
-- [ ] T005 Implement HousekeepingService base class with aiosqlite database connection, table initialization, and seed template insertion logic in backend/src/services/housekeeping/service.py
-- [ ] T006 Create housekeeping API router with FastAPI dependency injection scaffold and GET /templates endpoint (list seeded templates) in backend/src/api/housekeeping.py
-- [ ] T007 Register housekeeping router with /api/v1/housekeeping prefix in backend/src/main.py
-- [ ] T008 [P] Add housekeeping TypeScript type definitions (IssueTemplate, HousekeepingTask, TriggerEvent) and API client base URL in frontend/src/services/api.ts
-- [ ] T009 [P] Create useHousekeeping hook scaffold with TanStack Query client setup and base query keys in frontend/src/hooks/useHousekeeping.ts
+- [x] T003 Create Pydantic models for IssueTemplate, HousekeepingTask, TriggerEvent, and all request/response schemas in backend/src/models/housekeeping.py
+- [x] T004 [P] Define three built-in seed template data structures (Security and Privacy Review, Test Coverage Refresh, Bug Bash) in backend/src/services/housekeeping/seed.py
+- [x] T005 Implement HousekeepingService base class with aiosqlite database connection, table initialization, and seed template insertion logic in backend/src/services/housekeeping/service.py
+- [x] T006 Create housekeeping API router with FastAPI dependency injection scaffold and GET /templates endpoint (list seeded templates) in backend/src/api/housekeeping.py
+- [x] T007 Register housekeeping router with /api/v1/housekeeping prefix in backend/src/main.py
+- [x] T008 [P] Add housekeeping TypeScript type definitions (IssueTemplate, HousekeepingTask, TriggerEvent) and API client base URL in frontend/src/services/api.ts
+- [x] T009 [P] Create useHousekeeping hook scaffold with TanStack Query client setup and base query keys in frontend/src/hooks/useHousekeeping.ts
 
 **Checkpoint**: Foundation ready — database tables exist, models defined, seed templates inserted, API router mounted, frontend types and hook scaffold in place. User story implementation can now begin.
 
@@ -56,13 +56,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement task CRUD methods (create_task, get_task, list_tasks, update_task, delete_task) with SQLite queries in backend/src/services/housekeeping/service.py
-- [ ] T011 [US1] Implement task validation logic (template_id must reference existing template, trigger_type/trigger_value consistency, unique name per project_id, cooldown_minutes >= 1) in backend/src/services/housekeeping/service.py
-- [ ] T012 [US1] Add task CRUD API endpoints (GET /tasks, GET /tasks/{task_id}, POST /tasks, PUT /tasks/{task_id}, DELETE /tasks/{task_id}) with project_id query parameter in backend/src/api/housekeeping.py
-- [ ] T013 [P] [US1] Add task API client methods (listTasks, getTask, createTask, updateTask, deleteTask) with TypeScript types in frontend/src/services/api.ts
-- [ ] T014 [US1] Add task queries and mutations (useTaskList, useTask, useCreateTask, useUpdateTask, useDeleteTask) with cache invalidation in frontend/src/hooks/useHousekeeping.ts
-- [ ] T015 [P] [US1] Create HousekeepingTaskForm component with name, description, template selector dropdown, trigger type radio (time/count), trigger value input (cron or integer), and inline validation errors in frontend/src/components/housekeeping/HousekeepingTaskForm.tsx
-- [ ] T016 [US1] Create HousekeepingTaskList component displaying tasks with name, trigger type/value, last triggered timestamp, and enabled status in frontend/src/components/housekeeping/HousekeepingTaskList.tsx
+- [x] T010 [US1] Implement task CRUD methods (create_task, get_task, list_tasks, update_task, delete_task) with SQLite queries in backend/src/services/housekeeping/service.py
+- [x] T011 [US1] Implement task validation logic (template_id must reference existing template, trigger_type/trigger_value consistency, unique name per project_id, cooldown_minutes >= 1) in backend/src/services/housekeeping/service.py
+- [x] T012 [US1] Add task CRUD API endpoints (GET /tasks, GET /tasks/{task_id}, POST /tasks, PUT /tasks/{task_id}, DELETE /tasks/{task_id}) with project_id query parameter in backend/src/api/housekeeping.py
+- [x] T013 [P] [US1] Add task API client methods (listTasks, getTask, createTask, updateTask, deleteTask) with TypeScript types in frontend/src/services/api.ts
+- [x] T014 [US1] Add task queries and mutations (useTaskList, useTask, useCreateTask, useUpdateTask, useDeleteTask) with cache invalidation in frontend/src/hooks/useHousekeeping.ts
+- [x] T015 [P] [US1] Create HousekeepingTaskForm component with name, description, template selector dropdown, trigger type radio (time/count), trigger value input (cron or integer), and inline validation errors in frontend/src/components/housekeeping/HousekeepingTaskForm.tsx
+- [x] T016 [US1] Create HousekeepingTaskList component displaying tasks with name, trigger type/value, last triggered timestamp, and enabled status in frontend/src/components/housekeeping/HousekeepingTaskList.tsx
 
 **Checkpoint**: Maintainers can create, view, edit, and delete housekeeping tasks through the UI. Tasks persist in SQLite with validated configurations. MVP is functional.
 
@@ -76,14 +76,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T017 [P] [US2] Create time-based scheduler module with cron expression parsing (support named presets: daily, weekly, monthly) and is_task_due evaluation in backend/src/services/housekeeping/scheduler.py
-- [ ] T018 [P] [US2] Create count-based counter module with threshold evaluation (current_count - last_triggered_issue_count >= trigger_value) and atomic counter tracking in backend/src/services/housekeeping/counter.py
-- [ ] T019 [US2] Implement trigger execution logic (_execute_task: create parent issue from template via GitHub Issues API, then generate sub issues using WorkflowOrchestrator and DEFAULT_AGENT_MAPPINGS) in backend/src/services/housekeeping/service.py
-- [ ] T020 [US2] Implement idempotency cooldown guard with atomic compare-and-swap on last_triggered_at within SQLite transaction (skip if within cooldown_minutes window) in backend/src/services/housekeeping/service.py
-- [ ] T021 [US2] Add evaluate-triggers endpoint (POST /evaluate-triggers) that evaluates all enabled time-based tasks for a project and executes due ones, with service token authentication in backend/src/api/housekeeping.py
-- [ ] T022 [US2] Extend webhook handler to process issues.opened events — evaluate all enabled count-based housekeeping tasks for the project and trigger those meeting threshold in backend/src/api/webhooks.py
-- [ ] T023 [P] [US2] Create housekeeping-cron.yml GitHub Actions workflow with schedule cron '*/15 * * * *', minimal permissions, GH_TOKEN authentication, and POST to /api/v1/housekeeping/evaluate-triggers in .github/workflows/housekeeping-cron.yml
-- [ ] T024 [US2] Implement default sub-issue configuration fallback — when task.sub_issue_config is null, use DEFAULT_AGENT_MAPPINGS from backend/src/constants.py for sub-issue generation in backend/src/services/housekeeping/service.py
+- [x] T017 [P] [US2] Create time-based scheduler module with cron expression parsing (support named presets: daily, weekly, monthly) and is_task_due evaluation in backend/src/services/housekeeping/scheduler.py
+- [x] T018 [P] [US2] Create count-based counter module with threshold evaluation (current_count - last_triggered_issue_count >= trigger_value) and atomic counter tracking in backend/src/services/housekeeping/counter.py
+- [x] T019 [US2] Implement trigger execution logic (_execute_task: create parent issue from template via GitHub Issues API, then generate sub issues using WorkflowOrchestrator and DEFAULT_AGENT_MAPPINGS) in backend/src/services/housekeeping/service.py
+- [x] T020 [US2] Implement idempotency cooldown guard with atomic compare-and-swap on last_triggered_at within SQLite transaction (skip if within cooldown_minutes window) in backend/src/services/housekeeping/service.py
+- [x] T021 [US2] Add evaluate-triggers endpoint (POST /evaluate-triggers) that evaluates all enabled time-based tasks for a project and executes due ones, with service token authentication in backend/src/api/housekeeping.py
+- [x] T022 [US2] Extend webhook handler to process issues.opened events — evaluate all enabled count-based housekeeping tasks for the project and trigger those meeting threshold in backend/src/api/webhooks.py
+- [x] T023 [P] [US2] Create housekeeping-cron.yml GitHub Actions workflow with schedule cron '*/15 * * * *', minimal permissions, GH_TOKEN authentication, and POST to /api/v1/housekeeping/evaluate-triggers in .github/workflows/housekeeping-cron.yml
+- [x] T024 [US2] Implement default sub-issue configuration fallback — when task.sub_issue_config is null, use DEFAULT_AGENT_MAPPINGS from backend/src/constants.py for sub-issue generation in backend/src/services/housekeeping/service.py
 
 **Checkpoint**: Time-based tasks automatically fire via the cron workflow; count-based tasks fire when issue creation threshold is met via webhooks. Idempotency guards prevent duplicate triggers within the cooldown window.
 
@@ -97,10 +97,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Finalize all three built-in seed template bodies with detailed title patterns, #codebase context references, and review/test/bug-finding instructions in backend/src/services/housekeeping/seed.py
-- [ ] T026 [US3] Implement built-in template protection (reject update/delete requests for category='built-in' with 403 response) in backend/src/services/housekeeping/service.py
-- [ ] T027 [US3] Add duplicate_template method to create a custom category copy from any template (including built-in) in backend/src/services/housekeeping/service.py
-- [ ] T028 [US3] Add POST /templates/{template_id}/duplicate endpoint returning the new custom template in backend/src/api/housekeeping.py
+- [x] T025 [US3] Finalize all three built-in seed template bodies with detailed title patterns, #codebase context references, and review/test/bug-finding instructions in backend/src/services/housekeeping/seed.py
+- [x] T026 [US3] Implement built-in template protection (reject update/delete requests for category='built-in' with 403 response) in backend/src/services/housekeeping/service.py
+- [x] T027 [US3] Add duplicate_template method to create a custom category copy from any template (including built-in) in backend/src/services/housekeeping/service.py
+- [x] T028 [US3] Add POST /templates/{template_id}/duplicate endpoint returning the new custom template in backend/src/api/housekeeping.py
 
 **Checkpoint**: Three built-in templates are available on fresh install, protected from modification, and can be duplicated into editable custom copies.
 
@@ -114,10 +114,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Implement manual run service method with cooldown check (return remaining seconds if within window), force-override flag, and trigger event recording in backend/src/services/housekeeping/service.py
-- [ ] T030 [US4] Add manual run endpoint (POST /tasks/{task_id}/run) with optional force=true query parameter, returning trigger event or 409 cooldown conflict in backend/src/api/housekeeping.py
-- [ ] T031 [P] [US4] Create RunNowButton component with loading state, cooldown confirmation dialog (showing last triggered time and remaining cooldown), and force-execute option in frontend/src/components/housekeeping/RunNowButton.tsx
-- [ ] T032 [US4] Add runTask mutation with cooldown state handling and optimistic UI update in frontend/src/hooks/useHousekeeping.ts
+- [x] T029 [US4] Implement manual run service method with cooldown check (return remaining seconds if within window), force-override flag, and trigger event recording in backend/src/services/housekeeping/service.py
+- [x] T030 [US4] Add manual run endpoint (POST /tasks/{task_id}/run) with optional force=true query parameter, returning trigger event or 409 cooldown conflict in backend/src/api/housekeeping.py
+- [x] T031 [P] [US4] Create RunNowButton component with loading state, cooldown confirmation dialog (showing last triggered time and remaining cooldown), and force-execute option in frontend/src/components/housekeeping/RunNowButton.tsx
+- [x] T032 [US4] Add runTask mutation with cooldown state handling and optimistic UI update in frontend/src/hooks/useHousekeeping.ts
 
 **Checkpoint**: Maintainers can manually trigger tasks via "Run Now" button. Cooldown protection warns about recent triggers but allows force override.
 
@@ -131,12 +131,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Implement template CRUD methods (create_template, get_template, list_templates with category filter, update_template, delete_template) in backend/src/services/housekeeping/service.py
-- [ ] T034 [US5] Implement template deletion safety check — query referencing housekeeping_tasks and return 409 Conflict with referencing_tasks list if active tasks reference the template, with force=true override in backend/src/services/housekeeping/service.py
-- [ ] T035 [US5] Add template CRUD API endpoints (GET /templates, GET /templates/{id}, POST /templates, PUT /templates/{id}, DELETE /templates/{id}) with category filter and force delete query parameter in backend/src/api/housekeeping.py
-- [ ] T036 [P] [US5] Add template API client methods (listTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate) in frontend/src/services/api.ts
-- [ ] T037 [US5] Add template queries and mutations (useTemplateList, useCreateTemplate, useUpdateTemplate, useDeleteTemplate, useDuplicateTemplate) in frontend/src/hooks/useHousekeeping.ts
-- [ ] T038 [US5] Create TemplateLibrary component with template list, create/edit form, delete with reference warning confirmation, built-in template indicators and duplicate action in frontend/src/components/housekeeping/TemplateLibrary.tsx
+- [x] T033 [US5] Implement template CRUD methods (create_template, get_template, list_templates with category filter, update_template, delete_template) in backend/src/services/housekeeping/service.py
+- [x] T034 [US5] Implement template deletion safety check — query referencing housekeeping_tasks and return 409 Conflict with referencing_tasks list if active tasks reference the template, with force=true override in backend/src/services/housekeeping/service.py
+- [x] T035 [US5] Add template CRUD API endpoints (GET /templates, GET /templates/{id}, POST /templates, PUT /templates/{id}, DELETE /templates/{id}) with category filter and force delete query parameter in backend/src/api/housekeeping.py
+- [x] T036 [P] [US5] Add template API client methods (listTemplates, getTemplate, createTemplate, updateTemplate, deleteTemplate, duplicateTemplate) in frontend/src/services/api.ts
+- [x] T037 [US5] Add template queries and mutations (useTemplateList, useCreateTemplate, useUpdateTemplate, useDeleteTemplate, useDuplicateTemplate) in frontend/src/hooks/useHousekeeping.ts
+- [x] T038 [US5] Create TemplateLibrary component with template list, create/edit form, delete with reference warning confirmation, built-in template indicators and duplicate action in frontend/src/components/housekeeping/TemplateLibrary.tsx
 
 **Checkpoint**: Full template library management is available. Templates can be created, edited, duplicated, and safely deleted with reference warnings.
 
@@ -150,11 +150,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T039 [US6] Implement trigger history query methods (get_task_history with limit, offset, and status filter; count total entries) in backend/src/services/housekeeping/service.py
-- [ ] T040 [US6] Add GET /tasks/{task_id}/history endpoint with limit, offset, and status query parameters returning paginated history list in backend/src/api/housekeeping.py
-- [ ] T041 [P] [US6] Add history API client method (getTaskHistory with pagination params) in frontend/src/services/api.ts
-- [ ] T042 [US6] Add history query (useTaskHistory with pagination state) in frontend/src/hooks/useHousekeeping.ts
-- [ ] T043 [US6] Create TriggerHistoryLog component displaying chronological entries with timestamp, trigger type badge, GitHub Issue URL link, status indicator (success/failure), error details expansion, and empty state message in frontend/src/components/housekeeping/TriggerHistoryLog.tsx
+- [x] T039 [US6] Implement trigger history query methods (get_task_history with limit, offset, and status filter; count total entries) in backend/src/services/housekeeping/service.py
+- [x] T040 [US6] Add GET /tasks/{task_id}/history endpoint with limit, offset, and status query parameters returning paginated history list in backend/src/api/housekeeping.py
+- [x] T041 [P] [US6] Add history API client method (getTaskHistory with pagination params) in frontend/src/services/api.ts
+- [x] T042 [US6] Add history query (useTaskHistory with pagination state) in frontend/src/hooks/useHousekeeping.ts
+- [x] T043 [US6] Create TriggerHistoryLog component displaying chronological entries with timestamp, trigger type badge, GitHub Issue URL link, status indicator (success/failure), error details expansion, and empty state message in frontend/src/components/housekeeping/TriggerHistoryLog.tsx
 
 **Checkpoint**: Trigger history is viewable per task with all required fields, pagination, and status filtering.
 
@@ -168,10 +168,10 @@
 
 ### Implementation for User Story 7
 
-- [ ] T044 [US7] Implement task toggle service method (set enabled=true/false, preserve all config and history, resume triggers from current state on re-enable) in backend/src/services/housekeeping/service.py
-- [ ] T045 [US7] Add PATCH /tasks/{task_id}/toggle endpoint accepting {enabled: boolean} and returning updated task in backend/src/api/housekeeping.py
-- [ ] T046 [US7] Add toggle mutation (useToggleTask) with optimistic UI update in frontend/src/hooks/useHousekeeping.ts
-- [ ] T047 [US7] Add enable/disable toggle switch and visual distinction for disabled tasks (greyed out or "Paused" label) in frontend/src/components/housekeeping/HousekeepingTaskList.tsx
+- [x] T044 [US7] Implement task toggle service method (set enabled=true/false, preserve all config and history, resume triggers from current state on re-enable) in backend/src/services/housekeeping/service.py
+- [x] T045 [US7] Add PATCH /tasks/{task_id}/toggle endpoint accepting {enabled: boolean} and returning updated task in backend/src/api/housekeeping.py
+- [x] T046 [US7] Add toggle mutation (useToggleTask) with optimistic UI update in frontend/src/hooks/useHousekeeping.ts
+- [x] T047 [US7] Add enable/disable toggle switch and visual distinction for disabled tasks (greyed out or "Paused" label) in frontend/src/components/housekeeping/HousekeepingTaskList.tsx
 
 **Checkpoint**: Tasks can be enabled and disabled. Disabled tasks stop automatic triggers but retain configuration and history. Visual distinction is clear in the UI.
 
@@ -181,11 +181,11 @@
 
 **Purpose**: Error handling, logging, documentation, and validation improvements across all stories
 
-- [ ] T048 [P] Add structured error handling and logging (using existing logging patterns) across all HousekeepingService methods in backend/src/services/housekeeping/service.py
-- [ ] T049 [P] Add input sanitization and rate limiting (max 1 call per minute per project) for evaluate-triggers endpoint in backend/src/api/housekeeping.py
-- [ ] T050 [P] Add loading states, error boundaries, and toast notifications to all housekeeping UI components in frontend/src/components/housekeeping/
-- [ ] T051 [P] Add catch-up trigger detection — on startup, evaluate missed time-based triggers since last_triggered_at and execute once per missed task in backend/src/services/housekeeping/service.py
-- [ ] T052 Run quickstart.md validation against all implemented endpoints and verify three built-in templates are accessible
+- [x] T048 [P] Add structured error handling and logging (using existing logging patterns) across all HousekeepingService methods in backend/src/services/housekeeping/service.py
+- [x] T049 [P] Add input sanitization and rate limiting (max 1 call per minute per project) for evaluate-triggers endpoint in backend/src/api/housekeeping.py
+- [x] T050 [P] Add loading states, error boundaries, and toast notifications to all housekeeping UI components in frontend/src/components/housekeeping/
+- [x] T051 [P] Add catch-up trigger detection — on startup, evaluate missed time-based triggers since last_triggered_at and execute once per missed task in backend/src/services/housekeeping/service.py
+- [x] T052 Run quickstart.md validation against all implemented endpoints and verify three built-in templates are accessible
 
 ---
 
