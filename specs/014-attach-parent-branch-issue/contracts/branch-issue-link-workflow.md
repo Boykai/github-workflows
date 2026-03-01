@@ -35,7 +35,7 @@
 | Variable | Source | Description |
 |----------|--------|-------------|
 | `BRANCH_NAME` | `${{ github.event.ref }}` | The newly created branch name |
-| `GITHUB_TOKEN` | `${{ secrets.GITHUB_TOKEN }}` | Authentication token |
+| `GH_TOKEN` | `${{ secrets.GITHUB_TOKEN }}` | Authentication token for GitHub CLI (`gh`) |
 | `GITHUB_REPOSITORY` | Built-in | `owner/repo` format |
 
 ### Workflow Steps
