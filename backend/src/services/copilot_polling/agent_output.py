@@ -659,7 +659,7 @@ async def post_agent_outputs_from_pr(
                         completed_agent=current_agent,
                         pipeline=pipeline,
                     )
-                    if merge_result:
+                    if merge_result and merge_result.get("status") == "merged":
                         logger.info(
                             "Merged child PR #%d for agent '%s' on issue #%d",
                             pr_number,

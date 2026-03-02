@@ -253,6 +253,12 @@ async def _merge_child_pr_if_applicable(
                     pr_number,
                     main_branch,
                 )
+                return {
+                    "status": "merge_failed",
+                    "pr_number": pr_number,
+                    "main_branch": main_branch,
+                    "agent": completed_agent,
+                }
 
         return None
 
@@ -475,6 +481,32 @@ async def _find_completed_child_pr(
                     "copilot_finished": True,
                     "is_child_pr": True,
                 }
+
+            # Fallback: Title-based completion detection (when timeline API
+            # fails).  Copilot creates draft PRs with a "[WIP]" title prefix
+            # and removes it when work is finished.  If the timeline API
+            # returned no events (likely 403 or other API error) but the
+            # title no longer has the "[WIP]" prefix, treat as completed.
+            if not timeline_events:
+                pr_title = pr_details.get("title", "")
+                if pr_title and not pr_title.startswith("[WIP]"):
+                    logger.info(
+                        "Child PR #%d title '%s' has no '[WIP]' prefix and "
+                        "timeline events unavailable — treating as completed "
+                        "(title-based fallback) for agent '%s'",
+                        pr_number,
+                        pr_title[:80],
+                        agent_name,
+                    )
+                    return {
+                        "number": pr_number,
+                        "id": pr_details.get("id"),
+                        "head_ref": pr_details.get("head_ref", ""),
+                        "base_ref": pr_base,
+                        "last_commit": pr_details.get("last_commit"),
+                        "copilot_finished": True,
+                        "is_child_pr": True,
+                    }
 
             logger.debug(
                 "Child PR #%d exists but no completion signals yet for agent '%s'",

@@ -3232,6 +3232,29 @@ class GitHubProjectsService:
                             "copilot_finished": True,
                         }
 
+                    # Fallback: Title-based completion detection (when timeline
+                    # API fails).  Copilot creates draft PRs with a "[WIP]"
+                    # title prefix and removes it when work is finished.  If the
+                    # timeline API returned no events (likely 403 or other API
+                    # error) but the title no longer has the "[WIP]" prefix,
+                    # treat as completed.
+                    if not timeline_events:
+                        pr_title = pr_details.get("title", "")
+                        if pr_title and not pr_title.startswith("[WIP]"):
+                            logger.info(
+                                "Copilot PR #%d title '%s' has no '[WIP]' prefix and "
+                                "timeline events unavailable — treating as completed "
+                                "(title-based fallback)",
+                                pr_number,
+                                pr_title[:80],
+                            )
+                            return {
+                                **pr,
+                                "id": pr_details.get("id"),
+                                "last_commit": pr_details.get("last_commit"),
+                                "copilot_finished": True,
+                            }
+
                     # No finish events yet - Copilot is still working
                     logger.info(
                         "Copilot PR #%d has no finish events yet, still in progress",

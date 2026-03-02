@@ -877,13 +877,39 @@ async def _advance_pipeline(
             completed_agent=completed_agent,
             pipeline=pipeline,
         )
-        if merge_result:
+        if merge_result and merge_result.get("status") == "merged":
             logger.info(
                 "Safety-net merge: child PR for agent '%s' merged in _advance_pipeline (issue #%d)",
                 completed_agent,
                 issue_number,
             )
             await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
+        elif merge_result and merge_result.get("status") == "merge_failed":
+            # A child PR exists but could not be merged.  Block the
+            # pipeline so the next agent does NOT start on a stale base.
+            # The next polling cycle will retry the merge.
+            logger.warning(
+                "Safety-net merge FAILED for agent '%s' on issue #%d "
+                "(child PR #%s) — blocking pipeline advance until "
+                "child PR is merged",
+                completed_agent,
+                issue_number,
+                merge_result.get("pr_number"),
+            )
+            # Roll back the pipeline advance so the completed agent
+            # stays as the "current" agent and the merge is retried.
+            pipeline.current_agent_index -= 1
+            if completed_agent in pipeline.completed_agents:
+                pipeline.completed_agents.remove(completed_agent)
+            _cp.set_pipeline_state(issue_number, pipeline)
+            return {
+                "status": "merge_blocked",
+                "issue_number": issue_number,
+                "task_title": task_title,
+                "action": "merge_blocked",
+                "agent_name": completed_agent,
+                "blocked_pr": merge_result.get("pr_number"),
+            }
 
         # Refresh HEAD SHA so the next agent / next status branches
         # from the absolute latest (post-merge) state.
@@ -1544,7 +1570,7 @@ async def process_in_progress_issue(
                 completed_agent="speckit.implement",
                 pipeline=impl_pipeline,
             )
-            if merge_result:
+            if merge_result and merge_result.get("status") == "merged":
                 logger.info(
                     "Merged speckit.implement child PR into main branch '%s' for issue #%d",
                     main_branch_info["branch"],

@@ -2676,6 +2676,101 @@ class TestCheckCopilotPrCompletion:
             assert result is not None
             assert result["number"] == 20
 
+    @pytest.mark.asyncio
+    async def test_copilot_draft_pr_title_fallback_when_timeline_empty(self, service):
+        """Should detect completion via title fallback when timeline API fails.
+
+        When the timeline API returns empty (e.g. 403), a draft PR whose title
+        no longer starts with '[WIP]' indicates Copilot finished its work.
+        """
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "Generate tasks.md for cleanup",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "title": "Generate tasks.md for cleanup",
+            "last_commit": {"sha": "abc123"},
+        }
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            # Timeline returns empty (simulates 403 Forbidden)
+            mock_get_timeline.return_value = []
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["copilot_finished"] is True
+            assert result["number"] == 42
+
+    @pytest.mark.asyncio
+    async def test_copilot_draft_pr_no_title_fallback_when_wip(self, service):
+        """Should NOT use title fallback when title still has [WIP] prefix."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "[WIP] Generate tasks.md for cleanup",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "title": "[WIP] Generate tasks.md for cleanup",
+        }
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            # Timeline returns empty (simulates 403 Forbidden)
+            mock_get_timeline.return_value = []
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is None
+
 
 class TestCreateIssueComment:
     """Tests for creating issue comments via REST API."""
