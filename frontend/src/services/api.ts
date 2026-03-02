@@ -11,10 +11,8 @@ import type {
   ChatMessagesResponse,
   AITaskProposal,
   ProposalConfirmRequest,
-  Project,
   ProjectListResponse,
   Task,
-  TaskCreateRequest,
   TaskListResponse,
   User,
   BoardProjectListResponse,
@@ -144,13 +142,6 @@ export const projectsApi = {
   },
 
   /**
-   * Get project details including items.
-   */
-  get(projectId: string): Promise<Project> {
-    return request<Project>(`/projects/${projectId}`);
-  },
-
-  /**
    * Select a project as the active project.
    */
   select(projectId: string): Promise<User> {
@@ -168,16 +159,6 @@ export const tasksApi = {
    */
   listByProject(projectId: string): Promise<TaskListResponse> {
     return request<TaskListResponse>(`/projects/${projectId}/tasks`);
-  },
-
-  /**
-   * Create a new task.
-   */
-  create(data: TaskCreateRequest): Promise<Task> {
-    return request<Task>('/tasks', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
   },
 
   /**

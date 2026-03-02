@@ -6,7 +6,6 @@ Covers:
 - parse_tracking_from_body()
 - get_current_agent_from_tracking()
 - get_next_pending_agent()
-- determine_next_action()
 - update_agent_state / mark_agent_active / mark_agent_done
 - check_last_comment_for_done()
 - append_tracking_to_body()
@@ -23,7 +22,6 @@ from src.services.agent_tracking import (
     append_tracking_to_body,
     build_agent_pipeline_steps,
     check_last_comment_for_done,
-    determine_next_action,
     get_current_agent_from_tracking,
     get_next_pending_agent,
     mark_agent_active,
@@ -322,42 +320,3 @@ class TestAppendTrackingToBody:
         first = append_tracking_to_body("body", mappings, ["Ready"])
         second = append_tracking_to_body(first, mappings, ["Ready"])
         assert first == second
-
-
-# =============================================================================
-# determine_next_action
-# =============================================================================
-
-
-class TestDetermineNextAction:
-    def test_no_tracking(self):
-        action = determine_next_action("plain body", [])
-        assert action.action == "no_tracking"
-
-    def test_active_agent_waiting(self):
-        action = determine_next_action(SAMPLE_BODY, [])
-        assert action.action == "wait"
-        assert action.agent_name == "speckit.plan"
-
-    def test_active_agent_done(self):
-        comments = [{"body": "speckit.plan: Done!"}]
-        action = determine_next_action(SAMPLE_BODY, comments)
-        assert action.action == "advance_pipeline"
-        assert action.agent_name == "speckit.plan"
-
-    def test_no_active_assigns_next_pending(self):
-        # Remove the active agent, keep pending
-        body = SAMPLE_BODY.replace(STATE_ACTIVE, STATE_DONE)
-        action = determine_next_action(body, [])
-        assert action.action == "assign_agent"
-        assert action.agent_name == "speckit.implement"
-
-    def test_all_done_transitions_status(self):
-        body = SAMPLE_BODY.replace(STATE_ACTIVE, STATE_DONE).replace(STATE_PENDING, STATE_DONE)
-        action = determine_next_action(body, [])
-        assert action.action == "transition_status"
-
-    def test_done_comment_for_wrong_agent_still_waits(self):
-        comments = [{"body": "other.agent: Done!"}]
-        action = determine_next_action(SAMPLE_BODY, comments)
-        assert action.action == "wait"

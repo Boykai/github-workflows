@@ -826,9 +826,3 @@ def get_ai_agent_service() -> AIAgentService:
     if _ai_agent_service_instance is None:
         _ai_agent_service_instance = AIAgentService()
     return _ai_agent_service_instance
-
-
-def reset_ai_agent_service() -> None:
-    """Reset the global AI agent service instance (useful for testing)."""
-    global _ai_agent_service_instance
-    _ai_agent_service_instance = None

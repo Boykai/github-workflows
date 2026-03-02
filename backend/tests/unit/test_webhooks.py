@@ -8,7 +8,6 @@ import pytest
 
 from src.api.webhooks import (
     extract_issue_number_from_pr,
-    handle_copilot_pr_ready,
     handle_pull_request_event,
     update_issue_status_for_copilot_pr,
     verify_webhook_signature,
@@ -251,44 +250,6 @@ class TestPullRequestEventHandling:
 
         assert result["status"] == "ignored"
         assert result["reason"] == "not_copilot_ready_event"
-
-
-class TestHandleCopilotPrReady:
-    """Tests for handle_copilot_pr_ready."""
-
-    @pytest.mark.asyncio
-    async def test_no_linked_issue(self):
-        pr_data = {"number": 1, "user": {"login": "copilot"}, "body": "", "head": {"ref": "branch"}}
-        result = await handle_copilot_pr_ready(pr_data, "owner", "repo", "token")
-        assert result["status"] == "skipped"
-        assert result["reason"] == "no_linked_issue"
-
-    @pytest.mark.asyncio
-    @patch("src.api.webhooks.github_projects_service")
-    async def test_linked_issue_found(self, mock_gps):
-        mock_gps.get_linked_pull_requests = AsyncMock(return_value=[])
-        pr_data = {
-            "number": 5,
-            "user": {"login": "copilot"},
-            "body": "Fixes #10",
-            "head": {"ref": "b"},
-        }
-        result = await handle_copilot_pr_ready(pr_data, "owner", "repo", "token")
-        assert result["status"] == "processed"
-        assert result["issue_number"] == 10
-
-    @pytest.mark.asyncio
-    @patch("src.api.webhooks.github_projects_service")
-    async def test_error_handling(self, mock_gps):
-        mock_gps.get_linked_pull_requests = AsyncMock(side_effect=Exception("API fail"))
-        pr_data = {
-            "number": 5,
-            "user": {"login": "copilot"},
-            "body": "Fixes #10",
-            "head": {"ref": "b"},
-        }
-        result = await handle_copilot_pr_ready(pr_data, "owner", "repo", "token")
-        assert result["status"] == "error"
 
 
 class TestUpdateIssueStatusForCopilotPr:

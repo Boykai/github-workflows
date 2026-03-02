@@ -725,34 +725,30 @@ class TestParseJsonResponseExtended:
 
 class TestGetAiAgentService:
     def test_singleton_creation(self):
-        from src.services.ai_agent import (
-            get_ai_agent_service,
-            reset_ai_agent_service,
-        )
+        from src.services import ai_agent as _mod
+        from src.services.ai_agent import get_ai_agent_service
 
-        reset_ai_agent_service()
+        _mod._ai_agent_service_instance = None
         with patch("src.services.ai_agent.create_completion_provider") as mock_create:
             mock_create.return_value = MockCompletionProvider()
             svc1 = get_ai_agent_service()
             svc2 = get_ai_agent_service()
             assert svc1 is svc2
             mock_create.assert_called_once()
-        reset_ai_agent_service()
+        _mod._ai_agent_service_instance = None
 
     def test_reset_clears_singleton(self):
-        from src.services.ai_agent import (
-            get_ai_agent_service,
-            reset_ai_agent_service,
-        )
+        from src.services import ai_agent as _mod
+        from src.services.ai_agent import get_ai_agent_service
 
-        reset_ai_agent_service()
+        _mod._ai_agent_service_instance = None
         with patch("src.services.ai_agent.create_completion_provider") as mock_create:
             mock_create.return_value = MockCompletionProvider()
             svc1 = get_ai_agent_service()
-            reset_ai_agent_service()
+            _mod._ai_agent_service_instance = None
             svc2 = get_ai_agent_service()
             assert svc1 is not svc2
-        reset_ai_agent_service()
+        _mod._ai_agent_service_instance = None
 
 
 class TestCompletionProviders:

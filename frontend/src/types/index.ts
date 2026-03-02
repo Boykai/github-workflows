@@ -5,15 +5,15 @@
 
 // ============ Enums ============
 
-export type ProjectType = 'organization' | 'user' | 'repository';
+type ProjectType = 'organization' | 'user' | 'repository';
 
-export type SenderType = 'user' | 'assistant' | 'system';
+type SenderType = 'user' | 'assistant' | 'system';
 
-export type ActionType = 'task_create' | 'status_update' | 'project_select' | 'issue_create';
+type ActionType = 'task_create' | 'status_update' | 'project_select' | 'issue_create';
 
-export type ProposalStatus = 'pending' | 'confirmed' | 'edited' | 'cancelled';
+type ProposalStatus = 'pending' | 'confirmed' | 'edited' | 'cancelled';
 
-export type RecommendationStatus = 'pending' | 'confirmed' | 'rejected';
+type RecommendationStatus = 'pending' | 'confirmed' | 'rejected';
 
 // ============ User & Auth ============
 
@@ -22,11 +22,6 @@ export interface User {
   github_username: string;
   github_avatar_url?: string;
   selected_project_id?: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  message: string;
 }
 
 // ============ Projects ============
@@ -83,25 +78,25 @@ export interface TaskListResponse {
 
 // ============ Chat Messages ============
 
-export interface TaskCreateActionData {
+interface TaskCreateActionData {
   proposal_id: string;
   task_id?: string;
   status: ProposalStatus;
 }
 
-export interface StatusUpdateActionData {
+interface StatusUpdateActionData {
   task_id: string;
   old_status: string;
   new_status: string;
   confirmed: boolean;
 }
 
-export interface ProjectSelectActionData {
+interface ProjectSelectActionData {
   project_id: string;
   project_name: string;
 }
 
-export type ActionData =
+type ActionData =
   | TaskCreateActionData
   | StatusUpdateActionData
   | ProjectSelectActionData
@@ -154,12 +149,12 @@ export interface APIError {
 
 // ============ Issue Recommendation (T051) ============
 
-export type IssuePriority = 'P0' | 'P1' | 'P2' | 'P3';
+type IssuePriority = 'P0' | 'P1' | 'P2' | 'P3';
 
-export type IssueSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
+type IssueSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
 
 // Pre-defined labels for GitHub Issues
-export type IssueLabel = 
+type IssueLabel = 
   // Type labels
   | 'feature'
   | 'bug'
@@ -183,27 +178,13 @@ export type IssueLabel =
   | 'accessibility'
   | 'ux';
 
-export interface IssueMetadata {
+interface IssueMetadata {
   priority: IssuePriority;
   size: IssueSize;
   estimate_hours: number;
   start_date: string;
   target_date: string;
   labels: IssueLabel[];
-}
-
-export interface IssueRecommendation {
-  recommendation_id: string;
-  session_id: string;
-  original_input: string;
-  title: string;
-  user_story: string;
-  ui_ux_description: string;
-  functional_requirements: string[];
-  metadata: IssueMetadata;
-  status: RecommendationStatus;
-  created_at: string;
-  confirmed_at?: string;
 }
 
 export interface IssueCreateActionData {
@@ -218,7 +199,7 @@ export interface IssueCreateActionData {
 
 // ============ Agent Assignment (004-agent-workflow-config-ui) ============
 
-export type AgentSource = 'builtin' | 'repository';
+type AgentSource = 'builtin' | 'repository';
 
 export interface AgentAssignment {
   id: string;           // UUID string
@@ -266,28 +247,6 @@ export interface WorkflowConfiguration {
   status_in_progress: string;
   status_in_review: string;
   enabled: boolean;
-}
-
-export interface AgentNotification {
-  type: 'agent_assigned' | 'agent_completed';
-  issue_number: number;
-  agent_name: string;
-  status: string;
-  next_agent: string | null;
-  timestamp: string;
-}
-
-export interface PipelineStateInfo {
-  issue_number: number;
-  project_id: string;
-  status: string;
-  agents: string[];
-  current_agent_index: number;
-  current_agent: string | null;
-  completed_agents: string[];
-  is_complete: boolean;
-  started_at: string | null;
-  error: string | null;
 }
 
 // ============ Board Types ============
@@ -364,7 +323,7 @@ export interface ProjectAgentMapping {
   display_name?: string | null;
 }
 
-export interface ProjectSpecificSettings {
+interface ProjectSpecificSettings {
   project_id: string;
   board_display_config?: ProjectBoardConfig | null;
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
@@ -380,25 +339,25 @@ export interface EffectiveProjectSettings {
 
 // ── Update (PUT) request types ──
 
-export interface AIPreferencesUpdate {
+interface AIPreferencesUpdate {
   provider?: AIProviderType | null;
   model?: string | null;
   temperature?: number | null;
 }
 
-export interface DisplayPreferencesUpdate {
+interface DisplayPreferencesUpdate {
   theme?: ThemeModeType | null;
   default_view?: DefaultViewType | null;
   sidebar_collapsed?: boolean | null;
 }
 
-export interface WorkflowDefaultsUpdate {
+interface WorkflowDefaultsUpdate {
   default_repository?: string | null;
   default_assignee?: string | null;
   copilot_polling_interval?: number | null;
 }
 
-export interface NotificationPreferencesUpdate {
+interface NotificationPreferencesUpdate {
   task_status_change?: boolean | null;
   agent_completion?: boolean | null;
   new_recommendation?: boolean | null;
@@ -427,7 +386,7 @@ export interface ProjectSettingsUpdate {
 
 // ============ Dynamic Model Fetching Types (012-settings-dynamic-ux) ============
 
-export interface ModelOption {
+interface ModelOption {
   id: string;
   name: string;
   provider: string;
@@ -444,11 +403,11 @@ export interface ModelsResponse {
 
 // ============ Signal Messaging Types (011-signal-chat-integration) ============
 
-export type SignalConnectionStatus = 'pending' | 'connected' | 'error' | 'disconnected';
+type SignalConnectionStatus = 'pending' | 'connected' | 'error' | 'disconnected';
 
 export type SignalNotificationMode = 'all' | 'actions_only' | 'confirmations_only' | 'none';
 
-export type SignalLinkStatus = 'pending' | 'connected' | 'failed' | 'expired';
+type SignalLinkStatus = 'pending' | 'connected' | 'failed' | 'expired';
 
 export interface SignalConnection {
   connection_id: string | null;
@@ -478,7 +437,7 @@ export interface SignalPreferencesUpdate {
   notification_mode: SignalNotificationMode;
 }
 
-export interface SignalBanner {
+interface SignalBanner {
   id: string;
   message: string;
   created_at: string;
@@ -511,13 +470,13 @@ export interface McpConfigurationCreate {
 
 // ============ Housekeeping Types (014-housekeeping-triggers) ============
 
-export type TemplateCategory = 'built-in' | 'custom';
+type TemplateCategory = 'built-in' | 'custom';
 
-export type HousekeepingTriggerType = 'time' | 'count';
+type HousekeepingTriggerType = 'time' | 'count';
 
-export type TriggerEventType = 'scheduled' | 'count-based' | 'manual';
+type TriggerEventType = 'scheduled' | 'count-based' | 'manual';
 
-export type TriggerStatus = 'success' | 'failure';
+type TriggerStatus = 'success' | 'failure';
 
 export interface IssueTemplate {
   id: string;
@@ -588,7 +547,7 @@ export interface HousekeepingTaskListResponse {
   tasks: HousekeepingTask[];
 }
 
-export interface TriggerEvent {
+interface TriggerEvent {
   id: string;
   task_id: string;
   timestamp: string;
@@ -619,18 +578,18 @@ export type StatusColor =
   | 'PINK'
   | 'PURPLE';
 
-export type ContentType = 'issue' | 'draft_issue' | 'pull_request';
+type ContentType = 'issue' | 'draft_issue' | 'pull_request';
 
-export type PRState = 'open' | 'closed' | 'merged';
+type PRState = 'open' | 'closed' | 'merged';
 
-export interface BoardStatusOption {
+interface BoardStatusOption {
   option_id: string;
   name: string;
   color: StatusColor;
   description?: string;
 }
 
-export interface BoardStatusField {
+interface BoardStatusField {
   field_id: string;
   options: BoardStatusOption[];
 }
@@ -644,22 +603,22 @@ export interface BoardProject {
   status_field: BoardStatusField;
 }
 
-export interface BoardRepository {
+interface BoardRepository {
   owner: string;
   name: string;
 }
 
-export interface BoardAssignee {
+interface BoardAssignee {
   login: string;
   avatar_url: string;
 }
 
-export interface BoardCustomFieldValue {
+interface BoardCustomFieldValue {
   name: string;
   color?: StatusColor;
 }
 
-export interface LinkedPR {
+interface LinkedPR {
   pr_id: string;
   number: number;
   title: string;
@@ -711,7 +670,7 @@ export interface RateLimitInfo {
   used: number;
 }
 
-export type RefreshErrorType = 'rate_limit' | 'network' | 'auth' | 'server' | 'unknown';
+type RefreshErrorType = 'rate_limit' | 'network' | 'auth' | 'server' | 'unknown';
 
 export interface RefreshError {
   type: RefreshErrorType;
@@ -733,7 +692,7 @@ export interface BoardProjectListResponse {
 
 // ============ Cleanup Types ============
 
-export interface BranchInfo {
+interface BranchInfo {
   name: string;
   eligible_for_deletion: boolean;
   linked_issue_number: number | null;
@@ -742,7 +701,7 @@ export interface BranchInfo {
   preservation_reason: string | null;
 }
 
-export interface PullRequestInfo {
+interface PullRequestInfo {
   number: number;
   title: string;
   head_branch: string;
@@ -761,7 +720,7 @@ export interface CleanupPreflightResponse {
   permission_error: string | null;
 }
 
-export interface CleanupItemResult {
+interface CleanupItemResult {
   item_type: 'branch' | 'pr';
   identifier: string;
   action: 'deleted' | 'closed' | 'preserved' | 'failed';
@@ -787,7 +746,7 @@ export interface CleanupExecuteResponse {
   results: CleanupItemResult[];
 }
 
-export interface CleanupAuditLogEntry {
+interface CleanupAuditLogEntry {
   id: string;
   started_at: string;
   completed_at: string | null;

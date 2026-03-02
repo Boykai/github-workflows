@@ -80,37 +80,6 @@ class InMemoryCache:
         self._cache[key] = CacheEntry(value, ttl, etag=etag, last_modified=last_modified)
         logger.debug("Cache set: %s (TTL: %ds)", key, ttl)
 
-    def get_entry(self, key: str) -> CacheEntry[Any] | None:
-        """
-        Get the full cache entry (including ETag metadata).
-
-        Args:
-            key: Cache key
-
-        Returns:
-            CacheEntry or None if not found (does not check expiry)
-        """
-        return self._cache.get(key)
-
-    def refresh_ttl(self, key: str, ttl_seconds: int | None = None) -> bool:
-        """
-        Refresh TTL of an existing cache entry without replacing the value.
-
-        Args:
-            key: Cache key
-            ttl_seconds: New TTL in seconds (defaults to config value)
-
-        Returns:
-            True if entry existed and was refreshed
-        """
-        entry = self._cache.get(key)
-        if entry is None:
-            return False
-        ttl = ttl_seconds or self._settings.cache_ttl_seconds
-        entry.expires_at = utcnow() + timedelta(seconds=ttl)
-        logger.debug("Cache TTL refreshed: %s (TTL: %ds)", key, ttl)
-        return True
-
     def delete(self, key: str) -> bool:
         """
         Delete value from cache.
@@ -131,22 +100,6 @@ class InMemoryCache:
         """Clear all cached values."""
         self._cache.clear()
         logger.debug("Cache cleared")
-
-    def clear_expired(self) -> int:
-        """
-        Remove all expired entries.
-
-        Returns:
-            Number of entries removed
-        """
-        expired_keys = [k for k, v in self._cache.items() if v.is_expired]
-        for key in expired_keys:
-            del self._cache[key]
-
-        if expired_keys:
-            logger.debug("Cleared %d expired cache entries", len(expired_keys))
-
-        return len(expired_keys)
 
 
 # Global cache instance

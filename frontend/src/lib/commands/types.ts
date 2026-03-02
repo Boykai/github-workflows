@@ -5,7 +5,7 @@
 import type { EffectiveUserSettings, UserPreferencesUpdate } from '@/types';
 
 /** Valid parameter definition for commands that accept arguments. */
-export interface ParameterSchema {
+interface ParameterSchema {
   type: 'enum' | 'string' | 'boolean';
   values?: string[];
   labels?: Record<string, string>;
@@ -29,7 +29,7 @@ export interface CommandResult {
 }
 
 /** Handler function signature for commands. */
-export type CommandHandler = (args: string, context: CommandContext) => CommandResult | Promise<CommandResult>;
+type CommandHandler = (args: string, context: CommandContext) => CommandResult | Promise<CommandResult>;
 
 /** A single entry in the command registry. */
 export interface CommandDefinition {

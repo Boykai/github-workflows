@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -214,69 +212,3 @@ class ProjectSettingsUpdate(BaseModel):
 
     board_display_config: ProjectBoardConfig | None = None
     agent_pipeline_mappings: dict[str, list[ProjectAgentMapping]] | None = None
-
-
-# ── Database Row Models (for model_dump/model_validate with SQLite) ──
-
-
-class UserPreferencesRow(BaseModel):
-    """Represents a user_preferences database row. All preference fields nullable."""
-
-    github_user_id: str
-    ai_provider: str | None = None
-    ai_model: str | None = None
-    ai_temperature: float | None = None
-    theme: str | None = None
-    default_view: str | None = None
-    sidebar_collapsed: int | None = None  # 0/1 in SQLite
-    default_repository: str | None = None
-    default_assignee: str | None = None
-    copilot_polling_interval: int | None = None
-    notify_task_status_change: int | None = None  # 0/1 in SQLite
-    notify_agent_completion: int | None = None
-    notify_new_recommendation: int | None = None
-    notify_chat_mention: int | None = None
-    updated_at: str = ""
-
-
-class GlobalSettingsRow(BaseModel):
-    """Represents a global_settings database row."""
-
-    id: int = 1
-    ai_provider: str = "copilot"
-    ai_model: str = "gpt-4o"
-    ai_temperature: float = 0.7
-    theme: str = "light"
-    default_view: str = "chat"
-    sidebar_collapsed: int = 0
-    default_repository: str | None = None
-    default_assignee: str = ""
-    copilot_polling_interval: int = 60
-    notify_task_status_change: int = 1
-    notify_agent_completion: int = 1
-    notify_new_recommendation: int = 1
-    notify_chat_mention: int = 1
-    allowed_models: str = "[]"  # JSON string in SQLite
-    updated_at: str = ""
-
-
-class ProjectSettingsRow(BaseModel):
-    """Represents a project_settings database row."""
-
-    github_user_id: str
-    project_id: str
-    board_display_config: str | None = None  # JSON string
-    agent_pipeline_mappings: str | None = None  # JSON string
-    updated_at: str = ""
-
-    def get_board_config(self) -> dict[str, Any] | None:
-        """Parse board_display_config JSON."""
-        if self.board_display_config:
-            return json.loads(self.board_display_config)
-        return None
-
-    def get_agent_mappings(self) -> dict[str, Any] | None:
-        """Parse agent_pipeline_mappings JSON."""
-        if self.agent_pipeline_mappings:
-            return json.loads(self.agent_pipeline_mappings)
-        return None
