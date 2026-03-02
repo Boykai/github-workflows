@@ -167,21 +167,28 @@ export function useChat(): UseChatReturn {
     async (content: string, options?: { isCommand?: boolean }) => {
       // Check if this is a command — intercept before sending to AI
       if (options?.isCommand || isCommand(content)) {
-        // Add user message to local messages
-        const userMsg: ChatMessage = {
-          message_id: generateId(),
-          session_id: 'local',
-          sender_type: 'user',
-          content,
-          timestamp: new Date().toISOString(),
-        };
-        setLocalMessages((prev) => [...prev, userMsg]);
-
-        // Execute command and create system response.
-        // Wrap in try/catch so handler rejections never leave the UI
-        // without feedback or create unhandled promise rejections.
+        // Execute command to determine how to handle it.
+        // Passthrough commands (e.g. #agent) are forwarded to the backend
+        // rather than being handled locally.
         try {
           const result = await executeCommand(content);
+
+          if (result.passthrough) {
+            // Forward to backend API — the backend handles the full flow
+            await sendMutation.mutateAsync({ content });
+            return;
+          }
+
+          // Local command — add user message and system response
+          const userMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'user',
+            content,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, userMsg]);
+
           const systemMsg: ChatMessage = {
             message_id: generateId(),
             session_id: 'local',
@@ -196,6 +203,16 @@ export function useChat(): UseChatReturn {
             error instanceof Error && error.message
               ? `Command failed: ${error.message}`
               : 'Command failed due to an unexpected error.';
+
+          const userMsg: ChatMessage = {
+            message_id: generateId(),
+            session_id: 'local',
+            sender_type: 'user',
+            content,
+            timestamp: new Date().toISOString(),
+          };
+          setLocalMessages((prev) => [...prev, userMsg]);
+
           const systemErrorMsg: ChatMessage = {
             message_id: generateId(),
             session_id: 'local',

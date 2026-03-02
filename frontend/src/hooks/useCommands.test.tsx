@@ -105,6 +105,19 @@ describe('useCommands', () => {
       expect(cmdResult.message).toContain('Unknown command');
     });
 
+    it('for passthrough command #agent returns passthrough flag', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      const cmdResult = result.current.executeCommand('#agent Build a reviewer');
+      if (cmdResult instanceof Promise) {
+        return cmdResult.then((r) => {
+          expect(r.success).toBe(true);
+          expect(r.passthrough).toBe(true);
+        });
+      }
+      expect(cmdResult.success).toBe(true);
+      expect(cmdResult.passthrough).toBe(true);
+    });
+
     it('for bare # returns helpful message', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
       const cmdResult = result.current.executeCommand('#');
@@ -123,7 +136,7 @@ describe('useCommands', () => {
     it('returns all commands for empty prefix', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
       const filtered = result.current.getFilteredCommands('');
-      expect(filtered.length).toBeGreaterThanOrEqual(5);
+      expect(filtered.length).toBeGreaterThanOrEqual(6);
     });
 
     it('filters by prefix', () => {
@@ -148,10 +161,11 @@ describe('useCommands', () => {
     it('returns all registered commands', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
       const commands = result.current.getAllCommands();
-      expect(commands.length).toBeGreaterThanOrEqual(5);
+      expect(commands.length).toBeGreaterThanOrEqual(6);
       const names = commands.map((c) => c.name);
       expect(names).toContain('help');
       expect(names).toContain('theme');
+      expect(names).toContain('agent');
     });
   });
 });

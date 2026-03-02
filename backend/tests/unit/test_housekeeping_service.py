@@ -37,7 +37,7 @@ async def db():
     conn.row_factory = aiosqlite.Row
     # Enable FK enforcement (critical for the force-delete test).
     await conn.execute("PRAGMA foreign_keys = ON")
-    migration = Path(__file__).resolve().parents[2] / "src" / "migrations" / "007_housekeeping.sql"
+    migration = Path(__file__).resolve().parents[2] / "src" / "migrations" / "009_housekeeping.sql"
     await conn.executescript(migration.read_text())
     await conn.commit()
     yield conn

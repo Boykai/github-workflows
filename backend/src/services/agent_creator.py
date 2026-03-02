@@ -17,6 +17,7 @@ import re
 import uuid
 
 import aiosqlite
+import yaml
 
 from src.models.agent_creator import (
     AgentCreationState,
@@ -28,22 +29,48 @@ from src.services.ai_agent import get_ai_agent_service
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedDict, utcnow
 
+logger = logging.getLogger(__name__)
+
 
 async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
-    """Check whether *github_user_id* matches the admin in global_settings."""
+    """Check whether *github_user_id* matches the admin in global_settings.
+
+    If no admin has been set yet (``admin_github_user_id`` is NULL), the
+    first caller is auto-promoted — mirroring the behaviour of the
+    ``require_admin`` FastAPI dependency in ``dependencies.py``.
+    """
     try:
         cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
         row = await cursor.fetchone()
         if row is None:
             return False
         admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+
+        if admin_id is None:
+            # Auto-promote the first authenticated user (atomic CAS).
+            cursor = await db.execute(
+                "UPDATE global_settings SET admin_github_user_id = ? "
+                "WHERE id = 1 AND admin_github_user_id IS NULL",
+                (github_user_id,),
+            )
+            await db.commit()
+            if cursor.rowcount > 0:
+                logger.info("Auto-promoted user %s as admin via #agent command", github_user_id)
+                return True
+            # Another user won the race — re-read.
+            cursor = await db.execute(
+                "SELECT admin_github_user_id FROM global_settings WHERE id = 1"
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                return False
+            admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+
         return admin_id is not None and str(admin_id) == str(github_user_id)
     except Exception:
-        logger.warning("Admin check failed — denying access")
+        logger.warning("Admin check failed — denying access", exc_info=True)
         return False
 
-
-logger = logging.getLogger(__name__)
 
 # ── Module-level state ─────────────────────────────────────────────────
 # Keyed by session_id (web) or github_user_id (Signal).
@@ -455,12 +482,17 @@ def _format_preview(preview: AgentPreview, is_new_column: bool) -> str:
     if len(preview.system_prompt) > 500:
         prompt_excerpt += "..."
 
+    tools_display = ", ".join(f"`{t}`" for t in preview.tools) if preview.tools else "none"
+
     return (
         f"## Agent Preview: {preview.name}\n\n"
         f"**Slug:** `{preview.slug}`\n"
         f"**Description:** {preview.description}\n"
         f"**Status Column:** {preview.status_column}{new_col_note}\n"
-        f"**Tools:** {len(preview.tools)} available\n\n"
+        f"**Tools:** {tools_display}\n\n"
+        f"**Files to create:**\n"
+        f"- `.github/agents/{preview.slug}.agent.md`\n"
+        f"- `.github/prompts/{preview.slug}.prompt.md`\n\n"
         f"**System Prompt:**\n> {prompt_excerpt}\n\n"
         "---\n"
         "Type **create** to confirm, or describe changes (e.g., *change the name to SecBot*)."
@@ -809,7 +841,10 @@ async def _execute_creation_pipeline(
         pr_body = (
             f"## Agent: {preview.name}\n\n"
             f"{preview.description}\n\n"
-            f"**Status Column:** {preview.status_column}\n\n"
+            f"**Status Column:** {preview.status_column}\n"
+            f"**Files:**\n"
+            f"- `.github/agents/{preview.slug}.agent.md`\n"
+            f"- `.github/prompts/{preview.slug}.prompt.md`\n\n"
             f"{issue_ref}"
         )
         try:
@@ -955,42 +990,38 @@ def _generate_issue_body(preview: AgentPreview) -> str:
     )
 
 
-def _yaml_quote(value: str) -> str:
-    """Safely quote a string for YAML using JSON encoding.
-
-    JSON strings are a valid subset of YAML scalars, so this ensures
-    special characters (``:`` ``#`` ``[`` ``]`` ``|`` ``>``) are escaped.
-    """
-    return json.dumps(value, ensure_ascii=False)
-
-
 def _generate_config_files(preview: AgentPreview) -> list[dict]:
-    """Generate the 3 config files for commit: YAML config, prompt .md, README entry."""
-    # 1. Agent YAML config — use JSON-quoted strings to avoid YAML injection
-    yaml_content = (
-        f"name: {_yaml_quote(preview.name)}\n"
-        f"description: {_yaml_quote(preview.description)}\n"
-        f"status_column: {_yaml_quote(preview.status_column)}\n"
-        f"tools:\n"
-    )
-    for tool in preview.tools:
-        yaml_content += f"  - {_yaml_quote(tool)}\n"
+    """Generate the 2 config files for commit: agent .md and prompt .md.
 
-    # 2. Prompt markdown
-    prompt_content = f"# {preview.name} — System Prompt\n\n{preview.system_prompt}\n"
-
-    # 3. README entry
-    readme_content = (
-        f"# Agents\n\n"
-        f"## {preview.name}\n\n"
-        f"{preview.description}\n\n"
-        f"**Assigned to:** {preview.status_column}\n"
+    Files follow the GitHub Custom Agent format:
+      - ``.github/agents/{slug}.agent.md`` — plain Markdown with YAML
+        frontmatter (description, optional tools) followed by the full
+        system prompt as the Markdown body.  The file starts with ``---``
+        so that ``_FRONTMATTER_RE`` in agent discovery can parse it.
+      - ``.github/prompts/{slug}.prompt.md`` — prompt-fenced routing file
+        that references the agent by slug.
+    """
+    # 1. Agent definition: .github/agents/{slug}.agent.md
+    # Build YAML frontmatter using yaml.dump for safe serialization —
+    # avoids breakage when description/tool IDs contain YAML-special
+    # characters like ':', '#', quotes, or newlines.
+    frontmatter_data: dict[str, object] = {"description": preview.description}
+    if preview.tools:
+        frontmatter_data["tools"] = list(preview.tools)
+    frontmatter = yaml.dump(frontmatter_data, default_flow_style=False, sort_keys=False).rstrip(
+        "\n"
     )
+
+    # Plain Markdown starting with YAML frontmatter (no outer code fence)
+    # so the backend's _FRONTMATTER_RE (^---…---) can discover this agent.
+    agent_content = f"---\n{frontmatter}\n---\n\n{preview.system_prompt}\n"
+
+    # 2. Prompt routing file: .github/prompts/{slug}.prompt.md
+    prompt_content = f"```prompt\n---\nagent: {preview.slug}\n---\n```\n"
 
     return [
-        {"path": f".github/agents/{preview.slug}.yml", "content": yaml_content},
-        {"path": f".github/agents/prompts/{preview.slug}.md", "content": prompt_content},
-        {"path": ".github/agents/README.md", "content": readme_content},
+        {"path": f".github/agents/{preview.slug}.agent.md", "content": agent_content},
+        {"path": f".github/prompts/{preview.slug}.prompt.md", "content": prompt_content},
     ]
 
 

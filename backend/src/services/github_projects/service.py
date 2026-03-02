@@ -2612,6 +2612,7 @@ class GitHubProjectsService:
                 "author": pr.get("author", {}).get("login", ""),
                 "created_at": pr.get("createdAt"),
                 "updated_at": pr.get("updatedAt"),
+                "changed_files": pr.get("changedFiles", -1),
                 "last_commit": last_commit,
                 "check_status": check_status,  # SUCCESS, FAILURE, PENDING, etc.
             }

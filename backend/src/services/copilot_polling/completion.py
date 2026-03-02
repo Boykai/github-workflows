@@ -392,6 +392,18 @@ async def _find_completed_child_pr(
 
             # If PR is MERGED, Copilot has definitely finished
             if pr_state == "MERGED":
+                # Guard: skip merged PRs with 0 file changes (false positives
+                # from previous cascade / broken pipeline run).
+                changed_files = pr_details.get("changed_files", -1)
+                if changed_files == 0:
+                    logger.warning(
+                        "Skipping MERGED child PR #%d for issue #%d — "
+                        "0 changed files (likely false positive from prior run)",
+                        pr_number,
+                        issue_number,
+                    )
+                    continue
+
                 logger.info(
                     "Found MERGED child PR #%d targeting main branch '%s' for issue #%d",
                     pr_number,
@@ -914,6 +926,33 @@ async def _check_main_pr_completion(
                                 return True
                         except (ValueError, TypeError):
                             pass
+
+        # Safety-net: If ALL signals above failed but the PR's full timeline
+        # contains a copilot_work_finished event AND Copilot is no longer
+        # assigned, the agent definitely completed — the freshness filter
+        # was too aggressive (e.g., pipeline_started_at was set to utcnow()
+        # during reconstruction after a container restart).  Use the
+        # unfiltered timeline_events gathered for Signal 2.
+        fallback_copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        if not fallback_copilot_assigned:
+            all_copilot_finished = _cp.github_projects_service.check_copilot_finished_events(
+                timeline_events  # ALL events, not fresh_events
+            )
+            if all_copilot_finished:
+                logger.info(
+                    "Agent '%s' completed on main PR #%d for issue #%d — "
+                    "Copilot unassigned and copilot_work_finished found in "
+                    "full timeline (possibly pre-reconstruction)",
+                    agent_name,
+                    main_pr_number,
+                    issue_number,
+                )
+                return True
 
         logger.debug(
             "Main PR #%d has no fresh completion signals for agent '%s', issue #%d",

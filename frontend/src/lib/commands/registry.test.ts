@@ -32,20 +32,21 @@ describe('CommandRegistry', () => {
 
   it('getAllCommands returns sorted list of all registered commands', () => {
     const commands = getAllCommands();
-    expect(commands.length).toBeGreaterThanOrEqual(5);
+    expect(commands.length).toBeGreaterThanOrEqual(6);
     // Check sorted order
     for (let i = 1; i < commands.length; i++) {
       expect(commands[i - 1].name.localeCompare(commands[i].name)).toBeLessThanOrEqual(0);
     }
   });
 
-  it('getAllCommands includes help, theme, language, notifications, view', () => {
+  it('getAllCommands includes help, theme, language, notifications, view, agent', () => {
     const names = getAllCommands().map((c) => c.name);
     expect(names).toContain('help');
     expect(names).toContain('theme');
     expect(names).toContain('language');
     expect(names).toContain('notifications');
     expect(names).toContain('view');
+    expect(names).toContain('agent');
   });
 
   it('filterCommands returns matching commands by prefix', () => {
@@ -78,6 +79,19 @@ describe('CommandRegistry', () => {
       expect(cmd.syntax).toBeTruthy();
       expect(typeof cmd.handler).toBe('function');
     }
+  });
+
+  it('agent command is registered with passthrough flag', () => {
+    const cmd = getCommand('agent');
+    expect(cmd).toBeDefined();
+    expect(cmd!.passthrough).toBe(true);
+    expect(cmd!.name).toBe('agent');
+  });
+
+  it('filterCommands includes agent when prefix matches', () => {
+    const filtered = filterCommands('ag');
+    expect(filtered.length).toBeGreaterThanOrEqual(1);
+    expect(filtered.find((c) => c.name === 'agent')).toBeDefined();
   });
 });
 

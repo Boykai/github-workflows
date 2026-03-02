@@ -24,6 +24,8 @@ export interface CommandResult {
   success: boolean;
   message: string;
   clearInput: boolean;
+  /** When true, the message should be forwarded to the backend instead of displayed locally. */
+  passthrough?: boolean;
 }
 
 /** Handler function signature for commands. */
@@ -36,6 +38,10 @@ export interface CommandDefinition {
   syntax: string;
   handler: CommandHandler;
   parameterSchema?: ParameterSchema;
+  /** When true, the command is handled by the backend. The frontend shows it in
+   *  #help / autocomplete but forwards the message to the API instead of
+   *  executing the handler locally. */
+  passthrough?: boolean;
 }
 
 /** Result of parsing a user's chat input. */
