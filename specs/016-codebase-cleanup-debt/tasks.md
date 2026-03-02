@@ -320,7 +320,7 @@ With multiple developers:
 | **Phase 6 (US4 — Stale Tests, P2)** | 7 tasks |
 | **Phase 7 (US5 — Hygiene, P3)** | 7 tasks |
 | **Phase 8 (Polish)** | 5 tasks |
-| **Parallel opportunities** | 45 tasks marked [P] across all phases |
+| **Parallel opportunities** | 48 tasks marked [P] across all phases |
 | **Independent test criteria** | Each story validated by full CI suite (ruff, pyright, pytest, eslint, tsc, vitest, vite build) |
 | **Suggested MVP scope** | Phase 1 + 2 + 3 (User Story 1: Dead Code Removal — 25 tasks) |
 | **Format validation** | ✅ All 60 tasks follow checklist format (checkbox, ID, labels, file paths) |
