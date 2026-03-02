@@ -128,8 +128,32 @@ async def post_agent_outputs_from_pr(
                             except (ValueError, TypeError):
                                 pass
                         if recon_started is None:
-                            # First agent — no Done! markers yet. Use a very
-                            # early timestamp so ALL timeline events are relevant.
+                            # No Done! markers for current-status agents — look
+                            # for the most recent Done! marker from ANY agent
+                            # (e.g. a prior status).  Without this, stale events
+                            # from a prior-status agent pass the freshness filter.
+                            latest_any_done_ts: str | None = None
+                            for c in comments:
+                                body_text = c.get("body", "")
+                                for bline in body_text.split("\n"):
+                                    if bline.strip().endswith(": Done!"):
+                                        ts = c.get("created_at", "")
+                                        if ts and (
+                                            latest_any_done_ts is None or ts > latest_any_done_ts
+                                        ):
+                                            latest_any_done_ts = ts
+                            if latest_any_done_ts:
+                                try:
+                                    recon_started = datetime.fromisoformat(
+                                        latest_any_done_ts.replace("Z", "+00:00")
+                                    )
+                                except (ValueError, TypeError):
+                                    pass
+
+                        if recon_started is None:
+                            # Truly the first agent overall — no Done! markers
+                            # anywhere. Use a very early timestamp so ALL
+                            # timeline events are relevant.
                             recon_started = datetime(2020, 1, 1, tzinfo=UTC)
 
                         pipeline = _cp.PipelineState(
