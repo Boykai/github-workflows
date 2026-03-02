@@ -692,6 +692,7 @@ async def _check_main_pr_completion(
     agent_name: str,
     pipeline_started_at: datetime | None = None,
     agent_assigned_sha: str = "",
+    is_subsequent_agent: bool = False,
 ) -> bool:
     """
     Check if a Copilot agent completed work directly on the main PR.
@@ -965,26 +966,35 @@ async def _check_main_pr_completion(
         # was too aggressive (e.g., pipeline_started_at was set to utcnow()
         # during reconstruction after a container restart).  Use the
         # unfiltered timeline_events gathered for Signal 2.
-        fallback_copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-        )
-        if not fallback_copilot_assigned:
-            all_copilot_finished = _cp.github_projects_service.check_copilot_finished_events(
-                timeline_events  # ALL events, not fresh_events
-            )
-            if all_copilot_finished:
-                logger.info(
-                    "Agent '%s' completed on main PR #%d for issue #%d — "
-                    "Copilot unassigned and copilot_work_finished found in "
-                    "full timeline (possibly pre-reconstruction)",
-                    agent_name,
-                    main_pr_number,
-                    issue_number,
+        #
+        # SKIP for subsequent agents: Copilot is assigned to the agent's
+        # SUB-ISSUE, not the parent issue.  Checking Copilot assignment on
+        # the parent issue returns "not assigned" (stale from a prior
+        # agent), and the unfiltered timeline contains events from prior
+        # agents — causing false-positive completions.
+        if not is_subsequent_agent:
+            fallback_copilot_assigned = (
+                await _cp.github_projects_service.is_copilot_assigned_to_issue(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
                 )
-                return True
+            )
+            if not fallback_copilot_assigned:
+                all_copilot_finished = _cp.github_projects_service.check_copilot_finished_events(
+                    timeline_events  # ALL events, not fresh_events
+                )
+                if all_copilot_finished:
+                    logger.info(
+                        "Agent '%s' completed on main PR #%d for issue #%d — "
+                        "Copilot unassigned and copilot_work_finished found in "
+                        "full timeline (possibly pre-reconstruction)",
+                        agent_name,
+                        main_pr_number,
+                        issue_number,
+                    )
+                    return True
 
         logger.debug(
             "Main PR #%d has no fresh completion signals for agent '%s', issue #%d",

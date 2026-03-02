@@ -433,6 +433,7 @@ async def post_agent_outputs_from_pr(
                         agent_name=current_agent,
                         pipeline_started_at=pipeline.started_at,
                         agent_assigned_sha=pipeline.agent_assigned_sha,
+                        is_subsequent_agent=True,
                     )
                     if main_pr_completed:
                         # Use the main PR as the finished PR
@@ -479,6 +480,7 @@ async def post_agent_outputs_from_pr(
                     agent_name=current_agent,
                     pipeline_started_at=pipeline.started_at,
                     agent_assigned_sha=pipeline.agent_assigned_sha,
+                    is_subsequent_agent=True,
                 )
                 if not main_pr_completed:
                     logger.debug(
