@@ -323,9 +323,12 @@ async def post_agent_outputs_from_pr(
                         task.issue_number,
                     )
 
-            # If no child PR, check for standard Copilot PR completion (first agent)
-            # Search both parent issue AND current agent's sub-issue.
-            if not finished_pr:
+            # If no child PR, check for standard Copilot PR completion (first agent).
+            # ONLY for the first agent (not subsequent): the parent issue's linked
+            # PRs include the main PR whose stale timeline events would cause false
+            # positives for subsequent agents.  Subsequent agents detect completion
+            # via child PR or _check_main_pr_completion (with freshness filtering).
+            if not finished_pr and not is_subsequent_agent:
                 finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -333,8 +336,12 @@ async def post_agent_outputs_from_pr(
                     issue_number=task.issue_number,
                 )
 
-            # Still nothing: check agent's sub-issue for PR completion
-            if not finished_pr:
+            # Still nothing: check agent's sub-issue for PR completion.
+            # Also guarded by not is_subsequent_agent — sub-issue PRs for
+            # subsequent agents are already discovered by _find_completed_child_pr
+            # (via _get_linked_prs_including_sub_issues).  Running the unguarded
+            # check here would find the child PR without freshness checks.
+            if not finished_pr and not is_subsequent_agent:
                 sub_num = _cp._get_sub_issue_number(pipeline, current_agent, task.issue_number)
                 if sub_num and sub_num != task.issue_number:
                     finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
@@ -430,23 +437,15 @@ async def post_agent_outputs_from_pr(
             # We need to verify these are FRESH signals (after pipeline start)
             # to avoid re-attributing the first agent's work.
             #
-            # SKIP this gate when the current agent is the first uncompleted
-            # agent in the pipeline (index 0, no completed agents).  After a
-            # container restart, main_branch_info is reconstructed from the
-            # existing PR, making is_subsequent_agent True even for the agent
-            # that CREATED the main PR.  Applying the freshness gate to that
-            # agent causes a permanent stall because the reconstructed
-            # started_at / agent_assigned_sha filter out its own completion
-            # events.
-            is_first_uncompleted = (
-                pipeline and pipeline.current_agent_index == 0 and not pipeline.completed_agents
-            )
-            if (
-                is_subsequent_agent
-                and pr_number == main_pr_number
-                and main_pr_number is not None
-                and not is_first_uncompleted
-            ):
+            # The is_first_uncompleted bypass was REMOVED because each new
+            # status creates a pipeline with index=0 and empty completed_agents,
+            # making every first-agent-per-status look like the pipeline's very
+            # first agent — even though the main PR was created by a different
+            # agent in a prior status.  The reconstruction logic already sets
+            # started_at to the issue creation time (or last Done! timestamp)
+            # so the freshness filter correctly passes the first agent's own
+            # completion events after a container restart.
+            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
                 main_pr_completed = await _cp._check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,

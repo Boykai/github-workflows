@@ -1297,6 +1297,81 @@ class TestPostAgentOutputsFromPr:
         assert len(results) == 0
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._check_main_pr_completion", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling._find_completed_child_pr", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_subsequent_agent_rejects_stale_main_pr_events_in_new_status(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_find_child,
+        mock_main_pr_check,
+        mock_task_backlog,
+    ):
+        """Regression test for #1171: first agent in a NEW status must not be
+        fooled by stale timeline events on the main PR from a previous status.
+
+        Scenario:
+          - speckit.specify (Backlog) creates main PR #5 and completes legitimately
+          - Pipeline transitions to Ready, speckit.plan is the first agent (index=0)
+          - main_branch_info already exists → is_subsequent_agent=True
+          - check_copilot_pr_completion would find main PR #5 with stale events
+          - The freshness gate (is_first_uncompleted bypass) previously allowed this
+          - Fix: check_copilot_pr_completion is now skipped for subsequent agents
+        """
+        # Main branch from speckit.specify (prior status) exists
+        _issue_main_branches[10] = {
+            "branch": "copilot/feature",
+            "pr_number": 5,
+            "head_sha": "abc",
+        }
+
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,  # First agent in Ready status
+            completed_agents=[],  # No agents completed in this status yet
+            started_at=datetime(2026, 1, 1),
+        )
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        # check_copilot_pr_completion WOULD return the main PR with stale events
+        # (but should never be called for subsequent agents)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "copilot_finished": True}
+        )
+
+        # No child PR found (agent just started)
+        mock_find_child.return_value = None
+
+        # No fresh completion signals on the main PR
+        mock_main_pr_check.return_value = False
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        # Must NOT post false Done! — result must be empty
+        assert len(results) == 0
+
+        # check_copilot_pr_completion must NOT have been called for subsequent agents
+        mock_service.check_copilot_pr_completion.assert_not_called()
+
+        # _check_main_pr_completion SHOULD have been called (proper freshness check)
+        mock_main_pr_check.assert_called_once()
+
+    @pytest.mark.asyncio
     @patch("src.services.copilot_polling._get_tracking_state_from_issue", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
