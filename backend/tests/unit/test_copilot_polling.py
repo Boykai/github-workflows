@@ -2601,6 +2601,10 @@ class TestAdvancePipeline:
         # Pipeline should NOT have advanced — the completed agent
         # should have been rolled back
         assert "speckit.plan" not in pipeline.completed_agents
+        # External side effects (tracking update, sub-issue close) must
+        # NOT have been applied — they are deferred until after a
+        # successful merge to keep rollback consistent.
+        mock_update_tracking.assert_not_called()
 
 
 class TestFindCompletedChildPr:

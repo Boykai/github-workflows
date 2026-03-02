@@ -808,80 +808,16 @@ async def _advance_pipeline(
         len(pipeline.agents),
     )
 
-    # Mark the completed agent as ✅ Done in the issue body tracking table.
-    # post_agent_outputs_from_pr (Step 0) also does this, but it can fail
-    # silently or be skipped when the Done! marker was posted externally.
-    # This defensive call ensures the tracking table stays in sync.
-    await _cp._update_issue_tracking(
-        access_token=access_token,
-        owner=owner,
-        repo=repo,
-        issue_number=issue_number,
-        agent_name=completed_agent,
-        new_state="done",
-    )
-
-    # Close the completed agent's sub-issue
-    sub_info = None
-    if pipeline.agent_sub_issues:
-        sub_info = pipeline.agent_sub_issues.get(completed_agent)
-    # Fall back to the global sub-issue store (survives pipeline resets)
-    if not sub_info:
-        global_subs = _cp.get_issue_sub_issues(issue_number)
-        sub_info = global_subs.get(completed_agent)
-    if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
-        try:
-            await _cp.github_projects_service.update_issue_state(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=sub_info["number"],
-                state="closed",
-                state_reason="completed",
-                labels_add=["done"],
-                labels_remove=["in-progress"],
-            )
-            logger.info(
-                "Closed sub-issue #%d for completed agent '%s'",
-                sub_info["number"],
-                completed_agent,
-            )
-        except Exception as e:
-            logger.warning(
-                "Failed to close sub-issue #%d for agent '%s': %s",
-                sub_info["number"],
-                completed_agent,
-                e,
-            )
-
-        # Update the sub-issue's project board Status to "Done"
-        try:
-            sub_node_id = sub_info.get("node_id", "")
-            if sub_node_id:
-                await _cp.github_projects_service.update_sub_issue_project_status(
-                    access_token=access_token,
-                    project_id=project_id,
-                    sub_issue_node_id=sub_node_id,
-                    status_name="Done",
-                )
-        except Exception as e:
-            logger.warning(
-                "Failed to update sub-issue #%d board status to Done: %s",
-                sub_info["number"],
-                e,
-            )
-
-    # NOTE: Child PR merge is handled in post_agent_outputs_from_pr BEFORE
-    # the Done! comment is posted.  The safety-net merge below catches edge
-    # cases where Step 0 could not merge (e.g. Done! posted externally,
-    # child PR found via sub-issue fallback without is_child_pr flag).
-
     # ── Safety-net: ensure the completed agent's child PR is merged
-    # BEFORE advancing further (whether to the next agent or to the
-    # next status).  This runs for ALL agents including the last one
-    # in a pipeline.  Without this, the pipeline.is_complete path
-    # goes straight to _transition_after_pipeline_complete, which has
-    # no merge of its own — leaving the child PR unmerged (#740).
+    # BEFORE applying external side effects (tracking table, sub-issue
+    # close, board status).  This ordering guarantees that if the merge
+    # fails and we roll back the pipeline index, no externally visible
+    # state was changed — avoiding the inconsistency where the tracking
+    # table says ✅ Done but the pipeline says the agent isn't complete.
+    #
+    # NOTE: The primary child PR merge happens in post_agent_outputs_from_pr
+    # BEFORE the Done! marker.  This safety-net catches edge cases (e.g.
+    # Done! posted externally, child PR found via sub-issue fallback).
     main_branch_info = _cp.get_issue_main_branch(issue_number)
     if not main_branch_info:
         # Reconstruct main branch info (may have been lost on restart)
@@ -950,8 +886,9 @@ async def _advance_pipeline(
                 issue_number,
                 merge_result.get("pr_number"),
             )
-            # Roll back the pipeline advance so the completed agent
-            # stays as the "current" agent and the merge is retried.
+            # Roll back the pipeline advance.  Because external side
+            # effects (tracking table, sub-issue close) have NOT been
+            # applied yet, this rollback is fully consistent.
             pipeline.current_agent_index -= 1
             if completed_agent in pipeline.completed_agents:
                 pipeline.completed_agents.remove(completed_agent)
@@ -980,6 +917,72 @@ async def _advance_pipeline(
             logger.debug(
                 "Could not refresh HEAD SHA for issue #%d: %s",
                 issue_number,
+                e,
+            )
+
+    # ── Apply external side effects AFTER the merge succeeded (or was
+    # not needed).  This ensures rollback on merge failure is clean.
+
+    # Mark the completed agent as ✅ Done in the issue body tracking table.
+    # post_agent_outputs_from_pr (Step 0) also does this, but it can fail
+    # silently or be skipped when the Done! marker was posted externally.
+    # This defensive call ensures the tracking table stays in sync.
+    await _cp._update_issue_tracking(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        agent_name=completed_agent,
+        new_state="done",
+    )
+
+    # Close the completed agent's sub-issue
+    sub_info = None
+    if pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(completed_agent)
+    # Fall back to the global sub-issue store (survives pipeline resets)
+    if not sub_info:
+        global_subs = _cp.get_issue_sub_issues(issue_number)
+        sub_info = global_subs.get(completed_agent)
+    if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
+        try:
+            await _cp.github_projects_service.update_issue_state(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_info["number"],
+                state="closed",
+                state_reason="completed",
+                labels_add=["done"],
+                labels_remove=["in-progress"],
+            )
+            logger.info(
+                "Closed sub-issue #%d for completed agent '%s'",
+                sub_info["number"],
+                completed_agent,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to close sub-issue #%d for agent '%s': %s",
+                sub_info["number"],
+                completed_agent,
+                e,
+            )
+
+        # Update the sub-issue's project board Status to "Done"
+        try:
+            sub_node_id = sub_info.get("node_id", "")
+            if sub_node_id:
+                await _cp.github_projects_service.update_sub_issue_project_status(
+                    access_token=access_token,
+                    project_id=project_id,
+                    sub_issue_node_id=sub_node_id,
+                    status_name="Done",
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to update sub-issue #%d board status to Done: %s",
+                sub_info["number"],
                 e,
             )
 

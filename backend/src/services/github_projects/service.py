@@ -70,8 +70,10 @@ class GitHubProjectsService:
         self._client = httpx.AsyncClient(timeout=30.0)
         self._last_rate_limit: dict[str, int] | None = None
         # ETag cache for conditional GraphQL requests.
-        # Key: hash of (query, sorted variables) → (etag, parsed data)
+        # Key: hash of (token, query, sorted variables) → (etag, parsed data)
+        # Token is included so responses are never shared across users.
         self._etag_cache: dict[str, tuple[str, dict]] = {}
+        self._ETAG_CACHE_MAX_SIZE: int = 256
 
     async def close(self):
         """Close HTTP client."""
@@ -267,9 +269,11 @@ class GitHubProjectsService:
         if extra_headers:
             headers.update(extra_headers)
 
-        # Build a stable cache key from query + variables for ETag lookups
+        # Build a stable cache key scoped by token identity so responses
+        # are never shared across different users/permissions.
+        token_prefix = hashlib.sha256(access_token.encode()).hexdigest()[:16]
         cache_key = hashlib.sha256(
-            (query + json_mod.dumps(variables, sort_keys=True)).encode()
+            (token_prefix + query + json_mod.dumps(variables, sort_keys=True)).encode()
         ).hexdigest()
 
         cached = self._etag_cache.get(cache_key)
@@ -297,9 +301,13 @@ class GitHubProjectsService:
 
         data = result.get("data", {})
 
-        # Store ETag for future conditional requests
+        # Store ETag for future conditional requests (bounded LRU eviction)
         etag = response.headers.get("ETag")
         if etag:
+            # Evict oldest entries when cache exceeds max size
+            while len(self._etag_cache) >= self._ETAG_CACHE_MAX_SIZE:
+                oldest_key = next(iter(self._etag_cache))
+                del self._etag_cache[oldest_key]
             self._etag_cache[cache_key] = (etag, data)
 
         return data
