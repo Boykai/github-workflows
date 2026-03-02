@@ -108,8 +108,7 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
 - SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
-- TypeScript 5.4 / React 18 (frontend) + Vite 5, TailwindCSS 3.4, shadcn/ui theming (CSS custom properties with HSL values) (016-green-background)
-- N/A (CSS-only change) (016-green-background)
+- TypeScript 5.4 / React 18 (frontend) + Vite 5, TailwindCSS 3.4, shadcn/ui theming (CSS custom properties with HSL values); no database (CSS-only change) (016-green-background)
 
 ## Recent Changes
 - 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
@@ -122,8 +121,4 @@ npx playwright test             # E2E tests
 - Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client) (014-board-refresh-ratelimit)
 
 ## Recent Changes
-- 016-green-background: Added TypeScript 5.4 / React 18 (frontend) + Vite 5, TailwindCSS 3.4, shadcn/ui theming (CSS custom properties with HSL values)
-
-## Recent Changes
-- 016-green-background: Added TypeScript 5.4 / React 18 (frontend) + Vite 5, TailwindCSS 3.4, shadcn/ui theming (CSS custom properties with HSL values)
 
