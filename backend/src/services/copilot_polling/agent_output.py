@@ -11,6 +11,7 @@ from .state import (
     _claimed_child_prs,
     _polling_state,
     _posted_agent_outputs,
+    _system_marked_ready_prs,
 )
 
 logger = logging.getLogger(__name__)
@@ -491,6 +492,20 @@ async def post_agent_outputs_from_pr(
                     head_sha[:8] if head_sha else "none",
                     task.issue_number,
                 )
+
+                # If the main PR is not a draft (the first agent made it
+                # ready-for-review), record it in _system_marked_ready_prs.
+                # Without this, Signal 1 in _check_main_pr_completion sees
+                # the non-draft PR and falsely reports completion for the
+                # NEXT agent, causing premature Done! posting and sub-issue
+                # closure which cancels the Copilot session.
+                if pr_details and not pr_details.get("is_draft", True):
+                    _system_marked_ready_prs.add(pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready (first agent completed) "
+                        "to prevent false positives for subsequent agents",
+                        pr_number,
+                    )
 
                 # Link the first PR to the GitHub Issue so it appears in the
                 # Development sidebar and auto-closes the issue on merge.

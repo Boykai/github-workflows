@@ -640,6 +640,24 @@ async def _reconstruct_pipeline_state(
                     reconstructed_sha[:8],
                     issue_number,
                 )
+
+            # If completed agents exist and the main PR is no longer a
+            # draft, record it in _system_marked_ready_prs.  A previous
+            # agent (typically the first one) made the PR ready-for-review.
+            # Without this, Signal 1 in _check_main_pr_completion sees
+            # the non-draft PR after a container restart and reports a
+            # false completion for the current agent.
+            if completed and pr_details and not pr_details.get("is_draft", True):
+                recon_pr_number = main_branch_info["pr_number"]
+                if recon_pr_number not in _system_marked_ready_prs:
+                    _system_marked_ready_prs.add(recon_pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready during pipeline "
+                        "reconstruction for issue #%d (%d completed agents)",
+                        recon_pr_number,
+                        issue_number,
+                        len(completed),
+                    )
         except Exception as e:
             logger.debug("Could not capture HEAD SHA during reconstruction: %s", e)
 
@@ -928,6 +946,34 @@ async def _advance_pipeline(
                 issue_number,
                 e,
             )
+
+    # After advancing, if the main PR is not a draft, record it in
+    # _system_marked_ready_prs.  The first agent (or a previous agent)
+    # made the PR ready-for-review.  Without this, the NEXT agent in
+    # the pipeline can be falsely detected as complete by Signal 1 in
+    # _check_main_pr_completion, which sees the non-draft PR and fires
+    # before the agent has even started — cancelling the Copilot session.
+    if main_branch_info:
+        advance_pr_number = main_branch_info["pr_number"]
+        if advance_pr_number not in _system_marked_ready_prs:
+            try:
+                pr_check = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=advance_pr_number,
+                )
+                if pr_check and not pr_check.get("is_draft", True):
+                    _system_marked_ready_prs.add(advance_pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready after pipeline advance "
+                        "(agent '%s' completed on issue #%d)",
+                        advance_pr_number,
+                        completed_agent,
+                        issue_number,
+                    )
+            except Exception as e:
+                logger.debug("Could not check main PR draft status during advance: %s", e)
 
     # Send agent_completed WebSocket notification
     await _cp.connection_manager.broadcast_to_project(
