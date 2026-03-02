@@ -13,16 +13,16 @@ export const STALE_TIME_LONG = 5 * 60 * 1000;
 /** Stale time for moderately-changing data (1 minute). */
 export const STALE_TIME_MEDIUM = 60 * 1000;
 
-/** Stale time for frequently-changing data (10 seconds). */
-export const STALE_TIME_SHORT = 10 * 1000;
+/** Stale time for frequently-changing data (60 seconds). */
+export const STALE_TIME_SHORT = 60 * 1000;
 
 // ============ Polling Intervals ============
 
-/** Board data polling interval (15 seconds). */
-export const BOARD_POLL_INTERVAL_MS = 15_000;
+/** Board data polling interval (60 seconds). */
+export const BOARD_POLL_INTERVAL_MS = 60_000;
 
-/** WebSocket fallback polling interval (5 seconds). */
-export const WS_FALLBACK_POLL_MS = 5_000;
+/** WebSocket fallback polling interval (30 seconds). */
+export const WS_FALLBACK_POLL_MS = 30_000;
 
 /** WebSocket reconnect delay after disconnect (5 seconds). */
 export const WS_RECONNECT_DELAY_MS = 5_000;

@@ -3,6 +3,8 @@
 import asyncio
 import base64
 import contextvars
+import hashlib
+import json as json_mod
 import logging
 import re
 from datetime import datetime
@@ -67,6 +69,9 @@ class GitHubProjectsService:
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
         self._last_rate_limit: dict[str, int] | None = None
+        # ETag cache for conditional GraphQL requests.
+        # Key: hash of (query, sorted variables) → (etag, parsed data)
+        self._etag_cache: dict[str, tuple[str, dict]] = {}
 
     async def close(self):
         """Close HTTP client."""
@@ -202,6 +207,12 @@ class GitHubProjectsService:
                 # Always extract rate limit headers — even from error responses
                 # (e.g. 403/429) — so downstream callers have accurate quota info.
                 self._extract_rate_limit_headers(response)
+
+                # 304 Not Modified is expected for conditional (ETag) requests;
+                # return it without raising so callers can serve cached data.
+                if response.status_code == 304:
+                    return response
+
                 response.raise_for_status()
                 return response
 
@@ -239,6 +250,9 @@ class GitHubProjectsService:
         Execute GraphQL query against GitHub API.
 
         Routes through _request_with_retry for consistent retry/backoff handling.
+        Supports ETag-based conditional requests: if the data hasn't changed
+        since the last identical request, GitHub returns 304 Not Modified which
+        does NOT count against the rate limit.
 
         Args:
             access_token: GitHub OAuth access token
@@ -253,19 +267,42 @@ class GitHubProjectsService:
         if extra_headers:
             headers.update(extra_headers)
 
+        # Build a stable cache key from query + variables for ETag lookups
+        cache_key = hashlib.sha256(
+            (query + json_mod.dumps(variables, sort_keys=True)).encode()
+        ).hexdigest()
+
+        cached = self._etag_cache.get(cache_key)
+        if cached:
+            etag, _cached_data = cached
+            headers["If-None-Match"] = etag
+
         response = await self._request_with_retry(
             "POST",
             GITHUB_GRAPHQL_URL,
             headers=headers,
             json={"query": query, "variables": variables},
         )
+
+        # 304 Not Modified — data hasn't changed, return cached result (free!)
+        if response.status_code == 304 and cached:
+            logger.debug("GraphQL ETag cache hit (304) for key %s…", cache_key[:12])
+            return cached[1]
+
         result = response.json()
 
         if "errors" in result:
             error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
             raise ValueError(f"GraphQL error: {error_msg}")
 
-        return result.get("data", {})
+        data = result.get("data", {})
+
+        # Store ETag for future conditional requests
+        etag = response.headers.get("ETag")
+        if etag:
+            self._etag_cache[cache_key] = (etag, data)
+
+        return data
 
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20

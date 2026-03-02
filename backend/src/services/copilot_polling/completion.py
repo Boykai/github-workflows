@@ -1042,6 +1042,7 @@ async def check_in_review_issues_for_copilot_review(
     project_id: str,
     owner: str,
     repo: str,
+    tasks: list | None = None,
 ) -> list[dict[str, Any]]:
     """
     Check all issues in "In Review" status to ensure Copilot has reviewed their PRs.
@@ -1053,6 +1054,7 @@ async def check_in_review_issues_for_copilot_review(
         project_id: GitHub Project V2 node ID
         owner: Repository owner
         repo: Repository name
+        tasks: Pre-fetched project items (optional, to avoid redundant API calls)
 
     Returns:
         List of results for each processed issue
@@ -1060,8 +1062,9 @@ async def check_in_review_issues_for_copilot_review(
     results = []
 
     try:
-        # Get all project items
-        tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+        # Use pre-fetched tasks when available to avoid redundant API calls
+        if tasks is None:
+            tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
 
         # Filter to "In Review" items with issue numbers
         in_review_tasks = [
