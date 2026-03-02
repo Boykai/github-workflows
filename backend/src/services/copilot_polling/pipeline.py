@@ -671,8 +671,13 @@ async def _reconstruct_pipeline_state(
     # includes events for the CURRENT agent (which may have finished
     # before this reconstruction).  Using utcnow() would filter out
     # those events and prevent completion detection.
-    # If no agents completed, use the issue creation time so all events
-    # are included for the first agent.
+    #
+    # When no agents in the current status completed, we must NOT fall
+    # back to issue creation time — that would let stale timeline events
+    # from PRIOR status agents (e.g. speckit.specify in Backlog) pass
+    # the freshness filter for the current status's first agent (e.g.
+    # speckit.plan in Ready).  Instead, scan ALL comments for the most
+    # recent Done! marker from any agent and use its timestamp.
     reconstructed_started_at: datetime | None = None
     if last_done_timestamp:
         try:
@@ -682,7 +687,33 @@ async def _reconstruct_pipeline_state(
         except (ValueError, TypeError):
             pass
     if reconstructed_started_at is None:
-        # Use issue creation time as fallback (all events are relevant)
+        # No Done! markers for current-status agents — look for the most
+        # recent Done! marker from ANY agent (e.g. a prior status).
+        comments = (issue_data or {}).get("comments", []) if issue_data else []
+        latest_any_done_ts: str | None = None
+        for c in comments:
+            body = c.get("body", "")
+            for line in body.split("\n"):
+                if line.strip().endswith(": Done!"):
+                    ts = c.get("created_at", "")
+                    if ts and (latest_any_done_ts is None or ts > latest_any_done_ts):
+                        latest_any_done_ts = ts
+        if latest_any_done_ts:
+            try:
+                reconstructed_started_at = datetime.fromisoformat(
+                    latest_any_done_ts.replace("Z", "+00:00")
+                )
+                logger.debug(
+                    "Using cross-status Done! timestamp %s as started_at "
+                    "for issue #%d (no Done! markers for current status agents)",
+                    latest_any_done_ts,
+                    issue_number,
+                )
+            except (ValueError, TypeError):
+                pass
+    if reconstructed_started_at is None:
+        # Use issue creation time as fallback — only reached when no
+        # Done! markers exist at all (truly the first agent overall).
         issue_created_at = (issue_data or {}).get("created_at", "")
         if issue_created_at:
             try:

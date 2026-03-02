@@ -2109,6 +2109,50 @@ class TestReconstructPipelineState:
         # Should return empty pipeline state on error
         assert result.completed_agents == []
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_started_at_uses_cross_status_done_timestamp(self, mock_set_state, mock_service):
+        """Regression test for #1171: when no agents in the current status have
+        Done! markers but a prior-status agent has one, started_at must use that
+        prior-status Done! timestamp — NOT the issue creation time.
+
+        Without this, stale timeline events from the prior-status agent pass
+        the freshness filter and cause false-positive completions.
+        """
+        prior_done_ts = "2026-03-02T19:12:00Z"
+        issue_created_ts = "2026-03-02T18:00:00Z"
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "created_at": issue_created_ts,
+                "comments": [
+                    # Done! from a prior-status agent (e.g. speckit.specify in Backlog)
+                    {"body": "speckit.specify: Done!", "created_at": prior_done_ts},
+                    # No Done! from current-status agents (speckit.plan, speckit.tasks)
+                ],
+            }
+        )
+
+        result = await _reconstruct_pipeline_state(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+        )
+
+        assert result.completed_agents == []
+        assert result.current_agent == "speckit.plan"
+        # started_at must be the prior-status Done! timestamp, not issue creation
+        expected_ts = datetime.fromisoformat(prior_done_ts.replace("Z", "+00:00"))
+        assert result.started_at == expected_ts, (
+            f"started_at should be {expected_ts} (prior Done! timestamp) "
+            f"but was {result.started_at}"
+        )
+
 
 class TestCheckBacklogIssues:
     """Tests for check_backlog_issues function."""
