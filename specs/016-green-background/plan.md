@@ -1,104 +1,84 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add Green Background Color to App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `016-green-background` | **Date**: 2026-03-02 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/016-green-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Update the application's global background color to green (#4CAF50) by modifying the `--background` CSS custom property in the existing Tailwind/shadcn theming system. The change is a single-line CSS variable update in `frontend/src/index.css` that propagates automatically to all pages via the existing `bg-background` utility class. Overlay components (modals, popovers, cards, dropdowns) already use their own CSS variables (`--popover`, `--card`) and will not be affected. The `--foreground` color may need adjustment to maintain WCAG AA contrast against the new green background. See [research.md](./research.md) for color choice rationale and contrast analysis.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.4 / React 18 (frontend)
+**Primary Dependencies**: Vite 5, TailwindCSS 3.4, shadcn/ui theming (CSS custom properties with HSL values)
+**Storage**: N/A (CSS-only change)
+**Testing**: Vitest + React Testing Library (frontend); visual/manual verification for color accuracy
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge)
+**Project Type**: Web application (frontend only for this feature)
+**Performance Goals**: N/A (no computation or network impact — purely CSS)
+**Constraints**: WCAG AA minimum 4.5:1 contrast ratio for normal text, 3:1 for large text against green background
+**Scale/Scope**: 1 file modified (`frontend/src/index.css`), 0 new files, 0 new dependencies
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Research Check (Phase 0 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with 4 prioritized user stories (P1×2, P2×1, P3×1), Given-When-Then scenarios, 10 FRs, and edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | `speckit.plan` agent produces plan.md and Phase 0/1 artifacts |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; visual verification sufficient for CSS color change |
+| V. Simplicity and DRY | ✅ PASS | Single CSS variable change leverages existing theming system; no new abstractions, no new files, no new dependencies |
+
+**Gate Result**: ALL PASS — proceed to Phase 0
+
+### Post-Design Check (Phase 1 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | All FR items (FR-001 through FR-010) mapped to design decisions in research.md |
+| II. Template-Driven Workflow | ✅ PASS | plan.md, research.md, data-model.md, quickstart.md all generated |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan ready for handoff to `speckit.tasks` |
+| IV. Test Optionality | ✅ PASS | No test mandate; visual verification sufficient |
+| V. Simplicity and DRY | ✅ PASS | Reuses existing CSS custom property theming system (`--background` in `index.css`). No new files, frameworks, or abstractions. Single-line change for core requirement. |
+
+**Gate Result**: ALL PASS — proceed to Phase 2 (tasks)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/016-green-background/
+├── plan.md              # This file
+├── research.md          # Phase 0: Color choice rationale and contrast analysis
+├── data-model.md        # Phase 1: Design token definitions
+├── quickstart.md        # Phase 1: Development and verification guide
+├── contracts/
+│   └── no-api.md        # Phase 1: No API contracts (CSS-only change)
+├── checklists/
+│   └── requirements.md  # Requirements checklist
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   └── index.css        # Modify: Update --background CSS custom property to green HSL value
+└── index.html           # No change needed (body already styled via Tailwind base layer)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (frontend only). The repository uses `backend/` and `frontend/` top-level directories, but this feature only touches frontend CSS. The existing shadcn/ui theming system in `frontend/src/index.css` defines all color tokens as CSS custom properties with HSL values. The `--background` variable is consumed by Tailwind's `bg-background` utility class, which is already applied to `body` in the base layer and to the root `<div>` in `App.tsx`. Changing the HSL value of `--background` in `:root` propagates the green color globally with zero additional code changes.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. No complexity to justify.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
