@@ -34,7 +34,7 @@
 
 **⚠️ CRITICAL**: All user stories depend on this change being applied first.
 
-- [ ] T001 Update `--background` CSS custom property in `:root` block from `0 0% 100%` (white) to `122 39% 49%` (green, #4CAF50) in frontend/src/index.css
+- [X] T001 Update `--background` CSS custom property in `:root` block from `0 0% 100%` (white) to `122 39% 49%` (green, #4CAF50) in frontend/src/index.css
 
 **Checkpoint**: Green background is now applied globally via the existing `bg-background` Tailwind utility on `body`, root `<div>`, and header in `App.tsx`. All user story verification can begin.
 
@@ -48,7 +48,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Verify green background renders on Home page (`/`) by running the frontend dev server (`cd frontend && npm run dev`) and visually inspecting `http://localhost:5173/`
+- [X] T002 [US1] Verify green background renders on Home page (`/`) by running the frontend dev server (`cd frontend && npm run dev`) and visually inspecting `http://localhost:5173/`
 - [ ] T003 [US1] Verify green background renders on Board page (`/#board`) and Settings page (`/#settings`) via visual inspection
 - [ ] T004 [US1] Verify no flash of white or default background on initial cold-start page load and on route transitions between pages
 
@@ -64,7 +64,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Confirm existing `--foreground` value in `:root` block of frontend/src/index.css provides WCAG AA contrast (≥4.5:1 for normal text, ≥3:1 for large text) against the new green `--background` value — no change expected per research.md R1
+- [X] T005 [US2] Confirm existing `--foreground` value in `:root` block of frontend/src/index.css provides WCAG AA contrast (≥4.5:1 for normal text, ≥3:1 for large text) against the new green `--background` value — no change expected per research.md R1
 - [ ] T006 [US2] Visually audit all pages for any text, icons, or UI elements with hardcoded colors that may have poor contrast against the green background
 
 **Checkpoint**: User Story 2 is complete — all content is clearly readable on the green background with WCAG AA contrast compliance.
@@ -79,7 +79,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Verify that `--popover` and `--card` CSS custom properties in frontend/src/index.css remain independently defined and unchanged (currently `0 0% 100%` in `:root`) — no modification needed per research.md R4
+- [X] T007 [US3] Verify that `--popover` and `--card` CSS custom properties in frontend/src/index.css remain independently defined and unchanged (currently `0 0% 100%` in `:root`) — no modification needed per research.md R4
 - [ ] T008 [US3] Visually verify modals (e.g., issue detail modal), dropdowns, tooltips, and drawer/panel components retain their own background colors when opened over the green background
 
 **Checkpoint**: User Story 3 is complete — overlay components are visually distinct from the green page background.
@@ -95,7 +95,7 @@
 ### Implementation for User Story 4
 
 - [ ] T009 [US4] Verify green background renders identically in Chrome, Firefox, Safari, and Edge browsers
-- [ ] T010 [US4] Verify dark mode toggle (☀️/🌙) switches to dark background (unchanged `--background: 222.2 84% 4.9%` in `.dark` block) and back to green in light mode — no modification needed per research.md R3
+- [X] T010 [US4] Verify dark mode toggle (☀️/🌙) switches to dark background (unchanged `--background: 222.2 84% 4.9%` in `.dark` block) and back to green in light mode — no modification needed per research.md R3
 - [ ] T011 [US4] Verify OS light/dark mode switching does not override the green background in light mode
 
 **Checkpoint**: User Story 4 is complete — green background is consistent across browsers and display modes.
@@ -106,9 +106,9 @@
 
 **Purpose**: Final verification and build validation
 
-- [ ] T012 Run frontend build verification (`cd frontend && npm run build`) to confirm no build errors from the CSS change
-- [ ] T013 Run frontend lint check (`cd frontend && npm run lint`) to confirm no lint errors
-- [ ] T014 Run frontend tests (`cd frontend && npm test`) to confirm no test regressions
+- [X] T012 Run frontend build verification (`cd frontend && npm run build`) to confirm no build errors from the CSS change
+- [X] T013 Run frontend lint check (`cd frontend && npm run lint`) to confirm no lint errors
+- [X] T014 Run frontend tests (`cd frontend && npm test`) to confirm no test regressions
 - [ ] T015 Run quickstart.md verification checklist (visual verification, overlay verification, contrast verification, build verification)
 
 ---
