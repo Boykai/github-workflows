@@ -44,7 +44,7 @@
 
 **⚠️ CRITICAL**: No cleanup work can begin until dynamic loading patterns are confirmed safe.
 
-- [ ] T007 Audit migration discovery in `backend/src/services/database.py` (lines 160–179) — document the `_discover_migrations()` regex pattern `^(\d{3})_.*\.sql$` and confirm all 8 migration files (`001_initial_schema.sql` through `008_cleanup_audit_logs.sql`) in `backend/src/migrations/` are in the active chain and must not be removed
+- [ ] T007 Audit migration discovery in `backend/src/services/database.py` (lines 160–179) — document the `_discover_migrations()` regex pattern `^(\d{3})_.*\.sql$` and confirm all migration files (from `001_initial_schema.sql` through the latest migration) in `backend/src/migrations/` are in the active chain and must not be removed
 - [ ] T008 [P] Audit global state registries — document `PROVIDER_REGISTRY` in `backend/src/services/model_fetcher.py` (line 211–218), workflow config caches in `backend/src/services/workflow_orchestrator/config.py` (lines 18, 21), and pipeline state caches in `backend/src/services/workflow_orchestrator/transitions.py` (lines 10, 15, 22) as protected from removal
 - [ ] T009 [P] Audit lazy-loaded service singletons — document `_ai_agent_service_instance` in `backend/src/services/ai_agent.py` (line 799), `_model_fetcher_service` in `backend/src/services/model_fetcher.py` (line 435), `_encryption_service` in `backend/src/services/session_store.py` (line 18), and `_orchestrator_instance` in `backend/src/services/workflow_orchestrator/orchestrator.py` (line 1705) as dynamically initialized and protected from removal
 - [ ] T010 [P] Audit optional/conditional imports — confirm `try/except ImportError` blocks in `backend/src/api/workflow.py` (lines 351–357) and `backend/src/services/completion_providers.py` (lines 217–240) are intentional graceful degradation patterns and must not be removed
@@ -66,11 +66,11 @@
 - [ ] T011 [US1] Remove `PREDEFINED_LABELS` backward-compatible alias in `backend/src/prompts/issue_generation.py` (lines 8–9) and update the single consumer in `backend/tests/unit/test_prompts.py` to import `LABELS` from `backend/src/constants.py` instead
 - [ ] T012 [US1] Remove `DEFAULT_AGENT_MAPPINGS` re-export from `backend/src/models/chat.py` (line 16) and update the single consumer in `backend/tests/integration/test_custom_agent_assignment.py` to import from `backend/src/constants.py` instead
 - [ ] T013 [US1] Evaluate `get_session_dep` alias in `backend/src/api/auth.py` (line 57) — this alias is used in 11 API files and 5 test files; if removing, update all consumers to use `get_current_session` directly: `backend/src/api/chat.py`, `backend/src/api/board.py`, `backend/src/api/workflow.py`, `backend/src/api/mcp.py`, `backend/src/api/housekeeping.py`, `backend/src/api/cleanup.py`, `backend/src/api/settings.py`, `backend/src/api/signal.py`, `backend/src/api/projects.py`, `backend/src/api/tasks.py`, `backend/src/dependencies.py`, `backend/tests/conftest.py`, `backend/tests/integration/test_webhook_verification.py`, `backend/tests/unit/test_api_auth.py`, `backend/tests/unit/test_admin_authorization.py`, `backend/tests/unit/test_auth_security.py`
-- [ ] T014 [US1] Evaluate backward-compatible re-exports block in `backend/src/models/chat.py` (lines 18–43) — these re-exports from `src.models.agent`, `src.models.recommendation`, and `src.models.workflow` are used in 30+ files; if keeping, add a `# TODO: migrate consumers to direct imports` comment; if removing, update all consumers to import from canonical module locations
+- [ ] T014 [US1] Evaluate backward-compatible re-exports block in `backend/src/models/chat.py` (lines 18–43) — these re-exports from `src.models.agent`, `src.models.recommendation`, and `src.models.workflow` are used in approximately 35 files across API, service, and test layers; if keeping, add a `# TODO: migrate consumers to direct imports` comment; if removing, update all consumers to import from canonical module locations
 
 #### Dead Code and Unused Symbol Removal
 
-- [ ] T015 [P] [US1] Remove 8 MagicMock test artifact files leaked at repository root — delete all files matching `<MagicMock name='get_settings().database_path' id='*'>` and add a `.gitignore` rule to prevent recurrence
+- [ ] T015 [P] [US1] Remove MagicMock test artifact files leaked at repository root — these are files with names like `<MagicMock name='get_settings().database_path' id='139810626547504'>` (zero-byte files created when a MagicMock object is stringified into a file path); delete all such files and add a `.gitignore` rule to prevent recurrence. Note: T035 in Phase 6 fixes the root cause; this task only removes the existing artifacts
 - [ ] T016 [P] [US1] Run `ruff check --select F401` on `backend/src/` to identify unused imports across all backend source files and remove any confirmed-unused imports (respecting `# noqa: F401` markers on intentional re-exports)
 - [ ] T017 [P] [US1] Run `ruff check --select F811,F841` on `backend/src/` to identify unused variables and redefined-unused-functions, then remove confirmed-unused items
 - [ ] T018 [P] [US1] Run eslint on `frontend/src/` and identify unused imports, variables, and type definitions flagged by `@typescript-eslint/no-unused-vars` — remove confirmed-unused items
@@ -139,7 +139,7 @@
 
 #### Stale Test and Artifact Removal
 
-- [ ] T035 [P] [US3] Investigate root cause of MagicMock database file leakage — trace which test(s) in `backend/tests/` cause `get_settings().database_path` to be stringified into a filesystem path and create an actual file; fix the test setup to prevent recurrence (likely in `backend/tests/conftest.py` mock configuration)
+- [ ] T035 [P] [US3] Investigate and fix root cause of MagicMock database file leakage — trace which test(s) in `backend/tests/` cause `get_settings().database_path` to be stringified into a filesystem path and create an actual file; fix the test setup in `backend/tests/conftest.py` (or relevant fixture) to prevent recurrence. Note: T015 in Phase 3 removes existing artifacts; this task prevents new ones from being created
 - [ ] T036 [P] [US3] Audit `backend/tests/unit/` for test files or test cases covering functionality that has been deleted or refactored — remove stale tests while preserving tests covering active code paths
 - [ ] T037 [P] [US3] Audit `backend/tests/unit/` for tests that over-mock internals (e.g., tests that mock every internal method call and only verify mock interactions without testing real behavior) — remove or refactor identified tests
 - [ ] T038 [P] [US3] Audit `backend/tests/integration/` for stale integration tests covering deleted features or non-existent code paths — remove stale tests while preserving active coverage
@@ -170,7 +170,7 @@
 
 - [ ] T046 Run full backend CI suite: `cd backend && ruff check src tests && ruff format --check src tests && python -m pytest -v`
 - [ ] T047 Run full frontend CI suite: `cd frontend && npm run lint && npx tsc --noEmit && npm test && npm run build`
-- [ ] T048 Record final metrics (total lines of code, number of files, test count) and compute net reduction from Phase 1 baseline (target: at least 100 lines net reduction per SC-004)
+- [ ] T048 Record final metrics (total lines of code, number of files, test count) and compute net reduction from Phase 1 baseline (target: at least 100 lines net reduction per spec.md Success Criterion SC-004)
 - [ ] T049 Verify no public API contracts changed — compare API route definitions in `backend/src/api/__init__.py` and all route handler files before and after cleanup to confirm all route paths and request/response shapes are unchanged
 - [ ] T050 Prepare categorized PR summary covering all changes organized by the five cleanup categories (backwards-compat shims, dead code, duplicated logic, stale tests, general hygiene) with justifications for each removal or consolidation
 - [ ] T051 Commit all changes using conventional commit format: `refactor:` for consolidation changes (US2), `chore:` for dead code removal (US1), test removal (US3), and hygiene fixes (US3)
