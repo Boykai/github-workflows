@@ -2976,3 +2976,235 @@ class TestAssignAgentUsesGlobalSubIssueStore:
             call_args.kwargs.get("issue_node_id") == "I_101"
             or call_args[1].get("issue_node_id") == "I_101"
         )
+
+
+class TestOnTheFlySubIssueCreation:
+    """Tests for on-the-fly sub-issue creation when pre-created sub-issue is missing."""
+
+    @pytest.fixture(autouse=True)
+    def clear_state(self):
+        """Clear global state between tests."""
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+
+    @pytest.fixture
+    def mock_github_service(self):
+        """Create mock GitHub service."""
+        service = Mock()
+        service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "test body", "title": "Test Issue"}
+        )
+        service.format_issue_context_as_prompt = Mock(return_value="")
+        service.assign_copilot_to_issue = AsyncMock(return_value=True)
+        service.update_item_status_by_name = AsyncMock(return_value=True)
+        service.validate_assignee = AsyncMock()
+        service.assign_issue = AsyncMock()
+        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        service.update_issue_state = AsyncMock(return_value=True)
+        service.update_sub_issue_project_status = AsyncMock()
+        service.tailor_body_for_agent = Mock(return_value="tailored body")
+        service.create_sub_issue = AsyncMock(
+            return_value={
+                "number": 200,
+                "node_id": "I_200",
+                "html_url": "https://github.com/o/r/issues/200",
+            }
+        )
+        service.add_issue_to_project = AsyncMock()
+        return service
+
+    @pytest.fixture
+    def orchestrator(self, mock_github_service):
+        """Create WorkflowOrchestrator with mocked services."""
+        return WorkflowOrchestrator(Mock(), mock_github_service)
+
+    @pytest.fixture
+    def config(self):
+        """Create a workflow configuration."""
+        return WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            status_done="Done",
+            agent_mappings={
+                "Ready": ["speckit.plan", "speckit.tasks"],
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_creates_sub_issue_on_the_fly_when_missing(
+        self,
+        orchestrator,
+        mock_github_service,
+        config,
+    ):
+        """When no pre-created sub-issue exists and no global store entry,
+        assign_agent_for_status should create one on-the-fly."""
+        from src.services.workflow_orchestrator import (
+            set_pipeline_state,
+            set_workflow_config,
+        )
+
+        await set_workflow_config("PVT_123", config)
+
+        # No sub-issues in pipeline or global store
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            agent_sub_issues={},
+        )
+        set_pipeline_state(42, pipeline)
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_parent",
+            issue_number=42,
+            project_item_id="PVTI_123",
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = config
+
+        result = await orchestrator.assign_agent_for_status(ctx, "Ready", agent_index=0)
+        assert result is True
+
+        # Verify on-the-fly sub-issue was created
+        mock_github_service.create_sub_issue.assert_called_once()
+        create_call = mock_github_service.create_sub_issue.call_args
+        assert create_call.kwargs.get("parent_issue_number") == 42
+        assert "[speckit.plan]" in create_call.kwargs.get("title", "")
+
+        # Copilot should be assigned to the new sub-issue, not the parent
+        assign_call = mock_github_service.assign_copilot_to_issue.call_args
+        assert assign_call is not None
+        assert (
+            assign_call.kwargs.get("issue_node_id") == "I_200"
+            or assign_call[1].get("issue_node_id") == "I_200"
+        )
+
+    @pytest.mark.asyncio
+    async def test_on_the_fly_creation_persists_to_global_store(
+        self,
+        orchestrator,
+        mock_github_service,
+        config,
+    ):
+        """On-the-fly created sub-issue should be persisted to the global store."""
+        from src.services.workflow_orchestrator import (
+            get_issue_sub_issues,
+            set_pipeline_state,
+            set_workflow_config,
+        )
+
+        await set_workflow_config("PVT_123", config)
+
+        # No sub-issues stored anywhere
+        set_pipeline_state(
+            42,
+            PipelineState(
+                issue_number=42,
+                project_id="PVT_123",
+                status="Ready",
+                agents=["speckit.plan", "speckit.tasks"],
+                agent_sub_issues={},
+            ),
+        )
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_parent",
+            issue_number=42,
+            project_item_id="PVTI_123",
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = config
+
+        await orchestrator.assign_agent_for_status(ctx, "Ready", agent_index=0)
+
+        # The global store should now have the speckit.plan sub-issue
+        global_subs = get_issue_sub_issues(42)
+        assert "speckit.plan" in global_subs
+        assert global_subs["speckit.plan"]["number"] == 200
+        assert global_subs["speckit.plan"]["node_id"] == "I_200"
+
+    @pytest.mark.asyncio
+    async def test_on_the_fly_creation_failure_falls_back_to_parent(
+        self,
+        orchestrator,
+        mock_github_service,
+        config,
+    ):
+        """If on-the-fly creation also fails, fall back to parent issue."""
+        from src.services.workflow_orchestrator import (
+            set_pipeline_state,
+            set_workflow_config,
+        )
+
+        await set_workflow_config("PVT_123", config)
+
+        set_pipeline_state(
+            42,
+            PipelineState(
+                issue_number=42,
+                project_id="PVT_123",
+                status="Ready",
+                agents=["speckit.plan", "speckit.tasks"],
+                agent_sub_issues={},
+            ),
+        )
+
+        # Make on-the-fly creation fail
+        mock_github_service.create_sub_issue = AsyncMock(side_effect=Exception("502 Bad Gateway"))
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="PVT_123",
+            access_token="token",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_parent",
+            issue_number=42,
+            project_item_id="PVTI_123",
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = config
+
+        # Should still succeed — falls back to parent issue
+        result = await orchestrator.assign_agent_for_status(ctx, "Ready", agent_index=0)
+        assert result is True
+
+        # Agent should be assigned to the PARENT issue as fallback
+        assign_call = mock_github_service.assign_copilot_to_issue.call_args
+        assert assign_call is not None
+        assert (
+            assign_call.kwargs.get("issue_node_id") == "I_parent"
+            or assign_call[1].get("issue_node_id") == "I_parent"
+        )

@@ -209,7 +209,7 @@ class GitHubProjectsService:
                 # Capture rate limit headers from error responses so
                 # get_last_rate_limit() reflects the most recent state.
                 self._extract_rate_limit_headers(e.response)
-                if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
+                if e.response.status_code in (429, 502, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
                         e.response.status_code,
@@ -3387,27 +3387,22 @@ class GitHubProjectsService:
         sub_issue_number = sub_issue["number"]
 
         # Step 2: Attach as sub-issue using the Sub-Issues API
+        # Route through _request_with_retry so transient 502/503 errors are
+        # retried automatically — prevents orphaned sub-issues.
         try:
-            response = await self._client.post(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues",
-                json={"sub_issue_id": sub_issue["id"]},
+            attach_url = f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues"
+            await self._request_with_retry(
+                method="POST",
+                url=attach_url,
                 headers=self._build_headers(access_token),
+                json={"sub_issue_id": sub_issue["id"]},
+                idempotent=True,
             )
-
-            if response.status_code in (200, 201):
-                logger.info(
-                    "Attached sub-issue #%d to parent issue #%d",
-                    sub_issue_number,
-                    parent_issue_number,
-                )
-            else:
-                logger.warning(
-                    "Failed to attach sub-issue #%d to parent #%d: %d %s",
-                    sub_issue_number,
-                    parent_issue_number,
-                    response.status_code,
-                    response.text[:300] if response.text else "",
-                )
+            logger.info(
+                "Attached sub-issue #%d to parent issue #%d",
+                sub_issue_number,
+                parent_issue_number,
+            )
         except Exception as e:
             logger.warning(
                 "Failed to attach sub-issue #%d to parent #%d: %s",
