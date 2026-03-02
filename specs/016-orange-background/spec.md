@@ -88,7 +88,7 @@ A user accesses the app on different devices (mobile phone, tablet, desktop) and
 ## Assumptions
 
 - The app has an existing centralized theming system (CSS variables, theme file, or design token configuration) where the background color can be updated in one place.
-- The specific orange shade will be a standard, accessible orange such as #F97316 (Tailwind orange-500) or #FF6600, selected to maximize contrast compliance with existing text colors.
+- The specific orange shade will be a standard, accessible orange such as #F97316 or #FF6600, selected to maximize contrast compliance with existing text colors.
 - The orange background applies to the default/light theme. If the app supports dark mode, the dark mode background behavior is out of scope for this initial change unless explicitly addressed during implementation.
 - Existing UI components with their own background colors (cards, modals, sidebars) will retain their individual backgrounds; only the root/primary app background surface changes to orange.
 - Any existing snapshot or visual regression tests will need to be updated to reflect the new background color, but creating new tests is out of scope.
