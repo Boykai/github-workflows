@@ -192,7 +192,7 @@ Task: "Verify OS display mode switching"
 
 ### Single Developer Strategy
 
-This is an XS-sized feature (estimated 0.5h). A single developer can:
+This is an XS-sized feature (estimated 30 minutes). A single developer can:
 1. Apply T001 (the only code change)
 2. Run through all verification tasks sequentially
 3. Run build/lint/test
