@@ -196,7 +196,7 @@ async def fetch_open_issues_on_board(
     query($projectId: ID!, $first: Int!, $after: String) {
       node(id: $projectId) {
         ... on ProjectV2 {
-          items(first: $first, after: $after) {
+          items(first: $first, after: $after, orderBy: {field: POSITION, direction: ASC}) {
             pageInfo { hasNextPage endCursor }
             nodes {
               content {

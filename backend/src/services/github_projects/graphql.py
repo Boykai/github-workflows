@@ -26,7 +26,7 @@ fragment ProjectFields on ProjectV2 {
       }
     }
   }
-  items(first: 1) {
+  items(first: 1, orderBy: {field: POSITION, direction: ASC}) {
     totalCount
   }
 }
@@ -67,7 +67,7 @@ GET_PROJECT_ITEMS_QUERY = """
 query($projectId: ID!, $first: Int!, $after: String) {
   node(id: $projectId) {
     ... on ProjectV2 {
-      items(first: $first, after: $after) {
+      items(first: $first, after: $after, orderBy: {field: POSITION, direction: ASC}) {
         pageInfo {
           hasNextPage
           endCursor
@@ -179,7 +179,7 @@ GET_PROJECT_REPOSITORY_QUERY = """
 query($projectId: ID!) {
   node(id: $projectId) {
     ... on ProjectV2 {
-      items(first: 10) {
+      items(first: 10, orderBy: {field: POSITION, direction: ASC}) {
         nodes {
           content {
             ... on Issue {
@@ -607,7 +607,7 @@ query($projectId: ID!, $first: Int!, $after: String) {
           }
         }
       }
-      items(first: $first, after: $after) {
+      items(first: $first, after: $after, orderBy: {field: POSITION, direction: ASC}) {
         pageInfo {
           hasNextPage
           endCursor
