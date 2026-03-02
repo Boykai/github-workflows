@@ -123,6 +123,7 @@ LABELS: list[str] = [
     "api",
     # Status labels
     "ai-generated",
+    "sub-issue",
     "good first issue",
     "help wanted",
     # Domain labels

@@ -178,7 +178,8 @@ async def websocket_subscribe(
     WebSocket endpoint for real-time project updates.
 
     On connection, sends all current tasks.
-    Periodically refreshes and sends updates every 5 seconds.
+    Periodically checks for updates every 30 seconds (using cached data
+    when available; actual GitHub API calls are governed by the cache TTL).
     Also sends real-time updates when tasks are created, updated, or deleted.
 
     Message format:
