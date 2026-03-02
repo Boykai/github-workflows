@@ -9,6 +9,7 @@
 import type { CommandDefinition, ParsedCommand } from './types';
 import { helpHandler } from './handlers/help';
 import { themeHandler, languageHandler, notificationsHandler, viewHandler } from './handlers/settings';
+import { agentHandler } from './handlers/agent';
 
 /** Central command store keyed by lowercase command name. */
 const registry = new Map<string, CommandDefinition>();
@@ -121,4 +122,12 @@ registerCommand({
   syntax: '#view <chat|board|settings>',
   handler: viewHandler,
   parameterSchema: { type: 'enum', values: ['chat', 'board', 'settings'] },
+});
+
+registerCommand({
+  name: 'agent',
+  description: 'Create a custom agent for your project (admin only)',
+  syntax: '#agent <description> [#status-column]',
+  handler: agentHandler,
+  passthrough: true,
 });

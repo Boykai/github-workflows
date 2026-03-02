@@ -92,8 +92,7 @@ export function ChatInterface({
     inputRef.current?.focus();
   }, []);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const doSubmit = () => {
     const content = input.trim();
     if (content && !isSending) {
       setShowAutocomplete(false);
@@ -105,8 +104,24 @@ export function ChatInterface({
     }
   };
 
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    doSubmit();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showAutocomplete && autocompleteCommands.length > 0) {
+    // Determine whether autocomplete is contextually active based on
+    // the current input value rather than relying solely on the
+    // showAutocomplete state (which is updated via useEffect and may
+    // lag by one render frame).
+    const trimmed = input.trimStart();
+    const autocompleteActive =
+      showAutocomplete &&
+      autocompleteCommands.length > 0 &&
+      trimmed.startsWith('#') &&
+      !trimmed.slice(1).includes(' ');
+
+    if (autocompleteActive) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setHighlightedIndex((prev) => (prev + 1) % autocompleteCommands.length);
@@ -131,7 +146,7 @@ export function ChatInterface({
 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      doSubmit();
     }
   };
 

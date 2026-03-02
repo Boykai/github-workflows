@@ -719,15 +719,25 @@ class AIAgentService:
             {
                 "role": "system",
                 "content": (
-                    "You are an expert at designing GitHub automation agents. "
+                    "You are an expert at designing GitHub Custom Agents (also known as Copilot "
+                    "coding agents). These agents are defined as Markdown files in "
+                    ".github/agents/ and invoked via slash commands in GitHub Issues/PRs.\n\n"
                     "Given a user's description of what an agent should do, generate a JSON object with:\n"
-                    '- "name": A concise PascalCase agent name (e.g., "SecurityReviewer")\n'
-                    '- "description": A one-line summary of the agent\'s purpose\n'
-                    '- "system_prompt": A detailed system prompt (3-10 paragraphs) defining the agent\'s '
-                    "behavior, responsibilities, tone, and guidelines. Be specific and actionable.\n"
-                    '- "tools": A list of Copilot tool/capability identifiers the agent needs '
-                    '(e.g., ["list_projects", "get_project_items", "create_issue", "search_code"]). '
-                    "Choose from common GitHub Copilot tools.\n\n"
+                    '- "name": A concise lowercase dot-separated agent name (e.g., '
+                    '"pr-architect-reviewer", "security-scanner", "docs-updater"). '
+                    "Use kebab-case. This becomes the filename slug and slash-command name.\n"
+                    '- "description": A one-line summary of the agent\'s purpose (used in the '
+                    "agent file's YAML frontmatter description field)\n"
+                    '- "system_prompt": A detailed system prompt written as Markdown. This is the '
+                    "full body of the agent definition file. Structure it with ## headings, "
+                    "numbered execution steps, and clear instructions. Include a ## User Input "
+                    "section at the top with `$ARGUMENTS` placeholder. Be specific and actionable. "
+                    "The prompt should tell the agent exactly what to do step by step.\n"
+                    '- "tools": A list of GitHub MCP tool identifiers the agent needs '
+                    '(e.g., ["github/github-mcp-server/issue_write", '
+                    '"github/github-mcp-server/search_code"]). '
+                    "Only include tools if the agent genuinely needs specific MCP server tools. "
+                    "An empty list is fine for agents that only need standard file/code access.\n\n"
                     "Respond ONLY with valid JSON, no markdown fences or extra text."
                 ),
             },
@@ -767,10 +777,12 @@ class AIAgentService:
             {
                 "role": "system",
                 "content": (
-                    "You are an expert at designing GitHub automation agents. "
+                    "You are an expert at designing GitHub Custom Agents. "
                     "The user wants to modify an existing agent configuration. "
                     "Apply the requested change and return the complete updated JSON object with "
-                    'the same keys: "name", "description", "system_prompt".\n'
+                    'the same keys: "name" (kebab-case slug), "description" (one-line summary), '
+                    '"system_prompt" (Markdown body with ## headings and steps), '
+                    'and "tools" (list of MCP tool identifiers, can be empty).\n'
                     "Respond ONLY with valid JSON, no markdown fences or extra text."
                 ),
             },

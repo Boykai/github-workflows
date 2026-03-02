@@ -1,4 +1,4 @@
--- Migration: 007_housekeeping.sql
+-- Migration: 009_housekeeping.sql
 -- Housekeeping Issue Templates with Configurable Triggers
 
 CREATE TABLE IF NOT EXISTS housekeeping_templates (

@@ -256,4 +256,64 @@ describe('useChat', () => {
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
     expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello world' });
   });
+
+  // ── Passthrough command tests ────────────────────────────────────────────
+  // Verifies that passthrough commands (e.g. #agent) are forwarded to the
+  // backend API instead of being handled locally.
+
+  it('should forward #agent command to backend (passthrough)', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+    mockChatApi.sendMessage.mockResolvedValue({
+      message_id: 'msg_agent',
+      session_id: 's1',
+      sender_type: 'assistant',
+      content: 'Agent creation started',
+      timestamp: '2024-01-01T00:00:03Z',
+    });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('#agent Build a code reviewer');
+    });
+
+    // Passthrough command SHOULD reach the backend
+    expect(mockChatApi.sendMessage).toHaveBeenCalled();
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '#agent Build a code reviewer' });
+  });
+
+  it('should forward #agent via isCommand option to backend (passthrough)', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+    mockChatApi.sendMessage.mockResolvedValue({
+      message_id: 'msg_agent2',
+      session_id: 's1',
+      sender_type: 'assistant',
+      content: 'Agent preview ready',
+      timestamp: '2024-01-01T00:00:04Z',
+    });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('#agent Create a tester', { isCommand: true });
+    });
+
+    expect(mockChatApi.sendMessage).toHaveBeenCalled();
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '#agent Create a tester' });
+    // Should NOT produce local system messages
+    const systemMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
+    expect(systemMsgs).toHaveLength(0);
+  });
 });

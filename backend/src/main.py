@@ -15,6 +15,71 @@ from src.exceptions import AppException, RateLimitError
 logger = logging.getLogger(__name__)
 
 
+async def _auto_start_copilot_polling() -> None:
+    """Resume Copilot polling after a restart using a persisted session.
+
+    The copilot polling loop is an in-memory ``asyncio.Task`` that is
+    normally started when a user selects a project in the UI.  After a
+    container restart the task is lost.  This helper finds the most
+    recently updated session that already has a ``selected_project_id``
+    and automatically re-starts the polling loop so agent pipelines
+    continue without manual intervention.
+    """
+    from src.services.copilot_polling import ensure_polling_started, get_polling_status
+    from src.services.database import get_db
+    from src.services.session_store import get_session
+    from src.utils import resolve_repository
+
+    db = get_db()
+
+    # Find the most recently updated session with a selected project
+    cursor = await db.execute(
+        """
+        SELECT session_id FROM user_sessions
+        WHERE selected_project_id IS NOT NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+        """,
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        logger.info("No active session with a selected project — polling not auto-started")
+        return
+
+    session = await get_session(db, row["session_id"])
+    if session is None or not session.selected_project_id:
+        logger.info("Session expired or missing project — polling not auto-started")
+        return
+
+    status = get_polling_status()
+    if status["is_running"]:
+        return
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    except Exception:
+        logger.warning(
+            "Could not resolve repo for project %s — polling not auto-started",
+            session.selected_project_id,
+        )
+        return
+
+    started = await ensure_polling_started(
+        access_token=session.access_token,
+        project_id=session.selected_project_id,
+        owner=owner,
+        repo=repo,
+        caller="lifespan_auto_start",
+    )
+    if started:
+        logger.info(
+            "Auto-started Copilot polling for project %s (%s/%s)",
+            session.selected_project_id,
+            owner,
+            repo,
+        )
+
+
 async def _session_cleanup_loop() -> None:
     """Periodic background task to purge expired sessions.
 
@@ -109,10 +174,17 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         await start_signal_ws_listener()
         signal_started = True
 
+        # Auto-resume Copilot polling so agent pipelines survive restarts
+        try:
+            await _auto_start_copilot_polling()
+        except Exception:
+            logger.exception("Failed to auto-start Copilot polling (non-fatal)")
+
         yield
     finally:
-        # Shutdown: stop Signal listener, cancel cleanup task, close database.
-        # Guards ensure we only tear down resources that were initialised.
+        # Shutdown: stop Signal listener, cancel cleanup task, stop polling,
+        # close database.  Guards ensure we only tear down resources that
+        # were initialised.
         if signal_started:
             await stop_signal_ws_listener()
         if cleanup_task is not None:
@@ -121,6 +193,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
                 await cleanup_task
             except asyncio.CancelledError:
                 pass
+
+        # Stop Copilot polling if it was auto-started or started via the UI
+        try:
+            from src.services.copilot_polling import get_polling_status, stop_polling
+
+            if get_polling_status()["is_running"]:
+                stop_polling()
+        except Exception:
+            pass
+
         if db is not None:
             await close_database()
         logger.info("Shutting down Agent Projects API")

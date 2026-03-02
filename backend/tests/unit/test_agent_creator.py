@@ -1,6 +1,6 @@
 """Unit tests for the agent creator service.
 
-Covers pure functions (parse_command, fuzzy_match_status, _yaml_quote,
+Covers pure functions (parse_command, fuzzy_match_status,
 _generate_config_files, _format_preview, _format_pipeline_report),
 the admin check (is_admin_user), and top-level handle_agent_command routing.
 """
@@ -22,7 +22,6 @@ from src.services.agent_creator import (
     _format_pipeline_report,
     _format_preview,
     _generate_config_files,
-    _yaml_quote,
     clear_session,
     fuzzy_match_status,
     get_active_session,
@@ -142,49 +141,12 @@ class TestFuzzyMatchStatus:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# _yaml_quote
-# ═══════════════════════════════════════════════════════════════════════
-
-
-class TestYamlQuote:
-    """Tests for YAML-safe string quoting."""
-
-    def test_simple_string(self):
-        assert _yaml_quote("hello") == '"hello"'
-
-    def test_colon_in_value(self):
-        result = _yaml_quote("Monitors issues: daily")
-        assert result == '"Monitors issues: daily"'
-
-    def test_hash_in_value(self):
-        result = _yaml_quote("Section # Comment")
-        assert result == '"Section # Comment"'
-
-    def test_brackets(self):
-        result = _yaml_quote("[array] {object}")
-        assert result == '"[array] {object}"'
-
-    def test_newlines_escaped(self):
-        result = _yaml_quote("line1\nline2")
-        assert "\\n" in result
-
-    def test_quotes_escaped(self):
-        result = _yaml_quote('say "hello"')
-        assert '\\"' in result
-
-    def test_unicode_preserved(self):
-        result = _yaml_quote("café 日本語")
-        assert "café" in result
-        assert "日本語" in result
-
-
-# ═══════════════════════════════════════════════════════════════════════
 # _generate_config_files
 # ═══════════════════════════════════════════════════════════════════════
 
 
 class TestGenerateConfigFiles:
-    """Tests for config file generation."""
+    """Tests for config file generation (GitHub Custom Agent .agent.md format)."""
 
     @pytest.fixture
     def preview(self) -> AgentPreview:
@@ -197,58 +159,57 @@ class TestGenerateConfigFiles:
             tools=["search_code", "create_issue"],
         )
 
-    def test_returns_three_files(self, preview: AgentPreview):
+    def test_returns_two_files(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        assert len(files) == 3
+        assert len(files) == 2
 
-    def test_yaml_file_path(self, preview: AgentPreview):
+    def test_agent_file_path(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        assert files[0]["path"] == ".github/agents/security-reviewer.yml"
+        assert files[0]["path"] == ".github/agents/security-reviewer.agent.md"
 
     def test_prompt_file_path(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        assert files[1]["path"] == ".github/agents/prompts/security-reviewer.md"
+        assert files[1]["path"] == ".github/prompts/security-reviewer.prompt.md"
 
-    def test_readme_file_path(self, preview: AgentPreview):
+    def test_agent_file_has_chatagent_fence(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        assert files[2]["path"] == ".github/agents/README.md"
+        content = files[0]["content"]
+        assert content.startswith("```chatagent\n")
+        assert content.endswith("```\n")
 
-    def test_yaml_uses_quoted_values(self, preview: AgentPreview):
-        """YAML values should be JSON-quoted for safety."""
+    def test_agent_file_has_frontmatter(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        yaml_content = files[0]["content"]
-        # Name should appear quoted
-        assert '"SecurityReviewer"' in yaml_content
-        assert '"In Review"' in yaml_content
+        content = files[0]["content"]
+        assert "description: Reviews PRs for security vulnerabilities" in content
 
-    def test_yaml_special_chars_are_safe(self):
-        """YAML with special characters should be properly escaped."""
-        preview = AgentPreview(
-            name="Test: Agent",
-            slug="test-agent",
-            description="Handles issues: daily # report",
-            system_prompt="prompt",
-            status_column="In Review",
-            tools=["tool: with colon"],
-        )
+    def test_agent_file_has_tools_in_frontmatter(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        yaml_content = files[0]["content"]
-        # Values should be quoted, not raw
-        assert '"Test: Agent"' in yaml_content
-        assert '"Handles issues: daily # report"' in yaml_content
+        content = files[0]["content"]
+        assert "'search_code'" in content
+        assert "'create_issue'" in content
 
-    def test_prompt_file_content(self, preview: AgentPreview):
+    def test_agent_file_has_system_prompt_body(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        content = files[1]["content"]
-        assert "# SecurityReviewer" in content
+        content = files[0]["content"]
         assert "You are a security reviewer..." in content
 
-    def test_readme_content(self, preview: AgentPreview):
+    def test_prompt_file_has_prompt_fence(self, preview: AgentPreview):
         files = _generate_config_files(preview)
-        content = files[2]["content"]
-        assert "## SecurityReviewer" in content
-        assert "Reviews PRs for security vulnerabilities" in content
-        assert "In Review" in content
+        content = files[1]["content"]
+        assert content.startswith("```prompt\n")
+        assert "agent: security-reviewer" in content
+
+    def test_no_tools_omits_tools_key(self):
+        preview = AgentPreview(
+            name="SimpleAgent",
+            slug="simple-agent",
+            description="A simple agent",
+            system_prompt="Do things",
+            status_column="Todo",
+            tools=[],
+        )
+        files = _generate_config_files(preview)
+        assert "tools:" not in files[0]["content"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -281,6 +242,15 @@ class TestFormatPreview:
     def test_contains_description(self, preview: AgentPreview):
         result = _format_preview(preview, is_new_column=False)
         assert "Triages bug reports" in result
+
+    def test_contains_tools_display(self, preview: AgentPreview):
+        result = _format_preview(preview, is_new_column=False)
+        assert "`list_projects`" in result
+
+    def test_contains_file_paths(self, preview: AgentPreview):
+        result = _format_preview(preview, is_new_column=False)
+        assert ".github/agents/bug-triager.agent.md" in result
+        assert ".github/prompts/bug-triager.prompt.md" in result
 
     def test_new_column_note(self, preview: AgentPreview):
         result = _format_preview(preview, is_new_column=True)
@@ -400,8 +370,21 @@ class TestIsAdminUser:
     async def test_non_admin_returns_false(self, admin_db: aiosqlite.Connection):
         assert await is_admin_user(admin_db, "99999") is False
 
-    async def test_no_admin_set_returns_false(self, seeded_db: aiosqlite.Connection):
-        assert await is_admin_user(seeded_db, "12345") is False
+    async def test_no_admin_set_auto_promotes(self, seeded_db: aiosqlite.Connection):
+        """When no admin is set, the first caller is auto-promoted."""
+        assert await is_admin_user(seeded_db, "12345") is True
+        # Verify the admin was persisted.
+        cursor = await seeded_db.execute(
+            "SELECT admin_github_user_id FROM global_settings WHERE id = 1"
+        )
+        row = await cursor.fetchone()
+        admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+        assert str(admin_id) == "12345"
+
+    async def test_no_admin_set_second_user_denied(self, seeded_db: aiosqlite.Connection):
+        """After auto-promotion, a different user is denied."""
+        assert await is_admin_user(seeded_db, "first-user") is True
+        assert await is_admin_user(seeded_db, "second-user") is False
 
     async def test_db_error_returns_false(self):
         """If the DB query fails, default to denying access."""
@@ -429,6 +412,13 @@ class TestHandleAgentCommandAdminGate:
 
     async def test_non_admin_denied(self, seeded_db: aiosqlite.Connection):
         """Non-admin user should receive an auth error without any state change."""
+        # Pre-set an admin so "not-an-admin" is genuinely non-admin.
+        await seeded_db.execute(
+            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1",
+            ("real-admin",),
+        )
+        await seeded_db.commit()
+
         result = await handle_agent_command(
             message="#agent Create a test agent",
             session_key="test-session-key",

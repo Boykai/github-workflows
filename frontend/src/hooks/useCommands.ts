@@ -62,6 +62,12 @@ export function useCommands(): UseCommandsReturn {
       };
     }
 
+    // Passthrough commands are handled by the backend — signal the caller
+    // to forward the message to the API rather than displaying locally.
+    if (command.passthrough) {
+      return { success: true, message: '', clearInput: true, passthrough: true };
+    }
+
     const context = buildContext();
     return command.handler(parsed.args, context);
   }, [buildContext]);

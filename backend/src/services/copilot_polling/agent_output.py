@@ -2,10 +2,10 @@
 
 import asyncio
 import logging
+from datetime import UTC
 from typing import Any
 
 import src.services.copilot_polling as _cp
-from src.utils import utcnow
 
 from .state import (
     _claimed_child_prs,
@@ -91,12 +91,38 @@ async def post_agent_outputs_from_pr(
                         status_agents = [s.agent_name for s in steps if s.status == status_key]
                         # Determine completed agents by checking Done! comments
                         completed: list[str] = []
+                        last_done_ts: str | None = None
                         for agent in status_agents:
                             done_marker = f"{agent}: Done!"
-                            if any(done_marker in c.get("body", "") for c in comments):
+                            done_c = next(
+                                (c for c in comments if done_marker in c.get("body", "")),
+                                None,
+                            )
+                            if done_c:
                                 completed.append(agent)
+                                last_done_ts = done_c.get("created_at") or last_done_ts
                             else:
                                 break  # Sequential — stop at first incomplete
+
+                        # Derive started_at from the last Done! marker so that
+                        # timeline-event filters include events from the current
+                        # agent (which may have finished before this reconstruction).
+                        # Using utcnow() would filter out those events and cause
+                        # the pipeline to stall after a container restart.
+                        from datetime import datetime
+
+                        recon_started: datetime | None = None
+                        if last_done_ts:
+                            try:
+                                recon_started = datetime.fromisoformat(
+                                    last_done_ts.replace("Z", "+00:00")
+                                )
+                            except (ValueError, TypeError):
+                                pass
+                        if recon_started is None:
+                            # First agent — no Done! markers yet. Use a very
+                            # early timestamp so ALL timeline events are relevant.
+                            recon_started = datetime(2020, 1, 1, tzinfo=UTC)
 
                         pipeline = _cp.PipelineState(
                             issue_number=task.issue_number,
@@ -105,7 +131,7 @@ async def post_agent_outputs_from_pr(
                             agents=status_agents,
                             current_agent_index=len(completed),
                             completed_agents=completed,
-                            started_at=utcnow(),
+                            started_at=recon_started,
                         )
 
                         # Reconstruct sub-issue mappings from GitHub API
@@ -383,7 +409,24 @@ async def post_agent_outputs_from_pr(
             # For subsequent agents, the main PR may show completion signals.
             # We need to verify these are FRESH signals (after pipeline start)
             # to avoid re-attributing the first agent's work.
-            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
+            #
+            # SKIP this gate when the current agent is the first uncompleted
+            # agent in the pipeline (index 0, no completed agents).  After a
+            # container restart, main_branch_info is reconstructed from the
+            # existing PR, making is_subsequent_agent True even for the agent
+            # that CREATED the main PR.  Applying the freshness gate to that
+            # agent causes a permanent stall because the reconstructed
+            # started_at / agent_assigned_sha filter out its own completion
+            # events.
+            is_first_uncompleted = (
+                pipeline and pipeline.current_agent_index == 0 and not pipeline.completed_agents
+            )
+            if (
+                is_subsequent_agent
+                and pr_number == main_pr_number
+                and main_pr_number is not None
+                and not is_first_uncompleted
+            ):
                 main_pr_completed = await _cp._check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,

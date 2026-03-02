@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
@@ -507,6 +508,8 @@ async def _reconstruct_pipeline_state(
         Reconstructed PipelineState
     """
     completed = []
+    issue_data = None
+    last_done_timestamp: str | None = None
 
     try:
         issue_data = await _cp.github_projects_service.get_issue_with_comments(
@@ -518,11 +521,21 @@ async def _reconstruct_pipeline_state(
 
         comments = issue_data.get("comments", []) if issue_data else []
 
-        # Check each agent sequentially — stop at first incomplete
+        # Check each agent sequentially — stop at first incomplete.
+        # Track the timestamp of the last Done! marker so we can set
+        # ``started_at`` to a realistic value (not ``utcnow()``) which
+        # allows the timeline-event filter to include completion events
+        # from agents that finished before the reconstruction.
+        last_done_timestamp: str | None = None
         for agent in agents:
             marker = f"{agent}: Done!"
-            if any(marker in comment.get("body", "") for comment in comments):
+            done_comment = next(
+                (c for c in comments if marker in c.get("body", "")),
+                None,
+            )
+            if done_comment:
                 completed.append(agent)
+                last_done_timestamp = done_comment.get("created_at") or last_done_timestamp
             else:
                 break
 
@@ -630,6 +643,35 @@ async def _reconstruct_pipeline_state(
         except Exception as e:
             logger.debug("Could not capture HEAD SHA during reconstruction: %s", e)
 
+    # Derive started_at from the last completed agent's Done! marker
+    # so that the timeline-event filter in _check_main_pr_completion
+    # includes events for the CURRENT agent (which may have finished
+    # before this reconstruction).  Using utcnow() would filter out
+    # those events and prevent completion detection.
+    # If no agents completed, use the issue creation time so all events
+    # are included for the first agent.
+    reconstructed_started_at: datetime | None = None
+    if last_done_timestamp:
+        try:
+            reconstructed_started_at = datetime.fromisoformat(
+                last_done_timestamp.replace("Z", "+00:00")
+            )
+        except (ValueError, TypeError):
+            pass
+    if reconstructed_started_at is None:
+        # Use issue creation time as fallback (all events are relevant)
+        issue_created_at = (issue_data or {}).get("created_at", "")
+        if issue_created_at:
+            try:
+                reconstructed_started_at = datetime.fromisoformat(
+                    issue_created_at.replace("Z", "+00:00")
+                )
+            except (ValueError, TypeError):
+                pass
+    # Final fallback — use utcnow() (worst case, same as before)
+    if reconstructed_started_at is None:
+        reconstructed_started_at = utcnow()
+
     pipeline = _cp.PipelineState(
         issue_number=issue_number,
         project_id=project_id,
@@ -637,7 +679,7 @@ async def _reconstruct_pipeline_state(
         agents=list(agents),
         current_agent_index=len(completed),
         completed_agents=completed,
-        started_at=utcnow(),
+        started_at=reconstructed_started_at,
         agent_assigned_sha=reconstructed_sha,
     )
 

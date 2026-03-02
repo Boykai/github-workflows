@@ -427,6 +427,7 @@ query($owner: String!, $name: String!, $number: Int!) {
           createdAt
         }
       }
+      changedFiles
       commits(last: 1) {
         nodes {
           commit {
