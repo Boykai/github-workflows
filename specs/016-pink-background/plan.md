@@ -1,104 +1,85 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add Pink Background Color to App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `016-pink-background` | **Date**: 2026-03-02 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/016-pink-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Update the application's global background color to pink by modifying CSS custom properties in the existing theming system. The frontend uses a shadcn/ui-based design system with HSL CSS custom properties defined in `frontend/src/index.css` and consumed via Tailwind's `bg-background` utility. The change involves updating the `--background` CSS variable in both `:root` (light mode: `#FFC0CB` / HSL `350 100% 88%`) and `.dark` (dark mode: `#8B475D` / HSL `340 33% 41%`) scopes. No new files, dependencies, or backend changes are required. See [research.md](./research.md) for decision rationale.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x (frontend), CSS3 with CSS Custom Properties
+**Primary Dependencies**: React 18, Vite 5.4, TailwindCSS 3.x, shadcn/ui component library
+**Storage**: N/A (pure CSS change, no data persistence)
+**Testing**: Vitest + React Testing Library (frontend)
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge), responsive (mobile, tablet, desktop)
+**Project Type**: Web application (frontend only — no backend changes needed)
+**Performance Goals**: No performance impact; CSS variable change is instantaneous
+**Constraints**: WCAG AA contrast ratio ≥ 4.5:1 for normal text, ≥ 3:1 for large text against both light and dark pink variants
+**Scale/Scope**: 1 file modified (`frontend/src/index.css`), 2 CSS variable values changed (light mode `--background`, dark mode `--background`)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Research Check (Phase 0 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with 4 prioritized user stories (P1×3, P2×1), Given-When-Then scenarios, 10 FRs, and 5 edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | `speckit.plan` agent produces plan.md and Phase 0/1 artifacts |
+| IV. Test Optionality | ✅ PASS | Tests not mandated in spec; visual change verifiable by inspection |
+| V. Simplicity and DRY | ✅ PASS | Modifies only existing CSS variables in a single file; no new abstractions, components, or dependencies |
+
+**Gate Result**: ALL PASS — proceed to Phase 0
+
+### Post-Design Check (Phase 1 Gate)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | All FR items (FR-001 through FR-010) are addressed by the CSS variable change in data-model.md |
+| II. Template-Driven Workflow | ✅ PASS | plan.md, research.md, data-model.md, contracts/, quickstart.md all generated |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan ready for handoff to `speckit.tasks` |
+| IV. Test Optionality | ✅ PASS | No test mandate; visual verification sufficient per constitution |
+| V. Simplicity and DRY | ✅ PASS | Single-file change modifying 2 existing CSS variable values. Reuses existing `bg-background` Tailwind utility class already applied to `body` in index.css. No new files, components, or abstractions. |
+
+**Gate Result**: ALL PASS — proceed to Phase 2 (tasks)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/016-pink-background/
+├── plan.md              # This file
+├── research.md          # Phase 0: Color decisions and contrast analysis
+├── data-model.md        # Phase 1: CSS variable definitions (design tokens)
+├── quickstart.md        # Phase 1: Development setup and verification guide
+├── contracts/
+│   └── no-api.md        # Phase 1: Documents why no API contracts needed
+├── checklists/
+│   └── requirements.md  # Requirements checklist
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   └── index.css                # Modify: Update --background CSS variable in :root and .dark
+├── tailwind.config.js           # No change: Already maps `background` to hsl(var(--background))
+└── index.html                   # No change: Already renders body with Tailwind classes
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Frontend-only change within the existing web application structure (backend + frontend). Only `frontend/src/index.css` requires modification. The existing Tailwind configuration already maps the `background` color token to `hsl(var(--background))`, and the `body` element already uses `@apply bg-background` — so changing the CSS variable value is the only required action.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. This is the simplest possible implementation — a 2-line CSS variable value change.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
