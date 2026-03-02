@@ -1412,10 +1412,12 @@ class GitHubProjectsService:
             comments = issue_data.get("comments", [])
             marker = f"{agent_name}: Done!"
 
-            # Scan comments in reverse chronological order for the most recent marker
+            # Scan comments in reverse chronological order for the most recent marker.
+            # Use exact line matching to avoid false positives from comments
+            # that mention the marker in narrative text (e.g. analysis comments).
             for comment in reversed(comments):
                 body = comment.get("body", "")
-                if marker in body:
+                if any(line.strip() == marker for line in body.split("\n")):
                     logger.info(
                         "Found completion marker for agent '%s' on issue #%d",
                         agent_name,

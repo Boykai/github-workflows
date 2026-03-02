@@ -96,7 +96,14 @@ async def post_agent_outputs_from_pr(
                         for agent in status_agents:
                             done_marker = f"{agent}: Done!"
                             done_c = next(
-                                (c for c in comments if done_marker in c.get("body", "")),
+                                (
+                                    c
+                                    for c in comments
+                                    if any(
+                                        line.strip() == done_marker
+                                        for line in c.get("body", "").split("\n")
+                                    )
+                                ),
                                 None,
                             )
                             if done_c:
@@ -190,6 +197,17 @@ async def post_agent_outputs_from_pr(
                                         existing_pr["number"],
                                         task.issue_number,
                                     )
+                                    # Mark the main PR in _system_marked_ready_prs
+                                    # if it's not a draft — prevents Signal 1 false
+                                    # positive in _check_main_pr_completion.
+                                    if pr_det and not pr_det.get("is_draft", True):
+                                        _system_marked_ready_prs.add(existing_pr["number"])
+                                        logger.info(
+                                            "Marked main PR #%d as ready during "
+                                            "agent_output reconstruction for issue #%d",
+                                            existing_pr["number"],
+                                            task.issue_number,
+                                        )
                             except Exception as e:
                                 logger.debug(
                                     "Could not reconstruct main branch for issue #%d: %s",
@@ -197,14 +215,15 @@ async def post_agent_outputs_from_pr(
                                     e,
                                 )
 
-                        # Claim merged child PRs for completed agents to prevent
-                        # misattribution.  After a container restart _claimed_child_prs
-                        # is empty.  Without this, _find_completed_child_pr can return
-                        # a MERGED child PR from a completed agent as if it belongs to
-                        # the current (not-yet-completed) agent — posting a false Done!
-                        # marker and skipping the current agent entirely.
+                        # Claim merged child PRs for ALL agents (not just
+                        # completed ones) to prevent misattribution.  After a
+                        # container restart _claimed_child_prs is empty.
+                        # Without this, _find_completed_child_pr can return a
+                        # stale MERGED child PR from a previous (failed) run
+                        # as if it belongs to the current agent — posting a
+                        # false Done! marker and skipping agents entirely.
                         main_branch_recon = _cp.get_issue_main_branch(task.issue_number)
-                        if main_branch_recon and completed:
+                        if main_branch_recon:
                             try:
                                 linked_prs_recon = (
                                     await _cp.github_projects_service.get_linked_pull_requests(
@@ -223,9 +242,9 @@ async def post_agent_outputs_from_pr(
                                         and pr_num_r is not None
                                         and pr_num_r != main_pr_num_recon
                                     ):
-                                        for done_agent in completed:
+                                        for recon_agent in status_agents:
                                             claim_key = (
-                                                f"{task.issue_number}:{pr_num_r}:{done_agent}"
+                                                f"{task.issue_number}:{pr_num_r}:{recon_agent}"
                                             )
                                             if claim_key not in _claimed_child_prs:
                                                 _claimed_child_prs.add(claim_key)
@@ -233,7 +252,7 @@ async def post_agent_outputs_from_pr(
                                                     "Reconstructed claim for merged PR #%d "
                                                     "(agent '%s') on issue #%d",
                                                     pr_num_r,
-                                                    done_agent,
+                                                    recon_agent,
                                                     task.issue_number,
                                                 )
                             except Exception as e:

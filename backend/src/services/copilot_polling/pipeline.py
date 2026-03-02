@@ -530,7 +530,11 @@ async def _reconstruct_pipeline_state(
         for agent in agents:
             marker = f"{agent}: Done!"
             done_comment = next(
-                (c for c in comments if marker in c.get("body", "")),
+                (
+                    c
+                    for c in comments
+                    if any(line.strip() == marker for line in c.get("body", "").split("\n"))
+                ),
                 None,
             )
             if done_comment:
@@ -539,45 +543,46 @@ async def _reconstruct_pipeline_state(
             else:
                 break
 
-        # Claim all MERGED child PRs for completed agents
-        # This prevents subsequent agents from re-detecting them
-        if completed:
-            main_branch_info = _cp.get_issue_main_branch(issue_number)
-            if main_branch_info:
-                main_branch = main_branch_info.get("branch")
-                main_pr_number = main_branch_info.get("pr_number")
-                if main_branch and main_pr_number:
-                    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
-                        access_token=access_token,
-                        owner=owner,
-                        repo=repo,
-                        issue_number=issue_number,
-                    )
-                    for pr in linked_prs or []:
-                        pr_number = pr.get("number")
-                        pr_state = pr.get("state", "").upper()
-                        if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
-                            # Get PR details to check if it targets the main branch
-                            pr_details = await _cp.github_projects_service.get_pull_request(
-                                access_token=access_token,
-                                owner=owner,
-                                repo=repo,
-                                pr_number=pr_number,
-                            )
-                            if pr_details and pr_details.get("base_ref") == main_branch:
-                                # Claim this merged child PR for all completed agents
-                                # This prevents re-detection
-                                for completed_agent in completed:
-                                    claimed_key = f"{issue_number}:{pr_number}:{completed_agent}"
-                                    if claimed_key not in _claimed_child_prs:
-                                        _claimed_child_prs.add(claimed_key)
-                                        logger.debug(
-                                            "Claimed merged child PR #%d for agent '%s' "
-                                            "during pipeline reconstruction (issue #%d)",
-                                            pr_number,
-                                            completed_agent,
-                                            issue_number,
-                                        )
+        # Claim all MERGED child PRs for EVERY agent in the pipeline.
+        # This prevents stale merged PRs from a previous (failed) run from
+        # being misattributed to the current agent.  Only PRs merged AFTER
+        # the reconstruction (i.e. the current agent's actual work) will be
+        # unclaimed and detectable as new completions.
+        main_branch_info = _cp.get_issue_main_branch(issue_number)
+        if main_branch_info:
+            main_branch = main_branch_info.get("branch")
+            main_pr_number = main_branch_info.get("pr_number")
+            if main_branch and main_pr_number:
+                linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                for pr in linked_prs or []:
+                    pr_number = pr.get("number")
+                    pr_state = pr.get("state", "").upper()
+                    if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
+                        # Get PR details to check if it targets the main branch
+                        pr_details = await _cp.github_projects_service.get_pull_request(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            pr_number=pr_number,
+                        )
+                        if pr_details and pr_details.get("base_ref") == main_branch:
+                            # Claim for every agent so no agent can pick it up
+                            for agent_name in agents:
+                                claimed_key = f"{issue_number}:{pr_number}:{agent_name}"
+                                if claimed_key not in _claimed_child_prs:
+                                    _claimed_child_prs.add(claimed_key)
+                                    logger.debug(
+                                        "Claimed merged child PR #%d for agent '%s' "
+                                        "during pipeline reconstruction (issue #%d)",
+                                        pr_number,
+                                        agent_name,
+                                        issue_number,
+                                    )
 
     except Exception as e:
         logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
