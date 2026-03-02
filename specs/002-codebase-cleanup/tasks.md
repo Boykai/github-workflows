@@ -23,8 +23,8 @@
 
 **Purpose**: Establish clean baseline and verify CI passes before making changes
 
-- [ ] T001 Verify all CI checks pass on current branch by running `cd backend && ruff check src/ && pyright src/ && pytest` and `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
-- [ ] T002 Record baseline test counts and timing for before/after comparison
+- [X] T001 Verify all CI checks pass on current branch by running `cd backend && ruff check src/ && pyright src/ && pytest` and `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
+- [X] T002 Record baseline test counts and timing for before/after comparison
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: MagicMock file cleanup must happen first so subsequent git operations are clean
 
-- [ ] T003 Delete all MagicMock-generated artifact files from backend/ root by running `cd backend && ls | grep "MagicMock" | xargs rm -f`
-- [ ] T004 Verify .gitignore already contains `backend/<MagicMock *` pattern to prevent future accumulation
+- [X] T003 Delete all MagicMock-generated artifact files from backend/ root by running `cd backend && ls | grep "MagicMock" | xargs rm -f`
+- [X] T004 Verify .gitignore already contains `backend/<MagicMock *` pattern to prevent future accumulation
 
 **Checkpoint**: Workspace root is clean — all subsequent changes are source code edits
 
@@ -49,24 +49,24 @@
 
 ### Backend Dead Code Removal
 
-- [ ] T005 [P] [US1] Remove `handle_copilot_pr_ready()` function (~93 lines) from backend/src/api/webhooks.py
-- [ ] T006 [P] [US1] Remove `determine_next_action()` function (~74 lines) and `PipelineAction` dataclass (~10 lines) from backend/src/services/agent_tracking.py
-- [ ] T007 [P] [US1] Delete entire backend/src/services/housekeeping/counter.py file (dead `is_threshold_met()` function, ~23 lines) and remove its import from backend/src/services/housekeeping/__init__.py if present
-- [ ] T008 [P] [US1] Remove `reset_ai_agent_service()` function (~10 lines) from backend/src/services/ai_agent.py
-- [ ] T009 [P] [US1] Remove unused `TTLCache` methods `get_entry()`, `refresh_ttl()`, and `clear_expired()` from backend/src/services/cache.py
-- [ ] T010 [P] [US1] Remove unused Pydantic models `UserPreferencesRow`, `GlobalSettingsRow`, and `ProjectSettingsRow` from backend/src/models/settings.py
-- [ ] T011 [US1] Run backend validation: `cd backend && ruff check src/ && pyright src/ && pytest`
+- [X] T005 [P] [US1] Remove `handle_copilot_pr_ready()` function (~93 lines) from backend/src/api/webhooks.py
+- [X] T006 [P] [US1] Remove `determine_next_action()` function (~74 lines) and `PipelineAction` dataclass (~10 lines) from backend/src/services/agent_tracking.py
+- [X] T007 [P] [US1] Delete entire backend/src/services/housekeeping/counter.py file (dead `is_threshold_met()` function, ~23 lines) and remove its import from backend/src/services/housekeeping/__init__.py if present
+- [X] T008 [P] [US1] Remove `reset_ai_agent_service()` function (~10 lines) from backend/src/services/ai_agent.py
+- [X] T009 [P] [US1] Remove unused `TTLCache` methods `get_entry()`, `refresh_ttl()`, and `clear_expired()` from backend/src/services/cache.py
+- [X] T010 [P] [US1] Remove unused Pydantic models `UserPreferencesRow`, `GlobalSettingsRow`, and `ProjectSettingsRow` from backend/src/models/settings.py
+- [X] T011 [US1] Run backend validation: `cd backend && ruff check src/ && pyright src/ && pytest`
 
 ### Frontend Dead Code Removal
 
-- [ ] T012 [P] [US1] Delete entire frontend/src/components/housekeeping/ directory (5 unused component files: HousekeepingTaskForm.tsx, HousekeepingTaskList.tsx, RunNowButton.tsx, TemplateLibrary.tsx, TriggerHistoryLog.tsx)
-- [ ] T013 [P] [US1] Delete unused frontend/src/components/settings/AIPreferences.tsx component file
-- [ ] T014 [P] [US1] Remove 45 unused type exports from frontend/src/types/index.ts (ProjectType, SenderType, ActionType, ProposalStatus, RecommendationStatus, AuthResponse, TaskCreateActionData, StatusUpdateActionData, ProjectSelectActionData, ActionData, IssuePriority, IssueSize, IssueLabel, IssueMetadata, IssueRecommendation, AgentSource, AgentNotification, PipelineStateInfo, ProjectSpecificSettings, AIPreferencesUpdate, DisplayPreferencesUpdate, WorkflowDefaultsUpdate, NotificationPreferencesUpdate, ModelOption, SignalConnectionStatus, SignalLinkStatus, SignalBanner, TemplateCategory, HousekeepingTriggerType, TriggerEventType, TriggerStatus, TriggerEvent, ContentType, PRState, BoardStatusOption, BoardStatusField, BoardRepository, BoardAssignee, BoardCustomFieldValue, LinkedPR, RefreshErrorType, BranchInfo, PullRequestInfo, CleanupItemResult, CleanupAuditLogEntry)
-- [ ] T015 [P] [US1] Remove unused API methods `projectsApi.get()` and `tasksApi.create()` from frontend/src/services/api.ts
-- [ ] T016 [P] [US1] Remove unused `statusColorToBg()` function from frontend/src/components/board/colorUtils.ts
-- [ ] T017 [P] [US1] Remove unused exports `unregisterCommand()` from frontend/src/lib/commands/registry.ts, and unused types `ParameterSchema` and `CommandHandler` from frontend/src/lib/commands/types.ts
-- [ ] T018 [P] [US1] Remove unused constants `BOARD_POLL_INTERVAL_MS` and `WS_RECONNECT_DELAY_MS` from frontend/src/constants.ts
-- [ ] T019 [US1] Run frontend validation: `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
+- [X] T012 [P] [US1] Delete entire frontend/src/components/housekeeping/ directory (5 unused component files: HousekeepingTaskForm.tsx, HousekeepingTaskList.tsx, RunNowButton.tsx, TemplateLibrary.tsx, TriggerHistoryLog.tsx)
+- [X] T013 [P] [US1] Delete unused frontend/src/components/settings/AIPreferences.tsx component file
+- [X] T014 [P] [US1] Remove 45 unused type exports from frontend/src/types/index.ts (ProjectType, SenderType, ActionType, ProposalStatus, RecommendationStatus, AuthResponse, TaskCreateActionData, StatusUpdateActionData, ProjectSelectActionData, ActionData, IssuePriority, IssueSize, IssueLabel, IssueMetadata, IssueRecommendation, AgentSource, AgentNotification, PipelineStateInfo, ProjectSpecificSettings, AIPreferencesUpdate, DisplayPreferencesUpdate, WorkflowDefaultsUpdate, NotificationPreferencesUpdate, ModelOption, SignalConnectionStatus, SignalLinkStatus, SignalBanner, TemplateCategory, HousekeepingTriggerType, TriggerEventType, TriggerStatus, TriggerEvent, ContentType, PRState, BoardStatusOption, BoardStatusField, BoardRepository, BoardAssignee, BoardCustomFieldValue, LinkedPR, RefreshErrorType, BranchInfo, PullRequestInfo, CleanupItemResult, CleanupAuditLogEntry)
+- [X] T015 [P] [US1] Remove unused API methods `projectsApi.get()` and `tasksApi.create()` from frontend/src/services/api.ts
+- [X] T016 [P] [US1] Remove unused `statusColorToBg()` function from frontend/src/components/board/colorUtils.ts
+- [X] T017 [P] [US1] Remove unused exports `unregisterCommand()` from frontend/src/lib/commands/registry.ts, and unused types `ParameterSchema` and `CommandHandler` from frontend/src/lib/commands/types.ts
+- [X] T018 [P] [US1] Remove unused constants `BOARD_POLL_INTERVAL_MS` and `WS_RECONNECT_DELAY_MS` from frontend/src/constants.ts
+- [X] T019 [US1] Run frontend validation: `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
 
 **Checkpoint**: All dead code removed from both backend and frontend. CI passes. This is the MVP — the single highest-impact cleanup category.
 
@@ -78,11 +78,11 @@
 
 **Independent Test**: Run `cd backend && pytest` — all remaining tests pass. Confirm removed tests only targeted dead code.
 
-- [ ] T020 [P] [US2] Remove `TestDetermineNextAction` test class (7 methods) from backend/tests/unit/test_agent_tracking.py
-- [ ] T021 [P] [US2] Remove `TestHandleCopilotPrReady` test class (3+ methods) from backend/tests/unit/test_webhooks.py
-- [ ] T022 [P] [US2] Remove tests for `UserPreferencesRow`, `GlobalSettingsRow`, `ProjectSettingsRow` from backend/tests/unit/test_settings_store.py (if present — these models are being removed in US1)
-- [ ] T023 [US2] Delete entire backend/tests/helpers/ directory (factories.py, mocks.py, assertions.py, __init__.py — never imported by any test file)
-- [ ] T024 [US2] Run backend test validation: `cd backend && pytest`
+- [X] T020 [P] [US2] Remove `TestDetermineNextAction` test class (7 methods) from backend/tests/unit/test_agent_tracking.py
+- [X] T021 [P] [US2] Remove `TestHandleCopilotPrReady` test class (3+ methods) from backend/tests/unit/test_webhooks.py
+- [X] T022 [P] [US2] Remove tests for `UserPreferencesRow`, `GlobalSettingsRow`, `ProjectSettingsRow` from backend/tests/unit/test_settings_store.py (if present — these models are being removed in US1)
+- [X] T023 [US2] Delete entire backend/tests/helpers/ directory (factories.py, mocks.py, assertions.py, __init__.py — never imported by any test file)
+- [X] T024 [US2] Run backend test validation: `cd backend && pytest`
 
 **Checkpoint**: Test suite is clean — all remaining tests target live code. No stale coverage signals.
 
@@ -94,9 +94,9 @@
 
 **Independent Test**: Run full CI suite — all checks pass. Diff review confirms each duplicate is replaced by the canonical version.
 
-- [ ] T025 [US3] Consolidate duplicate `formatTimeAgo()` in frontend/src/components/settings/DynamicDropdown.tsx by replacing the local inline implementation with an import from the canonical frontend/src/utils/formatTime.ts (extend canonical to accept both Date and ISO string if needed)
-- [ ] T026 [US3] Consolidate or differentiate `STALE_TIME_MEDIUM` and `STALE_TIME_SHORT` constants in frontend/src/constants.ts (both currently set to identical value `60 * 1000` — either merge into one constant or set distinct values per their documented intent)
-- [ ] T027 [US3] Run frontend validation: `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
+- [X] T025 [US3] Consolidate duplicate `formatTimeAgo()` in frontend/src/components/settings/DynamicDropdown.tsx by replacing the local inline implementation with an import from the canonical frontend/src/utils/formatTime.ts (extend canonical to accept both Date and ISO string if needed)
+- [X] T026 [US3] Consolidate or differentiate `STALE_TIME_MEDIUM` and `STALE_TIME_SHORT` constants in frontend/src/constants.ts (both currently set to identical value `60 * 1000` — either merge into one constant or set distinct values per their documented intent)
+- [X] T027 [US3] Run frontend validation: `cd frontend && npm run lint && npm run type-check && npm run test && npm run build`
 
 **Checkpoint**: No duplicate logic remains. Each concept has a single canonical implementation.
 
@@ -108,10 +108,10 @@
 
 **Independent Test**: Run full CI suite. Grep for old import paths confirms zero remaining references.
 
-- [ ] T028 [US4] Remove 19 backward-compatibility re-exports from backend/src/models/chat.py (lines 16-44: DEFAULT_AGENT_MAPPINGS, AgentAssignment, AgentAssignmentInput, AgentSource, AvailableAgent, AvailableAgentsResponse, AITaskProposal, IssueLabel, IssueMetadata, IssuePriority, IssueRecommendation, IssueSize, ProposalConfirmRequest, ProposalStatus, RecommendationStatus, AVAILABLE_LABELS, TriggeredBy, WorkflowConfiguration, WorkflowResult, WorkflowTransition, utcnow) and remove their `# noqa: F401` suppression comments
-- [ ] T029 [US4] Update all test files that import via `from src.models.chat import ...` to use canonical module imports instead: update backend/tests/unit/test_models.py, backend/tests/unit/test_workflow_orchestrator.py, backend/tests/unit/test_ai_agent.py, backend/tests/unit/test_api_workflow.py, backend/tests/unit/test_api_tasks.py, backend/tests/unit/test_api_chat.py, backend/tests/integration/test_custom_agent_assignment.py
-- [ ] T030 [US4] Remove `PREDEFINED_LABELS = LABELS` alias from backend/src/prompts/issue_generation.py and update backend/tests/unit/test_prompts.py to import `LABELS` directly instead of `PREDEFINED_LABELS`
-- [ ] T031 [US4] Run backend validation: `cd backend && ruff check src/ && pyright src/ && pytest`
+- [X] T028 [US4] Remove 19 backward-compatibility re-exports from backend/src/models/chat.py (lines 16-44: DEFAULT_AGENT_MAPPINGS, AgentAssignment, AgentAssignmentInput, AgentSource, AvailableAgent, AvailableAgentsResponse, AITaskProposal, IssueLabel, IssueMetadata, IssuePriority, IssueRecommendation, IssueSize, ProposalConfirmRequest, ProposalStatus, RecommendationStatus, AVAILABLE_LABELS, TriggeredBy, WorkflowConfiguration, WorkflowResult, WorkflowTransition, utcnow) and remove their `# noqa: F401` suppression comments
+- [X] T029 [US4] Update all test files that import via `from src.models.chat import ...` to use canonical module imports instead: update backend/tests/unit/test_models.py, backend/tests/unit/test_workflow_orchestrator.py, backend/tests/unit/test_ai_agent.py, backend/tests/unit/test_api_workflow.py, backend/tests/unit/test_api_tasks.py, backend/tests/unit/test_api_chat.py, backend/tests/integration/test_custom_agent_assignment.py
+- [X] T030 [US4] Remove `PREDEFINED_LABELS = LABELS` alias from backend/src/prompts/issue_generation.py and update backend/tests/unit/test_prompts.py to import `LABELS` directly instead of `PREDEFINED_LABELS`
+- [X] T031 [US4] Run backend validation: `cd backend && ruff check src/ && pyright src/ && pytest`
 
 **Checkpoint**: All backward-compatibility shims removed. Tests import from canonical module paths.
 
@@ -123,9 +123,9 @@
 
 **Independent Test**: Clean install of all dependencies followed by full CI suite passes.
 
-- [ ] T032 [P] [US5] Remove `python-jose[cryptography]` and `agent-framework-core` from dependencies list in backend/pyproject.toml
-- [ ] T033 [P] [US5] Remove `socket.io-client` dependency from frontend/package.json by running `cd frontend && npm uninstall socket.io-client`
-- [ ] T034 [US5] Run full validation after dependency removal: `cd backend && pip install -e . && pytest` and `cd frontend && npm install && npm run build && npm run test`
+- [X] T032 [P] [US5] Remove `python-jose[cryptography]` and `agent-framework-core` from dependencies list in backend/pyproject.toml
+- [X] T033 [P] [US5] Remove `socket.io-client` dependency from frontend/package.json by running `cd frontend && npm uninstall socket.io-client`
+- [X] T034 [US5] Run full validation after dependency removal: `cd backend && pip install -e . && pytest` and `cd frontend && npm install && npm run build && npm run test`
 
 **Checkpoint**: All dependencies in manifests are actively used. Clean installs succeed.
 
@@ -135,10 +135,10 @@
 
 **Purpose**: Final validation, commit organization, and PR creation
 
-- [ ] T035 Run complete CI validation across both projects: backend (ruff check, pyright, pytest) and frontend (lint, type-check, vitest, vite build)
-- [ ] T036 Organize commits using conventional commit format: `chore:` for dead code/test removal, `refactor:` for code consolidation
-- [ ] T037 Push branch and open (or update) PR with categorized summary of all changes organized by the 5 cleanup categories, including rationale for each removal
-- [ ] T038 Run quickstart.md validation checklist to confirm all items pass
+- [X] T035 Run complete CI validation across both projects: backend (ruff check, pyright, pytest) and frontend (lint, type-check, vitest, vite build)
+- [X] T036 Organize commits using conventional commit format: `chore:` for dead code/test removal, `refactor:` for code consolidation
+- [X] T037 Push branch and open (or update) PR with categorized summary of all changes organized by the 5 cleanup categories, including rationale for each removal
+- [X] T038 Run quickstart.md validation checklist to confirm all items pass
 
 ---
 
