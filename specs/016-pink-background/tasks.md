@@ -23,7 +23,7 @@
 
 **Purpose**: Verify existing theming infrastructure and confirm implementation approach
 
-- [ ] T001 Verify existing CSS custom property infrastructure (--background variable in :root and .dark scopes, Tailwind bg-background mapping, body @apply) in frontend/src/index.css and frontend/tailwind.config.js
+- [x] T001 Verify existing CSS custom property infrastructure (--background variable in :root and .dark scopes, Tailwind bg-background mapping, body @apply) in frontend/src/index.css and frontend/tailwind.config.js
 
 ---
 
@@ -35,8 +35,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update --background CSS variable in :root scope from `0 0% 100%` to `350 100% 88%` (light pink #FFC0CB) in frontend/src/index.css
-- [ ] T003 [US1] Verify light mode pink background renders correctly by running frontend build and lint in frontend/ (npm run build && npm run lint)
+- [x] T002 [US1] Update --background CSS variable in :root scope from `0 0% 100%` to `350 100% 88%` (light pink #FFC0CB) in frontend/src/index.css
+- [x] T003 [US1] Verify light mode pink background renders correctly by running frontend build and lint in frontend/ (npm run build && npm run lint)
 
 **Checkpoint**: Light mode pink background is applied globally — all screens display #FFC0CB background in light mode
 
@@ -50,7 +50,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Audit all foreground token contrast ratios against new light pink background (#FFC0CB) — confirm --foreground (~16.5:1), --primary (~15.2:1), --muted-foreground (~3.7:1) all pass WCAG AA thresholds per research.md (R3) in frontend/src/index.css
+- [x] T004 [US2] Audit all foreground token contrast ratios against new light pink background (#FFC0CB) — confirm --foreground (~16.5:1), --primary (~15.2:1), --muted-foreground (~3.7:1) all pass WCAG AA thresholds per research.md (R3) in frontend/src/index.css
 
 **Checkpoint**: All foreground tokens verified for WCAG AA compliance against light pink background — no changes required
 
@@ -64,8 +64,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T005 [US3] Update --background CSS variable in .dark scope from `222.2 84% 4.9%` to `340 33% 41%` (muted dark pink #8B475D) in frontend/src/index.css
-- [ ] T006 [US3] Audit all foreground token contrast ratios against new dark pink background (#8B475D) — confirm --foreground (~7.2:1), --primary (~7.2:1), --muted-foreground (~3.1:1) all pass WCAG AA thresholds per research.md (R3) in frontend/src/index.css
+- [x] T005 [US3] Update --background CSS variable in .dark scope from `222.2 84% 4.9%` to `340 33% 41%` (muted dark pink #8B475D) in frontend/src/index.css
+- [x] T006 [US3] Audit all foreground token contrast ratios against new dark pink background (#8B475D) — confirm --foreground (~7.2:1), --primary (~7.2:1), --muted-foreground (~3.1:1) all pass WCAG AA thresholds per research.md (R3) in frontend/src/index.css
 
 **Checkpoint**: Dark mode pink variant applied — muted dark pink (#8B475D) displays correctly with all text readable
 
@@ -79,8 +79,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T007 [US4] Verify no layout regressions by confirming all other CSS variables in :root and .dark scopes remain unchanged in frontend/src/index.css
-- [ ] T008 [US4] Run existing frontend test suite to confirm no regressions (npm test in frontend/)
+- [x] T007 [US4] Verify no layout regressions by confirming all other CSS variables in :root and .dark scopes remain unchanged in frontend/src/index.css
+- [x] T008 [US4] Run existing frontend test suite to confirm no regressions (npm test in frontend/)
 
 **Checkpoint**: Zero layout regressions — only --background values changed, all other styling intact
 
@@ -90,9 +90,9 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T009 [P] Verify pink background fills entire viewport on minimal-content pages (body bg-background already covers viewport per research.md R6)
-- [ ] T010 [P] Verify no visual artifacts or color flashes during page transitions (pink background persists via body-level CSS variable)
-- [ ] T011 Run quickstart.md full validation (light mode, dark mode, responsive, accessibility checks) per specs/016-pink-background/quickstart.md
+- [x] T009 [P] Verify pink background fills entire viewport on minimal-content pages (body bg-background already covers viewport per research.md R6)
+- [x] T010 [P] Verify no visual artifacts or color flashes during page transitions (pink background persists via body-level CSS variable)
+- [x] T011 Run quickstart.md full validation (light mode, dark mode, responsive, accessibility checks) per specs/016-pink-background/quickstart.md
 
 ---
 
