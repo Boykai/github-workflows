@@ -105,7 +105,7 @@
 
 ### Test Artifact Cleanup
 
-- [ ] T034 [US2] Delete all leftover MagicMock database files from the repository root: remove all `<MagicMock name='get_settings().database_path' id='*'>` files from `/` (8 files currently present)
+- [ ] T034 [US2] Delete all leftover MagicMock database files from the repository root: verify these are 0-byte test artifacts (not legitimate project files), document filenames, then remove all `<MagicMock name='get_settings().database_path' id='*'>` files from `/` (8 files currently present)
 - [ ] T035 [US2] Add `.gitignore` entry to prevent future MagicMock file leaks: add `<MagicMock*` pattern to root `.gitignore`
 - [ ] T036 [US2] Run full backend CI checks after shim and stale test removal: `cd backend && ruff check src tests && ruff format --check src tests && pyright && pytest -v`
 - [ ] T037 [US2] Run full frontend CI checks after shim and stale test removal: `cd frontend && npm run lint && npx tsc --noEmit && npm test && npm run build`
