@@ -17,6 +17,7 @@ import re
 import uuid
 
 import aiosqlite
+import yaml
 
 from src.models.agent_creator import (
     AgentCreationState,
@@ -993,21 +994,27 @@ def _generate_config_files(preview: AgentPreview) -> list[dict]:
     """Generate the 2 config files for commit: agent .md and prompt .md.
 
     Files follow the GitHub Custom Agent format:
-      - ``.github/agents/{slug}.agent.md`` — chatagent-fenced Markdown with
-        YAML frontmatter (description, optional tools) and the full system
-        prompt as the Markdown body.
+      - ``.github/agents/{slug}.agent.md`` — plain Markdown with YAML
+        frontmatter (description, optional tools) followed by the full
+        system prompt as the Markdown body.  The file starts with ``---``
+        so that ``_FRONTMATTER_RE`` in agent discovery can parse it.
       - ``.github/prompts/{slug}.prompt.md`` — prompt-fenced routing file
         that references the agent by slug.
     """
     # 1. Agent definition: .github/agents/{slug}.agent.md
-    # Build YAML frontmatter
-    frontmatter_lines = [f"description: {preview.description}"]
+    # Build YAML frontmatter using yaml.dump for safe serialization —
+    # avoids breakage when description/tool IDs contain YAML-special
+    # characters like ':', '#', quotes, or newlines.
+    frontmatter_data: dict[str, object] = {"description": preview.description}
     if preview.tools:
-        tools_yaml = ", ".join(f"'{t}'" for t in preview.tools)
-        frontmatter_lines.append(f"tools: [{tools_yaml}]")
-    frontmatter = "\n".join(frontmatter_lines)
+        frontmatter_data["tools"] = list(preview.tools)
+    frontmatter = yaml.dump(frontmatter_data, default_flow_style=False, sort_keys=False).rstrip(
+        "\n"
+    )
 
-    agent_content = f"```chatagent\n---\n{frontmatter}\n---\n\n{preview.system_prompt}\n```\n"
+    # Plain Markdown starting with YAML frontmatter (no outer code fence)
+    # so the backend's _FRONTMATTER_RE (^---…---) can discover this agent.
+    agent_content = f"---\n{frontmatter}\n---\n\n{preview.system_prompt}\n"
 
     # 2. Prompt routing file: .github/prompts/{slug}.prompt.md
     prompt_content = f"```prompt\n---\nagent: {preview.slug}\n---\n```\n"

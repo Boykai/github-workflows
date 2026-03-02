@@ -2,11 +2,11 @@
 
 ## Overview
 
-| Tool | Scope | Count |
-|------|-------|-------|
-| pytest + pytest-asyncio | Backend unit / integration / e2e | 1086+ tests across 42+ files |
-| Vitest + React Testing Library | Frontend unit | 75+ tests across 9+ files |
-| Playwright | Frontend E2E | 9 spec files |
+| Tool | Scope | Count / Notes |
+|------|-------|---------------|
+| pytest + pytest-asyncio | Backend unit / integration / e2e | Extensive suite (hundreds of tests, auto-discovered) |
+| Vitest + React Testing Library | Frontend unit | Growing suite of frontend unit tests (auto-discovered) |
+| Playwright | Frontend E2E | Multiple E2E spec files (auto-discovered) |
 
 ## Backend Tests
 

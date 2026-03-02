@@ -723,9 +723,10 @@ class AIAgentService:
                     "coding agents). These agents are defined as Markdown files in "
                     ".github/agents/ and invoked via slash commands in GitHub Issues/PRs.\n\n"
                     "Given a user's description of what an agent should do, generate a JSON object with:\n"
-                    '- "name": A concise lowercase dot-separated agent name (e.g., '
-                    '"pr-architect-reviewer", "security-scanner", "docs-updater"). '
-                    "Use kebab-case. This becomes the filename slug and slash-command name.\n"
+                    '- "name": A concise kebab-case slug for the agent (lowercase, '
+                    'hyphen-separated; e.g., "pr-architect-reviewer", "security-scanner", '
+                    '"docs-updater"). '
+                    "This becomes the filename slug and slash-command name.\n"
                     '- "description": A one-line summary of the agent\'s purpose (used in the '
                     "agent file's YAML frontmatter description field)\n"
                     '- "system_prompt": A detailed system prompt written as Markdown. This is the '

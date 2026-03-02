@@ -171,11 +171,11 @@ class TestGenerateConfigFiles:
         files = _generate_config_files(preview)
         assert files[1]["path"] == ".github/prompts/security-reviewer.prompt.md"
 
-    def test_agent_file_has_chatagent_fence(self, preview: AgentPreview):
+    def test_agent_file_has_yaml_frontmatter(self, preview: AgentPreview):
         files = _generate_config_files(preview)
         content = files[0]["content"]
-        assert content.startswith("```chatagent\n")
-        assert content.endswith("```\n")
+        assert content.startswith("---\n")
+        assert "\n---\n" in content
 
     def test_agent_file_has_frontmatter(self, preview: AgentPreview):
         files = _generate_config_files(preview)
@@ -185,8 +185,8 @@ class TestGenerateConfigFiles:
     def test_agent_file_has_tools_in_frontmatter(self, preview: AgentPreview):
         files = _generate_config_files(preview)
         content = files[0]["content"]
-        assert "'search_code'" in content
-        assert "'create_issue'" in content
+        assert "- search_code" in content
+        assert "- create_issue" in content
 
     def test_agent_file_has_system_prompt_body(self, preview: AgentPreview):
         files = _generate_config_files(preview)
