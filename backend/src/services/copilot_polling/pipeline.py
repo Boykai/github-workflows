@@ -530,7 +530,11 @@ async def _reconstruct_pipeline_state(
         for agent in agents:
             marker = f"{agent}: Done!"
             done_comment = next(
-                (c for c in comments if marker in c.get("body", "")),
+                (
+                    c
+                    for c in comments
+                    if any(line.strip() == marker for line in c.get("body", "").split("\n"))
+                ),
                 None,
             )
             if done_comment:
@@ -539,45 +543,46 @@ async def _reconstruct_pipeline_state(
             else:
                 break
 
-        # Claim all MERGED child PRs for completed agents
-        # This prevents subsequent agents from re-detecting them
-        if completed:
-            main_branch_info = _cp.get_issue_main_branch(issue_number)
-            if main_branch_info:
-                main_branch = main_branch_info.get("branch")
-                main_pr_number = main_branch_info.get("pr_number")
-                if main_branch and main_pr_number:
-                    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
-                        access_token=access_token,
-                        owner=owner,
-                        repo=repo,
-                        issue_number=issue_number,
-                    )
-                    for pr in linked_prs or []:
-                        pr_number = pr.get("number")
-                        pr_state = pr.get("state", "").upper()
-                        if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
-                            # Get PR details to check if it targets the main branch
-                            pr_details = await _cp.github_projects_service.get_pull_request(
-                                access_token=access_token,
-                                owner=owner,
-                                repo=repo,
-                                pr_number=pr_number,
-                            )
-                            if pr_details and pr_details.get("base_ref") == main_branch:
-                                # Claim this merged child PR for all completed agents
-                                # This prevents re-detection
-                                for completed_agent in completed:
-                                    claimed_key = f"{issue_number}:{pr_number}:{completed_agent}"
-                                    if claimed_key not in _claimed_child_prs:
-                                        _claimed_child_prs.add(claimed_key)
-                                        logger.debug(
-                                            "Claimed merged child PR #%d for agent '%s' "
-                                            "during pipeline reconstruction (issue #%d)",
-                                            pr_number,
-                                            completed_agent,
-                                            issue_number,
-                                        )
+        # Claim all MERGED child PRs for EVERY agent in the pipeline.
+        # This prevents stale merged PRs from a previous (failed) run from
+        # being misattributed to the current agent.  Only PRs merged AFTER
+        # the reconstruction (i.e. the current agent's actual work) will be
+        # unclaimed and detectable as new completions.
+        main_branch_info = _cp.get_issue_main_branch(issue_number)
+        if main_branch_info:
+            main_branch = main_branch_info.get("branch")
+            main_pr_number = main_branch_info.get("pr_number")
+            if main_branch and main_pr_number:
+                linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                for pr in linked_prs or []:
+                    pr_number = pr.get("number")
+                    pr_state = pr.get("state", "").upper()
+                    if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
+                        # Get PR details to check if it targets the main branch
+                        pr_details = await _cp.github_projects_service.get_pull_request(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            pr_number=pr_number,
+                        )
+                        if pr_details and pr_details.get("base_ref") == main_branch:
+                            # Claim for every agent so no agent can pick it up
+                            for agent_name in agents:
+                                claimed_key = f"{issue_number}:{pr_number}:{agent_name}"
+                                if claimed_key not in _claimed_child_prs:
+                                    _claimed_child_prs.add(claimed_key)
+                                    logger.debug(
+                                        "Claimed merged child PR #%d for agent '%s' "
+                                        "during pipeline reconstruction (issue #%d)",
+                                        pr_number,
+                                        agent_name,
+                                        issue_number,
+                                    )
 
     except Exception as e:
         logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
@@ -640,6 +645,24 @@ async def _reconstruct_pipeline_state(
                     reconstructed_sha[:8],
                     issue_number,
                 )
+
+            # If completed agents exist and the main PR is no longer a
+            # draft, record it in _system_marked_ready_prs.  A previous
+            # agent (typically the first one) made the PR ready-for-review.
+            # Without this, Signal 1 in _check_main_pr_completion sees
+            # the non-draft PR after a container restart and reports a
+            # false completion for the current agent.
+            if completed and pr_details and not pr_details.get("is_draft", True):
+                recon_pr_number = main_branch_info["pr_number"]
+                if recon_pr_number not in _system_marked_ready_prs:
+                    _system_marked_ready_prs.add(recon_pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready during pipeline "
+                        "reconstruction for issue #%d (%d completed agents)",
+                        recon_pr_number,
+                        issue_number,
+                        len(completed),
+                    )
         except Exception as e:
             logger.debug("Could not capture HEAD SHA during reconstruction: %s", e)
 
@@ -648,8 +671,13 @@ async def _reconstruct_pipeline_state(
     # includes events for the CURRENT agent (which may have finished
     # before this reconstruction).  Using utcnow() would filter out
     # those events and prevent completion detection.
-    # If no agents completed, use the issue creation time so all events
-    # are included for the first agent.
+    #
+    # When no agents in the current status completed, we must NOT fall
+    # back to issue creation time — that would let stale timeline events
+    # from PRIOR status agents (e.g. speckit.specify in Backlog) pass
+    # the freshness filter for the current status's first agent (e.g.
+    # speckit.plan in Ready).  Instead, scan ALL comments for the most
+    # recent Done! marker from any agent and use its timestamp.
     reconstructed_started_at: datetime | None = None
     if last_done_timestamp:
         try:
@@ -659,7 +687,33 @@ async def _reconstruct_pipeline_state(
         except (ValueError, TypeError):
             pass
     if reconstructed_started_at is None:
-        # Use issue creation time as fallback (all events are relevant)
+        # No Done! markers for current-status agents — look for the most
+        # recent Done! marker from ANY agent (e.g. a prior status).
+        comments = (issue_data or {}).get("comments", []) if issue_data else []
+        latest_any_done_ts: str | None = None
+        for c in comments:
+            body = c.get("body", "")
+            for line in body.split("\n"):
+                if line.strip().endswith(": Done!"):
+                    ts = c.get("created_at", "")
+                    if ts and (latest_any_done_ts is None or ts > latest_any_done_ts):
+                        latest_any_done_ts = ts
+        if latest_any_done_ts:
+            try:
+                reconstructed_started_at = datetime.fromisoformat(
+                    latest_any_done_ts.replace("Z", "+00:00")
+                )
+                logger.debug(
+                    "Using cross-status Done! timestamp %s as started_at "
+                    "for issue #%d (no Done! markers for current status agents)",
+                    latest_any_done_ts,
+                    issue_number,
+                )
+            except (ValueError, TypeError):
+                pass
+    if reconstructed_started_at is None:
+        # Use issue creation time as fallback — only reached when no
+        # Done! markers exist at all (truly the first agent overall).
         issue_created_at = (issue_data or {}).get("created_at", "")
         if issue_created_at:
             try:
@@ -754,6 +808,121 @@ async def _advance_pipeline(
         len(pipeline.agents),
     )
 
+    # ── Safety-net: ensure the completed agent's child PR is merged
+    # BEFORE applying external side effects (tracking table, sub-issue
+    # close, board status).  This ordering guarantees that if the merge
+    # fails and we roll back the pipeline index, no externally visible
+    # state was changed — avoiding the inconsistency where the tracking
+    # table says ✅ Done but the pipeline says the agent isn't complete.
+    #
+    # NOTE: The primary child PR merge happens in post_agent_outputs_from_pr
+    # BEFORE the Done! marker.  This safety-net catches edge cases (e.g.
+    # Done! posted externally, child PR found via sub-issue fallback).
+    main_branch_info = _cp.get_issue_main_branch(issue_number)
+    if not main_branch_info:
+        # Reconstruct main branch info (may have been lost on restart)
+        try:
+            existing_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+            if existing_pr:
+                pr_det = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=existing_pr["number"],
+                )
+                h_sha = pr_det.get("last_commit", {}).get("sha", "") if pr_det else ""
+                _cp.set_issue_main_branch(
+                    issue_number,
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                    h_sha,
+                )
+                main_branch_info = _cp.get_issue_main_branch(issue_number)
+                logger.info(
+                    "Reconstructed main branch '%s' (PR #%d) in _advance_pipeline for issue #%d",
+                    existing_pr["head_ref"],
+                    existing_pr["number"],
+                    issue_number,
+                )
+        except Exception as e:
+            logger.debug(
+                "Could not reconstruct main branch for issue #%d: %s",
+                issue_number,
+                e,
+            )
+
+    if main_branch_info:
+        merge_result = await _cp._merge_child_pr_if_applicable(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            main_branch=main_branch_info["branch"],
+            main_pr_number=main_branch_info["pr_number"],
+            completed_agent=completed_agent,
+            pipeline=pipeline,
+        )
+        if merge_result and merge_result.get("status") == "merged":
+            logger.info(
+                "Safety-net merge: child PR for agent '%s' merged in _advance_pipeline (issue #%d)",
+                completed_agent,
+                issue_number,
+            )
+            await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
+        elif merge_result and merge_result.get("status") == "merge_failed":
+            # A child PR exists but could not be merged.  Block the
+            # pipeline so the next agent does NOT start on a stale base.
+            # The next polling cycle will retry the merge.
+            logger.warning(
+                "Safety-net merge FAILED for agent '%s' on issue #%d "
+                "(child PR #%s) — blocking pipeline advance until "
+                "child PR is merged",
+                completed_agent,
+                issue_number,
+                merge_result.get("pr_number"),
+            )
+            # Roll back the pipeline advance.  Because external side
+            # effects (tracking table, sub-issue close) have NOT been
+            # applied yet, this rollback is fully consistent.
+            pipeline.current_agent_index -= 1
+            if completed_agent in pipeline.completed_agents:
+                pipeline.completed_agents.remove(completed_agent)
+            _cp.set_pipeline_state(issue_number, pipeline)
+            return {
+                "status": "merge_blocked",
+                "issue_number": issue_number,
+                "task_title": task_title,
+                "action": "merge_blocked",
+                "agent_name": completed_agent,
+                "blocked_pr": merge_result.get("pr_number"),
+            }
+
+        # Refresh HEAD SHA so the next agent / next status branches
+        # from the absolute latest (post-merge) state.
+        try:
+            pr_det = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=main_branch_info["pr_number"],
+            )
+            if pr_det and pr_det.get("last_commit", {}).get("sha"):
+                _cp.update_issue_main_branch_sha(issue_number, pr_det["last_commit"]["sha"])
+        except Exception as e:
+            logger.debug(
+                "Could not refresh HEAD SHA for issue #%d: %s",
+                issue_number,
+                e,
+            )
+
+    # ── Apply external side effects AFTER the merge succeeded (or was
+    # not needed).  This ensures rollback on merge failure is clean.
+
     # Mark the completed agent as ✅ Done in the issue body tracking table.
     # post_agent_outputs_from_pr (Step 0) also does this, but it can fail
     # silently or be skipped when the Done! marker was posted externally.
@@ -817,91 +986,33 @@ async def _advance_pipeline(
                 e,
             )
 
-    # NOTE: Child PR merge is handled in post_agent_outputs_from_pr BEFORE
-    # the Done! comment is posted.  The safety-net merge below catches edge
-    # cases where Step 0 could not merge (e.g. Done! posted externally,
-    # child PR found via sub-issue fallback without is_child_pr flag).
-
-    # ── Safety-net: ensure the completed agent's child PR is merged
-    # BEFORE advancing further (whether to the next agent or to the
-    # next status).  This runs for ALL agents including the last one
-    # in a pipeline.  Without this, the pipeline.is_complete path
-    # goes straight to _transition_after_pipeline_complete, which has
-    # no merge of its own — leaving the child PR unmerged (#740).
-    main_branch_info = _cp.get_issue_main_branch(issue_number)
-    if not main_branch_info:
-        # Reconstruct main branch info (may have been lost on restart)
-        try:
-            existing_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=issue_number,
-            )
-            if existing_pr:
-                pr_det = await _cp.github_projects_service.get_pull_request(
+    # After advancing, if the main PR is not a draft, record it in
+    # _system_marked_ready_prs.  The first agent (or a previous agent)
+    # made the PR ready-for-review.  Without this, the NEXT agent in
+    # the pipeline can be falsely detected as complete by Signal 1 in
+    # _check_main_pr_completion, which sees the non-draft PR and fires
+    # before the agent has even started — cancelling the Copilot session.
+    if main_branch_info:
+        advance_pr_number = main_branch_info["pr_number"]
+        if advance_pr_number not in _system_marked_ready_prs:
+            try:
+                pr_check = await _cp.github_projects_service.get_pull_request(
                     access_token=access_token,
                     owner=owner,
                     repo=repo,
-                    pr_number=existing_pr["number"],
+                    pr_number=advance_pr_number,
                 )
-                h_sha = pr_det.get("last_commit", {}).get("sha", "") if pr_det else ""
-                _cp.set_issue_main_branch(
-                    issue_number,
-                    existing_pr["head_ref"],
-                    existing_pr["number"],
-                    h_sha,
-                )
-                main_branch_info = _cp.get_issue_main_branch(issue_number)
-                logger.info(
-                    "Reconstructed main branch '%s' (PR #%d) in _advance_pipeline for issue #%d",
-                    existing_pr["head_ref"],
-                    existing_pr["number"],
-                    issue_number,
-                )
-        except Exception as e:
-            logger.debug(
-                "Could not reconstruct main branch for issue #%d: %s",
-                issue_number,
-                e,
-            )
-
-    if main_branch_info:
-        merge_result = await _cp._merge_child_pr_if_applicable(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            issue_number=issue_number,
-            main_branch=main_branch_info["branch"],
-            main_pr_number=main_branch_info["pr_number"],
-            completed_agent=completed_agent,
-            pipeline=pipeline,
-        )
-        if merge_result:
-            logger.info(
-                "Safety-net merge: child PR for agent '%s' merged in _advance_pipeline (issue #%d)",
-                completed_agent,
-                issue_number,
-            )
-            await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
-
-        # Refresh HEAD SHA so the next agent / next status branches
-        # from the absolute latest (post-merge) state.
-        try:
-            pr_det = await _cp.github_projects_service.get_pull_request(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                pr_number=main_branch_info["pr_number"],
-            )
-            if pr_det and pr_det.get("last_commit", {}).get("sha"):
-                _cp.update_issue_main_branch_sha(issue_number, pr_det["last_commit"]["sha"])
-        except Exception as e:
-            logger.debug(
-                "Could not refresh HEAD SHA for issue #%d: %s",
-                issue_number,
-                e,
-            )
+                if pr_check and not pr_check.get("is_draft", True):
+                    _system_marked_ready_prs.add(advance_pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready after pipeline advance "
+                        "(agent '%s' completed on issue #%d)",
+                        advance_pr_number,
+                        completed_agent,
+                        issue_number,
+                    )
+            except Exception as e:
+                logger.debug("Could not check main PR draft status during advance: %s", e)
 
     # Send agent_completed WebSocket notification
     await _cp.connection_manager.broadcast_to_project(
@@ -1544,7 +1655,7 @@ async def process_in_progress_issue(
                 completed_agent="speckit.implement",
                 pipeline=impl_pipeline,
             )
-            if merge_result:
+            if merge_result and merge_result.get("status") == "merged":
                 logger.info(
                     "Merged speckit.implement child PR into main branch '%s' for issue #%d",
                     main_branch_info["branch"],

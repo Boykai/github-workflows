@@ -119,6 +119,7 @@ async def get_board_data(
         ) from e
 
     board_data.rate_limit = _get_rate_limit_info()
-    # Cache for shorter TTL since board data changes more frequently
-    cache.set(cache_key, board_data, ttl_seconds=30)
+    # Cache board data — 120 seconds balances freshness with API savings.
+    # Manual refresh (refresh=true) bypasses this cache entirely.
+    cache.set(cache_key, board_data, ttl_seconds=120)
     return board_data

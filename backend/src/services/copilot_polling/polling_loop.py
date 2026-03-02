@@ -157,6 +157,7 @@ async def _poll_loop(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
+                tasks=parent_tasks,
             )
 
             if review_results:

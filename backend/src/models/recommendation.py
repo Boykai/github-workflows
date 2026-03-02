@@ -132,6 +132,7 @@ class IssueLabel(StrEnum):
 
     # Status labels
     AI_GENERATED = "ai-generated"  # Created by AI
+    SUB_ISSUE = "sub-issue"  # Agent sub-issue
     GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
     HELP_WANTED = "help wanted"  # Needs assistance
 

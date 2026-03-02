@@ -894,12 +894,87 @@ class WorkflowOrchestrator:
                 )
 
         if sub_issue_info is None:
+            # ── On-the-fly sub-issue creation ────────────────────────
+            # The pre-creation step failed (e.g. transient 502) for this
+            # agent.  Attempt to create the sub-issue now so the agent
+            # still gets its own issue rather than falling back to the
+            # parent (which would confuse Copilot's scope).
             logger.warning(
-                "No pre-created sub-issue found for agent '%s' on issue #%d — "
-                "falling back to parent issue",
+                "No pre-created sub-issue for agent '%s' on issue #%d — "
+                "attempting on-the-fly creation",
                 agent_name,
                 ctx.issue_number,
             )
+            try:
+                parent_issue_data = await self.github.get_issue_with_comments(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
+                parent_body = parent_issue_data.get("body", "")
+                parent_title = parent_issue_data.get("title", f"Issue #{ctx.issue_number}")
+
+                sub_body = self.github.tailor_body_for_agent(
+                    parent_body=parent_body,
+                    agent_name=agent_name,
+                    parent_issue_number=ctx.issue_number,
+                    parent_title=parent_title,
+                )
+
+                sub_issue = await self.github.create_sub_issue(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    parent_issue_number=ctx.issue_number,
+                    title=f"[{agent_name}] {parent_title}",
+                    body=sub_body,
+                    labels=["ai-generated", "sub-issue"],
+                )
+
+                sub_issue_info = {
+                    "number": sub_issue.get("number"),
+                    "node_id": sub_issue.get("node_id", ""),
+                    "url": sub_issue.get("html_url", ""),
+                }
+                sub_issue_node_id = sub_issue_info["node_id"] or ctx.issue_id
+                sub_issue_number = sub_issue_info["number"] or ctx.issue_number
+
+                # Persist in global store so subsequent lookups find it
+                global_subs = get_issue_sub_issues(ctx.issue_number)
+                global_subs[agent_name] = sub_issue_info
+                set_issue_sub_issues(ctx.issue_number, global_subs)
+
+                # Add the sub-issue to the same GitHub Project as parent
+                sub_node = sub_issue_info.get("node_id", "")
+                if sub_node and ctx.project_id:
+                    try:
+                        await self.github.add_issue_to_project(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            issue_node_id=sub_node,
+                        )
+                    except Exception as proj_err:
+                        logger.warning(
+                            "Failed to add on-the-fly sub-issue #%d to project: %s",
+                            sub_issue_number,
+                            proj_err,
+                        )
+
+                logger.info(
+                    "Created on-the-fly sub-issue #%d for agent '%s' (parent #%d)",
+                    sub_issue_number,
+                    agent_name,
+                    ctx.issue_number,
+                )
+            except Exception as create_err:
+                logger.warning(
+                    "On-the-fly sub-issue creation failed for agent '%s' on "
+                    "issue #%d: %s — falling back to parent issue",
+                    agent_name,
+                    ctx.issue_number,
+                    create_err,
+                )
 
         # ── Human agent: skip Copilot assignment ─────────────────────
         # Human agents don't use Copilot — the sub-issue is already

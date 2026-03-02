@@ -11,6 +11,7 @@ from .state import (
     _claimed_child_prs,
     _polling_state,
     _posted_agent_outputs,
+    _system_marked_ready_prs,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,14 @@ async def post_agent_outputs_from_pr(
                         for agent in status_agents:
                             done_marker = f"{agent}: Done!"
                             done_c = next(
-                                (c for c in comments if done_marker in c.get("body", "")),
+                                (
+                                    c
+                                    for c in comments
+                                    if any(
+                                        line.strip() == done_marker
+                                        for line in c.get("body", "").split("\n")
+                                    )
+                                ),
                                 None,
                             )
                             if done_c:
@@ -120,8 +128,32 @@ async def post_agent_outputs_from_pr(
                             except (ValueError, TypeError):
                                 pass
                         if recon_started is None:
-                            # First agent — no Done! markers yet. Use a very
-                            # early timestamp so ALL timeline events are relevant.
+                            # No Done! markers for current-status agents — look
+                            # for the most recent Done! marker from ANY agent
+                            # (e.g. a prior status).  Without this, stale events
+                            # from a prior-status agent pass the freshness filter.
+                            latest_any_done_ts: str | None = None
+                            for c in comments:
+                                body_text = c.get("body", "")
+                                for bline in body_text.split("\n"):
+                                    if bline.strip().endswith(": Done!"):
+                                        ts = c.get("created_at", "")
+                                        if ts and (
+                                            latest_any_done_ts is None or ts > latest_any_done_ts
+                                        ):
+                                            latest_any_done_ts = ts
+                            if latest_any_done_ts:
+                                try:
+                                    recon_started = datetime.fromisoformat(
+                                        latest_any_done_ts.replace("Z", "+00:00")
+                                    )
+                                except (ValueError, TypeError):
+                                    pass
+
+                        if recon_started is None:
+                            # Truly the first agent overall — no Done! markers
+                            # anywhere. Use a very early timestamp so ALL
+                            # timeline events are relevant.
                             recon_started = datetime(2020, 1, 1, tzinfo=UTC)
 
                         pipeline = _cp.PipelineState(
@@ -189,6 +221,17 @@ async def post_agent_outputs_from_pr(
                                         existing_pr["number"],
                                         task.issue_number,
                                     )
+                                    # Mark the main PR in _system_marked_ready_prs
+                                    # if it's not a draft — prevents Signal 1 false
+                                    # positive in _check_main_pr_completion.
+                                    if pr_det and not pr_det.get("is_draft", True):
+                                        _system_marked_ready_prs.add(existing_pr["number"])
+                                        logger.info(
+                                            "Marked main PR #%d as ready during "
+                                            "agent_output reconstruction for issue #%d",
+                                            existing_pr["number"],
+                                            task.issue_number,
+                                        )
                             except Exception as e:
                                 logger.debug(
                                     "Could not reconstruct main branch for issue #%d: %s",
@@ -196,14 +239,15 @@ async def post_agent_outputs_from_pr(
                                     e,
                                 )
 
-                        # Claim merged child PRs for completed agents to prevent
-                        # misattribution.  After a container restart _claimed_child_prs
-                        # is empty.  Without this, _find_completed_child_pr can return
-                        # a MERGED child PR from a completed agent as if it belongs to
-                        # the current (not-yet-completed) agent — posting a false Done!
-                        # marker and skipping the current agent entirely.
+                        # Claim merged child PRs for ALL agents (not just
+                        # completed ones) to prevent misattribution.  After a
+                        # container restart _claimed_child_prs is empty.
+                        # Without this, _find_completed_child_pr can return a
+                        # stale MERGED child PR from a previous (failed) run
+                        # as if it belongs to the current agent — posting a
+                        # false Done! marker and skipping agents entirely.
                         main_branch_recon = _cp.get_issue_main_branch(task.issue_number)
-                        if main_branch_recon and completed:
+                        if main_branch_recon:
                             try:
                                 linked_prs_recon = (
                                     await _cp.github_projects_service.get_linked_pull_requests(
@@ -222,9 +266,9 @@ async def post_agent_outputs_from_pr(
                                         and pr_num_r is not None
                                         and pr_num_r != main_pr_num_recon
                                     ):
-                                        for done_agent in completed:
+                                        for recon_agent in status_agents:
                                             claim_key = (
-                                                f"{task.issue_number}:{pr_num_r}:{done_agent}"
+                                                f"{task.issue_number}:{pr_num_r}:{recon_agent}"
                                             )
                                             if claim_key not in _claimed_child_prs:
                                                 _claimed_child_prs.add(claim_key)
@@ -232,7 +276,7 @@ async def post_agent_outputs_from_pr(
                                                     "Reconstructed claim for merged PR #%d "
                                                     "(agent '%s') on issue #%d",
                                                     pr_num_r,
-                                                    done_agent,
+                                                    recon_agent,
                                                     task.issue_number,
                                                 )
                             except Exception as e:
@@ -303,9 +347,12 @@ async def post_agent_outputs_from_pr(
                         task.issue_number,
                     )
 
-            # If no child PR, check for standard Copilot PR completion (first agent)
-            # Search both parent issue AND current agent's sub-issue.
-            if not finished_pr:
+            # If no child PR, check for standard Copilot PR completion (first agent).
+            # ONLY for the first agent (not subsequent): the parent issue's linked
+            # PRs include the main PR whose stale timeline events would cause false
+            # positives for subsequent agents.  Subsequent agents detect completion
+            # via child PR or _check_main_pr_completion (with freshness filtering).
+            if not finished_pr and not is_subsequent_agent:
                 finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -313,8 +360,12 @@ async def post_agent_outputs_from_pr(
                     issue_number=task.issue_number,
                 )
 
-            # Still nothing: check agent's sub-issue for PR completion
-            if not finished_pr:
+            # Still nothing: check agent's sub-issue for PR completion.
+            # Also guarded by not is_subsequent_agent — sub-issue PRs for
+            # subsequent agents are already discovered by _find_completed_child_pr
+            # (via _get_linked_prs_including_sub_issues).  Running the unguarded
+            # check here would find the child PR without freshness checks.
+            if not finished_pr and not is_subsequent_agent:
                 sub_num = _cp._get_sub_issue_number(pipeline, current_agent, task.issue_number)
                 if sub_num and sub_num != task.issue_number:
                     finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
@@ -382,6 +433,7 @@ async def post_agent_outputs_from_pr(
                         agent_name=current_agent,
                         pipeline_started_at=pipeline.started_at,
                         agent_assigned_sha=pipeline.agent_assigned_sha,
+                        is_subsequent_agent=True,
                     )
                     if main_pr_completed:
                         # Use the main PR as the finished PR
@@ -410,23 +462,15 @@ async def post_agent_outputs_from_pr(
             # We need to verify these are FRESH signals (after pipeline start)
             # to avoid re-attributing the first agent's work.
             #
-            # SKIP this gate when the current agent is the first uncompleted
-            # agent in the pipeline (index 0, no completed agents).  After a
-            # container restart, main_branch_info is reconstructed from the
-            # existing PR, making is_subsequent_agent True even for the agent
-            # that CREATED the main PR.  Applying the freshness gate to that
-            # agent causes a permanent stall because the reconstructed
-            # started_at / agent_assigned_sha filter out its own completion
-            # events.
-            is_first_uncompleted = (
-                pipeline and pipeline.current_agent_index == 0 and not pipeline.completed_agents
-            )
-            if (
-                is_subsequent_agent
-                and pr_number == main_pr_number
-                and main_pr_number is not None
-                and not is_first_uncompleted
-            ):
+            # The is_first_uncompleted bypass was REMOVED because each new
+            # status creates a pipeline with index=0 and empty completed_agents,
+            # making every first-agent-per-status look like the pipeline's very
+            # first agent — even though the main PR was created by a different
+            # agent in a prior status.  The reconstruction logic already sets
+            # started_at to the issue creation time (or last Done! timestamp)
+            # so the freshness filter correctly passes the first agent's own
+            # completion events after a container restart.
+            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
                 main_pr_completed = await _cp._check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -436,6 +480,7 @@ async def post_agent_outputs_from_pr(
                     agent_name=current_agent,
                     pipeline_started_at=pipeline.started_at,
                     agent_assigned_sha=pipeline.agent_assigned_sha,
+                    is_subsequent_agent=True,
                 )
                 if not main_pr_completed:
                     logger.debug(
@@ -491,6 +536,20 @@ async def post_agent_outputs_from_pr(
                     head_sha[:8] if head_sha else "none",
                     task.issue_number,
                 )
+
+                # If the main PR is not a draft (the first agent made it
+                # ready-for-review), record it in _system_marked_ready_prs.
+                # Without this, Signal 1 in _check_main_pr_completion sees
+                # the non-draft PR and falsely reports completion for the
+                # NEXT agent, causing premature Done! posting and sub-issue
+                # closure which cancels the Copilot session.
+                if pr_details and not pr_details.get("is_draft", True):
+                    _system_marked_ready_prs.add(pr_number)
+                    logger.info(
+                        "Marked main PR #%d as ready (first agent completed) "
+                        "to prevent false positives for subsequent agents",
+                        pr_number,
+                    )
 
                 # Link the first PR to the GitHub Issue so it appears in the
                 # Development sidebar and auto-closes the issue on merge.
@@ -659,7 +718,7 @@ async def post_agent_outputs_from_pr(
                         completed_agent=current_agent,
                         pipeline=pipeline,
                     )
-                    if merge_result:
+                    if merge_result and merge_result.get("status") == "merged":
                         logger.info(
                             "Merged child PR #%d for agent '%s' on issue #%d",
                             pr_number,

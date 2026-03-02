@@ -1297,6 +1297,81 @@ class TestPostAgentOutputsFromPr:
         assert len(results) == 0
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._check_main_pr_completion", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling._find_completed_child_pr", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_subsequent_agent_rejects_stale_main_pr_events_in_new_status(
+        self,
+        mock_pipeline,
+        mock_config,
+        mock_service,
+        mock_find_child,
+        mock_main_pr_check,
+        mock_task_backlog,
+    ):
+        """Regression test for #1171: first agent in a NEW status must not be
+        fooled by stale timeline events on the main PR from a previous status.
+
+        Scenario:
+          - speckit.specify (Backlog) creates main PR #5 and completes legitimately
+          - Pipeline transitions to Ready, speckit.plan is the first agent (index=0)
+          - main_branch_info already exists → is_subsequent_agent=True
+          - check_copilot_pr_completion would find main PR #5 with stale events
+          - The freshness gate (is_first_uncompleted bypass) previously allowed this
+          - Fix: check_copilot_pr_completion is now skipped for subsequent agents
+        """
+        # Main branch from speckit.specify (prior status) exists
+        _issue_main_branches[10] = {
+            "branch": "copilot/feature",
+            "pr_number": 5,
+            "head_sha": "abc",
+        }
+
+        mock_config.return_value = MagicMock()
+        mock_pipeline.return_value = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,  # First agent in Ready status
+            completed_agents=[],  # No agents completed in this status yet
+            started_at=datetime(2026, 1, 1),
+        )
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        # check_copilot_pr_completion WOULD return the main PR with stale events
+        # (but should never be called for subsequent agents)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "copilot_finished": True}
+        )
+
+        # No child PR found (agent just started)
+        mock_find_child.return_value = None
+
+        # No fresh completion signals on the main PR
+        mock_main_pr_check.return_value = False
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        # Must NOT post false Done! — result must be empty
+        assert len(results) == 0
+
+        # check_copilot_pr_completion must NOT have been called for subsequent agents
+        mock_service.check_copilot_pr_completion.assert_not_called()
+
+        # _check_main_pr_completion SHOULD have been called (proper freshness check)
+        mock_main_pr_check.assert_called_once()
+
+    @pytest.mark.asyncio
     @patch("src.services.copilot_polling._get_tracking_state_from_issue", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
@@ -1886,6 +1961,42 @@ class TestMergeChildPrIfApplicable:
 
         assert result is None
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_merge_failed_when_merge_fails(self, mock_service):
+        """Should return merge_failed status when a child PR is found but merge fails."""
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 20, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "base_ref": "copilot/feature-123",
+                "head_ref": "copilot/feature-123-plan",
+                "id": "PR_node_123",
+                "is_draft": False,
+            }
+        )
+        mock_service.is_copilot_author = MagicMock(return_value=True)
+        # Merge fails (returns None)
+        mock_service.merge_pull_request = AsyncMock(return_value=None)
+
+        result = await _merge_child_pr_if_applicable(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            main_branch="copilot/feature-123",
+            main_pr_number=10,
+            completed_agent="speckit.plan",
+        )
+
+        assert result is not None
+        assert result["status"] == "merge_failed"
+        assert result["pr_number"] == 20
+        assert result["agent"] == "speckit.plan"
+
 
 class TestReconstructPipelineState:
     """Tests for _reconstruct_pipeline_state function."""
@@ -1997,6 +2108,50 @@ class TestReconstructPipelineState:
 
         # Should return empty pipeline state on error
         assert result.completed_agents == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_started_at_uses_cross_status_done_timestamp(self, mock_set_state, mock_service):
+        """Regression test for #1171: when no agents in the current status have
+        Done! markers but a prior-status agent has one, started_at must use that
+        prior-status Done! timestamp — NOT the issue creation time.
+
+        Without this, stale timeline events from the prior-status agent pass
+        the freshness filter and cause false-positive completions.
+        """
+        prior_done_ts = "2026-03-02T19:12:00Z"
+        issue_created_ts = "2026-03-02T18:00:00Z"
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "created_at": issue_created_ts,
+                "comments": [
+                    # Done! from a prior-status agent (e.g. speckit.specify in Backlog)
+                    {"body": "speckit.specify: Done!", "created_at": prior_done_ts},
+                    # No Done! from current-status agents (speckit.plan, speckit.tasks)
+                ],
+            }
+        )
+
+        result = await _reconstruct_pipeline_state(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+        )
+
+        assert result.completed_agents == []
+        assert result.current_agent == "speckit.plan"
+        # started_at must be the prior-status Done! timestamp, not issue creation
+        expected_ts = datetime.fromisoformat(prior_done_ts.replace("Z", "+00:00"))
+        assert result.started_at == expected_ts, (
+            f"started_at should be {expected_ts} (prior Done! timestamp) "
+            f"but was {result.started_at}"
+        )
 
 
 class TestCheckBacklogIssues:
@@ -2381,6 +2536,76 @@ class TestAdvancePipeline:
             new_state="done",
         )
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_blocks_pipeline_advance_on_merge_failure(
+        self,
+        mock_set_state,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_service,
+        mock_update_tracking,
+    ):
+        """Should block pipeline advance when child PR merge fails.
+
+        When _merge_child_pr_if_applicable returns merge_failed, the pipeline
+        must NOT assign the next agent — this ensures each agent's work is
+        merged before the next one starts.
+        """
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+        )
+
+        mock_get_branch.return_value = {
+            "branch": "copilot/feature-42",
+            "pr_number": 100,
+            "head_sha": "sha123",
+        }
+        # Merge fails — child PR found but could not be merged
+        mock_merge.return_value = {
+            "status": "merge_failed",
+            "pr_number": 101,
+            "main_branch": "copilot/feature-42",
+            "agent": "speckit.plan",
+        }
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_update_tracking.return_value = True
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "merge_blocked"
+        assert result["blocked_pr"] == 101
+        # Pipeline should NOT have advanced — the completed agent
+        # should have been rolled back
+        assert "speckit.plan" not in pipeline.completed_agents
+        # External side effects (tracking update, sub-issue close) must
+        # NOT have been applied — they are deferred until after a
+        # successful merge to keep rollback consistent.
+        mock_update_tracking.assert_not_called()
+
 
 class TestFindCompletedChildPr:
     """Tests for _find_completed_child_pr function."""
@@ -2587,6 +2812,7 @@ class TestFindCompletedChildPr:
             return_value={
                 "base_ref": "copilot/add-black-background-theme",
                 "is_draft": True,
+                "title": "[WIP] Add black background theme",
             }
         )
         mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
@@ -2679,6 +2905,125 @@ class TestFindCompletedChildPr:
 
         assert result is not None
         assert result["number"] == 226
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_completed_when_timeline_empty_and_title_has_no_wip(self, mock_service):
+        """Should detect completion via title fallback when timeline API fails.
+
+        When the timeline API returns 403 (empty list), a draft PR whose title
+        no longer starts with '[WIP]' indicates Copilot finished work.
+        """
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 300, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 301, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_301",
+                "base_ref": "copilot/cleanup-feature",
+                "head_ref": "copilot/cleanup-feature-tasks",
+                "is_draft": True,
+                "title": "Generate tasks.md for cleanup feature",
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+        # Timeline returns empty (simulates 403 Forbidden)
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=299,
+            main_branch="copilot/cleanup-feature",
+            main_pr_number=300,
+            agent_name="speckit.tasks",
+        )
+
+        assert result is not None
+        assert result["number"] == 301
+        assert result["copilot_finished"] is True
+        assert result["is_child_pr"] is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_returns_none_when_timeline_empty_and_title_has_wip(self, mock_service):
+        """Should NOT detect completion when title still has [WIP] prefix.
+
+        Even when timeline API fails, a [WIP] title means Copilot is still
+        working — the fallback should not trigger.
+        """
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 300, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 301, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "base_ref": "copilot/cleanup-feature",
+                "is_draft": True,
+                "title": "[WIP] Generate tasks.md for cleanup feature",
+            }
+        )
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=299,
+            main_branch="copilot/cleanup-feature",
+            main_pr_number=300,
+            agent_name="speckit.tasks",
+        )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_title_fallback_when_timeline_has_events(self, mock_service):
+        """Should NOT use title fallback when timeline returned real events.
+
+        If the timeline API succeeded (non-empty list) but has no
+        copilot_finished events, the title fallback must NOT trigger —
+        the agent is genuinely still working.
+        """
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 300, "state": "OPEN", "author": "copilot[bot]"},
+                {"number": 301, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "base_ref": "copilot/cleanup-feature",
+                "is_draft": True,
+                "title": "Generate tasks.md for cleanup feature",
+            }
+        )
+        # Timeline has events but no copilot_finished
+        mock_service.get_pr_timeline_events = AsyncMock(
+            return_value=[{"event": "committed"}, {"event": "copilot_work_started"}]
+        )
+        mock_service.check_copilot_finished_events = MagicMock(return_value=False)
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=299,
+            main_branch="copilot/cleanup-feature",
+            main_pr_number=300,
+            agent_name="speckit.tasks",
+        )
+
+        assert result is None
 
 
 # ──────────────────────────────────────────────────────────────────────────────

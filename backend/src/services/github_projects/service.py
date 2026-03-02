@@ -3,6 +3,8 @@
 import asyncio
 import base64
 import contextvars
+import hashlib
+import json as json_mod
 import logging
 import re
 from datetime import datetime
@@ -67,6 +69,11 @@ class GitHubProjectsService:
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
         self._last_rate_limit: dict[str, int] | None = None
+        # ETag cache for conditional GraphQL requests.
+        # Key: hash of (token, query, sorted variables) → (etag, parsed data)
+        # Token is included so responses are never shared across users.
+        self._etag_cache: dict[str, tuple[str, dict]] = {}
+        self._ETAG_CACHE_MAX_SIZE: int = 256
 
     async def close(self):
         """Close HTTP client."""
@@ -202,6 +209,12 @@ class GitHubProjectsService:
                 # Always extract rate limit headers — even from error responses
                 # (e.g. 403/429) — so downstream callers have accurate quota info.
                 self._extract_rate_limit_headers(response)
+
+                # 304 Not Modified is expected for conditional (ETag) requests;
+                # return it without raising so callers can serve cached data.
+                if response.status_code == 304:
+                    return response
+
                 response.raise_for_status()
                 return response
 
@@ -209,7 +222,7 @@ class GitHubProjectsService:
                 # Capture rate limit headers from error responses so
                 # get_last_rate_limit() reflects the most recent state.
                 self._extract_rate_limit_headers(e.response)
-                if e.response.status_code in (429, 503) and attempt < max_attempts - 1:
+                if e.response.status_code in (429, 502, 503) and attempt < max_attempts - 1:
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
                         e.response.status_code,
@@ -239,6 +252,9 @@ class GitHubProjectsService:
         Execute GraphQL query against GitHub API.
 
         Routes through _request_with_retry for consistent retry/backoff handling.
+        Supports ETag-based conditional requests: if the data hasn't changed
+        since the last identical request, GitHub returns 304 Not Modified which
+        does NOT count against the rate limit.
 
         Args:
             access_token: GitHub OAuth access token
@@ -253,19 +269,48 @@ class GitHubProjectsService:
         if extra_headers:
             headers.update(extra_headers)
 
+        # Build a stable cache key scoped by token identity so responses
+        # are never shared across different users/permissions.
+        token_prefix = hashlib.sha256(access_token.encode()).hexdigest()[:16]
+        cache_key = hashlib.sha256(
+            (token_prefix + query + json_mod.dumps(variables, sort_keys=True)).encode()
+        ).hexdigest()
+
+        cached = self._etag_cache.get(cache_key)
+        if cached:
+            etag, _cached_data = cached
+            headers["If-None-Match"] = etag
+
         response = await self._request_with_retry(
             "POST",
             GITHUB_GRAPHQL_URL,
             headers=headers,
             json={"query": query, "variables": variables},
         )
+
+        # 304 Not Modified — data hasn't changed, return cached result (free!)
+        if response.status_code == 304 and cached:
+            logger.debug("GraphQL ETag cache hit (304) for key %s…", cache_key[:12])
+            return cached[1]
+
         result = response.json()
 
         if "errors" in result:
             error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
             raise ValueError(f"GraphQL error: {error_msg}")
 
-        return result.get("data", {})
+        data = result.get("data", {})
+
+        # Store ETag for future conditional requests (bounded LRU eviction)
+        etag = response.headers.get("ETag")
+        if etag:
+            # Evict oldest entries when cache exceeds max size
+            while len(self._etag_cache) >= self._ETAG_CACHE_MAX_SIZE:
+                oldest_key = next(iter(self._etag_cache))
+                del self._etag_cache[oldest_key]
+            self._etag_cache[cache_key] = (etag, data)
+
+        return data
 
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20
@@ -1375,10 +1420,12 @@ class GitHubProjectsService:
             comments = issue_data.get("comments", [])
             marker = f"{agent_name}: Done!"
 
-            # Scan comments in reverse chronological order for the most recent marker
+            # Scan comments in reverse chronological order for the most recent marker.
+            # Use exact line matching to avoid false positives from comments
+            # that mention the marker in narrative text (e.g. analysis comments).
             for comment in reversed(comments):
                 body = comment.get("body", "")
-                if marker in body:
+                if any(line.strip() == marker for line in body.split("\n")):
                     logger.info(
                         "Found completion marker for agent '%s' on issue #%d",
                         agent_name,
@@ -3232,6 +3279,29 @@ class GitHubProjectsService:
                             "copilot_finished": True,
                         }
 
+                    # Fallback: Title-based completion detection (when timeline
+                    # API fails).  Copilot creates draft PRs with a "[WIP]"
+                    # title prefix and removes it when work is finished.  If the
+                    # timeline API returned no events (likely 403 or other API
+                    # error) but the title no longer has the "[WIP]" prefix,
+                    # treat as completed.
+                    if not timeline_events:
+                        pr_title = pr_details.get("title", "")
+                        if pr_title and not pr_title.startswith("[WIP]"):
+                            logger.info(
+                                "Copilot PR #%d title '%s' has no '[WIP]' prefix and "
+                                "timeline events unavailable — treating as completed "
+                                "(title-based fallback)",
+                                pr_number,
+                                pr_title[:80],
+                            )
+                            return {
+                                **pr,
+                                "id": pr_details.get("id"),
+                                "last_commit": pr_details.get("last_commit"),
+                                "copilot_finished": True,
+                            }
+
                     # No finish events yet - Copilot is still working
                     logger.info(
                         "Copilot PR #%d has no finish events yet, still in progress",
@@ -3364,27 +3434,22 @@ class GitHubProjectsService:
         sub_issue_number = sub_issue["number"]
 
         # Step 2: Attach as sub-issue using the Sub-Issues API
+        # Route through _request_with_retry so transient 502/503 errors are
+        # retried automatically — prevents orphaned sub-issues.
         try:
-            response = await self._client.post(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues",
-                json={"sub_issue_id": sub_issue["id"]},
+            attach_url = f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues"
+            await self._request_with_retry(
+                method="POST",
+                url=attach_url,
                 headers=self._build_headers(access_token),
+                json={"sub_issue_id": sub_issue["id"]},
+                idempotent=True,
             )
-
-            if response.status_code in (200, 201):
-                logger.info(
-                    "Attached sub-issue #%d to parent issue #%d",
-                    sub_issue_number,
-                    parent_issue_number,
-                )
-            else:
-                logger.warning(
-                    "Failed to attach sub-issue #%d to parent #%d: %d %s",
-                    sub_issue_number,
-                    parent_issue_number,
-                    response.status_code,
-                    response.text[:300] if response.text else "",
-                )
+            logger.info(
+                "Attached sub-issue #%d to parent issue #%d",
+                sub_issue_number,
+                parent_issue_number,
+            )
         except Exception as e:
             logger.warning(
                 "Failed to attach sub-issue #%d to parent #%d: %s",

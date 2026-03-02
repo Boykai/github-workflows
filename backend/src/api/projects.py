@@ -178,7 +178,8 @@ async def websocket_subscribe(
     WebSocket endpoint for real-time project updates.
 
     On connection, sends all current tasks.
-    Periodically refreshes and sends updates every 5 seconds.
+    Periodically checks for updates every 30 seconds (using cached data
+    when available; actual GitHub API calls are governed by the cache TTL).
     Also sends real-time updates when tasks are created, updated, or deleted.
 
     Message format:
@@ -199,26 +200,30 @@ async def websocket_subscribe(
 
     await connection_manager.connect(websocket, project_id)
 
-    async def send_tasks():
-        """Fetch and send current tasks."""
+    async def send_tasks(*, force_refresh: bool = False):
+        """Fetch and send current tasks, using cache when possible."""
         try:
-            # Fetch fresh data from GitHub (bypass cache for WebSocket)
+            cache_key = get_project_items_cache_key(project_id)
+
+            # Use cache for periodic refreshes to avoid hammering the API.
+            # Only bypass cache on initial connection (force_refresh=True).
+            if not force_refresh:
+                cached = cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
             tasks = await github_projects_service.get_project_items(
                 session.access_token, project_id
             )
-
-            # Update cache
-            cache_key = get_project_items_cache_key(project_id)
             cache.set(cache_key, tasks)
-
             return tasks
         except Exception as e:
             logger.error("Failed to fetch tasks for WebSocket: %s", e)
             return None
 
     try:
-        # Send all current tasks immediately on connection
-        tasks = await send_tasks()
+        # Send all current tasks immediately on connection (bypass cache)
+        tasks = await send_tasks(force_refresh=True)
         if tasks is not None:
             await websocket.send_json(
                 {
@@ -234,9 +239,11 @@ async def websocket_subscribe(
                 project_id,
             )
 
-        # Keep connection alive and periodically refresh
+        # Keep connection alive and periodically push cached data.
+        # Actual GitHub API calls are governed by the cache TTL (default
+        # 300 s); this interval only controls how often we check/send.
         last_refresh = asyncio.get_running_loop().time()
-        refresh_interval = 5.0  # Refresh every 5 seconds
+        refresh_interval = 30.0  # Check for updates every 30 seconds
 
         while True:
             try:
@@ -324,8 +331,8 @@ async def sse_subscribe(
                     logger.error("SSE polling error: %s", e)
                     yield 'event: error\ndata: {"message": "Polling error"}\n\n'
 
-                # Wait before next poll
-                await asyncio.sleep(10)
+                # Wait before next poll (30 seconds to reduce API call volume)
+                await asyncio.sleep(30)
 
         except asyncio.CancelledError:
             logger.info("SSE connection closed for project %s", project_id)

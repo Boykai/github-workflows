@@ -2676,6 +2676,101 @@ class TestCheckCopilotPrCompletion:
             assert result is not None
             assert result["number"] == 20
 
+    @pytest.mark.asyncio
+    async def test_copilot_draft_pr_title_fallback_when_timeline_empty(self, service):
+        """Should detect completion via title fallback when timeline API fails.
+
+        When the timeline API returns empty (e.g. 403), a draft PR whose title
+        no longer starts with '[WIP]' indicates Copilot finished its work.
+        """
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "Generate tasks.md for cleanup",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "title": "Generate tasks.md for cleanup",
+            "last_commit": {"sha": "abc123"},
+        }
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            # Timeline returns empty (simulates 403 Forbidden)
+            mock_get_timeline.return_value = []
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is not None
+            assert result["copilot_finished"] is True
+            assert result["number"] == 42
+
+    @pytest.mark.asyncio
+    async def test_copilot_draft_pr_no_title_fallback_when_wip(self, service):
+        """Should NOT use title fallback when title still has [WIP] prefix."""
+        linked_prs = [
+            {
+                "id": "PR_123",
+                "number": 42,
+                "title": "[WIP] Generate tasks.md for cleanup",
+                "state": "OPEN",
+                "is_draft": True,
+                "url": "https://github.com/owner/repo/pull/42",
+                "author": "copilot-swe-agent[bot]",
+            }
+        ]
+
+        pr_details = {
+            "id": "PR_123",
+            "number": 42,
+            "title": "[WIP] Generate tasks.md for cleanup",
+        }
+
+        with (
+            patch.object(
+                service, "get_linked_pull_requests", new_callable=AsyncMock
+            ) as mock_get_prs,
+            patch.object(service, "get_pull_request", new_callable=AsyncMock) as mock_get_pr,
+            patch.object(
+                service, "get_pr_timeline_events", new_callable=AsyncMock
+            ) as mock_get_timeline,
+        ):
+            mock_get_prs.return_value = linked_prs
+            mock_get_pr.return_value = pr_details
+            # Timeline returns empty (simulates 403 Forbidden)
+            mock_get_timeline.return_value = []
+
+            result = await service.check_copilot_pr_completion(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_number=1,
+            )
+
+            assert result is None
+
 
 class TestCreateIssueComment:
     """Tests for creating issue comments via REST API."""
@@ -3263,27 +3358,41 @@ class TestCreateSubIssue:
     async def test_success(self, service):
         sub_issue = {"id": 100, "number": 50, "node_id": "I_50", "html_url": "..."}
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
-            service._client = AsyncMock()
-            service._client.post = AsyncMock(return_value=Mock(status_code=201))
-            result = await service.create_sub_issue("tok", "o", "r", 42, "Sub title", "Sub body")
+            with patch.object(
+                service,
+                "_request_with_retry",
+                new_callable=AsyncMock,
+                return_value=Mock(status_code=201),
+            ):
+                result = await service.create_sub_issue(
+                    "tok", "o", "r", 42, "Sub title", "Sub body"
+                )
         assert result == sub_issue
 
     @pytest.mark.asyncio
     async def test_attach_fails_still_returns(self, service):
         sub_issue = {"id": 100, "number": 50}
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
-            service._client = AsyncMock()
-            service._client.post = AsyncMock(return_value=Mock(status_code=500, text="err"))
-            result = await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
+            with patch.object(
+                service,
+                "_request_with_retry",
+                new_callable=AsyncMock,
+                side_effect=Exception("502 Bad Gateway"),
+            ):
+                result = await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
         assert result == sub_issue
 
     @pytest.mark.asyncio
     async def test_attach_exception_still_returns(self, service):
         sub_issue = {"id": 100, "number": 50}
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
-            service._client = AsyncMock()
-            service._client.post = AsyncMock(side_effect=Exception("network"))
-            result = await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
+            with patch.object(
+                service,
+                "_request_with_retry",
+                new_callable=AsyncMock,
+                side_effect=Exception("network"),
+            ):
+                result = await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
         assert result == sub_issue
 
 
@@ -3522,3 +3631,133 @@ class TestGetPrTimelineEvents:
         service._client.get = AsyncMock(side_effect=_httpx.HTTPError("err"))
         result = await service.get_pr_timeline_events("tok", "o", "r", 5)
         assert result == []
+
+
+class TestRequestWithRetry502:
+    """Tests for _request_with_retry handling 502 Bad Gateway."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_retries_on_502_then_succeeds(self, service):
+        """502 Bad Gateway should be retried and succeed on a subsequent attempt."""
+        import httpx as _httpx
+
+        ok_resp = Mock(status_code=200, headers={})
+        ok_resp.raise_for_status = Mock()
+
+        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
+        err_resp.raise_for_status = Mock(
+            side_effect=_httpx.HTTPStatusError(
+                "502",
+                request=_httpx.Request("POST", "http://example.com"),
+                response=err_resp,
+            )
+        )
+
+        # First call returns 502, second call succeeds
+        service._client.post = AsyncMock(side_effect=[err_resp, ok_resp])
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await service._request_with_retry(
+                method="POST",
+                url="http://example.com",
+                headers={},
+                json={"test": True},
+                idempotent=True,
+            )
+
+        assert result == ok_resp
+        assert service._client.post.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_502_not_retried_when_not_idempotent(self, service):
+        """Non-idempotent requests should NOT retry on 502."""
+        import httpx as _httpx
+
+        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
+        err_resp.raise_for_status = Mock(
+            side_effect=_httpx.HTTPStatusError(
+                "502",
+                request=_httpx.Request("POST", "http://example.com"),
+                response=err_resp,
+            )
+        )
+
+        service._client.post = AsyncMock(return_value=err_resp)
+
+        with pytest.raises(_httpx.HTTPStatusError):
+            await service._request_with_retry(
+                method="POST",
+                url="http://example.com",
+                headers={},
+                json={"test": True},
+                idempotent=False,
+            )
+
+        assert service._client.post.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_502_exhausts_retries(self, service):
+        """When all retry attempts get 502, the error should be raised."""
+        import httpx as _httpx
+
+        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
+        err_resp.raise_for_status = Mock(
+            side_effect=_httpx.HTTPStatusError(
+                "502",
+                request=_httpx.Request("POST", "http://example.com"),
+                response=err_resp,
+            )
+        )
+
+        # All 4 attempts (1 initial + 3 retries) return 502
+        service._client.post = AsyncMock(return_value=err_resp)
+
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            with pytest.raises(_httpx.HTTPStatusError):
+                await service._request_with_retry(
+                    method="POST",
+                    url="http://example.com",
+                    headers={},
+                    json={"test": True},
+                    idempotent=True,
+                )
+
+        # 1 initial + MAX_RETRIES (3) = 4 attempts
+        assert service._client.post.call_count == 4
+
+
+class TestCreateSubIssueAttachmentRetry:
+    """Tests for create_sub_issue using _request_with_retry for attachment."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_attachment_uses_request_with_retry(self, service):
+        """Verify that sub-issue attachment routes through _request_with_retry."""
+        sub_issue = {"id": 100, "number": 50, "node_id": "I_50", "html_url": "..."}
+
+        with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
+            with patch.object(
+                service,
+                "_request_with_retry",
+                new_callable=AsyncMock,
+                return_value=Mock(status_code=201),
+            ) as mock_retry:
+                await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
+
+        mock_retry.assert_called_once()
+        call_kwargs = mock_retry.call_args
+        assert call_kwargs.kwargs.get("method") == "POST" or call_kwargs[1].get("method") == "POST"
+        # Verify the URL points to the sub-issues attachment endpoint
+        url_arg = call_kwargs.kwargs.get("url") or call_kwargs[1].get("url", "")
+        assert "/issues/42/sub_issues" in url_arg
+        # Verify idempotent=True so the attachment is retried on transient errors
+        assert (
+            call_kwargs.kwargs.get("idempotent") is True or call_kwargs[1].get("idempotent") is True
+        )
