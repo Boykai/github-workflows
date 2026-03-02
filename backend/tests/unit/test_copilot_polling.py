@@ -429,6 +429,201 @@ class TestCheckInProgressIssues:
         mock_process.assert_called_once()
         assert len(results) == 1
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.pipeline.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.pipeline._get_or_reconstruct_pipeline", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.pipeline._process_pipeline_completion", new_callable=AsyncMock
+    )
+    async def test_reconstructs_pipeline_when_in_memory_state_lost(
+        self,
+        mock_process_completion,
+        mock_reconstruct,
+        mock_config,
+        mock_get_pipeline,
+        mock_process,
+        mock_service,
+        mock_task,
+    ):
+        """When in-memory pipeline state is None (e.g. server restart),
+        check_in_progress_issues should reconstruct from issue comments
+        instead of falling through to the legacy path that skips agents."""
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+        mock_config.return_value = config
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+
+        # No in-memory pipeline (simulates server restart)
+        mock_get_pipeline.return_value = None
+
+        # Reconstructed pipeline has speckit.implement not yet done
+        reconstructed = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=0,
+            completed_agents=[],
+            started_at=utcnow(),
+        )
+        mock_reconstruct.return_value = reconstructed
+        mock_process_completion.return_value = None  # Agent not done yet
+
+        results = await check_in_progress_issues(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        # Should reconstruct, NOT fall through to legacy path
+        mock_reconstruct.assert_called_once()
+        mock_process_completion.assert_called_once()
+        mock_process.assert_not_called()
+        assert len(results) == 0
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.pipeline.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.pipeline._get_or_reconstruct_pipeline", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.pipeline._process_pipeline_completion", new_callable=AsyncMock
+    )
+    async def test_reconstructed_complete_pipeline_transitions_properly(
+        self,
+        mock_process_completion,
+        mock_reconstruct,
+        mock_config,
+        mock_get_pipeline,
+        mock_process,
+        mock_service,
+        mock_task,
+    ):
+        """When reconstruction shows all In Progress agents are done,
+        _process_pipeline_completion should handle the transition to
+        In Review (not the legacy path)."""
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+        mock_config.return_value = config
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+
+        # No in-memory pipeline
+        mock_get_pipeline.return_value = None
+
+        # Reconstructed pipeline shows speckit.implement already done
+        reconstructed = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+            started_at=utcnow(),
+        )
+        mock_reconstruct.return_value = reconstructed
+        mock_process_completion.return_value = {
+            "status": "success",
+            "action": "status_transitioned",
+            "from_status": "In Progress",
+            "to_status": "In Review",
+        }
+
+        results = await check_in_progress_issues(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        # Pipeline path should handle transition
+        mock_reconstruct.assert_called_once()
+        mock_process_completion.assert_called_once()
+        mock_process.assert_not_called()
+        assert len(results) == 1
+        assert results[0]["action"] == "status_transitioned"
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.pipeline.process_in_progress_issue")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.pipeline._get_or_reconstruct_pipeline", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.pipeline._process_pipeline_completion", new_callable=AsyncMock
+    )
+    async def test_status_mismatch_pipeline_uses_correct_transition_target(
+        self,
+        mock_process_completion,
+        mock_reconstruct,
+        mock_config,
+        mock_get_pipeline,
+        mock_process,
+        mock_service,
+        mock_task,
+    ):
+        """When the issue is In Progress but pipeline tracks Backlog,
+        the transition target should be Ready (not In Review)."""
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id="PVT_123",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+        mock_config.return_value = config
+        mock_service.get_project_items = AsyncMock(return_value=[mock_task])
+
+        # Pipeline tracks Backlog, but issue is in In Progress
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=0,
+            completed_agents=[],
+            started_at=utcnow(),
+        )
+        mock_get_pipeline.return_value = pipeline
+
+        mock_process_completion.return_value = None  # Agent not done yet
+
+        with patch("src.services.copilot_polling.set_pipeline_state"):
+            await check_in_progress_issues(
+                access_token="test-token",
+                project_id="PVT_123",
+                owner="owner",
+                repo="repo",
+            )
+
+        # Pipeline status should be updated, transition target should be Ready
+        assert pipeline.status == "In Progress"
+        mock_process_completion.assert_called_once()
+        call_kwargs = mock_process_completion.call_args.kwargs
+        assert call_kwargs["from_status"] == "Backlog"
+        assert call_kwargs["to_status"] == "Ready"
+        mock_process.assert_not_called()
+
 
 class TestProcessInProgressIssue:
     """Tests for processing individual in-progress issues."""

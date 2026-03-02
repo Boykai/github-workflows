@@ -1336,46 +1336,53 @@ async def check_in_progress_issues(
                     # polling iterations treat it as an "In Progress" pipeline.
                     pipeline.status = config.status_in_progress if config else "In Progress"
                     _cp.set_pipeline_state(task.issue_number, pipeline)
-                    # Fall through to the normal In Progress handling below
-                    # (don't 'continue')
+                    # Fall through to pipeline processing below
 
-            # Check for active pipeline (e.g., speckit.implement)
-            if (
-                pipeline
-                and not pipeline.is_complete
-                and pipeline.status.lower() == in_progress_label
-            ):
-                # Check if current agent has completed (via Done! comment marker)
-                current_agent = pipeline.current_agent
-                if current_agent:
-                    completed = await _cp._check_agent_done_on_sub_or_parent(
+            # If no in-memory pipeline (e.g. server restart) or the cached
+            # pipeline is already complete (leftover from a previous status),
+            # reconstruct from issue comments for In Progress agents.
+            # Without this, the legacy fallback would skip all remaining
+            # pipeline agents (speckit.plan, speckit.tasks, speckit.implement)
+            # and jump straight to "In Review".
+            if pipeline is None or pipeline.is_complete:
+                agents = _cp.get_agent_slugs(config, config.status_in_progress) if config else []
+                if agents:
+                    pipeline = await _get_or_reconstruct_pipeline(
                         access_token=access_token,
                         owner=task_owner,
                         repo=task_repo,
-                        parent_issue_number=task.issue_number,
-                        agent_name=current_agent,
-                        pipeline=pipeline,
+                        issue_number=task.issue_number,
+                        project_id=project_id,
+                        status=config.status_in_progress if config else "In Progress",
+                        agents=agents,
+                        expected_status=config.status_in_progress if config else "In Progress",
                     )
+                else:
+                    # No agents configured for In Progress — cannot reconstruct.
+                    # Clear stale completed pipeline so we fall to legacy path.
+                    pipeline = None
 
-                    if completed:
-                        result = await _advance_pipeline(
-                            access_token=access_token,
-                            project_id=project_id,
-                            item_id=task.github_item_id,
-                            owner=task_owner,
-                            repo=task_repo,
-                            issue_number=task.issue_number,
-                            issue_node_id=task.github_content_id,
-                            pipeline=pipeline,
-                            from_status=effective_from_status,
-                            to_status=effective_to_status,
-                            task_title=task.title,
-                        )
-                        if result:
-                            results.append(result)
+            # Process pipeline completion/advancement using the consolidated
+            # helper — same pattern as check_backlog_issues / check_ready_issues.
+            # This handles: is_complete → transition, agent done → advance,
+            # agent never assigned → reassign (with grace-period awareness).
+            if pipeline:
+                result = await _process_pipeline_completion(
+                    access_token=access_token,
+                    project_id=project_id,
+                    task=task,
+                    owner=owner,
+                    repo=repo,
+                    pipeline=pipeline,
+                    from_status=effective_from_status,
+                    to_status=effective_to_status,
+                )
+                if result:
+                    results.append(result)
                 continue
 
-            # No active pipeline — use legacy PR completion detection
+            # No active pipeline and no agents configured for In Progress —
+            # use legacy PR completion detection.
             result = await process_in_progress_issue(
                 access_token=access_token,
                 project_id=project_id,
