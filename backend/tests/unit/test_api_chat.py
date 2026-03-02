@@ -14,7 +14,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.models.chat import (
+from src.models.recommendation import (
     AITaskProposal,
     IssueRecommendation,
     ProposalStatus,

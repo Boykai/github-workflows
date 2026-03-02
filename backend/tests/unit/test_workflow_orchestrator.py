@@ -5,14 +5,9 @@ from uuid import uuid4
 
 import pytest
 
-from src.models.chat import (
-    AgentAssignment,
-    IssueMetadata,
-    IssueRecommendation,
-    TriggeredBy,
-    WorkflowConfiguration,
-    WorkflowResult,
-)
+from src.models.agent import AgentAssignment
+from src.models.recommendation import IssueMetadata, IssueRecommendation
+from src.models.workflow import TriggeredBy, WorkflowConfiguration, WorkflowResult
 from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
@@ -828,7 +823,7 @@ class TestTransitionLogging:
     def test_get_transitions_by_issue_id(self):
         """Should filter transitions by issue_id."""
 
-        from src.models.chat import WorkflowTransition
+        from src.models.workflow import WorkflowTransition
         from src.services.workflow_orchestrator import (
             _transitions,
             get_transitions,
@@ -896,7 +891,7 @@ class TestCreateIssueFromRecommendation:
         """Should create GitHub issue from recommendation."""
         from uuid import uuid4
 
-        from src.models.chat import IssueRecommendation
+        from src.models.recommendation import IssueRecommendation
 
         recommendation = IssueRecommendation(
             recommendation_id=uuid4(),
@@ -935,7 +930,7 @@ class TestCreateIssueFromRecommendation:
 
         from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
         from src.exceptions import ValidationError as AppValidationError
-        from src.models.chat import IssueRecommendation
+        from src.models.recommendation import IssueRecommendation
 
         # Create a recommendation with fields large enough that the assembled body exceeds the limit
         huge_story = "X" * (GITHUB_ISSUE_BODY_MAX_LENGTH + 1)
@@ -963,7 +958,7 @@ class TestCreateIssueFromRecommendation:
         from uuid import uuid4
 
         from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
-        from src.models.chat import IssueRecommendation
+        from src.models.recommendation import IssueRecommendation
 
         recommendation = IssueRecommendation(
             recommendation_id=uuid4(),
@@ -1510,7 +1505,7 @@ class TestSetIssueMetadata:
 
     @pytest.mark.asyncio
     async def test_sets_metadata(self, orch, ctx, mock_github):
-        from src.models.chat import IssueMetadata
+        from src.models.recommendation import IssueMetadata
 
         meta = IssueMetadata(estimate_hours=4, start_date="2026-01-01")
         await orch._set_issue_metadata(ctx, meta)
@@ -1519,7 +1514,7 @@ class TestSetIssueMetadata:
     @pytest.mark.asyncio
     async def test_no_project_item_id_skips(self, orch, mock_github):
         ctx = WorkflowContext(session_id="s", project_id="P1", access_token="tok")
-        from src.models.chat import IssueMetadata
+        from src.models.recommendation import IssueMetadata
 
         meta = IssueMetadata()
         await orch._set_issue_metadata(ctx, meta)
@@ -1527,7 +1522,7 @@ class TestSetIssueMetadata:
 
     @pytest.mark.asyncio
     async def test_exception_does_not_raise(self, orch, ctx, mock_github):
-        from src.models.chat import IssueMetadata
+        from src.models.recommendation import IssueMetadata
 
         mock_github.set_issue_metadata.side_effect = Exception("API error")
         meta = IssueMetadata(estimate_hours=2)

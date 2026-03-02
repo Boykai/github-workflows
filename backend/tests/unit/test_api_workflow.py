@@ -27,13 +27,8 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.api.workflow import _check_duplicate, _get_repository_info, _recent_requests
-from src.models.chat import (
-    IssueRecommendation,
-    RecommendationStatus,
-    WorkflowConfiguration,
-    WorkflowResult,
-    WorkflowTransition,
-)
+from src.models.recommendation import IssueRecommendation, RecommendationStatus
+from src.models.workflow import WorkflowConfiguration, WorkflowResult, WorkflowTransition
 from src.models.user import UserSession
 from src.utils import utcnow
 

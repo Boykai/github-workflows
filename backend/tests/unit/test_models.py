@@ -128,7 +128,7 @@ class TestIssueMetadata:
 
     def test_create_metadata_with_defaults(self):
         """Should create metadata with default values."""
-        from src.models.chat import IssueMetadata, IssuePriority, IssueSize
+        from src.models.recommendation import IssueMetadata, IssuePriority, IssueSize
 
         metadata = IssueMetadata()
 
@@ -141,7 +141,7 @@ class TestIssueMetadata:
 
     def test_create_metadata_with_custom_values(self):
         """Should create metadata with custom values."""
-        from src.models.chat import IssueMetadata, IssuePriority, IssueSize
+        from src.models.recommendation import IssueMetadata, IssuePriority, IssueSize
 
         metadata = IssueMetadata(
             priority=IssuePriority.P0,
@@ -161,7 +161,7 @@ class TestIssueMetadata:
 
     def test_estimate_hours_bounds(self):
         """Should enforce bounds on estimate_hours."""
-        from src.models.chat import IssueMetadata
+        from src.models.recommendation import IssueMetadata
 
         # Valid values should work
         metadata = IssueMetadata(estimate_hours=0.5)
@@ -185,7 +185,7 @@ class TestIssueRecommendation:
         """Should create recommendation with metadata."""
         from uuid import uuid4
 
-        from src.models.chat import (
+        from src.models.recommendation import (
             IssueMetadata,
             IssuePriority,
             IssueRecommendation,
@@ -222,7 +222,7 @@ class TestIssueRecommendation:
         """Should use default metadata when not provided."""
         from uuid import uuid4
 
-        from src.models.chat import IssuePriority, IssueRecommendation, IssueSize
+        from src.models.recommendation import IssuePriority, IssueRecommendation, IssueSize
 
         recommendation = IssueRecommendation(
             session_id=uuid4(),

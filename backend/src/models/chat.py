@@ -1,9 +1,4 @@
-"""Chat message models.
-
-Agent, workflow, and recommendation models have been extracted to their own
-modules.  This file re-exports all previously-public names so existing
-``from src.models.chat import …`` statements continue to work.
-"""
+"""Chat message models."""
 
 import re
 from datetime import datetime
@@ -13,34 +8,6 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.constants import DEFAULT_AGENT_MAPPINGS  # noqa: F401  — backward compat
-
-# ---- Re-exports for backward compatibility --------------------------------
-from src.models.agent import (  # noqa: F401
-    AgentAssignment,
-    AgentAssignmentInput,
-    AgentSource,
-    AvailableAgent,
-    AvailableAgentsResponse,
-)
-from src.models.recommendation import (  # noqa: F401
-    AVAILABLE_LABELS,
-    AITaskProposal,
-    IssueLabel,
-    IssueMetadata,
-    IssuePriority,
-    IssueRecommendation,
-    IssueSize,
-    ProposalConfirmRequest,
-    ProposalStatus,
-    RecommendationStatus,
-)
-from src.models.workflow import (  # noqa: F401
-    TriggeredBy,
-    WorkflowConfiguration,
-    WorkflowResult,
-    WorkflowTransition,
-)
 from src.utils import utcnow
 
 # ============================================================================

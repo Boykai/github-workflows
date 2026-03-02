@@ -13,8 +13,8 @@ export const STALE_TIME_LONG = 5 * 60 * 1000;
 /** Stale time for moderately-changing data (1 minute). */
 export const STALE_TIME_MEDIUM = 60 * 1000;
 
-/** Stale time for frequently-changing data (60 seconds). */
-export const STALE_TIME_SHORT = 60 * 1000;
+/** Stale time for frequently-changing data (30 seconds). */
+export const STALE_TIME_SHORT = 30 * 1000;
 
 // ============ Polling Intervals ============
 
