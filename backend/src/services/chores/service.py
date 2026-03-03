@@ -19,6 +19,34 @@ def _strip_front_matter(text: str) -> str:
     return re.sub(r"\A---\n.*?\n---\n?", "", text, count=1, flags=re.DOTALL).strip()
 
 
+def _extract_front_matter_field(text: str, field: str) -> str | None:
+    """Extract a single scalar field value from YAML front matter.
+
+    Only handles scalar string values (not lists/multi-line blocks).
+    Returns the unquoted string value, or None if not found.
+
+    Examples::
+
+        title: '[CHORE] Bug Basher'  →  '[CHORE] Bug Basher'
+        assignees: ''                →  ''
+        labels: chore                →  'chore'
+    """
+    fm_match = re.match(r"\A---\n(.*?)\n---\n?", text, flags=re.DOTALL)
+    if not fm_match:
+        return None
+    fm_body = fm_match.group(1)
+    # Match "field: value" lines, value may be bare or single/double-quoted
+    pattern = re.compile(
+        rf"^{re.escape(field)}:\s*(?P<val>['\"]?.*?['\"]?)\s*$",
+        re.MULTILINE,
+    )
+    val_match = pattern.search(fm_body)
+    if not val_match:
+        return None
+    val = val_match.group("val").strip("'\"")
+    return val or None
+
+
 class ChoresService:
     """Manages chore records in the SQLite database."""
 
@@ -272,6 +300,7 @@ class ChoresService:
         repo: str,
         project_id: str,
         parent_issue_count: int | None = None,
+        github_user_id: str = "",
     ) -> ChoreTriggerResult:
         """Trigger a single chore: create issue, run agent pipeline, update record.
 
@@ -297,51 +326,238 @@ class ChoresService:
                     skip_reason=f"Open instance exists (issue #{chore.current_issue_number})",
                 )
 
-        # Create GitHub issue from template content (strip YAML front matter)
+        # Create GitHub issue from template content (strip YAML front matter).
+        # The agent pipeline tracking table is appended to the body so the
+        # polling loop can read pipeline state directly from the issue.
         issue_body = _strip_front_matter(chore.template_content or "")
+
+        # Load workflow config early so we can embed the tracking table in the
+        # issue body *before* creation and run the full agent pipeline afterwards.
+        from src.config import get_settings
+        from src.models.workflow import WorkflowConfiguration
+        from src.services.agent_tracking import append_tracking_to_body
+        from src.services.workflow_orchestrator import (
+            PipelineState,
+            WorkflowContext,
+            get_agent_slugs,
+            get_status_order,
+            get_workflow_config,
+            get_workflow_orchestrator,
+            set_pipeline_state,
+            set_workflow_config,
+        )
+        from src.services.workflow_orchestrator.config import load_user_agent_mappings
+        from src.utils import utcnow
+
+        settings = get_settings()
+
+        # ── Load or bootstrap workflow config (mirrors signal_chat flow) ──
+        config = await get_workflow_config(project_id)
+        if not config:
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+                copilot_assignee=settings.default_assignee,
+            )
+            await set_workflow_config(project_id, config)
+            logger.info(
+                "Bootstrapped default workflow config for project %s",
+                project_id,
+            )
+        else:
+            config.repository_owner = owner
+            config.repository_name = repo
+            if not config.copilot_assignee:
+                config.copilot_assignee = settings.default_assignee
+
+        # ── Apply user-specific agent pipeline mappings ──
+        if github_user_id:
+            user_mappings = await load_user_agent_mappings(github_user_id, project_id)
+            if user_mappings:
+                logger.info(
+                    "Applying user-specific agent pipeline mappings for "
+                    "user=%s project=%s (chore trigger)",
+                    github_user_id,
+                    project_id,
+                )
+                config.agent_mappings = user_mappings
+                await set_workflow_config(project_id, config)
+
+        # ── Derive issue title from template front matter (fallback: chore name) ──
+        template_title = (
+            _extract_front_matter_field(chore.template_content or "", "title") or chore.name
+        )
+
+        # ── Build issue body with agent metadata + tracking table ──
+        # IMPORTANT: The "Assigned Agents" summary MUST come *before* the
+        # tracking table.  The tracking-update helpers use a regex that strips
+        # everything from "---\n## 🤖 Agent Pipeline" to end-of-string, so any
+        # content placed *after* the table would be erased on every state update.
+        if config.agent_mappings:
+            status_order = get_status_order(config)
+
+            # 1. Append the human-readable assigned-agents summary first so it
+            #    is preserved across tracking-table updates.
+            agent_lines: list[str] = ["\n\n---\n\n**Assigned Agents**\n"]
+            for status_name in status_order:
+                slugs = get_agent_slugs(config, status_name)
+                if slugs:
+                    agent_lines.append(f"- **{status_name}**: {', '.join(slugs)}")
+            if config.copilot_assignee:
+                agent_lines.append(f"\n**Copilot Assignee**: `{config.copilot_assignee}`")
+            issue_body += "\n".join(agent_lines)
+
+            # 2. Append the machine-readable tracking table after the summary.
+            issue_body = append_tracking_to_body(issue_body, config.agent_mappings, status_order)
+            logger.info("Appended agent pipeline tracking to chore issue body")
+
+        # Collect assignees: always include the copilot assignee so that
+        # Copilot is visible on the issue even if the pipeline step fails.
+        issue_assignees: list[str] = []
+        if config.copilot_assignee:
+            issue_assignees.append(config.copilot_assignee)
+
         issue = await github_service.create_issue(
             access_token,
             owner,
             repo,
-            title=chore.name,
+            title=template_title,
             body=issue_body,
             labels=["chore"],
+            assignees=issue_assignees or None,
         )
 
         issue_number = issue["number"]
         issue_node_id = issue["node_id"]
         issue_url = issue["html_url"]
 
-        # Add to project
-        await github_service.add_issue_to_project(access_token, project_id, issue_node_id)
+        # Add to project and capture the item_id for status updates
+        item_id = await github_service.add_issue_to_project(
+            access_token,
+            project_id,
+            issue_node_id,
+            issue_database_id=issue.get("id"),
+        )
 
-        # Run agent pipeline (if workflow config exists)
-        try:
-            from src.services.workflow_orchestrator import (
-                WorkflowContext,
-                get_workflow_config,
-                get_workflow_orchestrator,
-            )
+        # Run agent pipeline:
+        # 1. Set issue status to Backlog
+        # 2. Create sub-issues for every agent
+        # 3. Initialise PipelineState so the polling loop can track progress
+        # 4. Assign the first agent to start work
+        # 5. Ensure Copilot polling is running
+        #
+        # Each step is wrapped independently so a transient GitHub API
+        # error in one step does not prevent the remaining steps from running.
+        backlog_status = config.status_backlog
 
-            config = await get_workflow_config(project_id)
-            if config:
-                ctx = WorkflowContext(
-                    session_id=str(uuid.uuid4()),
-                    project_id=project_id,
+        ctx = WorkflowContext(
+            session_id=str(uuid.uuid4()),
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            config=config,
+        )
+        ctx.issue_id = issue_node_id
+        ctx.issue_number = issue_number
+        ctx.project_item_id = item_id
+
+        orchestrator = get_workflow_orchestrator()
+
+        # STEP 1 — Set Backlog status on project board (non-fatal)
+        if item_id:
+            try:
+                await github_service.update_item_status_by_name(
                     access_token=access_token,
-                    repository_owner=owner,
-                    repository_name=repo,
-                    config=config,
+                    project_id=project_id,
+                    item_id=item_id,
+                    status_name=backlog_status,
                 )
-                ctx.issue_id = issue_node_id
-                ctx.issue_number = issue_number
+                logger.info(
+                    "Set chore issue #%d status to '%s' on project",
+                    issue_number,
+                    backlog_status,
+                )
+            except Exception:
+                logger.warning(
+                    "Could not set project status for chore issue #%d (non-fatal);"
+                    " the polling loop will correct this.",
+                    issue_number,
+                )
 
-                orchestrator = get_workflow_orchestrator()
-                await orchestrator.create_all_sub_issues(ctx)
+        # STEP 2 — Create all sub-issues upfront (with one retry on 5xx)
+        agent_sub_issues: dict[str, dict] = {}
+        for attempt in range(1, 3):  # up to 2 attempts
+            try:
+                agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
+                if agent_sub_issues:
+                    logger.info(
+                        "Pre-created %d sub-issues for chore issue #%d (attempt %d)",
+                        len(agent_sub_issues),
+                        issue_number,
+                        attempt,
+                    )
+                break  # success — stop retrying
+            except Exception as exc:
+                logger.warning(
+                    "Sub-issue creation attempt %d/%d failed for chore issue #%d: %s",
+                    attempt,
+                    2,
+                    issue_number,
+                    exc,
+                )
+                if attempt < 2:
+                    import asyncio
+
+                    await asyncio.sleep(3)
+
+        # STEP 3 — Initialise PipelineState (always, even with 0 sub-issues)
+        try:
+            backlog_agents = get_agent_slugs(config, backlog_status)
+            pipeline_state = PipelineState(
+                issue_number=issue_number,
+                project_id=project_id,
+                status=backlog_status,
+                agents=backlog_agents,
+                agent_sub_issues=agent_sub_issues,
+                started_at=utcnow(),
+            )
+            set_pipeline_state(issue_number, pipeline_state)
+            logger.info(
+                "Initialised PipelineState for chore issue #%d (agents: %s)",
+                issue_number,
+                backlog_agents,
+            )
         except Exception:
             logger.exception(
-                "Agent pipeline failed for chore %s (issue #%s)",
-                chore.name,
+                "Failed to initialise PipelineState for chore issue #%d",
+                issue_number,
+            )
+
+        # STEP 4 — Assign the first Backlog agent to begin work (non-fatal)
+        try:
+            await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+        except Exception:
+            logger.exception(
+                "Agent assignment failed for chore issue #%d; recovery loop will retry.",
+                issue_number,
+            )
+
+        # STEP 5 — Ensure Copilot polling is running so the pipeline advances
+        try:
+            from src.services.copilot_polling import ensure_polling_started
+
+            await ensure_polling_started(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                caller="chore_trigger",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to start Copilot polling for chore issue #%d",
                 issue_number,
             )
 

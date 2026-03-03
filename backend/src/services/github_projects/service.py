@@ -1212,6 +1212,7 @@ class GitHubProjectsService:
         title: str,
         body: str,
         labels: list[str] | None = None,
+        assignees: list[str] | None = None,
     ) -> dict:
         """
         Create a GitHub Issue using REST API (T018).
@@ -1228,17 +1229,20 @@ class GitHubProjectsService:
             title: Issue title
             body: Issue body (markdown)
             labels: Optional list of label names
+            assignees: Optional list of GitHub login names to assign
 
         Returns:
             Dict with issue details: id, node_id, number, html_url
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/issues"
         headers = self._build_headers(access_token)
-        payload = {
+        payload: dict = {
             "title": title,
             "body": body,
             "labels": labels or [],
         }
+        if assignees:
+            payload["assignees"] = assignees
 
         response = await self._request_with_retry(
             method="POST",
@@ -1933,7 +1937,7 @@ class GitHubProjectsService:
         issue_number: int,
     ) -> bool:
         """
-        Check if a GitHub Issue is closed.
+        Check if a GitHub Issue is closed or no longer exists.
 
         Args:
             access_token: GitHub OAuth access token
@@ -1942,7 +1946,7 @@ class GitHubProjectsService:
             issue_number: Issue number
 
         Returns:
-            True if the issue state is 'closed'
+            True if the issue state is 'closed' or the issue was deleted (404/410)
         """
         try:
             url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
@@ -1952,6 +1956,18 @@ class GitHubProjectsService:
             # should be as resilient as other GitHub API calls.
             response = await self._request_with_retry("GET", url, headers=headers)
             return response.json().get("state", "") == "closed"
+        except httpx.HTTPStatusError as e:
+            # 404 Not Found / 410 Gone → issue was deleted; treat as closed
+            # so the caller can clear stale references and proceed.
+            if e.response.status_code in (404, 410):
+                logger.info(
+                    "Issue #%d returned %d — treating as closed (deleted)",
+                    issue_number,
+                    e.response.status_code,
+                )
+                return True
+            logger.warning("Error checking issue #%d state: %s", issue_number, e)
+            return False
         except Exception as e:
             logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False
