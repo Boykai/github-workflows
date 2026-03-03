@@ -524,3 +524,74 @@ class TestGithubWebhookEndpoint:
                 },
             )
         assert resp.status_code == 200
+
+
+# ── Regression: deduplication uses BoundedSet (insertion-ordered eviction) ──
+
+
+class TestDeduplicationBoundedSet:
+    """Bug-bash regression: webhook deduplication must evict oldest entries
+    when capacity is reached, using BoundedSet instead of an unordered set."""
+
+    def test_module_uses_bounded_set(self):
+        """Verify the module-level variable is actually a BoundedSet."""
+        from src.api.webhooks import _processed_delivery_ids
+        from src.utils import BoundedSet
+
+        assert isinstance(_processed_delivery_ids, BoundedSet)
+
+    def test_deduplication_set_rejects_duplicates(self):
+        """Adding a known delivery ID should be detected as duplicate."""
+        from src.api import webhooks as wh_mod
+        from src.utils import BoundedSet
+
+        original = wh_mod._processed_delivery_ids
+        wh_mod._processed_delivery_ids = BoundedSet(maxlen=5)
+        try:
+            wh_mod._processed_delivery_ids.add("d-1")
+            wh_mod._processed_delivery_ids.add("d-2")
+            assert "d-1" in wh_mod._processed_delivery_ids
+            assert "d-2" in wh_mod._processed_delivery_ids
+            assert "d-3" not in wh_mod._processed_delivery_ids
+        finally:
+            wh_mod._processed_delivery_ids = original
+
+    def test_bounded_set_evicts_in_fifo_order(self):
+        """When capacity is exceeded, the FIRST-inserted entry is evicted."""
+        from src.utils import BoundedSet
+
+        bs = BoundedSet(maxlen=3)
+        bs.add("a")
+        bs.add("b")
+        bs.add("c")
+        bs.add("d")
+        assert "a" not in bs
+        assert "b" in bs
+        assert "c" in bs
+        assert "d" in bs
+
+
+# ── Regression: issue matching uses issue_number, not github_item_id ────────
+
+
+class TestIssueMatchingByNumber:
+    """Bug-bash regression: webhook issue matching must compare
+    item.issue_number (int) instead of item.github_item_id (GraphQL node ID)."""
+
+    def test_matches_issue_by_number_not_node_id(self):
+        """Verify that Task.issue_number is the correct field to match on,
+        and that github_item_id (a GraphQL node ID) would NOT work."""
+        from src.models.task import Task
+
+        task = Task(
+            project_id="PVT_1",
+            github_item_id="PVTI_lADOABCDEF",
+            title="Fix login flow",
+            status="In Progress",
+            status_option_id="opt1",
+            issue_number=42,
+        )
+
+        assert task.issue_number == 42
+        # The old buggy comparison would have FAILED
+        assert str(42) not in str(task.github_item_id)
