@@ -4,6 +4,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -134,8 +135,27 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     initialised.
     """
     settings = get_settings()
-    setup_logging(settings.debug)
+    setup_logging(settings.debug, structured=not settings.debug)
     logger.info("Starting Agent Projects API")
+
+    # Install a global handler for unhandled async exceptions so they are
+    # logged with context rather than silently swallowed by the event loop.
+    loop = asyncio.get_running_loop()
+    _original_handler = loop.get_exception_handler()
+
+    def _async_exception_handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+        exc = context.get("exception")
+        message = context.get("message", "Unhandled async exception")
+        logger.error(
+            "Unhandled async exception: %s (message=%s)",
+            type(exc).__name__ if exc else "unknown",
+            message,
+            exc_info=exc,
+        )
+        if _original_handler is not None:
+            _original_handler(loop, context)
+
+    loop.set_exception_handler(_async_exception_handler)
 
     from src.services.database import close_database, init_database, seed_global_settings
 
@@ -252,7 +272,16 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled exception: %s", exc)
+        from src.middleware.request_id import request_id_var
+
+        rid = request_id_var.get("")
+        logger.exception(
+            "Unhandled exception [request_id=%s method=%s path=%s]: %s",
+            rid,
+            _request.method,
+            _request.url.path,
+            type(exc).__name__,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Internal server error"},

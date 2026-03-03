@@ -250,7 +250,7 @@ async def confirm_recommendation(
         logger.error("Workflow failed: %s", e)
         return WorkflowResult(
             success=False,
-            message=f"Failed to create issue: {str(e)}",
+            message="Failed to create issue. Please try again.",
         )
 
 
