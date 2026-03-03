@@ -74,12 +74,19 @@ def mock_task_no_issue():
 
 @pytest.fixture(autouse=True)
 def clear_processed_cache():
-    """Clear the processed cache before each test."""
+    """Clear the processed cache and global state before each test."""
+    from src.services.workflow_orchestrator import _pipeline_states
+    from src.services.workflow_orchestrator.config import _workflow_configs
+
     _processed_issue_prs.clear()
     _claimed_child_prs.clear()
+    _pipeline_states.clear()
+    _workflow_configs.clear()
     yield
     _processed_issue_prs.clear()
     _claimed_child_prs.clear()
+    _pipeline_states.clear()
+    _workflow_configs.clear()
 
 
 class TestIsSubIssue:
@@ -146,6 +153,32 @@ class TestGetPollingStatus:
 
 class TestCheckInProgressIssues:
     """Tests for checking in-progress issues."""
+
+    @pytest.fixture(autouse=True)
+    def mock_workflow_config(self):
+        """Provide a default workflow config and clean state for all tests."""
+        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.workflow_orchestrator.config import _workflow_configs
+
+        _pipeline_states.clear()
+        _workflow_configs.clear()
+
+        config = MagicMock(
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            status_backlog="Backlog",
+            status_ready="Ready",
+            agent_mappings={},
+        )
+        with patch(
+            "src.services.copilot_polling.get_workflow_config",
+            new_callable=AsyncMock,
+            return_value=config,
+        ):
+            yield config
+
+        _pipeline_states.clear()
+        _workflow_configs.clear()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -2390,6 +2423,169 @@ class TestTransitionAfterPipelineComplete:
 
         assert result["status"] == "error"
         assert "Failed to update status" in result["error"]
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.get_agent_slugs")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    async def test_bootstraps_config_when_none(
+        self,
+        mock_get_orchestrator,
+        mock_get_slugs,
+        mock_get_pipeline,
+        mock_remove,
+        mock_set_config,
+        mock_config,
+        mock_ws,
+        mock_service,
+    ):
+        """When get_workflow_config returns None during transition,
+        a default config should be bootstrapped so agents can be assigned."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = None  # Config is None!
+        mock_get_pipeline.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_get_slugs.return_value = ["speckit.plan", "speckit.tasks"]
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_service.get_pull_request = AsyncMock(return_value=None)
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        result = await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="Backlog",
+            to_status="Ready",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        # Config should have been bootstrapped via set_workflow_config
+        mock_set_config.assert_called_once()
+        # Agent should have been assigned
+        mock_orchestrator.assign_agent_for_status.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.set_issue_sub_issues")
+    async def test_preserves_sub_issue_mappings_before_removal(
+        self,
+        mock_set_subs,
+        mock_get_pipeline,
+        mock_remove,
+        mock_config,
+        mock_ws,
+        mock_service,
+    ):
+        """Sub-issue mappings should be persisted to the global store before
+        pipeline state is removed so subsequent agents can find them."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        old_pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify"],
+            current_agent_index=1,
+            agent_sub_issues={
+                "speckit.specify": {"number": 100, "node_id": "SI_100"},
+                "speckit.plan": {"number": 101, "node_id": "SI_101"},
+            },
+        )
+        mock_get_pipeline.return_value = old_pipeline
+
+        await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="Backlog",
+            to_status="Ready",
+            task_title="Test Issue",
+        )
+
+        # Sub-issue mappings should be saved to global store before removal
+        mock_set_subs.assert_called_once_with(42, old_pipeline.agent_sub_issues)
+        mock_remove.assert_called_once_with(42)
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.get_agent_slugs")
+    @patch("src.services.copilot_polling.find_next_actionable_status")
+    @patch("src.services.copilot_polling.parse_tracking_from_body")
+    async def test_pass_through_blocked_when_tracking_has_pending_agents(
+        self,
+        mock_parse_tracking,
+        mock_find_next,
+        mock_get_slugs,
+        mock_get_pipeline,
+        mock_remove,
+        mock_config,
+        mock_ws,
+        mock_service,
+    ):
+        """Pass-through should be blocked if the tracking table shows pending
+        agents for the target status, even if the config has no agents for it."""
+        from src.services.agent_tracking import AgentStep
+
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock()
+        mock_get_pipeline.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_get_slugs.return_value = []  # Config has no agents for Ready
+
+        # Tracking table DOES have pending agents for Ready
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "tracking table body"}
+        )
+        mock_parse_tracking.return_value = [
+            AgentStep(index=1, status="Backlog", agent_name="speckit.specify", state="✅ Done"),
+            AgentStep(index=2, status="Ready", agent_name="speckit.plan", state="⏳ Pending"),
+        ]
+
+        result = await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="Backlog",
+            to_status="Ready",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        # find_next_actionable_status should NOT have been called
+        mock_find_next.assert_not_called()
+        # No agent should have been assigned (deferred to recovery)
+        assert result["next_agents"] == []
 
 
 class TestAdvancePipeline:
@@ -4857,8 +5053,8 @@ class TestProcessPipelineCompletionBatchTracking:
             to_status="In Progress",
         )
 
-        # Single fetch + single push (not one per completed agent)
-        assert mock_service.get_issue_with_comments.call_count == 1
+        # Batch tracking: 1 fetch + 1 push; pass-through validation adds 1 more fetch
+        assert mock_service.get_issue_with_comments.call_count == 2
         mock_service.update_issue_body.assert_called_once()
 
         # The pushed body should have both agents as ✅ Done

@@ -330,8 +330,18 @@ async def check_backlog_issues(
 
         config = await _cp.get_workflow_config(project_id)
         if not config:
-            logger.debug("No workflow config for project %s, skipping backlog check", project_id)
-            return results
+            from src.models.workflow import WorkflowConfiguration
+
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+            )
+            await _cp.set_workflow_config(project_id, config)
+            logger.info(
+                "Bootstrapped default workflow config in check_backlog for project %s",
+                project_id,
+            )
 
         status_backlog = config.status_backlog.lower()
         backlog_tasks = [
@@ -421,8 +431,18 @@ async def check_ready_issues(
 
         config = await _cp.get_workflow_config(project_id)
         if not config:
-            logger.debug("No workflow config for project %s, skipping ready check", project_id)
-            return results
+            from src.models.workflow import WorkflowConfiguration
+
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+            )
+            await _cp.set_workflow_config(project_id, config)
+            logger.info(
+                "Bootstrapped default workflow config in check_ready for project %s",
+                project_id,
+            )
 
         status_ready = config.status_ready.lower()
         ready_tasks = [
@@ -1153,6 +1173,13 @@ async def _transition_after_pipeline_complete(
             "error": f"Failed to update status to {to_status}",
         }
 
+    # Preserve sub-issue mappings in the global store before clearing
+    # pipeline state — they survive status transitions and allow the next
+    # agent to locate its sub-issue even after the old PipelineState is gone.
+    old_pipeline = _cp.get_pipeline_state(issue_number)
+    if old_pipeline and old_pipeline.agent_sub_issues:
+        _cp.set_issue_sub_issues(issue_number, old_pipeline.agent_sub_issues)
+
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
 
@@ -1222,40 +1249,91 @@ async def _transition_after_pipeline_complete(
 
     # Assign the first agent for the new status
     config = await _cp.get_workflow_config(project_id)
-    new_status_agents = _cp.get_agent_slugs(config, to_status) if config else []
+    if not config:
+        # Auto-bootstrap a default workflow config so the transition can
+        # assign the next agent even after a container restart.
+        logger.warning(
+            "No workflow config during transition of issue #%d to '%s' — bootstrapping default",
+            issue_number,
+            to_status,
+        )
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id=project_id,
+            repository_owner=owner,
+            repository_name=repo,
+        )
+        await _cp.set_workflow_config(project_id, config)
+    new_status_agents = _cp.get_agent_slugs(config, to_status)
 
     # Pass-through: if new status has no agents, find the next actionable status (T028)
     effective_status = to_status
-    if config and not new_status_agents:
-        next_actionable = _cp.find_next_actionable_status(config, to_status)
-        if next_actionable and next_actionable != to_status:
-            logger.info(
-                "Pass-through: '%s' has no agents, advancing issue #%d to '%s'",
-                to_status,
-                issue_number,
-                next_actionable,
-            )
-            pt_success = await _cp.github_projects_service.update_item_status_by_name(
+    if not new_status_agents:
+        # ── Safety check: verify the tracking table agrees this status
+        # has no pending agents.  If the tracking table says there ARE
+        # agents for ``to_status``, the config is stale/wrong — skip the
+        # pass-through and fall through to recovery to avoid skipping
+        # pipeline steps.
+        tracking_has_agents_for_status = False
+        try:
+            issue_data = await _cp.github_projects_service.get_issue_with_comments(
                 access_token=access_token,
-                project_id=project_id,
-                item_id=item_id,
-                status_name=next_actionable,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
             )
-            if pt_success:
-                effective_status = next_actionable
-                new_status_agents = _cp.get_agent_slugs(config, effective_status)
+            body = issue_data.get("body", "") if issue_data else ""
+            steps = _cp.parse_tracking_from_body(body) if body else None
+            if steps:
+                for step in steps:
+                    if step.status.lower() == to_status.lower() and "⏳" in step.state:
+                        tracking_has_agents_for_status = True
+                        break
+        except Exception as e:
+            logger.debug(
+                "Could not read tracking table for pass-through validation on issue #%d: %s",
+                issue_number,
+                e,
+            )
 
-                await _cp.connection_manager.broadcast_to_project(
-                    project_id,
-                    {
-                        "type": "status_updated",
-                        "issue_number": issue_number,
-                        "from_status": to_status,
-                        "to_status": effective_status,
-                        "title": task_title,
-                        "triggered_by": "pass_through",
-                    },
+        if tracking_has_agents_for_status:
+            logger.warning(
+                "Pass-through BLOCKED for issue #%d: config has no agents for '%s' "
+                "but tracking table has pending agents — deferring to recovery",
+                issue_number,
+                to_status,
+            )
+        else:
+            next_actionable = _cp.find_next_actionable_status(config, to_status)
+            if next_actionable and next_actionable != to_status:
+                logger.info(
+                    "Pass-through: '%s' has no agents, advancing issue #%d to '%s'",
+                    to_status,
+                    issue_number,
+                    next_actionable,
                 )
+                pt_success = await _cp.github_projects_service.update_item_status_by_name(
+                    access_token=access_token,
+                    project_id=project_id,
+                    item_id=item_id,
+                    status_name=next_actionable,
+                )
+                if pt_success:
+                    effective_status = next_actionable
+                    new_status_agents = _cp.get_agent_slugs(config, effective_status)
+
+                    await _cp.connection_manager.broadcast_to_project(
+                        project_id,
+                        {
+                            "type": "status_updated",
+                            "issue_number": issue_number,
+                            "from_status": to_status,
+                            "to_status": effective_status,
+                            "title": task_title,
+                            "triggered_by": "pass_through",
+                        },
+                    )
 
     if new_status_agents:
         # Ensure we have the main branch captured before assigning the next agent
@@ -1377,7 +1455,20 @@ async def check_in_progress_issues(
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
 
         config = await _cp.get_workflow_config(project_id)
-        in_progress_label = config.status_in_progress.lower() if config else "in progress"
+        if not config:
+            from src.models.workflow import WorkflowConfiguration
+
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+            )
+            await _cp.set_workflow_config(project_id, config)
+            logger.info(
+                "Bootstrapped default workflow config in check_in_progress for project %s",
+                project_id,
+            )
+        in_progress_label = config.status_in_progress.lower()
 
         # Filter to "In Progress" items with issue numbers
         in_progress_tasks = [
@@ -1406,8 +1497,8 @@ async def check_in_progress_issues(
                 continue
 
             # Default transition targets for a genuine In Progress pipeline
-            effective_from_status = config.status_in_progress if config else "In Progress"
-            effective_to_status = config.status_in_review if config else "In Review"
+            effective_from_status = config.status_in_progress
+            effective_to_status = config.status_in_review
 
             # Guard: handle issues managed by a pipeline for a different status.
             # When Copilot starts working on an issue, it naturally moves it to

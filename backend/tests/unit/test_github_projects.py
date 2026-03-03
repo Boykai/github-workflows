@@ -3932,3 +3932,117 @@ class TestCreateSubIssueAttachmentRetry:
         assert (
             call_kwargs.kwargs.get("idempotent") is True or call_kwargs[1].get("idempotent") is True
         )
+
+
+# =============================================================================
+# check_issue_closed Tests
+# =============================================================================
+
+
+class TestCheckIssueClosed:
+    """Tests for check_issue_closed — verifies open/closed/deleted detection."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_returns_true_when_issue_closed(self, service):
+        """A closed issue should return True."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"state": "closed"}
+        mock_response.raise_for_status = Mock()
+        mock_response.headers = {}
+
+        with patch.object(
+            service, "_request_with_retry", new_callable=AsyncMock, return_value=mock_response
+        ):
+            result = await service.check_issue_closed("tok", "owner", "repo", 42)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_issue_open(self, service):
+        """An open issue should return False."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"state": "open"}
+        mock_response.raise_for_status = Mock()
+        mock_response.headers = {}
+
+        with patch.object(
+            service, "_request_with_retry", new_callable=AsyncMock, return_value=mock_response
+        ):
+            result = await service.check_issue_closed("tok", "owner", "repo", 42)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_returns_true_when_issue_deleted_404(self, service):
+        """A deleted issue (404) should return True — treated as closed."""
+        import httpx
+
+        error_response = Mock()
+        error_response.status_code = 404
+        error_response.headers = {}
+
+        with patch.object(
+            service,
+            "_request_with_retry",
+            new_callable=AsyncMock,
+            side_effect=httpx.HTTPStatusError(
+                "Not Found",
+                request=httpx.Request("GET", "https://api.github.com/repos/o/r/issues/1320"),
+                response=error_response,
+            ),
+        ):
+            result = await service.check_issue_closed("tok", "owner", "repo", 1320)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_true_when_issue_gone_410(self, service):
+        """A gone issue (410) should return True — treated as closed."""
+        import httpx
+
+        error_response = Mock()
+        error_response.status_code = 410
+        error_response.headers = {}
+
+        with patch.object(
+            service,
+            "_request_with_retry",
+            new_callable=AsyncMock,
+            side_effect=httpx.HTTPStatusError(
+                "Gone",
+                request=httpx.Request("GET", "https://api.github.com/repos/o/r/issues/99"),
+                response=error_response,
+            ),
+        ):
+            result = await service.check_issue_closed("tok", "owner", "repo", 99)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_on_other_http_errors(self, service):
+        """Non-404/410 HTTP errors should return False (unknown state)."""
+        import httpx
+
+        error_response = Mock()
+        error_response.status_code = 500
+        error_response.headers = {}
+
+        with patch.object(
+            service,
+            "_request_with_retry",
+            new_callable=AsyncMock,
+            side_effect=httpx.HTTPStatusError(
+                "Server Error",
+                request=httpx.Request("GET", "https://api.github.com/repos/o/r/issues/42"),
+                response=error_response,
+            ),
+        ):
+            result = await service.check_issue_closed("tok", "owner", "repo", 42)
+
+        assert result is False
