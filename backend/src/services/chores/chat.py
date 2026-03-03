@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 # In-memory conversation store: conversation_id → conversation data
 _conversations: dict[str, dict] = {}
 
+# Limits to prevent unbounded memory growth
+_MAX_CONVERSATIONS = 100
+_MAX_AGE_SECONDS = 3600  # 1 hour
+
 SYSTEM_PROMPT = """\
 You are a helpful assistant that helps users create GitHub Issue Templates for recurring \
 maintenance tasks (called "chores"). The user has given you a brief idea for a chore and \
@@ -40,10 +44,34 @@ def _is_template_ready(response: str) -> tuple[bool, str | None]:
     marker = "```template"
     if marker in response:
         start = response.index(marker) + len(marker)
-        end = response.index("```", start)
+        end = response.find("```", start)
+        if end == -1:
+            # Unterminated fence — not a complete template yet
+            return False, None
         content = response[start:end].strip()
         return True, content
     return False, None
+
+
+def _evict_stale_conversations() -> None:
+    """Remove expired conversations and enforce size limit."""
+    now = datetime.now(UTC)
+    expired = [
+        cid
+        for cid, data in _conversations.items()
+        if (now - datetime.fromisoformat(data["created_at"])).total_seconds() > _MAX_AGE_SECONDS
+    ]
+    for cid in expired:
+        del _conversations[cid]
+
+    # If still over capacity, evict oldest first
+    if len(_conversations) >= _MAX_CONVERSATIONS:
+        sorted_ids = sorted(
+            _conversations,
+            key=lambda cid: _conversations[cid]["created_at"],
+        )
+        for cid in sorted_ids[: len(_conversations) - _MAX_CONVERSATIONS + 1]:
+            del _conversations[cid]
 
 
 def get_or_create_conversation(conversation_id: str | None) -> tuple[str, list[dict]]:
@@ -53,6 +81,8 @@ def get_or_create_conversation(conversation_id: str | None) -> tuple[str, list[d
     """
     if conversation_id and conversation_id in _conversations:
         return conversation_id, _conversations[conversation_id]["messages"]
+
+    _evict_stale_conversations()
 
     new_id = str(uuid.uuid4())
     _conversations[new_id] = {

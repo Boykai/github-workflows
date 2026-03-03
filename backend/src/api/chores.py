@@ -15,6 +15,7 @@ from src.models.chores import (
     ChoreCreate,
     ChoreTriggerResult,
     ChoreUpdate,
+    EvaluateChoreTriggersRequest,
     EvaluateChoreTriggersResponse,
 )
 from src.models.user import UserSession
@@ -68,7 +69,11 @@ async def create_chore(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Could not resolve repository for this project",
+        ) from exc
 
     # Commit template to repo via branch + PR + tracking issue
     try:
@@ -82,7 +87,11 @@ async def create_chore(
             template_content=template_content,
         )
     except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        logger.error("Failed to commit template to repository: %s", exc)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to commit template to repository",
+        ) from exc
 
     # Create the chore record in the database
     try:
@@ -252,17 +261,21 @@ async def chore_chat(
 @router.post("/evaluate-triggers", response_model=EvaluateChoreTriggersResponse)
 async def evaluate_triggers(
     session: Annotated[UserSession, Depends(get_session_dep)],
+    body: EvaluateChoreTriggersRequest | None = None,
 ) -> EvaluateChoreTriggersResponse:
     """Evaluate all active chores for trigger conditions."""
     service = _get_service()
 
-    # Resolve a default repository for trigger execution
-    # (evaluate-triggers is a system-wide endpoint, but we need a repo context)
+    project_id = body.project_id if body else None
+    if not project_id:
+        logger.warning("evaluate-triggers called without project_id; returning empty result")
+        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
+
+    # Resolve repository for the specified project
     try:
-        owner, repo = await resolve_repository(session.access_token, "")
+        owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception:
-        # If no default repo, still evaluate but note the issue
-        logger.warning("Could not resolve default repository for trigger evaluation")
+        logger.warning("Could not resolve repository for project %s", project_id)
         return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
 
     result = await service.evaluate_triggers(

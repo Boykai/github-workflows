@@ -86,6 +86,12 @@ class EvaluateChoreTriggersResponse(BaseModel):
     results: list[ChoreTriggerResult]
 
 
+class EvaluateChoreTriggersRequest(BaseModel):
+    """Optional request body for the evaluate-triggers endpoint."""
+
+    project_id: str | None = None
+
+
 # ── Chat Models ──
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
 from src.services.chores.template_builder import (
@@ -102,6 +104,114 @@ class TestIsSparseInput:
     def test_multi_paragraph_is_rich(self):
         text = "First paragraph\n\nSecond paragraph\n\nThird paragraph\n\nFourth"
         assert is_sparse_input(text) is False
+
+
+# =============================================================================
+# _strip_front_matter
+# =============================================================================
+
+
+class TestStripFrontMatter:
+    """Tests for YAML front matter stripping from issue bodies."""
+
+    def test_strips_yaml_front_matter(self):
+        text = "---\nname: Bug Bash\nabout: Chore\n---\n## Steps\n1. Do stuff"
+        from src.services.chores.service import _strip_front_matter
+
+        assert _strip_front_matter(text) == "## Steps\n1. Do stuff"
+
+    def test_no_front_matter_unchanged(self):
+        text = "## Steps\n1. Do stuff"
+        from src.services.chores.service import _strip_front_matter
+
+        assert _strip_front_matter(text) == text
+
+    def test_empty_string(self):
+        from src.services.chores.service import _strip_front_matter
+
+        assert _strip_front_matter("") == ""
+
+
+# =============================================================================
+# chat._is_template_ready defensive parsing
+# =============================================================================
+
+
+class TestIsTemplateReady:
+    """Tests for template readiness detection in chat module."""
+
+    def test_complete_template_detected(self):
+        from src.services.chores.chat import _is_template_ready
+
+        response = "Here is your template:\n```template\n---\nname: X\n---\nbody\n```\nDone!"
+        ready, content = _is_template_ready(response)
+        assert ready is True
+        assert content is not None
+        assert "name: X" in content
+
+    def test_unterminated_fence_returns_false(self):
+        from src.services.chores.chat import _is_template_ready
+
+        response = "Here is your template:\n```template\n---\nname: X\n---\nbody"
+        ready, content = _is_template_ready(response)
+        assert ready is False
+        assert content is None
+
+    def test_no_template_marker(self):
+        from src.services.chores.chat import _is_template_ready
+
+        ready, content = _is_template_ready("Just a regular message")
+        assert ready is False
+        assert content is None
+
+
+# =============================================================================
+# chat._evict_stale_conversations
+# =============================================================================
+
+
+class TestConversationEviction:
+    """Tests for TTL and size-bound eviction of in-memory conversations."""
+
+    def test_evicts_expired_conversations(self):
+        from datetime import timedelta
+
+        from src.services.chores.chat import (
+            _conversations,
+            _evict_stale_conversations,
+        )
+
+        _conversations.clear()
+        # Add a conversation that expired 2 hours ago
+        _conversations["old"] = {
+            "messages": [],
+            "created_at": (datetime.now(UTC) - timedelta(hours=2)).isoformat(),
+        }
+        _conversations["recent"] = {
+            "messages": [],
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        _evict_stale_conversations()
+        assert "old" not in _conversations
+        assert "recent" in _conversations
+        _conversations.clear()
+
+    def test_evicts_when_over_capacity(self):
+        from src.services.chores.chat import (
+            _MAX_CONVERSATIONS,
+            _conversations,
+            _evict_stale_conversations,
+        )
+
+        _conversations.clear()
+        for i in range(_MAX_CONVERSATIONS + 5):
+            _conversations[f"c{i}"] = {
+                "messages": [],
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+        _evict_stale_conversations()
+        assert len(_conversations) <= _MAX_CONVERSATIONS
+        _conversations.clear()
 
 
 # =============================================================================

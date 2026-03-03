@@ -5,7 +5,7 @@
  * Sparse vs. rich input detection routes sparse submissions to chat flow (US3).
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCreateChore } from '@/hooks/useChores';
 import { ChoreChatFlow } from './ChoreChatFlow';
 
@@ -17,9 +17,11 @@ interface AddChoreModalProps {
 
 /**
  * Sparse input heuristic matching backend's is_sparse_input():
- * - ≤15 words → sparse
- * - ≤40 words on single line without markdown structure → sparse
- * - Headings, lists, or multi-paragraph → rich
+ * - Rich indicators: headings (##), list markers (- *), ≥4 lines (≥3 newlines)
+ * - If any rich indicator → RICH
+ * - ≤15 words → SPARSE
+ * - ≤40 words on single line → SPARSE
+ * - Else → RICH
  */
 function isSparseInput(text: string): boolean {
   const trimmed = text.trim();
@@ -27,17 +29,17 @@ function isSparseInput(text: string): boolean {
 
   const hasHeadings = /^#{1,6}\s/m.test(trimmed);
   const hasLists = /^[-*]\s/m.test(trimmed);
-  const paragraphs = trimmed.split(/\n\s*\n/).filter(Boolean);
+  const lines = trimmed.split('\n');
+  const hasMultiLines = lines.length >= 4;
 
-  if (hasHeadings || hasLists || paragraphs.length >= 3) return false;
+  if (hasHeadings || hasLists || hasMultiLines) return false;
 
   const words = trimmed.split(/\s+/).length;
   if (words <= 15) return true;
 
-  const lines = trimmed.split('\n').filter(Boolean);
   if (lines.length === 1 && words <= 40) return true;
 
-  return words <= 15;
+  return false;
 }
 
 export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps) {
@@ -48,6 +50,23 @@ export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps
   const [sparseContent, setSparseContent] = useState('');
 
   const createMutation = useCreateChore(projectId);
+
+  // Close modal and reset all state on Escape key (document-level listener)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setName('');
+        setTemplateContent('');
+        setError(null);
+        setShowChatFlow(false);
+        setSparseContent('');
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -123,10 +142,7 @@ export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps
         <div
           className="absolute inset-0 bg-black/50"
           onClick={handleCancel}
-          onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }}
-          role="button"
-          tabIndex={-1}
-          aria-label="Close modal"
+          role="presentation"
         />
         <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
           <div className="flex items-center justify-between p-4 border-b border-border">
@@ -160,10 +176,7 @@ export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps
       <div
         className="absolute inset-0 bg-black/50"
         onClick={handleCancel}
-        onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }}
-        role="button"
-        tabIndex={-1}
-        aria-label="Close modal"
+        role="presentation"
       />
 
       {/* Modal */}

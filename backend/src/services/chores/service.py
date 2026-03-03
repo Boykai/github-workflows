@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -11,6 +12,11 @@ import aiosqlite
 from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdate
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_front_matter(text: str) -> str:
+    """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
+    return re.sub(r"\A---\n.*?\n---\n?", "", text, count=1, flags=re.DOTALL).strip()
 
 
 class ChoresService:
@@ -265,6 +271,7 @@ class ChoresService:
         owner: str,
         repo: str,
         project_id: str,
+        parent_issue_count: int | None = None,
     ) -> ChoreTriggerResult:
         """Trigger a single chore: create issue, run agent pipeline, update record.
 
@@ -290,13 +297,14 @@ class ChoresService:
                     skip_reason=f"Open instance exists (issue #{chore.current_issue_number})",
                 )
 
-        # Create GitHub issue from template content
+        # Create GitHub issue from template content (strip YAML front matter)
+        issue_body = _strip_front_matter(chore.template_content or "")
         issue = await github_service.create_issue(
             access_token,
             owner,
             repo,
             title=chore.name,
-            body=chore.template_content,
+            body=issue_body,
             labels=["chore"],
         )
 
@@ -338,13 +346,18 @@ class ChoresService:
             )
 
         # CAS update chore record
+        # Advance last_triggered_count to current parent_issue_count for
+        # count-based triggers so the baseline resets after each trigger.
+        new_count = (
+            parent_issue_count if parent_issue_count is not None else chore.last_triggered_count
+        )
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         await self.update_chore_after_trigger(
             chore.id,
             current_issue_number=issue_number,
             current_issue_node_id=issue_node_id,
             last_triggered_at=now,
-            last_triggered_count=chore.last_triggered_count,
+            last_triggered_count=new_count,
             old_last_triggered_at=chore.last_triggered_at,
         )
 
@@ -439,6 +452,7 @@ class ChoresService:
                 owner=owner,
                 repo=repo,
                 project_id=chore.project_id,
+                parent_issue_count=parent_issue_count,
             )
             results.append(result)
             if result.triggered:
