@@ -1,0 +1,376 @@
+openapi: "3.1.0"
+info:
+  title: Chores API
+  description: REST API for managing recurring maintenance chores on GitHub Projects
+  version: "1.0.0"
+
+servers:
+  - url: /api/v1
+    description: Backend API (behind /api/v1 prefix)
+
+paths:
+  /chores/{project_id}:
+    get:
+      operationId: listChores
+      summary: List all chores for a project
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: GitHub Project node ID
+      responses:
+        "200":
+          description: List of chores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chore"
+        "401":
+          description: Not authenticated
+
+    post:
+      operationId: createChore
+      summary: Create a new chore (kicks off template creation, branch, PR, tracking issue)
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChoreCreate"
+      responses:
+        "201":
+          description: Chore created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chore"
+        "400":
+          description: Invalid input or duplicate name
+        "401":
+          description: Not authenticated
+
+  /chores/{project_id}/{chore_id}:
+    patch:
+      operationId: updateChore
+      summary: Update chore (toggle status, configure schedule)
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chore_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChoreUpdate"
+      responses:
+        "200":
+          description: Chore updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chore"
+        "404":
+          description: Chore not found
+        "400":
+          description: Invalid schedule configuration
+        "401":
+          description: Not authenticated
+
+    delete:
+      operationId: deleteChore
+      summary: Remove a chore (closes any open associated issue, preserves template file)
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chore_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chore removed, any open issue closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  closed_issue_number:
+                    type: integer
+                    nullable: true
+        "404":
+          description: Chore not found
+        "401":
+          description: Not authenticated
+
+  /chores/{project_id}/{chore_id}/trigger:
+    post:
+      operationId: triggerChore
+      summary: Manually trigger a chore (for testing)
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chore_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trigger result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChoreTriggerResult"
+        "404":
+          description: Chore not found
+        "409":
+          description: Previous instance still open
+        "401":
+          description: Not authenticated
+
+  /chores/{project_id}/chat:
+    post:
+      operationId: choreChat
+      summary: Interactive chat for sparse input template refinement
+      tags: [chores]
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChoreChatMessage"
+      responses:
+        "200":
+          description: Chat response (may include finalized template)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChoreChatResponse"
+        "401":
+          description: Not authenticated
+
+  /chores/evaluate-triggers:
+    post:
+      operationId: evaluateChoresTriggers
+      summary: Evaluate all active chores across all projects for trigger conditions (called by cron)
+      tags: [chores]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project_id:
+                  type: string
+                  description: Optional - evaluate only this project
+      responses:
+        "200":
+          description: Evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluateChoreTriggersResponse"
+
+components:
+  schemas:
+    Chore:
+      type: object
+      required:
+        - id
+        - project_id
+        - name
+        - template_path
+        - template_content
+        - status
+        - last_triggered_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        project_id:
+          type: string
+        name:
+          type: string
+          maxLength: 200
+        template_path:
+          type: string
+          description: "Path in repo, e.g., .github/ISSUE_TEMPLATE/bug-bash.md"
+        template_content:
+          type: string
+          description: Full cached template content (YAML front matter + markdown body)
+        schedule_type:
+          type: string
+          enum: [time, count]
+          nullable: true
+        schedule_value:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: "Days (time) or parent issue count (count)"
+        status:
+          type: string
+          enum: [active, paused]
+          default: active
+        last_triggered_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_triggered_count:
+          type: integer
+          default: 0
+        current_issue_number:
+          type: integer
+          nullable: true
+          description: GitHub issue number of open triggered instance
+        current_issue_node_id:
+          type: string
+          nullable: true
+        pr_number:
+          type: integer
+          nullable: true
+        pr_url:
+          type: string
+          nullable: true
+        tracking_issue_number:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ChoreCreate:
+      type: object
+      required: [name, template_content]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        template_content:
+          type: string
+          minLength: 1
+          description: "Rich markdown content or sparse text. If sparse, use /chat endpoint first."
+
+    ChoreUpdate:
+      type: object
+      properties:
+        schedule_type:
+          type: string
+          enum: [time, count]
+          nullable: true
+        schedule_value:
+          type: integer
+          minimum: 1
+          nullable: true
+        status:
+          type: string
+          enum: [active, paused]
+
+    ChoreTriggerResult:
+      type: object
+      properties:
+        chore_id:
+          type: string
+        chore_name:
+          type: string
+        triggered:
+          type: boolean
+        issue_number:
+          type: integer
+          nullable: true
+        issue_url:
+          type: string
+          nullable: true
+        skip_reason:
+          type: string
+          nullable: true
+
+    EvaluateChoreTriggersResponse:
+      type: object
+      properties:
+        evaluated:
+          type: integer
+        triggered:
+          type: integer
+        skipped:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChoreTriggerResult"
+
+    ChoreChatMessage:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        conversation_id:
+          type: string
+          nullable: true
+          description: "Omit on first message; include on subsequent messages to continue conversation"
+
+    ChoreChatResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Agent response text
+        conversation_id:
+          type: string
+          description: "Use this to continue the conversation"
+        template_ready:
+          type: boolean
+          description: "True when the agent has finalized a template"
+        template_content:
+          type: string
+          nullable: true
+          description: "The finalized template content (only when template_ready=true)"
+        template_name:
+          type: string
+          nullable: true
+          description: "Suggested chore name (only when template_ready=true)"

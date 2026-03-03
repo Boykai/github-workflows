@@ -41,15 +41,13 @@ import type {
   CleanupExecuteRequest,
   CleanupExecuteResponse,
   CleanupHistoryResponse,
-  IssueTemplate,
-  IssueTemplateCreate,
-  IssueTemplateUpdate,
-  TemplateListResponse,
-  HousekeepingTask,
-  HousekeepingTaskCreate,
-  HousekeepingTaskUpdate,
-  HousekeepingTaskListResponse,
-  TriggerHistoryResponse,
+  Chore,
+  ChoreCreate,
+  ChoreUpdate,
+  ChoreTriggerResult,
+  ChoreChatMessage,
+  ChoreChatResponse,
+  EvaluateChoreTriggersResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -518,105 +516,74 @@ export const cleanupApi = {
   },
 };
 
-// ============ Housekeeping API ============
+// ============ Chores API ============
 
-export const housekeepingApi = {
-  // ── Templates ──
-
-  listTemplates(category?: string): Promise<TemplateListResponse> {
-    const params = category ? `?category=${category}` : '';
-    return request<TemplateListResponse>(`/housekeeping/templates${params}`);
+export const choresApi = {
+  /**
+   * List all chores for a project.
+   */
+  list(projectId: string): Promise<Chore[]> {
+    return request<Chore[]>(`/chores/${projectId}`);
   },
 
-  getTemplate(templateId: string): Promise<IssueTemplate> {
-    return request<IssueTemplate>(`/housekeeping/templates/${templateId}`);
-  },
-
-  createTemplate(data: IssueTemplateCreate): Promise<IssueTemplate> {
-    return request<IssueTemplate>('/housekeeping/templates', {
+  /**
+   * Create a new chore.
+   */
+  create(projectId: string, data: ChoreCreate): Promise<Chore> {
+    return request<Chore>(`/chores/${projectId}`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  updateTemplate(templateId: string, data: IssueTemplateUpdate): Promise<IssueTemplate> {
-    return request<IssueTemplate>(`/housekeeping/templates/${templateId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  deleteTemplate(templateId: string, force = false): Promise<{ deleted: boolean }> {
-    const params = force ? '?force=true' : '';
-    return request<{ deleted: boolean }>(`/housekeeping/templates/${templateId}${params}`, {
-      method: 'DELETE',
-    });
-  },
-
-  duplicateTemplate(templateId: string): Promise<IssueTemplate> {
-    return request<IssueTemplate>(`/housekeeping/templates/${templateId}/duplicate`, {
-      method: 'POST',
-    });
-  },
-
-  // ── Tasks ──
-
-  listTasks(projectId: string, enabled?: boolean): Promise<HousekeepingTaskListResponse> {
-    let params = `?project_id=${projectId}`;
-    if (enabled !== undefined) params += `&enabled=${enabled}`;
-    return request<HousekeepingTaskListResponse>(`/housekeeping/tasks${params}`);
-  },
-
-  getTask(taskId: string): Promise<HousekeepingTask> {
-    return request<HousekeepingTask>(`/housekeeping/tasks/${taskId}`);
-  },
-
-  createTask(data: HousekeepingTaskCreate): Promise<HousekeepingTask> {
-    return request<HousekeepingTask>('/housekeeping/tasks', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  updateTask(taskId: string, data: HousekeepingTaskUpdate): Promise<HousekeepingTask> {
-    return request<HousekeepingTask>(`/housekeeping/tasks/${taskId}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  deleteTask(taskId: string): Promise<{ deleted: boolean }> {
-    return request<{ deleted: boolean }>(`/housekeeping/tasks/${taskId}`, {
-      method: 'DELETE',
-    });
-  },
-
-  toggleTask(taskId: string, enabled: boolean): Promise<HousekeepingTask> {
-    return request<HousekeepingTask>(`/housekeeping/tasks/${taskId}/toggle`, {
+  /**
+   * Update a chore (schedule, status).
+   */
+  update(projectId: string, choreId: string, data: ChoreUpdate): Promise<Chore> {
+    return request<Chore>(`/chores/${projectId}/${choreId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify(data),
     });
   },
 
-  // ── Manual Run ──
+  /**
+   * Delete a chore.
+   */
+  delete(projectId: string, choreId: string): Promise<{ deleted: boolean; closed_issue_number: number | null }> {
+    return request<{ deleted: boolean; closed_issue_number: number | null }>(
+      `/chores/${projectId}/${choreId}`,
+      { method: 'DELETE' },
+    );
+  },
 
-  runTask(taskId: string, force = false): Promise<{ trigger_event: Record<string, unknown> }> {
-    const params = force ? '?force=true' : '';
-    return request<{ trigger_event: Record<string, unknown> }>(`/housekeeping/tasks/${taskId}/run${params}`, {
+  /**
+   * Manually trigger a chore.
+   */
+  trigger(projectId: string, choreId: string): Promise<ChoreTriggerResult> {
+    return request<ChoreTriggerResult>(`/chores/${projectId}/${choreId}/trigger`, {
       method: 'POST',
     });
   },
 
-  // ── History ──
+  /**
+   * Send a chat message for sparse-input template refinement.
+   */
+  chat(projectId: string, data: ChoreChatMessage): Promise<ChoreChatResponse> {
+    return request<ChoreChatResponse>(`/chores/${projectId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 
-  getTaskHistory(
-    taskId: string,
-    limit = 50,
-    offset = 0,
-    status?: string,
-  ): Promise<TriggerHistoryResponse> {
-    let params = `?limit=${limit}&offset=${offset}`;
-    if (status) params += `&status=${status}`;
-    return request<TriggerHistoryResponse>(`/housekeeping/tasks/${taskId}/history${params}`);
+  /**
+   * Evaluate all active chore triggers.
+   */
+  evaluateTriggers(projectId?: string): Promise<EvaluateChoreTriggersResponse> {
+    return request<EvaluateChoreTriggersResponse>('/chores/evaluate-triggers', {
+      method: 'POST',
+      body: JSON.stringify(projectId ? { project_id: projectId } : {}),
+    });
   },
 };
+
+
