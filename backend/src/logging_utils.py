@@ -121,7 +121,9 @@ class SanitizingFormatter(logging.Formatter):
     regardless of which module emitted the record.
     """
 
-    def __init__(self, fmt: str | None = None, datefmt: str | None = None, **kwargs):  # type: ignore[no-untyped-def]
+    def __init__(
+        self, fmt: str | None = None, datefmt: str | None = None, **kwargs: object
+    ) -> None:
         super().__init__(fmt, datefmt, **kwargs)
 
     def format(self, record: logging.LogRecord) -> str:

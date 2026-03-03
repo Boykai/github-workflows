@@ -143,6 +143,7 @@ def setup_logging(debug: bool = False, *, structured: bool = False) -> None:
     level = logging.DEBUG if debug else logging.INFO
 
     # Remove any pre-existing handlers so we don't duplicate output.
+    # Copy the list ([:]) because we modify it during iteration.
     root = logging.getLogger()
     root.setLevel(level)
     for handler in root.handlers[:]:
