@@ -762,3 +762,90 @@ class TestConfirmProposalPreservesFullDescription:
         call_kwargs = mock_github_service.create_issue.call_args
         assert call_kwargs.kwargs["body"] == markdown_desc
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+
+# ── Regression: error messages MUST NOT leak exception details ──────────────
+
+
+class TestErrorMessageSanitization:
+    """Bug-bash regression: chat error messages must not expose internal
+    exception details to the end user (information leakage)."""
+
+    async def test_agent_command_error_does_not_leak_exception(
+        self, client, mock_session, mock_ai_agent_service
+    ):
+        """#agent command errors must not include raw exception text."""
+        mock_session.selected_project_id = "PVT_1"
+        with patch(
+            "src.services.agent_creator.handle_agent_command",
+            side_effect=RuntimeError("secret db error"),
+        ):
+            with patch("src.services.agent_creator.get_active_session", return_value=None):
+                resp = await client.post(
+                    "/api/v1/chat/messages", json={"content": "#agent create foo"}
+                )
+        assert resp.status_code == 200
+        content = resp.json()["content"]
+        assert "secret db error" not in content
+        assert "unexpected error" in content.lower() or "Error" in content
+
+    async def test_task_generation_error_does_not_leak_exception(
+        self, client, mock_session, mock_ai_agent_service
+    ):
+        """Task generation failure message must not include raw exception."""
+        mock_session.selected_project_id = "PVT_1"
+        mock_ai_agent_service.detect_feature_request_intent.return_value = False
+        mock_ai_agent_service.parse_status_change_request.return_value = None
+        mock_ai_agent_service.generate_task_from_description.side_effect = RuntimeError(
+            "internal: connection refused to ai-backend:8080"
+        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "do something"})
+        assert resp.status_code == 200
+        content = resp.json()["content"]
+        assert "connection refused" not in content
+        assert "ai-backend" not in content
+
+    async def test_recommendation_error_does_not_leak_exception(
+        self, client, mock_session, mock_ai_agent_service
+    ):
+        """Issue recommendation failure message must not include raw exception."""
+        mock_session.selected_project_id = "PVT_1"
+        mock_ai_agent_service.detect_feature_request_intent.return_value = True
+        mock_ai_agent_service.generate_issue_recommendation.side_effect = RuntimeError(
+            "internal: model_endpoint timed out after 30s"
+        )
+        resp = await client.post("/api/v1/chat/messages", json={"content": "I want a new feature"})
+        assert resp.status_code == 200
+        content = resp.json()["content"]
+        assert "model_endpoint" not in content
+        assert "timed out" not in content
+
+    async def test_confirm_proposal_error_does_not_leak_exception(
+        self, client, mock_session, mock_github_service
+    ):
+        """confirm_proposal must not leak internal exception details."""
+        import src.api.chat as chat_mod
+
+        mock_session.selected_project_id = "PVT_1"
+        proposal = _proposal(mock_session.session_id)
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+
+        mock_github_service.create_issue.side_effect = RuntimeError(
+            "GraphQL error: token expired for user 12345"
+        )
+
+        with (
+            patch(
+                "src.api.chat.resolve_repository", new_callable=AsyncMock, return_value=("o", "r")
+            ),
+        ):
+            resp = await client.post(
+                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+                json={},
+            )
+        assert resp.status_code == 422
+        body = resp.json()
+        # Must not leak the internal error message
+        assert "token expired" not in str(body)
+        assert "12345" not in str(body)
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
