@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.auth import get_session_dep
@@ -214,14 +215,30 @@ async def trigger_chore(
 
     owner, repo = await resolve_repository(session.access_token, project_id)
 
-    result = await service.trigger_chore(
-        chore,
-        github_service=github_projects_service,
-        access_token=session.access_token,
-        owner=owner,
-        repo=repo,
-        project_id=project_id,
-    )
+    try:
+        result = await service.trigger_chore(
+            chore,
+            github_service=github_projects_service,
+            access_token=session.access_token,
+            owner=owner,
+            repo=repo,
+            project_id=project_id,
+            github_user_id=session.github_user_id,
+        )
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response is not None else None
+        if status_code is not None and status_code >= 500:
+            logger.warning(
+                "Chore trigger failed due to upstream GitHub error (%s) for project %s chore %s",
+                status_code,
+                project_id,
+                chore_id,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="GitHub is temporarily unavailable while creating the chore issue. Please retry.",
+            ) from exc
+        raise
 
     if not result.triggered:
         raise HTTPException(status_code=409, detail=result.skip_reason)
