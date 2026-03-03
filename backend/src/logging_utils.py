@@ -41,7 +41,10 @@ import logging
 import re
 import sys
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.exceptions import AppException
 
 # Maximum length for a single log message before truncation.
 MAX_LOG_MESSAGE_LENGTH = 10_000
@@ -243,7 +246,7 @@ def handle_service_error(
     operation: str,
     logger: logging.Logger,
     *,
-    error_class: type | None = None,
+    error_class: type[AppException] | None = None,
     status_code: int = 502,
     static_message: str | None = None,
 ) -> None:
@@ -263,12 +266,12 @@ def handle_service_error(
     Raises:
         AppException (or a subclass) with a safe message.
     """
-    from src.exceptions import AppException, GitHubAPIError
+    from src.exceptions import GitHubAPIError
 
     safe_msg = static_message or f"{operation} failed"
     logger.error("%s: %s", operation, exc, exc_info=True)
 
-    if error_class is not None and issubclass(error_class, AppException):
+    if error_class is not None:
         raise error_class(message=safe_msg) from exc
 
     raise GitHubAPIError(message=safe_msg) from exc
