@@ -23,7 +23,7 @@
 
 **Purpose**: Verify existing CSS variable theming structure is intact and ready for modification
 
-- [ ] T001 Verify existing --background CSS variable and bg-background Tailwind mapping in frontend/src/index.css and frontend/tailwind.config.js
+- [x] T001 Verify existing --background CSS variable and bg-background Tailwind mapping in frontend/src/index.css and frontend/tailwind.config.js
 
 ---
 
@@ -45,8 +45,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T002 [US1] Update --background CSS variable in :root selector from `0 0% 100%` to `210 100% 56%` (Dodger Blue #1E90FF) in frontend/src/index.css
-- [ ] T003 [US1] Visually verify blue background renders on all routes (Home, Project Board, Settings) and during loading state per specs/016-blue-background/quickstart.md
+- [x] T002 [US1] Update --background CSS variable in :root selector from `0 0% 100%` to `210 100% 56%` (Dodger Blue #1E90FF) in frontend/src/index.css
+- [x] T003 [US1] Visually verify blue background renders on all routes (Home, Project Board, Settings) and during loading state per specs/016-blue-background/quickstart.md
 
 **Checkpoint**: User Story 1 complete — light mode blue background visible on every page and route, responsive from 320px to 2560px
 
@@ -60,8 +60,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Verify WCAG AA contrast ratio (≥4.5:1) between --background (#1E90FF) and --foreground (#020817) in light mode using browser accessibility tools or contrast checker per specs/016-blue-background/quickstart.md
-- [ ] T005 [US2] Verify --card, --popover, --primary, --secondary, --muted, and --accent CSS variables remain unchanged so cards, modals, popovers, and buttons retain their own backgrounds in frontend/src/index.css
+- [x] T004 [US2] Verify WCAG AA contrast ratio (≥4.5:1) between --background (#1E90FF) and --foreground (#020817) in light mode using browser accessibility tools or contrast checker per specs/016-blue-background/quickstart.md
+- [x] T005 [US2] Verify --card, --popover, --primary, --secondary, --muted, and --accent CSS variables remain unchanged so cards, modals, popovers, and buttons retain their own backgrounds in frontend/src/index.css
 
 **Checkpoint**: User Story 2 complete — all text and UI components are legible and visually intact against the blue background
 
@@ -75,9 +75,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T006 [US3] Update --background CSS variable in .dark selector from `222.2 84% 4.9%` to `210 54% 23%` (Deep Blue #1A3A5C) in frontend/src/index.css
-- [ ] T007 [US3] Verify WCAG AA contrast ratio (≥4.5:1) between dark mode --background (#1A3A5C) and --foreground (#F8FAFC) using browser accessibility tools per specs/016-blue-background/quickstart.md
-- [ ] T008 [US3] Verify theme toggle transitions between light blue (#1E90FF) and dark blue (#1A3A5C) backgrounds without flicker or delay
+- [x] T006 [US3] Update --background CSS variable in .dark selector from `222.2 84% 4.9%` to `210 54% 23%` (Deep Blue #1A3A5C) in frontend/src/index.css
+- [x] T007 [US3] Verify WCAG AA contrast ratio (≥4.5:1) between dark mode --background (#1A3A5C) and --foreground (#F8FAFC) using browser accessibility tools per specs/016-blue-background/quickstart.md
+- [x] T008 [US3] Verify theme toggle transitions between light blue (#1E90FF) and dark blue (#1A3A5C) backgrounds without flicker or delay
 
 **Checkpoint**: User Story 3 complete — blue background works in both light and dark mode with accessible contrast
 
@@ -91,8 +91,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [US4] Verify blue background is defined exclusively via --background CSS variable in :root and .dark selectors in frontend/src/index.css — no inline styles, no per-component bg-blue-* classes, no hardcoded hex values in component files
-- [ ] T010 [US4] Verify Tailwind config maps bg-background to hsl(var(--background)) in frontend/tailwind.config.js ensuring single-point-of-change propagation
+- [x] T009 [US4] Verify blue background is defined exclusively via --background CSS variable in :root and .dark selectors in frontend/src/index.css — no inline styles, no per-component bg-blue-* classes, no hardcoded hex values in component files
+- [x] T010 [US4] Verify Tailwind config maps bg-background to hsl(var(--background)) in frontend/tailwind.config.js ensuring single-point-of-change propagation
 
 **Checkpoint**: User Story 4 complete — blue color is centralized and maintainable via CSS variables
 
@@ -102,10 +102,10 @@
 
 **Purpose**: Final visual validation across all user stories and edge cases
 
-- [ ] T011 Verify no flash of white or non-blue color on initial page load (blue background visible within 1 second per SC-006)
-- [ ] T012 Verify blue background renders correctly behind overlays (modals, drawers, popovers) without color blending artifacts
-- [ ] T013 Verify blue background fills viewport at extreme widths (<320px and >2560px) with no gaps or horizontal scrollbars
-- [ ] T014 Run quickstart.md full visual validation checklist (all 8 manual test steps + contrast verification + edge cases) per specs/016-blue-background/quickstart.md
+- [x] T011 Verify no flash of white or non-blue color on initial page load (blue background visible within 1 second per SC-006)
+- [x] T012 Verify blue background renders correctly behind overlays (modals, drawers, popovers) without color blending artifacts
+- [x] T013 Verify blue background fills viewport at extreme widths (<320px and >2560px) with no gaps or horizontal scrollbars
+- [x] T014 Run quickstart.md full visual validation checklist (all 8 manual test steps + contrast verification + edge cases) per specs/016-blue-background/quickstart.md
 
 ---
 
