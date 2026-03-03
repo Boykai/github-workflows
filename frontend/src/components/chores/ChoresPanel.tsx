@@ -9,12 +9,17 @@ import { useState } from 'react';
 import { useChoresList } from '@/hooks/useChores';
 import { ChoreCard } from './ChoreCard';
 import { AddChoreModal } from './AddChoreModal';
+import { CleanUpButton } from '@/components/board/CleanUpButton';
 
 interface ChoresPanelProps {
   projectId: string;
+  /** Repository owner for the Clean Up button */
+  cleanupOwner?: string;
+  /** Repository name for the Clean Up button */
+  cleanupRepo?: string;
 }
 
-export function ChoresPanel({ projectId }: ChoresPanelProps) {
+export function ChoresPanel({ projectId, cleanupOwner, cleanupRepo }: ChoresPanelProps) {
   const { data: chores, isLoading, error } = useChoresList(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -25,13 +30,23 @@ export function ChoresPanel({ projectId }: ChoresPanelProps) {
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
           🔄 Chores
         </h3>
-        {/* Add Chore button */}
-        <button
-          className="px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          onClick={() => setShowAddModal(true)}
-        >
-          + Add Chore
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Clean Up button */}
+          {cleanupOwner && cleanupRepo && (
+            <CleanUpButton
+              owner={cleanupOwner}
+              repo={cleanupRepo}
+              projectId={projectId}
+            />
+          )}
+          {/* Add Chore button */}
+          <button
+            className="px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            onClick={() => setShowAddModal(true)}
+          >
+            + Add Chore
+          </button>
+        </div>
       </div>
 
       {/* Loading state */}

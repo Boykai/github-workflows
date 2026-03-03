@@ -69,6 +69,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
 
   const successfulBranches = result.results.filter(r => r.item_type === 'branch' && r.action === 'deleted');
   const successfulPRs = result.results.filter(r => r.item_type === 'pr' && r.action === 'closed');
+  const successfulIssues = result.results.filter(r => r.item_type === 'issue' && r.action === 'closed');
   const failedItems = result.results.filter(r => r.action === 'failed');
 
   return (
@@ -88,7 +89,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
         </h2>
 
         {/* Summary counts */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="p-3 rounded bg-green-500/10 text-center">
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.branches_deleted}</div>
             <div className="text-xs text-muted-foreground">Branches Deleted</div>
@@ -96,6 +97,10 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
           <div className="p-3 rounded bg-green-500/10 text-center">
             <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.prs_closed}</div>
             <div className="text-xs text-muted-foreground">PRs Closed</div>
+          </div>
+          <div className="p-3 rounded bg-green-500/10 text-center">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.issues_closed ?? 0}</div>
+            <div className="text-xs text-muted-foreground">Issues Closed</div>
           </div>
         </div>
 
@@ -128,6 +133,20 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
           </div>
         )}
 
+        {successfulIssues.length > 0 && (
+          <div className="mb-3">
+            <h3 className="text-sm font-medium mb-1">Closed Orphaned Issues</h3>
+            <ul className="space-y-1 text-sm">
+              {successfulIssues.map((item) => (
+                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/10">
+                  <span className="text-green-600 dark:text-green-400">✓</span>
+                  <span>#{item.identifier}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* Failed items */}
         {failedItems.length > 0 && (
           <div className="mb-3">
@@ -138,7 +157,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
                   <div className="flex items-center gap-2">
                     <span className="text-destructive">✗</span>
                     <span className="font-mono text-xs">
-                      {item.item_type === 'pr' ? `#${item.identifier}` : item.identifier}
+                      {item.item_type === 'pr' || item.item_type === 'issue' ? `#${item.identifier}` : item.identifier}
                     </span>
                   </div>
                   {item.error && (
