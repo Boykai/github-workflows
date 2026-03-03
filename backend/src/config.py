@@ -125,14 +125,46 @@ def clear_settings_cache() -> None:
 
 
 # Logging configuration
-def setup_logging(debug: bool = False) -> None:
-    """Configure application logging."""
-    level = logging.DEBUG if debug else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+def setup_logging(debug: bool = False, *, structured: bool = False) -> None:
+    """Configure application logging.
+
+    Args:
+        debug: When ``True`` the root logger level is set to DEBUG.
+        structured: When ``True`` log output uses machine-parseable JSON
+            (production mode).  When ``False`` a human-readable format is
+            used (development mode).  The sanitizing layer is always active.
+    """
+    from src.logging_utils import (
+        RequestIDFilter,
+        SanitizingFormatter,
+        StructuredJsonFormatter,
     )
+
+    level = logging.DEBUG if debug else logging.INFO
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    # Remove any pre-existing handlers (e.g. from basicConfig)
+    for handler in root.handlers[:]:
+        root.removeHandler(handler)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(level)
+
+    if structured:
+        handler.setFormatter(StructuredJsonFormatter())
+    else:
+        handler.setFormatter(
+            SanitizingFormatter(
+                fmt="%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+
+    # Attach request-ID filter so %(request_id)s is always available
+    handler.addFilter(RequestIDFilter())
+    root.addHandler(handler)
+
     # Suppress noisy loggers
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)

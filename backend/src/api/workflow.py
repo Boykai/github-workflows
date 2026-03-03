@@ -250,7 +250,7 @@ async def confirm_recommendation(
         logger.error("Workflow failed: %s", e)
         return WorkflowResult(
             success=False,
-            message=f"Failed to create issue: {str(e)}",
+            message="Failed to create issue",
         )
 
 
@@ -341,7 +341,8 @@ async def retry_pipeline(
         ctx.issue_number = issue_number
         ctx.issue_url = issue_data.get("html_url", "")
     except Exception as e:
-        raise ValidationError(f"Failed to fetch issue #{issue_number}: {e}") from e
+        logger.error("Failed to fetch issue #%d for retry: %s", issue_number, e)
+        raise ValidationError(f"Failed to fetch issue #{issue_number}") from e
 
     # Clear the error state so retry proceeds
     state.error = None

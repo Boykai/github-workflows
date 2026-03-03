@@ -202,7 +202,9 @@ async def send_message(
             )
         except Exception as exc:
             logger.error("#agent command failed: %s", exc)
-            agent_response_text = f"**Error:** The `#agent` command encountered an error: {exc}"
+            agent_response_text = (
+                "**Error:** The `#agent` command encountered an error. Please try again."
+            )
 
         agent_msg = ChatMessage(
             session_id=session.session_id,
@@ -296,7 +298,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content=f"I couldn't generate an issue recommendation from your feature request. Please try again with more detail.\n\nError: {str(e)}",
+                content="I couldn't generate an issue recommendation from your feature request. Please try again with more detail.",
             )
             add_message(session.session_id, error_message)
             return error_message
@@ -418,7 +420,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         error_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content=f"I couldn't generate a task from your description. Please try again with more detail.\n\nError: {str(e)}",
+            content="I couldn't generate a task from your description. Please try again with more detail.",
         )
         add_message(session.session_id, error_message)
 
@@ -679,7 +681,7 @@ async def confirm_proposal(
 
     except Exception as e:
         logger.error("Failed to create issue from proposal: %s", e)
-        raise ValidationError(f"Failed to create issue: {e}") from e
+        raise ValidationError("Failed to create issue") from e
 
 
 @router.delete("/proposals/{proposal_id}")
