@@ -24,8 +24,8 @@
 
 **Purpose**: Create the centralized logging utility module and sensitive-data pattern configuration that all user stories depend on
 
-- [ ] T001 Create centralized logging utility module with redact function stub, structured formatter stub, and request-ID logging filter stub in backend/src/logging_utils.py
-- [ ] T002 [P] Define sensitive-data redaction patterns (tokens, API keys, PII, credentials, internal paths) as a configurable list in backend/src/logging_utils.py
+- [x] T001 Create centralized logging utility module with redact function stub, structured formatter stub, and request-ID logging filter stub in backend/src/logging_utils.py
+- [x] T002 [P] Define sensitive-data redaction patterns (tokens, API keys, PII, credentials, internal paths) as a configurable list in backend/src/logging_utils.py
 
 ---
 
@@ -35,12 +35,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement the redact function that scrubs sensitive data from arbitrary strings using the pattern list defined in T002 in backend/src/logging_utils.py
-- [ ] T004 [P] Implement a SanitizingFormatter (logging.Formatter subclass) that applies the redact function to every log record message before emission in backend/src/logging_utils.py
-- [ ] T005 [P] Implement a StructuredJsonFormatter (logging.Formatter subclass) that emits log records as JSON objects with fields: timestamp, level, message, logger, and context metadata in backend/src/logging_utils.py
-- [ ] T006 [P] Implement a RequestIDFilter (logging.Filter subclass) that injects the current request ID from the ContextVar in backend/src/middleware/request_id.py into every log record in backend/src/logging_utils.py
-- [ ] T007 Update setup_logging() in backend/src/config.py to accept a structured mode flag, attach the SanitizingFormatter (always), attach StructuredJsonFormatter (when structured=True), and attach RequestIDFilter to the root logger
-- [ ] T008 Update the lifespan handler in backend/src/main.py to pass the structured flag (based on debug setting) when calling setup_logging()
+- [x] T003 Implement the redact function that scrubs sensitive data from arbitrary strings using the pattern list defined in T002 in backend/src/logging_utils.py
+- [x] T004 [P] Implement a SanitizingFormatter (logging.Formatter subclass) that applies the redact function to every log record message before emission in backend/src/logging_utils.py
+- [x] T005 [P] Implement a StructuredJsonFormatter (logging.Formatter subclass) that emits log records as JSON objects with fields: timestamp, level, message, logger, and context metadata in backend/src/logging_utils.py
+- [x] T006 [P] Implement a RequestIDFilter (logging.Filter subclass) that injects the current request ID from the ContextVar in backend/src/middleware/request_id.py into every log record in backend/src/logging_utils.py
+- [x] T007 Update setup_logging() in backend/src/config.py to accept a structured mode flag, attach the SanitizingFormatter (always), attach StructuredJsonFormatter (when structured=True), and attach RequestIDFilter to the root logger
+- [x] T008 Update the lifespan handler in backend/src/main.py to pass the structured flag (based on debug setting) when calling setup_logging()
 
 **Checkpoint**: Foundation ready — centralized logging utility installed, all log output passes through sanitization and includes request ID
 
@@ -54,11 +54,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Expand redaction patterns to cover GitHub token formats (ghp_, gho_, ghs_, github_pat_), Bearer tokens, Basic auth, and common API key formats in backend/src/logging_utils.py
-- [ ] T010 [P] [US1] Add PII redaction patterns for email addresses, and configurable maximum log message length (truncation for oversized payloads) in backend/src/logging_utils.py
-- [ ] T011 [P] [US1] Add internal file path sanitization pattern that strips system-specific directory prefixes from production log output in backend/src/logging_utils.py
-- [ ] T012 [US1] Audit and update the OAuth token exchange error log at backend/src/api/auth.py line ~110 to ensure the exception object does not leak token values
-- [ ] T013 [US1] Add resilience to the logging utility so that failures in the sanitization or formatting layer fall back to stderr and do not crash the application in backend/src/logging_utils.py
+- [x] T009 [US1] Expand redaction patterns to cover GitHub token formats (ghp_, gho_, ghs_, github_pat_), Bearer tokens, Basic auth, and common API key formats in backend/src/logging_utils.py
+- [x] T010 [P] [US1] Add PII redaction patterns for email addresses, and configurable maximum log message length (truncation for oversized payloads) in backend/src/logging_utils.py
+- [x] T011 [P] [US1] Add internal file path sanitization pattern that strips system-specific directory prefixes from production log output in backend/src/logging_utils.py
+- [x] T012 [US1] Audit and update the OAuth token exchange error log at backend/src/api/auth.py line ~110 to ensure the exception object does not leak token values
+- [x] T013 [US1] Add resilience to the logging utility so that failures in the sanitization or formatting layer fall back to stderr and do not crash the application in backend/src/logging_utils.py
 
 **Checkpoint**: User Story 1 complete — all log output passes through sanitization; sensitive patterns are redacted automatically
 
@@ -72,14 +72,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Create a get_logger(name) helper in backend/src/logging_utils.py that returns a logger pre-configured with the operation context and is the standard way for all modules to obtain a logger
-- [ ] T015 [P] [US2] Update log format in backend/src/config.py to include request_id field in the format string for the human-readable formatter (development mode)
-- [ ] T016 [P] [US2] Audit severity levels in backend/src/api/chat.py — ensure caught-and-handled errors use WARNING or ERROR (not FATAL/CRITICAL) and informational events use INFO
-- [ ] T017 [P] [US2] Audit severity levels in backend/src/api/board.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
-- [ ] T018 [P] [US2] Audit severity levels in backend/src/api/workflow.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
-- [ ] T019 [P] [US2] Audit severity levels in backend/src/api/webhooks.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
-- [ ] T020 [P] [US2] Audit severity levels in backend/src/services/github_projects/service.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
-- [ ] T021 [US2] Verify that the StructuredJsonFormatter output is valid JSON and parseable by standard log aggregation tools (manual check of sample output)
+- [x] T014 [US2] Create a get_logger(name) helper in backend/src/logging_utils.py that returns a logger pre-configured with the operation context and is the standard way for all modules to obtain a logger
+- [x] T015 [P] [US2] Update log format in backend/src/config.py to include request_id field in the format string for the human-readable formatter (development mode)
+- [x] T016 [P] [US2] Audit severity levels in backend/src/api/chat.py — ensure caught-and-handled errors use WARNING or ERROR (not FATAL/CRITICAL) and informational events use INFO
+- [x] T017 [P] [US2] Audit severity levels in backend/src/api/board.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
+- [x] T018 [P] [US2] Audit severity levels in backend/src/api/workflow.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
+- [x] T019 [P] [US2] Audit severity levels in backend/src/api/webhooks.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
+- [x] T020 [P] [US2] Audit severity levels in backend/src/services/github_projects/service.py — ensure caught-and-handled errors use WARNING or ERROR and informational events use INFO
+- [x] T021 [US2] Verify that the StructuredJsonFormatter output is valid JSON and parseable by standard log aggregation tools (manual check of sample output)
 
 **Checkpoint**: User Story 2 complete — all log entries follow consistent format with correct severity levels and contextual metadata
 
@@ -93,14 +93,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Create a safe_error_response() helper in backend/src/logging_utils.py that logs detailed error info server-side and returns a generic user-safe message string
-- [ ] T023 [US3] Replace str(e) in HTTPException detail at backend/src/api/housekeeping.py lines ~79, ~204, ~218 with safe static error messages and log the original exception server-side
-- [ ] T024 [P] [US3] Replace str(e) in GitHubAPIError details at backend/src/api/board.py lines ~63, ~118 with safe static error messages and log the original exception server-side
-- [ ] T025 [P] [US3] Replace str(e) in error response content at backend/src/api/chat.py lines ~299, ~421 with safe static error messages and log the original exception server-side
-- [ ] T026 [P] [US3] Replace str(e) in GitHubAPIError details at backend/src/api/cleanup.py lines ~52, ~104, ~125 with safe static error messages and log the original exception server-side
-- [ ] T027 [P] [US3] Replace str(e) in error response at backend/src/api/webhooks.py lines ~188, ~543 with safe static error messages and log the original exception server-side
-- [ ] T028 [P] [US3] Replace str(e) in GitHubAPIError message at backend/src/api/workflow.py line ~253 with a safe static error message and log the original exception server-side
-- [ ] T029 [US3] Verify the generic exception handler in backend/src/main.py lines ~253-259 returns only "Internal server error" and logs full context (request ID, operation) server-side
+- [x] T022 [US3] Create a safe_error_response() helper in backend/src/logging_utils.py that logs detailed error info server-side and returns a generic user-safe message string
+- [x] T023 [US3] Replace str(e) in HTTPException detail at backend/src/api/housekeeping.py lines ~79, ~204, ~218 with safe static error messages and log the original exception server-side
+- [x] T024 [P] [US3] Replace str(e) in GitHubAPIError details at backend/src/api/board.py lines ~63, ~118 with safe static error messages and log the original exception server-side
+- [x] T025 [P] [US3] Replace str(e) in error response content at backend/src/api/chat.py lines ~299, ~421 with safe static error messages and log the original exception server-side
+- [x] T026 [P] [US3] Replace str(e) in GitHubAPIError details at backend/src/api/cleanup.py lines ~52, ~104, ~125 with safe static error messages and log the original exception server-side
+- [x] T027 [P] [US3] Replace str(e) in error response at backend/src/api/webhooks.py lines ~188, ~543 with safe static error messages and log the original exception server-side
+- [x] T028 [P] [US3] Replace str(e) in GitHubAPIError message at backend/src/api/workflow.py line ~253 with a safe static error message and log the original exception server-side
+- [x] T029 [US3] Verify the generic exception handler in backend/src/main.py lines ~253-259 returns only "Internal server error" and logs full context (request ID, operation) server-side
 
 **Checkpoint**: User Story 3 complete — zero API error responses contain raw exception text, stack traces, or internal details
 
@@ -114,12 +114,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Extract the repeated "log exception + raise safe AppException" pattern into a shared handle_service_error() helper in backend/src/logging_utils.py
-- [ ] T031 [US4] Refactor duplicate error handling blocks in backend/src/api/board.py to use the shared handle_service_error() helper
-- [ ] T032 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/cleanup.py to use the shared handle_service_error() helper
-- [ ] T033 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/chat.py to use the shared handle_service_error() helper
-- [ ] T034 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/workflow.py to use the shared handle_service_error() helper
-- [ ] T035 [US4] Verify that all modules obtain loggers via get_logger() from backend/src/logging_utils.py — no ad-hoc logging.getLogger() with custom configuration outside config.py
+- [x] T030 [US4] Extract the repeated "log exception + raise safe AppException" pattern into a shared handle_service_error() helper in backend/src/logging_utils.py
+- [x] T031 [US4] Refactor duplicate error handling blocks in backend/src/api/board.py to use the shared handle_service_error() helper
+- [x] T032 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/cleanup.py to use the shared handle_service_error() helper
+- [x] T033 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/chat.py to use the shared handle_service_error() helper
+- [x] T034 [P] [US4] Refactor duplicate error handling blocks in backend/src/api/workflow.py to use the shared handle_service_error() helper
+- [x] T035 [US4] Verify that all modules obtain loggers via get_logger() from backend/src/logging_utils.py — no ad-hoc logging.getLogger() with custom configuration outside config.py
 
 **Checkpoint**: User Story 4 complete — logging and error-handling logic lives in one place; modules use shared utilities
 
@@ -133,9 +133,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T036 [US5] Enhance the generic exception handler in backend/src/main.py to include the request ID (from ContextVar), request method, and request path in the logged error context
-- [ ] T037 [US5] Add a global unhandled-async-exception hook (asyncio exception handler) in backend/src/main.py lifespan to catch and log unhandled async errors with context
-- [ ] T038 [US5] Verify that every globally caught error returns the safe generic "Internal server error" response per User Story 3 in backend/src/main.py
+- [x] T036 [US5] Enhance the generic exception handler in backend/src/main.py to include the request ID (from ContextVar), request method, and request path in the logged error context
+- [x] T037 [US5] Add a global unhandled-async-exception hook (asyncio exception handler) in backend/src/main.py lifespan to catch and log unhandled async errors with context
+- [x] T038 [US5] Verify that every globally caught error returns the safe generic "Internal server error" response per User Story 3 in backend/src/main.py
 
 **Checkpoint**: User Story 5 complete — no exception goes silently unnoticed; all unhandled errors logged with context and return safe responses
 
@@ -149,10 +149,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T039 [P] [US6] Remove dead or unreachable code related to logging and error handling identified during review across backend/src/api/ files
-- [ ] T040 [P] [US6] Simplify overly complex try/except blocks in backend/src/services/github_projects/service.py where error handling is nested or redundant
-- [ ] T041 [P] [US6] Standardize all remaining inconsistent logging patterns (e.g., mixed logger.error vs logger.exception usage, inconsistent message formatting) across backend/src/api/ and backend/src/services/ files
-- [ ] T042 [US6] Run ruff check and ruff format on backend/src/ and backend/tests/ to verify code quality after all changes (ruff check src tests && ruff format --check src tests)
+- [x] T039 [P] [US6] Remove dead or unreachable code related to logging and error handling identified during review across backend/src/api/ files
+- [x] T040 [P] [US6] Simplify overly complex try/except blocks in backend/src/services/github_projects/service.py where error handling is nested or redundant
+- [x] T041 [P] [US6] Standardize all remaining inconsistent logging patterns (e.g., mixed logger.error vs logger.exception usage, inconsistent message formatting) across backend/src/api/ and backend/src/services/ files
+- [x] T042 [US6] Run ruff check and ruff format on backend/src/ and backend/tests/ to verify code quality after all changes (ruff check src tests && ruff format --check src tests)
 
 **Checkpoint**: User Story 6 complete — codebase is cleaner with no dead code, simplified logic, and consistent patterns
 
@@ -162,10 +162,10 @@
 
 **Purpose**: Final validation, documentation, and cross-cutting improvements
 
-- [ ] T043 [P] Add docstrings and inline documentation to backend/src/logging_utils.py explaining the sanitization patterns, formatter modes, and usage guidelines
-- [ ] T044 [P] Verify log truncation works for oversized payloads (manually test with a >10KB log message) in backend/src/logging_utils.py
-- [ ] T045 [P] Verify the logging utility self-resilience (manually trigger a formatter error and confirm fallback to stderr) in backend/src/logging_utils.py
-- [ ] T046 Run full backend linting (ruff check src tests && ruff format --check src tests) and test suite to verify no regressions
+- [x] T043 [P] Add docstrings and inline documentation to backend/src/logging_utils.py explaining the sanitization patterns, formatter modes, and usage guidelines
+- [x] T044 [P] Verify log truncation works for oversized payloads (manually test with a >10KB log message) in backend/src/logging_utils.py
+- [x] T045 [P] Verify the logging utility self-resilience (manually trigger a formatter error and confirm fallback to stderr) in backend/src/logging_utils.py
+- [x] T046 Run full backend linting (ruff check src tests && ruff format --check src tests) and test suite to verify no regressions
 
 ---
 
