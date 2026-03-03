@@ -2,9 +2,9 @@
 
 ## R1: Audit Scope and File Inventory
 
-**Decision**: Audit all 342+ source files across backend (Python), frontend (TypeScript/React), SQL migrations, GitHub workflows, Docker configuration, and shell scripts. Exclude auto-generated files (`package-lock.json`, `__pycache__`, build artifacts) and vendored third-party code.
+**Decision**: Audit all ~342 source files across backend (Python), frontend (TypeScript/React), SQL migrations, GitHub workflows, Docker configuration, and shell scripts. Exclude auto-generated files (`package-lock.json`, `__pycache__`, build artifacts) and vendored third-party code.
 
-**Rationale**: The spec requires "every file in the repository on `main`" to be audited. The file inventory breaks down as: ~87 backend Python source files, ~55 backend test files, ~122 frontend TypeScript/TSX files, 9 E2E test files, 9 SQL migrations, 3 GitHub workflows, 2 shell scripts, 3 Docker files, and ~52 configuration files. Auto-generated files (lockfiles, compiled output) provide no meaningful audit surface — bugs in those files originate from their source.
+**Rationale**: The spec requires "every file in the repository on `main`" to be audited. The file inventory is approximately: ~87 backend Python source files, ~55 backend test files, ~122 frontend TypeScript/TSX files, 9 E2E test files, 9 SQL migrations, 3 GitHub workflows, 2 shell scripts, 3 Docker files, and ~52 configuration files. Counts are approximate as they depend on how `__init__.py`, type stubs, and minor config files are counted. Auto-generated files (lockfiles, compiled output) provide no meaningful audit surface — bugs in those files originate from their source.
 
 **Alternatives considered**:
 - Audit only backend or frontend: Rejected — the spec explicitly requires "entire codebase."
