@@ -49,12 +49,14 @@ async def create_task(
     issue_number = issue["number"]
     issue_node_id = issue["node_id"]
     issue_url = issue["html_url"]
+    issue_database_id = issue["id"]
 
     # Step 2: Add the issue to the project
     item_id = await github_projects_service.add_issue_to_project(
         access_token=session.access_token,
         project_id=project_id,
         issue_node_id=issue_node_id,
+        issue_database_id=issue_database_id,
     )
 
     if not item_id:

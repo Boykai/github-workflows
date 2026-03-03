@@ -388,6 +388,7 @@ async def _handle_confirm(
                 access_token=token,
                 project_id=pid,
                 issue_node_id=issue["node_id"],
+                issue_database_id=issue.get("id"),
             )
             cache.delete(get_project_items_cache_key(pid))
 
@@ -450,6 +451,7 @@ async def _handle_confirm(
                 access_token=token,
                 project_id=pid,
                 issue_node_id=issue["node_id"],
+                issue_database_id=issue.get("id"),
             )
             proposal.status = ProposalStatus.CONFIRMED
             cache.delete(get_project_items_cache_key(pid))

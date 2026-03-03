@@ -24,6 +24,7 @@ def make_mock_github_service(**overrides) -> AsyncMock:
     mock.create_issue.return_value = overrides.pop(
         "create_issue",
         {
+            "id": 300042,
             "number": 42,
             "node_id": "I_abc",
             "html_url": "https://github.com/owner/repo/issues/42",

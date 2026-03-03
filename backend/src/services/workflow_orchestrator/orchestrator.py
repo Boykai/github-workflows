@@ -409,6 +409,7 @@ class WorkflowOrchestrator:
                             access_token=ctx.access_token,
                             project_id=ctx.project_id,
                             issue_node_id=sub_node_id,
+                            issue_database_id=sub_issue.get("id"),
                         )
                         logger.info(
                             "Added sub-issue #%d to project %s",

@@ -25,11 +25,13 @@ from src.services.github_projects.graphql import (
     CREATE_COMMIT_ON_BRANCH_MUTATION,
     CREATE_DRAFT_ITEM_MUTATION,
     CREATE_PULL_REQUEST_MUTATION,
+    DELETE_PROJECT_ITEM_MUTATION,
     GET_ISSUE_LINKED_PRS_QUERY,
     GET_ISSUE_WITH_COMMENTS_QUERY,
     GET_PROJECT_FIELD_QUERY,
     GET_PROJECT_FIELDS_QUERY,
     GET_PROJECT_ITEMS_QUERY,
+    GET_PROJECT_OWNER_INFO_QUERY,
     GET_PROJECT_REPOSITORY_QUERY,
     GET_PULL_REQUEST_QUERY,
     GET_REPOSITORY_INFO_QUERY,
@@ -48,6 +50,7 @@ from src.services.github_projects.graphql import (
     UPDATE_NUMBER_FIELD_MUTATION,
     UPDATE_SINGLE_SELECT_FIELD_MUTATION,
     UPDATE_TEXT_FIELD_MUTATION,
+    VERIFY_ITEM_ON_PROJECT_QUERY,
 )
 from src.utils import utcnow
 
@@ -813,16 +816,32 @@ class GitHubProjectsService:
                     )
 
         # ── Reconciliation: supplement items that the project's items()
-        # connection may not yet include due to GitHub API eventual
-        # consistency after addProjectV2ItemById mutations. We query
-        # recent issues from the repository and check their projectItems
-        # connection (which IS consistent) to find any that are on this
-        # project but were not returned above.
+        # connection may not yet include due to a known GitHub API bug
+        # where addProjectV2ItemById creates items that never appear in
+        # ProjectV2.items(). This is confirmed to affect both the GraphQL
+        # API and the REST API (POST /users/{owner}/projectsV2/{n}/items).
+        # The issue's projectItems connection (which IS consistent) is
+        # the only reliable way to verify an item is on a project.
+        # We query recent issues from the repository and check their
+        # projectItems to find any that are on this project but were not
+        # returned by the main items() query.
         existing_content_ids = {item.content_id for item in all_items if item.content_id}
         repos_seen: set[tuple[str, str]] = set()
         for item in all_items:
             if item.repository:
                 repos_seen.add((item.repository.owner, item.repository.name))
+
+        # Also include the workflow config repo as a fallback source for
+        # reconciliation. This handles the edge case where ALL items from
+        # a repo are "ghost" items not returned by items().
+        try:
+            from src.services.workflow_orchestrator import get_workflow_config
+
+            config = await get_workflow_config(project_id)
+            if config and config.repository_owner and config.repository_name:
+                repos_seen.add((config.repository_owner, config.repository_name))
+        except Exception:
+            pass
 
         for owner, repo_name in repos_seen:
             try:
@@ -832,6 +851,7 @@ class GitHubProjectsService:
                     repo=repo_name,
                     project_id=project_id,
                     existing_content_ids=existing_content_ids,
+                    limit=100,  # Check more issues for better coverage
                 )
                 if reconciled:
                     logger.info(
@@ -1340,27 +1360,237 @@ class GitHubProjectsService:
         access_token: str,
         project_id: str,
         issue_node_id: str,
+        issue_database_id: int | None = None,
     ) -> str:
         """
         Add an existing issue to a GitHub Project (T020).
+
+        Uses a multi-strategy approach to work around a known GitHub API bug
+        where items added via ``addProjectV2ItemById`` (GraphQL) or the REST
+        API may not appear in the project's ``items()`` connection, despite
+        being visible through the issue's ``projectItems`` connection.
+
+        Strategy:
+        1. Add via GraphQL ``addProjectV2ItemById``
+        2. Verify the item is on the project via the issue's ``projectItems``
+        3. If verification fails and ``issue_database_id`` is provided, retry
+           via REST API (``POST /users/{owner}/projectsV2/{number}/items``)
+
+        The board reconciliation in ``get_board_data()`` provides an additional
+        safety net by checking issue-side ``projectItems`` for any items the
+        project-side ``items()`` connection missed.
 
         Args:
             access_token: GitHub OAuth access token
             project_id: GitHub Project V2 node ID
             issue_node_id: GitHub Issue node ID
+            issue_database_id: GitHub Issue database integer ID (for REST fallback)
 
         Returns:
             Project item ID
         """
+        # Strategy 1: GraphQL mutation
         data = await self._graphql(
             access_token,
             ADD_ISSUE_TO_PROJECT_MUTATION,
             {"projectId": project_id, "contentId": issue_node_id},
         )
-
         item_id = data.get("addProjectV2ItemById", {}).get("item", {}).get("id", "")
-        logger.info("Added issue %s to project, item_id: %s", issue_node_id, item_id)
+        logger.info("Added issue %s to project via GraphQL, item_id: %s", issue_node_id, item_id)
+
+        # Verify the item is on the project via the issue's projectItems
+        # connection (always consistent, unlike project.items()).
+        verified = await self._verify_item_on_project(access_token, issue_node_id, project_id)
+        if verified:
+            logger.info("Verified issue %s is on project %s", issue_node_id, project_id)
+            return item_id
+
+        logger.warning(
+            "Issue %s not verified on project %s after GraphQL add. "
+            "GitHub API eventual consistency detected.",
+            issue_node_id,
+            project_id,
+        )
+
+        # Strategy 2: REST API fallback (delete + re-add via REST)
+        if issue_database_id:
+            rest_item_id = await self._add_issue_to_project_rest(
+                access_token=access_token,
+                project_id=project_id,
+                item_id=item_id,
+                issue_database_id=issue_database_id,
+            )
+            if rest_item_id:
+                logger.info(
+                    "REST API fallback returned item_id: %s for issue %s",
+                    rest_item_id,
+                    issue_node_id,
+                )
+                return rest_item_id
+
         return item_id
+
+    async def _verify_item_on_project(
+        self,
+        access_token: str,
+        issue_node_id: str,
+        project_id: str,
+    ) -> bool:
+        """
+        Verify an issue is on a project by querying the issue's projectItems.
+
+        The issue-side ``projectItems`` connection is always consistent and
+        reliable, unlike the project-side ``items()`` connection.
+
+        Args:
+            access_token: GitHub OAuth access token
+            issue_node_id: GitHub Issue node ID
+            project_id: GitHub Project V2 node ID
+
+        Returns:
+            True if the issue is found on the project
+        """
+        try:
+            await asyncio.sleep(1)  # Brief delay for propagation
+            data = await self._graphql(
+                access_token,
+                VERIFY_ITEM_ON_PROJECT_QUERY,
+                {"issueId": issue_node_id},
+            )
+            project_items = data.get("node", {}).get("projectItems", {}).get("nodes", [])
+            for pi in project_items:
+                if (
+                    pi
+                    and not pi.get("isArchived", False)
+                    and pi.get("project", {}).get("id") == project_id
+                ):
+                    return True
+            return False
+        except Exception as e:
+            logger.debug("Verification query failed: %s", e)
+            return False
+
+    async def _get_project_rest_info(
+        self,
+        access_token: str,
+        project_id: str,
+    ) -> tuple[int, str, str] | None:
+        """
+        Get project number, owner type, and owner login for REST API calls.
+
+        Returns:
+            Tuple of (project_number, owner_type, owner_login) or None on failure.
+            owner_type is 'User' or 'Organization'.
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_PROJECT_OWNER_INFO_QUERY,
+                {"projectId": project_id},
+            )
+            node = data.get("node", {})
+            project_number = node.get("number")
+            owner = node.get("owner", {})
+            owner_type = owner.get("__typename", "")
+            owner_login = owner.get("login", "")
+
+            if project_number and owner_type and owner_login:
+                return (project_number, owner_type, owner_login)
+            return None
+        except Exception as e:
+            logger.debug("Failed to get project REST info: %s", e)
+            return None
+
+    async def _add_issue_to_project_rest(
+        self,
+        access_token: str,
+        project_id: str,
+        item_id: str,
+        issue_database_id: int,
+    ) -> str | None:
+        """
+        Add an issue to a project via the REST API as a fallback strategy.
+
+        Deletes the existing GraphQL-created item first, then re-adds via
+        the REST ``POST /users/{owner}/projectsV2/{number}/items`` (or
+        the org equivalent) endpoint. This uses a different internal GitHub
+        code path that may handle project indexing differently.
+
+        Args:
+            access_token: GitHub OAuth access token
+            project_id: GitHub Project V2 node ID
+            item_id: Existing project item ID (from GraphQL) to delete first
+            issue_database_id: GitHub Issue integer database ID
+
+        Returns:
+            New project item node_id from the REST API, or None on failure
+        """
+        try:
+            # Get project number and owner type
+            rest_info = await self._get_project_rest_info(access_token, project_id)
+            if not rest_info:
+                logger.warning("Could not resolve project REST info for %s", project_id)
+                return None
+
+            project_number, owner_type, owner_login = rest_info
+
+            # Delete existing item
+            if item_id:
+                try:
+                    await self._graphql(
+                        access_token,
+                        DELETE_PROJECT_ITEM_MUTATION,
+                        {"projectId": project_id, "itemId": item_id},
+                    )
+                    logger.info("Deleted item %s before REST re-add", item_id)
+                    await asyncio.sleep(2)
+                except Exception as e:
+                    logger.debug("Failed to delete item before REST re-add: %s", e)
+
+            # Build REST API URL based on owner type
+            if owner_type == "Organization":
+                url = f"https://api.github.com/orgs/{owner_login}/projectsV2/{project_number}/items"
+            else:
+                url = (
+                    f"https://api.github.com/users/{owner_login}/projectsV2/{project_number}/items"
+                )
+
+            headers = {
+                "Accept": "application/vnd.github+json",
+                "Authorization": f"Bearer {access_token}",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+
+            response = await self._request_with_retry(
+                method="POST",
+                url=url,
+                headers=headers,
+                json={"type": "Issue", "id": issue_database_id},
+                idempotent=True,
+            )
+
+            if response.status_code in (200, 201):
+                result = response.json()
+                node_id = result.get("node_id") or result.get("value", {}).get("node_id", "")
+                logger.info(
+                    "REST API added issue (db_id=%d) to project %s/%d, node_id: %s",
+                    issue_database_id,
+                    owner_login,
+                    project_number,
+                    node_id,
+                )
+                return node_id
+            else:
+                logger.warning(
+                    "REST API add item returned status %d: %s",
+                    response.status_code,
+                    response.text[:200],
+                )
+                return None
+
+        except Exception as e:
+            logger.warning("REST API fallback failed: %s", e)
+            return None
 
     async def assign_issue(
         self,

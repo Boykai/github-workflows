@@ -237,6 +237,7 @@ class TestConfirmProposal:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100010,
             "number": 10,
             "node_id": "I_10",
             "html_url": "https://github.com/owner/repo/issues/10",
@@ -499,6 +500,7 @@ class TestConfirmProposalEdgeCases:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100020,
             "number": 20,
             "node_id": "I_20",
             "html_url": "https://github.com/owner/repo/issues/20",
@@ -536,6 +538,7 @@ class TestConfirmProposalEdgeCases:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100021,
             "number": 21,
             "node_id": "I_21",
             "html_url": "https://github.com/owner/repo/issues/21",
@@ -591,6 +594,7 @@ class TestConfirmProposalPreservesFullDescription:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100030,
             "number": 30,
             "node_id": "I_30",
             "html_url": "https://github.com/owner/repo/issues/30",
@@ -630,6 +634,7 @@ class TestConfirmProposalPreservesFullDescription:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100031,
             "number": 31,
             "node_id": "I_31",
             "html_url": "https://github.com/owner/repo/issues/31",
@@ -733,6 +738,7 @@ class TestConfirmProposalPreservesFullDescription:
 
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 100032,
             "number": 32,
             "node_id": "I_32",
             "html_url": "https://github.com/owner/repo/issues/32",

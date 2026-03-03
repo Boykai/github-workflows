@@ -155,6 +155,51 @@ mutation($projectId: ID!, $contentId: ID!) {
 }
 """
 
+# Verify an issue is on a specific project by querying the issue's projectItems
+# connection (which is ALWAYS consistent, unlike ProjectV2.items()).
+VERIFY_ITEM_ON_PROJECT_QUERY = """
+query($issueId: ID!) {
+  node(id: $issueId) {
+    ... on Issue {
+      projectItems(first: 10) {
+        nodes {
+          id
+          isArchived
+          project { id }
+        }
+      }
+    }
+  }
+}
+"""
+
+# Get project number and owner type for REST API fallback.
+# The REST API uses /users/{login}/projectsV2/{number}/items or
+# /orgs/{login}/projectsV2/{number}/items endpoints.
+GET_PROJECT_OWNER_INFO_QUERY = """
+query($projectId: ID!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      number
+      owner {
+        __typename
+        ... on User { login }
+        ... on Organization { login }
+      }
+    }
+  }
+}
+"""
+
+# Delete a project item (used for delete + re-add retry strategy).
+DELETE_PROJECT_ITEM_MUTATION = """
+mutation($projectId: ID!, $itemId: ID!) {
+  deleteProjectV2Item(input: {projectId: $projectId, itemId: $itemId}) {
+    deletedItemId
+  }
+}
+"""
+
 # Query to get project field info for status updates
 GET_PROJECT_FIELD_QUERY = """
 query($projectId: ID!) {

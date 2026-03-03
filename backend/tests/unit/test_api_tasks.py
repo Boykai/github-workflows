@@ -37,6 +37,7 @@ class TestCreateTask:
         mock_session.selected_project_id = "PVT_abc"
         mock_github_service.get_project_repository.return_value = ("owner", "repo")
         mock_github_service.create_issue.return_value = {
+            "id": 200042,
             "number": 42,
             "node_id": "I_abc",
             "html_url": "https://github.com/owner/repo/issues/42",
@@ -69,6 +70,7 @@ class TestCreateTask:
         mock_session.selected_project_id = "PVT_session"
         mock_github_service.get_project_repository.return_value = ("o", "r")
         mock_github_service.create_issue.return_value = {
+            "id": 200001,
             "number": 1,
             "node_id": "I_1",
             "html_url": "https://github.com/o/r/issues/1",
@@ -87,6 +89,7 @@ class TestCreateTask:
         mock_session.selected_project_id = "PVT_abc"
         mock_github_service.get_project_repository.return_value = ("o", "r")
         mock_github_service.create_issue.return_value = {
+            "id": 200002,
             "number": 1,
             "node_id": "I_1",
             "html_url": "https://github.com/o/r/issues/1",

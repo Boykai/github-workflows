@@ -599,6 +599,7 @@ async def _execute_creation_pipeline(
     agent_config_id: str | None = None
     issue_number: int | None = None
     issue_node_id: str | None = None
+    issue_database_id: int | None = None
     item_id: str | None = None
     branch_name = f"agent/{preview.slug}"
     repo_info: dict | None = None
@@ -706,6 +707,7 @@ async def _execute_creation_pipeline(
         )
         issue_number = issue["number"]
         issue_node_id = issue.get("node_id")
+        issue_database_id = issue.get("id")
         results.append(
             PipelineStepResult(
                 step_name="Create GitHub Issue",
@@ -908,6 +910,7 @@ async def _execute_creation_pipeline(
                 access_token=access_token,
                 project_id=state.project_id,
                 issue_node_id=issue_node_id,
+                issue_database_id=issue_database_id,
             )
             if not item_id:
                 # Treat missing item ID as failure instead of silently succeeding
