@@ -1952,6 +1952,18 @@ class GitHubProjectsService:
             # should be as resilient as other GitHub API calls.
             response = await self._request_with_retry("GET", url, headers=headers)
             return response.json().get("state", "") == "closed"
+        except httpx.HTTPStatusError as e:
+            # 404 / 410 means the issue was deleted — treat as closed so
+            # the chore's open-instance slot is freed up.
+            if e.response.status_code in (404, 410):
+                logger.info(
+                    "Issue #%d returned %d — treating as closed (deleted)",
+                    issue_number,
+                    e.response.status_code,
+                )
+                return True
+            logger.warning("Error checking issue #%d state: %s", issue_number, e)
+            return False
         except Exception as e:
             logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False

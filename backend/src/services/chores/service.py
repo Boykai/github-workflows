@@ -272,6 +272,7 @@ class ChoresService:
         repo: str,
         project_id: str,
         parent_issue_count: int | None = None,
+        github_user_id: str = "",
     ) -> ChoreTriggerResult:
         """Trigger a single chore: create issue, run agent pipeline, update record.
 
@@ -299,6 +300,36 @@ class ChoresService:
 
         # Create GitHub issue from template content (strip YAML front matter)
         issue_body = _strip_front_matter(chore.template_content or "")
+
+        # Append agent pipeline tracking table to the issue body so
+        # subsequent pipeline updates can mark agents as active/done.
+        try:
+            from src.services.agent_tracking import append_tracking_to_body
+            from src.services.workflow_orchestrator import get_workflow_config
+            from src.services.workflow_orchestrator.orchestrator import get_status_order
+
+            config = await get_workflow_config(project_id)
+            if config and config.agent_mappings:
+                # Apply user-specific agent pipeline mappings if available
+                if github_user_id:
+                    from src.services.workflow_orchestrator.config import (
+                        load_user_agent_mappings,
+                    )
+
+                    user_mappings = await load_user_agent_mappings(github_user_id, project_id)
+                    if user_mappings:
+                        config.agent_mappings = user_mappings
+                        from src.services.workflow_orchestrator import set_workflow_config
+
+                        await set_workflow_config(project_id, config)
+
+                status_order = get_status_order(config)
+                issue_body = append_tracking_to_body(
+                    issue_body, config.agent_mappings, status_order
+                )
+        except Exception:
+            logger.exception("Failed to append agent tracking table for chore %s", chore.name)
+
         issue = await github_service.create_issue(
             access_token,
             owner,
@@ -311,20 +342,61 @@ class ChoresService:
         issue_number = issue["number"]
         issue_node_id = issue["node_id"]
         issue_url = issue["html_url"]
+        issue_database_id = issue.get("id")
 
         # Add to project
-        await github_service.add_issue_to_project(access_token, project_id, issue_node_id)
+        item_id = await github_service.add_issue_to_project(
+            access_token,
+            project_id,
+            issue_node_id,
+            issue_database_id=issue_database_id,
+        )
 
-        # Run agent pipeline (if workflow config exists)
+        # Run full agent pipeline (mirrors _run_workflow_orchestration)
         try:
+            from src.config import get_settings
+            from src.services.copilot_polling import ensure_polling_started
             from src.services.workflow_orchestrator import (
+                PipelineState,
                 WorkflowContext,
+                get_agent_slugs,
                 get_workflow_config,
                 get_workflow_orchestrator,
+                set_pipeline_state,
             )
+            from src.utils import utcnow
 
+            settings = get_settings()
             config = await get_workflow_config(project_id)
+
             if config:
+                # Ensure repo info is set on configuration
+                config.repository_owner = owner
+                config.repository_name = repo
+                if not config.copilot_assignee:
+                    config.copilot_assignee = settings.default_assignee
+
+                # Set issue status to Backlog on the project board
+                backlog_status = config.status_backlog
+                try:
+                    await github_service.update_item_status_by_name(
+                        access_token=access_token,
+                        project_id=project_id,
+                        item_id=item_id,
+                        status_name=backlog_status,
+                    )
+                    logger.info(
+                        "Set chore issue #%d status to '%s' on project",
+                        issue_number,
+                        backlog_status,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to set Backlog status for chore issue #%d",
+                        issue_number,
+                    )
+
+                # Build workflow context
                 ctx = WorkflowContext(
                     session_id=str(uuid.uuid4()),
                     project_id=project_id,
@@ -335,9 +407,40 @@ class ChoresService:
                 )
                 ctx.issue_id = issue_node_id
                 ctx.issue_number = issue_number
+                ctx.project_item_id = item_id
 
                 orchestrator = get_workflow_orchestrator()
-                await orchestrator.create_all_sub_issues(ctx)
+
+                # Create all sub-issues upfront
+                agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
+                if agent_sub_issues:
+                    backlog_agents = get_agent_slugs(config, backlog_status)
+                    pipeline_state = PipelineState(
+                        issue_number=issue_number,
+                        project_id=project_id,
+                        status=backlog_status,
+                        agents=backlog_agents,
+                        agent_sub_issues=agent_sub_issues,
+                        started_at=utcnow(),
+                    )
+                    set_pipeline_state(issue_number, pipeline_state)
+                    logger.info(
+                        "Pre-created %d sub-issues for chore issue #%d",
+                        len(agent_sub_issues),
+                        issue_number,
+                    )
+
+                # Assign first Backlog agent
+                await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+
+                # Start Copilot polling so the pipeline advances
+                await ensure_polling_started(
+                    access_token=access_token,
+                    project_id=project_id,
+                    owner=owner,
+                    repo=repo,
+                    caller="chore_trigger",
+                )
         except Exception:
             logger.exception(
                 "Agent pipeline failed for chore %s (issue #%s)",
