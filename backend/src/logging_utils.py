@@ -30,12 +30,12 @@ Usage::
 
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import logging
 import re
 import sys
 import traceback
-from datetime import datetime
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ class StructuredJsonFormatter(logging.Formatter):
         try:
             message = redact(record.getMessage())
             entry: dict[str, Any] = {
-                "timestamp": datetime.fromtimestamp(record.created, tz=datetime.UTC).isoformat(),
+                "timestamp": _dt.datetime.fromtimestamp(record.created, tz=_dt.UTC).isoformat(),
                 "level": record.levelname,
                 "message": message,
                 "logger": record.name,
