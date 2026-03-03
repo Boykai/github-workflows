@@ -181,11 +181,12 @@ async def handle_copilot_pr_ready(
             "Failed to process PR #%d completion: %s",
             pr_number,
             e,
+            exc_info=True,
         )
         return {
             "status": "error",
             "pr_number": pr_number,
-            "error": str(e),
+            "error": "Failed to process PR completion",
         }
 
 
@@ -534,11 +535,12 @@ async def update_issue_status_for_copilot_pr(
             "Error updating issue status for Copilot PR #%d: %s",
             pr_number,
             e,
+            exc_info=True,
         )
         return {
             "status": "error",
             "event": "copilot_pr_ready",
             "pr_number": pr_number,
             "issue_number": issue_number,
-            "error": str(e),
+            "error": "Failed to update issue status",
         }

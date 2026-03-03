@@ -292,11 +292,11 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 
         except Exception as e:
             # T017: Error handling for AI generation failures
-            logger.error("Failed to generate issue recommendation: %s", e)
+            logger.error("Failed to generate issue recommendation: %s", e, exc_info=True)
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content=f"I couldn't generate an issue recommendation from your feature request. Please try again with more detail.\n\nError: {str(e)}",
+                content="I couldn't generate an issue recommendation from your feature request. Please try again with more detail.",
             )
             add_message(session.session_id, error_message)
             return error_message
@@ -412,13 +412,13 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         return assistant_message
 
     except Exception as e:
-        logger.error("Failed to generate task: %s", e)
+        logger.error("Failed to generate task: %s", e, exc_info=True)
 
         # Return error message
         error_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content=f"I couldn't generate a task from your description. Please try again with more detail.\n\nError: {str(e)}",
+            content="I couldn't generate a task from your description. Please try again with more detail.",
         )
         add_message(session.session_id, error_message)
 
