@@ -172,6 +172,10 @@ async def process_signal_chat(
             await _reply_with_audit(conn, source_phone, agent_response)
         except Exception as exc:
             logger.error("#agent via Signal failed: %s", exc)
+            # TODO(bug-bash): Security — this leaks internal exception details to the
+            # user via Signal.  Options: (1) sanitize to a generic message like the
+            # web chat endpoint, (2) keep as-is since Signal is a private 1:1 channel.
+            # Human decision needed: privacy model for Signal error messages.
             await _reply(source_phone, f"Error processing #agent command: {exc}")
         return
 
@@ -531,6 +535,9 @@ async def _handle_confirm(
 
     except Exception as e:
         logger.error("Signal CONFIRM failed for user %s: %s", conn.github_user_id, e)
+        # TODO(bug-bash): Security — this leaks internal exception details to the
+        # user via Signal.  Options: (1) sanitize to a generic message, (2) keep
+        # as-is since Signal is a private 1:1 channel.  Human decision needed.
         await _reply(source_phone, f"⚠️ Could not complete: {str(e)[:200]}")
 
 
@@ -808,6 +815,9 @@ async def _run_ai_pipeline(
             content=f"Processing failed: {str(e)[:200]}",
         )
         add_message(signal_sid, error_msg)
+        # TODO(bug-bash): Security — this leaks internal exception details to the
+        # user via Signal.  Options: (1) sanitize to a generic message, (2) keep
+        # as-is since Signal is a private 1:1 channel.  Human decision needed.
         await _reply(
             source_phone,
             f"⚠️ I couldn't process your message. Please try again.\n\n_{str(e)[:200]}_",

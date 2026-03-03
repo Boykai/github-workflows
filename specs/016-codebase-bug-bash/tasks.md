@@ -25,11 +25,11 @@
 
 **Purpose**: Establish a clean baseline before auditing. Confirm all tests pass and linters are clean so that pre-existing failures are documented and excluded from findings.
 
-- [ ] T001 Run backend test suite to establish baseline via `cd backend && pytest -v`
-- [ ] T002 [P] Run backend linting baseline via `cd backend && ruff check src tests && ruff format --check src tests`
-- [ ] T003 [P] Run frontend test suite to establish baseline via `cd frontend && npm test`
-- [ ] T004 [P] Run frontend linting baseline via `cd frontend && npm run lint && npm run type-check`
-- [ ] T005 Document any pre-existing failures in a baseline-failures note for exclusion from audit findings
+- [x] T001 Run backend test suite to establish baseline via `cd backend && pytest -v`
+- [x] T002 [P] Run backend linting baseline via `cd backend && ruff check src tests && ruff format --check src tests`
+- [x] T003 [P] Run frontend test suite to establish baseline via `cd frontend && npm test`
+- [x] T004 [P] Run frontend linting baseline via `cd frontend && npm run lint && npm run type-check`
+- [x] T005 Document any pre-existing failures in a baseline-failures note for exclusion from audit findings
 
 **Checkpoint**: Baseline established — all pre-existing test/lint status is documented. Audit phases can begin.
 
@@ -41,12 +41,12 @@
 
 **⚠️ CRITICAL**: No manual audit work can begin until this phase is complete.
 
-- [ ] T006 Run Ruff with all rules enabled on backend to identify potential issues via `cd backend && ruff check src tests --select ALL` and document findings
-- [ ] T007 [P] Run Pyright type checker on backend to catch type errors via `cd backend && pyright` and document findings
-- [ ] T008 [P] Run ESLint on frontend to identify potential issues via `cd frontend && npm run lint` and document findings
-- [ ] T009 [P] Run TypeScript strict type check on frontend via `cd frontend && npm run type-check` and document findings
-- [ ] T010 Generate file inventory categorized by risk level (High/Medium/Low) per plan.md project structure for systematic audit tracking
-- [ ] T011 Triage automated scan findings into the five bug categories (Security, Runtime, Logic, Test Quality, Code Quality) for targeted manual review
+- [x] T006 Run Ruff with all rules enabled on backend to identify potential issues via `cd backend && ruff check src tests --select ALL` and document findings
+- [x] T007 [P] Run Pyright type checker on backend to catch type errors via `cd backend && pyright` and document findings
+- [x] T008 [P] Run ESLint on frontend to identify potential issues via `cd frontend && npm run lint` and document findings
+- [x] T009 [P] Run TypeScript strict type check on frontend via `cd frontend && npm run type-check` and document findings
+- [x] T010 Generate file inventory categorized by risk level (High/Medium/Low) per plan.md project structure for systematic audit tracking
+- [x] T011 Triage automated scan findings into the five bug categories (Security, Runtime, Logic, Test Quality, Code Quality) for targeted manual review
 
 **Checkpoint**: Automated scan complete — triaged findings feed into manual review phases. File inventory ready for systematic audit tracking.
 
@@ -60,31 +60,31 @@
 
 ### Backend Security Audit
 
-- [ ] T012 [US1] Audit OAuth flow, session cookies, redirect validation, and token handling in `backend/src/api/auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_auth.py`
-- [ ] T013 [US1] Audit admin authorization, session validation, and TOCTOU race conditions in `backend/src/dependencies.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_dependencies.py`
-- [ ] T014 [US1] Audit secret management, environment variable handling, and cookie security defaults in `backend/src/config.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_config.py`
-- [ ] T015 [US1] Audit SQL query construction for injection risks and parameterized query usage in `backend/src/services/database.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_database.py`
-- [ ] T016 [US1] Audit GitHub API token usage, input validation, and security of external API calls in `backend/src/services/github_projects/service.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_projects_service.py`
-- [ ] T017 [P] [US1] Audit user input handling, command injection risks, and XSS in responses in `backend/src/api/chat.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_chat.py`
-- [ ] T018 [P] [US1] Audit input validation and authentication enforcement in remaining backend API files: `backend/src/api/projects.py`, `backend/src/api/board.py`, `backend/src/api/tasks.py`, `backend/src/api/settings.py`, and all other `backend/src/api/*.py` — fix confirmed vulnerabilities with regression tests
-- [ ] T019 [P] [US1] Audit AI agent orchestration for prompt injection and input sanitization in `backend/src/services/ai_agent.py` — fix confirmed vulnerabilities with regression tests
-- [ ] T020 [P] [US1] Audit Signal messaging integration for input validation in `backend/src/services/signal_chat.py` — fix confirmed vulnerabilities with regression tests
+- [x] T012 [US1] Audit OAuth flow, session cookies, redirect validation, and token handling in `backend/src/api/auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_auth.py`
+- [x] T013 [US1] Audit admin authorization, session validation, and TOCTOU race conditions in `backend/src/dependencies.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_dependencies.py`
+- [x] T014 [US1] Audit secret management, environment variable handling, and cookie security defaults in `backend/src/config.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_config.py`
+- [x] T015 [US1] Audit SQL query construction for injection risks and parameterized query usage in `backend/src/services/database.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_database.py`
+- [x] T016 [US1] Audit GitHub API token usage, input validation, and security of external API calls in `backend/src/services/github_projects/service.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_projects_service.py`
+- [x] T017 [P] [US1] Audit user input handling, command injection risks, and XSS in responses in `backend/src/api/chat.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_chat.py`
+- [x] T018 [P] [US1] Audit input validation and authentication enforcement in remaining backend API files: `backend/src/api/projects.py`, `backend/src/api/board.py`, `backend/src/api/tasks.py`, `backend/src/api/settings.py`, and all other `backend/src/api/*.py` — fix confirmed vulnerabilities with regression tests
+- [x] T019 [P] [US1] Audit AI agent orchestration for prompt injection and input sanitization in `backend/src/services/ai_agent.py` — fix confirmed vulnerabilities with regression tests
+- [x] T020 [P] [US1] Audit Signal messaging integration for input validation in `backend/src/services/signal_chat.py` — fix confirmed vulnerabilities with regression tests
 
 ### Frontend Security Audit
 
-- [ ] T021 [US1] Audit credential handling, CORS configuration, and sensitive data exposure in API URLs in `frontend/src/services/api.ts` — fix confirmed vulnerabilities with regression tests
-- [ ] T022 [P] [US1] Audit all React components for XSS via `dangerouslySetInnerHTML`, unsanitized user content rendering, and URL handling in `frontend/src/components/**/*.tsx` — fix confirmed vulnerabilities with regression tests
-- [ ] T023 [P] [US1] Audit frontend hooks for sensitive data leaks and insecure state management in `frontend/src/hooks/*.ts` — fix confirmed vulnerabilities with regression tests
+- [x] T021 [US1] Audit credential handling, CORS configuration, and sensitive data exposure in API URLs in `frontend/src/services/api.ts` — fix confirmed vulnerabilities with regression tests
+- [x] T022 [P] [US1] Audit all React components for XSS via `dangerouslySetInnerHTML`, unsanitized user content rendering, and URL handling in `frontend/src/components/**/*.tsx` — fix confirmed vulnerabilities with regression tests
+- [x] T023 [P] [US1] Audit frontend hooks for sensitive data leaks and insecure state management in `frontend/src/hooks/*.ts` — fix confirmed vulnerabilities with regression tests
 
 ### Infrastructure Security Audit
 
-- [ ] T024 [P] [US1] Audit GitHub Actions workflows for secret exposure, insecure action versions, and injection risks in `.github/workflows/ci.yml`, `.github/workflows/housekeeping-cron.yml`, `.github/workflows/branch-issue-link.yml` — fix confirmed vulnerabilities
-- [ ] T025 [P] [US1] Audit Docker configuration for insecure defaults, exposed ports, and secret leaks in `docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` — fix confirmed vulnerabilities
+- [x] T024 [P] [US1] Audit GitHub Actions workflows for secret exposure, insecure action versions, and injection risks in `.github/workflows/ci.yml`, `.github/workflows/housekeeping-cron.yml`, `.github/workflows/branch-issue-link.yml` — fix confirmed vulnerabilities
+- [x] T025 [P] [US1] Audit Docker configuration for insecure defaults, exposed ports, and secret leaks in `docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` — fix confirmed vulnerabilities
 
 ### US1 Verification
 
-- [ ] T026 [US1] Run full backend test suite `cd backend && pytest -v` to verify all security fixes and regression tests pass
-- [ ] T027 [US1] Run full frontend test suite `cd frontend && npm test` to verify all security fixes and regression tests pass
+- [x] T026 [US1] Run full backend test suite `cd backend && pytest -v` to verify all security fixes and regression tests pass
+- [x] T027 [US1] Run full frontend test suite `cd frontend && npm test` to verify all security fixes and regression tests pass
 
 **Checkpoint**: Security audit complete — all confirmed security vulnerabilities have fixes with regression tests. Ambiguous security concerns flagged with `TODO(bug-bash)` comments.
 
@@ -225,14 +225,14 @@
 
 **Independent Test**: Every entry in the summary has a corresponding Fix commit or `TODO(bug-bash)` comment in the codebase. Every Fix commit and `TODO(bug-bash)` comment appears in the summary. Category counts match actual findings.
 
-- [ ] T078 [US6] Compile all security findings (Phase 3) into the summary table with file path, line numbers, category (🔴 Security), description, and status (✅ Fixed / ⚠️ Flagged)
-- [ ] T079 [P] [US6] Compile all runtime error findings (Phase 4) into the summary table with file path, line numbers, category (🟠 Runtime), description, and status
-- [ ] T080 [P] [US6] Compile all logic bug findings (Phase 5) into the summary table with file path, line numbers, category (🟡 Logic), description, and status
-- [ ] T081 [P] [US6] Compile all test quality findings (Phase 6) into the summary table with file path, line numbers, category (🔵 Test Quality), description, and status
-- [ ] T082 [P] [US6] Compile all code quality findings (Phase 7) into the summary table with file path, line numbers, category (⚪ Code Quality), description, and status
-- [ ] T083 [US6] Merge all category tables into a single findings summary report in `specs/016-codebase-bug-bash/summary-report.md` with counts per category, fixed/flagged totals, and overall test/lint status
-- [ ] T084 [US6] Cross-reference summary report against actual codebase — verify every ✅ Fixed entry has a corresponding commit and regression test, and every ⚠️ Flagged entry has a `TODO(bug-bash)` comment at the documented location
-- [ ] T085 [US6] Verify zero-finding categories are explicitly listed in the summary report with a "0 findings" note
+- [x] T078 [US6] Compile all security findings (Phase 3) into the summary table with file path, line numbers, category (🔴 Security), description, and status (✅ Fixed / ⚠️ Flagged)
+- [x] T079 [P] [US6] Compile all runtime error findings (Phase 4) into the summary table with file path, line numbers, category (🟠 Runtime), description, and status
+- [x] T080 [P] [US6] Compile all logic bug findings (Phase 5) into the summary table with file path, line numbers, category (🟡 Logic), description, and status
+- [x] T081 [P] [US6] Compile all test quality findings (Phase 6) into the summary table with file path, line numbers, category (🔵 Test Quality), description, and status
+- [x] T082 [P] [US6] Compile all code quality findings (Phase 7) into the summary table with file path, line numbers, category (⚪ Code Quality), description, and status
+- [x] T083 [US6] Merge all category tables into a single findings summary report in `specs/016-codebase-bug-bash/summary-report.md` with counts per category, fixed/flagged totals, and overall test/lint status
+- [x] T084 [US6] Cross-reference summary report against actual codebase — verify every ✅ Fixed entry has a corresponding commit and regression test, and every ⚠️ Flagged entry has a `TODO(bug-bash)` comment at the documented location
+- [x] T085 [US6] Verify zero-finding categories are explicitly listed in the summary report with a "0 findings" note
 
 **Checkpoint**: Summary report complete and cross-referenced — every finding is documented and traceable.
 
@@ -242,11 +242,11 @@
 
 **Purpose**: Final verification across all audit phases. Ensure complete consistency between fixes, flags, tests, and the summary report.
 
-- [ ] T086 Run complete backend verification: `cd backend && pytest -v && ruff check src tests && ruff format --check src tests`
-- [ ] T087 Run complete frontend verification: `cd frontend && npm test && npm run lint && npm run type-check`
-- [ ] T088 Verify all `TODO(bug-bash)` comments in the codebase are present in the summary report via `grep -rn "TODO(bug-bash)" backend/ frontend/ .github/`
-- [ ] T089 Verify all regression test functions added during the bug bash are listed in the summary report
-- [ ] T090 Final review of summary report for completeness: confirm every fix commit has a matching entry, category counts are accurate, and overall status reflects current test/lint state
+- [x] T086 Run complete backend verification: `cd backend && pytest -v && ruff check src tests && ruff format --check src tests`
+- [x] T087 Run complete frontend verification: `cd frontend && npm test && npm run lint && npm run type-check`
+- [x] T088 Verify all `TODO(bug-bash)` comments in the codebase are present in the summary report via `grep -rn "TODO(bug-bash)" backend/ frontend/ .github/`
+- [x] T089 Verify all regression test functions added during the bug bash are listed in the summary report
+- [x] T090 Final review of summary report for completeness: confirm every fix commit has a matching entry, category counts are accurate, and overall status reflects current test/lint state
 
 ---
 
