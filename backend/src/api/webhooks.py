@@ -10,15 +10,15 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from src.config import get_settings
 from src.services.github_projects import github_projects_service
+from src.utils import BoundedSet
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# In-memory storage for tracking processed events (deduplication)
-_processed_delivery_ids: set[str] = set()
-
-# Maximum delivery IDs to keep (prevent memory leak)
-MAX_DELIVERY_IDS = 1000
+# In-memory storage for tracking processed events (deduplication).
+# Uses BoundedSet to maintain insertion order and automatically evict
+# the oldest entries when capacity is reached.
+_processed_delivery_ids: BoundedSet[str] = BoundedSet(maxlen=1000)
 
 
 def verify_webhook_signature(payload: bytes, signature: str | None, secret: str) -> bool:
@@ -239,13 +239,6 @@ async def github_webhook(
 
         _processed_delivery_ids.add(x_github_delivery)
 
-        # Prevent memory leak
-        if len(_processed_delivery_ids) > MAX_DELIVERY_IDS:
-            # Remove oldest entries (convert to list, slice, convert back)
-            oldest = list(_processed_delivery_ids)[: MAX_DELIVERY_IDS // 2]
-            for delivery_id in oldest:
-                _processed_delivery_ids.discard(delivery_id)
-
     # Parse JSON payload
     try:
         payload = await request.json()
@@ -451,8 +444,8 @@ async def update_issue_status_for_copilot_pr(
                 )
 
                 for item in items:
-                    # Check if this item matches our issue
-                    if item.github_item_id and str(issue_number) in str(item.github_item_id):
+                    # Check if this item matches our issue by issue number
+                    if item.issue_number is not None and item.issue_number == issue_number:
                         target_project = project
                         target_item_id = item.github_item_id
                         break

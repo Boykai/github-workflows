@@ -137,3 +137,32 @@ class TestGetBoardData:
         resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
         assert resp.status_code == 200
         mock_github_service.get_board_data.assert_called_once()
+
+
+# ── Regression: board error responses must NOT leak internal details ────────
+
+
+class TestBoardErrorSanitization:
+    """Bug-bash regression: GitHubAPIError raised in board endpoints must not
+    include raw exception strings in the ``details`` field."""
+
+    async def test_list_projects_error_does_not_leak_details(self, client, mock_github_service):
+        """list_board_projects must not expose internal error strings."""
+        mock_github_service.list_board_projects.side_effect = RuntimeError(
+            "Connection refused to https://api.github.com"
+        )
+        resp = await client.get("/api/v1/board/projects", params={"refresh": True})
+        assert resp.status_code == 502
+        body = resp.json()
+        assert "Connection refused" not in str(body)
+        assert "api.github.com" not in str(body)
+
+    async def test_get_board_data_error_does_not_leak_details(self, client, mock_github_service):
+        """get_board_data must not expose internal error strings."""
+        mock_github_service.get_board_data.side_effect = RuntimeError(
+            "SSL: CERTIFICATE_VERIFY_FAILED"
+        )
+        resp = await client.get("/api/v1/board/projects/PVT_err", params={"refresh": True})
+        assert resp.status_code == 502
+        body = resp.json()
+        assert "CERTIFICATE_VERIFY_FAILED" not in str(body)
