@@ -123,6 +123,7 @@ class SanitizingFormatter(logging.Formatter):
             return redact(original)
         except Exception:
             # Fallback: emit something rather than crash.
+            _fallback_stderr(f"SanitizingFormatter error for: {record.getMessage()[:200]}")
             try:
                 fallback = f"{record.levelname} - {record.getMessage()}"
                 return redact(fallback)
@@ -157,6 +158,7 @@ class StructuredJsonFormatter(logging.Formatter):
 
             return json.dumps(entry, default=str)
         except Exception:
+            _fallback_stderr(f"StructuredJsonFormatter error for: {record.getMessage()[:200]}")
             return json.dumps({"level": "ERROR", "message": "[JSON FORMATTING ERROR]"})
 
 
