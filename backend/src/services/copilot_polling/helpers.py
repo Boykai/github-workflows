@@ -16,11 +16,22 @@ def is_sub_issue(task: Any) -> bool:
     """Return True if the task is an agent sub-issue rather than a parent issue.
 
     Sub-issues are created by the orchestrator with titles matching
-    ``[agent-name] Parent Title``.  The polling loop should skip them
-    to avoid wasting API calls and creating spurious pipeline states.
+    ``[agent-name] Parent Title``.  GitHub can auto-move sub-issues to
+    different status columns (e.g. "In Progress") when a branch is
+    created; the polling loop must skip them to avoid creating spurious
+    pipeline states.  A secondary label check guards against renamed titles.
     """
     title = getattr(task, "title", None) or ""
-    return bool(_SUB_ISSUE_TITLE_RE.match(title))
+    if _SUB_ISSUE_TITLE_RE.match(title):
+        return True
+    # Fallback: check for the "sub-issue" label applied during creation
+    labels = getattr(task, "labels", None) or []
+    if isinstance(labels, (list, tuple)):
+        for lbl in labels:
+            name = lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+            if name == "sub-issue":
+                return True
+    return False
 
 
 def _get_sub_issue_number(

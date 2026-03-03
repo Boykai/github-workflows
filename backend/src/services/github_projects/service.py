@@ -109,6 +109,17 @@ class GitHubProjectsService:
         """
         return "copilot" in (login or "").lower()
 
+    @staticmethod
+    def is_copilot_swe_agent(login: str) -> bool:
+        """Check if a login belongs specifically to the Copilot SWE coding agent.
+
+        Unlike ``is_copilot_author``, this does NOT match other Copilot bots
+        such as the pull-request-reviewer.  Used in completion detection
+        to avoid treating auto-triggered code reviews as agent work finishing.
+        """
+        normalised = (login or "").lower().removesuffix("[bot]")
+        return normalised == "copilot-swe-agent"
+
     def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
         """Extract and store rate limit headers from a GitHub API response.
 
@@ -3597,17 +3608,19 @@ class GitHubProjectsService:
 
     def check_copilot_finished_events(self, events: list[dict]) -> bool:
         """
-        Check if Copilot has finished work based on timeline events.
+        Check if the Copilot SWE agent has finished work based on timeline events.
 
         Copilot is considered finished when one of these events exists:
         - 'copilot_work_finished' event
-        - 'review_requested' event where review_requester is Copilot
+        - 'review_requested' event where review_requester is the SWE agent
+          (NOT the Copilot pull-request reviewer bot, which can auto-trigger
+          on WIP/draft PRs)
 
         Args:
             events: List of timeline events
 
         Returns:
-            True if Copilot has finished work
+            True if the SWE agent has finished work
         """
         for event in events:
             event_type = event.get("event", "")
@@ -3617,13 +3630,15 @@ class GitHubProjectsService:
                 logger.info("Found 'copilot_work_finished' timeline event")
                 return True
 
-            # Check for review_requested event from Copilot
+            # Check for review_requested event from the SWE agent specifically.
+            # Auto-triggered Copilot code reviews (e.g. copilot-pull-request-
+            # reviewer[bot]) must NOT be treated as agent work completion.
             if event_type == "review_requested":
                 review_requester = event.get("review_requester", {})
                 requester_login = review_requester.get("login", "")
-                if self.is_copilot_author(requester_login):
+                if self.is_copilot_swe_agent(requester_login):
                     logger.info(
-                        "Found 'review_requested' event from Copilot for reviewer: %s",
+                        "Found 'review_requested' event from SWE agent for reviewer: %s",
                         event.get("requested_reviewer", {}).get("login"),
                     )
                     return True
