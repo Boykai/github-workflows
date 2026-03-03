@@ -58,7 +58,7 @@ class OrphanedIssueInfo(BaseModel):
 
     number: int
     title: str
-    labels: list[str] = []
+    labels: list[str] = Field(default_factory=list)
     html_url: str | None = None
 
 
@@ -69,7 +69,7 @@ class CleanupPreflightResponse(BaseModel):
     branches_to_preserve: list[BranchInfo]
     prs_to_close: list[PullRequestInfo]
     prs_to_preserve: list[PullRequestInfo]
-    orphaned_issues: list[OrphanedIssueInfo] = []
+    orphaned_issues: list[OrphanedIssueInfo] = Field(default_factory=list)
     open_issues_on_board: int
     has_permission: bool
     permission_error: str | None = None

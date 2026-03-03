@@ -299,6 +299,35 @@ async def _process_pipeline_completion(
     return None
 
 
+async def _ensure_workflow_config(
+    project_id: str,
+    owner: str,
+    repo: str,
+    context: str = "",
+):
+    """Return the workflow config for *project_id*, bootstrapping a default if absent.
+
+    Avoids copy-pasting the same bootstrap block in check_backlog_issues,
+    check_ready_issues, check_in_progress_issues, and _transition_after_pipeline_complete.
+    """
+    config = await _cp.get_workflow_config(project_id)
+    if not config:
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id=project_id,
+            repository_owner=owner,
+            repository_name=repo,
+        )
+        await _cp.set_workflow_config(project_id, config)
+        logger.info(
+            "Bootstrapped default workflow config%s for project %s",
+            f" in {context}" if context else "",
+            project_id,
+        )
+    return config
+
+
 async def check_backlog_issues(
     access_token: str,
     project_id: str,
@@ -328,20 +357,7 @@ async def check_backlog_issues(
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
 
-        config = await _cp.get_workflow_config(project_id)
-        if not config:
-            from src.models.workflow import WorkflowConfiguration
-
-            config = WorkflowConfiguration(
-                project_id=project_id,
-                repository_owner=owner,
-                repository_name=repo,
-            )
-            await _cp.set_workflow_config(project_id, config)
-            logger.info(
-                "Bootstrapped default workflow config in check_backlog for project %s",
-                project_id,
-            )
+        config = await _ensure_workflow_config(project_id, owner, repo, "check_backlog")
 
         status_backlog = config.status_backlog.lower()
         backlog_tasks = [
@@ -429,20 +445,7 @@ async def check_ready_issues(
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
 
-        config = await _cp.get_workflow_config(project_id)
-        if not config:
-            from src.models.workflow import WorkflowConfiguration
-
-            config = WorkflowConfiguration(
-                project_id=project_id,
-                repository_owner=owner,
-                repository_name=repo,
-            )
-            await _cp.set_workflow_config(project_id, config)
-            logger.info(
-                "Bootstrapped default workflow config in check_ready for project %s",
-                project_id,
-            )
+        config = await _ensure_workflow_config(project_id, owner, repo, "check_ready")
 
         status_ready = config.status_ready.lower()
         ready_tasks = [
@@ -1248,23 +1251,7 @@ async def _transition_after_pipeline_complete(
     )
 
     # Assign the first agent for the new status
-    config = await _cp.get_workflow_config(project_id)
-    if not config:
-        # Auto-bootstrap a default workflow config so the transition can
-        # assign the next agent even after a container restart.
-        logger.warning(
-            "No workflow config during transition of issue #%d to '%s' — bootstrapping default",
-            issue_number,
-            to_status,
-        )
-        from src.models.workflow import WorkflowConfiguration
-
-        config = WorkflowConfiguration(
-            project_id=project_id,
-            repository_owner=owner,
-            repository_name=repo,
-        )
-        await _cp.set_workflow_config(project_id, config)
+    config = await _ensure_workflow_config(project_id, owner, repo, "transition")
     new_status_agents = _cp.get_agent_slugs(config, to_status)
 
     # Pass-through: if new status has no agents, find the next actionable status (T028)
@@ -1454,20 +1441,7 @@ async def check_in_progress_issues(
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
 
-        config = await _cp.get_workflow_config(project_id)
-        if not config:
-            from src.models.workflow import WorkflowConfiguration
-
-            config = WorkflowConfiguration(
-                project_id=project_id,
-                repository_owner=owner,
-                repository_name=repo,
-            )
-            await _cp.set_workflow_config(project_id, config)
-            logger.info(
-                "Bootstrapped default workflow config in check_in_progress for project %s",
-                project_id,
-            )
+        config = await _ensure_workflow_config(project_id, owner, repo, "check_in_progress")
         in_progress_label = config.status_in_progress.lower()
 
         # Filter to "In Progress" items with issue numbers

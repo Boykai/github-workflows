@@ -27,9 +27,9 @@ def _extract_front_matter_field(text: str, field: str) -> str | None:
 
     Examples::
 
-        title: '[CHORE] Bug Basher'  →  '[CHORE] Bug Basher'
-        assignees: ''                →  ''
-        labels: chore                →  'chore'
+        title: '[CHORE] Bug Basher'  →  [CHORE] Bug Basher
+        assignees: ''                →  None
+        labels: chore                →  chore
     """
     fm_match = re.match(r"\A---\n(.*?)\n---\n?", text, flags=re.DOTALL)
     if not fm_match:

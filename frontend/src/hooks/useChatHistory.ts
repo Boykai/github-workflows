@@ -70,12 +70,12 @@ export function useChatHistory(): ChatHistoryControls {
     if (!trimmed) return;
 
     setHistory((prev) => {
-      // Deduplicate: remove the previous occurrence if it matches the last entry.
-      const deduped = prev[prev.length - 1] === trimmed ? prev : prev;
+      // Avoid duplicating the most recent entry.
+      const last = prev[prev.length - 1];
       const next =
-        deduped[deduped.length - 1] === trimmed
-          ? deduped // already the most-recent entry
-          : [...deduped, trimmed].slice(-MAX_HISTORY);
+        last === trimmed
+          ? prev // already the most-recent entry
+          : [...prev, trimmed].slice(-MAX_HISTORY);
       saveHistory(next);
       return next;
     });
