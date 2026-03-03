@@ -69,7 +69,9 @@ async def create_chore(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
+        logger.error(
+            "Failed to resolve repository for project %s: %s", project_id, exc, exc_info=True
+        )
         raise HTTPException(
             status_code=400,
             detail="Could not resolve repository for this project",
@@ -87,7 +89,7 @@ async def create_chore(
             template_content=template_content,
         )
     except RuntimeError as exc:
-        logger.error("Failed to commit template to repository: %s", exc)
+        logger.error("Failed to commit template to repository: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=500,
             detail="Failed to commit template to repository",
@@ -101,7 +103,8 @@ async def create_chore(
             template_path=result["template_path"],
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Invalid chore creation request: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid chore configuration") from exc
 
     # Update chore with PR and tracking issue info
 
@@ -141,7 +144,8 @@ async def update_chore(
     try:
         updated = await service.update_chore(chore_id, body)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Invalid chore update request: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid chore configuration") from exc
 
     if updated is None:
         raise HTTPException(status_code=404, detail="Chore not found after update")
@@ -244,7 +248,7 @@ async def chore_chat(
             github_token=session.access_token,
         )
     except Exception as exc:
-        logger.error("Chat completion failed: %s", exc)
+        logger.error("Chat completion failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Chat completion failed") from exc
 
     return ChoreChatResponse(

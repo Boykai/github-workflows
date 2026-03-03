@@ -294,7 +294,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 
         except Exception as e:
             # T017: Error handling for AI generation failures
-            logger.error("Failed to generate issue recommendation: %s", e)
+            logger.error("Failed to generate issue recommendation: %s", e, exc_info=True)
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
@@ -414,7 +414,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         return assistant_message
 
     except Exception as e:
-        logger.error("Failed to generate task: %s", e)
+        logger.error("Failed to generate task: %s", e, exc_info=True)
 
         # Return error message
         error_message = ChatMessage(

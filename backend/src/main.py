@@ -134,7 +134,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     initialised.
     """
     settings = get_settings()
-    setup_logging(settings.debug)
+    setup_logging(settings.debug, structured=not settings.debug)
     logger.info("Starting Agent Projects API")
 
     from src.services.database import close_database, init_database, seed_global_settings
@@ -149,6 +149,26 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     signal_started = False
 
     try:
+        # Install a global asyncio exception handler so unhandled async
+        # errors are logged with context instead of silently swallowed.
+        loop = asyncio.get_running_loop()
+
+        def _asyncio_exception_handler(_loop: asyncio.AbstractEventLoop, context: dict) -> None:
+            exc = context.get("exception")
+            msg = context.get("message", "Unhandled async exception")
+            logger.error(
+                "Async exception: %s — %s",
+                msg,
+                exc,
+                exc_info=(
+                    (type(exc), exc, getattr(exc, "__traceback__", None))
+                    if exc is not None
+                    else None
+                ),
+            )
+
+        loop.set_exception_handler(_asyncio_exception_handler)
+
         # Initialize SQLite database, run migrations, seed global settings
         db = await init_database()
         await seed_global_settings(db)
@@ -246,7 +266,16 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled exception: %s", exc)
+        from src.middleware.request_id import request_id_var
+
+        rid = request_id_var.get("")
+        logger.exception(
+            "Unhandled exception: %s | request_id=%s method=%s path=%s",
+            type(exc).__name__,
+            rid,
+            _request.method,
+            _request.url.path,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Internal server error"},

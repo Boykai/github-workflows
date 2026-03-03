@@ -263,7 +263,7 @@ class TestUpdateChore:
             json={"schedule_type": "time"},
         )
         assert resp.status_code == 400
-        assert "must both be set" in resp.json()["detail"]
+        assert "Invalid chore configuration" in resp.json()["detail"]
 
     @pytest.mark.anyio
     async def test_update_nonexistent_chore(self, client, mock_db):
