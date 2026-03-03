@@ -117,6 +117,12 @@ class PipelineState:
     # Maps agent_name → sub-issue info for sub-issue-per-agent workflow
     agent_sub_issues: dict[str, dict] = field(default_factory=dict)
     # {agent_name: {"number": int, "node_id": str, "url": str}}
+    # Preserve original transition target when Copilot moves an issue
+    # to "In Progress" before the pipeline agents for the original
+    # status have finished.  Without these, the correct target is lost
+    # on the next poll cycle and the pipeline jumps straight to In Review.
+    original_status: str | None = None
+    target_status: str | None = None
 
     @property
     def current_agent(self) -> str | None:
