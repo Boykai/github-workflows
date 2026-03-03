@@ -303,3 +303,103 @@ class TestTriggerChore:
             old_last_triggered_at=None,  # stale value
         )
         assert result is False
+
+
+# =============================================================================
+# commit_template_to_repo — existing branch handling
+# =============================================================================
+
+
+class TestCommitTemplateExistingBranch:
+    """Tests for commit_template_to_repo when the branch already exists."""
+
+    @pytest.mark.anyio
+    async def test_uses_branch_head_when_branch_exists(self):
+        """When create_branch returns 'existing', commit should use the branch HEAD OID."""
+        from unittest.mock import AsyncMock
+
+        from src.services.chores.template_builder import commit_template_to_repo
+
+        mock_github = AsyncMock()
+        mock_github.get_repository_info.return_value = {
+            "repository_id": "R_1",
+            "default_branch": "main",
+            "head_oid": "default-oid",
+        }
+        mock_github.create_branch.return_value = "existing"
+        mock_github.get_branch_head_oid.return_value = "branch-head-oid"
+        mock_github.commit_files.return_value = "commit-oid"
+        mock_github.create_pull_request.return_value = {
+            "id": "PR_1",
+            "number": 10,
+            "url": "https://github.com/o/r/pull/10",
+        }
+        mock_github.create_issue.return_value = {
+            "id": 1,
+            "node_id": "I_1",
+            "number": 20,
+            "html_url": "https://github.com/o/r/issues/20",
+        }
+        mock_github.add_issue_to_project.return_value = "item-1"
+
+        await commit_template_to_repo(
+            github_service=mock_github,
+            access_token="tok",
+            owner="o",
+            repo="r",
+            project_id="PVT_1",
+            name="Bug Bash",
+            template_content="---\nname: Bug Bash\n---\ncontent",
+        )
+
+        # Should have fetched the branch-specific HEAD
+        mock_github.get_branch_head_oid.assert_awaited_once_with(
+            "tok", "o", "r", "chore/add-template-bug-bash"
+        )
+        # commit_files should be called with the branch HEAD, not the default branch HEAD
+        commit_call = mock_github.commit_files.call_args
+        assert commit_call[0][4] == "branch-head-oid"
+
+    @pytest.mark.anyio
+    async def test_uses_default_oid_for_new_branch(self):
+        """When create_branch returns a new ref ID, commit uses the default branch HEAD."""
+        from unittest.mock import AsyncMock
+
+        from src.services.chores.template_builder import commit_template_to_repo
+
+        mock_github = AsyncMock()
+        mock_github.get_repository_info.return_value = {
+            "repository_id": "R_1",
+            "default_branch": "main",
+            "head_oid": "default-oid",
+        }
+        mock_github.create_branch.return_value = "ref-id-new"
+        mock_github.commit_files.return_value = "commit-oid"
+        mock_github.create_pull_request.return_value = {
+            "id": "PR_1",
+            "number": 10,
+            "url": "https://github.com/o/r/pull/10",
+        }
+        mock_github.create_issue.return_value = {
+            "id": 1,
+            "node_id": "I_1",
+            "number": 20,
+            "html_url": "https://github.com/o/r/issues/20",
+        }
+        mock_github.add_issue_to_project.return_value = "item-1"
+
+        await commit_template_to_repo(
+            github_service=mock_github,
+            access_token="tok",
+            owner="o",
+            repo="r",
+            project_id="PVT_1",
+            name="Bug Bash",
+            template_content="---\nname: Bug Bash\n---\ncontent",
+        )
+
+        # Should NOT have fetched branch HEAD
+        mock_github.get_branch_head_oid.assert_not_awaited()
+        # commit_files should be called with the default branch HEAD
+        commit_call = mock_github.commit_files.call_args
+        assert commit_call[0][4] == "default-oid"

@@ -132,10 +132,20 @@ async def commit_template_to_repo(
     default_branch = repo_info["default_branch"]
     head_oid = repo_info["head_oid"]
 
-    # 2. Create branch
+    # 2. Create branch (may already exist from a previous attempt)
     ref_id = await github_service.create_branch(access_token, repository_id, branch_name, head_oid)
     if ref_id is None:
         raise RuntimeError(f"Failed to create branch {branch_name}")
+
+    # If the branch already exists, its HEAD may differ from the default
+    # branch HEAD.  Fetch the actual branch HEAD for the commit.
+    commit_base_oid = head_oid
+    if ref_id == "existing":
+        branch_head = await github_service.get_branch_head_oid(
+            access_token, owner, repo, branch_name
+        )
+        if branch_head:
+            commit_base_oid = branch_head
 
     # 3. Commit template file
     commit_oid = await github_service.commit_files(
@@ -143,7 +153,7 @@ async def commit_template_to_repo(
         owner,
         repo,
         branch_name,
-        head_oid,
+        commit_base_oid,
         [{"path": template_path, "content": template_content}],
         f"chore: add issue template for {name}",
     )

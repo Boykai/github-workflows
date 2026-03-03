@@ -26,6 +26,7 @@ from src.services.github_projects.graphql import (
     CREATE_DRAFT_ITEM_MUTATION,
     CREATE_PULL_REQUEST_MUTATION,
     DELETE_PROJECT_ITEM_MUTATION,
+    GET_BRANCH_HEAD_QUERY,
     GET_ISSUE_LINKED_PRS_QUERY,
     GET_ISSUE_WITH_COMMENTS_QUERY,
     GET_PROJECT_FIELD_QUERY,
@@ -4404,6 +4405,38 @@ class GitHubProjectsService:
             logger.error("Failed to create branch %s: %s", branch_name, exc)
             return None
 
+    async def get_branch_head_oid(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        branch_name: str,
+    ) -> str | None:
+        """Fetch the HEAD OID for a specific branch.
+
+        Args:
+            access_token: GitHub OAuth token.
+            owner: Repository owner.
+            repo: Repository name.
+            branch_name: Bare branch name (e.g., ``chore/add-template-foo``).
+
+        Returns:
+            Commit SHA on success, ``None`` if branch not found.
+        """
+        qualified = f"refs/heads/{branch_name}"
+        try:
+            data = await self._graphql(
+                access_token,
+                GET_BRANCH_HEAD_QUERY,
+                {"owner": owner, "name": repo, "qualifiedName": qualified},
+            )
+            ref = (data.get("repository") or {}).get("ref")
+            if not ref:
+                return None
+            return (ref.get("target") or {}).get("oid")
+        except ValueError:
+            return None
+
     async def commit_files(
         self,
         access_token: str,
@@ -4458,15 +4491,19 @@ class GitHubProjectsService:
             except ValueError as exc:
                 error_msg = str(exc).lower()
                 if "expected head oid" in error_msg and attempt < max_attempts:
-                    # OID mismatch — fetch fresh HEAD and retry
+                    # OID mismatch — fetch fresh HEAD for this specific branch
                     logger.warning(
-                        "OID mismatch on commit attempt %d/%d, refreshing HEAD",
+                        "OID mismatch on commit attempt %d/%d for %s, refreshing branch HEAD",
                         attempt,
                         max_attempts,
+                        branch_name,
                     )
                     try:
-                        repo_info = await self.get_repository_info(access_token, owner, repo)
-                        current_oid = repo_info["head_oid"]
+                        fresh_oid = await self.get_branch_head_oid(
+                            access_token, owner, repo, branch_name
+                        )
+                        if fresh_oid:
+                            current_oid = fresh_oid
                     except Exception:
                         pass
                     continue
