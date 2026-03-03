@@ -4490,7 +4490,12 @@ class GitHubProjectsService:
                 return oid
             except ValueError as exc:
                 error_msg = str(exc).lower()
-                if "expected head oid" in error_msg and attempt < max_attempts:
+                # GitHub may phrase OID mismatch as "expected head oid" or
+                # "expected branch to point to" — match both variants.
+                is_oid_mismatch = (
+                    "expected head oid" in error_msg or "expected branch to point to" in error_msg
+                )
+                if is_oid_mismatch and attempt < max_attempts:
                     # OID mismatch — fetch fresh HEAD for this specific branch
                     logger.warning(
                         "OID mismatch on commit attempt %d/%d for %s, refreshing branch HEAD",

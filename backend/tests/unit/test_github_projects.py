@@ -3400,6 +3400,39 @@ class TestCommitFilesRetry:
             )
         assert result is None
 
+    @pytest.mark.asyncio
+    async def test_retries_on_branch_point_to_error(self, service):
+        """GitHub may phrase OID mismatch as 'Expected branch to point to'."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=[
+                ValueError(
+                    'Expected branch to point to "abc123" but it did not. Pull and try again.'
+                ),
+                {"createCommitOnBranch": {"commit": {"oid": "new-oid"}}},
+            ],
+        ):
+            with patch.object(
+                service,
+                "get_branch_head_oid",
+                new_callable=AsyncMock,
+                return_value="correct-oid",
+            ) as mock_branch_head:
+                result = await service.commit_files(
+                    "tok",
+                    "o",
+                    "r",
+                    "chore/add-template-foo",
+                    "stale-oid",
+                    [{"path": "f.txt", "content": "hello"}],
+                    "msg",
+                )
+
+        assert result == "new-oid"
+        mock_branch_head.assert_awaited_once_with("tok", "o", "r", "chore/add-template-foo")
+
 
 class TestUpdatePrBase:
     """Tests for update_pr_base."""
