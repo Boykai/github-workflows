@@ -207,7 +207,7 @@
 
 ### Infrastructure Code Quality Audit
 
-- [ ] T074 [P] [US5] Audit Docker configuration for dead/unused directives and hardcoded values in `docker-compose.yml`, `backend/Dockerfile`, and frontend Dockerfile — fix or flag
+- [ ] T074 [P] [US5] Audit Docker configuration for dead/unused directives and hardcoded values in `docker-compose.yml`, `backend/Dockerfile`, and `frontend/Dockerfile` — fix or flag
 - [ ] T075 [P] [US5] Audit GitHub Actions workflows for dead steps, unused variables, and hardcoded values in `.github/workflows/*.yml` — fix or flag
 
 ### US5 Verification
