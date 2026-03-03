@@ -1,0 +1,245 @@
+/**
+ * AddChoreModal — modal dialog for creating a new chore.
+ *
+ * Provides name input and text area for template content.
+ * Sparse vs. rich input detection routes sparse submissions to chat flow (US3).
+ */
+
+import { useState } from 'react';
+import { useCreateChore } from '@/hooks/useChores';
+import { ChoreChatFlow } from './ChoreChatFlow';
+
+interface AddChoreModalProps {
+  projectId: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+/**
+ * Sparse input heuristic matching backend's is_sparse_input():
+ * - ≤15 words → sparse
+ * - ≤40 words on single line without markdown structure → sparse
+ * - Headings, lists, or multi-paragraph → rich
+ */
+function isSparseInput(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+
+  const hasHeadings = /^#{1,6}\s/m.test(trimmed);
+  const hasLists = /^[-*]\s/m.test(trimmed);
+  const paragraphs = trimmed.split(/\n\s*\n/).filter(Boolean);
+
+  if (hasHeadings || hasLists || paragraphs.length >= 3) return false;
+
+  const words = trimmed.split(/\s+/).length;
+  if (words <= 15) return true;
+
+  const lines = trimmed.split('\n').filter(Boolean);
+  if (lines.length === 1 && words <= 40) return true;
+
+  return words <= 15;
+}
+
+export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps) {
+  const [name, setName] = useState('');
+  const [templateContent, setTemplateContent] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [showChatFlow, setShowChatFlow] = useState(false);
+  const [sparseContent, setSparseContent] = useState('');
+
+  const createMutation = useCreateChore(projectId);
+
+  if (!isOpen) return null;
+
+  const createChore = async (choreName: string, content: string) => {
+    try {
+      await createMutation.mutateAsync({
+        name: choreName,
+        template_content: content,
+      });
+      resetAndClose();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create chore';
+      setError(message);
+    }
+  };
+
+  const resetAndClose = () => {
+    setName('');
+    setTemplateContent('');
+    setError(null);
+    setShowChatFlow(false);
+    setSparseContent('');
+    onClose();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const trimmedName = name.trim();
+    const trimmedContent = templateContent.trim();
+
+    if (!trimmedName) {
+      setError('Name is required');
+      return;
+    }
+    if (trimmedName.length > 200) {
+      setError('Name must be 200 characters or fewer');
+      return;
+    }
+    if (!trimmedContent) {
+      setError('Template content is required');
+      return;
+    }
+
+    // Route sparse input through chat flow (US3)
+    if (isSparseInput(trimmedContent)) {
+      setSparseContent(trimmedContent);
+      setShowChatFlow(true);
+      return;
+    }
+
+    await createChore(trimmedName, trimmedContent);
+  };
+
+  const handleTemplateReady = async (content: string) => {
+    await createChore(name.trim(), content);
+  };
+
+  const handleChatCancel = () => {
+    setShowChatFlow(false);
+    setSparseContent('');
+  };
+
+  const handleCancel = () => {
+    resetAndClose();
+  };
+
+  // --- Chat flow view ---
+  if (showChatFlow) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={handleCancel}
+          onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close modal"
+        />
+        <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
+            <button
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              onClick={handleCancel}
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="p-4">
+            <ChoreChatFlow
+              projectId={projectId}
+              initialMessage={sparseContent}
+              choreName={name.trim()}
+              onTemplateReady={handleTemplateReady}
+              onCancel={handleChatCancel}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Standard form view ---
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={handleCancel}
+        onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }}
+        role="button"
+        tabIndex={-1}
+        aria-label="Close modal"
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">Add Chore</h3>
+          <button
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            onClick={handleCancel}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-4">
+          {/* Name */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="chore-name" className="text-sm font-medium text-foreground">
+              Name
+            </label>
+            <input
+              id="chore-name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g., Bug Bash, Dependency Update"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              maxLength={200}
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+            />
+          </div>
+
+          {/* Template Content */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="chore-content" className="text-sm font-medium text-foreground">
+              Template Content
+            </label>
+            <textarea
+              id="chore-content"
+              value={templateContent}
+              onChange={(e) => setTemplateContent(e.target.value)}
+              placeholder="Enter detailed markdown content or a brief description to start a guided chat..."
+              rows={10}
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[120px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              Brief descriptions start a guided chat; detailed markdown creates the chore directly
+            </p>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending}
+              className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {createMutation.isPending ? 'Creating...' : 'Create Chore'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

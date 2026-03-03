@@ -509,104 +509,6 @@ export interface McpConfigurationCreate {
   endpoint_url: string;
 }
 
-// ============ Housekeeping Types (014-housekeeping-triggers) ============
-
-export type TemplateCategory = 'built-in' | 'custom';
-
-export type HousekeepingTriggerType = 'time' | 'count';
-
-export type TriggerEventType = 'scheduled' | 'count-based' | 'manual';
-
-export type TriggerStatus = 'success' | 'failure';
-
-export interface IssueTemplate {
-  id: string;
-  name: string;
-  title_pattern: string;
-  body_content: string;
-  category: TemplateCategory;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface IssueTemplateCreate {
-  name: string;
-  title_pattern: string;
-  body_content: string;
-}
-
-export interface IssueTemplateUpdate {
-  name?: string;
-  title_pattern?: string;
-  body_content?: string;
-}
-
-export interface TemplateListResponse {
-  templates: IssueTemplate[];
-}
-
-export interface HousekeepingTask {
-  id: string;
-  name: string;
-  description?: string | null;
-  template_id: string;
-  template_name?: string | null;
-  sub_issue_config?: Record<string, unknown> | null;
-  trigger_type: HousekeepingTriggerType;
-  trigger_value: string;
-  last_triggered_at?: string | null;
-  last_triggered_issue_count: number;
-  enabled: boolean;
-  cooldown_minutes: number;
-  project_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface HousekeepingTaskCreate {
-  name: string;
-  description?: string;
-  template_id: string;
-  sub_issue_config?: Record<string, unknown> | null;
-  trigger_type: HousekeepingTriggerType;
-  trigger_value: string;
-  cooldown_minutes?: number;
-  project_id: string;
-}
-
-export interface HousekeepingTaskUpdate {
-  name?: string;
-  description?: string;
-  template_id?: string;
-  sub_issue_config?: Record<string, unknown> | null;
-  trigger_type?: HousekeepingTriggerType;
-  trigger_value?: string;
-  cooldown_minutes?: number;
-}
-
-export interface HousekeepingTaskListResponse {
-  tasks: HousekeepingTask[];
-}
-
-export interface TriggerEvent {
-  id: string;
-  task_id: string;
-  timestamp: string;
-  trigger_type: TriggerEventType;
-  issue_url?: string | null;
-  issue_number?: number | null;
-  status: TriggerStatus;
-  error_details?: string | null;
-  sub_issues_created: number;
-}
-
-export interface TriggerHistoryResponse {
-  history: TriggerEvent[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
 // ============ Board Types (continued) ============
 
 export type StatusColor =
@@ -805,4 +707,69 @@ export interface CleanupAuditLogEntry {
 export interface CleanupHistoryResponse {
   operations: CleanupAuditLogEntry[];
   count: number;
+}
+
+// ============ Chores Types (016-replace-housekeeping-chores) ============
+
+export type ScheduleType = 'time' | 'count';
+export type ChoreStatus = 'active' | 'paused';
+
+export interface Chore {
+  id: string;
+  project_id: string;
+  name: string;
+  template_path: string;
+  template_content: string;
+  schedule_type: ScheduleType | null;
+  schedule_value: number | null;
+  status: ChoreStatus;
+  last_triggered_at: string | null;
+  last_triggered_count: number;
+  current_issue_number: number | null;
+  current_issue_node_id: string | null;
+  pr_number: number | null;
+  pr_url: string | null;
+  tracking_issue_number: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChoreCreate {
+  name: string;
+  template_content: string;
+}
+
+export interface ChoreUpdate {
+  schedule_type?: ScheduleType | null;
+  schedule_value?: number | null;
+  status?: ChoreStatus;
+}
+
+export interface ChoreTriggerResult {
+  chore_id: string;
+  chore_name: string;
+  triggered: boolean;
+  issue_number: number | null;
+  issue_url: string | null;
+  skip_reason: string | null;
+}
+
+export interface EvaluateChoreTriggersResponse {
+  evaluated: number;
+  triggered: number;
+  skipped: number;
+  results: ChoreTriggerResult[];
+}
+
+export interface ChoreChatMessage {
+  content: string;
+  conversation_id?: string | null;
+}
+
+export interface ChoreChatResponse {
+  message: string;
+  conversation_id: string;
+  template_ready: boolean;
+  template_content: string | null;
+  template_name: string | null;
 }

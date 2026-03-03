@@ -1,0 +1,107 @@
+/**
+ * Custom hooks for Chores feature — TanStack React Query.
+ *
+ * Provides queries for listing chores and mutations for CRUD + trigger + chat.
+ */
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { choresApi, ApiError } from '@/services/api';
+import { STALE_TIME_LONG } from '@/constants';
+import type {
+  Chore,
+  ChoreCreate,
+  ChoreUpdate,
+  ChoreTriggerResult,
+  ChoreChatMessage,
+  ChoreChatResponse,
+} from '@/types';
+
+// ── Query Keys ──
+
+export const choreKeys = {
+  all: ['chores'] as const,
+  list: (projectId: string) => [...choreKeys.all, 'list', projectId] as const,
+};
+
+// ── List Hook ──
+
+export function useChoresList(projectId: string | null | undefined) {
+  return useQuery<Chore[]>({
+    queryKey: choreKeys.list(projectId ?? ''),
+    queryFn: () => choresApi.list(projectId!),
+    staleTime: STALE_TIME_LONG,
+    enabled: !!projectId,
+  });
+}
+
+// ── Create Mutation ──
+
+export function useCreateChore(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Chore, ApiError, ChoreCreate>({
+    mutationFn: (data) => choresApi.create(projectId!, data),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  });
+}
+
+// ── Update Mutation ──
+
+export function useUpdateChore(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<Chore, ApiError, { choreId: string; data: ChoreUpdate }>({
+    mutationFn: ({ choreId, data }) => choresApi.update(projectId!, choreId, data),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  });
+}
+
+// ── Delete Mutation ──
+
+export function useDeleteChore(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    { deleted: boolean; closed_issue_number: number | null },
+    ApiError,
+    string
+  >({
+    mutationFn: (choreId) => choresApi.delete(projectId!, choreId),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  });
+}
+
+// ── Trigger Mutation ──
+
+export function useTriggerChore(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ChoreTriggerResult, ApiError, string>({
+    mutationFn: (choreId) => choresApi.trigger(projectId!, choreId),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  });
+}
+
+// ── Chat Mutation ──
+
+export function useChoreChat(projectId: string | null | undefined) {
+  return useMutation<ChoreChatResponse, ApiError, ChoreChatMessage>({
+    mutationFn: (data) => choresApi.chat(projectId!, data),
+  });
+}
