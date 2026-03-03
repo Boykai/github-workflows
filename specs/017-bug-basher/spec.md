@@ -105,7 +105,7 @@ A developer audits the codebase for code quality issues including dead code, unr
 
 ### Functional Requirements
 
-#### Security Vulnerabilities (Priority 1)
+#### Security Vulnerabilities (Priority: P1)
 
 - **FR-001**: Reviewers MUST audit every file in the repository for authentication bypasses, including debug-only endpoints accessible in production mode.
 - **FR-002**: Reviewers MUST audit every file for injection risks, including unsanitized user input passed to queries, commands, or templates.
@@ -114,7 +114,7 @@ A developer audits the codebase for code quality issues including dead code, unr
 - **FR-005**: Reviewers MUST audit every file for improper or missing input validation on user-facing endpoints.
 - **FR-006**: Each security vulnerability fix MUST include at least one regression test that fails when the fix is reverted.
 
-#### Runtime Errors (Priority 2)
+#### Runtime Errors (Priority: P1)
 
 - **FR-007**: Reviewers MUST audit every file for unhandled exceptions that could crash the application or leave resources in an inconsistent state.
 - **FR-008**: Reviewers MUST audit every file for race conditions in shared state access, concurrent operations, or asynchronous workflows.
@@ -122,21 +122,21 @@ A developer audits the codebase for code quality issues including dead code, unr
 - **FR-010**: Reviewers MUST audit every file for resource leaks including unclosed file handles, database connections, and HTTP sessions.
 - **FR-011**: Each runtime error fix MUST include at least one regression test that exercises the previously failing condition.
 
-#### Logic Bugs (Priority 3)
+#### Logic Bugs (Priority: P2)
 
 - **FR-012**: Reviewers MUST audit every file for incorrect state transitions, including pipeline stages advancing without proper validation.
 - **FR-013**: Reviewers MUST audit every file for off-by-one errors, incorrect boundary checks, and wrong comparison operators.
 - **FR-014**: Reviewers MUST audit every file for incorrect return values, wrong API call parameters, and broken control flow.
 - **FR-015**: Each logic bug fix MUST include at least one regression test that asserts the correct behavior for the previously buggy case.
 
-#### Test Gaps & Test Quality (Priority 4)
+#### Test Gaps & Test Quality (Priority: P2)
 
 - **FR-016**: Reviewers MUST audit the test suite for tests that pass for the wrong reason, including vacuous assertions and assertions against mock objects instead of real behavior.
 - **FR-017**: Reviewers MUST audit the test suite for mock leaks where mock objects (e.g., `MagicMock`) are used in production code paths such as file paths or database names.
 - **FR-018**: Reviewers MUST identify critical code paths with no test coverage and add at least one test for each.
 - **FR-019**: Reviewers MUST identify missing edge case coverage (empty inputs, boundary values, error conditions) and add targeted tests.
 
-#### Code Quality Issues (Priority 5)
+#### Code Quality Issues (Priority: P3)
 
 - **FR-020**: Reviewers MUST identify and remove dead code (unused functions, unreachable branches, commented-out code blocks).
 - **FR-021**: Reviewers MUST identify hardcoded values that should be configurable and extract them to configuration with the current value as the default.
