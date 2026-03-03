@@ -18,6 +18,7 @@ import { RefreshButton } from '@/components/board/RefreshButton';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
+import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -282,15 +283,20 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             )}
           />
 
-          {boardData.columns.every((col) => col.items.length === 0) ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
-              <div className="text-4xl mb-2">📭</div>
-              <h3 className="text-xl font-semibold">No items yet</h3>
-              <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
-            </div>
-          ) : (
-            <ProjectBoard boardData={boardData} onCardClick={handleCardClick} />
-          )}
+          <div className="flex flex-1 gap-6 overflow-hidden">
+            {boardData.columns.every((col) => col.items.length === 0) ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+                <div className="text-4xl mb-2">📭</div>
+                <h3 className="text-xl font-semibold">No items yet</h3>
+                <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
+              </div>
+            ) : (
+              <ProjectBoard boardData={boardData} onCardClick={handleCardClick} />
+            )}
+
+            {/* Chores Panel — right side of board */}
+            <ChoresPanel projectId={selectedProjectId} />
+          </div>
         </div>
       )}
 

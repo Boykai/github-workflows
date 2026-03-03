@@ -202,7 +202,9 @@ async def send_message(
             )
         except Exception as exc:
             logger.error("#agent command failed: %s", exc)
-            agent_response_text = f"**Error:** The `#agent` command encountered an error: {exc}"
+            agent_response_text = (
+                "**Error:** The `#agent` command encountered an unexpected error. Please try again."
+            )
 
         agent_msg = ChatMessage(
             session_id=session.session_id,
@@ -679,7 +681,7 @@ async def confirm_proposal(
 
     except Exception as e:
         logger.error("Failed to create issue from proposal: %s", e)
-        raise ValidationError(f"Failed to create issue: {e}") from e
+        raise ValidationError("Failed to create issue") from e
 
 
 @router.delete("/proposals/{proposal_id}")

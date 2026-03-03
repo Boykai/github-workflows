@@ -962,3 +962,59 @@ class TestConfirmRecommendationPreservesFullDescription:
         # Verify the structured details payload propagates to the HTTP response.
         assert resp_json["details"]["body_length"] == len(huge_story)
         assert resp_json["details"]["max_length"] == GITHUB_ISSUE_BODY_MAX_LENGTH
+
+
+# ── Regression: workflow error messages MUST NOT leak exception details ──────
+
+
+class TestWorkflowErrorSanitization:
+    """Bug-bash regression: workflow error responses must not expose internal
+    exception details to the end user."""
+
+    async def test_confirm_recommendation_error_does_not_leak(
+        self, client, mock_session, mock_github_service
+    ):
+        """confirm_recommendation must not include raw exception in WorkflowResult."""
+        import src.api.chat as chat_mod
+        from src.models.recommendation import IssueRecommendation
+
+        mock_session.selected_project_id = "PVT_1"
+        rec = IssueRecommendation(
+            session_id=mock_session.session_id,
+            original_input="add feature X",
+            title="Feature X",
+            user_story="As a user",
+            ui_ux_description="A toggle",
+            functional_requirements=["Must work"],
+        )
+        rec_id = str(rec.recommendation_id)
+        chat_mod._recommendations[rec_id] = rec
+
+        with (
+            patch(
+                "src.api.workflow.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("o", "r"),
+            ),
+            patch(
+                "src.api.workflow.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.workflow.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.workflow.get_workflow_orchestrator") as mock_orch,
+            patch("src.config.get_settings") as mock_s,
+        ):
+            mock_s.return_value = MagicMock(default_assignee="bot")
+            mock_orch.return_value.execute_full_workflow = AsyncMock(
+                side_effect=RuntimeError("internal: DB lock timeout after 5000ms")
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["success"] is False
+        # Must not leak internal error text
+        assert "DB lock timeout" not in body["message"]
+        assert "5000ms" not in body["message"]
+        chat_mod._recommendations.pop(rec_id, None)
