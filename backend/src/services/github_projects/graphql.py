@@ -883,6 +883,21 @@ mutation(
 }
 """
 
+# Get a specific branch's HEAD OID.
+GET_BRANCH_HEAD_QUERY = """
+query($owner: String!, $name: String!, $qualifiedName: String!) {
+  repository(owner: $owner, name: $name) {
+    ref(qualifiedName: $qualifiedName) {
+      target {
+        ... on Commit {
+          oid
+        }
+      }
+    }
+  }
+}
+"""
+
 # Create a Pull Request. headRefName and baseRefName are bare branch names.
 CREATE_PULL_REQUEST_MUTATION = """
 mutation(

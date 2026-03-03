@@ -108,6 +108,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
 - SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
+- Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend) (016-replace-housekeeping-chores)
+- SQLite via aiosqlite, raw SQL (no ORM), Pydantic models, custom numbered SQL migrations (016-replace-housekeeping-chores)
 
 ## Recent Changes
 - 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
@@ -115,23 +117,13 @@ npx playwright test             # E2E tests
 - SQLite (WAL mode) via aiosqlite — no new tables required (reuses existing pipeline state and sub-issue tracking) (014-human-agent-pipeline)
 
 ## Recent Changes
+- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
 - 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
 - Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client) (014-board-refresh-ratelimit)
-- In-memory cache (`backend/src/services/cache.py` — `InMemoryCache` with TTL) (014-board-refresh-ratelimit)
 
 ## Recent Changes
-- 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
-- Python 3.11+ (backend; dev environment targets 3.12), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic v2, httpx (backend); React 18, TanStack Query v5 (frontend) (014-preserve-issue-description)
-- SQLite (aiosqlite, WAL mode) — in-memory for tests; in-memory dicts for proposals/recommendations (MVP) (014-preserve-issue-description)
-- Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend) (014-codebase-quality-refactor)
-- SQLite via aiosqlite (async), migrations in `backend/src/migrations/` (014-codebase-quality-refactor)
-- Python 3.12 (backend), TypeScript 5.4 / React 18 (frontend) + FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend) (015-stale-cleanup-button)
-- SQLite (WAL mode) via aiosqlite — new `cleanup_audit_logs` table for audit trail (migration 008) (015-stale-cleanup-button)
+- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
 
 ## Recent Changes
-- 014-codebase-quality-refactor: Added Python 3.12 (backend), TypeScript / Node 20 (frontend) + FastAPI, Pydantic Settings, aiosqlite (backend); React, Vite, Vitest (frontend)
-- Python 3.12 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109 + Uvicorn, React 18 + Vite 5 + TanStack Query v5, httpx ≥0.26, aiosqlite ≥0.20, github-copilot-sdk, Pydantic ≥2.5
-- SQLite (WAL mode, file-backed at `/app/data/settings.db`) — agent pipeline mappings stored as JSON in `project_settings` table; custom agent configs stored in `agent_configs` table (migration 007)
+- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
 
-- 015-stale-cleanup-button: Added Python 3.12 (backend), TypeScript 5.4 / React 18 (frontend) + FastAPI, httpx, aiosqlite, Pydantic v2 (backend); React 18, Vite 5.4, TailwindCSS 3.4, React Query 5 (frontend)
-- 001-custom-agent-creation: `#agent` conversational command for creating custom GitHub agents from chat or Signal. New files: `models/agent_creator.py`, `services/agent_creator.py`, `migrations/007_agent_configs.sql`. Modified: `api/chat.py` (Priority 0 routing), `services/signal_chat.py` (Signal routing), `services/ai_agent.py` (generate/edit config), `services/github_projects/graphql.py` (4 new GraphQL constants), `services/github_projects/service.py` (repo info, branch, commit, PR methods). Full state machine: PARSE → RESOLVE_PROJECT → RESOLVE_STATUS → PREVIEW → EDIT_LOOP → EXECUTING → DONE.

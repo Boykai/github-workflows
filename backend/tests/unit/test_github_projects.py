@@ -3263,6 +3263,177 @@ class TestDeleteBranch:
         assert result is False
 
 
+class TestGetBranchHeadOid:
+    """Tests for get_branch_head_oid."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_returns_oid_for_existing_branch(self, service):
+        """Should return the commit OID for an existing branch."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            return_value={"repository": {"ref": {"target": {"oid": "abc123"}}}},
+        ):
+            result = await service.get_branch_head_oid("tok", "o", "r", "feature/x")
+        assert result == "abc123"
+
+    @pytest.mark.asyncio
+    async def test_returns_none_for_missing_branch(self, service):
+        """Should return None when the branch does not exist."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            return_value={"repository": {"ref": None}},
+        ):
+            result = await service.get_branch_head_oid("tok", "o", "r", "nonexistent")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_graphql_error(self, service):
+        """Should return None when graphql raises ValueError."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=ValueError("Not found"),
+        ):
+            result = await service.get_branch_head_oid("tok", "o", "r", "bad-branch")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_passes_qualified_ref_name(self, service):
+        """Should prefix the branch name with refs/heads/."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            return_value={"repository": {"ref": {"target": {"oid": "def456"}}}},
+        ) as mock_gql:
+            await service.get_branch_head_oid("tok", "owner", "repo", "my-branch")
+        call_vars = mock_gql.call_args[0][2]
+        assert call_vars["qualifiedName"] == "refs/heads/my-branch"
+
+
+class TestCommitFilesRetry:
+    """Tests for commit_files OID mismatch retry using branch-specific HEAD."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_retries_with_branch_head_on_oid_mismatch(self, service):
+        """On OID mismatch, commit_files should fetch branch HEAD (not default branch)."""
+        # First call: OID mismatch error; second call: success
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=[
+                ValueError("Expected head oid did not match"),
+                {"createCommitOnBranch": {"commit": {"oid": "new-oid"}}},
+            ],
+        ):
+            with patch.object(
+                service,
+                "get_branch_head_oid",
+                new_callable=AsyncMock,
+                return_value="branch-head-oid",
+            ) as mock_branch_head:
+                result = await service.commit_files(
+                    "tok",
+                    "o",
+                    "r",
+                    "feature/x",
+                    "stale-oid",
+                    [{"path": "f.txt", "content": "hello"}],
+                    "msg",
+                )
+
+        assert result == "new-oid"
+        mock_branch_head.assert_awaited_once_with("tok", "o", "r", "feature/x")
+
+    @pytest.mark.asyncio
+    async def test_succeeds_on_first_attempt(self, service):
+        """Should not call get_branch_head_oid when first commit succeeds."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            return_value={"createCommitOnBranch": {"commit": {"oid": "oid1"}}},
+        ):
+            with patch.object(
+                service,
+                "get_branch_head_oid",
+                new_callable=AsyncMock,
+            ) as mock_branch_head:
+                result = await service.commit_files(
+                    "tok",
+                    "o",
+                    "r",
+                    "main",
+                    "head-oid",
+                    [{"path": "f.txt", "content": "hello"}],
+                    "msg",
+                )
+
+        assert result == "oid1"
+        mock_branch_head.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_non_oid_error(self, service):
+        """Non-OID errors should not trigger retry."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=ValueError("permission denied"),
+        ):
+            result = await service.commit_files(
+                "tok", "o", "r", "feature/x", "oid", [{"path": "f.txt", "content": "hello"}], "msg"
+            )
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_retries_on_branch_point_to_error(self, service):
+        """GitHub may phrase OID mismatch as 'Expected branch to point to'."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=[
+                ValueError(
+                    'Expected branch to point to "abc123" but it did not. Pull and try again.'
+                ),
+                {"createCommitOnBranch": {"commit": {"oid": "new-oid"}}},
+            ],
+        ):
+            with patch.object(
+                service,
+                "get_branch_head_oid",
+                new_callable=AsyncMock,
+                return_value="correct-oid",
+            ) as mock_branch_head:
+                result = await service.commit_files(
+                    "tok",
+                    "o",
+                    "r",
+                    "chore/add-template-foo",
+                    "stale-oid",
+                    [{"path": "f.txt", "content": "hello"}],
+                    "msg",
+                )
+
+        assert result == "new-oid"
+        mock_branch_head.assert_awaited_once_with("tok", "o", "r", "chore/add-template-foo")
+
+
 class TestUpdatePrBase:
     """Tests for update_pr_base."""
 
