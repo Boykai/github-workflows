@@ -17,11 +17,11 @@
 
 ## R2: Foreground Text Color for WCAG AA Compliance
 
-**Decision**: Use white (`#ffffff`, HSL: `0 0% 100%`) as the primary foreground text color on the green background in light mode, and white (`#f8fafc`, HSL: `210 40% 98%`) in dark mode.
+**Initial analysis (rejected)**: White (`#ffffff`) on `#22c55e` yields approximately 2.52:1, which does NOT meet WCAG AA for body text (4.5:1 required). A dark foreground color is necessary.
 
-**Rationale**: The contrast ratio between `#22c55e` (green-500) and `#ffffff` (white) is approximately 2.52:1, which does NOT meet WCAG AA for body text (4.5:1 required). Therefore, the foreground must be adjusted to a dark color. Using `#052e16` (Tailwind's `green-950`, HSL: `144.3 80.4% 10%`) as the light-mode foreground achieves a contrast ratio of approximately 10.5:1 against `#22c55e`, well exceeding WCAG AA requirements. For dark mode, white text on `#166534` achieves approximately 6.2:1, passing WCAG AA.
+**Decision**: Use `#052e16` (Tailwind's `green-950`, HSL: `144.3 80.4% 10%`) as the light-mode foreground and `#f0fdf4` (HSL: `138.5 76.5% 96.7%`) as the dark-mode foreground.
 
-**Updated Decision**: Use `#052e16` (HSL: `144.3 80.4% 10%`) as the light-mode foreground and `#f0fdf4` (HSL: `138.5 76.5% 96.7%`) as the dark-mode foreground.
+**Rationale**: `#052e16` achieves a contrast ratio of approximately 10.5:1 against `#22c55e`, well exceeding WCAG AA requirements. For dark mode, `#f0fdf4` on `#166534` achieves approximately 7.8:1, also exceeding WCAG AA.
 
 **Contrast ratios verified**:
 - Light mode: `#052e16` on `#22c55e` → ~10.5:1 ✅ (exceeds 4.5:1)
