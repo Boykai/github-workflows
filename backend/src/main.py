@@ -156,7 +156,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         def _asyncio_exception_handler(_loop: asyncio.AbstractEventLoop, context: dict) -> None:
             exc = context.get("exception")
             msg = context.get("message", "Unhandled async exception")
-            logger.error("Async exception: %s — %s", msg, exc, exc_info=exc)
+            logger.error(
+                "Async exception: %s — %s",
+                msg,
+                exc,
+                exc_info=(
+                    (type(exc), exc, getattr(exc, "__traceback__", None))
+                    if exc is not None
+                    else None
+                ),
+            )
 
         loop.set_exception_handler(_asyncio_exception_handler)
 

@@ -38,7 +38,7 @@ import json
 import logging
 import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, NoReturn
 
 if TYPE_CHECKING:
     from src.exceptions import AppException
@@ -121,9 +121,7 @@ class SanitizingFormatter(logging.Formatter):
     regardless of which module emitted the record.
     """
 
-    def __init__(
-        self, fmt: str | None = None, datefmt: str | None = None, **kwargs: object
-    ) -> None:
+    def __init__(self, fmt: str | None = None, datefmt: str | None = None, **kwargs: Any) -> None:
         super().__init__(fmt, datefmt, **kwargs)
 
     def format(self, record: logging.LogRecord) -> str:
@@ -144,7 +142,6 @@ class StructuredJsonFormatter(logging.Formatter):
     - ``message`` — the (already sanitized) log message
     - ``logger`` — logger name
     - ``request_id`` — correlation ID (injected by :class:`RequestIDFilter`)
-    - ``context`` — any extra fields attached to the record
     """
 
     def format(self, record: logging.LogRecord) -> str:
@@ -245,7 +242,7 @@ def handle_service_error(
     exc: Exception,
     operation: str,
     error_cls: type[AppException] | None = None,
-) -> None:
+) -> NoReturn:
     """Log the exception and raise an :class:`AppException` with a safe message.
 
     This helper centralises the repeated pattern of:
