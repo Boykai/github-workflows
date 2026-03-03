@@ -556,6 +556,82 @@ mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $text: String!) {
 # Board feature: GraphQL queries for project board display
 # ──────────────────────────────────────────────────────────────────
 
+# Reconciliation query: fetch recent repo issues with their projectItems
+# to find items that the project's items() connection may not yet include
+# due to GitHub API eventual consistency after addProjectV2ItemById.
+BOARD_RECONCILE_ITEMS_QUERY = """
+query($owner: String!, $name: String!, $first: Int!) {
+  repository(owner: $owner, name: $name) {
+    issues(first: $first, orderBy: {field: CREATED_AT, direction: DESC}) {
+      nodes {
+        id
+        number
+        title
+        body
+        url
+        assignees(first: 10) {
+          nodes {
+            login
+            avatarUrl
+          }
+        }
+        repository {
+          owner { login }
+          name
+        }
+        timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 50) {
+          nodes {
+            ... on ConnectedEvent {
+              subject {
+                ... on PullRequest {
+                  id
+                  number
+                  title
+                  state
+                  url
+                }
+              }
+            }
+            ... on CrossReferencedEvent {
+              source {
+                ... on PullRequest {
+                  id
+                  number
+                  title
+                  state
+                  url
+                }
+              }
+            }
+          }
+        }
+        projectItems(first: 5) {
+          nodes {
+            id
+            isArchived
+            project { id }
+            fieldValues(first: 20) {
+              nodes {
+                ... on ProjectV2ItemFieldSingleSelectValue {
+                  name
+                  optionId
+                  field { ... on ProjectV2FieldCommon { name } }
+                  color
+                }
+                ... on ProjectV2ItemFieldNumberValue {
+                  number
+                  field { ... on ProjectV2FieldCommon { name } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 # Query to list projects with full status field options (colors, descriptions)
 BOARD_LIST_PROJECTS_QUERY = """
 query($login: String!, $first: Int!) {

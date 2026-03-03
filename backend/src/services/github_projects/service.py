@@ -20,6 +20,7 @@ from src.services.github_projects.graphql import (
     ASSIGN_COPILOT_MUTATION,
     BOARD_GET_PROJECT_ITEMS_QUERY,
     BOARD_LIST_PROJECTS_QUERY,
+    BOARD_RECONCILE_ITEMS_QUERY,
     CREATE_BRANCH_MUTATION,
     CREATE_COMMIT_ON_BRANCH_MUTATION,
     CREATE_DRAFT_ITEM_MUTATION,
@@ -811,6 +812,38 @@ class GitHubProjectsService:
                         e,
                     )
 
+        # ── Reconciliation: supplement items that the project's items()
+        # connection may not yet include due to GitHub API eventual
+        # consistency after addProjectV2ItemById mutations. We query
+        # recent issues from the repository and check their projectItems
+        # connection (which IS consistent) to find any that are on this
+        # project but were not returned above.
+        existing_content_ids = {item.content_id for item in all_items if item.content_id}
+        repos_seen: set[tuple[str, str]] = set()
+        for item in all_items:
+            if item.repository:
+                repos_seen.add((item.repository.owner, item.repository.name))
+
+        for owner, repo_name in repos_seen:
+            try:
+                reconciled = await self._reconcile_board_items(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo_name,
+                    project_id=project_id,
+                    existing_content_ids=existing_content_ids,
+                )
+                if reconciled:
+                    logger.info(
+                        "Board reconciliation found %d missing items from %s/%s",
+                        len(reconciled),
+                        owner,
+                        repo_name,
+                    )
+                    all_items.extend(reconciled)
+            except Exception as e:
+                logger.debug("Board reconciliation failed for %s/%s: %s", owner, repo_name, e)
+
         # Group items into columns by status
         status_options = project_meta.status_field.options
 
@@ -862,6 +895,224 @@ class GitHubProjectsService:
         )
 
         return BoardDataResponse(project=project_meta, columns=columns)
+
+    async def _reconcile_board_items(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        project_id: str,
+        existing_content_ids: set[str],
+        limit: int = 50,
+    ) -> list:
+        """
+        Find project items that the ProjectV2.items() connection missed.
+
+        GitHub's Projects V2 API has eventual consistency: items added via
+        addProjectV2ItemById may not immediately appear in the project's
+        items() connection, even though they ARE visible from the issue's
+        projectItems connection. This method queries recent repository
+        issues and checks their projectItems to find any that belong to
+        this project but were not returned by the main items query.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            project_id: GitHub Project V2 node ID
+            existing_content_ids: Set of issue/PR node IDs already in the board
+            limit: Number of recent issues to check
+
+        Returns:
+            List of BoardItem objects for missing items
+        """
+        from src.models.board import (
+            Assignee,
+            BoardItem,
+            ContentType,
+            CustomFieldValue,
+            LinkedPR,
+            PRState,
+            Repository,
+            SubIssue,
+        )
+
+        data = await self._graphql(
+            access_token,
+            BOARD_RECONCILE_ITEMS_QUERY,
+            {"owner": owner, "name": repo, "first": limit},
+        )
+
+        issues = data.get("repository", {}).get("issues", {}).get("nodes", [])
+
+        reconciled_items: list[BoardItem] = []
+
+        for issue in issues:
+            if not issue:
+                continue
+
+            issue_id = issue.get("id", "")
+
+            # Skip issues already in the board data
+            if issue_id in existing_content_ids:
+                continue
+
+            # Check if this issue is on our target project
+            project_items = issue.get("projectItems", {}).get("nodes", [])
+            matching_pi = None
+            for pi in project_items:
+                if (
+                    pi
+                    and not pi.get("isArchived", False)
+                    and pi.get("project", {}).get("id") == project_id
+                ):
+                    matching_pi = pi
+                    break
+
+            if not matching_pi:
+                continue
+
+            # Parse field values from the project item
+            status_name = ""
+            status_option_id = ""
+            priority_val = None
+            size_val = None
+            estimate_val = None
+
+            for fv in matching_pi.get("fieldValues", {}).get("nodes", []):
+                if not fv:
+                    continue
+                field_info = fv.get("field", {})
+                field_name = field_info.get("name", "")
+
+                if field_name == "Status":
+                    status_name = fv.get("name", "")
+                    status_option_id = fv.get("optionId", "")
+                elif field_name == "Priority":
+                    priority_val = CustomFieldValue(
+                        name=fv.get("name", ""),
+                        color=fv.get("color"),
+                    )
+                elif field_name == "Size":
+                    size_val = CustomFieldValue(
+                        name=fv.get("name", ""),
+                        color=fv.get("color"),
+                    )
+                elif field_name == "Estimate":
+                    num = fv.get("number")
+                    if num is not None:
+                        estimate_val = float(num)
+
+            # Parse assignees
+            assignees = []
+            for a in issue.get("assignees", {}).get("nodes", []):
+                if a:
+                    assignees.append(
+                        Assignee(
+                            login=a["login"],
+                            avatar_url=a.get("avatarUrl", ""),
+                        )
+                    )
+
+            # Parse repository
+            repo_data = issue.get("repository")
+            repository = None
+            if repo_data:
+                repository = Repository(
+                    owner=repo_data.get("owner", {}).get("login", ""),
+                    name=repo_data.get("name", ""),
+                )
+
+            # Parse linked PRs from timeline events
+            linked_prs: list[LinkedPR] = []
+            seen_pr_ids: set[str] = set()
+            timeline = issue.get("timelineItems", {}).get("nodes", [])
+            for event in timeline:
+                if not event:
+                    continue
+                pr_data = event.get("subject") or event.get("source")
+                if pr_data and pr_data.get("id"):
+                    pr_id = pr_data["id"]
+                    if pr_id not in seen_pr_ids:
+                        seen_pr_ids.add(pr_id)
+                        pr_state_raw = pr_data.get("state", "OPEN").upper()
+                        if pr_state_raw == "MERGED":
+                            pr_state = PRState.MERGED
+                        elif pr_state_raw == "CLOSED":
+                            pr_state = PRState.CLOSED
+                        else:
+                            pr_state = PRState.OPEN
+                        linked_prs.append(
+                            LinkedPR(
+                                pr_id=pr_id,
+                                number=pr_data.get("number", 0),
+                                title=pr_data.get("title", ""),
+                                state=pr_state,
+                                url=pr_data.get("url", ""),
+                            )
+                        )
+
+            board_item = BoardItem(
+                item_id=matching_pi["id"],
+                content_id=issue_id,
+                content_type=ContentType.ISSUE,
+                title=issue.get("title", "Untitled"),
+                number=issue.get("number"),
+                repository=repository,
+                url=issue.get("url"),
+                body=issue.get("body"),
+                status=status_name or "No Status",
+                status_option_id=status_option_id,
+                assignees=assignees,
+                priority=priority_val,
+                size=size_val,
+                estimate=estimate_val,
+                linked_prs=linked_prs,
+            )
+
+            # Fetch sub-issues for the reconciled item
+            if board_item.number and repository:
+                try:
+                    raw_sub_issues = await self.get_sub_issues(
+                        access_token=access_token,
+                        owner=repository.owner,
+                        repo=repository.name,
+                        issue_number=board_item.number,
+                    )
+                    for si in raw_sub_issues:
+                        si_assignees = [
+                            Assignee(
+                                login=a.get("login", ""),
+                                avatar_url=a.get("avatar_url", ""),
+                            )
+                            for a in si.get("assignees", [])
+                            if isinstance(a, dict)
+                        ]
+                        si_title = si.get("title", "")
+                        si_agent = None
+                        if si_title.startswith("[") and "]" in si_title:
+                            si_agent = si_title[1 : si_title.index("]")]
+                        board_item.sub_issues.append(
+                            SubIssue(
+                                id=si.get("node_id", ""),
+                                number=si.get("number", 0),
+                                title=si_title,
+                                url=si.get("html_url", ""),
+                                state=si.get("state", "open"),
+                                assigned_agent=si_agent,
+                                assignees=si_assignees,
+                            )
+                        )
+                except Exception as e:
+                    logger.debug(
+                        "Failed to fetch sub-issues for reconciled item #%s: %s",
+                        board_item.number,
+                        e,
+                    )
+
+            reconciled_items.append(board_item)
+
+        return reconciled_items
 
     async def create_draft_item(
         self,
