@@ -23,6 +23,9 @@ class CleanupExecuteRequest(BaseModel):
     project_id: str = Field(min_length=1, description="Project board ID (for audit trail)")
     branches_to_delete: list[str] = Field(description="Branch names to delete")
     prs_to_close: list[int] = Field(description="PR numbers to close")
+    issues_to_close: list[int] = Field(
+        default_factory=list, description="Orphaned issue numbers to close"
+    )
 
 
 # ── Response Models ─────────────────────────────────────────────────
@@ -50,6 +53,15 @@ class PullRequestInfo(BaseModel):
     preservation_reason: str | None = None
 
 
+class OrphanedIssueInfo(BaseModel):
+    """Issue details for orphaned-issue cleanup."""
+
+    number: int
+    title: str
+    labels: list[str] = []
+    html_url: str | None = None
+
+
 class CleanupPreflightResponse(BaseModel):
     """Response from preflight endpoint."""
 
@@ -57,6 +69,7 @@ class CleanupPreflightResponse(BaseModel):
     branches_to_preserve: list[BranchInfo]
     prs_to_close: list[PullRequestInfo]
     prs_to_preserve: list[PullRequestInfo]
+    orphaned_issues: list[OrphanedIssueInfo] = []
     open_issues_on_board: int
     has_permission: bool
     permission_error: str | None = None
@@ -65,8 +78,8 @@ class CleanupPreflightResponse(BaseModel):
 class CleanupItemResult(BaseModel):
     """Result of a single deletion/close operation."""
 
-    item_type: str = Field(description="'branch' or 'pr'")
-    identifier: str = Field(description="Branch name or PR number as string")
+    item_type: str = Field(description="'branch', 'pr', or 'issue'")
+    identifier: str = Field(description="Branch name, PR number, or issue number as string")
     action: str = Field(description="'deleted', 'closed', 'preserved', or 'failed'")
     reason: str | None = None
     error: str | None = None
@@ -80,6 +93,7 @@ class CleanupExecuteResponse(BaseModel):
     branches_preserved: int
     prs_closed: int
     prs_preserved: int
+    issues_closed: int = 0
     errors: list[CleanupItemResult]
     results: list[CleanupItemResult]
 

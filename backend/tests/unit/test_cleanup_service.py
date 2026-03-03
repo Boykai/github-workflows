@@ -48,6 +48,7 @@ def _make_github_service(
     prs_response=None,
     graphql_response=None,
     permission_response=None,
+    issues_response=None,
 ) -> AsyncMock:
     """Build an AsyncMock of GitHubProjectsService with configurable responses."""
     service = AsyncMock()
@@ -82,6 +83,12 @@ def _make_github_service(
             }
         }
 
+    # Default issues response: empty list (200 OK)
+    if issues_response is None:
+        issues_response = MagicMock()
+        issues_response.status_code = 200
+        issues_response.json.return_value = []
+
     # Route GET requests based on URL content
     async def mock_get(url, headers=None):
         if "/collaborators/" in url:
@@ -90,6 +97,8 @@ def _make_github_service(
             return branches_response
         if "/pulls" in url:
             return prs_response
+        if "/issues" in url:
+            return issues_response
         raise ValueError(f"Unexpected GET URL: {url}")
 
     service._client = AsyncMock()
@@ -522,3 +531,199 @@ class TestIssueLinkage:
         close_pr_nums = [p.number for p in result.prs_to_close]
         assert 10 in preserved_pr_nums
         assert 11 in close_pr_nums
+
+
+# ── Helpers for issue data ──────────────────────────────────────────
+
+
+def _make_issue(
+    number: int,
+    title: str = "Test Issue",
+    labels: list[str] | None = None,
+    is_pr: bool = False,
+) -> dict:
+    """Create a minimal issue dict as returned by the GitHub REST API."""
+    result: dict = {
+        "number": number,
+        "title": title,
+        "labels": [{"name": lbl} for lbl in (labels or [])],
+        "html_url": f"https://github.com/test/repo/issues/{number}",
+    }
+    if is_pr:
+        result["pull_request"] = {"url": "https://api.github.com/repos/test/repo/pulls/1"}
+    return result
+
+
+# ── Orphaned issue detection ────────────────────────────────────────
+
+
+class TestOrphanedIssueDetection:
+    """Preflight should detect app-created issues not on the project board."""
+
+    async def test_orphaned_chore_issue_detected(self):
+        """An open issue with the 'chore' label NOT on the board is orphaned."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            _make_issue(1320, "My chore task", labels=["chore"]),
+        ]
+
+        service = _make_github_service(issues_response=issues_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        assert len(result.orphaned_issues) == 1
+        assert result.orphaned_issues[0].number == 1320
+        assert result.orphaned_issues[0].title == "My chore task"
+        assert "chore" in result.orphaned_issues[0].labels
+
+    async def test_issue_on_board_not_orphaned(self):
+        """An app-created issue still on the project board should NOT be orphaned."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            _make_issue(42, "Active chore", labels=["chore"]),
+        ]
+
+        graphql_resp = {
+            "node": {
+                "items": {
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    "nodes": [
+                        {
+                            "content": {
+                                "number": 42,
+                                "title": "Active chore",
+                                "state": "OPEN",
+                                "repository": {"nameWithOwner": "test/repo"},
+                            }
+                        }
+                    ],
+                }
+            }
+        }
+
+        service = _make_github_service(
+            issues_response=issues_resp,
+            graphql_response=graphql_resp,
+        )
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        assert len(result.orphaned_issues) == 0
+
+    async def test_pr_with_app_label_not_treated_as_issue(self):
+        """Pull requests returned by the issues endpoint should be skipped."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            _make_issue(99, "PR labeled ai-generated", labels=["ai-generated"], is_pr=True),
+            _make_issue(100, "Real issue", labels=["ai-generated"]),
+        ]
+
+        service = _make_github_service(issues_response=issues_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        # Only the real issue (not the PR) should appear in orphaned_issues
+        assert len(result.orphaned_issues) == 1
+        assert result.orphaned_issues[0].number == 100
+
+    async def test_multiple_app_labels_detected(self):
+        """Issues with various app labels should all be detected."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            _make_issue(10, "Chore", labels=["chore"]),
+            _make_issue(11, "AI generated", labels=["ai-generated"]),
+            _make_issue(12, "Sub issue", labels=["ai-generated", "sub-issue"]),
+            _make_issue(13, "Agent config", labels=["agent-config"]),
+        ]
+
+        service = _make_github_service(issues_response=issues_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        orphaned_numbers = {i.number for i in result.orphaned_issues}
+        assert orphaned_numbers == {10, 11, 12, 13}
+
+    async def test_issues_without_app_labels_ignored(self):
+        """Issues without app labels should NOT appear as orphaned — those are user-created."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        # This shouldn't normally appear since we query by label,
+        # but ensure the filter logic is robust.
+        issues_resp.json.return_value = []
+
+        service = _make_github_service(issues_response=issues_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        assert len(result.orphaned_issues) == 0
+
+
+# ── Orphaned issue execution ───────────────────────────────────────
+
+
+class TestOrphanedIssueExecution:
+    """Execute should close orphaned issues."""
+
+    async def test_execute_closes_orphaned_issues(self, mock_db):
+        """Orphaned issues included in issues_to_close should be closed."""
+        close_resp = MagicMock()
+        close_resp.status_code = 200
+        close_resp.json.return_value = {"number": 1320, "state": "closed"}
+
+        service = _make_github_service()
+        service._request_with_retry = AsyncMock(return_value=close_resp)
+
+        request = CleanupExecuteRequest(
+            owner="test",
+            repo="repo",
+            project_id="PVT_123",
+            branches_to_delete=[],
+            prs_to_close=[],
+            issues_to_close=[1320],
+        )
+
+        result = await cleanup_service.execute_cleanup(
+            service, "token", "test", "repo", request, mock_db, "uid123"
+        )
+
+        assert result.issues_closed == 1
+        issue_results = [r for r in result.results if r.item_type == "issue"]
+        assert len(issue_results) == 1
+        assert issue_results[0].identifier == "1320"
+        assert issue_results[0].action == "closed"
+
+    async def test_execute_handles_issue_close_failure(self, mock_db):
+        """Failed issue closures should appear in errors."""
+        fail_resp = MagicMock()
+        fail_resp.status_code = 404
+        fail_resp.text = "Not Found"
+
+        service = _make_github_service()
+        service._request_with_retry = AsyncMock(return_value=fail_resp)
+
+        request = CleanupExecuteRequest(
+            owner="test",
+            repo="repo",
+            project_id="PVT_123",
+            branches_to_delete=[],
+            prs_to_close=[],
+            issues_to_close=[9999],
+        )
+
+        result = await cleanup_service.execute_cleanup(
+            service, "token", "test", "repo", request, mock_db, "uid123"
+        )
+
+        assert result.issues_closed == 0
+        assert len(result.errors) == 1
+        assert result.errors[0].item_type == "issue"
+        assert result.errors[0].action == "failed"
