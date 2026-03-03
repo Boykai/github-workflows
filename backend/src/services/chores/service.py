@@ -352,7 +352,7 @@ class ChoresService:
             parent_issue_count if parent_issue_count is not None else chore.last_triggered_count
         )
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        await self.update_chore_after_trigger(
+        cas_ok = await self.update_chore_after_trigger(
             chore.id,
             current_issue_number=issue_number,
             current_issue_node_id=issue_node_id,
@@ -360,6 +360,36 @@ class ChoresService:
             last_triggered_count=new_count,
             old_last_triggered_at=chore.last_triggered_at,
         )
+
+        if not cas_ok:
+            # A concurrent evaluator already triggered this chore.
+            # Close the duplicate issue we just created to avoid orphans.
+            logger.warning(
+                "CAS update failed for chore %s — closing duplicate issue #%s",
+                chore.name,
+                issue_number,
+            )
+            try:
+                await github_service.update_issue_state(
+                    access_token,
+                    owner,
+                    repo,
+                    issue_number,
+                    state="closed",
+                    state_reason="not_planned",
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to close duplicate issue #%s for chore %s",
+                    issue_number,
+                    chore.name,
+                )
+            return ChoreTriggerResult(
+                chore_id=chore.id,
+                chore_name=chore.name,
+                triggered=False,
+                skip_reason="Concurrent trigger detected (CAS conflict)",
+            )
 
         return ChoreTriggerResult(
             chore_id=chore.id,

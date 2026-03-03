@@ -43,9 +43,7 @@ function getNextTriggerInfo(chore: Chore): string | null {
   }
 
   if (chore.schedule_type === 'count') {
-    const remaining = chore.schedule_value - chore.last_triggered_count;
-    if (remaining <= 0) return 'Due now';
-    return `${remaining} issue${remaining !== 1 ? 's' : ''} remaining`;
+    return `Every ${chore.schedule_value} issue${chore.schedule_value !== 1 ? 's' : ''}`;
   }
 
   return null;

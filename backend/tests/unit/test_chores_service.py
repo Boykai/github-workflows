@@ -414,6 +414,48 @@ class TestTriggerChore:
         )
         assert result is False
 
+    @pytest.mark.anyio
+    async def test_cas_failure_closes_duplicate_issue(self, mock_db):
+        """When CAS fails, trigger_chore closes the duplicate issue and returns not-triggered."""
+        from unittest.mock import AsyncMock
+
+        from src.models.chores import ChoreCreate
+        from src.services.chores.service import ChoresService
+
+        service = ChoresService(mock_db)
+        body = ChoreCreate(name="CAS Close Test", template_content="Content")
+        chore = await service.create_chore(
+            "PVT_1", body, template_path=".github/ISSUE_TEMPLATE/chore-cas-close.md"
+        )
+
+        # Simulate a concurrent trigger by modifying last_triggered_at
+        await service.update_chore_fields(chore.id, last_triggered_at="2024-01-01T00:00:00Z")
+        # But pass the stale chore (old last_triggered_at=None) to trigger_chore
+        mock_github = AsyncMock()
+        mock_github.create_issue.return_value = {
+            "id": 3,
+            "node_id": "I_3",
+            "number": 50,
+            "html_url": "https://github.com/test/repo/issues/50",
+        }
+        mock_github.add_issue_to_project.return_value = "item-3"
+
+        result = await service.trigger_chore(
+            chore,  # stale: last_triggered_at is None
+            github_service=mock_github,
+            access_token="token",
+            owner="test",
+            repo="repo",
+            project_id="PVT_1",
+        )
+
+        assert result.triggered is False
+        assert "CAS conflict" in result.skip_reason
+        # Duplicate issue should have been closed
+        mock_github.update_issue_state.assert_awaited_once_with(
+            "token", "test", "repo", 50, state="closed", state_reason="not_planned"
+        )
+
 
 # =============================================================================
 # commit_template_to_repo — existing branch handling
