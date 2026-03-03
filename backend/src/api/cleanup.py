@@ -46,10 +46,9 @@ async def cleanup_preflight(
             request,
         )
     except Exception as e:
-        logger.error("Cleanup preflight failed: %s", e)
+        logger.error("Cleanup preflight failed: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to perform cleanup preflight",
-            details={"error": str(e)},
         ) from e
 
 
@@ -98,10 +97,9 @@ async def cleanup_execute(
     except AppException:
         raise
     except Exception as e:
-        logger.error("Cleanup execution failed: %s", e)
+        logger.error("Cleanup execution failed: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Cleanup operation failed",
-            details={"error": str(e)},
         ) from e
 
 
@@ -119,8 +117,7 @@ async def cleanup_history(
             db, session.github_user_id, owner, repo, limit
         )
     except Exception as e:
-        logger.error("Failed to fetch cleanup history: %s", e)
+        logger.error("Failed to fetch cleanup history: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch cleanup history",
-            details={"error": str(e)},
         ) from e

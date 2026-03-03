@@ -76,7 +76,10 @@ async def create_template(
         )
     except Exception as e:
         logger.exception("Failed to create template")
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Failed to create template",
+        ) from e
 
 
 @router.put("/templates/{template_id}", response_model=IssueTemplate)
@@ -201,7 +204,11 @@ async def create_task(
             current_issue_count=body.current_issue_count,
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+        logger.warning("Validation error creating housekeeping task: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid task configuration",
+        ) from e
 
 
 @router.put("/tasks/{task_id}", response_model=HousekeepingTask)
@@ -215,7 +222,11 @@ async def update_task(
     try:
         result = await svc.update_task(task_id, **body.model_dump(exclude_unset=True))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)) from e
+        logger.warning("Validation error updating housekeeping task %s: %s", task_id, e)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid task configuration",
+        ) from e
 
     if not result:
         raise HTTPException(

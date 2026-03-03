@@ -247,10 +247,10 @@ async def confirm_recommendation(
         # and preserves the structured ``details`` payload.
         raise
     except Exception as e:
-        logger.error("Workflow failed: %s", e)
+        logger.error("Workflow failed: %s", e, exc_info=True)
         return WorkflowResult(
             success=False,
-            message=f"Failed to create issue: {str(e)}",
+            message="Failed to create issue",
         )
 
 

@@ -57,10 +57,9 @@ async def list_board_projects(
             session.access_token, session.github_username
         )
     except Exception as e:
-        logger.error("Failed to fetch board projects: %s", e)
+        logger.error("Failed to fetch board projects: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch projects from GitHub",
-            details={"error": str(e)},
         ) from e
 
     cache.set(cache_key, projects)
@@ -112,10 +111,9 @@ async def get_board_data(
                     },
                 },
             )
-        logger.error("Failed to fetch board data: %s", e)
+        logger.error("Failed to fetch board data: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch board data from GitHub",
-            details={"error": str(e)},
         ) from e
 
     board_data.rate_limit = _get_rate_limit_info()

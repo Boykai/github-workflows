@@ -201,8 +201,10 @@ async def send_message(
                 project_columns=project_columns,
             )
         except Exception as exc:
-            logger.error("#agent command failed: %s", exc)
-            agent_response_text = f"**Error:** The `#agent` command encountered an error: {exc}"
+            logger.error("#agent command failed: %s", exc, exc_info=True)
+            agent_response_text = (
+                "**Error:** The `#agent` command encountered an error. Please try again."
+            )
 
         agent_msg = ChatMessage(
             session_id=session.session_id,
@@ -292,11 +294,11 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 
         except Exception as e:
             # T017: Error handling for AI generation failures
-            logger.error("Failed to generate issue recommendation: %s", e)
+            logger.error("Failed to generate issue recommendation: %s", e, exc_info=True)
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content=f"I couldn't generate an issue recommendation from your feature request. Please try again with more detail.\n\nError: {str(e)}",
+                content="I couldn't generate an issue recommendation from your feature request. Please try again with more detail.",
             )
             add_message(session.session_id, error_message)
             return error_message
@@ -412,13 +414,13 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         return assistant_message
 
     except Exception as e:
-        logger.error("Failed to generate task: %s", e)
+        logger.error("Failed to generate task: %s", e, exc_info=True)
 
         # Return error message
         error_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content=f"I couldn't generate a task from your description. Please try again with more detail.\n\nError: {str(e)}",
+            content="I couldn't generate a task from your description. Please try again with more detail.",
         )
         add_message(session.session_id, error_message)
 
@@ -678,8 +680,8 @@ async def confirm_proposal(
         return proposal
 
     except Exception as e:
-        logger.error("Failed to create issue from proposal: %s", e)
-        raise ValidationError(f"Failed to create issue: {e}") from e
+        logger.error("Failed to create issue from proposal: %s", e, exc_info=True)
+        raise ValidationError("Failed to create issue") from e
 
 
 @router.delete("/proposals/{proposal_id}")

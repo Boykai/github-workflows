@@ -134,8 +134,29 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     initialised.
     """
     settings = get_settings()
-    setup_logging(settings.debug)
+    setup_logging(settings.debug, structured=not settings.debug)
     logger.info("Starting Agent Projects API")
+
+    # Install a global handler for unhandled asyncio exceptions so they are
+    # logged with context instead of silently swallowed.
+    loop = asyncio.get_running_loop()
+    _original_handler = loop.get_exception_handler()
+
+    def _async_exception_handler(
+        _loop: asyncio.AbstractEventLoop, context: dict[str, object]
+    ) -> None:
+        exc = context.get("exception")
+        msg = context.get("message", "Unhandled async exception")
+        logger.error(
+            "Async exception: %s — %s",
+            msg,
+            exc,
+            exc_info=exc if isinstance(exc, BaseException) else None,
+        )
+        if _original_handler:
+            _original_handler(_loop, context)
+
+    loop.set_exception_handler(_async_exception_handler)
 
     from src.services.database import close_database, init_database, seed_global_settings
 
@@ -252,7 +273,16 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(Exception)
     async def generic_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled exception: %s", exc)
+        from src.middleware.request_id import request_id_var
+
+        rid = request_id_var.get("")
+        logger.exception(
+            "Unhandled exception: %s [request_id=%s method=%s path=%s]",
+            type(exc).__name__,
+            rid,
+            _request.method,
+            _request.url.path,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Internal server error"},

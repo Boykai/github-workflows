@@ -107,13 +107,13 @@ async def github_callback(
         return redirect
 
     except ValueError as e:
-        logger.warning("OAuth token exchange failed: %s", e)
+        logger.warning("OAuth token exchange failed: %s", type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Authentication failed",
         ) from e
     except Exception as e:
-        logger.exception("Failed to create session: %s", e)
+        logger.exception("Failed to create session")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to complete authentication",
