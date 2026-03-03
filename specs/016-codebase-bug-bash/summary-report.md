@@ -48,7 +48,7 @@
 
 **Fix**: Replaced all `f"...{e}"` / `f"...{str(e)}"` patterns with static, user-friendly messages. Internal details are still logged at `logger.error` / `logger.warning` level.
 
-**Regression tests**: `TestErrorMessageSanitization` (4 tests) in `tests/unit/test_api_chat.py`
+**Regression tests**: `TestErrorMessageSanitization` (4 tests) in `backend/tests/unit/test_api_chat.py`
 
 ### Finding 5–6: Error Information Leakage in Board API (`board.py`)
 
@@ -56,7 +56,7 @@
 
 **Fix**: Removed the `details` parameter from `GitHubAPIError` raises. The error is logged server-side.
 
-**Regression tests**: `TestBoardErrorSanitization` (2 tests) in `tests/unit/test_api_board.py`
+**Regression tests**: `TestBoardErrorSanitization` (2 tests) in `backend/tests/unit/test_api_board.py`
 
 ### Finding 7–8: Error Information Leakage in Workflow API (`workflow.py`)
 
@@ -64,7 +64,7 @@
 
 **Fix**: Replaced with static error messages. Internal details are logged.
 
-**Regression tests**: `TestWorkflowErrorSanitization` (1 test) in `tests/unit/test_api_workflow.py`
+**Regression tests**: `TestWorkflowErrorSanitization` (1 test) in `backend/tests/unit/test_api_workflow.py`
 
 ### Finding 9–11: Signal Error Message Leakage (Flagged)
 
@@ -78,7 +78,7 @@
 
 **Fix**: Replaced `set[str]` with `BoundedSet[str]` from `src/utils.py`, which maintains FIFO insertion order and automatically evicts the oldest entry when capacity is reached. Removed the manual eviction code.
 
-**Regression tests**: `TestDeduplicationBoundedSet` (3 tests) in `tests/unit/test_webhooks.py`
+**Regression tests**: `TestDeduplicationBoundedSet` (3 tests) in `backend/tests/unit/test_webhooks.py`
 
 ### Finding 13: Issue Matching Logic (`webhooks.py`)
 
@@ -86,7 +86,7 @@
 
 **Fix**: Changed the comparison to use `item.issue_number == issue_number` (the Task model has an `issue_number` field specifically for this purpose).
 
-**Regression tests**: `TestIssueMatchingByNumber` (1 test) in `tests/unit/test_webhooks.py`
+**Regression tests**: `TestIssueMatchingByNumber` (1 test) in `backend/tests/unit/test_webhooks.py`
 
 ---
 

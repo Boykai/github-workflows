@@ -578,7 +578,7 @@ class TestIssueMatchingByNumber:
     """Bug-bash regression: webhook issue matching must compare
     item.issue_number (int) instead of item.github_item_id (GraphQL node ID)."""
 
-    async def test_matches_issue_by_number_not_node_id(self):
+    def test_matches_issue_by_number_not_node_id(self):
         """Verify that Task.issue_number is the correct field to match on,
         and that github_item_id (a GraphQL node ID) would NOT work."""
         from src.models.task import Task

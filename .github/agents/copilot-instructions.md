@@ -108,11 +108,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
 - SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
-- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI 0.109+, aiosqlite 0.20+, Pydantic Settings (backend); React 18, Vite 5, TanStack Query v5, Radix UI, Socket.io-client (frontend) (016-codebase-bug-bash)
-- SQLite via aiosqlite (async, no ORM), migrations in `backend/src/migrations/` (001–009) (016-codebase-bug-bash)
 
 ## Recent Changes
-- 016-codebase-bug-bash: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI 0.109+, aiosqlite 0.20+, Pydantic Settings (backend); React 18, Vite 5, TanStack Query v5, Radix UI, Socket.io-client (frontend)
 - 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
 - 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
 - 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
