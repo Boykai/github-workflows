@@ -11,6 +11,7 @@ import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { useCommands } from '@/hooks/useCommands';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
@@ -52,6 +53,9 @@ export function ChatInterface({
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
   const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
+
+  // Sent-message history — navigate with Up / Down arrow keys.
+  const { addToHistory, navigateUp, navigateDown, resetNavigation } = useChatHistory();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -97,6 +101,8 @@ export function ChatInterface({
     if (content && !isSending) {
       setShowAutocomplete(false);
       const commandInput = isCommandFn(content);
+      addToHistory(content);
+      resetNavigation();
       onSendMessage(content, { isCommand: commandInput });
       // Always clear input after submission — command-level input preservation
       // is handled by the useChat hook via CommandResult.clearInput when needed.
@@ -142,6 +148,37 @@ export function ChatInterface({
         setShowAutocomplete(false);
         return;
       }
+    }
+
+    // History navigation — Up / Down arrows when autocomplete is NOT active.
+    if (e.key === 'ArrowUp' && !autocompleteActive) {
+      const prev = navigateUp(input);
+      if (prev !== null) {
+        e.preventDefault();
+        setInput(prev);
+        // Move cursor to end after React re-renders.
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.selectionStart = inputRef.current.value.length;
+            inputRef.current.selectionEnd = inputRef.current.value.length;
+          }
+        });
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown' && !autocompleteActive) {
+      const next = navigateDown();
+      if (next !== null) {
+        e.preventDefault();
+        setInput(next);
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.selectionStart = inputRef.current.value.length;
+            inputRef.current.selectionEnd = inputRef.current.value.length;
+          }
+        });
+      }
+      return;
     }
 
     if (e.key === 'Enter' && !e.shiftKey) {
