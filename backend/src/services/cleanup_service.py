@@ -100,7 +100,7 @@ async def check_user_permission(
         return False, f"Unable to verify permissions: HTTP {response.status_code}"
     except Exception as e:
         logger.error("Permission check failed: %s", e)
-        return False, f"Permission check failed: {e}"
+        return False, "Permission check failed"
 
 
 async def fetch_all_branches(
