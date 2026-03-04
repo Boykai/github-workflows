@@ -48,9 +48,7 @@ def _prune_expired_sessions() -> None:
     """Remove chat sessions that have exceeded the TTL."""
     now = time.monotonic()
     expired = [
-        sid
-        for sid, ts in _chat_session_timestamps.items()
-        if now - ts > _SESSION_TTL_SECONDS
+        sid for sid, ts in _chat_session_timestamps.items() if now - ts > _SESSION_TTL_SECONDS
     ]
     for sid in expired:
         _chat_sessions.pop(sid, None)
@@ -561,9 +559,7 @@ class AgentsService:
             (project_id, slug, agent.id),
         ) as cursor:
             if await cursor.fetchone():
-                raise ValueError(
-                    f"An agent with slug '{slug}' already exists for this project."
-                )
+                raise ValueError(f"An agent with slug '{slug}' already exists for this project.")
 
         preview = AgentPreview(
             name=name,
