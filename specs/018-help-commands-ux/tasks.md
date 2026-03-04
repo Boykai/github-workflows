@@ -21,9 +21,9 @@
 
 **Purpose**: Project initialization — extend types, create helper utilities, update test factory
 
-- [ ] T001 Add optional `category` field to `CommandDefinition` interface in frontend/src/lib/commands/types.ts
-- [ ] T002 [P] Create helper utilities module with `levenshteinDistance`, `findClosestCommands`, and `truncateInput` in frontend/src/lib/commands/helpers.ts
-- [ ] T003 [P] Add optional `category` field to `createCommandDefinition` factory in frontend/src/test/factories/index.ts
+- [X] T001 Add optional `category` field to `CommandDefinition` interface in frontend/src/lib/commands/types.ts
+- [X] T002 [P] Create helper utilities module with `levenshteinDistance`, `findClosestCommands`, and `truncateInput` in frontend/src/lib/commands/helpers.ts
+- [X] T003 [P] Add optional `category` field to `createCommandDefinition` factory in frontend/src/test/factories/index.ts
 
 ---
 
@@ -33,8 +33,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `getCommandsByCategory()` function to frontend/src/lib/commands/registry.ts that groups commands by category with "General" first, others alphabetical, commands sorted alphabetically within each category
-- [ ] T005 Add `category: 'Settings'` to theme, language, notifications, view command registrations and `category: 'Workflow'` to agent command registration in frontend/src/lib/commands/registry.ts
+- [X] T004 Add `getCommandsByCategory()` function to frontend/src/lib/commands/registry.ts that groups commands by category with "General" first, others alphabetical, commands sorted alphabetically within each category
+- [X] T005 Add `category: 'Settings'` to theme, language, notifications, view command registrations and `category: 'Workflow'` to agent command registration in frontend/src/lib/commands/registry.ts
 
 **Checkpoint**: Foundation ready — command registry supports categories and helpers are available
 
@@ -50,14 +50,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Add tests for categorized `#help` output in frontend/src/lib/commands/handlers/help.test.ts — verify response contains category headers (General, Settings, Workflow), all registered commands appear under correct category, commands without explicit category default to General, command entries show name, description, and syntax
-- [ ] T007 [P] [US1] Add test for empty registry edge case in frontend/src/lib/commands/handlers/help.test.ts — verify #help displays "no commands available" message when registry is empty
-- [ ] T008 [P] [US1] Add test for dynamically registered command appearing in #help output in frontend/src/lib/commands/handlers/help.test.ts — verify newly registered command automatically appears under its category
+- [X] T006 [P] [US1] Add tests for categorized `#help` output in frontend/src/lib/commands/handlers/help.test.ts — verify response contains category headers (General, Settings, Workflow), all registered commands appear under correct category, commands without explicit category default to General, command entries show name, description, and syntax
+- [X] T007 [P] [US1] Add test for empty registry edge case in frontend/src/lib/commands/handlers/help.test.ts — verify #help displays "no commands available" message when registry is empty
+- [X] T008 [P] [US1] Add test for dynamically registered command appearing in #help output in frontend/src/lib/commands/handlers/help.test.ts — verify newly registered command automatically appears under its category
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Refactor `helpHandler` in frontend/src/lib/commands/handlers/help.ts to generate categorized listing using `getCommandsByCategory()` when args is empty — display "Available Commands:" header, category sections with indented command entries in `#syntax  —  description` format
-- [ ] T010 [US1] Ensure categorized #help output renders without horizontal scrolling at 320px viewport — keep lines within ~40 characters where possible, use indentation instead of tables in frontend/src/lib/commands/handlers/help.ts
+- [X] T009 [US1] Refactor `helpHandler` in frontend/src/lib/commands/handlers/help.ts to generate categorized listing using `getCommandsByCategory()` when args is empty — display "Available Commands:" header, category sections with indented command entries in `#syntax  —  description` format
+- [X] T010 [US1] Ensure categorized #help output renders without horizontal scrolling at 320px viewport — keep lines within ~40 characters where possible, use indentation instead of tables in frontend/src/lib/commands/handlers/help.ts
 
 **Checkpoint**: User Story 1 fully functional — `#help` returns categorized command listing
 
@@ -73,14 +73,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US2] Add tests for `levenshteinDistance` in frontend/src/lib/commands/helpers.test.ts — verify distance calculations for identical strings (0), single insertion (1), single deletion (1), single substitution (1), transposition (2), completely different strings
-- [ ] T012 [P] [US2] Add tests for `findClosestCommands` in frontend/src/lib/commands/helpers.test.ts — verify returns closest matches within maxDistance threshold, returns empty array when no matches, returns matches sorted by distance (closest first), default maxDistance is 2
-- [ ] T013 [P] [US2] Add tests for `truncateInput` in frontend/src/lib/commands/helpers.test.ts — verify short input returned unchanged, input longer than maxLength is truncated with ellipsis, default maxLength is 50
-- [ ] T014 [P] [US2] Add tests for "Did you mean?" suggestion in frontend/src/hooks/useCommands.test.tsx — verify unknown command `#hep` suggests `#help`, unknown command with no close match shows generic "Type #help" message, very long unknown command name is truncated in error message
+- [X] T011 [P] [US2] Add tests for `levenshteinDistance` in frontend/src/lib/commands/helpers.test.ts — verify distance calculations for identical strings (0), single insertion (1), single deletion (1), single substitution (1), transposition (2), completely different strings
+- [X] T012 [P] [US2] Add tests for `findClosestCommands` in frontend/src/lib/commands/helpers.test.ts — verify returns closest matches within maxDistance threshold, returns empty array when no matches, returns matches sorted by distance (closest first), default maxDistance is 2
+- [X] T013 [P] [US2] Add tests for `truncateInput` in frontend/src/lib/commands/helpers.test.ts — verify short input returned unchanged, input longer than maxLength is truncated with ellipsis, default maxLength is 50
+- [X] T014 [P] [US2] Add tests for "Did you mean?" suggestion in frontend/src/hooks/useCommands.test.tsx — verify unknown command `#hep` suggests `#help`, unknown command with no close match shows generic "Type #help" message, very long unknown command name is truncated in error message
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Update unknown-command handling in `executeCommand` within frontend/src/hooks/useCommands.ts — import `findClosestCommands` and `truncateInput` from helpers, check for fuzzy matches on unrecognized commands, include "Did you mean #<match>?" when match found, fall back to "Type #help to see available commands." when no match
+- [X] T015 [US2] Update unknown-command handling in `executeCommand` within frontend/src/hooks/useCommands.ts — import `findClosestCommands` and `truncateInput` from helpers, check for fuzzy matches on unrecognized commands, include "Did you mean #<match>?" when match found, fall back to "Type #help to see available commands." when no match
 
 **Checkpoint**: User Story 2 fully functional — misspelled commands and missing/invalid arguments return actionable guidance
 
@@ -96,13 +96,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US3] Add tests for consistent error format in frontend/src/lib/commands/handlers/help.test.ts — verify error responses for unknown single-command lookup follow three-part structure (what went wrong, how to fix, where to get help)
-- [ ] T017 [P] [US3] Add tests for consistent error format in frontend/src/lib/commands/handlers/settings.test.ts — verify missing-argument and invalid-argument errors show syntax hint and valid options
+- [X] T016 [P] [US3] Add tests for consistent error format in frontend/src/lib/commands/handlers/help.test.ts — verify error responses for unknown single-command lookup follow three-part structure (what went wrong, how to fix, where to get help)
+- [X] T017 [P] [US3] Add tests for consistent error format in frontend/src/lib/commands/handlers/settings.test.ts — verify missing-argument and invalid-argument errors show syntax hint and valid options
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Update error messages in settings handlers (theme, language, notifications, view) in frontend/src/lib/commands/handlers/settings.ts to follow consistent three-part format: what went wrong, correct syntax with valid options, "Type #help <command> for more details."
-- [ ] T019 [US3] Ensure success messages across all handlers use consistent structure — brief summary line followed by detail if applicable in frontend/src/lib/commands/handlers/settings.ts
+- [X] T018 [US3] Update error messages in settings handlers (theme, language, notifications, view) in frontend/src/lib/commands/handlers/settings.ts to follow consistent three-part format: what went wrong, correct syntax with valid options, "Type #help <command> for more details."
+- [X] T019 [US3] Ensure success messages across all handlers use consistent structure — brief summary line followed by detail if applicable in frontend/src/lib/commands/handlers/settings.ts
 
 **Checkpoint**: All command responses use consistent formatting — errors are actionable, success is scannable
 
@@ -118,11 +118,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T020 [P] [US4] Add tests for single-command help in frontend/src/lib/commands/handlers/help.test.ts — verify `#help theme` shows detailed info for theme only (description, syntax, options, example), `#help nonexistent` shows "not found" message with hint to use #help, `#help #theme` (with hash prefix) correctly strips leading # and shows theme help, `#help` with no argument still shows full categorized listing
+- [X] T020 [P] [US4] Add tests for single-command help in frontend/src/lib/commands/handlers/help.test.ts — verify `#help theme` shows detailed info for theme only (description, syntax, options, example), `#help nonexistent` shows "not found" message with hint to use #help, `#help #theme` (with hash prefix) correctly strips leading # and shows theme help, `#help` with no argument still shows full categorized listing
 
 ### Implementation for User Story 4
 
-- [ ] T021 [US4] Update `helpHandler` in frontend/src/lib/commands/handlers/help.ts to handle non-empty args — strip leading `#` from argument, look up command in registry, display detailed single-command info (description, usage syntax, valid options from parameterSchema, example), show "Command not found" message when lookup fails
+- [X] T021 [US4] Update `helpHandler` in frontend/src/lib/commands/handlers/help.ts to handle non-empty args — strip leading `#` from argument, look up command in registry, display detailed single-command info (description, usage syntax, valid options from parameterSchema, example), show "Command not found" message when lookup fails
 
 **Checkpoint**: User Story 4 fully functional — `#help <command>` returns targeted command details
 
@@ -132,10 +132,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T022 [P] Add test for `getCommandsByCategory` in frontend/src/lib/commands/registry.test.ts — verify "General" category appears first, other categories sorted alphabetically, commands sorted alphabetically within each category, commands without category default to "General"
-- [ ] T023 Run full frontend test suite and fix any regressions — `cd frontend && npx vitest run`
-- [ ] T024 Run type checking across frontend — `cd frontend && npx tsc --noEmit`
-- [ ] T025 Run linter across frontend — `cd frontend && npx eslint .`
+- [X] T022 [P] Add test for `getCommandsByCategory` in frontend/src/lib/commands/registry.test.ts — verify "General" category appears first, other categories sorted alphabetically, commands sorted alphabetically within each category, commands without category default to "General"
+- [X] T023 Run full frontend test suite and fix any regressions — `cd frontend && npx vitest run`
+- [X] T024 Run type checking across frontend — `cd frontend && npx tsc --noEmit`
+- [X] T025 Run linter across frontend — `cd frontend && npx eslint .`
 - [ ] T026 Run quickstart.md validation — manually verify all 10 verification scenarios from specs/018-help-commands-ux/quickstart.md
 
 ---

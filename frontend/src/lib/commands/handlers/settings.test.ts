@@ -213,3 +213,77 @@ describe('concurrent/edge-case settings (US6)', () => {
     expect(setTheme).toHaveBeenNthCalledWith(3, 'system');
   });
 });
+
+describe('consistent error format (US3)', () => {
+  it('theme missing-argument error shows syntax hint and help reference', () => {
+    const context = createCommandContext();
+    const result = themeHandler('', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Missing value');
+    expect(result.message).toContain('Usage:');
+    expect(result.message).toContain('#help theme');
+  });
+
+  it('theme invalid-argument error shows valid options and syntax', () => {
+    const context = createCommandContext();
+    const result = themeHandler('purple', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("'purple'");
+    expect(result.message).toContain('Valid options:');
+    expect(result.message).toContain('Usage:');
+  });
+
+  it('language missing-argument error shows syntax hint and help reference', () => {
+    const context = createCommandContext();
+    const result = languageHandler('', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Missing value');
+    expect(result.message).toContain('Usage:');
+    expect(result.message).toContain('#help language');
+  });
+
+  it('language invalid-argument error shows valid options and syntax', () => {
+    const context = createCommandContext();
+    const result = languageHandler('xx', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("'xx'");
+    expect(result.message).toContain('Valid options:');
+    expect(result.message).toContain('Usage:');
+  });
+
+  it('notifications missing-argument error shows syntax hint and help reference', async () => {
+    const context = createCommandContext();
+    const result = await notificationsHandler('', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Missing value');
+    expect(result.message).toContain('Usage:');
+    expect(result.message).toContain('#help notifications');
+  });
+
+  it('notifications invalid-argument error shows valid options and syntax', async () => {
+    const context = createCommandContext();
+    const result = await notificationsHandler('maybe', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("'maybe'");
+    expect(result.message).toContain('Valid options:');
+    expect(result.message).toContain('Usage:');
+  });
+
+  it('view missing-argument error shows syntax hint and help reference', async () => {
+    const context = createCommandContext();
+    const result = await viewHandler('', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Missing value');
+    expect(result.message).toContain('Usage:');
+    expect(result.message).toContain('#help view');
+  });
+
+  it('view invalid-argument error shows valid options and syntax', async () => {
+    const context = createCommandContext();
+    const result = await viewHandler('dashboard', context);
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("'dashboard'");
+    expect(result.message).toContain('Valid options:');
+    expect(result.message).toContain('Usage:');
+  });
+});

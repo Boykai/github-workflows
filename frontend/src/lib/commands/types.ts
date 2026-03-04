@@ -42,6 +42,8 @@ export interface CommandDefinition {
    *  #help / autocomplete but forwards the message to the API instead of
    *  executing the handler locally. */
   passthrough?: boolean;
+  /** Category for #help grouping. Defaults to "General" when omitted. */
+  category?: string;
 }
 
 /** Result of parsing a user's chat input. */

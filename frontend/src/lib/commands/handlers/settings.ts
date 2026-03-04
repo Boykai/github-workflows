@@ -14,7 +14,7 @@ export function themeHandler(args: string, context: CommandContext): CommandResu
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #theme. Usage: #theme <light|dark|system>',
+      message: `Missing value for #theme.\nUsage: #theme <light|dark|system>\nType #help theme for more details.`,
       clearInput: false,
     };
   }
@@ -22,7 +22,7 @@ export function themeHandler(args: string, context: CommandContext): CommandResu
   if (!VALID_THEMES.includes(value as (typeof VALID_THEMES)[number])) {
     return {
       success: false,
-      message: `Invalid value '${args.trim()}' for theme. Valid options: ${VALID_THEMES.join(', ')}`,
+      message: `Invalid value '${args.trim()}' for #theme.\nValid options: ${VALID_THEMES.join(', ')}\nUsage: #theme <light|dark|system>`,
       clearInput: false,
     };
   }
@@ -55,7 +55,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #language. Usage: #language <en|es|fr|de|ja|zh>',
+      message: `Missing value for #language.\nUsage: #language <en|es|fr|de|ja|zh>\nType #help language for more details.`,
       clearInput: false,
     };
   }
@@ -63,7 +63,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
   if (!VALID_LANGUAGES.includes(value as (typeof VALID_LANGUAGES)[number])) {
     return {
       success: false,
-      message: `Invalid value '${args.trim()}' for language. Valid options: ${VALID_LANGUAGES.join(', ')}`,
+      message: `Invalid value '${args.trim()}' for #language.\nValid options: ${VALID_LANGUAGES.join(', ')}\nUsage: #language <en|es|fr|de|ja|zh>`,
       clearInput: false,
     };
   }
@@ -90,7 +90,7 @@ export async function notificationsHandler(args: string, context: CommandContext
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #notifications. Usage: #notifications <on|off>',
+      message: `Missing value for #notifications.\nUsage: #notifications <on|off>\nType #help notifications for more details.`,
       clearInput: false,
     };
   }
@@ -98,7 +98,7 @@ export async function notificationsHandler(args: string, context: CommandContext
   if (!VALID_NOTIFICATION_VALUES.includes(value as (typeof VALID_NOTIFICATION_VALUES)[number])) {
     return {
       success: false,
-      message: `Invalid value '${args.trim()}' for notifications. Valid options: on, off`,
+      message: `Invalid value '${args.trim()}' for #notifications.\nValid options: on, off\nUsage: #notifications <on|off>`,
       clearInput: false,
     };
   }
@@ -142,7 +142,7 @@ export async function viewHandler(args: string, context: CommandContext): Promis
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #view. Usage: #view <chat|board|settings>',
+      message: `Missing value for #view.\nUsage: #view <chat|board|settings>\nType #help view for more details.`,
       clearInput: false,
     };
   }
@@ -150,7 +150,7 @@ export async function viewHandler(args: string, context: CommandContext): Promis
   if (!VALID_VIEWS.includes(value as (typeof VALID_VIEWS)[number])) {
     return {
       success: false,
-      message: `Invalid value '${args.trim()}' for view. Valid options: ${VALID_VIEWS.join(', ')}`,
+      message: `Invalid value '${args.trim()}' for #view.\nValid options: ${VALID_VIEWS.join(', ')}\nUsage: #view <chat|board|settings>`,
       clearInput: false,
     };
   }

@@ -11,6 +11,7 @@ import {
   parseCommand,
   registerCommand,
   unregisterCommand,
+  getCommandsByCategory,
 } from './registry';
 
 describe('CommandRegistry', () => {
@@ -211,5 +212,45 @@ describe('Single Source of Truth (US5)', () => {
     const filtered = filterCommands('_test_');
     expect(filtered.length).toBeGreaterThanOrEqual(1);
     expect(filtered[0].name).toBe('_test_ssot');
+  });
+});
+
+describe('getCommandsByCategory', () => {
+  it('"General" category appears first', () => {
+    const categories = getCommandsByCategory();
+    expect(categories[0].category).toBe('General');
+  });
+
+  it('other categories sorted alphabetically', () => {
+    const categories = getCommandsByCategory();
+    const nonGeneral = categories.slice(1);
+    for (let i = 1; i < nonGeneral.length; i++) {
+      expect(nonGeneral[i - 1].category.localeCompare(nonGeneral[i].category)).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('commands sorted alphabetically within each category', () => {
+    const categories = getCommandsByCategory();
+    for (const group of categories) {
+      for (let i = 1; i < group.commands.length; i++) {
+        expect(group.commands[i - 1].name.localeCompare(group.commands[i].name)).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  it('commands without category default to "General"', () => {
+    const categories = getCommandsByCategory();
+    const generalGroup = categories.find((g) => g.category === 'General');
+    expect(generalGroup).toBeDefined();
+    // help command has no explicit category
+    expect(generalGroup!.commands.find((c) => c.name === 'help')).toBeDefined();
+  });
+
+  it('contains expected categories', () => {
+    const categories = getCommandsByCategory();
+    const names = categories.map((g) => g.category);
+    expect(names).toContain('General');
+    expect(names).toContain('Settings');
+    expect(names).toContain('Workflow');
   });
 });
