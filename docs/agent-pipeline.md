@@ -37,7 +37,7 @@ User clicks Confirm        →   GitHub Issue + sub-issues created, added to Pro
 | 📋 **Backlog** | `speckit.specify` | Sub-issue created, agent assigned; creates first PR (establishes main branch) and writes `spec.md`; sub-issue closed on completion | `speckit.specify: Done!` on sub-issue |
 | 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential: each agent gets its sub-issue, branches from main branch, child PR merged + deleted, sub-issue closed | Both agents post `Done!` markers |
 | 🔄 **In Progress** | `speckit.implement` | Agent branches from main, implements code from `tasks.md`, child PR merged + deleted, main PR converted from draft to ready | Child PR completion detected via timeline events or PR no longer draft |
-| 👀 **In Review** | `copilot-review` | Main PR contains all merged agent work; Copilot code review requested; sub-issue closed when review completes | Manual merge |
+| 👀 **In Review** | `copilot-review` | **Not a coding agent.** The pipeline calls the GitHub API to request a Copilot code review directly on the parent issue's **main branch PR** (the branch established by `speckit.specify`). The `copilot-review` sub-issue is a tracking issue only — Copilot is **never** assigned to it as a coding agent. Sub-issue closed when review completes. | Manual merge |
 | ✅ **Done** | — | Work merged | Manual or webhook on PR merge |
 
 ## Spec Kit Agents
@@ -62,10 +62,12 @@ When an issue is confirmed, the system creates **sub-issues upfront** for every 
 
 - Each sub-issue is titled `[agent-name] Parent Title`
 - Sub-issues are added to the same GitHub Project
-- Copilot is assigned to the sub-issue (not the parent)
+- Copilot is assigned to the sub-issue (not the parent) — **except for `copilot-review`** (see below)
 - Agent `.md` file outputs are posted as comments on the **sub-issue**
 - The `<agent>: Done!` marker is posted on the **parent issue** to advance the pipeline
 - When an agent completes, its sub-issue is closed as completed (`state=closed`, `state_reason=completed`)
+
+> **`copilot-review` is a special-case agent.** It does NOT assign Copilot to the sub-issue as a coding task. Instead, the pipeline directly requests a Copilot code review on the **parent issue's main branch PR** (the branch created by `speckit.specify` and merged into by all subsequent agents) via the GitHub GraphQL API. The sub-issue is a tracking issue only — it is marked active when the review is requested and closed when the review completes.
 
 Label lifecycle: created with `ai-generated` + `sub-issue` → `in-progress` added on assignment → `done` added + `in-progress` removed on completion.
 

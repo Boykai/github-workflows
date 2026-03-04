@@ -4045,6 +4045,13 @@ class GitHubProjectsService:
             "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
             "copilot": "Implement the requested changes. Write production-quality code with tests.",
             "human": "This is a manual human task. Complete the work described below, then close this issue or comment 'Done!' on the parent issue to continue the pipeline.",
+            "copilot-review": (
+                "A Copilot code review has been requested on the main PR for this feature "
+                "(the branch created by `speckit.specify` that contains all merged agent work).\n\n"
+                "**Note:** This sub-issue is a pipeline tracking issue — Copilot reviews the PR "
+                "directly, not through this issue. This sub-issue will be closed once the "
+                "Copilot review is complete."
+            ),
         }
 
         agent_desc = agent_descriptions.get(

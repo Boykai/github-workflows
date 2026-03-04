@@ -1066,6 +1066,166 @@ class WorkflowOrchestrator:
 
             return True
 
+        # ── copilot-review: request Copilot code review on the main PR ──
+        # copilot-review is NOT a traditional coding agent.  There is no
+        # copilot-review.agent.md, so assigning Copilot to the sub-issue
+        # as a coding agent would fail.  Instead we directly request a
+        # Copilot code review on the existing main PR for this issue via
+        # the GitHub GraphQL API.  The sub-issue tracks review status.
+        if agent_name == "copilot-review":
+            logger.info(
+                "copilot-review step for issue #%d — requesting Copilot code review on main PR",
+                ctx.issue_number,
+            )
+
+            # Resolve the main PR for this issue (branch created by speckit.specify)
+            review_pr_number: int | None = None
+            review_pr_id: str | None = None
+
+            main_branch_info = get_issue_main_branch(ctx.issue_number)
+            if main_branch_info:
+                review_pr_number = int(main_branch_info["pr_number"])
+                logger.info(
+                    "Found main branch '%s' (PR #%d) for issue #%d via in-memory store",
+                    main_branch_info.get("branch", ""),
+                    review_pr_number,
+                    ctx.issue_number,
+                )
+            else:
+                # Fallback: scan linked PRs on the parent issue
+                try:
+                    found_pr = await self.github.find_existing_pr_for_issue(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=ctx.issue_number,
+                    )
+                    if found_pr:
+                        review_pr_number = int(found_pr["number"])
+                        logger.info(
+                            "Found linked PR #%d for copilot-review on issue #%d via API",
+                            review_pr_number,
+                            ctx.issue_number,
+                        )
+                except Exception as _find_err:
+                    logger.warning(
+                        "Failed to find PR for copilot-review on issue #%d: %s",
+                        ctx.issue_number,
+                        _find_err,
+                    )
+
+            if review_pr_number:
+                pr_details = await self.github.get_pull_request(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    pr_number=review_pr_number,
+                )
+                if pr_details:
+                    review_pr_id = pr_details.get("id")
+
+            # Request the Copilot code review on the main PR
+            review_requested = False
+            if review_pr_id and review_pr_number:
+                review_requested = await self.github.request_copilot_review(
+                    access_token=ctx.access_token,
+                    pr_node_id=str(review_pr_id),
+                    pr_number=review_pr_number,
+                )
+                if review_requested:
+                    logger.info(
+                        "Copilot code review requested on PR #%d for issue #%d",
+                        review_pr_number,
+                        ctx.issue_number,
+                    )
+                else:
+                    logger.warning(
+                        "Failed to request Copilot code review on PR #%d for issue #%d",
+                        review_pr_number,
+                        ctx.issue_number,
+                    )
+            else:
+                logger.warning(
+                    "No main PR found for copilot-review on issue #%d — cannot request review",
+                    ctx.issue_number,
+                )
+
+            # Mark agent as 🔄 Active in the issue body tracking table
+            await self._update_agent_tracking_state(ctx, agent_name, "active")
+
+            # Mark the sub-issue as "in progress"
+            if sub_issue_info and sub_issue_number != ctx.issue_number:
+                try:
+                    await self.github.update_issue_state(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=sub_issue_number,
+                        state="open",
+                        labels_add=["in-progress"],
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to mark copilot-review sub-issue #%d as in-progress: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
+                # Update the sub-issue's project board status to "In Progress"
+                try:
+                    sub_node_id = sub_issue_info.get("node_id", "")
+                    if sub_node_id:
+                        await self.github.update_sub_issue_project_status(
+                            access_token=ctx.access_token,
+                            project_id=ctx.project_id,
+                            sub_issue_node_id=sub_node_id,
+                            status_name=(config.status_in_progress if config else "In Progress"),
+                        )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to update copilot-review sub-issue #%d project status: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
+            # Create / update pipeline state
+            _existing_pipeline_cr = get_pipeline_state(ctx.issue_number)
+            _existing_sub_issues_cr = (
+                _existing_pipeline_cr.agent_sub_issues if _existing_pipeline_cr else {}
+            )
+            _agent_sub_issues_cr = dict(_existing_sub_issues_cr)
+            if sub_issue_info:
+                _agent_sub_issues_cr[agent_name] = sub_issue_info
+
+            set_pipeline_state(
+                ctx.issue_number,
+                PipelineState(
+                    issue_number=ctx.issue_number,
+                    project_id=ctx.project_id,
+                    status=status,
+                    agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                    current_agent_index=agent_index,
+                    completed_agents=[
+                        a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
+                    ],
+                    started_at=utcnow(),
+                    error=None,
+                    agent_assigned_sha="",
+                    agent_sub_issues=_agent_sub_issues_cr,
+                ),
+            )
+
+            self.log_transition(
+                ctx=ctx,
+                from_status=status,
+                to_status=status,
+                triggered_by=TriggeredBy.AUTOMATIC,
+                success=review_requested,
+                assigned_user="copilot-review",
+            )
+
+            return True
+
         # Fetch issue context for the agent's custom instructions.
         # Use the SUB-ISSUE data (not parent) so Copilot focuses only on
         # the sub-issue and doesn't create duplicate PRs for the parent.
