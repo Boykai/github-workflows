@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
 import { useUserSettings } from '@/hooks/useSettings';
 import { parseCommand, getCommand, getAllCommands, filterCommands } from '@/lib/commands/registry';
+import { findClosestCommands, truncateInput } from '@/lib/commands/helpers';
 import type { CommandContext, CommandResult, CommandDefinition } from '@/lib/commands/types';
 
 export interface UseCommandsReturn {
@@ -55,9 +56,14 @@ export function useCommands(): UseCommandsReturn {
 
     const command = getCommand(parsed.name);
     if (!command) {
+      const displayName = truncateInput(parsed.name);
+      const closest = findClosestCommands(parsed.name, 2);
+      const suggestion = closest.length > 0
+        ? `Did you mean #${closest[0].name}?`
+        : 'Type #help to see available commands.';
       return {
         success: false,
-        message: `Unknown command '${parsed.name}'. Type #help to see available commands.`,
+        message: `Unknown command '${displayName}'. ${suggestion}`,
         clearInput: false,
       };
     }

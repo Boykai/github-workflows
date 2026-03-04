@@ -41,6 +41,40 @@ export function filterCommands(prefix: string): CommandDefinition[] {
 }
 
 /**
+ * Return all registered commands grouped by category.
+ * "General" category is always first; others sorted alphabetically.
+ * Commands within each category sorted alphabetically by name.
+ */
+export function getCommandsByCategory(): Array<{ category: string; commands: CommandDefinition[] }> {
+  const commands = getAllCommands();
+  const groups = new Map<string, CommandDefinition[]>();
+
+  for (const cmd of commands) {
+    const cat = cmd.category ?? 'General';
+    const list = groups.get(cat);
+    if (list) {
+      list.push(cmd);
+    } else {
+      groups.set(cat, [cmd]);
+    }
+  }
+
+  const entries = Array.from(groups.entries()).map(([category, cmds]) => ({
+    category,
+    commands: cmds.sort((a, b) => a.name.localeCompare(b.name)),
+  }));
+
+  // "General" first, then alphabetical
+  entries.sort((a, b) => {
+    if (a.category === 'General') return -1;
+    if (b.category === 'General') return 1;
+    return a.category.localeCompare(b.category);
+  });
+
+  return entries;
+}
+
+/**
  * Parse user input into a ParsedCommand.
  *
  * Rules:
@@ -98,6 +132,7 @@ registerCommand({
   syntax: '#theme <light|dark|system>',
   handler: themeHandler,
   parameterSchema: { type: 'enum', values: ['light', 'dark', 'system'] },
+  category: 'Settings',
 });
 
 registerCommand({
@@ -106,6 +141,7 @@ registerCommand({
   syntax: '#language <en|es|fr|de|ja|zh>',
   handler: languageHandler,
   parameterSchema: { type: 'enum', values: ['en', 'es', 'fr', 'de', 'ja', 'zh'] },
+  category: 'Settings',
 });
 
 registerCommand({
@@ -114,6 +150,7 @@ registerCommand({
   syntax: '#notifications <on|off>',
   handler: notificationsHandler,
   parameterSchema: { type: 'enum', values: ['on', 'off'] },
+  category: 'Settings',
 });
 
 registerCommand({
@@ -122,6 +159,7 @@ registerCommand({
   syntax: '#view <chat|board|settings>',
   handler: viewHandler,
   parameterSchema: { type: 'enum', values: ['chat', 'board', 'settings'] },
+  category: 'Settings',
 });
 
 registerCommand({
@@ -130,4 +168,5 @@ registerCommand({
   syntax: '#agent <description> [#status-column]',
   handler: agentHandler,
   passthrough: true,
+  category: 'Workflow',
 });

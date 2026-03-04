@@ -105,6 +105,46 @@ describe('useCommands', () => {
       expect(cmdResult.message).toContain('Unknown command');
     });
 
+    it('for unknown command #hep suggests #help ("Did you mean?")', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      const cmdResult = result.current.executeCommand('#hep');
+      if (cmdResult instanceof Promise) {
+        return cmdResult.then((r) => {
+          expect(r.success).toBe(false);
+          expect(r.message).toContain('Did you mean #help?');
+        });
+      }
+      expect(cmdResult.success).toBe(false);
+      expect(cmdResult.message).toContain('Did you mean #help?');
+    });
+
+    it('for unknown command with no close match shows generic help message', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      const cmdResult = result.current.executeCommand('#zzzzzzz');
+      if (cmdResult instanceof Promise) {
+        return cmdResult.then((r) => {
+          expect(r.success).toBe(false);
+          expect(r.message).toContain('Type #help to see available commands.');
+        });
+      }
+      expect(cmdResult.success).toBe(false);
+      expect(cmdResult.message).toContain('Type #help to see available commands.');
+    });
+
+    it('for very long unknown command truncates name in error', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      const longName = '#' + 'a'.repeat(60);
+      const cmdResult = result.current.executeCommand(longName);
+      if (cmdResult instanceof Promise) {
+        return cmdResult.then((r) => {
+          expect(r.success).toBe(false);
+          expect(r.message).toContain('...');
+        });
+      }
+      expect(cmdResult.success).toBe(false);
+      expect(cmdResult.message).toContain('...');
+    });
+
     it('for passthrough command #agent returns passthrough flag', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
       const cmdResult = result.current.executeCommand('#agent Build a reviewer');
