@@ -24,7 +24,7 @@ The following existing CSS custom properties are modified. These are not data mo
 | Attribute | Light Mode (`:root`) | Dark Mode (`.dark`) |
 |-----------|---------------------|---------------------|
 | **Current value** | `222.2 84% 4.9%` (near-black) | `210 40% 98%` (near-white) |
-| **New value** | `0 0% 100%` (white) | `0 0% 100%` (white) |
+| **New value** | `222.2 84% 4.9%` (unchanged — near-black on green gives ~6.6:1 contrast) | `0 0% 100%` (white) |
 | **Format** | HSL (space-separated, no wrapper) | HSL (space-separated, no wrapper) |
 | **Consumed by** | Tailwind `text-foreground` → `hsl(var(--foreground))` | Same |
 

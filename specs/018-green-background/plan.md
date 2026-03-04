@@ -7,7 +7,7 @@
 
 ## Summary
 
-Apply a green background color to the application by updating the existing HSL-based CSS custom property `--background` in `frontend/src/index.css`. The change targets the `:root` (light mode) and `.dark` (dark mode) selectors, replacing the current white/dark-blue backgrounds with green equivalents (#4CAF50 for light, #2E7D32 for dark). The foreground text color (`--foreground`) will be updated to white to maintain WCAG AA contrast. No new dependencies, no structural changes, no backend changes.
+Apply a green background color to the application by updating the existing HSL-based CSS custom property `--background` in `frontend/src/index.css`. The change targets the `:root` (light mode) and `.dark` (dark mode) selectors, replacing the current white/dark-blue backgrounds with green equivalents (#4CAF50 for light, #2E7D32 for dark). The light mode foreground text color (`--foreground`) remains near-black for WCAG AA contrast (~6.6:1). The dark mode foreground is updated to white (~5.1:1 contrast). No new dependencies, no structural changes, no backend changes.
 
 ## Technical Context
 

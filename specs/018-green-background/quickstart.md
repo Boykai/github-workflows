@@ -20,7 +20,7 @@ Edit `frontend/src/index.css` and update the following values:
 **In `:root` selector (light mode):**
 ```css
 --background: 122 39% 49%;    /* was: 0 0% 100% */
---foreground: 0 0% 100%;      /* was: 222.2 84% 4.9% */
+/* --foreground stays at 222.2 84% 4.9% (near-black for WCAG AA contrast) */
 ```
 
 **In `.dark` selector (dark mode):**
@@ -40,7 +40,7 @@ npm run dev
 2. Verify the background is green (#4CAF50)
 3. Toggle dark mode (via app settings or browser DevTools)
 4. Verify the background changes to darker green (#2E7D32)
-5. Verify all text is readable (white on green)
+5. Verify all text is readable (dark text on green in light mode, white text on dark green in dark mode)
 6. Navigate between pages — green background should be consistent
 7. Check that cards, popovers, and modals retain their original colors
 
