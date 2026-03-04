@@ -94,7 +94,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `009`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `010`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -109,6 +109,7 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `007_agent_configs.sql` | Agent configuration storage |
 | `008_cleanup_audit_logs.sql` | Cleanup audit log table |
 | `009_housekeeping.sql` | Housekeeping templates and schedules |
+| `010_chores.sql` | Chores system (replaces housekeeping) |
 
 ## Workflow Settings
 
