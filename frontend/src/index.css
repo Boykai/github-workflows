@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 51 100% 50%; /* Gold #FFD700 — see specs/018-golden-background */
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -36,7 +36,7 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 43 74% 15%; /* Dark gold #3D2E0A — see specs/018-golden-background */
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;

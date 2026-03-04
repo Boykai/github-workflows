@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing project structure and theming system before making changes
 
-- [ ] T001 Verify existing CSS custom property structure in `frontend/src/index.css` (confirm `:root` and `.dark` selectors with `--background` token)
-- [ ] T002 Verify Tailwind config consumes `hsl(var(--background))` in `frontend/tailwind.config.js` (read-only confirmation, no changes needed)
-- [ ] T003 Verify `body` applies `@apply bg-background` in `frontend/src/index.css` (read-only confirmation, no changes needed)
+- [x] T001 Verify existing CSS custom property structure in `frontend/src/index.css` (confirm `:root` and `.dark` selectors with `--background` token)
+- [x] T002 Verify Tailwind config consumes `hsl(var(--background))` in `frontend/tailwind.config.js` (read-only confirmation, no changes needed)
+- [x] T003 Verify `body` applies `@apply bg-background` in `frontend/src/index.css` (read-only confirmation, no changes needed)
 
 **Checkpoint**: Existing theming infrastructure confirmed — token update can proceed
 
@@ -50,7 +50,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update `:root` `--background` value from `0 0% 100%` to `51 100% 50%` in `frontend/src/index.css`
+- [x] T004 [US1] Update `:root` `--background` value from `0 0% 100%` to `51 100% 50%` in `frontend/src/index.css`
 
 **Checkpoint**: Light-mode golden background is now visible across the entire app. Verify by opening `http://localhost:5173` — the page background should be gold (#FFD700). Resize to mobile/tablet/desktop widths to confirm no layout breakage.
 
@@ -64,9 +64,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Verify existing `--foreground` value (`222.2 84% 4.9%` ≈ #020817) provides ≥4.5:1 contrast against gold background in `frontend/src/index.css` (no change expected — research confirms 13.6:1 ratio)
-- [ ] T006 [US2] Visual review of all pages to confirm images, icons, and components that previously assumed a white/neutral background remain legible against gold in `frontend/src/index.css`
-- [ ] T007 [US2] Confirm `--card` (`0 0% 100%`), `--popover` (`0 0% 100%`), and `--secondary` tokens remain unchanged so overlay surfaces maintain their own backgrounds in `frontend/src/index.css`
+- [x] T005 [US2] Verify existing `--foreground` value (`222.2 84% 4.9%` ≈ #020817) provides ≥4.5:1 contrast against gold background in `frontend/src/index.css` (no change expected — research confirms 13.6:1 ratio)
+- [x] T006 [US2] Visual review of all pages to confirm images, icons, and components that previously assumed a white/neutral background remain legible against gold in `frontend/src/index.css`
+- [x] T007 [US2] Confirm `--card` (`0 0% 100%`), `--popover` (`0 0% 100%`), and `--secondary` tokens remain unchanged so overlay surfaces maintain their own backgrounds in `frontend/src/index.css`
 
 **Checkpoint**: All text and UI elements confirmed readable against golden background. No foreground color changes needed. Cards, popovers, and overlays retain their own backgrounds.
 
@@ -80,8 +80,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Confirm `--background` CSS variable in `:root` of `frontend/src/index.css` serves as the single source of truth for the golden color (already satisfied by T004 — this is a validation task)
-- [ ] T009 [P] [US3] Add inline comment documenting the gold color choice (`/* Gold #FFD700 — see specs/018-golden-background */`) next to the `--background` token in `frontend/src/index.css`
+- [x] T008 [US3] Confirm `--background` CSS variable in `:root` of `frontend/src/index.css` serves as the single source of truth for the golden color (already satisfied by T004 — this is a validation task)
+- [x] T009 [P] [US3] Add inline comment documenting the gold color choice (`/* Gold #FFD700 — see specs/018-golden-background */`) next to the `--background` token in `frontend/src/index.css`
 
 **Checkpoint**: Golden color is registered as a reusable CSS variable. Changing `--background` in `:root` updates the background globally.
 
@@ -95,9 +95,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T010 [US4] Update `.dark` `--background` value from `222.2 84% 4.9%` to `43 74% 15%` in `frontend/src/index.css`
-- [ ] T011 [US4] Verify dark-mode `--foreground` value (`210 40% 98%` ≈ #F8FAFC) provides ≥4.5:1 contrast against dark gold background in `frontend/src/index.css` (no change expected — research confirms ~12.5:1 ratio)
-- [ ] T012 [US4] Verify dark-mode `--card`, `--popover`, and `--secondary` tokens remain unchanged in `frontend/src/index.css`
+- [x] T010 [US4] Update `.dark` `--background` value from `222.2 84% 4.9%` to `43 74% 15%` in `frontend/src/index.css`
+- [x] T011 [US4] Verify dark-mode `--foreground` value (`210 40% 98%` ≈ #F8FAFC) provides ≥4.5:1 contrast against dark gold background in `frontend/src/index.css` (no change expected — research confirms ~12.5:1 ratio)
+- [x] T012 [US4] Verify dark-mode `--card`, `--popover`, and `--secondary` tokens remain unchanged in `frontend/src/index.css`
 
 **Checkpoint**: Dark mode displays deepened dark-gold background. Light/dark mode toggle transitions smoothly. All text readable in both modes.
 
@@ -107,10 +107,10 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T013 Cross-browser verification: Open app in Chrome, Firefox, Safari, and Edge — confirm golden background renders identically in all browsers
-- [ ] T014 Responsive verification: Test at mobile (375px), tablet (768px), and desktop (1440px) widths — confirm no layout breakage
-- [ ] T015 Visual regression review: Navigate through all major pages (board, settings, chat) — confirm no components are unexpectedly affected by the golden background
-- [ ] T016 Run `frontend/src/index.css` quickstart validation per `specs/018-golden-background/quickstart.md`
+- [x] T013 Cross-browser verification: Open app in Chrome, Firefox, Safari, and Edge — confirm golden background renders identically in all browsers
+- [x] T014 Responsive verification: Test at mobile (375px), tablet (768px), and desktop (1440px) widths — confirm no layout breakage
+- [x] T015 Visual regression review: Navigate through all major pages (board, settings, chat) — confirm no components are unexpectedly affected by the golden background
+- [x] T016 Run `frontend/src/index.css` quickstart validation per `specs/018-golden-background/quickstart.md`
 
 ---
 
