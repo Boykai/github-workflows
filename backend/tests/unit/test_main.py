@@ -273,3 +273,62 @@ class TestGenericExceptionHandler:
 
         assert resp.status_code == 500
         assert resp.json() == {"error": "Internal server error"}
+
+
+class TestShutdownPollingLogging:
+    """Regression test: shutdown must log errors instead of silently swallowing them."""
+
+    async def test_shutdown_logs_polling_stop_error(self):
+        """If stop_polling() raises during shutdown, the error must be logged
+        rather than silently swallowed by a bare ``except: pass``."""
+        from src.main import lifespan
+
+        mock_db = AsyncMock()
+        mock_app = MagicMock()
+
+        with (
+            patch("src.main.get_settings") as mock_s,
+            patch("src.main.setup_logging"),
+            patch(
+                "src.services.database.init_database",
+                new_callable=AsyncMock,
+                return_value=mock_db,
+            ),
+            patch(
+                "src.services.database.seed_global_settings",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.database.close_database",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.signal_bridge.start_signal_ws_listener",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.signal_bridge.stop_signal_ws_listener",
+                new_callable=AsyncMock,
+            ),
+            patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock),
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": True},
+            ),
+            patch(
+                "src.services.copilot_polling.stop_polling",
+                side_effect=RuntimeError("polling stop failed"),
+            ),
+            patch("src.main.logger") as mock_logger,
+        ):
+            mock_s.return_value = MagicMock(
+                debug=True,
+                session_cleanup_interval=999999,
+            )
+            async with lifespan(mock_app):
+                pass
+
+            # The error must have been logged, not silently swallowed
+            mock_logger.warning.assert_any_call(
+                "Error stopping Copilot polling during shutdown", exc_info=True
+            )

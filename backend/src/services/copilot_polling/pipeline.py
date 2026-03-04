@@ -793,7 +793,9 @@ async def _advance_pipeline(
         Result dict or None
     """
     completed_agent = pipeline.current_agent
-    assert completed_agent is not None, "No current agent in pipeline"
+    if completed_agent is None:
+        logger.error("No current agent in pipeline — cannot advance")
+        return None
     pipeline.completed_agents.append(completed_agent)
     pipeline.current_agent_index += 1
 

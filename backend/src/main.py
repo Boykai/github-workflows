@@ -51,8 +51,8 @@ async def _auto_start_copilot_polling() -> None:
         logger.info("Session expired or missing project — polling not auto-started")
         return
 
-    status = get_polling_status()
-    if status["is_running"]:
+    polling_status = get_polling_status()
+    if polling_status["is_running"]:
         return
 
     try:
@@ -215,7 +215,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
             if get_polling_status()["is_running"]:
                 stop_polling()
         except Exception:
-            pass
+            logger.warning("Error stopping Copilot polling during shutdown", exc_info=True)
 
         if db is not None:
             await close_database()

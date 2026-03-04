@@ -466,7 +466,8 @@ async def confirm_proposal(
 
     # Narrowed: _resolve_repository validates selected_project_id is not None
     project_id = session.selected_project_id
-    assert project_id is not None
+    if project_id is None:
+        raise ValidationError("No project selected")
 
     # Validate description does not exceed GitHub API limit before attempting
     # issue creation.  This check lives outside the try/except below so that the

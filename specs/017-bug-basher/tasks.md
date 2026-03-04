@@ -25,11 +25,11 @@
 
 **Purpose**: Establish a clean baseline before auditing. Confirm all tests pass and linters are clean so that pre-existing failures are documented and excluded from findings.
 
-- [ ] T001 Run backend test suite to establish baseline via `cd backend && python -m pytest tests/unit/ -q`
-- [ ] T002 [P] Run backend linting baseline via `cd backend && ruff check src tests && ruff format --check src tests`
-- [ ] T003 [P] Run frontend test suite to establish baseline via `cd frontend && npx vitest run`
-- [ ] T004 [P] Run frontend linting baseline via `cd frontend && npx eslint . && npx tsc --noEmit`
-- [ ] T005 Document any pre-existing test or lint failures in a baseline-failures note for exclusion from audit findings
+- [X] T001 Run backend test suite to establish baseline via `cd backend && python -m pytest tests/unit/ -q`
+- [X] T002 [P] Run backend linting baseline via `cd backend && ruff check src tests && ruff format --check src tests`
+- [X] T003 [P] Run frontend test suite to establish baseline via `cd frontend && npx vitest run`
+- [X] T004 [P] Run frontend linting baseline via `cd frontend && npx eslint . && npx tsc --noEmit`
+- [X] T005 Document any pre-existing test or lint failures in a baseline-failures note for exclusion from audit findings
 
 **Checkpoint**: Baseline established — all pre-existing test/lint status is documented. Audit phases can begin.
 
@@ -60,35 +60,35 @@
 
 ### Backend Security Audit
 
-- [ ] T012 [US1] Audit OAuth flow, session cookies, redirect validation, and token handling in `backend/src/api/auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_api_auth.py`
-- [ ] T013 [US1] Audit admin authorization, session validation, and TOCTOU race conditions in `backend/src/dependencies.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_admin_authorization.py`
-- [ ] T014 [US1] Audit secret management, environment variable handling, and cookie security defaults in `backend/src/config.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_config.py`
-- [ ] T015 [US1] Audit encryption key management and token encryption in `backend/src/services/encryption.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_token_encryption.py`
-- [ ] T016 [US1] Audit SQL query construction for injection risks and parameterized query usage in `backend/src/services/database.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_database.py`
-- [ ] T017 [US1] Audit GitHub API token usage, input validation, and security of external API calls in `backend/src/services/github_projects/service.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_projects.py`
-- [ ] T018 [P] [US1] Audit user input handling, command injection risks, and XSS in responses in `backend/src/api/chat.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_api_chat.py`
-- [ ] T019 [P] [US1] Audit input validation and authentication enforcement in remaining backend API files: `backend/src/api/board.py`, `backend/src/api/tasks.py`, `backend/src/api/projects.py`, `backend/src/api/settings.py`, `backend/src/api/cleanup.py`, `backend/src/api/workflow.py`, `backend/src/api/chores.py`, `backend/src/api/mcp.py`, `backend/src/api/signal.py`, `backend/src/api/webhooks.py`, `backend/src/api/health.py` — fix confirmed vulnerabilities with regression tests
-- [ ] T020 [P] [US1] Audit AI agent orchestration for prompt injection risks and input sanitization in `backend/src/services/ai_agent.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_ai_agent.py`
-- [ ] T021 [P] [US1] Audit Signal messaging integration for input validation and credential handling in `backend/src/services/signal_chat.py`, `backend/src/services/signal_bridge.py`, `backend/src/services/signal_delivery.py` — fix confirmed vulnerabilities with regression tests
-- [ ] T022 [P] [US1] Audit GitHub authentication service for token handling and OAuth state security in `backend/src/services/github_auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_auth.py`
-- [ ] T023 [P] [US1] Audit session store for session fixation and session data exposure in `backend/src/services/session_store.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_session_store.py`
-- [ ] T024 [P] [US1] Audit logging utilities for sensitive data leaks in log output in `backend/src/logging_utils.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_logging_utils.py`
+- [X] T012 [US1] Audit OAuth flow, session cookies, redirect validation, and token handling in `backend/src/api/auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_api_auth.py`
+- [X] T013 [US1] Audit admin authorization, session validation, and TOCTOU race conditions in `backend/src/dependencies.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_admin_authorization.py`
+- [X] T014 [US1] Audit secret management, environment variable handling, and cookie security defaults in `backend/src/config.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_config.py`
+- [X] T015 [US1] Audit encryption key management and token encryption in `backend/src/services/encryption.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_token_encryption.py`
+- [X] T016 [US1] Audit SQL query construction for injection risks and parameterized query usage in `backend/src/services/database.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_database.py`
+- [X] T017 [US1] Audit GitHub API token usage, input validation, and security of external API calls in `backend/src/services/github_projects/service.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_projects.py`
+- [X] T018 [P] [US1] Audit user input handling, command injection risks, and XSS in responses in `backend/src/api/chat.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_api_chat.py`
+- [X] T019 [P] [US1] Audit input validation and authentication enforcement in remaining backend API files: `backend/src/api/board.py`, `backend/src/api/tasks.py`, `backend/src/api/projects.py`, `backend/src/api/settings.py`, `backend/src/api/cleanup.py`, `backend/src/api/workflow.py`, `backend/src/api/chores.py`, `backend/src/api/mcp.py`, `backend/src/api/signal.py`, `backend/src/api/webhooks.py`, `backend/src/api/health.py` — fix confirmed vulnerabilities with regression tests
+- [X] T020 [P] [US1] Audit AI agent orchestration for prompt injection risks and input sanitization in `backend/src/services/ai_agent.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_ai_agent.py`
+- [X] T021 [P] [US1] Audit Signal messaging integration for input validation and credential handling in `backend/src/services/signal_chat.py`, `backend/src/services/signal_bridge.py`, `backend/src/services/signal_delivery.py` — fix confirmed vulnerabilities with regression tests
+- [X] T022 [P] [US1] Audit GitHub authentication service for token handling and OAuth state security in `backend/src/services/github_auth.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_github_auth.py`
+- [X] T023 [P] [US1] Audit session store for session fixation and session data exposure in `backend/src/services/session_store.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_session_store.py`
+- [X] T024 [P] [US1] Audit logging utilities for sensitive data leaks in log output in `backend/src/logging_utils.py` — fix confirmed vulnerabilities with regression tests in `backend/tests/unit/test_logging_utils.py`
 
 ### Frontend Security Audit
 
-- [ ] T025 [US1] Audit credential handling, CORS configuration, and sensitive data exposure in API URLs in `frontend/src/services/api.ts` — fix confirmed vulnerabilities with regression tests
-- [ ] T026 [P] [US1] Audit all React components for XSS via `dangerouslySetInnerHTML`, unsanitized user content rendering, and URL handling in `frontend/src/components/**/*.tsx` — fix confirmed vulnerabilities with regression tests
-- [ ] T027 [P] [US1] Audit frontend hooks for sensitive data leaks, token storage, and insecure state management in `frontend/src/hooks/useAuth.ts`, `frontend/src/hooks/useChat.ts`, and all other `frontend/src/hooks/*.ts` — fix confirmed vulnerabilities with regression tests
+- [X] T025 [US1] Audit credential handling, CORS configuration, and sensitive data exposure in API URLs in `frontend/src/services/api.ts` — fix confirmed vulnerabilities with regression tests
+- [X] T026 [P] [US1] Audit all React components for XSS via `dangerouslySetInnerHTML`, unsanitized user content rendering, and URL handling in `frontend/src/components/**/*.tsx` — fix confirmed vulnerabilities with regression tests
+- [X] T027 [P] [US1] Audit frontend hooks for sensitive data leaks, token storage, and insecure state management in `frontend/src/hooks/useAuth.ts`, `frontend/src/hooks/useChat.ts`, and all other `frontend/src/hooks/*.ts` — fix confirmed vulnerabilities with regression tests
 
 ### Infrastructure Security Audit
 
-- [ ] T028 [P] [US1] Audit GitHub Actions workflows for secret exposure, insecure action versions, and injection risks in `.github/workflows/ci.yml`, `.github/workflows/housekeeping-cron.yml`, `.github/workflows/branch-issue-link.yml` — fix confirmed vulnerabilities
-- [ ] T029 [P] [US1] Audit Docker configuration for insecure defaults, exposed ports, and secret leaks in `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile` — fix confirmed vulnerabilities
+- [X] T028 [P] [US1] Audit GitHub Actions workflows for secret exposure, insecure action versions, and injection risks in `.github/workflows/ci.yml`, `.github/workflows/housekeeping-cron.yml`, `.github/workflows/branch-issue-link.yml` — fix confirmed vulnerabilities
+- [X] T029 [P] [US1] Audit Docker configuration for insecure defaults, exposed ports, and secret leaks in `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile` — fix confirmed vulnerabilities
 
 ### US1 Verification
 
-- [ ] T030 [US1] Run full backend test suite `cd backend && python -m pytest tests/ -q` to verify all security fixes and regression tests pass
-- [ ] T031 [US1] Run full frontend test suite `cd frontend && npx vitest run` to verify all security fixes and regression tests pass
+- [X] T030 [US1] Run full backend test suite `cd backend && python -m pytest tests/ -q` to verify all security fixes and regression tests pass
+- [X] T031 [US1] Run full frontend test suite `cd frontend && npx vitest run` to verify all security fixes and regression tests pass
 
 **Checkpoint**: Security audit complete — all confirmed security vulnerabilities have fixes with regression tests. Ambiguous security concerns flagged with `TODO(bug-bash)` comments.
 
@@ -102,18 +102,18 @@
 
 ### Backend Runtime Error Audit
 
-- [ ] T032 [US2] Audit async exception handling and error propagation in all FastAPI route handlers in `backend/src/api/auth.py`, `backend/src/api/chat.py`, `backend/src/api/board.py`, `backend/src/api/workflow.py`, `backend/src/api/tasks.py`, `backend/src/api/projects.py`, `backend/src/api/settings.py`, `backend/src/api/cleanup.py`, `backend/src/api/chores.py`, `backend/src/api/mcp.py`, `backend/src/api/signal.py`, `backend/src/api/webhooks.py` — fix unhandled exceptions with regression tests
-- [ ] T033 [US2] Audit SQLite connection and transaction management for resource leaks in `backend/src/services/database.py` and all callers of `get_db()` — fix confirmed leaks with regression tests in `backend/tests/unit/test_database.py`
-- [ ] T034 [US2] Audit null/None reference patterns and optional field access in `backend/src/services/github_projects/service.py` — fix confirmed null reference errors with regression tests in `backend/tests/unit/test_github_projects.py`
-- [ ] T035 [P] [US2] Audit async context errors and exception handling in `backend/src/services/ai_agent.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_ai_agent.py`
-- [ ] T036 [P] [US2] Audit resource cleanup and error handling in `backend/src/services/signal_chat.py`, `backend/src/services/signal_bridge.py`, `backend/src/services/signal_delivery.py` — fix confirmed runtime errors with regression tests
-- [ ] T037 [P] [US2] Audit exception handling in `backend/src/services/cleanup_service.py`, `backend/src/services/cache.py`, `backend/src/services/model_fetcher.py`, `backend/src/services/mcp_store.py`, `backend/src/services/settings_store.py`, `backend/src/services/websocket.py` — fix confirmed runtime errors with regression tests
-- [ ] T038 [P] [US2] Audit exception handling in copilot polling pipeline: `backend/src/services/copilot_polling/polling_loop.py`, `backend/src/services/copilot_polling/pipeline.py`, `backend/src/services/copilot_polling/recovery.py`, `backend/src/services/copilot_polling/completion.py`, `backend/src/services/copilot_polling/state.py`, `backend/src/services/copilot_polling/agent_output.py`, `backend/src/services/copilot_polling/helpers.py` — fix confirmed runtime errors with regression tests
-- [ ] T039 [P] [US2] Audit exception handling in workflow orchestrator: `backend/src/services/workflow_orchestrator/orchestrator.py`, `backend/src/services/workflow_orchestrator/transitions.py`, `backend/src/services/workflow_orchestrator/config.py`, `backend/src/services/workflow_orchestrator/models.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_workflow_orchestrator.py`
-- [ ] T040 [P] [US2] Audit exception handling in chores subsystem: `backend/src/services/chores/service.py`, `backend/src/services/chores/scheduler.py`, `backend/src/services/chores/counter.py`, `backend/src/services/chores/chat.py`, `backend/src/services/chores/template_builder.py` — fix confirmed runtime errors with regression tests
-- [ ] T041 [P] [US2] Audit missing imports and type errors across all backend source files using findings from T007 — fix confirmed import/type errors
-- [ ] T042 [US2] Audit FastAPI lifespan management, cleanup loop, and background task error handling in `backend/src/main.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_main.py`
-- [ ] T043 [P] [US2] Audit `backend/src/utils.py` for unhandled exceptions in utility functions (e.g., `resolve_repository`) — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_utils.py`
+- [X] T032 [US2] Audit async exception handling and error propagation in all FastAPI route handlers in `backend/src/api/auth.py`, `backend/src/api/chat.py`, `backend/src/api/board.py`, `backend/src/api/workflow.py`, `backend/src/api/tasks.py`, `backend/src/api/projects.py`, `backend/src/api/settings.py`, `backend/src/api/cleanup.py`, `backend/src/api/chores.py`, `backend/src/api/mcp.py`, `backend/src/api/signal.py`, `backend/src/api/webhooks.py` — fix unhandled exceptions with regression tests
+- [X] T033 [US2] Audit SQLite connection and transaction management for resource leaks in `backend/src/services/database.py` and all callers of `get_db()` — fix confirmed leaks with regression tests in `backend/tests/unit/test_database.py`
+- [X] T034 [US2] Audit null/None reference patterns and optional field access in `backend/src/services/github_projects/service.py` — fix confirmed null reference errors with regression tests in `backend/tests/unit/test_github_projects.py`
+- [X] T035 [P] [US2] Audit async context errors and exception handling in `backend/src/services/ai_agent.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_ai_agent.py`
+- [X] T036 [P] [US2] Audit resource cleanup and error handling in `backend/src/services/signal_chat.py`, `backend/src/services/signal_bridge.py`, `backend/src/services/signal_delivery.py` — fix confirmed runtime errors with regression tests
+- [X] T037 [P] [US2] Audit exception handling in `backend/src/services/cleanup_service.py`, `backend/src/services/cache.py`, `backend/src/services/model_fetcher.py`, `backend/src/services/mcp_store.py`, `backend/src/services/settings_store.py`, `backend/src/services/websocket.py` — fix confirmed runtime errors with regression tests
+- [X] T038 [P] [US2] Audit exception handling in copilot polling pipeline: `backend/src/services/copilot_polling/polling_loop.py`, `backend/src/services/copilot_polling/pipeline.py`, `backend/src/services/copilot_polling/recovery.py`, `backend/src/services/copilot_polling/completion.py`, `backend/src/services/copilot_polling/state.py`, `backend/src/services/copilot_polling/agent_output.py`, `backend/src/services/copilot_polling/helpers.py` — fix confirmed runtime errors with regression tests
+- [X] T039 [P] [US2] Audit exception handling in workflow orchestrator: `backend/src/services/workflow_orchestrator/orchestrator.py`, `backend/src/services/workflow_orchestrator/transitions.py`, `backend/src/services/workflow_orchestrator/config.py`, `backend/src/services/workflow_orchestrator/models.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_workflow_orchestrator.py`
+- [X] T040 [P] [US2] Audit exception handling in chores subsystem: `backend/src/services/chores/service.py`, `backend/src/services/chores/scheduler.py`, `backend/src/services/chores/counter.py`, `backend/src/services/chores/chat.py`, `backend/src/services/chores/template_builder.py` — fix confirmed runtime errors with regression tests
+- [X] T041 [P] [US2] Audit missing imports and type errors across all backend source files using findings from T007 — fix confirmed import/type errors
+- [X] T042 [US2] Audit FastAPI lifespan management, cleanup loop, and background task error handling in `backend/src/main.py` — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_main.py`
+- [X] T043 [P] [US2] Audit `backend/src/utils.py` for unhandled exceptions in utility functions (e.g., `resolve_repository`) — fix confirmed runtime errors with regression tests in `backend/tests/unit/test_utils.py`
 
 ### Frontend Runtime Error Audit
 

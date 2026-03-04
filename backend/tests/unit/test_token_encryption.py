@@ -80,3 +80,19 @@ class TestTokenEncryptionAtRest:
         token = "gho_mytoken"
         assert svc.encrypt(token) == token
         assert svc.decrypt(token) == token
+
+    async def test_decrypt_invalid_utf8_raises_value_error(self):
+        """Decrypting ciphertext that yields invalid UTF-8 bytes must raise
+        ValueError instead of an unhandled UnicodeDecodeError."""
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key()
+        svc = EncryptionService(key.decode())
+
+        # Manufacture a valid Fernet token whose plaintext is invalid UTF-8
+        raw_fernet = Fernet(key)
+        bad_bytes = b"\xff\xfe"  # invalid UTF-8 sequence
+        ciphertext = raw_fernet.encrypt(bad_bytes).decode()
+
+        with pytest.raises(ValueError, match="corrupted data"):
+            svc.decrypt(ciphertext)
