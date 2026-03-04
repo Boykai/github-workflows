@@ -194,6 +194,11 @@ async def client(
 
     app = create_app()
 
+    # Set app.state for dependency injection (dependencies.py reads from app.state)
+    app.state.db = mock_db
+    app.state.github_service = mock_github_service
+    app.state.connection_manager = mock_websocket_manager
+
     # FastAPI dependency overrides
     app.dependency_overrides[get_session_dep] = lambda: mock_session
     app.dependency_overrides[get_github_service] = lambda: mock_github_service

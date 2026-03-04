@@ -11,7 +11,6 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any
 
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
