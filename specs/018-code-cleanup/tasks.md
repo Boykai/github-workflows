@@ -24,9 +24,9 @@
 
 **Purpose**: Verify baseline state before making any changes — all CI checks must pass on the current branch.
 
-- [ ] T001 Verify backend CI baseline: run `ruff check src tests && ruff format --check src tests` in `backend/`
-- [ ] T002 [P] Verify backend tests baseline: run `python -m pytest` per-file for `backend/tests/unit/` (file-by-file for stability)
-- [ ] T003 [P] Verify frontend CI baseline: run `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
+- [x] T001 Verify backend CI baseline: run `ruff check src tests && ruff format --check src tests` in `backend/`
+- [x] T002 [P] Verify backend tests baseline: run `python -m pytest` per-file for `backend/tests/unit/` (file-by-file for stability)
+- [x] T003 [P] Verify frontend CI baseline: run `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
 
 ---
 
@@ -48,14 +48,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Remove `python-jose[cryptography]>=3.3.0` from dependencies list in `backend/pyproject.toml`
-- [ ] T005 [P] [US1] Remove `agent-framework-core>=1.0.0a1` from dependencies list in `backend/pyproject.toml`
-- [ ] T006 [US1] Verify backend installs cleanly after dependency removal: run `pip install -e ".[dev]"` in `backend/`
-- [ ] T007 [US1] Run backend linting after dependency removal: `ruff check src tests && ruff format --check src tests` in `backend/`
-- [ ] T008 [US1] Run backend tests after dependency removal: `python -m pytest tests/unit/ -q` per-file in `backend/`
-- [ ] T009 [P] [US1] Remove `socket.io-client` from dependencies in `frontend/package.json` via `npm uninstall socket.io-client`
-- [ ] T010 [P] [US1] Remove `jsdom` from devDependencies in `frontend/package.json` via `npm uninstall jsdom`
-- [ ] T011 [US1] Verify frontend builds and tests pass after dependency removal: `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
+- [x] T004 [P] [US1] Remove `python-jose[cryptography]>=3.3.0` from dependencies list in `backend/pyproject.toml`
+- [x] T005 [P] [US1] Remove `agent-framework-core>=1.0.0a1` from dependencies list in `backend/pyproject.toml`
+- [x] T006 [US1] Verify backend installs cleanly after dependency removal: run `pip install -e ".[dev]"` in `backend/`
+- [x] T007 [US1] Run backend linting after dependency removal: `ruff check src tests && ruff format --check src tests` in `backend/`
+- [x] T008 [US1] Run backend tests after dependency removal: `python -m pytest tests/unit/ -q` per-file in `backend/`
+- [x] T009 [P] [US1] Remove `socket.io-client` from dependencies in `frontend/package.json` via `npm uninstall socket.io-client`
+- [x] T010 [P] [US1] Remove `jsdom` from devDependencies in `frontend/package.json` via `npm uninstall jsdom`
+- [x] T011 [US1] Verify frontend builds and tests pass after dependency removal: `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
 
 **Checkpoint**: All unused dependencies removed. Backend and frontend CI checks pass. US1 is complete and independently verified.
 
@@ -69,9 +69,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Search entire codebase for `if old_format:` and `if legacy:` patterns and confirm zero actionable results, documenting findings
-- [ ] T013 [P] [US2] Search for deprecated adapter functions, wrapper modules, and migration-period aliases across `backend/src/` and `frontend/src/` and confirm none exist
-- [ ] T014 [US2] Verify retained legacy token fallback test passes: `python -m pytest backend/tests/unit/test_token_encryption.py -q`
+- [x] T012 [P] [US2] Search entire codebase for `if old_format:` and `if legacy:` patterns and confirm zero actionable results, documenting findings
+- [x] T013 [P] [US2] Search for deprecated adapter functions, wrapper modules, and migration-period aliases across `backend/src/` and `frontend/src/` and confirm none exist
+- [x] T014 [US2] Verify retained legacy token fallback test passes: `python -m pytest backend/tests/unit/test_token_encryption.py -q`
 
 **Checkpoint**: No backwards-compatibility shims require removal. The retained legacy token fallback is documented and tested. US2 is complete.
 
@@ -85,14 +85,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add `make_mock_provider()` factory function to `backend/tests/helpers/mocks.py` returning a configured `MockCompletionProvider` instance matching the pattern in `backend/tests/unit/test_ai_agent.py`
-- [ ] T016 [US3] Replace 7 inline `mock_provider` fixture definitions in `backend/tests/unit/test_ai_agent.py` with imports from `backend/tests/helpers/mocks.py`
-- [ ] T017 [US3] Verify `test_ai_agent.py` tests pass after consolidation: `python -m pytest backend/tests/unit/test_ai_agent.py -q`
-- [ ] T018 [US3] Add `make_mock_ai_service()` factory function to `backend/tests/helpers/mocks.py` returning a configured `AsyncMock` of `AIAgentService` matching the pattern in `backend/tests/unit/test_workflow_orchestrator.py`
-- [ ] T019 [US3] Replace 4 inline `mock_ai_service` fixture definitions in `backend/tests/unit/test_workflow_orchestrator.py` with imports from `backend/tests/helpers/mocks.py`
-- [ ] T020 [US3] Replace 7 inline `mock_github_service` fixture definitions in `backend/tests/unit/test_workflow_orchestrator.py` with the existing `make_mock_github_service()` from `backend/tests/helpers/mocks.py`
-- [ ] T021 [US3] Verify `test_workflow_orchestrator.py` tests pass after consolidation: `python -m pytest backend/tests/unit/test_workflow_orchestrator.py -q`
-- [ ] T022 [US3] Run linting on updated test files: `ruff check tests && ruff format --check tests` in `backend/`
+- [x] T015 [US3] Add `make_mock_provider()` factory function to `backend/tests/helpers/mocks.py` returning a configured `MockCompletionProvider` instance matching the pattern in `backend/tests/unit/test_ai_agent.py`
+- [x] T016 [US3] Replace 7 inline `mock_provider` fixture definitions in `backend/tests/unit/test_ai_agent.py` with imports from `backend/tests/helpers/mocks.py`
+- [x] T017 [US3] Verify `test_ai_agent.py` tests pass after consolidation: `python -m pytest backend/tests/unit/test_ai_agent.py -q`
+- [x] T018 [US3] Add `make_mock_ai_service()` factory function to `backend/tests/helpers/mocks.py` returning a configured `AsyncMock` of `AIAgentService` matching the pattern in `backend/tests/unit/test_workflow_orchestrator.py`
+- [x] T019 [US3] Replace 4 inline `mock_ai_service` fixture definitions in `backend/tests/unit/test_workflow_orchestrator.py` with imports from `backend/tests/helpers/mocks.py`
+- [x] T020 [US3] Replace 7 inline `mock_github_service` fixture definitions in `backend/tests/unit/test_workflow_orchestrator.py` with the existing `make_mock_github_service()` from `backend/tests/helpers/mocks.py`
+- [x] T021 [US3] Verify `test_workflow_orchestrator.py` tests pass after consolidation: `python -m pytest backend/tests/unit/test_workflow_orchestrator.py -q`
+- [x] T022 [US3] Run linting on updated test files: `ruff check tests && ruff format --check tests` in `backend/`
 
 **Checkpoint**: All duplicated test fixtures consolidated into shared helpers. All affected tests pass with identical behavior. US3 is complete.
 
@@ -106,9 +106,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [P] [US4] Search for orphaned test artifacts (`.db`, `.sqlite`, `MagicMock` files) in repository root and `backend/` root and confirm none exist
-- [ ] T024 [P] [US4] Cross-reference all test files in `backend/tests/unit/` against modules in `backend/src/` to confirm no tests reference deleted modules
-- [ ] T025 [US4] Run full backend test suite to confirm all tests pass: `python -m pytest tests/unit/ -q` per-file in `backend/`
+- [x] T023 [P] [US4] Search for orphaned test artifacts (`.db`, `.sqlite`, `MagicMock` files) in repository root and `backend/` root and confirm none exist
+- [x] T024 [P] [US4] Cross-reference all test files in `backend/tests/unit/` against modules in `backend/src/` to confirm no tests reference deleted modules
+- [x] T025 [US4] Run full backend test suite to confirm all tests pass: `python -m pytest tests/unit/ -q` per-file in `backend/`
 
 **Checkpoint**: No stale tests require removal. Test suite is current and healthy. US4 is complete.
 
@@ -122,11 +122,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T026 [P] [US5] Audit all `TODO`, `FIXME`, and `HACK` comments across `backend/src/` and `frontend/src/` and confirm each references genuinely open work (not completed items)
-- [ ] T027 [P] [US5] Verify no orphaned migration files exist: confirm all migrations in `backend/src/migrations/` (001–010) are referenced by the migration runner in `backend/src/services/database.py`
-- [ ] T028 [P] [US5] Verify no orphaned Docker Compose services or environment variables exist by checking `docker-compose.yml` and `.env.example` against active source references
-- [ ] T029 [US5] Run final backend CI verification: `ruff check src tests && ruff format --check src tests && pyright src` in `backend/`
-- [ ] T030 [US5] Run final frontend CI verification: `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
+- [x] T026 [P] [US5] Audit all `TODO`, `FIXME`, and `HACK` comments across `backend/src/` and `frontend/src/` and confirm each references genuinely open work (not completed items)
+- [x] T027 [P] [US5] Verify no orphaned migration files exist: confirm all migrations in `backend/src/migrations/` (001–010) are referenced by the migration runner in `backend/src/services/database.py`
+- [x] T028 [P] [US5] Verify no orphaned Docker Compose services or environment variables exist by checking `docker-compose.yml` and `.env.example` against active source references
+- [x] T029 [US5] Run final backend CI verification: `ruff check src tests && ruff format --check src tests && pyright src` in `backend/`
+- [x] T030 [US5] Run final frontend CI verification: `npx tsc --noEmit && npx eslint . && npx vitest run && npx vite build` in `frontend/`
 
 **Checkpoint**: No additional hygiene items found. All CI checks pass. US5 is complete.
 
@@ -136,9 +136,9 @@
 
 **Purpose**: Final verification and PR deliverables
 
-- [ ] T031 Run full backend test suite (all 47+ files) to confirm zero regressions across all changes
-- [ ] T032 [P] Run full frontend test suite and production build to confirm zero regressions
-- [ ] T033 Create PR description with categorized summary of every change, organized by the 5 cleanup categories, with brief explanations for each removal per spec.md deliverables
+- [x] T031 Run full backend test suite (all 47+ files) to confirm zero regressions across all changes
+- [x] T032 [P] Run full frontend test suite and production build to confirm zero regressions
+- [x] T033 Create PR description with categorized summary of every change, organized by the 5 cleanup categories, with brief explanations for each removal per spec.md deliverables
 
 ---
 
