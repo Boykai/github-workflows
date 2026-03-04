@@ -53,7 +53,7 @@
 ### Implementation for User Story 1
 
 - [ ] T007 [US1] Update --background value from `0 0% 100%` to `0 70% 50%` in the :root block of frontend/src/index.css
-- [ ] T008 [US1] Verify the body element in frontend/src/index.css still applies the bg-background class ensuring the new red value cascades globally
+- [ ] T008 [US1] Verify the body element styling in frontend/src/index.css applies bg-background and text-foreground classes (via @apply or @layer base) ensuring the updated --background value cascades globally
 - [ ] T009 [US1] Run frontend dev server (npm run dev in frontend/) and visually verify red background appears on all pages and routes in light mode
 
 **Checkpoint**: Light mode displays red background (#D32F2F) on all pages. Core requirement of the feature is delivered.
