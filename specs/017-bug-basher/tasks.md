@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/017-bug-basher/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories)
 
-**Tests**: Regression tests are MANDATORY per FR-003 — each bug fix MUST include at least one regression test that would have detected the original bug.
+**Tests**: Regression tests are MANDATORY per FR-003 (see `spec.md` Functional Requirements) — each bug fix MUST include at least one regression test that would have detected the original bug.
 
 **Organization**: Tasks are grouped by user story (bug category) to enable independent implementation and testing. Each phase audits the full codebase for one bug category in priority order: Security → Runtime → Logic → Test Quality → Code Quality → Summary Report.
 
@@ -170,7 +170,7 @@
 
 ## Phase 6: User Story 4 — Test Gap and Quality Assessment (Priority: P2)
 
-**Goal**: Audit all test files for untested code paths, tests passing for wrong reasons, mock leaks (e.g., `MagicMock` objects leaking into production paths like database file paths), assertions that never fail, and missing edge case coverage. Fix confirmed test quality issues. Flag ambiguous test concerns.
+**Goal**: Audit all test files for untested code paths, tests passing for wrong reasons, mock leaks (e.g., backend: `MagicMock` objects leaking into production paths like database file paths; frontend: vi.fn() mocks not properly scoped), assertions that never fail, and missing edge case coverage. Fix confirmed test quality issues. Flag ambiguous test concerns.
 
 **Independent Test**: Run `cd backend && python -m pytest tests/ -q` and `cd frontend && npx vitest run` — all tests pass. Deliberately breaking code under test causes corrected tests to fail.
 
