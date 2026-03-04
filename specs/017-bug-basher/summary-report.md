@@ -45,7 +45,7 @@
 
 ## Verification
 
-- **Backend tests**: 1284 passed (16 new regression tests added), 0 failed
+- **Backend tests**: 1340 passed (16 new regression tests added), 0 failed
 - **Backend linting**: `ruff check` — all checks passed, `ruff format` — all files formatted
 - **Frontend tests**: 300 passed, 0 failed
 - **Frontend linting**: `eslint` — clean, `tsc --noEmit` — clean
