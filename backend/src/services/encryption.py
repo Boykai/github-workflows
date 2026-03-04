@@ -82,6 +82,9 @@ class EncryptionService:
             # Could be a key rotation scenario — treat as expired/invalid
             logger.warning("Failed to decrypt token (key change?) — treating as invalid")
             raise ValueError("Unable to decrypt token — possible key rotation") from None
+        except UnicodeDecodeError:
+            logger.warning("Decrypted token contains invalid UTF-8 — treating as corrupted")
+            raise ValueError("Unable to decode decrypted token — corrupted data") from None
 
 
 # ------------------------------------------------------------------

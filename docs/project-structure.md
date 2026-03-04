@@ -41,9 +41,9 @@ github-workflows/
 │   │   │   ├── auth.py           #   OAuth flow, sessions, dev-login
 │   │   │   ├── board.py          #   Project board (Kanban columns + items)
 │   │   │   ├── chat.py           #   Chat messages, proposals, #agent command
+│   │   │   ├── chores.py        #   Chore CRUD, triggering, chat, evaluation
 │   │   │   ├── cleanup.py        #   Stale resource cleanup
 │   │   │   ├── health.py         #   Health check endpoint
-│   │   │   ├── housekeeping.py   #   Housekeeping templates and triggers
 │   │   │   ├── mcp.py            #   MCP configuration endpoints
 │   │   │   ├── projects.py       #   Project selection, tasks, WebSocket, SSE
 │   │   │   ├── settings.py       #   User, global, project settings
@@ -53,14 +53,14 @@ github-workflows/
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–009, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (001–010, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
 │   │   │   ├── board.py          #   Board columns, items, custom fields
 │   │   │   ├── chat.py           #   ChatMessage, SenderType, ActionType
+│   │   │   ├── chores.py         #   Chore models
 │   │   │   ├── cleanup.py        #   Cleanup models
-│   │   │   ├── housekeeping.py   #   Housekeeping models
 │   │   │   ├── mcp.py            #   MCP configuration models
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
@@ -89,11 +89,12 @@ github-workflows/
 │   │       │   ├── config.py     #   Async config load/persist/defaults/dedup
 │   │       │   ├── transitions.py  # Status transitions, branch tracking
 │   │       │   └── orchestrator.py  # WorkflowOrchestrator class
-│   │       ├── housekeeping/
-│   │       │   ├── seed.py       #   Seed templates
-│   │       │   ├── scheduler.py  #   Schedule management
+│   │       ├── chores/
+│   │       │   ├── chat.py       #   Chore chat flow
 │   │       │   ├── counter.py    #   Counter tracking
-│   │       │   └── service.py    #   HousekeepingService
+│   │       │   ├── scheduler.py  #   Schedule management
+│   │       │   ├── service.py    #   ChoresService
+│   │       │   └── template_builder.py  # Template generation
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
@@ -114,7 +115,7 @@ github-workflows/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 42+ unit test files
+│       ├── unit/                 # 47 unit test files
 │       ├── integration/          # Integration tests
 │       └── test_api_e2e.py       # API end-to-end tests
 │
@@ -142,7 +143,8 @@ github-workflows/
 │   │   │   │                     # TaskPreview, StatusChangePreview,
 │   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete
 │   │   │   ├── common/           # ErrorBoundary
-│   │   │   ├── housekeeping/     # Housekeeping components
+│   │   │   ├── chores/           # ChoresPanel, AddChoreModal, ChoreCard,
+│   │   │   │                     # ChoreScheduleConfig, ChoreChatFlow
 │   │   │   ├── settings/         # AI, Display, Workflow, Notification preferences,
 │   │   │   │                     # ProjectSettings, GlobalSettings, SignalConnection,
 │   │   │   │                     # McpSettings, AdvancedSettings
@@ -158,9 +160,4 @@ github-workflows/
 │   └── setup-hooks.sh            # Install git hooks
 │
 └── specs/                        # Feature specifications (Spec Kit output)
-    ├── 001-custom-agent-creation/
-    ├── 001-codebase-cleanup-refactor/
-    ├── 007-codebase-cleanup-refactor/
-    ├── 008-test-coverage-bug-fixes/
-    └── ...
 ```

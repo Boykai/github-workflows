@@ -33,7 +33,7 @@ pytest tests/ -k "test_pipeline_advancement" -v
 backend/tests/
 ├── conftest.py              # Shared fixtures (db, sessions, mocks)
 ├── helpers/                 # Test helper utilities
-├── unit/                    # 42+ unit test files
+├── unit/                    # 47 unit test files
 │   ├── test_admin_authorization.py
 │   ├── test_agent_creator.py
 │   ├── test_agent_tracking.py
@@ -49,7 +49,12 @@ backend/tests/
 │   ├── test_auth_security.py
 │   ├── test_board.py
 │   ├── test_cache.py
+│   ├── test_chores_api.py
+│   ├── test_chores_counter.py
+│   ├── test_chores_scheduler.py
+│   ├── test_chores_service.py
 │   ├── test_cleanup_service.py
+│   ├── test_completion_false_positive.py
 │   ├── test_completion_providers.py
 │   ├── test_config.py
 │   ├── test_copilot_polling.py
@@ -58,15 +63,24 @@ backend/tests/
 │   ├── test_exceptions.py
 │   ├── test_github_auth.py
 │   ├── test_github_projects.py
-│   ├── test_housekeeping_service.py
+│   ├── test_issue_creation_retry.py
+│   ├── test_logging_utils.py
+│   ├── test_main.py
+│   ├── test_mcp_store.py
+│   ├── test_middleware.py
+│   ├── test_model_fetcher.py
 │   ├── test_models.py
+│   ├── test_module_boundaries.py
+│   ├── test_oauth_state.py
+│   ├── test_prompts.py
+│   ├── test_recommendation_models.py
 │   ├── test_session_store.py
 │   ├── test_settings_store.py
+│   ├── test_token_encryption.py
 │   ├── test_utils.py
 │   ├── test_webhooks.py
 │   ├── test_websocket.py
-│   ├── test_workflow_orchestrator.py
-│   └── ...
+│   └── test_workflow_orchestrator.py
 ├── integration/             # Integration tests
 └── test_api_e2e.py          # API end-to-end tests
 ```
@@ -96,6 +110,7 @@ npm run test:coverage
 ```
 
 Test files are co-located with components:
+- `components/auth/LoginButton.test.tsx`
 - `components/board/AgentSaveBar.test.tsx`
 - `components/board/BoardColumn.test.tsx`
 - `components/board/IssueCard.test.tsx`
@@ -105,10 +120,16 @@ Test files are co-located with components:
 - `components/chat/MessageBubble.test.tsx`
 - `components/chat/StatusChangePreview.test.tsx`
 - `components/chat/TaskPreview.test.tsx`
+- `components/chores/__tests__/AddChoreModal.test.tsx`
+- `components/chores/__tests__/ChoreScheduleConfig.test.tsx`
+- `components/chores/__tests__/ChoresPanel.test.tsx`
+- `components/common/ErrorBoundary.test.tsx`
 - `components/settings/DynamicDropdown.test.tsx`
 - `components/settings/SettingsSection.test.tsx`
-- `components/common/ErrorBoundary.test.tsx`
 - `components/ThemeProvider.test.tsx`
+- `components/ui/button.test.tsx`
+- `components/ui/card.test.tsx`
+- `components/ui/input.test.tsx`
 - `hooks/useAuth.test.tsx`
 - `hooks/useBoardRefresh.test.tsx`
 - `hooks/useChat.test.tsx`
@@ -118,6 +139,9 @@ Test files are co-located with components:
 - `hooks/useRealTimeSync.test.tsx`
 - `hooks/useSettingsForm.test.tsx`
 - `hooks/useWorkflow.test.tsx`
+- `lib/commands/registry.test.ts`
+- `lib/commands/handlers/help.test.ts`
+- `lib/commands/handlers/settings.test.ts`
 
 ### E2E Tests (Playwright)
 

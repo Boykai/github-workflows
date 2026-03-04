@@ -71,14 +71,14 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage` |
 | `components/settings/` | `AIPreferences`, `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, `ProjectSettings`, `GlobalSettings`, `SignalConnection`, `McpSettings` |
 | `components/common/` | `ErrorBoundary` |
-| `hooks/` | `useAuth`, `useChat`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useHousekeeping`, `useMcpSettings` |
+| `hooks/` | `useAuth`, `useChat`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings` |
 | `pages/` | `ProjectBoardPage`, `SettingsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
 
 ## Backend Architecture
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
-- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (9 numbered SQL migrations)
+- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (10 numbered SQL migrations)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
 - **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware
 - **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`
@@ -87,14 +87,14 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 | Directory | Purpose |
 |-----------|---------|
-| `api/` | Route handlers: `auth`, `board`, `chat`, `cleanup`, `health`, `housekeeping`, `mcp`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
-| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `board`, `chat`, `cleanup`, `housekeeping`, `mcp`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
+| `api/` | Route handlers: `auth`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
+| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
 | `services/` | Business logic (see below) |
 | `services/github_projects/` | `GitHubProjectsService` + `graphql.py` — shared `httpx.AsyncClient` for GitHub API |
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
-| `services/housekeeping/` | Seed templates, scheduler, counter, service |
-| `migrations/` | SQL migration files `001` through `009` |
+| `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
+| `migrations/` | SQL migration files `001` through `010` |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |
 | `config.py` | `pydantic-settings` configuration from `.env` |
@@ -117,7 +117,7 @@ Set via `AI_PROVIDER` env var (`copilot` or `azure_openai`).
 
 1. Initialize SQLite database + run pending migrations
 2. Seed `global_settings` row
-3. Initialize housekeeping service seed templates
+3. Initialize chores service seed templates
 4. Register singleton services on `app.state`
 5. Start periodic session cleanup loop (exponential backoff on failures)
 6. Start Signal WebSocket listener for inbound messages

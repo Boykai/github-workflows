@@ -166,3 +166,14 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 502
         body = resp.json()
         assert "CERTIFICATE_VERIFY_FAILED" not in str(body)
+
+    async def test_not_found_error_does_not_include_project_id(self, client, mock_github_service):
+        """NotFoundError from get_board_data must not echo the project_id back
+        to the client — user-controlled input should never appear in error messages."""
+        mock_github_service.get_board_data.side_effect = ValueError("no such project")
+        resp = await client.get(
+            "/api/v1/board/projects/ATTACKER_CONTROLLED_ID", params={"refresh": True}
+        )
+        assert resp.status_code == 404
+        body = resp.json()
+        assert "ATTACKER_CONTROLLED_ID" not in str(body)

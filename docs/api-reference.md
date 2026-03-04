@@ -61,6 +61,26 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | POST | `/tasks` | Create a task (GitHub Issue + project attachment) |
 | PATCH | `/tasks/{id}/status` | Update task status |
 
+## Chores
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/chores/{project_id}` | List all chores for a project |
+| POST | `/chores/{project_id}` | Create a new chore (generates template, commits via PR, creates tracking issue) |
+| PATCH | `/chores/{project_id}/{chore_id}` | Update a chore (schedule, status) |
+| DELETE | `/chores/{project_id}/{chore_id}` | Remove a chore, closing any open associated issue |
+| POST | `/chores/{project_id}/{chore_id}/trigger` | Manually trigger a chore — creates a GitHub issue and runs agent pipeline |
+| POST | `/chores/{project_id}/chat` | Interactive chat for sparse-input template refinement |
+| POST | `/chores/evaluate-triggers` | Evaluate all active chores for trigger conditions |
+
+## Cleanup
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/cleanup/preflight` | Preflight check: compute branch/PR deletion lists without mutations |
+| POST | `/cleanup/execute` | Execute cleanup: delete branches and close PRs (main branch protected) |
+| GET | `/cleanup/history` | Retrieve audit trail of past cleanup operations |
+
 ## Settings
 
 | Method | Path | Description |

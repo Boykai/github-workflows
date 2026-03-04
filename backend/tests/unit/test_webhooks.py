@@ -595,3 +595,44 @@ class TestIssueMatchingByNumber:
         assert task.issue_number == 42
         # The old buggy comparison would have FAILED
         assert str(42) not in str(task.github_item_id)
+
+
+# ── Regression: webhook response must not echo user-controlled input ────
+
+
+class TestWebhookResponseSanitization:
+    """Bug-bash regression: user-controlled header values must not be echoed
+    back in webhook API responses."""
+
+    async def test_unhandled_event_does_not_echo_event_type(self, client):
+        """The 'ignored' response for unhandled events must not reflect the
+        X-GitHub-Event header value, as it is user-controlled input."""
+        from src.api.webhooks import _processed_delivery_ids
+
+        with patch("src.api.webhooks.get_settings") as mock_settings:
+            mock_settings.return_value = MagicMock(
+                github_webhook_secret=None,
+                debug=True,
+            )
+            resp = await client.post(
+                "/api/v1/webhooks/github",
+                json={"action": "test"},
+                headers={
+                    "X-GitHub-Event": "<script>alert(1)</script>",
+                    "X-GitHub-Delivery": "unique-delivery-sanitize-test",
+                },
+            )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "<script>" not in body.get("message", "")
+        # Verify the response does not echo user-controlled header values in any field
+        assert "event" not in body, (
+            "Response must not include 'event' field that echoes user-controlled header"
+        )
+        for value in body.values():
+            assert "<script>" not in str(value), (
+                "No user-controlled input should appear anywhere in response"
+            )
+        # Cleanup delivery ID to avoid side-effects on other tests
+        _processed_delivery_ids.discard("unique-delivery-sanitize-test")

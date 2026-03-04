@@ -22,7 +22,7 @@ os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-lon
 os.environ.setdefault("DATABASE_PATH", ":memory:")
 
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiosqlite
 import pytest
@@ -133,8 +133,15 @@ def mock_settings() -> Settings:
 
 @pytest.fixture
 def mock_github_service() -> AsyncMock:
-    """AsyncMock replacing the global ``github_projects_service`` instance."""
-    return AsyncMock(name="GitHubProjectsService")
+    """AsyncMock replacing the global ``github_projects_service`` instance.
+
+    Synchronous methods like ``get_last_rate_limit`` are explicitly set as
+    ``MagicMock`` so they don't return unawaited coroutines when called
+    without ``await`` in production code.
+    """
+    mock = AsyncMock(name="GitHubProjectsService")
+    mock.get_last_rate_limit = MagicMock(return_value=None)
+    return mock
 
 
 @pytest.fixture

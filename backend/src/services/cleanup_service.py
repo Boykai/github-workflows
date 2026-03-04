@@ -593,11 +593,12 @@ async def execute_cleanup(
                 results.append(item)
                 errors.append(item)
         except Exception as e:
+            logger.error("Failed to delete branch %s: %s", branch_name, e, exc_info=True)
             item = CleanupItemResult(
                 item_type="branch",
                 identifier=branch_name,
                 action="failed",
-                error=str(e),
+                error="Deletion failed due to an unexpected error",
             )
             results.append(item)
             errors.append(item)
@@ -634,16 +635,17 @@ async def execute_cleanup(
                     item_type="pr",
                     identifier=str(pr_number),
                     action="failed",
-                    error=f"HTTP {response.status_code}: {response.text[:200]}",
+                    error=f"HTTP {response.status_code}",
                 )
                 results.append(item)
                 errors.append(item)
         except Exception as e:
+            logger.error("Failed to close PR #%s: %s", pr_number, e, exc_info=True)
             item = CleanupItemResult(
                 item_type="pr",
                 identifier=str(pr_number),
                 action="failed",
-                error=str(e),
+                error="Failed to close PR due to an unexpected error",
             )
             results.append(item)
             errors.append(item)
@@ -705,8 +707,8 @@ async def execute_cleanup(
     status = "completed" if not errors else "completed_with_errors"
     details_json = json.dumps({"results": [r.model_dump() for r in results]})
 
-    branches_failed = len([e for e in errors if e.item_type == "branch"])
-    prs_failed = len([e for e in errors if e.item_type == "pr"])
+    branches_preserved = len([e for e in errors if e.item_type == "branch"])
+    prs_preserved = len([e for e in errors if e.item_type == "pr"])
     # issues_failed tracked in errors list; no separate audit column yet
     _ = len([e for e in errors if e.item_type == "issue"])
 
@@ -721,9 +723,9 @@ async def execute_cleanup(
             completed_at,
             status,
             branches_deleted,
-            branches_failed,
+            branches_preserved,
             prs_closed,
-            prs_failed,
+            prs_preserved,
             len(errors),
             details_json,
             operation_id,
@@ -734,9 +736,9 @@ async def execute_cleanup(
     return CleanupExecuteResponse(
         operation_id=operation_id,
         branches_deleted=branches_deleted,
-        branches_preserved=branches_failed,
+        branches_preserved=branches_preserved,
         prs_closed=prs_closed,
-        prs_preserved=prs_failed,
+        prs_preserved=prs_preserved,
         issues_closed=issues_closed,
         errors=errors,
         results=results,
