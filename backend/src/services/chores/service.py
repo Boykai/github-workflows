@@ -305,12 +305,17 @@ class ChoresService:
         # subsequent pipeline updates can mark agents as active/done.
         try:
             from src.services.agent_tracking import append_tracking_to_body
-            from src.services.workflow_orchestrator import get_workflow_config
-            from src.services.workflow_orchestrator.orchestrator import get_status_order
+            from src.services.workflow_orchestrator import (
+                get_status_order,
+                get_workflow_config,
+            )
 
             config = await get_workflow_config(project_id)
-            if config and config.agent_mappings:
-                # Apply user-specific agent pipeline mappings if available
+            if config:
+                # Apply user-specific agent pipeline mappings if available.
+                # Operate on a shallow copy so we never persist user-specific
+                # overrides back to the shared canonical workflow config.
+                effective_mappings = dict(config.agent_mappings) if config.agent_mappings else {}
                 if github_user_id:
                     from src.services.workflow_orchestrator.config import (
                         load_user_agent_mappings,
@@ -318,15 +323,13 @@ class ChoresService:
 
                     user_mappings = await load_user_agent_mappings(github_user_id, project_id)
                     if user_mappings:
-                        config.agent_mappings = user_mappings
-                        from src.services.workflow_orchestrator import set_workflow_config
+                        effective_mappings = user_mappings
 
-                        await set_workflow_config(project_id, config)
-
-                status_order = get_status_order(config)
-                issue_body = append_tracking_to_body(
-                    issue_body, config.agent_mappings, status_order
-                )
+                if effective_mappings:
+                    status_order = get_status_order(config)
+                    issue_body = append_tracking_to_body(
+                        issue_body, effective_mappings, status_order
+                    )
         except Exception:
             logger.exception("Failed to append agent tracking table for chore %s", chore.name)
 

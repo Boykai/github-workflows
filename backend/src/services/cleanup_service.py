@@ -263,8 +263,11 @@ async def fetch_app_created_open_issues(
 ) -> list[dict]:
     """Fetch all open issues in the repo that carry an app-created label.
 
-    Uses the GitHub REST search endpoint to find open issues labelled with
-    any of the ``APP_CREATED_LABELS``.  Paginated to handle large result sets.
+    Uses the repository ``/issues`` listing endpoint with the ``labels`` query
+    parameter to find open issues labeled with any of the ``APP_CREATED_LABELS``.
+    Results are paginated to handle large result sets.  Since the ``/issues``
+    endpoint also returns pull requests, these are filtered out, and issues
+    are de-duplicated in case they carry multiple app-created labels.
     """
     issues: list[dict] = []
     headers = github_service._build_headers(access_token)
@@ -669,20 +672,27 @@ async def execute_cleanup(
                 )
                 issues_closed += 1
             else:
+                logger.error(
+                    "Failed to close issue %s: HTTP %s — %s",
+                    issue_number,
+                    response.status_code,
+                    response.text[:500],
+                )
                 item = CleanupItemResult(
                     item_type="issue",
                     identifier=str(issue_number),
                     action="failed",
-                    error=f"HTTP {response.status_code}: {response.text[:200]}",
+                    error=f"Failed to close issue #{issue_number} (HTTP {response.status_code})",
                 )
                 results.append(item)
                 errors.append(item)
-        except Exception as e:
+        except Exception:
+            logger.exception("Exception closing issue %s during cleanup", issue_number)
             item = CleanupItemResult(
                 item_type="issue",
                 identifier=str(issue_number),
                 action="failed",
-                error=str(e),
+                error=f"Failed to close issue #{issue_number} due to an internal error.",
             )
             results.append(item)
             errors.append(item)
