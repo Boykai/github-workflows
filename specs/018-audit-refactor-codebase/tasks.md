@@ -108,7 +108,7 @@
 ### 3A: Parameterize Hardcoded Model
 
 - [ ] T024 [US3] Parameterize `ASSIGN_COPILOT_MUTATION` in `backend/src/services/github_projects/graphql.py` to accept `$model: String!` variable instead of hardcoded `"claude-opus-4.6"`
-- [ ] T025 [US3] Update GraphQL call site in `backend/src/services/github_projects/service.py` to pass `model` variable from `AgentAssignmentConfig.model` to the parameterized mutation
+- [ ] T025 [US3] Update the `assign_copilot()` GraphQL mutation invocation in `backend/src/services/github_projects/service.py` to pass `model` variable from `AgentAssignmentConfig.model` to the parameterized mutation
 - [ ] T026 [US3] Update REST API payload in `backend/src/services/github_projects/service.py` to use `AgentAssignmentConfig.model` instead of hardcoded model string
 
 ### 3B: Document and Bound Chat State
