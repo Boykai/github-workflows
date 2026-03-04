@@ -115,7 +115,7 @@ describe('useChatHistory', () => {
       ]);
     });
 
-    it('resets isNavigating after send (FR-010)', async () => {
+    it('resets isNavigating after send (FR-010)', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('First'));
       act(() => result.current.addToHistory('Second'));
@@ -129,10 +129,6 @@ describe('useChatHistory', () => {
 
       // Send a message (resets navigation)
       act(() => result.current.addToHistory('Third'));
-      // Wait for the setTimeout in addToHistory
-      await act(async () => {
-        await new Promise((r) => setTimeout(r, 10));
-      });
       expect(result.current.isNavigating).toBe(false);
     });
   });

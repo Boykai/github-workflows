@@ -21,7 +21,7 @@
 
 **Purpose**: Create project structure and hook file with configuration constants and type definitions
 
-- [ ] T001 Create `useChatHistory` hook file with exported constants (`MAX_HISTORY_SIZE`, `STORAGE_KEY`), option and return type interfaces per contract in `frontend/src/hooks/useChatHistory.ts`
+- [x] T001 Create `useChatHistory` hook file with exported constants (`MAX_HISTORY_SIZE`, `STORAGE_KEY`), option and return type interfaces per contract in `frontend/src/hooks/useChatHistory.ts`
 
 ---
 
@@ -31,9 +31,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Implement core hook skeleton with `useState` for history array, `useRef` for navigation index and draft buffer, and `resetNavigation` function in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T003 Implement empty `handleKeyDown` function signature (returns `null` for all events initially) and expose `isNavigating` boolean state in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T004 Import `useChatHistory` hook and call it in the component — destructure `handleKeyDown` (renamed to `handleHistoryKeyDown` to avoid collision with existing handler) and `isNavigating` in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T002 Implement core hook skeleton with `useState` for history array, `useRef` for navigation index and draft buffer, and `resetNavigation` function in `frontend/src/hooks/useChatHistory.ts`
+- [x] T003 Implement empty `handleKeyDown` function signature (returns `null` for all events initially) and expose `isNavigating` boolean state in `frontend/src/hooks/useChatHistory.ts`
+- [x] T004 Import `useChatHistory` hook and call it in the component — destructure `handleKeyDown` (renamed to `handleHistoryKeyDown` to avoid collision with existing handler) and `isNavigating` in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement `addToHistory(message)` function with capacity cap (`MAX_HISTORY_SIZE`) and oldest-entry eviction in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T006 [US1] Implement ArrowUp handling in `handleKeyDown` — decrement navigation index, return history entry at new index, call `preventDefault()`, check cursor position is at start of input or input is empty (FR-002, FR-011, FR-013) in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T007 [US1] Wire hook's `handleKeyDown` (destructured as `handleHistoryKeyDown`) into existing `handleKeyDown` function — insert call after autocomplete logic and before Enter key handling, update input state when non-null value returned in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T005 [US1] Implement `addToHistory(message)` function with capacity cap (`MAX_HISTORY_SIZE`) and oldest-entry eviction in `frontend/src/hooks/useChatHistory.ts`
+- [x] T006 [US1] Implement ArrowUp handling in `handleKeyDown` — decrement navigation index, return history entry at new index, call `preventDefault()`, check cursor position is at start of input or input is empty (FR-002, FR-011, FR-013) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T007 [US1] Wire hook's `handleKeyDown` (destructured as `handleHistoryKeyDown`) into existing `handleKeyDown` function — insert call after autocomplete logic and before Enter key handling, update input state when non-null value returned in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -63,9 +63,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Implement draft buffer capture — save current input value to `draftRef` when navigation index transitions from draft position (`history.length`) to history on first ArrowUp press in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T009 [US2] Implement ArrowDown handling in `handleKeyDown` — increment navigation index, return history entry or restore draft buffer when index reaches `history.length`, call `preventDefault()`, check cursor is at end of input (FR-003, FR-011, FR-014) in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T010 [US2] Update `isNavigating` state to return `true` when navigation index is less than `history.length` (browsing history) and `false` when at draft position in `frontend/src/hooks/useChatHistory.ts`
+- [x] T008 [US2] Implement draft buffer capture — save current input value to `draftRef` when navigation index transitions from draft position (`history.length`) to history on first ArrowUp press in `frontend/src/hooks/useChatHistory.ts`
+- [x] T009 [US2] Implement ArrowDown handling in `handleKeyDown` — increment navigation index, return history entry or restore draft buffer when index reaches `history.length`, call `preventDefault()`, check cursor is at end of input (FR-003, FR-011, FR-014) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T010 [US2] Update `isNavigating` state to return `true` when navigation index is less than `history.length` (browsing history) and `false` when at draft position in `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — full Up/Down Arrow navigation with draft preservation
 
@@ -79,9 +79,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Implement localStorage loading on hook mount — read from `STORAGE_KEY`, parse JSON, validate as string array, fallback to empty array on parse error or invalid data, wrap in try-catch for unavailable storage in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T012 [US3] Implement localStorage sync via `useEffect` — write history array to `STORAGE_KEY` on every history state change, wrap in try-catch to silently handle write failures (quota exceeded, private browsing) in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T013 [US3] Support configurable `storageKey` option from `UseChatHistoryOptions` — use `options.storageKey ?? STORAGE_KEY` for localStorage operations to enable per-room or per-user namespacing in `frontend/src/hooks/useChatHistory.ts`
+- [x] T011 [US3] Implement localStorage loading on hook mount — read from `STORAGE_KEY`, parse JSON, validate as string array, fallback to empty array on parse error or invalid data, wrap in try-catch for unavailable storage in `frontend/src/hooks/useChatHistory.ts`
+- [x] T012 [US3] Implement localStorage sync via `useEffect` — write history array to `STORAGE_KEY` on every history state change, wrap in try-catch to silently handle write failures (quota exceeded, private browsing) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T013 [US3] Support configurable `storageKey` option from `UseChatHistoryOptions` — use `options.storageKey ?? STORAGE_KEY` for localStorage operations to enable per-room or per-user namespacing in `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work — history navigation persists across page refreshes
 
@@ -95,8 +95,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T014 [US4] Destructure `addToHistory` from `useChatHistory` hook and call `addToHistory(content)` in `doSubmit` function before `onSendMessage()` call — ensures every successfully sent message (including recalled/edited ones) is appended to history in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T015 [US4] Ensure `addToHistory` resets navigation pointer to new draft position (`history.length` after append) and clears draft buffer — guarantees history immutability and clean state after send in `frontend/src/hooks/useChatHistory.ts`
+- [x] T014 [US4] Destructure `addToHistory` from `useChatHistory` hook and call `addToHistory(content)` in `doSubmit` function before `onSendMessage()` call — ensures every successfully sent message (including recalled/edited ones) is appended to history in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T015 [US4] Ensure `addToHistory` resets navigation pointer to new draft position (`history.length` after append) and clears draft buffer — guarantees history immutability and clean state after send in `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: At this point, User Stories 1–4 should all work — full send/recall/edit cycle with history immutability
 
@@ -110,7 +110,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T016 [US5] Add consecutive duplicate check in `addToHistory` — compare new message with `history[history.length - 1]` using strict string equality, skip append if identical (FR-009) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T016 [US5] Add consecutive duplicate check in `addToHistory` — compare new message with `history[history.length - 1]` using strict string equality, skip append if identical (FR-009) in `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -120,10 +120,10 @@
 
 **Purpose**: Edge case hardening, multiline input support, and final validation
 
-- [ ] T017 Ensure ArrowUp cursor position check handles multiline inputs — only activate history navigation when `selectionStart === 0` (cursor at very beginning) per FR-013 in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T018 Ensure ArrowDown cursor position check handles multiline inputs — only activate history navigation when `selectionStart === currentInput.length` (cursor at very end) per FR-014 in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T019 Validate `maxSize` option from `UseChatHistoryOptions` — use `options.maxSize ?? MAX_HISTORY_SIZE` and ensure it is applied in `addToHistory` eviction logic in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T020 Run quickstart.md manual validation — start dev server, send messages, test Up/Down Arrow navigation, test draft preservation, test page refresh persistence, test consecutive dedup per `specs/001-chat-history-nav/quickstart.md`
+- [x] T017 Ensure ArrowUp cursor position check handles multiline inputs — only activate history navigation when `selectionStart === 0` (cursor at very beginning) per FR-013 in `frontend/src/hooks/useChatHistory.ts`
+- [x] T018 Ensure ArrowDown cursor position check handles multiline inputs — only activate history navigation when `selectionStart === currentInput.length` (cursor at very end) per FR-014 in `frontend/src/hooks/useChatHistory.ts`
+- [x] T019 Validate `maxSize` option from `UseChatHistoryOptions` — use `options.maxSize ?? MAX_HISTORY_SIZE` and ensure it is applied in `addToHistory` eviction logic in `frontend/src/hooks/useChatHistory.ts`
+- [x] T020 Run quickstart.md manual validation — start dev server, send messages, test Up/Down Arrow navigation, test draft preservation, test page refresh persistence, test consecutive dedup per `specs/001-chat-history-nav/quickstart.md`
 
 ---
 

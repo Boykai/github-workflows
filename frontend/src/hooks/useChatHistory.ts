@@ -104,6 +104,10 @@ export function useChatHistory(
       setHistory((prev) => {
         // Consecutive duplicate check (FR-009)
         if (prev.length > 0 && prev[prev.length - 1] === message) {
+          // Reset navigation even if dedup skips the append (FR-010)
+          indexRef.current = prev.length;
+          draftRef.current = '';
+          setIsNavigating(false);
           return prev;
         }
         const next = [...prev, message];
@@ -111,25 +115,15 @@ export function useChatHistory(
         while (next.length > maxSize) {
           next.shift();
         }
-        return next;
-      });
-      // Reset navigation state after send (FR-010)
-      // Use a callback to get fresh history length after setHistory
-      // We schedule this in a microtask to ensure setHistory has applied
-      setTimeout(() => {
-        // indexRef will be corrected by the useEffect above,
-        // but we eagerly set it here for immediate correctness
+        // Reset navigation pointer to new draft position (FR-010)
+        indexRef.current = next.length;
         draftRef.current = '';
         setIsNavigating(false);
-      }, 0);
+        return next;
+      });
     },
     [maxSize],
   );
-
-  // Eagerly keep index at draft position after addToHistory
-  useEffect(() => {
-    indexRef.current = history.length;
-  }, [history]);
 
   const handleKeyDown = useCallback(
     (
@@ -140,7 +134,7 @@ export function useChatHistory(
 
       if (event.key === 'ArrowUp') {
         // Only activate when cursor is at start or input is empty (FR-013)
-        if (target.selectionStart !== 0 && currentInput.length > 0) {
+        if (currentInput.length > 0 && target.selectionStart !== 0) {
           return null;
         }
 
@@ -167,7 +161,7 @@ export function useChatHistory(
 
       if (event.key === 'ArrowDown') {
         // Only activate when cursor is at end of input (FR-014)
-        if (target.selectionStart !== currentInput.length && currentInput.length > 0) {
+        if (currentInput.length > 0 && target.selectionStart !== currentInput.length) {
           return null;
         }
 
