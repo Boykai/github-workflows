@@ -65,11 +65,11 @@
 - [ ] T016 [P] [US1] Audit chat API for input validation, injection risks, and error info leakage in backend/src/api/chat.py — fix and add regression tests in backend/tests/unit/test_api_chat.py
 - [ ] T017 [P] [US1] Audit chores API for input validation and auth issues in backend/src/api/chores.py — fix and add regression tests in backend/tests/unit/test_chores_api.py
 - [ ] T018 [P] [US1] Audit cleanup API for input validation and auth issues in backend/src/api/cleanup.py — fix and add regression tests in backend/tests/unit/test_cleanup_service.py
-- [ ] T019 [P] [US1] Audit health API for information disclosure in backend/src/api/health.py
+- [ ] T019 [P] [US1] Audit health API for information disclosure in backend/src/api/health.py — fix and add regression tests in backend/tests/unit/
 - [ ] T020 [P] [US1] Audit MCP API for input validation and auth issues in backend/src/api/mcp.py — fix and add regression tests in backend/tests/unit/test_api_mcp.py
 - [ ] T021 [P] [US1] Audit projects API for input validation and auth issues in backend/src/api/projects.py — fix and add regression tests in backend/tests/unit/test_api_projects.py
 - [ ] T022 [P] [US1] Audit settings API for input validation and auth issues in backend/src/api/settings.py — fix and add regression tests in backend/tests/unit/test_api_settings.py
-- [ ] T023 [P] [US1] Audit signal API for input validation and auth issues in backend/src/api/signal.py
+- [ ] T023 [P] [US1] Audit signal API for input validation and auth issues in backend/src/api/signal.py — fix and add regression tests in backend/tests/unit/
 - [ ] T024 [P] [US1] Audit tasks API for input validation and auth issues in backend/src/api/tasks.py — fix and add regression tests in backend/tests/unit/test_api_tasks.py
 - [ ] T025 [P] [US1] Audit webhooks API for verification bypass and injection risks in backend/src/api/webhooks.py — fix and add regression tests in backend/tests/unit/test_webhooks.py
 - [ ] T026 [P] [US1] Audit workflow API for input validation and auth issues in backend/src/api/workflow.py — fix and add regression tests in backend/tests/unit/test_api_workflow.py
@@ -86,17 +86,17 @@
 ### Backend Infrastructure Security Audit (US1)
 
 - [ ] T033 [US1] Audit config for exposed secrets and insecure defaults in backend/src/config.py — fix and add regression tests in backend/tests/unit/test_config.py
-- [ ] T034 [P] [US1] Audit dependencies for auth bypass vectors in backend/src/dependencies.py
+- [ ] T034 [P] [US1] Audit dependencies for auth bypass vectors in backend/src/dependencies.py — fix and add regression tests in backend/tests/unit/
 - [ ] T035 [P] [US1] Audit middleware for missing security headers in backend/src/middleware/request_id.py — fix and add regression tests in backend/tests/unit/test_middleware.py
 - [ ] T036 [P] [US1] Audit main app for CORS configuration and insecure defaults in backend/src/main.py — fix and add regression tests in backend/tests/unit/test_main.py
 - [ ] T037 [P] [US1] Audit utility functions for input validation gaps in backend/src/utils.py — fix and add regression tests in backend/tests/unit/test_utils.py
 
 ### Frontend Security Audit (US1)
 
-- [ ] T038 [US1] Audit API service layer for token leakage and insecure API calls in frontend/src/services/api.ts
+- [ ] T038 [US1] Audit API service layer for token leakage and insecure API calls in frontend/src/services/api.ts — fix and add regression tests in frontend/src/services/
 - [ ] T039 [P] [US1] Audit auth hook for insecure token storage in frontend/src/hooks/useAuth.ts — fix and add regression tests in frontend/src/hooks/useAuth.test.tsx
 - [ ] T040 [P] [US1] Audit all frontend components for XSS risks (dangerouslySetInnerHTML, unsanitized rendering) in frontend/src/components/
-- [ ] T041 [P] [US1] Audit frontend type definitions for security-relevant type gaps in frontend/src/types/index.ts
+- [ ] T041 [P] [US1] Audit frontend type definitions for security-relevant type gaps in frontend/src/types/index.ts — fix and add regression tests if security issues found
 
 ### US1 Validation
 
@@ -128,7 +128,7 @@
 - [ ] T054 [P] [US2] Audit exception handling and null safety in backend/src/api/tasks.py — fix and add regression tests in backend/tests/unit/test_api_tasks.py
 - [ ] T055 [P] [US2] Audit exception handling and null safety in backend/src/api/workflow.py — fix and add regression tests in backend/tests/unit/test_api_workflow.py
 - [ ] T056 [P] [US2] Audit exception handling and null safety in backend/src/api/webhooks.py — fix and add regression tests in backend/tests/unit/test_webhooks.py
-- [ ] T057 [P] [US2] Audit exception handling and null safety in backend/src/api/signal.py
+- [ ] T057 [P] [US2] Audit exception handling and null safety in backend/src/api/signal.py — fix and add regression tests in backend/tests/unit/
 
 ### Backend Service Runtime Audit (US2)
 
@@ -137,8 +137,8 @@
 - [ ] T060 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/recovery.py — fix and add regression tests in backend/tests/unit/test_copilot_polling.py
 - [ ] T061 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/state.py — fix and add regression tests in backend/tests/unit/test_copilot_polling.py
 - [ ] T062 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/completion.py — fix and add regression tests in backend/tests/unit/test_copilot_polling.py
-- [ ] T063 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/helpers.py
-- [ ] T064 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/agent_output.py
+- [ ] T063 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/helpers.py — fix and add regression tests in backend/tests/unit/test_copilot_polling.py
+- [ ] T064 [P] [US2] Audit resource management and async error handling in backend/src/services/copilot_polling/agent_output.py — fix and add regression tests in backend/tests/unit/test_copilot_polling.py
 - [ ] T065 [US2] Audit database connection management and resource leaks in backend/src/services/database.py — fix and add regression tests in backend/tests/unit/test_database.py
 - [ ] T066 [P] [US2] Audit session store for resource leaks and null safety in backend/src/services/session_store.py — fix and add regression tests in backend/tests/unit/test_session_store.py
 - [ ] T067 [P] [US2] Audit websocket service for connection handling and error recovery in backend/src/services/websocket.py — fix and add regression tests in backend/tests/unit/test_websocket.py
