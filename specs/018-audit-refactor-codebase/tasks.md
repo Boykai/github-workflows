@@ -25,9 +25,9 @@
 
 **Purpose**: Establish that the codebase is in a working state before any changes. Confirm existing tests pass and tooling works.
 
-- [ ] T001 Run existing backend test suite per-file to establish passing baseline in `backend/tests/unit/`
-- [ ] T002 [P] Run existing frontend test suite to establish passing baseline via `cd frontend && npx vitest run`
-- [ ] T003 [P] Run ruff linting and formatting check to establish baseline via `cd backend && ruff check src tests && ruff format --check src tests`
+- [x] T001 Run existing backend test suite per-file to establish passing baseline in `backend/tests/unit/`
+- [x] T002 [P] Run existing frontend test suite to establish passing baseline via `cd frontend && npx vitest run`
+- [x] T003 [P] Run ruff linting and formatting check to establish baseline via `cd backend && ruff check src tests && ruff format --check src tests`
 
 ---
 
@@ -49,13 +49,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Remove `agent-framework-core>=1.0.0a1` dependency and its comment from `backend/pyproject.toml`
-- [ ] T005 [US1] Bump all backend dependency version specifiers to latest stable in `backend/pyproject.toml`: fastapi>=0.135.0, uvicorn[standard]>=0.41.0, httpx>=0.28.0, pydantic>=2.12.0, pydantic-settings>=2.7.0, python-multipart>=0.0.20, pyyaml>=6.0.2, github-copilot-sdk>=0.1.29, openai>=2.24.0, azure-ai-inference>=1.0.0b9, aiosqlite>=0.22.0, tenacity>=9.1.0, websockets>=14.0
-- [ ] T006 [P] [US1] Bump `@tanstack/react-query` to `^5.90.0` in `frontend/package.json` and run `npm install` to update lockfile
-- [ ] T007 [US1] Verify no import references to `agent-framework-core` or `agent_framework_core` exist anywhere in `backend/src/`
-- [ ] T008 [US1] Verify all Copilot SDK symbols resolve: `CopilotClient`, `CopilotClientOptions`, `SessionConfig`, `MessageOptions`, `PermissionHandler`, `SessionEventType`, `CopilotClient.list_models()` in `backend/src/services/completion_providers.py` and `backend/src/services/model_fetcher.py`
-- [ ] T009 [US1] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from dependency bumps
-- [ ] T010 [P] [US1] Run frontend test suite via `cd frontend && npx vitest run` and build via `npm run build` to confirm no regressions
+- [x] T004 [US1] Remove `agent-framework-core>=1.0.0a1` dependency and its comment from `backend/pyproject.toml`
+- [x] T005 [US1] Bump all backend dependency version specifiers to latest stable in `backend/pyproject.toml`: fastapi>=0.135.0, uvicorn[standard]>=0.41.0, httpx>=0.28.0, pydantic>=2.12.0, pydantic-settings>=2.7.0, python-multipart>=0.0.20, pyyaml>=6.0.2, github-copilot-sdk>=0.1.29, openai>=2.24.0, azure-ai-inference>=1.0.0b9, aiosqlite>=0.22.0, tenacity>=9.1.0, websockets>=14.0
+- [x] T006 [P] [US1] Bump `@tanstack/react-query` to `^5.90.0` in `frontend/package.json` and run `npm install` to update lockfile
+- [x] T007 [US1] Verify no import references to `agent-framework-core` or `agent_framework_core` exist anywhere in `backend/src/`
+- [x] T008 [US1] Verify all Copilot SDK symbols resolve: `CopilotClient`, `CopilotClientOptions`, `SessionConfig`, `MessageOptions`, `PermissionHandler`, `SessionEventType`, `CopilotClient.list_models()` in `backend/src/services/completion_providers.py` and `backend/src/services/model_fetcher.py`
+- [x] T009 [US1] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from dependency bumps
+- [x] T010 [P] [US1] Run frontend test suite via `cd frontend && npx vitest run` and build via `npm run build` to confirm no regressions
 
 **Checkpoint**: All dependencies at latest stable, unused package removed, all tests pass. User Story 1 complete.
 
@@ -69,31 +69,31 @@
 
 ### 2A: CopilotClientPool Extraction
 
-- [ ] T011 [US2] Add `CopilotClientPool` class in `backend/src/services/completion_providers.py` with `BoundedDict(maxlen=50)` for `_clients`, static `token_key()` method using SHA-256 truncated to 16 chars, async `get_or_create()` method, and async `cleanup()` method — per data-model.md entity spec
-- [ ] T012 [US2] Refactor `CopilotCompletionProvider` in `backend/src/services/completion_providers.py` to remove its duplicate `_clients` dict, `_token_key()`, and `_get_or_create_client()` methods, delegating to the shared `CopilotClientPool` instance instead
-- [ ] T013 [US2] Refactor `GitHubCopilotModelFetcher` in `backend/src/services/model_fetcher.py` to import and use the shared `CopilotClientPool` from `completion_providers`, removing its duplicate `_clients` dict, `_token_key()`, and `_get_or_create_client()` methods
-- [ ] T014 [US2] Update any tests in `backend/tests/unit/test_completion_providers.py` and `backend/tests/unit/test_model_fetcher.py` that mock the removed methods to use the new `CopilotClientPool` interface
+- [x] T011 [US2] Add `CopilotClientPool` class in `backend/src/services/completion_providers.py` with `BoundedDict(maxlen=50)` for `_clients`, static `token_key()` method using SHA-256 truncated to 16 chars, async `get_or_create()` method, and async `cleanup()` method — per data-model.md entity spec
+- [x] T012 [US2] Refactor `CopilotCompletionProvider` in `backend/src/services/completion_providers.py` to remove its duplicate `_clients` dict, `_token_key()`, and `_get_or_create_client()` methods, delegating to the shared `CopilotClientPool` instance instead
+- [x] T013 [US2] Refactor `GitHubCopilotModelFetcher` in `backend/src/services/model_fetcher.py` to import and use the shared `CopilotClientPool` from `completion_providers`, removing its duplicate `_clients` dict, `_token_key()`, and `_get_or_create_client()` methods
+- [x] T014 [US2] Update any tests in `backend/tests/unit/test_completion_providers.py` and `backend/tests/unit/test_model_fetcher.py` that mock the removed methods to use the new `CopilotClientPool` interface
 
 ### 2B: Fallback Helper Extraction
 
-- [ ] T015 [US2] Add `async _with_fallback(self, primary_fn, fallback_fn, context_msg)` private method on `GitHubProjectsService` in `backend/src/services/github_projects/service.py` — calls primary, logs warning on failure, calls fallback per data-model.md spec
-- [ ] T016 [US2] Refactor `assign_copilot()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for GraphQL-primary → REST-fallback chain
-- [ ] T017 [US2] Refactor `add_issue_to_project()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for GraphQL-primary → REST-fallback chain
-- [ ] T018 [US2] Refactor `request_copilot_review()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for REST-primary → GraphQL-fallback chain
+- [x] T015 [US2] Add `async _with_fallback(self, primary_fn, fallback_fn, context_msg)` private method on `GitHubProjectsService` in `backend/src/services/github_projects/service.py` — calls primary, logs warning on failure, calls fallback per data-model.md spec
+- [x] T016 [US2] Refactor `assign_copilot()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for GraphQL-primary → REST-fallback chain
+- [x] T017 [US2] Refactor `add_issue_to_project()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for GraphQL-primary → REST-fallback chain
+- [x] T018 [US2] Refactor `request_copilot_review()` in `backend/src/services/github_projects/service.py` to use `_with_fallback()` for REST-primary → GraphQL-fallback chain
 
 ### 2C: Retry Logic Documentation
 
-- [ ] T019 [P] [US2] Add clear docstring to `_request_with_retry()` in `backend/src/services/github_projects/service.py` documenting it as THE single retry strategy handling 429/502/503 with exponential backoff
-- [ ] T020 [P] [US2] Add clear docstring to `_graphql()` in `backend/src/services/github_projects/service.py` documenting it as a higher-level wrapper that delegates to `_request_with_retry()` and adds ETag caching
+- [x] T019 [P] [US2] Add clear docstring to `_request_with_retry()` in `backend/src/services/github_projects/service.py` documenting it as THE single retry strategy handling 429/502/503 with exponential backoff
+- [x] T020 [P] [US2] Add clear docstring to `_graphql()` in `backend/src/services/github_projects/service.py` documenting it as a higher-level wrapper that delegates to `_request_with_retry()` and adds ETag caching
 
 ### 2D: Header Construction Consolidation
 
-- [ ] T021 [US2] Add optional `graphql_features: str | None = None` parameter to `_build_headers()` in `backend/src/services/github_projects/service.py` that includes `GraphQL-Features` header when provided
-- [ ] T022 [US2] Replace all inline header construction (scattered `{"Authorization": ..., "Accept": ...}` dicts) in `backend/src/services/github_projects/service.py` with calls to the enhanced `_build_headers()`
+- [x] T021 [US2] Add optional `graphql_features: str | None = None` parameter to `_build_headers()` in `backend/src/services/github_projects/service.py` that includes `GraphQL-Features` header when provided
+- [x] T022 [US2] Replace all inline header construction (scattered `{"Authorization": ..., "Accept": ...}` dicts) in `backend/src/services/github_projects/service.py` with calls to the enhanced `_build_headers()`
 
 ### Verification
 
-- [ ] T023 [US2] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from DRY consolidation
+- [x] T023 [US2] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from DRY consolidation
 
 **Checkpoint**: All duplicated patterns consolidated — shared CopilotClientPool, _with_fallback helper, documented retry logic, unified header builder. All tests pass. User Story 2 complete.
 
@@ -107,35 +107,35 @@
 
 ### 3A: Parameterize Hardcoded Model
 
-- [ ] T024 [US3] Parameterize `ASSIGN_COPILOT_MUTATION` in `backend/src/services/github_projects/graphql.py` to accept `$model: String!` variable instead of hardcoded `"claude-opus-4.6"`
-- [ ] T025 [US3] Update the `assign_copilot()` GraphQL mutation invocation in `backend/src/services/github_projects/service.py` to pass `model` variable from `AgentAssignmentConfig.model` to the parameterized mutation
-- [ ] T026 [US3] Update REST API payload in `backend/src/services/github_projects/service.py` to use `AgentAssignmentConfig.model` instead of hardcoded model string
+- [x] T024 [US3] Parameterize `ASSIGN_COPILOT_MUTATION` in `backend/src/services/github_projects/graphql.py` to accept `$model: String!` variable instead of hardcoded `"claude-opus-4.6"`
+- [x] T025 [US3] Update the `assign_copilot()` GraphQL mutation invocation in `backend/src/services/github_projects/service.py` to pass `model` variable from `AgentAssignmentConfig.model` to the parameterized mutation
+- [x] T026 [US3] Update REST API payload in `backend/src/services/github_projects/service.py` to use `AgentAssignmentConfig.model` instead of hardcoded model string
 
 ### 3B: Document and Bound Chat State
 
-- [ ] T027 [P] [US3] Import `BoundedDict` from `src.utils` in `backend/src/api/chat.py` and convert `_messages`, `_proposals`, and `_recommendations` from plain `dict` to `BoundedDict(maxlen=1000)` with TODO comment: `# TODO: Migrate to SQLite for persistence across restarts (MVP: in-memory only)`
+- [x] T027 [P] [US3] Import `BoundedDict` from `src.utils` in `backend/src/api/chat.py` and convert `_messages`, `_proposals`, and `_recommendations` from plain `dict` to `BoundedDict(maxlen=1000)` with TODO comment: `# TODO: Migrate to SQLite for persistence across restarts (MVP: in-memory only)`
 
 ### 3C: Implement delete_files
 
-- [ ] T028 [P] [US3] Implement `delete_files` support in `backend/src/services/github_commit_workflow.py` by adding `fileChanges.deletions` entries to the `createCommitOnBranch` GraphQL mutation payload when `delete_files` parameter is provided, and remove the warning log stub
+- [x] T028 [P] [US3] Implement `delete_files` support in `backend/src/services/github_commit_workflow.py` by adding `fileChanges.deletions` entries to the `createCommitOnBranch` GraphQL mutation payload when `delete_files` parameter is provided, and remove the warning log stub
 
 ### 3D: Document OAuth State
 
-- [ ] T029 [P] [US3] Add documentation comment above `_oauth_states` in `backend/src/services/github_auth.py` explaining: single-instance only, bounded to 1000 entries with FIFO eviction, multi-instance deployment limitation, and SQLite migration path
+- [x] T029 [P] [US3] Add documentation comment above `_oauth_states` in `backend/src/services/github_auth.py` explaining: single-instance only, bounded to 1000 entries with FIFO eviction, multi-instance deployment limitation, and SQLite migration path
 
 ### 3E: Consolidate Singleton Registration
 
-- [ ] T030 [US3] Update `backend/src/dependencies.py` to remove module-level fallback imports and have each dependency function raise a clear error if the `app.state` attribute is missing
-- [ ] T031 [US3] Verify `backend/src/main.py` sets all `app.state` attributes (github_service, connection_manager, db) before routes are registered, ensuring no dual-registration pattern remains
+- [x] T030 [US3] Update `backend/src/dependencies.py` to remove module-level fallback imports and have each dependency function raise a clear error if the `app.state` attribute is missing
+- [x] T031 [US3] Verify `backend/src/main.py` sets all `app.state` attributes (github_service, connection_manager, db) before routes are registered, ensuring no dual-registration pattern remains
 
 ### 3F: Bound Workflow Orchestrator Caches
 
-- [ ] T032 [P] [US3] Import `BoundedDict` from `src.utils` in `backend/src/services/workflow_orchestrator/transitions.py` and convert `_pipeline_states`, `_issue_main_branches`, and `_issue_sub_issue_map` from plain `dict` to `BoundedDict(maxlen=500)`
+- [x] T032 [P] [US3] Import `BoundedDict` from `src.utils` in `backend/src/services/workflow_orchestrator/transitions.py` and convert `_pipeline_states`, `_issue_main_branches`, and `_issue_sub_issue_map` from plain `dict` to `BoundedDict(maxlen=500)`
 
 ### Verification
 
-- [ ] T033 [US3] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from anti-pattern fixes
-- [ ] T034 [P] [US3] Verify no hardcoded `"claude-opus-4.6"` strings remain via `grep -r "claude-opus-4.6" backend/src/`
+- [x] T033 [US3] Run backend test suite per-file in `backend/tests/unit/` to confirm no regressions from anti-pattern fixes
+- [x] T034 [P] [US3] Verify no hardcoded `"claude-opus-4.6"` strings remain via `grep -r "claude-opus-4.6" backend/src/`
 
 **Checkpoint**: All anti-patterns resolved — model parameterized, chat state documented and bounded, delete_files implemented, OAuth state documented, singletons consolidated, all caches bounded. All tests pass. User Story 3 complete.
 
@@ -145,14 +145,14 @@
 
 **Purpose**: Final verification across all user stories. Ensures backward compatibility (US4) and code quality.
 
-- [ ] T035 Run full backend test suite per-file in `backend/tests/unit/` — all tests pass with zero regressions
-- [ ] T036 [P] Run full frontend test suite via `cd frontend && npx vitest run` — all tests pass with zero regressions
-- [ ] T037 [P] Run `cd frontend && npm run build` — builds successfully
-- [ ] T038 [P] Run `cd backend && ruff check src tests && ruff format --check src tests` — no linting or formatting errors
-- [ ] T039 Verify `grep -r "agent.framework" backend/` returns no results (agent-framework-core fully removed)
-- [ ] T040 [P] Verify `grep -r "claude-opus-4.6" backend/src/` returns no results (no hardcoded model strings)
-- [ ] T041 [P] Audit all in-memory caches and confirm every cache uses `BoundedDict`/`BoundedSet` from `backend/src/utils.py`
-- [ ] T042 Generate concise completion summary documenting: total lines of duplicated code eliminated, dependencies updated, anti-patterns resolved
+- [x] T035 Run full backend test suite per-file in `backend/tests/unit/` — all tests pass with zero regressions
+- [x] T036 [P] Run full frontend test suite via `cd frontend && npx vitest run` — all tests pass with zero regressions
+- [x] T037 [P] Run `cd frontend && npm run build` — builds successfully
+- [x] T038 [P] Run `cd backend && ruff check src tests && ruff format --check src tests` — no linting or formatting errors
+- [x] T039 Verify `grep -r "agent.framework" backend/` returns no results (agent-framework-core fully removed)
+- [x] T040 [P] Verify `grep -r "claude-opus-4.6" backend/src/` returns no results (no hardcoded model strings)
+- [x] T041 [P] Audit all in-memory caches and confirm every cache uses `BoundedDict`/`BoundedSet` from `backend/src/utils.py`
+- [x] T042 Generate concise completion summary documenting: total lines of duplicated code eliminated, dependencies updated, anti-patterns resolved
 
 ---
 
