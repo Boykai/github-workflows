@@ -61,7 +61,7 @@
 
 **Goal**: Ensure all text and UI elements remain readable against the green background by meeting WCAG AA contrast requirements (≥4.5:1 for normal text)
 
-**Independent Test**: Verify contrast ratio between green background and foreground text using accessibility tools (Lighthouse, axe DevTools). White text (#FFFFFF) on #4CAF50 gives ~4.6:1 ratio — passes WCAG AA.
+**Independent Test**: Verify contrast ratio between green background and foreground text using accessibility tools (Lighthouse, axe DevTools). Existing dark text on #4CAF50 gives ~6.6:1 ratio — passes WCAG AA. White text would only give ~3.0:1 — fails WCAG AA.
 
 ### Implementation for User Story 2
 
@@ -153,7 +153,7 @@
 
 # Light mode (US1 + US2):
 Task T005: "Update --background in :root to 122 39% 49% in frontend/src/index.css"
-Task T006: "Update --foreground in :root to 0 0% 100% in frontend/src/index.css"
+Task T006: "Verify --foreground in :root stays at 222.2 84% 4.9% (dark text, ~6.6:1 contrast)"
 
 # Dark mode (US3):
 Task T007: "Update --background in .dark to 125 35% 33% in frontend/src/index.css"
@@ -170,7 +170,7 @@ Task T008: "Update --foreground in .dark to 0 0% 100% in frontend/src/index.css"
 2. Complete Phase 2: Foundational verification
 3. Complete Phase 3: User Story 1 (green background in light mode)
 4. Complete Phase 4: User Story 2 (accessible contrast in light mode)
-5. **STOP and VALIDATE**: Open app, verify green background with readable white text
+5. **STOP and VALIDATE**: Open app, verify green background with readable dark text
 6. Deploy/demo if ready — this is the MVP
 
 ### Incremental Delivery
@@ -216,6 +216,6 @@ With multiple developers (though this is a single-file change):
 - All changes are in a single file: `frontend/src/index.css`
 - No new files, dependencies, or structural changes
 - The existing CSS custom property + Tailwind + ThemeProvider architecture is preserved
-- WCAG AA contrast ratios verified: ~4.6:1 (light mode), ~7.4:1 (dark mode)
+- WCAG AA contrast ratios verified: ~6.6:1 (light mode, dark text on green), ~5.1:1 (dark mode, white text on dark green)
 - Commit after each task or logical group
 - Stop at any checkpoint to validate independently

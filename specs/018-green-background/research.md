@@ -32,12 +32,13 @@ Color conversions:
 - **#2E7D32** (Material Green 800): HSL → `125 35% 33%`
 
 Foreground colors for contrast:
-- Light mode foreground on #4CAF50: White (`0 0% 100%`) gives contrast ratio ~4.6:1 ✅ (passes WCAG AA for normal text)
-- Dark mode foreground on #2E7D32: White (`0 0% 100%`) gives contrast ratio ~7.4:1 ✅ (passes WCAG AA for normal text)
+- Light mode foreground on #4CAF50: Existing near-black (`222.2 84% 4.9%`) gives contrast ratio ~6.6:1 ✅ (passes WCAG AA for normal text)
+- Light mode foreground on #4CAF50: White (`0 0% 100%`) gives contrast ratio ~3.0:1 ❌ (fails WCAG AA for normal text)
+- Dark mode foreground on #2E7D32: White (`0 0% 100%`) gives contrast ratio ~5.1:1 ✅ (passes WCAG AA for normal text)
 
-**Decision**: Use `122 39% 49%` for light mode `--background` and `125 35% 33%` for dark mode `--background`. Set `--foreground` to white (`0 0% 100%`) in both modes.
-**Rationale**: Direct HSL conversions of the specified colors. White foreground achieves WCAG AA compliance in both modes.
-**Alternatives considered**: (1) Using a lighter green (#81C784) — rejected because it was not requested and would reduce contrast with white text. (2) Using black text on green — rejected because #4CAF50 with black text gives only ~3.9:1 ratio, failing WCAG AA for normal text.
+**Decision**: Use `122 39% 49%` for light mode `--background` and `125 35% 33%` for dark mode `--background`. Keep existing near-black `--foreground` (`222.2 84% 4.9%`) in light mode; set `--foreground` to white (`0 0% 100%`) in dark mode only.
+**Rationale**: Direct HSL conversions of the specified colors. White foreground on #4CAF50 only achieves ~3.0:1 contrast, failing WCAG AA. Keeping the existing dark foreground in light mode provides ~6.6:1 contrast. White foreground on #2E7D32 in dark mode achieves ~5.1:1 contrast.
+**Alternatives considered**: (1) Using a lighter green (#81C784) — rejected because it was not requested and would reduce contrast with white text. (2) Using white text on #4CAF50 — rejected because it gives only ~3.0:1 ratio, failing WCAG AA for normal text.
 
 ---
 
@@ -86,8 +87,8 @@ Components with their own background tokens (`--card`, `--popover`, `--secondary
 | Token system | Modify existing CSS custom properties in `index.css` | High |
 | Light mode green | `--background: 122 39% 49%` (#4CAF50) | High |
 | Dark mode green | `--background: 125 35% 33%` (#2E7D32) | High |
-| Foreground color | `--foreground: 0 0% 100%` (white) in both modes | High |
-| WCAG compliance | White on #4CAF50 = ~4.6:1 ✅; White on #2E7D32 = ~7.4:1 ✅ | High |
+| Foreground color | Light: `--foreground` unchanged (`222.2 84% 4.9%`, near-black); Dark: `--foreground: 0 0% 100%` (white) | High |
+| WCAG compliance | Near-black on #4CAF50 = ~6.6:1 ✅; White on #2E7D32 = ~5.1:1 ✅ | High |
 | Component impact | Only page-level background changes; cards/popovers/modals unaffected | High |
 | Files modified | `frontend/src/index.css` only | High |
 | New dependencies | None | High |
