@@ -13,8 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY pyproject.toml ./
 
 # Install Python dependencies
-# Use --pre flag for agent-framework preview packages
-RUN pip install --no-cache-dir --pre -e .
+RUN pip install --no-cache-dir -e .
 
 # Ensure the Copilot CLI binary is executable (bundled in github-copilot-sdk wheel)
 RUN find /usr/local/lib/python3.12 -name "copilot" -type f -executable 2>/dev/null || true

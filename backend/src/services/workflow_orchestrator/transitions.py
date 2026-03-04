@@ -2,24 +2,26 @@
 
 import logging
 
+from src.utils import BoundedDict
+
 from .models import MainBranchInfo, PipelineState
 
 logger = logging.getLogger(__name__)
 
 # In-memory storage for pipeline states (per issue number)
-_pipeline_states: dict[int, PipelineState] = {}
+_pipeline_states: BoundedDict[int, PipelineState] = BoundedDict(maxlen=500)
 
 # In-memory storage for the "main" PR branch per issue
 # The first PR's branch becomes the base for all subsequent agent branches
 # Maps issue_number -> {branch: str, pr_number: int}
-_issue_main_branches: dict[int, MainBranchInfo] = {}
+_issue_main_branches: BoundedDict[int, MainBranchInfo] = BoundedDict(maxlen=500)
 
 # Global sub-issue mapping store that persists across pipeline state resets.
 # When pipeline state is removed during status transitions (e.g., Backlog → Ready),
 # the agent_sub_issues on PipelineState are lost.  This global store retains the
 # mapping so subsequent agents can still look up (and close) their sub-issues.
 # Maps issue_number → {agent_name → {"number": int, "node_id": str, "url": str}}
-_issue_sub_issue_map: dict[int, dict[str, dict]] = {}
+_issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500)
 
 
 def get_pipeline_state(issue_number: int) -> PipelineState | None:

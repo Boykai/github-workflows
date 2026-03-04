@@ -26,8 +26,11 @@ from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
 
-# OAuth state storage — bounded to prevent unbounded memory growth.
-# Expired entries are pruned on each new state generation.
+# OAuth verification state (ephemeral, single-instance only).
+# Bounded to 1000 entries with FIFO eviction via BoundedDict.
+# In a multi-instance deployment, OAuth flows started on one instance
+# cannot be completed on another. For multi-instance support, migrate
+# to SQLite (or a shared cache like Redis).
 _oauth_states: BoundedDict[str, datetime] = BoundedDict(maxlen=1000)
 
 _OAUTH_STATE_TTL = timedelta(minutes=10)

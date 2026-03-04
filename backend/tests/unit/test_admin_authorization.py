@@ -78,6 +78,7 @@ class TestAdminAuthorization:
         await db.commit()
 
         try:
+            app.state.db = db
             with (
                 patch("src.config.get_settings", return_value=settings),
                 patch("src.services.database.get_db", return_value=db),
@@ -122,6 +123,7 @@ class TestAdminAuthorization:
         await seed_global_settings(db)
 
         try:
+            app.state.db = db
             with (
                 patch("src.config.get_settings", return_value=settings),
                 patch("src.services.database.get_db", return_value=db),

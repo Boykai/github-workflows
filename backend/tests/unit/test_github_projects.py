@@ -1773,6 +1773,7 @@ class TestAssignCopilotToIssue:
                 "main",
                 "speckit.specify",
                 "Test instructions",
+                "claude-opus-4.6",
             )
 
     @pytest.mark.asyncio
@@ -1785,7 +1786,7 @@ class TestAssignCopilotToIssue:
         with patch.object(
             service, "_assign_copilot_graphql", new_callable=AsyncMock
         ) as mock_graphql:
-            mock_graphql.return_value = False
+            mock_graphql.side_effect = ValueError("GraphQL failed")
 
             with patch.object(service, "_client") as mock_client:
                 mock_client.post = AsyncMock(return_value=mock_response)
@@ -1819,7 +1820,7 @@ class TestAssignCopilotToIssue:
         with patch.object(
             service, "_assign_copilot_graphql", new_callable=AsyncMock
         ) as mock_graphql:
-            mock_graphql.return_value = False
+            mock_graphql.side_effect = ValueError("GraphQL failed")
 
             with patch.object(service, "_client") as mock_client:
                 mock_client.post = AsyncMock(return_value=mock_response)
@@ -1848,18 +1849,19 @@ class TestAssignCopilotToIssue:
         with patch.object(
             service, "_assign_copilot_graphql", new_callable=AsyncMock
         ) as mock_graphql:
-            mock_graphql.return_value = False
+            mock_graphql.side_effect = ValueError("GraphQL failed")
 
-            result = await service.assign_copilot_to_issue(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_node_id="I_123",
-                issue_number=None,
-                custom_agent="speckit.specify",
-            )
+            # No issue_number means no REST fallback, so the GraphQL error propagates
+            with pytest.raises(ValueError, match="GraphQL failed"):
+                await service.assign_copilot_to_issue(
+                    access_token="test-token",
+                    owner="owner",
+                    repo="repo",
+                    issue_node_id="I_123",
+                    issue_number=None,
+                    custom_agent="speckit.specify",
+                )
 
-            assert result is False
             mock_graphql.assert_called_once()
 
 
@@ -1897,33 +1899,31 @@ class TestAssignCopilotGraphQL:
 
     @pytest.mark.asyncio
     async def test_graphql_assign_no_bot_available(self, service):
-        """Should return False when Copilot bot is not available."""
+        """Should raise when Copilot bot is not available."""
         with patch.object(service, "get_copilot_bot_id", new_callable=AsyncMock) as mock_get_bot:
             mock_get_bot.return_value = (None, "REPO_ID_456")
 
-            result = await service._assign_copilot_graphql(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_node_id="I_123",
-            )
-
-            assert result is False
+            with pytest.raises(ValueError, match="bot not available"):
+                await service._assign_copilot_graphql(
+                    access_token="test-token",
+                    owner="owner",
+                    repo="repo",
+                    issue_node_id="I_123",
+                )
 
     @pytest.mark.asyncio
     async def test_graphql_assign_no_repo_id(self, service):
-        """Should return False when repository ID is not found."""
+        """Should raise when repository ID is not found."""
         with patch.object(service, "get_copilot_bot_id", new_callable=AsyncMock) as mock_get_bot:
             mock_get_bot.return_value = ("BOT_ID_123", None)
 
-            result = await service._assign_copilot_graphql(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_node_id="I_123",
-            )
-
-            assert result is False
+            with pytest.raises(ValueError, match="Repository ID not found"):
+                await service._assign_copilot_graphql(
+                    access_token="test-token",
+                    owner="owner",
+                    repo="repo",
+                    issue_node_id="I_123",
+                )
 
 
 class TestGetCopilotBotId:
