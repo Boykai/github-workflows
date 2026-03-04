@@ -3,9 +3,6 @@
 Supports multiple LLM providers:
 - GitHub Copilot (default): Uses Copilot SDK with user's OAuth token
 - Azure OpenAI (optional): Uses Azure OpenAI with static API keys
-
-Microsoft Agent Framework (agent-framework-core) is available as a dependency
-for advanced orchestration patterns.
 """
 
 import json

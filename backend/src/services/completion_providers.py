@@ -3,10 +3,6 @@
 Provides a unified interface for different AI backends:
 - CopilotCompletionProvider: Default. Uses GitHub Copilot SDK with user's OAuth token.
 - AzureOpenAICompletionProvider: Optional. Uses Azure OpenAI with static API keys.
-
-Microsoft Agent Framework (agent-framework-core) is available as a dependency for
-advanced orchestration patterns (multi-agent, tool calling, workflows) that can
-wrap around either provider.
 """
 
 import asyncio
