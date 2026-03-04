@@ -106,19 +106,10 @@ describe('helpHandler categorized output (US1)', () => {
 });
 
 describe('helpHandler empty registry edge case (US1)', () => {
-  // Save and restore all commands around this test
-  const savedCommands: Array<{ name: string }> = [];
-
-  afterAll(() => {
-    // Re-import to restore - commands are registered on module load
-    // so we just need to make sure test command cleanup is done
-  });
-
   it('displays no commands message when registry is empty', () => {
-    // Unregister all commands
+    // Temporarily unregister all commands, test, then re-register
     const commands = getAllCommands();
     for (const cmd of commands) {
-      savedCommands.push({ name: cmd.name });
       unregisterCommand(cmd.name);
     }
 
@@ -126,10 +117,7 @@ describe('helpHandler empty registry edge case (US1)', () => {
     const result = helpHandler('', context);
     expect(result.message).toContain('No commands available');
 
-    // Re-register commands by reimporting the module
-    // Since we can't easily re-import, manually re-register
-    // This test just validates the edge case message
-    // Re-register saved commands (simplified - just re-import would normally work)
+    // Re-register all commands to restore state
     for (const cmd of commands) {
       registerCommand(cmd);
     }
