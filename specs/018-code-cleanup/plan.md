@@ -1,104 +1,106 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Codebase Cleanup — Reduce Technical Debt
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `018-code-cleanup` | **Date**: 2026-03-04 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/018-code-cleanup/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Perform a thorough codebase cleanup across backend (Python/FastAPI), frontend (React/TypeScript), scripts, and specs to reduce technical debt. The work is decomposed into five categories: (1) remove backwards-compatibility shims, (2) eliminate dead code paths, (3) consolidate duplicated logic, (4) delete stale tests, and (5) general hygiene. All changes are internal-only — no public API contracts change. CI checks must pass after every change.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python ≥3.11 (backend), TypeScript ~5.4 (frontend)
+**Primary Dependencies**: FastAPI ≥0.109, Pydantic ≥2.5, React 18.3, Vite 5.4, Tailwind CSS 3.4
+**Storage**: aiosqlite (async SQLite) with raw SQL migrations
+**Testing**: pytest + pytest-asyncio (backend, ~1284 tests); Vitest + happy-dom (frontend, ~334 tests); Playwright (e2e)
+**Target Platform**: Linux server (Docker Compose: backend, frontend, signal-api)
+**Project Type**: Web application (backend + frontend)
+**Performance Goals**: N/A (cleanup-only, no new functionality)
+**Constraints**: All CI must pass (ruff, pyright, pytest for backend; eslint, tsc, vitest, vite build for frontend). No public API contract changes. Preserve meaningful test coverage.
+**Scale/Scope**: ~80 backend Python files, ~65 frontend TS/TSX files, 10 SQL migrations, 47+ backend test files, 33+ frontend test files
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md exists with prioritized user stories (P1–P3), acceptance scenarios, and edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated Execution | ✅ PASS | Single-responsibility agent (speckit.plan) producing plan artifacts |
+| IV. Test Optionality | ✅ PASS | No new tests required — this feature removes code and verifies via existing CI checks |
+| V. Simplicity and DRY | ✅ PASS | Feature itself enforces DRY by consolidating duplicated logic |
+
+**Gate Result**: ✅ All gates pass. Proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/018-code-cleanup/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — research findings
+├── data-model.md        # Phase 1 output — cleanup inventory
+├── quickstart.md        # Phase 1 output — developer quick-start guide
+├── contracts/           # Phase 1 output — change contracts per category
+│   └── cleanup-categories.md
+├── checklists/
+│   └── requirements.md  # Spec quality checklist (pre-existing)
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   ├── api/             # Route handlers (auth, board, chat, chores, etc.)
+│   ├── models/          # Pydantic models (agent, board, chat, etc.)
+│   ├── services/        # Business logic (agents, chores, copilot_polling, etc.)
+│   ├── middleware/       # RequestID middleware
+│   ├── migrations/      # SQL migration files (001–010)
+│   ├── prompts/         # LLM prompt templates
+│   ├── config.py        # Settings (pydantic-settings)
+│   ├── constants.py     # Application constants
+│   ├── dependencies.py  # FastAPI dependency injection
+│   ├── exceptions.py    # Custom exceptions
+│   ├── main.py          # App entry point
+│   └── utils.py         # Shared utilities
+├── tests/
+│   ├── helpers/         # factories.py, mocks.py (shared test utilities)
+│   ├── unit/            # 47+ unit test files
+│   └── integration/     # Integration tests
+└── pyproject.toml       # Dependencies, ruff, pyright, pytest config
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── components/      # React components (board, chat, agents, settings, etc.)
+│   ├── hooks/           # Custom hooks (useAuth, useChat, useProjectBoard, etc.)
+│   ├── pages/           # Page components (ProjectBoardPage, SettingsPage)
+│   ├── services/        # API client (api.ts)
+│   ├── lib/             # Commands framework, utils
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Utility functions
+│   ├── test/            # Test setup and helpers
+│   ├── constants.ts     # Frontend constants
+│   └── App.tsx          # App root
+├── package.json         # Dependencies
+├── vitest.config.ts     # Test config
+├── eslint.config.js     # Lint config
+└── tsconfig.json        # TypeScript config
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+scripts/
+├── pre-commit/          # Git hooks
+└── setup-hooks.sh       # Hook installer
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (Option 2) — existing backend + frontend layout. No structural changes needed; cleanup operates within existing directories.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No Constitution Check violations. No complexity justifications needed.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| — | — | — |
