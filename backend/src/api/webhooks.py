@@ -264,7 +264,7 @@ async def github_webhook(
     return {
         "status": "ignored",
         "event": x_github_event,
-        "message": f"Event type '{x_github_event}' not handled",
+        "message": "Event type not handled",
     }
 
 
