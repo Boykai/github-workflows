@@ -11,6 +11,7 @@ import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { useCommands } from '@/hooks/useCommands';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
@@ -52,6 +53,9 @@ export function ChatInterface({
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
   const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
+
+  // Chat history navigation (Up/Down Arrow key cycling)
+  const { addToHistory, handleKeyDown: handleHistoryKeyDown } = useChatHistory();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -95,6 +99,7 @@ export function ChatInterface({
   const doSubmit = () => {
     const content = input.trim();
     if (content && !isSending) {
+      addToHistory(content);
       setShowAutocomplete(false);
       const commandInput = isCommandFn(content);
       onSendMessage(content, { isCommand: commandInput });
@@ -142,6 +147,13 @@ export function ChatInterface({
         setShowAutocomplete(false);
         return;
       }
+    }
+
+    // History navigation (Up/Down Arrow)
+    const historyValue = handleHistoryKeyDown(e, input);
+    if (historyValue !== null) {
+      setInput(historyValue);
+      return;
     }
 
     if (e.key === 'Enter' && !e.shiftKey) {
