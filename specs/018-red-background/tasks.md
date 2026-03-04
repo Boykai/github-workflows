@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing theme infrastructure and establish baseline
 
-- [ ] T001 Verify current CSS variable structure in frontend/src/index.css confirming :root and .dark blocks exist with --background and --foreground tokens
-- [ ] T002 Verify Tailwind config maps CSS variables correctly in frontend/tailwind.config.js confirming bg-background and text-foreground utility classes reference hsl(var(--background)) and hsl(var(--foreground))
-- [ ] T003 [P] Verify ThemeProvider component in frontend/src/components/ThemeProvider.tsx confirms .dark class toggle on html element for light/dark/system mode switching
+- [x] T001 Verify current CSS variable structure in frontend/src/index.css confirming :root and .dark blocks exist with --background and --foreground tokens
+- [x] T002 Verify Tailwind config maps CSS variables correctly in frontend/tailwind.config.js confirming bg-background and text-foreground utility classes reference hsl(var(--background)) and hsl(var(--foreground))
+- [x] T003 [P] Verify ThemeProvider component in frontend/src/components/ThemeProvider.tsx confirms .dark class toggle on html element for light/dark/system mode switching
 
 ---
 
@@ -36,9 +36,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Run frontend build (npm run build in frontend/) to confirm clean baseline with no pre-existing errors
-- [ ] T005 Run existing frontend tests (npm run test in frontend/) to establish baseline test pass rate
-- [ ] T006 [P] Document current --background and --foreground HSL values in both :root and .dark blocks of frontend/src/index.css for rollback reference
+- [x] T004 Run frontend build (npm run build in frontend/) to confirm clean baseline with no pre-existing errors
+- [x] T005 Run existing frontend tests (npm run test in frontend/) to establish baseline test pass rate
+- [x] T006 [P] Document current --background and --foreground HSL values in both :root and .dark blocks of frontend/src/index.css for rollback reference
 
 **Checkpoint**: Baseline confirmed — theme system is intact and build passes. User story implementation can begin.
 
@@ -52,9 +52,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Update --background value from `0 0% 100%` to `0 70% 50%` in the :root block of frontend/src/index.css
-- [ ] T008 [US1] Verify the body element styling in frontend/src/index.css applies bg-background and text-foreground classes (via @apply or @layer base) ensuring the updated --background value cascades globally
-- [ ] T009 [US1] Run frontend dev server (npm run dev in frontend/) and visually verify red background appears on all pages and routes in light mode
+- [x] T007 [US1] Update --background value from `0 0% 100%` to `0 70% 50%` in the :root block of frontend/src/index.css
+- [x] T008 [US1] Verify the body element styling in frontend/src/index.css applies bg-background and text-foreground classes (via @apply or @layer base) ensuring the updated --background value cascades globally
+- [x] T009 [US1] Run frontend dev server (npm run dev in frontend/) and visually verify red background appears on all pages and routes in light mode
 
 **Checkpoint**: Light mode displays red background (#D32F2F) on all pages. Core requirement of the feature is delivered.
 
@@ -68,10 +68,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Update --foreground value from `222.2 84% 4.9%` to `0 0% 100%` in the :root block of frontend/src/index.css
-- [ ] T011 [US2] Visually verify all text elements are readable (white on red) across all pages with frontend dev server running
-- [ ] T012 [P] [US2] Verify card, popover, modal, and input components retain their own background colors (--card, --popover, etc. tokens unchanged) in frontend/src/index.css
-- [ ] T013 [US2] Verify buttons, links, and interactive elements remain visually distinct and usable against the red background
+- [x] T010 [US2] Update --foreground value from `222.2 84% 4.9%` to `0 0% 100%` in the :root block of frontend/src/index.css
+- [x] T011 [US2] Visually verify all text elements are readable (white on red) across all pages with frontend dev server running
+- [x] T012 [P] [US2] Verify card, popover, modal, and input components retain their own background colors (--card, --popover, etc. tokens unchanged) in frontend/src/index.css
+- [x] T013 [US2] Verify buttons, links, and interactive elements remain visually distinct and usable against the red background
 
 **Checkpoint**: All text meets WCAG 2.1 AA contrast (4.68:1 for light mode). Components with explicit backgrounds are unaffected.
 
@@ -85,10 +85,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Update --background value from `222.2 84% 4.9%` to `0 73% 41%` in the .dark block of frontend/src/index.css
-- [ ] T015 [US3] Update --foreground value from `210 40% 98%` to `0 0% 100%` in the .dark block of frontend/src/index.css
-- [ ] T016 [US3] Visually verify dark mode displays deeper red background (#B71C1C) with white text by toggling theme in the running application
-- [ ] T017 [US3] Verify system theme preference correctly selects the appropriate red shade based on OS dark/light mode setting
+- [x] T014 [US3] Update --background value from `222.2 84% 4.9%` to `0 73% 41%` in the .dark block of frontend/src/index.css
+- [x] T015 [US3] Update --foreground value from `210 40% 98%` to `0 0% 100%` in the .dark block of frontend/src/index.css
+- [x] T016 [US3] Visually verify dark mode displays deeper red background (#B71C1C) with white text by toggling theme in the running application
+- [x] T017 [US3] Verify system theme preference correctly selects the appropriate red shade based on OS dark/light mode setting
 
 **Checkpoint**: All three theme modes (light, dark, system) display correct red background variants. Theme switching works seamlessly.
 
@@ -98,11 +98,11 @@
 
 **Purpose**: Final verification across all user stories and production readiness
 
-- [ ] T018 Run full frontend test suite (npm run test in frontend/) to confirm no regressions from CSS variable changes
-- [ ] T019 Run production build (npm run build in frontend/) to verify successful build with updated styles
-- [ ] T020 [P] Verify no layout, spacing, or component rendering regressions across all pages by visual inspection
-- [ ] T021 [P] Verify contrast ratios: light mode #D32F2F + #FFFFFF = 4.68:1 ✅ and dark mode #B71C1C + #FFFFFF = 6.27:1 ✅
-- [ ] T022 Run quickstart.md verification checklist against the running application in frontend/
+- [x] T018 Run full frontend test suite (npm run test in frontend/) to confirm no regressions from CSS variable changes
+- [x] T019 Run production build (npm run build in frontend/) to verify successful build with updated styles
+- [x] T020 [P] Verify no layout, spacing, or component rendering regressions across all pages by visual inspection
+- [x] T021 [P] Verify contrast ratios: light mode #D32F2F + #FFFFFF = 4.68:1 ✅ and dark mode #B71C1C + #FFFFFF = 6.27:1 ✅
+- [x] T022 Run quickstart.md verification checklist against the running application in frontend/
 
 ---
 
