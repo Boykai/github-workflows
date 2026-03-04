@@ -105,3 +105,10 @@ npx playwright test             # E2E tests
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
+
+## Active Technologies
+- Python ≥3.11 (backend), TypeScript 5.4 / React 18.3 (frontend) + FastAPI ≥0.109, Pydantic v2, httpx, aiosqlite, github-copilot-sdk, agent-framework-core, React, @tanstack/react-query, Vite, Tailwind CSS, socket.io-client, dnd-kit (001-bug-basher)
+- SQLite via aiosqlite (durable settings/session storage) (001-bug-basher)
+
+## Recent Changes
+- 001-bug-basher: Added Python ≥3.11 (backend), TypeScript 5.4 / React 18.3 (frontend) + FastAPI ≥0.109, Pydantic v2, httpx, aiosqlite, github-copilot-sdk, agent-framework-core, React, @tanstack/react-query, Vite, Tailwind CSS, socket.io-client, dnd-kit
