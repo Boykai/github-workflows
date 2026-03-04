@@ -8,6 +8,7 @@ import json as json_mod
 import logging
 import re
 from datetime import datetime
+from typing import Any
 
 import httpx
 import yaml
@@ -92,13 +93,24 @@ class GitHubProjectsService:
         return await self._client.get(url, headers=headers)
 
     @staticmethod
-    def _build_headers(access_token: str) -> dict[str, str]:
-        """Build standard REST API headers for GitHub."""
-        return {
+    def _build_headers(
+        access_token: str, graphql_features: str | None = None
+    ) -> dict[str, str]:
+        """Build standard REST/GraphQL API headers for GitHub.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            graphql_features: Optional ``GraphQL-Features`` header value
+                (e.g. for Copilot assignment or code review).
+        """
+        headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
+        if graphql_features:
+            headers["GraphQL-Features"] = graphql_features
+        return headers
 
     @staticmethod
     def is_copilot_author(login: str) -> bool:
@@ -170,8 +182,14 @@ class GitHubProjectsService:
         *,
         idempotent: bool = True,
     ) -> httpx.Response:
-        """
-        Make HTTP request with exponential backoff on rate limits.
+        """THE single retry strategy for all GitHub API requests.
+
+        Handles HTTP 429 (rate limit), 502, and 503 (transient server errors)
+        with exponential backoff.  Also detects primary rate limiting via the
+        ``X-RateLimit-Remaining: 0`` header on 403 responses.
+
+        This is the lowest-level HTTP method in the service — ``_graphql()``
+        and all REST helpers delegate here for consistent retry behavior.
 
         Args:
             method: HTTP method (GET, POST, PATCH, PUT, etc.)
@@ -257,6 +275,28 @@ class GitHubProjectsService:
             response=httpx.Response(500),
         )
 
+    async def _with_fallback(
+        self,
+        primary_fn: Any,
+        fallback_fn: Any,
+        context_msg: str,
+    ) -> Any:
+        """Try *primary_fn*, falling back to *fallback_fn* on failure.
+
+        Args:
+            primary_fn: Zero-arg async callable for the primary strategy.
+            fallback_fn: Zero-arg async callable for the fallback strategy.
+            context_msg: Human-readable context for log messages.
+
+        Returns:
+            Result from whichever function succeeded.
+        """
+        try:
+            return await primary_fn()
+        except Exception as exc:
+            logger.warning("%s primary failed (%s), trying fallback", context_msg, exc)
+            return await fallback_fn()
+
     async def _graphql(
         self,
         access_token: str,
@@ -264,13 +304,12 @@ class GitHubProjectsService:
         variables: dict,
         extra_headers: dict | None = None,
     ) -> dict:
-        """
-        Execute GraphQL query against GitHub API.
+        """Higher-level GraphQL wrapper that delegates to ``_request_with_retry``.
 
-        Routes through _request_with_retry for consistent retry/backoff handling.
-        Supports ETag-based conditional requests: if the data hasn't changed
-        since the last identical request, GitHub returns 304 Not Modified which
-        does NOT count against the rate limit.
+        Adds ETag-based conditional request caching on top of the retry
+        mechanism: if the data hasn't changed since the last identical
+        request, GitHub returns 304 Not Modified which does NOT count
+        against the rate limit.
 
         Args:
             access_token: GitHub OAuth access token
@@ -1567,16 +1606,10 @@ class GitHubProjectsService:
                     f"https://api.github.com/users/{owner_login}/projectsV2/{project_number}/items"
                 )
 
-            headers = {
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {access_token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
-
             response = await self._request_with_retry(
                 method="POST",
                 url=url,
-                headers=headers,
+                headers=self._build_headers(access_token),
                 json={"type": "Issue", "id": issue_database_id},
                 idempotent=True,
             )
@@ -2158,30 +2191,27 @@ class GitHubProjectsService:
                     issue_number=issue_number,
                 )
 
-        # Prefer GraphQL — it explicitly supports customAgent in the schema
-        graphql_success = await self._assign_copilot_graphql(
+        # Prefer GraphQL — it explicitly supports customAgent in the schema.
+        # Fall back to REST API if GraphQL fails.
+        if issue_number:
+            return await self._with_fallback(
+                primary_fn=lambda: self._assign_copilot_graphql(
+                    access_token, owner, repo, issue_node_id,
+                    base_ref, custom_agent, custom_instructions,
+                ),
+                fallback_fn=lambda: self._assign_copilot_rest(
+                    access_token, owner, repo, issue_number,
+                    base_ref, custom_agent, custom_instructions,
+                ),
+                context_msg="assign_copilot_to_issue",
+            )
+
+        # No issue_number — GraphQL only (no REST fallback possible)
+        return await self._assign_copilot_graphql(
             access_token,
             owner,
             repo,
             issue_node_id,
-            base_ref,
-            custom_agent,
-            custom_instructions,
-        )
-
-        if graphql_success:
-            return True
-
-        # Fall back to REST API if GraphQL failed
-        if not issue_number:
-            logger.warning("GraphQL assignment failed and no issue_number for REST fallback")
-            return False
-
-        return await self._assign_copilot_rest(
-            access_token,
-            owner,
-            repo,
-            issue_number,
             base_ref,
             custom_agent,
             custom_instructions,
@@ -2276,6 +2306,8 @@ class GitHubProjectsService:
         input which explicitly supports the ``customAgent`` field in the schema.
         This is preferred over the REST API to ensure custom agent routing.
 
+        Raises on failure so ``_with_fallback`` can trigger the REST fallback.
+
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
@@ -2291,52 +2323,45 @@ class GitHubProjectsService:
         # Get Copilot bot ID and repo ID
         copilot_id, repo_id = await self.get_copilot_bot_id(access_token, owner, repo)
         if not copilot_id:
-            logger.warning("Cannot assign Copilot - bot not available for %s/%s", owner, repo)
-            return False
+            raise ValueError(f"Copilot bot not available for {owner}/{repo}")
         if not repo_id:
-            logger.warning("Cannot assign Copilot - repository ID not found for %s/%s", owner, repo)
-            return False
+            raise ValueError(f"Repository ID not found for {owner}/{repo}")
 
-        try:
-            # Use GraphQL mutation with special headers for Copilot assignment
-            data = await self._graphql(
-                access_token,
-                ASSIGN_COPILOT_MUTATION,
-                {
-                    "issueId": issue_node_id,
-                    "assigneeIds": [copilot_id],
-                    "repoId": repo_id,
-                    "baseRef": base_ref,
-                    "customInstructions": custom_instructions,
-                    "customAgent": custom_agent,
-                },
-                extra_headers={
-                    "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
-                },
+        # Use GraphQL mutation with special headers for Copilot assignment
+        data = await self._graphql(
+            access_token,
+            ASSIGN_COPILOT_MUTATION,
+            {
+                "issueId": issue_node_id,
+                "assigneeIds": [copilot_id],
+                "repoId": repo_id,
+                "baseRef": base_ref,
+                "customInstructions": custom_instructions,
+                "customAgent": custom_agent,
+            },
+            extra_headers={
+                "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
+            },
+        )
+
+        assignees = (
+            data.get("addAssigneesToAssignable", {})
+            .get("assignable", {})
+            .get("assignees", {})
+            .get("nodes", [])
+        )
+        assigned_logins = [a.get("login", "") for a in assignees]
+
+        if custom_agent:
+            logger.info(
+                "GraphQL: Assigned Copilot with custom agent '%s', assignees: %s",
+                custom_agent,
+                assigned_logins,
             )
+        else:
+            logger.info("GraphQL: Assigned Copilot to issue, assignees: %s", assigned_logins)
 
-            assignees = (
-                data.get("addAssigneesToAssignable", {})
-                .get("assignable", {})
-                .get("assignees", {})
-                .get("nodes", [])
-            )
-            assigned_logins = [a.get("login", "") for a in assignees]
-
-            if custom_agent:
-                logger.info(
-                    "GraphQL: Assigned Copilot with custom agent '%s', assignees: %s",
-                    custom_agent,
-                    assigned_logins,
-                )
-            else:
-                logger.info("GraphQL: Assigned Copilot to issue, assignees: %s", assigned_logins)
-
-            return True
-
-        except Exception as e:
-            logger.error("GraphQL failed to assign Copilot to issue: %s", e)
-            return False
+        return True
 
     async def validate_assignee(
         self,
