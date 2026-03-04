@@ -10,14 +10,11 @@ import pytest
 
 from src.models.agents import (
     Agent,
-    AgentCreate,
     AgentCreateResult,
     AgentDeleteResult,
     AgentSource,
     AgentStatus,
-    AgentUpdate,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 

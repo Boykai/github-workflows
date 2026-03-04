@@ -1750,9 +1750,10 @@ async def process_in_progress_issue(
             "Error processing issue #%d: %s",
             issue_number,
             e,
+            exc_info=True,
         )
         return {
             "status": "error",
             "issue_number": issue_number,
-            "error": str(e),
+            "error": "An error occurred while processing issue",
         }

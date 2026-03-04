@@ -4,7 +4,7 @@ Regression tests for bug-bash security fixes:
 - Health check responses must not leak internal exception details.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

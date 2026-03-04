@@ -66,7 +66,7 @@ def _check_polling_loop() -> dict:
         return {"status": "warn", "observed_value": "stopped"}
     except Exception as exc:
         logger.warning("Health check: polling_loop failed — %s", exc)
-        return {"status": "warn", "observed_value": f"error: {exc}"}
+        return {"status": "warn", "observed_value": "error"}
 
 
 @router.get("/health", tags=["health"])
