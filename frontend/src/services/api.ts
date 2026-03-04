@@ -587,3 +587,108 @@ export const choresApi = {
 };
 
 
+// ── Agents API ─────────────────────────────────────────────────────────
+
+export type AgentStatus = 'active' | 'pending_pr' | 'pending_deletion';
+export type AgentSource = 'local' | 'repo' | 'both';
+
+export interface AgentConfig {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  system_prompt: string;
+  status: AgentStatus;
+  tools: string[];
+  status_column: string | null;
+  github_issue_number: number | null;
+  github_pr_number: number | null;
+  branch_name: string | null;
+  source: AgentSource;
+  created_at: string | null;
+}
+
+export interface AgentCreate {
+  name: string;
+  description?: string;
+  system_prompt: string;
+  tools?: string[];
+  status_column?: string;
+  raw?: boolean;
+}
+
+export interface AgentUpdate {
+  name?: string;
+  description?: string;
+  system_prompt?: string;
+  tools?: string[];
+}
+
+export interface AgentCreateResult {
+  agent: AgentConfig;
+  pr_url: string;
+  pr_number: number;
+  issue_number: number | null;
+  branch_name: string;
+}
+
+export interface AgentDeleteResult {
+  success: boolean;
+  pr_url: string;
+  pr_number: number;
+  issue_number: number | null;
+}
+
+export interface AgentChatMessage {
+  message: string;
+  session_id?: string | null;
+}
+
+export interface AgentPreviewResponse {
+  name: string;
+  slug: string;
+  description: string;
+  system_prompt: string;
+  status_column: string;
+  tools: string[];
+}
+
+export interface AgentChatResponse {
+  reply: string;
+  session_id: string;
+  is_complete: boolean;
+  preview: AgentPreviewResponse | null;
+}
+
+export const agentsApi = {
+  list(projectId: string): Promise<AgentConfig[]> {
+    return request<AgentConfig[]>(`/agents/${projectId}`);
+  },
+
+  create(projectId: string, data: AgentCreate): Promise<AgentCreateResult> {
+    return request<AgentCreateResult>(`/agents/${projectId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update(projectId: string, agentId: string, data: AgentUpdate): Promise<AgentCreateResult> {
+    return request<AgentCreateResult>(`/agents/${projectId}/${agentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete(projectId: string, agentId: string): Promise<AgentDeleteResult> {
+    return request<AgentDeleteResult>(`/agents/${projectId}/${agentId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  chat(projectId: string, data: AgentChatMessage): Promise<AgentChatResponse> {
+    return request<AgentChatResponse>(`/agents/${projectId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};

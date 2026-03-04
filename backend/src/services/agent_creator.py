@@ -695,7 +695,7 @@ async def _execute_creation_pipeline(
         )
 
     # ── Step 4: Create GitHub Issue ──
-    issue_body = _generate_issue_body(preview)
+    issue_body = generate_issue_body(preview)
     try:
         issue = await github_projects_service.create_issue(
             access_token=access_token,
@@ -788,7 +788,7 @@ async def _execute_creation_pipeline(
     # ── Step 6: Commit configuration files ──
     branch_created = any(r.step_name == "Create branch" and r.success for r in results)
     if branch_created and repo_info:
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         try:
             # For a newly created branch, the HEAD is the same as the source OID
             commit_oid = await github_projects_service.commit_files(
@@ -975,7 +975,7 @@ async def _execute_creation_pipeline(
 # ── File generation helpers ────────────────────────────────────────────
 
 
-def _generate_issue_body(preview: AgentPreview) -> str:
+def generate_issue_body(preview: AgentPreview) -> str:
     """Generate the GitHub Issue body markdown for an agent config."""
     tools_list = ", ".join(f"`{t}`" for t in preview.tools[:10])
     if len(preview.tools) > 10:
@@ -993,7 +993,7 @@ def _generate_issue_body(preview: AgentPreview) -> str:
     )
 
 
-def _generate_config_files(preview: AgentPreview) -> list[dict]:
+def generate_config_files(preview: AgentPreview) -> list[dict]:
     """Generate the 2 config files for commit: agent .md and prompt .md.
 
     Files follow the GitHub Custom Agent format:

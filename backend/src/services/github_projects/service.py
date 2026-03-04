@@ -4186,6 +4186,59 @@ class GitHubProjectsService:
             logger.error("Error getting PR #%d files: %s", pr_number, e)
             return []
 
+    async def get_directory_contents(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+    ) -> list[dict]:
+        """List files in a directory from the default branch via REST API.
+
+        Returns a list of dicts with ``name``, ``path``, ``type`` keys.
+        For files, ``content`` is NOT included (use ``get_file_content`` separately).
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+                headers=self._build_headers(access_token),
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if isinstance(data, list):
+                    return data
+                return []
+            return []
+        except Exception as exc:
+            logger.debug("get_directory_contents(%s/%s/%s) failed: %s", owner, repo, path, exc)
+            return []
+
+    async def get_file_content(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        path: str,
+    ) -> dict | None:
+        """Get a single file's decoded content from the default branch.
+
+        Returns a dict with ``content`` (decoded text) and ``name``, or None.
+        """
+        try:
+            response = await self._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+                headers={
+                    **self._build_headers(access_token),
+                    "Accept": "application/vnd.github.raw+json",
+                },
+            )
+            if response.status_code == 200:
+                return {"content": response.text, "name": path.split("/")[-1]}
+            return None
+        except Exception as exc:
+            logger.debug("get_file_content(%s/%s/%s) failed: %s", owner, repo, path, exc)
+            return None
+
     async def get_file_content_from_ref(
         self,
         access_token: str,
