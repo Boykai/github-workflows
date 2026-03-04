@@ -220,6 +220,6 @@ def get_polling_status() -> dict[str, Any]:
         ),
         "poll_count": _polling_state.poll_count,
         "errors_count": _polling_state.errors_count,
-        "last_error": _polling_state.last_error,
+        "last_error": "An error occurred during polling" if _polling_state.last_error else None,
         "processed_issues_count": len(_processed_issue_prs),
     }

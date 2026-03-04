@@ -33,7 +33,7 @@ async def _check_database() -> dict:
         return {"status": "pass", "time": f"{elapsed}ms"}
     except Exception as exc:
         logger.warning("Health check: database failed — %s", exc)
-        return {"status": "fail", "output": str(exc)}
+        return {"status": "fail", "output": "Database connectivity check failed"}
 
 
 async def _check_github_api() -> dict:
@@ -50,7 +50,7 @@ async def _check_github_api() -> dict:
         return {"status": "fail", "output": f"HTTP {resp.status_code}"}
     except Exception as exc:
         logger.warning("Health check: github_api failed — %s", exc)
-        return {"status": "fail", "output": str(exc)}
+        return {"status": "fail", "output": "GitHub API connectivity check failed"}
 
 
 def _check_polling_loop() -> dict:
@@ -66,7 +66,7 @@ def _check_polling_loop() -> dict:
         return {"status": "warn", "observed_value": "stopped"}
     except Exception as exc:
         logger.warning("Health check: polling_loop failed — %s", exc)
-        return {"status": "warn", "observed_value": f"error: {exc}"}
+        return {"status": "warn", "observed_value": "error"}
 
 
 @router.get("/health", tags=["health"])

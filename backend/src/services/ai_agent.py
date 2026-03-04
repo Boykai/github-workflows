@@ -413,9 +413,14 @@ class AIAgentService:
 
         except Exception as e:
             error_msg = str(e)
-            logger.error("Failed to generate task: %s", error_msg)
+            logger.error("Failed to generate task: %s", error_msg, exc_info=True)
 
             # Provide helpful error messages
+            # TODO(bug-bash): Security — these ValueError messages include raw exception
+            # text (`Original error: ...`) that may leak to Signal users via
+            # signal_chat.py.  Options: (1) remove `Original error:` suffix,
+            # (2) keep for debugging.  HTTP API path is safe (chat.py catches and
+            # returns a generic message).  Human decision needed.
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "AI provider authentication failed. Check your credentials "

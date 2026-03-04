@@ -830,6 +830,28 @@ class TestProcessInProgressIssue:
 
         assert "42:100" in _processed_issue_prs
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_exception_error_does_not_leak_details(self, mock_service):
+        """Bug-bash regression: generic exception must not expose raw text."""
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            side_effect=RuntimeError("Connection to secret-host.internal:3306 refused")
+        )
+
+        result = await process_in_progress_issue(
+            access_token="test-token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "error"
+        assert "secret-host" not in result.get("error", "")
+        assert "3306" not in result.get("error", "")
+
 
 class TestCheckIssueForCopilotCompletion:
     """Tests for manual issue checking."""
@@ -908,6 +930,26 @@ class TestCheckIssueForCopilotCompletion:
 
         assert result["status"] == "no_action"
         assert result["issue_number"] == 42
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_error_does_not_leak_exception_details(self, mock_service):
+        """Bug-bash regression: error dict must not expose raw exception text."""
+        mock_service.get_project_items = AsyncMock(
+            side_effect=RuntimeError("Connection to internal-db.corp:5432 refused")
+        )
+
+        result = await check_issue_for_copilot_completion(
+            access_token="test-token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
+
+        assert result["status"] == "error"
+        assert "internal-db.corp" not in result.get("error", "")
+        assert "5432" not in result.get("error", "")
 
 
 class TestPostAgentOutputsFromPr:
