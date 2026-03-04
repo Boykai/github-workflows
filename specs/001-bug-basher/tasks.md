@@ -25,13 +25,13 @@
 
 **Purpose**: Establish baseline state — ensure all existing tests pass and linting is clean before making any changes. Set up the audit tracking structure.
 
-- [ ] T001 Install backend dependencies and verify environment in backend/ (`pip install -e ".[dev]"`)
-- [ ] T002 [P] Install frontend dependencies and verify environment in frontend/ (`npm install`)
-- [ ] T003 Run backend lint baseline: `ruff check src tests && ruff format --check src tests` in backend/
-- [ ] T004 [P] Run frontend lint baseline: `npx eslint . && npx tsc --noEmit` in frontend/
-- [ ] T005 Run backend test baseline: execute each `backend/tests/unit/test_*.py` individually with `timeout 30 python -m pytest <file> -q`
-- [ ] T006 [P] Run frontend test baseline: `npx vitest run` in frontend/
-- [ ] T007 Record baseline results (pass/fail counts, known failures) for comparison after bug fixes
+- [X] T001 Install backend dependencies and verify environment in backend/ (`pip install -e ".[dev]"`)
+- [X] T002 [P] Install frontend dependencies and verify environment in frontend/ (`npm install`)
+- [X] T003 Run backend lint baseline: `ruff check src tests && ruff format --check src tests` in backend/
+- [X] T004 [P] Run frontend lint baseline: `npx eslint . && npx tsc --noEmit` in frontend/
+- [X] T005 Run backend test baseline: execute each `backend/tests/unit/test_*.py` individually with `timeout 30 python -m pytest <file> -q`
+- [X] T006 [P] Run frontend test baseline: `npx vitest run` in frontend/
+- [X] T007 Record baseline results (pass/fail counts, known failures) for comparison after bug fixes
 
 ---
 
@@ -41,12 +41,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Review centralized error handling patterns in backend/src/logging_utils.py — document `handle_service_error()`, `safe_error_response()`, `get_logger()` conventions
-- [ ] T009 [P] Review exception hierarchy in backend/src/exceptions.py — document custom exception classes and usage patterns
-- [ ] T010 [P] Review authentication dependency injection in backend/src/dependencies.py — document `get_current_user` pattern and auth flow
-- [ ] T011 [P] Review configuration management in backend/src/config.py — document environment variable loading and secure defaults
-- [ ] T012 [P] Review test helpers and conventions in backend/tests/helpers/factories.py, backend/tests/helpers/mocks.py, backend/tests/helpers/assertions.py, backend/tests/conftest.py
-- [ ] T013 Review frontend API service layer in frontend/src/services/api.ts — document API call patterns, token handling, error handling
+- [X] T008 Review centralized error handling patterns in backend/src/logging_utils.py — document `handle_service_error()`, `safe_error_response()`, `get_logger()` conventions
+- [X] T009 [P] Review exception hierarchy in backend/src/exceptions.py — document custom exception classes and usage patterns
+- [X] T010 [P] Review authentication dependency injection in backend/src/dependencies.py — document `get_current_user` pattern and auth flow
+- [X] T011 [P] Review configuration management in backend/src/config.py — document environment variable loading and secure defaults
+- [X] T012 [P] Review test helpers and conventions in backend/tests/helpers/factories.py, backend/tests/helpers/mocks.py, backend/tests/helpers/assertions.py, backend/tests/conftest.py
+- [X] T013 Review frontend API service layer in frontend/src/services/api.ts — document API call patterns, token handling, error handling
 
 **Checkpoint**: Foundation ready — codebase conventions understood, all bug fixes will follow established patterns
 
@@ -64,8 +64,8 @@
 - [ ] T015 [P] [US1] Audit board API for input validation and auth issues in backend/src/api/board.py — fix and add regression tests in backend/tests/unit/test_api_board.py
 - [ ] T016 [P] [US1] Audit chat API for input validation, injection risks, and error info leakage in backend/src/api/chat.py — fix and add regression tests in backend/tests/unit/test_api_chat.py
 - [ ] T017 [P] [US1] Audit chores API for input validation and auth issues in backend/src/api/chores.py — fix and add regression tests in backend/tests/unit/test_chores_api.py
-- [ ] T018 [P] [US1] Audit cleanup API for input validation and auth issues in backend/src/api/cleanup.py — fix and add regression tests in backend/tests/unit/test_cleanup_service.py
-- [ ] T019 [P] [US1] Audit health API for information disclosure in backend/src/api/health.py — fix and add regression tests in backend/tests/unit/
+- [X] T018 [P] [US1] Audit cleanup API for input validation and auth issues in backend/src/api/cleanup.py — fix and add regression tests in backend/tests/unit/test_cleanup_service.py
+- [X] T019 [P] [US1] Audit health API for information disclosure in backend/src/api/health.py — fix and add regression tests in backend/tests/unit/
 - [ ] T020 [P] [US1] Audit MCP API for input validation and auth issues in backend/src/api/mcp.py — fix and add regression tests in backend/tests/unit/test_api_mcp.py
 - [ ] T021 [P] [US1] Audit projects API for input validation and auth issues in backend/src/api/projects.py — fix and add regression tests in backend/tests/unit/test_api_projects.py
 - [ ] T022 [P] [US1] Audit settings API for input validation and auth issues in backend/src/api/settings.py — fix and add regression tests in backend/tests/unit/test_api_settings.py
@@ -100,10 +100,10 @@
 
 ### US1 Validation
 
-- [ ] T042 [US1] Run full backend test suite after all P1 security fixes — all tests must pass
-- [ ] T043 [P] [US1] Run full frontend test suite after all P1 security fixes — all tests must pass
-- [ ] T044 [US1] Run backend lint after all P1 fixes: `ruff check src tests && ruff format --check src tests` in backend/
-- [ ] T045 [P] [US1] Run frontend lint after all P1 fixes: `npx eslint . && npx tsc --noEmit` in frontend/
+- [X] T042 [US1] Run full backend test suite after all P1 security fixes — all tests must pass
+- [X] T043 [P] [US1] Run full frontend test suite after all P1 security fixes — all tests must pass
+- [X] T044 [US1] Run backend lint after all P1 fixes: `ruff check src tests && ruff format --check src tests` in backend/
+- [X] T045 [P] [US1] Run frontend lint after all P1 fixes: `npx eslint . && npx tsc --noEmit` in frontend/
 
 **Checkpoint**: All security vulnerabilities identified, fixed with regression tests, or flagged as TODO(bug-bash). Test suite and lint pass.
 

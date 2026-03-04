@@ -714,3 +714,29 @@ class TestOrphanedIssues:
         assert len(result.errors) == 1
         assert result.errors[0].item_type == "issue"
         assert result.errors[0].action == "failed"
+
+
+# ── Bug-bash regression: permission error must not leak exception details ──
+
+
+class TestCheckUserPermissionInfoLeak:
+    """Bug-bash regression: check_user_permission must not expose raw
+    exception text in the error message returned to the caller."""
+
+    @pytest.mark.asyncio
+    async def test_exception_does_not_leak_details(self):
+        secret_msg = "SSLError: certificate verify failed at /etc/ssl/certs"
+        service = AsyncMock()
+        service._build_headers = MagicMock(return_value={"Authorization": "Bearer tok"})
+        service._client = AsyncMock()
+        service._client.get = AsyncMock(side_effect=Exception(secret_msg))
+
+        has_perm, error = await cleanup_service.check_user_permission(
+            service, "tok", "owner", "repo", "user"
+        )
+
+        assert has_perm is False
+        assert error is not None
+        assert secret_msg not in error
+        assert "SSLError" not in error
+        assert "/etc/ssl" not in error

@@ -75,6 +75,31 @@ class TestHealthEndpoint:
         assert body["checks"]["database"][0]["status"] == "fail"
 
     @pytest.mark.anyio
+    async def test_database_failure_does_not_leak_exception_details(self, health_client):
+        """Bug-bash regression: health check must not expose raw exception text."""
+        secret_msg = "SQLITE_ERROR: /app/data/settings.db is not accessible"
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=Exception(secret_msg))
+
+        with (
+            patch("src.api.health.get_db", return_value=mock_db),
+            patch(
+                "src.api.health._check_github_api", return_value={"status": "pass", "time": "50ms"}
+            ),
+            patch(
+                "src.api.health._check_polling_loop",
+                return_value={"status": "pass", "observed_value": "running"},
+            ),
+        ):
+            response = await health_client.get("/api/v1/health")
+
+        body = response.json()
+        response_text = str(body)
+        assert secret_msg not in response_text
+        assert "SQLITE_ERROR" not in response_text
+        assert "/app/data" not in response_text
+
+    @pytest.mark.anyio
     async def test_polling_not_running(self, health_client):
         """When polling loop is not running, it reports as warn but overall can still pass."""
         mock_db = AsyncMock()
