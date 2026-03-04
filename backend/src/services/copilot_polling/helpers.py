@@ -147,42 +147,22 @@ async def _check_copilot_review_done(
     if done_marker:
         return True
 
-    # Locate the main PR for this issue
-    main_branch_info = _cp.get_issue_main_branch(parent_issue_number)
-    pr_number: int | None = None
+    # Locate the main PR for this issue using comprehensive discovery
+    discovered = await _discover_main_pr_for_review(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        parent_issue_number=parent_issue_number,
+    )
 
-    if main_branch_info:
-        pr_number = main_branch_info["pr_number"]
-    else:
-        # Fallback: discover the PR via the API
-        try:
-            found_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=parent_issue_number,
-            )
-            if found_pr:
-                pr_number = found_pr["number"]
-        except Exception as e:
-            logger.warning(
-                "Could not find main PR for copilot-review completion check on issue #%d: %s",
-                parent_issue_number,
-                e,
-            )
-
-    if not pr_number:
+    if not discovered:
         logger.debug(
             "No main PR found for copilot-review completion check on issue #%d",
             parent_issue_number,
         )
         return False
 
-    # ── Self-healing: ensure the PR is ready-for-review and that a
-    # Copilot review has been requested.  The initial assignment in
-    # assign_agent_for_status may have failed to un-draft the PR or
-    # request the review.  Retrying here on every poll cycle ensures the
-    # pipeline recovers automatically instead of waiting forever.
+    pr_number = discovered["pr_number"]
     pr_details = await _cp.github_projects_service.get_pull_request(
         access_token=access_token,
         owner=owner,
@@ -190,6 +170,11 @@ async def _check_copilot_review_done(
         pr_number=pr_number,
     )
 
+    # ── Self-healing: ensure the PR is ready-for-review and that a
+    # Copilot review has been requested.  The initial assignment in
+    # assign_agent_for_status may have failed to un-draft the PR or
+    # request the review.  Retrying here on every poll cycle ensures the
+    # pipeline recovers automatically instead of waiting forever.
     if pr_details and pr_details.get("is_draft"):
         pr_node_id = pr_details.get("id")
         if pr_node_id:
@@ -548,6 +533,326 @@ async def _get_tracking_state_from_issue(
         issue_number=issue_number,
     )
     return issue_data.get("body", ""), issue_data.get("comments", [])
+
+
+async def _discover_main_pr_for_review(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+) -> dict | None:
+    """Discover the main PR for the copilot-review step.
+
+    Uses a comprehensive multi-strategy approach:
+
+    1. In-memory ``_issue_main_branches`` cache (cheapest).
+    2. ``find_existing_pr_for_issue`` on the parent issue (timeline + REST).
+    3. Sub-issue PR discovery — checks PRs linked to agent sub-issues
+       (the main PR is typically linked to the ``speckit.specify`` sub-issue,
+       NOT the parent).
+    5. REST search for open PRs matching the issue by branch-name pattern
+       or body reference — catches cases where sub-issue reconstruction
+       fails or the PR only references a sub-issue number.
+    6. If a branch is found via sub-issue PRs but no **open** PR exists for
+       it, creates a new PR from the branch to the default branch (WIP →
+       ready-for-review).
+
+    When a PR is discovered via sub-issues, the PR is linked to the parent
+    issue and the in-memory cache is populated for future lookups.
+
+    Returns:
+        ``{"pr_number": int, "pr_id": str, "head_ref": str, "is_draft": bool}``
+        or ``None`` if no PR could be found or created.
+    """
+    # ── Strategy 1: In-memory cache ──
+    main_branch_info = _cp.get_issue_main_branch(parent_issue_number)
+    if main_branch_info:
+        pr_number = main_branch_info["pr_number"]
+        pr_details = await _cp.github_projects_service.get_pull_request(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            pr_number=pr_number,
+        )
+        if pr_details:
+            return {
+                "pr_number": pr_number,
+                "pr_id": pr_details.get("id", ""),
+                "head_ref": main_branch_info.get("branch", ""),
+                "is_draft": pr_details.get("is_draft", False),
+            }
+
+    # ── Strategy 2: find_existing_pr_for_issue on parent issue ──
+    try:
+        found_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=parent_issue_number,
+        )
+        if found_pr:
+            pr_number = found_pr["number"]
+            head_ref = found_pr.get("head_ref", "")
+            pr_details = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+            pr_id = pr_details.get("id", "") if pr_details else ""
+            is_draft = pr_details.get("is_draft", False) if pr_details else False
+            h_sha = pr_details.get("last_commit", {}).get("sha", "") if pr_details else ""
+            if head_ref:
+                _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_number, h_sha)
+            return {
+                "pr_number": pr_number,
+                "pr_id": pr_id,
+                "head_ref": head_ref,
+                "is_draft": is_draft,
+            }
+    except Exception as e:
+        logger.debug(
+            "Strategy 2 (find_existing_pr) failed for issue #%d: %s",
+            parent_issue_number,
+            e,
+        )
+
+    # ── Strategy 3: Discover PRs via sub-issues ──
+    # The main PR is typically linked to the speckit.specify sub-issue,
+    # not the parent issue.  Reconstruct sub-issue mappings and search.
+    candidate_pr: dict | None = None
+    candidate_branch: str = ""
+    try:
+        # Ensure sub-issue mappings are available
+        sub_mappings = _cp.get_issue_sub_issues(parent_issue_number)
+        if not sub_mappings:
+            sub_mappings = await _reconstruct_sub_issue_mappings(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=parent_issue_number,
+            )
+
+        # Check sub-issues in priority order: speckit.specify first (creates the main PR)
+        priority_agents = ["speckit.specify"]
+        other_agents = [a for a in sub_mappings if a not in priority_agents]
+        ordered_agents = priority_agents + other_agents
+
+        for agent_name in ordered_agents:
+            sub_info = sub_mappings.get(agent_name)
+            if not sub_info:
+                continue
+            sub_number = sub_info.get("number")
+            if not sub_number:
+                continue
+
+            sub_prs = await _cp.github_projects_service.get_linked_pull_requests(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_number,
+            )
+
+            for pr in sub_prs:
+                pr_state = (pr.get("state") or "").upper()
+                pr_num = pr.get("number")
+                head_ref = pr.get("head_ref", "")
+                if not pr_num:
+                    continue
+
+                # Get full PR details to check base_ref
+                pr_det = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_num,
+                )
+                if not pr_det:
+                    continue
+
+                base_ref = pr_det.get("base_ref", "")
+
+                # The main PR targets the default branch (e.g. "main"),
+                # NOT another feature branch.  Child PRs target the
+                # main feature branch, so skip those.
+                repo_info = await _cp.github_projects_service.get_repository_info(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                )
+                default_branch = repo_info.get("default_branch", "main")
+
+                if base_ref != default_branch:
+                    continue  # This is a child PR, not the main PR
+
+                if pr_state == "OPEN":
+                    pr_id = pr_det.get("id", "")
+                    is_draft = pr_det.get("is_draft", False)
+                    h_sha = pr_det.get("last_commit", {}).get("sha", "")
+                    if head_ref:
+                        _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_num, h_sha)
+
+                    # Link to parent issue for future lookups
+                    await _link_prs_to_parent(access_token, owner, repo, parent_issue_number, [pr])
+
+                    logger.info(
+                        "Discovered main PR #%d (branch '%s') for issue #%d via sub-issue #%d (%s)",
+                        pr_num,
+                        head_ref,
+                        parent_issue_number,
+                        sub_number,
+                        agent_name,
+                    )
+                    return {
+                        "pr_number": pr_num,
+                        "pr_id": pr_id,
+                        "head_ref": head_ref,
+                        "is_draft": is_draft,
+                    }
+
+                # Track closed/merged PRs with a branch for Strategy 4
+                if head_ref and not candidate_pr:
+                    candidate_pr = pr_det
+                    candidate_branch = head_ref
+
+    except Exception as e:
+        logger.warning(
+            "Strategy 3 (sub-issue PR discovery) failed for issue #%d: %s",
+            parent_issue_number,
+            e,
+        )
+
+    # ── Strategy 5: REST search for open Copilot PRs targeting the default branch ──
+    # Catches cases where sub-issue reconstruction fails or the PR is
+    # not linked to the parent issue (e.g. it references a sub-issue number
+    # only).  Searches ALL open PRs for branch-name patterns that include
+    # the issue number and for Copilot-authored PRs whose body references
+    # the parent issue.
+    if not candidate_branch:
+        try:
+            rest_prs = await _cp.github_projects_service._search_open_prs_for_issue_rest(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=parent_issue_number,
+            )
+            if rest_prs:
+                repo_info = await _cp.github_projects_service.get_repository_info(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                )
+                default_branch = repo_info.get("default_branch", "main")
+
+                for pr in rest_prs:
+                    pr_num = pr.get("number")
+                    head_ref = pr.get("head_ref", "")
+                    if not pr_num:
+                        continue
+
+                    pr_det = await _cp.github_projects_service.get_pull_request(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=pr_num,
+                    )
+                    if not pr_det:
+                        continue
+
+                    base_ref = pr_det.get("base_ref", "")
+                    if base_ref != default_branch:
+                        continue  # Not targeting default branch — skip
+
+                    pr_id = pr_det.get("id", "")
+                    is_draft = pr_det.get("is_draft", False)
+                    h_sha = pr_det.get("last_commit", {}).get("sha", "")
+                    if head_ref:
+                        _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_num, h_sha)
+
+                    logger.info(
+                        "Strategy 5: discovered PR #%d (branch '%s') for issue #%d "
+                        "via REST branch/body search",
+                        pr_num,
+                        head_ref,
+                        parent_issue_number,
+                    )
+                    return {
+                        "pr_number": pr_num,
+                        "pr_id": pr_id,
+                        "head_ref": head_ref,
+                        "is_draft": is_draft,
+                    }
+        except Exception as e:
+            logger.debug(
+                "Strategy 5 (REST PR search) failed for issue #%d: %s",
+                parent_issue_number,
+                e,
+            )
+
+    # ── Strategy 6: Branch exists but no open PR — create one ──
+    if candidate_branch:
+        logger.info(
+            "No open PR found for issue #%d but branch '%s' exists — "
+            "creating PR for Copilot review",
+            parent_issue_number,
+            candidate_branch,
+        )
+        try:
+            repo_info = await _cp.github_projects_service.get_repository_info(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+            )
+            repository_id = repo_info["repository_id"]
+            default_branch = repo_info.get("default_branch", "main")
+
+            # Fetch parent issue title/body for the PR
+            issue_data = await _cp.github_projects_service.get_issue_with_comments(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=parent_issue_number,
+            )
+            issue_title = issue_data.get("title", f"Issue #{parent_issue_number}")
+
+            new_pr = await _cp.github_projects_service.create_pull_request(
+                access_token=access_token,
+                repository_id=repository_id,
+                title=issue_title,
+                body=f"Resolves #{parent_issue_number}\n\nAuto-created PR for Copilot code review.",
+                head_branch=candidate_branch,
+                base_branch=default_branch,
+                draft=False,
+            )
+            if new_pr and new_pr.get("number"):
+                pr_num = new_pr["number"]
+                pr_id = new_pr.get("id", "")
+                _cp.set_issue_main_branch(parent_issue_number, candidate_branch, pr_num, "")
+                logger.info(
+                    "Created PR #%d from branch '%s' for issue #%d for Copilot review",
+                    pr_num,
+                    candidate_branch,
+                    parent_issue_number,
+                )
+                return {
+                    "pr_number": pr_num,
+                    "pr_id": pr_id,
+                    "head_ref": candidate_branch,
+                    "is_draft": False,
+                }
+        except Exception as e:
+            logger.warning(
+                "Strategy 6 (create PR) failed for issue #%d branch '%s': %s",
+                parent_issue_number,
+                candidate_branch,
+                e,
+            )
+
+    logger.warning(
+        "Could not discover main PR for issue #%d via any strategy",
+        parent_issue_number,
+    )
+    return None
 
 
 def _get_sub_issue_numbers_for_issue(

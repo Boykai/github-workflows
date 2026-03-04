@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     # Default repository for issue creation (owner/repo format)
     default_repository: str | None = None
 
+    # Default GitHub Project V2 node ID for polling (e.g. PVT_kwHOAIsXss4BOJmo)
+    # When set, the webhook-token fallback uses this project directly instead of
+    # searching project_settings rows.
+    default_project_id: str | None = None
+
     # Default assignee for issues in "In Progress" status (empty to skip)
     default_assignee: str = ""
 

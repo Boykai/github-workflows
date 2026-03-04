@@ -1078,80 +1078,78 @@ class WorkflowOrchestrator:
                 ctx.issue_number,
             )
 
-            # Resolve the main PR for this issue (branch created by speckit.specify)
+            # Resolve the main PR using comprehensive multi-strategy discovery:
+            # 1. In-memory cache, 2. Parent issue timeline/REST search,
+            # 3. Sub-issue PR discovery (reconstructs sub-issue mappings),
+            # 4. REST branch search for Copilot-authored PRs,
+            # 5. Create PR from branch if branch exists but no open PR.
+            # This replaces the previous 2-strategy inline lookup that missed
+            # PRs linked only to sub-issues (not the parent issue).
+            from ..copilot_polling.helpers import _discover_main_pr_for_review
+
+            discovered = await _discover_main_pr_for_review(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                parent_issue_number=ctx.issue_number,
+            )
+
             review_pr_number: int | None = None
             review_pr_id: str | None = None
 
-            main_branch_info = get_issue_main_branch(ctx.issue_number)
-            if main_branch_info:
-                review_pr_number = int(main_branch_info["pr_number"])
+            if discovered:
+                review_pr_number = int(discovered["pr_number"]) if discovered["pr_number"] else None
+                review_pr_id = discovered.get("pr_id", "")
+                is_draft = discovered.get("is_draft", False)
                 logger.info(
-                    "Found main branch '%s' (PR #%d) for issue #%d via in-memory store",
-                    main_branch_info.get("branch", ""),
+                    "Discovered main PR #%s (branch '%s', draft=%s) for "
+                    "copilot-review on issue #%d via comprehensive discovery",
                     review_pr_number,
+                    discovered.get("head_ref", ""),
+                    is_draft,
                     ctx.issue_number,
                 )
-            else:
-                # Fallback: scan linked PRs on the parent issue
-                try:
-                    found_pr = await self.github.find_existing_pr_for_issue(
+
+                # If the GraphQL node ID is missing, fetch full PR details
+                if not review_pr_id and review_pr_number:
+                    pr_details = await self.github.get_pull_request(
                         access_token=ctx.access_token,
                         owner=ctx.repository_owner,
                         repo=ctx.repository_name,
-                        issue_number=ctx.issue_number,
+                        pr_number=review_pr_number,
                     )
-                    if found_pr:
-                        review_pr_number = int(found_pr["number"])
-                        logger.info(
-                            "Found linked PR #%d for copilot-review on issue #%d via API",
-                            review_pr_number,
-                            ctx.issue_number,
+                    if pr_details:
+                        review_pr_id = pr_details.get("id")
+                        is_draft = pr_details.get("is_draft", False)
+
+                # Convert draft → ready BEFORE requesting review.
+                # GitHub does not allow requesting reviews on draft PRs.
+                if is_draft and review_pr_id and review_pr_number:
+                    logger.info(
+                        "Main PR #%d is still draft — converting to ready for review "
+                        "before requesting Copilot code review",
+                        review_pr_number,
+                    )
+                    mark_ready_ok = await self.github.mark_pr_ready_for_review(
+                        access_token=ctx.access_token,
+                        pr_node_id=str(review_pr_id),
+                    )
+                    if mark_ready_ok:
+                        from ..copilot_polling.pipeline import (
+                            _system_marked_ready_prs,
                         )
-                except Exception as _find_err:
-                    logger.warning(
-                        "Failed to find PR for copilot-review on issue #%d: %s",
-                        ctx.issue_number,
-                        _find_err,
-                    )
 
-            if review_pr_number:
-                pr_details = await self.github.get_pull_request(
-                    access_token=ctx.access_token,
-                    owner=ctx.repository_owner,
-                    repo=ctx.repository_name,
-                    pr_number=review_pr_number,
-                )
-                if pr_details:
-                    review_pr_id = pr_details.get("id")
-
-                    # Convert draft → ready BEFORE requesting review.
-                    # GitHub does not allow requesting reviews on draft PRs.
-                    if pr_details.get("is_draft") and review_pr_id:
+                        _system_marked_ready_prs.add(review_pr_number)
                         logger.info(
-                            "Main PR #%d is still draft — converting to ready for review "
-                            "before requesting Copilot code review",
+                            "Successfully converted main PR #%d from draft to ready",
                             review_pr_number,
                         )
-                        mark_ready_ok = await self.github.mark_pr_ready_for_review(
-                            access_token=ctx.access_token,
-                            pr_node_id=str(review_pr_id),
+                    else:
+                        logger.warning(
+                            "Failed to convert main PR #%d from draft to ready — "
+                            "Copilot review request will likely fail",
+                            review_pr_number,
                         )
-                        if mark_ready_ok:
-                            from ..copilot_polling.pipeline import (
-                                _system_marked_ready_prs,
-                            )
-
-                            _system_marked_ready_prs.add(review_pr_number)
-                            logger.info(
-                                "Successfully converted main PR #%d from draft to ready",
-                                review_pr_number,
-                            )
-                        else:
-                            logger.warning(
-                                "Failed to convert main PR #%d from draft to ready — "
-                                "Copilot review request will likely fail",
-                                review_pr_number,
-                            )
 
             # Request the Copilot code review on the main PR
             review_requested = False
@@ -1177,7 +1175,8 @@ class WorkflowOrchestrator:
                     )
             else:
                 logger.warning(
-                    "No main PR found for copilot-review on issue #%d — cannot request review",
+                    "No main PR found for copilot-review on issue #%d — "
+                    "comprehensive discovery exhausted all strategies",
                     ctx.issue_number,
                 )
 

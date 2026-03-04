@@ -1130,57 +1130,81 @@ async def _transition_after_pipeline_complete(
     _cp.remove_pipeline_state(issue_number)
 
     # When transitioning to "In Review", convert main PR from draft→ready
-    # and request Copilot code review on the main PR
+    # and request Copilot code review on the main PR.
+    # Uses comprehensive multi-strategy discovery (in-memory cache,
+    # parent issue links, sub-issue PR discovery, REST branch search,
+    # and auto-creation of PR from WIP branches) to find the main PR
+    # even when in-memory state is lost (e.g. after server restart).
     if to_status.lower() == "in review":
-        main_branch_info = _cp.get_issue_main_branch(issue_number)
-        if main_branch_info:
-            main_pr_number = main_branch_info["pr_number"]
-            main_pr_details = await _cp.github_projects_service.get_pull_request(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                pr_number=main_pr_number,
-            )
-            if main_pr_details:
-                main_pr_id = main_pr_details.get("id")
-                main_pr_is_draft = main_pr_details.get("is_draft", False)
+        from .helpers import _discover_main_pr_for_review
 
-                # Convert draft → ready
-                if main_pr_is_draft and main_pr_id:
+        discovered = await _discover_main_pr_for_review(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            parent_issue_number=issue_number,
+        )
+
+        if discovered:
+            main_pr_number = discovered["pr_number"]
+            main_pr_id = discovered.get("pr_id", "")
+            main_pr_is_draft = discovered.get("is_draft", False)
+
+            # If the GraphQL node ID is missing, fetch full PR details
+            if not main_pr_id and main_pr_number:
+                main_pr_details = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=main_pr_number,
+                )
+                if main_pr_details:
+                    main_pr_id = main_pr_details.get("id", "")
+                    main_pr_is_draft = main_pr_details.get("is_draft", False)
+
+            # Convert draft → ready
+            if main_pr_is_draft and main_pr_id:
+                logger.info(
+                    "Converting main PR #%d from draft to ready for review",
+                    main_pr_number,
+                )
+                mark_ready_success = await _cp.github_projects_service.mark_pr_ready_for_review(
+                    access_token=access_token,
+                    pr_node_id=str(main_pr_id),
+                )
+                if mark_ready_success:
+                    _system_marked_ready_prs.add(main_pr_number)
                     logger.info(
-                        "Converting main PR #%d from draft to ready for review",
+                        "Successfully converted main PR #%d from draft to ready",
                         main_pr_number,
                     )
-                    mark_ready_success = await _cp.github_projects_service.mark_pr_ready_for_review(
-                        access_token=access_token,
-                        pr_node_id=main_pr_id,
+                else:
+                    logger.warning(
+                        "Failed to convert main PR #%d from draft to ready",
+                        main_pr_number,
                     )
-                    if mark_ready_success:
-                        _system_marked_ready_prs.add(main_pr_number)
-                        logger.info(
-                            "Successfully converted main PR #%d from draft to ready",
-                            main_pr_number,
-                        )
-                    else:
-                        logger.warning(
-                            "Failed to convert main PR #%d from draft to ready",
-                            main_pr_number,
-                        )
 
-                # Request Copilot code review
-                if main_pr_id:
-                    review_requested = await _cp.github_projects_service.request_copilot_review(
-                        access_token=access_token,
-                        pr_node_id=str(main_pr_id),
-                        pr_number=main_pr_number,
-                        owner=owner,
-                        repo=repo,
+            # Request Copilot code review
+            if main_pr_id:
+                review_requested = await _cp.github_projects_service.request_copilot_review(
+                    access_token=access_token,
+                    pr_node_id=str(main_pr_id),
+                    pr_number=main_pr_number,
+                    owner=owner,
+                    repo=repo,
+                )
+                if review_requested:
+                    logger.info(
+                        "Copilot code review requested for main PR #%d",
+                        main_pr_number,
                     )
-                    if review_requested:
-                        logger.info(
-                            "Copilot code review requested for main PR #%d",
-                            main_pr_number,
-                        )
+        else:
+            logger.warning(
+                "No main PR found for issue #%d during In Review transition — "
+                "comprehensive discovery exhausted all strategies; "
+                "safety net will retry on next poll cycle",
+                issue_number,
+            )
 
     # Send status transition WebSocket notification
     await _cp.connection_manager.broadcast_to_project(

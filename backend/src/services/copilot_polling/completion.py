@@ -1157,6 +1157,10 @@ async def ensure_copilot_review_requested(
     """
     Ensure a Copilot review has been requested for the PR linked to an issue.
 
+    Uses ``_discover_main_pr_for_review`` for comprehensive PR discovery
+    that checks in-memory cache, parent issue links, sub-issue links, and
+    creates a PR from the branch if no open PR exists.
+
     Args:
         access_token: GitHub access token
         owner: Repository owner
@@ -1173,51 +1177,27 @@ async def ensure_copilot_review_requested(
         return None
 
     try:
-        # Get linked PRs for this issue
-        result = await _cp.github_projects_service.check_copilot_pr_completion(
+        # Comprehensive main PR discovery (in-memory → parent links →
+        # sub-issue links → create PR from branch)
+        from .helpers import _discover_main_pr_for_review
+
+        discovered = await _discover_main_pr_for_review(
             access_token=access_token,
             owner=owner,
             repo=repo,
-            issue_number=issue_number,
+            parent_issue_number=issue_number,
         )
 
-        if not result or not result.get("copilot_finished"):
-            # Fallback: find the main PR directly.
-            # check_copilot_pr_completion detects Copilot *coding* agent
-            # completion (timeline events on a draft PR).  For the
-            # copilot-review step the coding is already done — the main PR
-            # may still be draft but all child PRs have been merged into it.
-            # Try to locate the main PR via the in-memory store or linked
-            # PRs and request the review directly.
-            main_branch_info = _cp.get_issue_main_branch(issue_number)
-            if main_branch_info:
-                result = {
-                    "pr_number": main_branch_info["pr_number"],
-                    "copilot_finished": True,
-                }
-            else:
-                # Attempt to find the PR via the API
-                try:
-                    found_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
-                        access_token=access_token,
-                        owner=owner,
-                        repo=repo,
-                        issue_number=issue_number,
-                    )
-                    if found_pr:
-                        result = {
-                            "pr_number": found_pr["number"],
-                            "copilot_finished": True,
-                        }
-                except Exception:
-                    pass
+        if not discovered:
+            logger.debug(
+                "Could not discover main PR for issue #%d — cannot request Copilot review",
+                issue_number,
+            )
+            return None
 
-            if not result or not result.get("copilot_finished"):
-                return None
-
-        # Result has 'number' key from get_linked_pull_requests
-        pr_number = result.get("pr_number") or result.get("number")
-        pr_id = result.get("id")  # GraphQL node ID
+        pr_number = discovered["pr_number"]
+        pr_id = discovered.get("pr_id", "")
+        pr_is_draft = discovered.get("is_draft", False)
 
         if not pr_number:
             logger.warning(
@@ -1226,9 +1206,7 @@ async def ensure_copilot_review_requested(
             )
             return None
 
-        # If the GraphQL node ID is missing (e.g. from the fallback path),
-        # fetch full PR details so we can obtain it and check draft status.
-        pr_is_draft = False
+        # If the GraphQL node ID is missing, fetch full PR details.
         if not pr_id:
             pr_details = await _cp.github_projects_service.get_pull_request(
                 access_token=access_token,

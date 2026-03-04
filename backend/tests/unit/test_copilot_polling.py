@@ -13,6 +13,7 @@ from src.services.copilot_polling import (
     _check_copilot_review_done,
     _check_main_pr_completion,
     _claimed_child_prs,
+    _discover_main_pr_for_review,
     _filter_events_after,
     _find_completed_child_pr,
     _get_tracking_state_from_issue,
@@ -2397,6 +2398,98 @@ class TestTransitionAfterPipelineComplete:
         assert result["status"] == "error"
         assert "Failed to update status" in result["error"]
 
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_in_review_transition_uses_comprehensive_discovery(
+        self, mock_remove, mock_config, mock_ws, mock_service, mock_discover
+    ):
+        """In Review transition should use _discover_main_pr_for_review for PR lookup."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        # Simulate _discover_main_pr_for_review finding the PR via sub-issues
+        mock_discover.return_value = {
+            "pr_number": 500,
+            "pr_id": "PR_node_500",
+            "head_ref": "copilot/fix-feature",
+            "is_draft": True,
+        }
+        mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        # Should have called comprehensive discovery
+        mock_discover.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+        )
+        # Should have converted draft → ready
+        mock_service.mark_pr_ready_for_review.assert_awaited_once()
+        # Should have requested Copilot review
+        mock_service.request_copilot_review.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_in_review_transition_no_pr_found_logs_warning(
+        self, mock_remove, mock_config, mock_ws, mock_service, mock_discover
+    ):
+        """When no PR found during In Review transition, should still transition but log warning."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        # Comprehensive discovery returns None
+        mock_discover.return_value = None
+
+        result = await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        mock_discover.assert_awaited_once()
+        # Should NOT have tried to request review
+        mock_service.request_copilot_review = AsyncMock()  # ensure attribute exists
+        # The function should not have called request_copilot_review since no PR found
+
 
 class TestAdvancePipeline:
     """Tests for _advance_pipeline function."""
@@ -3440,36 +3533,37 @@ class TestEnsureCopilotReviewRequested:
         assert result is None
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_no_completed_pr_returns_none(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(return_value=None)
+    async def test_no_pr_discovered_returns_none(self, mock_service, mock_discover):
+        mock_discover.return_value = None
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_copilot_not_finished_returns_none(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(
-            return_value={"copilot_finished": False}
-        )
+    async def test_missing_pr_number_returns_none(self, mock_service, mock_discover):
+        mock_discover.return_value = {"pr_number": None, "pr_id": "PR_N", "is_draft": False}
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_missing_pr_number_returns_none(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(
-            return_value={"copilot_finished": True, "number": None, "id": None}
-        )
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
-        assert result is None
-
-    @pytest.mark.asyncio
-    @patch("src.services.copilot_polling.github_projects_service")
-    async def test_already_reviewed_returns_none(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(
-            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
-        )
+    async def test_already_reviewed_returns_none(self, mock_service, mock_discover):
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": False,
+            "head_ref": "b",
+        }
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
         assert result is None
@@ -3479,11 +3573,17 @@ class TestEnsureCopilotReviewRequested:
         assert cache_key_review_requested(42) in _processed_issue_prs
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_review_requested_successfully(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(
-            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
-        )
+    async def test_review_requested_successfully(self, mock_service, mock_discover):
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": False,
+            "head_ref": "b",
+        }
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
@@ -3493,11 +3593,17 @@ class TestEnsureCopilotReviewRequested:
         assert result["pr_number"] == 10
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_review_request_fails(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(
-            return_value={"copilot_finished": True, "pr_number": 10, "id": "PR_N"}
-        )
+    async def test_review_request_fails(self, mock_service, mock_discover):
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": False,
+            "head_ref": "b",
+        }
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
         mock_service.request_copilot_review = AsyncMock(return_value=False)
 
@@ -3506,11 +3612,36 @@ class TestEnsureCopilotReviewRequested:
         assert result["status"] == "error"
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_exception_returns_none(self, mock_service):
-        mock_service.check_copilot_pr_completion = AsyncMock(side_effect=Exception("boom"))
+    async def test_exception_returns_none(self, mock_service, mock_discover):
+        mock_discover.side_effect = Exception("boom")
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
         assert result is None
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_draft_pr_converted_to_ready(self, mock_service, mock_discover):
+        """When the discovered PR is draft, it should be converted to ready before review."""
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": True,
+            "head_ref": "b",
+        }
+        mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        assert result is not None
+        assert result["action"] == "copilot_review_requested"
+        mock_service.mark_pr_ready_for_review.assert_awaited_once()
 
 
 # ────────────────────────────────────────────────────────────────────
@@ -4975,6 +5106,288 @@ class TestPipelineAdvancesAfterCopilotReview:
         mock_orchestrator.assign_agent_for_status.assert_awaited_once()
 
 
+# ────────────────────────────────────────────────────────────────────
+# _discover_main_pr_for_review  (new helper for sub-issue PR discovery)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestDiscoverMainPrForReview:
+    """Tests for _discover_main_pr_for_review — comprehensive main PR discovery."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self):
+        _issue_main_branches.clear()
+        yield
+        _issue_main_branches.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy1_in_memory_cache(self, mock_main_branch, mock_service):
+        """Strategy 1: returns PR from in-memory cache."""
+        mock_main_branch.return_value = {
+            "branch": "copilot/feature",
+            "pr_number": 100,
+            "head_sha": "abc",
+        }
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_100", "is_draft": False, "last_commit": {"sha": "abc"}}
+        )
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is not None
+        assert result["pr_number"] == 100
+        assert result["pr_id"] == "PR_node_100"
+        assert result["is_draft"] is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy2_find_existing_pr(self, mock_main_branch, mock_service):
+        """Strategy 2: finds PR via find_existing_pr_for_issue on parent issue."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(
+            return_value={"number": 200, "head_ref": "feature/issue-42"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_200", "is_draft": True, "last_commit": {"sha": "def456"}}
+        )
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is not None
+        assert result["pr_number"] == 200
+        assert result["pr_id"] == "PR_node_200"
+        assert result["is_draft"] is True
+        mock_service.find_existing_pr_for_issue.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy3_sub_issue_discovery(
+        self, mock_main_branch, mock_service, mock_get_subs
+    ):
+        """Strategy 3: discovers main PR via speckit.specify sub-issue."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        # Sub-issue mappings point to sub-issue #50
+        mock_get_subs.return_value = {"speckit.specify": {"number": 50, "node_id": "I_50"}}
+
+        # Sub-issue #50 has a linked PR #300 targeting default branch
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[{"number": 300, "state": "OPEN", "head_ref": "copilot/fix-50"}]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_300",
+                "is_draft": True,
+                "base_ref": "main",
+                "last_commit": {"sha": "ghi"},
+            }
+        )
+        mock_service.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_123", "default_branch": "main", "head_oid": "xyz"}
+        )
+        mock_service.link_pull_request_to_issue = AsyncMock()
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is not None
+        assert result["pr_number"] == 300
+        assert result["pr_id"] == "PR_node_300"
+        assert result["head_ref"] == "copilot/fix-50"
+        assert result["is_draft"] is True
+        # Should have linked the PR to the parent issue
+        mock_service.link_pull_request_to_issue.assert_awaited()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy3_skips_child_prs(self, mock_main_branch, mock_service, mock_get_subs):
+        """Strategy 3 should skip child PRs (targeting feature branch, not default)."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_get_subs.return_value = {"speckit.specify": {"number": 50, "node_id": "I_50"}}
+
+        # The PR targets a feature branch, not the default branch
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[{"number": 301, "state": "OPEN", "head_ref": "copilot/plan-50"}]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_301",
+                "is_draft": True,
+                "base_ref": "copilot/fix-50",
+                "last_commit": {"sha": "xyz"},
+            }
+        )
+        mock_service.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_123", "default_branch": "main", "head_oid": "xyz"}
+        )
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
+        # Strategy 5: REST search also returns nothing
+        mock_service._search_open_prs_for_issue_rest = AsyncMock(return_value=[])
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy5_rest_search_finds_pr(
+        self, mock_main_branch, mock_service, mock_get_subs
+    ):
+        """Strategy 5: discovers PR via REST search by branch pattern / body reference."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_get_subs.return_value = {}
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
+
+        # Strategy 5: REST search for open PRs matching the issue
+        mock_service._search_open_prs_for_issue_rest = AsyncMock(
+            return_value=[
+                {
+                    "number": 350,
+                    "state": "OPEN",
+                    "head_ref": "copilot/fix-42-feature",
+                    "id": "PR_node_350",
+                    "is_draft": True,
+                }
+            ]
+        )
+        mock_service.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_123", "default_branch": "main", "head_oid": "xyz"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_350",
+                "is_draft": True,
+                "base_ref": "main",
+                "last_commit": {"sha": "rst"},
+            }
+        )
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is not None
+        assert result["pr_number"] == 350
+        assert result["pr_id"] == "PR_node_350"
+        assert result["is_draft"] is True
+        mock_service._search_open_prs_for_issue_rest.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy5_skips_prs_not_targeting_default(
+        self, mock_main_branch, mock_service, mock_get_subs
+    ):
+        """Strategy 5 should skip PRs that don't target the default branch."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_get_subs.return_value = {}
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
+
+        # REST search finds a PR but it targets a feature branch
+        mock_service._search_open_prs_for_issue_rest = AsyncMock(
+            return_value=[
+                {
+                    "number": 360,
+                    "state": "OPEN",
+                    "head_ref": "copilot/child-42",
+                }
+            ]
+        )
+        mock_service.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_123", "default_branch": "main", "head_oid": "xyz"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_360",
+                "is_draft": False,
+                "base_ref": "copilot/fix-42",  # targets feature branch, not main
+                "last_commit": {"sha": "uvw"},
+            }
+        )
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_strategy6_creates_pr_from_branch(
+        self, mock_main_branch, mock_service, mock_get_subs
+    ):
+        """Strategy 6: creates a PR when a branch exists but no open PR."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_get_subs.return_value = {"speckit.specify": {"number": 50, "node_id": "I_50"}}
+
+        # Sub-issue has a MERGED PR (branch exists, no open PR)
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[{"number": 400, "state": "MERGED", "head_ref": "copilot/fix-50"}]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_400",
+                "is_draft": False,
+                "base_ref": "main",
+                "last_commit": {"sha": "abc"},
+            }
+        )
+        mock_service.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_123", "default_branch": "main", "head_oid": "xyz"}
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "My Feature", "body": "Body text", "comments": []}
+        )
+        mock_service.create_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_new_401",
+                "number": 401,
+                "url": "https://github.com/o/r/pull/401",
+            }
+        )
+        # Strategy 5 returns nothing (branch was from sub-issue, not matching by REST search)
+        mock_service._search_open_prs_for_issue_rest = AsyncMock(return_value=[])
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is not None
+        assert result["pr_number"] == 401
+        assert result["pr_id"] == "PR_new_401"
+        assert result["is_draft"] is False
+        mock_service.create_pull_request.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_sub_issues")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_all_strategies_fail_returns_none(
+        self, mock_main_branch, mock_service, mock_get_subs
+    ):
+        """When all strategies fail, returns None."""
+        mock_main_branch.return_value = None
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_get_subs.return_value = {}
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
+        # Strategy 5 also returns nothing
+        mock_service._search_open_prs_for_issue_rest = AsyncMock(return_value=[])
+
+        result = await _discover_main_pr_for_review("tok", "o", "r", 42)
+
+        assert result is None
+
+
 class TestCheckCopilotReviewDone:
     """Tests for the copilot-review completion detection.
 
@@ -4986,10 +5399,12 @@ class TestCheckCopilotReviewDone:
 
     @pytest.fixture(autouse=True)
     def _clear_review_detection_state(self):
-        """Ensure the confirmation-delay dict is clean between tests."""
+        """Ensure the confirmation-delay dict and main-branch cache are clean between tests."""
         _copilot_review_first_detected.clear()
+        _issue_main_branches.clear()
         yield
         _copilot_review_first_detected.clear()
+        _issue_main_branches.clear()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -5093,7 +5508,11 @@ class TestCheckCopilotReviewDone:
             return_value={"number": 200, "head_ref": "feature/issue-42"}
         )
         mock_service.get_pull_request = AsyncMock(
-            return_value={"id": "PR_node_2", "is_draft": False}
+            return_value={
+                "id": "PR_node_2",
+                "is_draft": False,
+                "last_commit": {"sha": "abc123"},
+            }
         )
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
         mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
@@ -5121,6 +5540,7 @@ class TestCheckCopilotReviewDone:
         mock_main_branch.return_value = None
         mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        mock_service.get_sub_issues = AsyncMock(return_value=[])
 
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=42
