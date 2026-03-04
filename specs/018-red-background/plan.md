@@ -1,44 +1,44 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add Red Background Color to App
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `018-red-background` | **Date**: 2026-03-04 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/018-red-background/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a red background color globally to the application by updating the existing CSS custom properties (design tokens) in `frontend/src/index.css`. The `--background` variable will be changed to a material-design red shade (`#D32F2F` / HSL `0 70% 50%`) for light mode and a deep red (`#B71C1C` / HSL `0 73% 41%`) for dark mode. The `--foreground` text color will be updated to white to maintain WCAG 2.1 AA contrast compliance. This approach uses the existing Tailwind CSS + CSS variable theme system with zero structural changes.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x, React 18.3.1  
+**Primary Dependencies**: Tailwind CSS 3.4.19, Vite 5.4.0, shadcn/ui components  
+**Storage**: N/A (CSS-only change)  
+**Testing**: Vitest 4.0.18 + React Testing Library 16.3.2, jest-axe for accessibility  
+**Target Platform**: Web browser (all modern browsers)  
+**Project Type**: Web application (frontend + backend)  
+**Performance Goals**: N/A (no runtime performance impact — CSS variable change only)  
+**Constraints**: WCAG 2.1 AA minimum contrast ratio 4.5:1 for all text  
+**Scale/Scope**: Single file change (`frontend/src/index.css`), affects all views globally via existing CSS variable cascade
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` exists with prioritized user stories (P1, P2, P3), acceptance scenarios, and scope boundaries |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase produces well-defined outputs for subsequent task/implement phases |
+| IV. Test Optionality | ✅ PASS | Tests not explicitly mandated in spec; accessibility audit recommended but not required as automated tests |
+| V. Simplicity and DRY | ✅ PASS | Single-file CSS variable change; no new abstractions, no new dependencies; uses existing theme system as-is |
+
+**Gate Result**: ✅ ALL PASS — No violations. Proceeding to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/018-red-background/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -48,57 +48,25 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
+│   ├── index.css              # ← PRIMARY CHANGE: Update --background and --foreground CSS variables
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── ThemeProvider.tsx   # Existing theme system (no changes needed)
+│   ├── pages/                 # All pages inherit background via Tailwind's bg-background
+│   └── App.tsx                # Root component (no changes needed)
+├── tailwind.config.js         # Maps CSS vars to Tailwind classes (no changes needed)
+└── tests/                     # Existing test infrastructure
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). This feature modifies only `frontend/src/index.css` — the CSS variable definitions that cascade to all components via Tailwind's `bg-background` and `text-foreground` utility classes applied to `<body>` in the same file.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No violations — section intentionally left empty.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| — | — | — |
