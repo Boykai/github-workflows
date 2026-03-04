@@ -21,7 +21,7 @@ Apply a golden background color globally across the application by updating CSS 
    ```
 2. Open `http://localhost:5173` in your browser
 3. **Light mode**: The page background should be a rich gold color (#FFD700)
-4. **Dark mode**: Toggle to dark mode via Settings → Display → Theme → Dark
+4. **Dark mode**: Toggle to dark mode via Settings → Advanced Settings → Display Preferences → Theme → Dark
    - The background should display a deepened dark-gold tone
 5. **Responsive check**: Resize the browser to mobile, tablet, and desktop widths
    - The golden background should remain consistent with no layout breakage
@@ -61,6 +61,6 @@ Apply a golden background color globally across the application by updating CSS 
 | Mode | Token | HSL Value | Hex Equivalent | Description |
 |------|-------|-----------|----------------|-------------|
 | Light | `--background` | `51 100% 50%` | #FFD700 | Standard CSS "gold" |
-| Dark | `--background` | `43 74% 15%` | ~#3D2E0A | Deepened dark gold |
+| Dark | `--background` | `43 74% 15%` | ~#43330A | Deepened dark gold |
 | Light | `--foreground` | `222.2 84% 4.9%` | #020817 | Unchanged dark text |
 | Dark | `--foreground` | `210 40% 98%` | #F8FAFC | Unchanged light text |

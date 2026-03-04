@@ -24,7 +24,7 @@ This feature modifies existing CSS custom properties (design tokens) in `fronten
 
 | Token | Current Value | New Value | Notes |
 |-------|--------------|-----------|-------|
-| `--background` | `222.2 84% 4.9%` | `43 74% 15%` (dark gold ~#3D2E0A) | Deepened gold for dark mode |
+| `--background` | `222.2 84% 4.9%` | `43 74% 15%` (dark gold ~#43330A) | Deepened gold for dark mode |
 | `--foreground` | `210 40% 98%` | `210 40% 98%` (unchanged) | ~12.5:1 contrast against dark gold |
 | `--card` | `222.2 84% 4.9%` | `222.2 84% 4.9%` (unchanged) | Cards stay dark per existing behavior |
 | `--card-foreground` | `210 40% 98%` | `210 40% 98%` (unchanged) | No change needed |
@@ -63,7 +63,7 @@ Document.documentElement
     │
     ├── no .dark class ──► :root variables active ──► Gold #FFD700 background
     │
-    └── .dark class ──────► .dark variables active ──► Dark gold #3D2E0A background
+    └── .dark class ──────► .dark variables active ──► Dark gold ~#43330A background
 ```
 
 The ThemeProvider (`frontend/src/components/ThemeProvider.tsx`) toggles the `.dark` class on `document.documentElement`, which CSS handles automatically via the existing `:root` / `.dark` selector cascade. No ThemeProvider changes needed.
