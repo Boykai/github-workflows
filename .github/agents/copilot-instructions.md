@@ -105,3 +105,10 @@ npx playwright test             # E2E tests
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
+
+## Active Technologies
+- TypeScript 5.x (ES2022 target) + React 18, Vite, @tanstack/react-query, Radix UI (018-help-commands-ux)
+- N/A (client-side command registry only — no persistence needed) (018-help-commands-ux)
+
+## Recent Changes
+- 018-help-commands-ux: Added TypeScript 5.x (ES2022 target) + React 18, Vite, @tanstack/react-query, Radix UI
