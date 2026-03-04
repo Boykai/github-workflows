@@ -97,6 +97,7 @@ export function useCleanup(): UseCleanupReturn {
         project_id: projectId,
         branches_to_delete: preflightData.branches_to_delete.map(b => b.name),
         prs_to_close: preflightData.prs_to_close.map(p => p.number),
+        issues_to_close: (preflightData.orphaned_issues ?? []).map(i => i.number),
       });
 
       setExecuteResult(result);

@@ -221,6 +221,7 @@ async def trigger_chore(
         owner=owner,
         repo=repo,
         project_id=project_id,
+        github_user_id=session.github_user_id,
     )
 
     if not result.triggered:

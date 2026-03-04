@@ -2189,16 +2189,31 @@ class TestCheckCopilotFinishedEvents:
         assert service.check_copilot_finished_events(events) is True
 
     def test_returns_true_for_review_requested_from_copilot(self, service):
-        """Should return True when review_requested event from Copilot exists."""
+        """Should return True when review_requested event from the SWE agent exists."""
         events = [
             {"event": "copilot_work_started"},
             {
                 "event": "review_requested",
-                "review_requester": {"login": "Copilot"},
+                "review_requester": {"login": "copilot-swe-agent[bot]"},
                 "requested_reviewer": {"login": "some-user"},
             },
         ]
         assert service.check_copilot_finished_events(events) is True
+
+    def test_returns_false_for_review_requested_from_copilot_review_bot(self, service):
+        """Should return False when review_requested is from the Copilot code-review bot.
+
+        GitHub can auto-trigger Copilot reviews on WIP/draft PRs — these must
+        NOT be treated as agent work completion.
+        """
+        events = [
+            {
+                "event": "review_requested",
+                "review_requester": {"login": "copilot-pull-request-reviewer[bot]"},
+                "requested_reviewer": {"login": "some-user"},
+            },
+        ]
+        assert service.check_copilot_finished_events(events) is False
 
     def test_returns_false_for_no_finish_events(self, service):
         """Should return False when no finish events exist."""
@@ -2318,12 +2333,12 @@ class TestCheckCopilotPrCompletion:
             "last_commit": {"sha": "abc1234567890"},
         }
 
-        # Timeline events with review_requested from Copilot
+        # Timeline events with review_requested from the SWE agent
         timeline_events = [
             {"event": "copilot_work_started"},
             {
                 "event": "review_requested",
-                "review_requester": {"login": "Copilot"},
+                "review_requester": {"login": "copilot-swe-agent[bot]"},
                 "requested_reviewer": {"login": "some-user"},
             },
         ]

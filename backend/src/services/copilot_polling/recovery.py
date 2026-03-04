@@ -6,6 +6,7 @@ from typing import Any
 import src.services.copilot_polling as _cp
 from src.utils import utcnow
 
+from .helpers import _get_sub_issue_number
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     RECOVERY_COOLDOWN_SECONDS,
@@ -181,12 +182,31 @@ async def recover_stalled_issues(
                     _pending_agent_assignments.pop(pending_key, None)
 
             # ── Check condition A: Copilot is assigned ────────────────────
-            copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-                access_token=access_token,
-                owner=task_owner,
-                repo=task_repo,
-                issue_number=issue_number,
-            )
+            # With the sub-issue-per-agent model, Copilot is assigned to the
+            # *sub-issue*, not the parent.  Check the sub-issue first to avoid
+            # false "Copilot NOT assigned" reports that trigger needless
+            # re-assignment (which can duplicate the agent session).
+            copilot_assigned = False
+
+            # Try sub-issue first
+            recovery_pipeline = _cp.get_pipeline_state(issue_number)
+            sub_issue_number = _get_sub_issue_number(recovery_pipeline, agent_name, issue_number)
+            if sub_issue_number != issue_number:
+                copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=sub_issue_number,
+                )
+
+            # Fallback: check parent issue
+            if not copilot_assigned:
+                copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=issue_number,
+                )
 
             # ── Check condition B: WIP (draft) PR exists ─────────────────
             has_wip_pr = False
@@ -280,7 +300,6 @@ async def recover_stalled_issues(
             # cycle) persists in issue comments.  If the marker exists,
             # the agent finished successfully and Steps 1-3 will advance
             # the pipeline — no recovery needed.
-            recovery_pipeline = _cp.get_pipeline_state(issue_number)
             already_done = await _cp._check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,

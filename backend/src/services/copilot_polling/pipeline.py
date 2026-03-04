@@ -1443,11 +1443,22 @@ async def check_in_progress_issues(
                         effective_from_status,
                         effective_to_status,
                     )
+                    # Persist the original transition target on the pipeline
+                    # state so subsequent poll cycles use it (instead of
+                    # defaulting to In Review once pipeline.status is updated).
+                    pipeline.original_status = original_status
+                    pipeline.target_status = effective_to_status
                     # Update the pipeline to reflect actual board status so subsequent
                     # polling iterations treat it as an "In Progress" pipeline.
                     pipeline.status = config.status_in_progress if config else "In Progress"
                     _cp.set_pipeline_state(task.issue_number, pipeline)
                     # Fall through to pipeline processing below
+                elif pipeline.original_status and pipeline.target_status:
+                    # Pipeline was already updated to 'In Progress' in a
+                    # prior cycle but still has its original transition
+                    # target preserved.  Use it instead of the default.
+                    effective_from_status = pipeline.original_status
+                    effective_to_status = pipeline.target_status
 
             # If no in-memory pipeline (e.g. server restart) or the cached
             # pipeline is already complete (leftover from a previous status),
