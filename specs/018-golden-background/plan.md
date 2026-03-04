@@ -5,7 +5,7 @@
 
 ## Summary
 
-Apply a golden background color globally across the application by updating the CSS custom properties (design tokens) in the existing theming system. The `--background` variable in `:root` is changed to a gold tone (#FFD700 equivalent in HSL), with a deepened dark-gold variant for `.dark` mode. The `--foreground` and related text tokens are adjusted to ensure WCAG AA 4.5:1 contrast compliance. No new dependencies, API changes, or structural changes are needed — this is a pure CSS token update scoped to `frontend/src/index.css`.
+Apply a golden background color globally across the application by updating the CSS custom properties (design tokens) in the existing theming system. The `--background` variable in `:root` is changed to a gold tone (#FFD700 equivalent in HSL), with a deepened dark-gold variant for `.dark` mode. The `--foreground` and related text tokens are verified to already meet WCAG AA 4.5:1 contrast compliance against the updated background. No new dependencies, API changes, or structural changes are needed — this is a pure CSS token update scoped to `frontend/src/index.css`.
 
 ## Technical Context
 

@@ -36,7 +36,7 @@
   }
 
   .dark {
-    --background: 43 74% 15%; /* Dark gold #3D2E0A — see specs/018-golden-background */
+    --background: 43 74% 15%; /* Dark gold — see specs/018-golden-background */
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;

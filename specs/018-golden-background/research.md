@@ -27,7 +27,7 @@
 
 ### R3: Dark Mode Golden Background Strategy
 
-**Decision**: In dark mode, use a deepened dark-gold variant: `43 74% 15%` (HSL for approximately #3D2E0A, a dark amber-brown). This maintains the golden identity while being comfortable for dark mode viewing. The dark-mode foreground remains the existing light value (`210 40% 98%` ≈ #F8FAFC), which provides ~12.5:1 contrast against the dark gold.
+**Decision**: In dark mode, use a deepened dark-gold variant: `43 74% 15%` (HSL for approximately #43330A, a dark amber-brown). This maintains the golden identity while being comfortable for dark mode viewing. The dark-mode foreground remains the existing light value (`210 40% 98%` ≈ #F8FAFC), which provides ~12.5:1 contrast against the dark gold.
 
 **Rationale**: The spec requires explicit dark mode behavior (FR-005). A fully saturated gold (#FFD700) in dark mode would defeat the purpose of dark mode (reducing eye strain). A deepened/darkened gold preserves the golden theme identity while maintaining the ergonomic benefits of dark mode. The chosen value is a very dark gold that reads as "warm dark" rather than "pure dark."
 
