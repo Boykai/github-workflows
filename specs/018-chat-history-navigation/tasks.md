@@ -23,8 +23,8 @@
 
 **Purpose**: Create new files and establish the storage utility and hook scaffolding that all user stories depend on.
 
-- [ ] T001 Create localStorage wrapper utility with `loadHistory`, `saveHistory`, `clearStoredHistory` functions and `CHAT_HISTORY_STORAGE_KEY` constant in `frontend/src/utils/chatHistoryStorage.ts`
-- [ ] T002 Create `useChatHistory` hook scaffold with configuration constant `CHAT_HISTORY_MAX_ENTRIES = 100`, empty return interface (`history`, `addToHistory`, `handleHistoryNavigation`, `clearHistory`, `isNavigating`), and initial state (`historyIndex = -1`, `draft = ""`) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T001 Create localStorage wrapper utility with `loadHistory`, `saveHistory`, `clearStoredHistory` functions and `CHAT_HISTORY_STORAGE_KEY` constant in `frontend/src/utils/chatHistoryStorage.ts`
+- [x] T002 Create `useChatHistory` hook scaffold with configuration constant `CHAT_HISTORY_MAX_ENTRIES = 100`, empty return interface (`history`, `addToHistory`, `handleHistoryNavigation`, `clearHistory`, `isNavigating`), and initial state (`historyIndex = -1`, `draft = ""`) in `frontend/src/hooks/useChatHistory.ts`
 
 ---
 
@@ -34,10 +34,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `loadHistory()` in `frontend/src/utils/chatHistoryStorage.ts` — read from localStorage key `"chat-message-history"`, JSON.parse the value, return `string[]` or `[]` on error/missing data, wrap in try/catch for graceful degradation (FR-013)
-- [ ] T004 Implement `saveHistory(messages: string[])` in `frontend/src/utils/chatHistoryStorage.ts` — JSON.stringify and write to localStorage, no-op on error (FR-013)
-- [ ] T005 Implement `clearStoredHistory()` in `frontend/src/utils/chatHistoryStorage.ts` — remove the history key from localStorage, no-op on error (FR-013)
-- [ ] T006 Implement `addToHistory(message: string)` in `frontend/src/hooks/useChatHistory.ts` — trim message, reject empty/whitespace-only (FR-012), skip consecutive duplicates by comparing with last entry (FR-007), enforce max cap by removing oldest entry when full (FR-005), persist via `saveHistory()` (FR-006), reset navigation index to -1
+- [x] T003 Implement `loadHistory()` in `frontend/src/utils/chatHistoryStorage.ts` — read from localStorage key `"chat-message-history"`, JSON.parse the value, return `string[]` or `[]` on error/missing data, wrap in try/catch for graceful degradation (FR-013)
+- [x] T004 Implement `saveHistory(messages: string[])` in `frontend/src/utils/chatHistoryStorage.ts` — JSON.stringify and write to localStorage, no-op on error (FR-013)
+- [x] T005 Implement `clearStoredHistory()` in `frontend/src/utils/chatHistoryStorage.ts` — remove the history key from localStorage, no-op on error (FR-013)
+- [x] T006 Implement `addToHistory(message: string)` in `frontend/src/hooks/useChatHistory.ts` — trim message, reject empty/whitespace-only (FR-012), skip consecutive duplicates by comparing with last entry (FR-007), enforce max cap by removing oldest entry when full (FR-005), persist via `saveHistory()` (FR-006), reset navigation index to -1
 
 **Checkpoint**: Foundation ready — storage utility fully functional, `addToHistory` handles all validation rules. User story implementation can now begin.
 
@@ -51,11 +51,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement Up Arrow history navigation in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — on first Up press save current input as draft and load newest history entry (index 0 from end), on subsequent Up presses load next older entry, stop at oldest entry without wrap-around, call `e.preventDefault()` only when navigation occurs (FR-002, FR-004)
-- [ ] T008 [US1] Implement Down Arrow history navigation in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — move forward through history on Down press, restore saved draft when pressing Down past newest entry, call `e.preventDefault()` only when navigation occurs, return `false` when not in navigation mode (FR-003, FR-004)
-- [ ] T009 [US1] Implement cursor positioning at end of restored text in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — use `setTimeout` to set `selectionStart` and `selectionEnd` to the end of the textarea value after setting input (FR-004)
-- [ ] T010 [US1] Handle empty history edge case in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — return `false` when Up Arrow is pressed with no history entries, producing no change to input field (FR-011)
-- [ ] T011 [US1] Integrate `useChatHistory` hook into `frontend/src/components/chat/ChatInterface.tsx` — import and call `useChatHistory()`, call `addToHistory(content)` in `doSubmit()` before clearing input, call `handleHistoryNavigation(e, input, setInput)` in `handleKeyDown()` after autocomplete handling and return early if it returns `true`
+- [x] T007 [US1] Implement Up Arrow history navigation in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — on first Up press save current input as draft and load newest history entry (index 0 from end), on subsequent Up presses load next older entry, stop at oldest entry without wrap-around, call `e.preventDefault()` only when navigation occurs (FR-002, FR-004)
+- [x] T008 [US1] Implement Down Arrow history navigation in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — move forward through history on Down press, restore saved draft when pressing Down past newest entry, call `e.preventDefault()` only when navigation occurs, return `false` when not in navigation mode (FR-003, FR-004)
+- [x] T009 [US1] Implement cursor positioning at end of restored text in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — use `setTimeout` to set `selectionStart` and `selectionEnd` to the end of the textarea value after setting input (FR-004)
+- [x] T010 [US1] Handle empty history edge case in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — return `false` when Up Arrow is pressed with no history entries, producing no change to input field (FR-011)
+- [x] T011 [US1] Integrate `useChatHistory` hook into `frontend/src/components/chat/ChatInterface.tsx` — import and call `useChatHistory()`, call `addToHistory(content)` in `doSubmit()` before clearing input, call `handleHistoryNavigation(e, input, setInput)` in `handleKeyDown()` after autocomplete handling and return early if it returns `true`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — users can navigate history with Up/Down arrows, draft is preserved, cursor is positioned correctly. This is the MVP.
 
@@ -69,10 +69,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Initialize hook state from persisted storage in `useChatHistory` in `frontend/src/hooks/useChatHistory.ts` — call `loadHistory()` on hook initialization to populate the in-memory history array from localStorage so history is available after page refresh (FR-006)
-- [ ] T013 [US2] Verify max-cap enforcement end-to-end in `addToHistory` in `frontend/src/hooks/useChatHistory.ts` — ensure that when history reaches 100 entries (default) and a new message is added, the oldest entry is removed before appending, and the updated array is persisted to localStorage (FR-005)
-- [ ] T014 [US2] Verify consecutive deduplication in `addToHistory` in `frontend/src/hooks/useChatHistory.ts` — ensure sending the same message twice in a row results in only one history entry by comparing trimmed new message with `history[history.length - 1]` (FR-007)
-- [ ] T015 [US2] Verify graceful degradation when localStorage is unavailable in `frontend/src/utils/chatHistoryStorage.ts` — ensure all storage functions handle exceptions silently, allowing in-memory-only history for the current session (FR-013)
+- [x] T012 [US2] Initialize hook state from persisted storage in `useChatHistory` in `frontend/src/hooks/useChatHistory.ts` — call `loadHistory()` on hook initialization to populate the in-memory history array from localStorage so history is available after page refresh (FR-006)
+- [x] T013 [US2] Verify max-cap enforcement end-to-end in `addToHistory` in `frontend/src/hooks/useChatHistory.ts` — ensure that when history reaches 100 entries (default) and a new message is added, the oldest entry is removed before appending, and the updated array is persisted to localStorage (FR-005)
+- [x] T014 [US2] Verify consecutive deduplication in `addToHistory` in `frontend/src/hooks/useChatHistory.ts` — ensure sending the same message twice in a row results in only one history entry by comparing trimmed new message with `history[history.length - 1]` (FR-007)
+- [x] T015 [US2] Verify graceful degradation when localStorage is unavailable in `frontend/src/utils/chatHistoryStorage.ts` — ensure all storage functions handle exceptions silently, allowing in-memory-only history for the current session (FR-013)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — history navigation persists across sessions, respects the cap, and deduplicates consecutive messages.
 
@@ -86,8 +86,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement multi-line first-line detection for Up Arrow in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — check if `value.slice(0, selectionStart)` contains `\n`; if yes, return `false` to allow normal cursor movement; if no, proceed with history navigation (FR-008)
-- [ ] T017 [US3] Implement multi-line last-line detection for Down Arrow in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — check if `value.slice(selectionEnd)` contains `\n`; if yes, return `false` to allow normal cursor movement; if no, proceed with history navigation (FR-009)
+- [x] T016 [US3] Implement multi-line first-line detection for Up Arrow in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — check if `value.slice(0, selectionStart)` contains `\n`; if yes, return `false` to allow normal cursor movement; if no, proceed with history navigation (FR-008)
+- [x] T017 [US3] Implement multi-line last-line detection for Down Arrow in `handleHistoryNavigation` in `frontend/src/hooks/useChatHistory.ts` — check if `value.slice(selectionEnd)` contains `\n`; if yes, return `false` to allow normal cursor movement; if no, proceed with history navigation (FR-009)
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently — multi-line editing is uninterrupted while history navigation still works from first/last lines.
 
@@ -101,8 +101,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] Implement `clearHistory()` in `frontend/src/hooks/useChatHistory.ts` — show `window.confirm()` dialog, on confirmation call `clearStoredHistory()` from the storage utility, reset in-memory history array to `[]`, reset navigation index to -1, reset draft to empty string (FR-010)
-- [ ] T019 [US4] Add Clear History UI element in `frontend/src/components/chat/ChatInterface.tsx` — add a "Clear History" button or link near the chat input area, wire it to the `clearHistory()` function from the `useChatHistory` hook, ensure it is discoverable but not intrusive
+- [x] T018 [US4] Implement `clearHistory()` in `frontend/src/hooks/useChatHistory.ts` — show `window.confirm()` dialog, on confirmation call `clearStoredHistory()` from the storage utility, reset in-memory history array to `[]`, reset navigation index to -1, reset draft to empty string (FR-010)
+- [x] T019 [US4] Add Clear History UI element in `frontend/src/components/chat/ChatInterface.tsx` — add a "Clear History" button or link near the chat input area, wire it to the `clearHistory()` function from the `useChatHistory` hook, ensure it is discoverable but not intrusive
 
 **Checkpoint**: All user stories (1-4) should now be independently functional. Complete history navigation, persistence, multi-line compatibility, and clear functionality.
 
@@ -112,10 +112,10 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation.
 
-- [ ] T020 [P] Ensure TypeScript types are strict and exported in `frontend/src/hooks/useChatHistory.ts` — export `UseChatHistoryReturn` interface type for consumers
-- [ ] T021 Code cleanup — review all new code for consistency with existing codebase conventions in `frontend/src/hooks/` and `frontend/src/utils/`
+- [x] T020 [P] Ensure TypeScript types are strict and exported in `frontend/src/hooks/useChatHistory.ts` — export `UseChatHistoryReturn` interface type for consumers
+- [x] T021 Code cleanup — review all new code for consistency with existing codebase conventions in `frontend/src/hooks/` and `frontend/src/utils/`
 - [ ] T022 Run quickstart.md validation — manually walk through all scenarios in `specs/018-chat-history-navigation/quickstart.md` to verify end-to-end functionality
-- [ ] T023 [P] Verify no regressions in existing chat functionality — ensure autocomplete, message sending, Shift+Enter multi-line, and other existing ChatInterface behaviors still work correctly
+- [x] T023 [P] Verify no regressions in existing chat functionality — ensure autocomplete, message sending, Shift+Enter multi-line, and other existing ChatInterface behaviors still work correctly
 
 ---
 

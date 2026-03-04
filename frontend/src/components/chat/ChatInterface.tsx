@@ -11,6 +11,7 @@ import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { useCommands } from '@/hooks/useCommands';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
@@ -52,6 +53,7 @@ export function ChatInterface({
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
   const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
+  const { addToHistory, handleHistoryNavigation, clearHistory, isNavigating } = useChatHistory();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -98,6 +100,7 @@ export function ChatInterface({
       setShowAutocomplete(false);
       const commandInput = isCommandFn(content);
       onSendMessage(content, { isCommand: commandInput });
+      addToHistory(content);
       // Always clear input after submission — command-level input preservation
       // is handled by the useChat hook via CommandResult.clearInput when needed.
       setInput('');
@@ -147,6 +150,14 @@ export function ChatInterface({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       doSubmit();
+      return;
+    }
+
+    // History navigation with Up/Down Arrow keys
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      if (handleHistoryNavigation(e, input, setInput)) {
+        return;
+      }
     }
   };
 
@@ -168,7 +179,19 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full bg-background">
       {messages.length > 0 && (
-        <div className="flex justify-end p-3 border-b border-border bg-background">
+        <div className="flex justify-end gap-2 p-3 border-b border-border bg-background">
+          <button
+            type="button"
+            onClick={clearHistory}
+            className="flex items-center gap-1.5 px-4 py-2 bg-muted text-foreground border border-border rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSending}
+            title="Clear message history"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="shrink-0">
+              <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V6h12Z" />
+            </svg>
+            Clear History
+          </button>
           <button
             type="button"
             onClick={onNewChat}
@@ -279,7 +302,7 @@ export function ChatInterface({
           placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
-          className="flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted"
+          className={`flex-1 p-3 border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted ${isNavigating ? 'border-primary/50 bg-primary/5' : 'border-border'}`}
         />
         <button
           type="submit"
