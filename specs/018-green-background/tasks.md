@@ -67,7 +67,7 @@
 
 - [x] T006 [US2] Verified `--foreground` in `:root` stays at `222.2 84% 4.9%` (dark text on #4CAF50 gives 7.2:1 contrast — WCAG AA pass; white would give only 2.78:1 — FAIL)
 
-**Checkpoint**: Light mode text is white on green — WCAG AA contrast ratio of ~4.6:1 achieved
+**Checkpoint**: Light mode keeps dark text on green background — WCAG AA contrast ratio of ~7.2:1 achieved
 
 ---
 
@@ -82,7 +82,7 @@
 - [x] T007 [P] [US3] Update `--background` CSS custom property in `.dark` selector from `222.2 84% 4.9%` to `125 35% 33%` in `frontend/src/index.css`
 - [x] T008 [US3] Update `--foreground` CSS custom property in `.dark` selector from `210 40% 98%` to `0 0% 100%` (white) in `frontend/src/index.css`
 
-**Checkpoint**: Dark mode shows darker green (#2E7D32) with white text — WCAG AA contrast ratio of ~7.4:1 achieved
+**Checkpoint**: Dark mode shows darker green (#2E7D32) with white text — WCAG AA contrast ratio of ~5.1:1 achieved
 
 ---
 
