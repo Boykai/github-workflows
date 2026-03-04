@@ -445,9 +445,7 @@ async def _generate_and_present_preview(
     except Exception as exc:
         logger.error("Failed to generate agent config: %s", exc)
         clear_session(session_key)
-        return (
-            f"**Error:** Failed to generate agent configuration. Please try again.\n\nDetail: {exc}"
-        )
+        return "**Error:** Failed to generate agent configuration. Please try again."
 
     slug = AgentPreview.name_to_slug(config["name"])
 
@@ -555,7 +553,7 @@ async def _apply_edit(
     except Exception as exc:
         logger.error("Failed to apply edit: %s", exc)
         return (
-            f"**Error:** Could not apply edit. Please try again.\n\nDetail: {exc}\n\n"
+            "**Error:** Could not apply edit. Please try again.\n\n"
             "Type **create** to confirm the current preview, or describe another change."
         )
 

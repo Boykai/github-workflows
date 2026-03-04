@@ -688,6 +688,7 @@ async def _resolve_project_by_name(github_user_id: str, name: str) -> str | None
                 return p_id
         return None
     except Exception:
+        logger.debug("Failed to resolve project by name: %s", name, exc_info=True)
         return None
 
 

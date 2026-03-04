@@ -508,3 +508,62 @@ class TestAgentCreationState:
     def test_available_projects_default_empty(self):
         state = AgentCreationState(session_id="s1")
         assert state.available_projects == []
+
+
+# ── Bug-bash regression: error messages must not leak exception details ───
+
+
+class TestAgentCreatorErrorSanitization:
+    """Bug-bash regression: agent creator error messages returned to users
+    must not include raw exception text."""
+
+    @pytest.mark.asyncio
+    async def test_generate_config_error_does_not_leak(self):
+        from src.services.agent_creator import _generate_and_present_preview
+
+        state = AgentCreationState(session_id="test-session-1", raw_description="build a bot")
+
+        secret = "ConnectionRefusedError: [Errno 111] Connect call failed"
+        mock_ai = AsyncMock()
+        mock_ai.generate_agent_config = AsyncMock(side_effect=Exception(secret))
+
+        with patch("src.services.agent_creator.get_ai_agent_service", return_value=mock_ai):
+            result = await _generate_and_present_preview(
+                state=state,
+                session_key="test-session-1",
+                access_token="tok",
+            )
+
+        assert secret not in result
+        assert "ConnectionRefusedError" not in result
+        assert "Error" in result  # should contain a user-friendly error message
+
+    @pytest.mark.asyncio
+    async def test_edit_config_error_does_not_leak(self):
+        from src.services.agent_creator import _apply_edit
+
+        state = AgentCreationState(session_id="test-session-2", raw_description="build a bot")
+        state.preview = AgentPreview(
+            name="Test",
+            slug="test",
+            description="desc",
+            system_prompt="prompt",
+            status_column="Backlog",
+            tools=[],
+        )
+
+        secret = "OpenAI API key expired at /app/secrets/key.txt"
+        mock_ai = AsyncMock()
+        mock_ai.edit_agent_config = AsyncMock(side_effect=Exception(secret))
+
+        with patch("src.services.agent_creator.get_ai_agent_service", return_value=mock_ai):
+            result = await _apply_edit(
+                state=state,
+                edit_instruction="change the name",
+                session_key="test-session-2",
+                access_token="tok",
+            )
+
+        assert secret not in result
+        assert "/app/secrets" not in result
+        assert "Error" in result
