@@ -1773,6 +1773,7 @@ class TestAssignCopilotToIssue:
                 "main",
                 "speckit.specify",
                 "Test instructions",
+                "claude-opus-4.6",
             )
 
     @pytest.mark.asyncio

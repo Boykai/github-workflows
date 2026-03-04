@@ -2144,6 +2144,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Assign GitHub Copilot to an issue using GraphQL API with agent assignment.
@@ -2161,6 +2162,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on (default: main)
             custom_agent: Custom agent name (e.g., 'speckit.specify')
             custom_instructions: Custom instructions/prompt for the agent
+            model: AI model to use for the agent assignment
 
         Returns:
             True if assignment succeeded
@@ -2197,11 +2199,11 @@ class GitHubProjectsService:
             return await self._with_fallback(
                 primary_fn=lambda: self._assign_copilot_graphql(
                     access_token, owner, repo, issue_node_id,
-                    base_ref, custom_agent, custom_instructions,
+                    base_ref, custom_agent, custom_instructions, model,
                 ),
                 fallback_fn=lambda: self._assign_copilot_rest(
                     access_token, owner, repo, issue_number,
-                    base_ref, custom_agent, custom_instructions,
+                    base_ref, custom_agent, custom_instructions, model,
                 ),
                 context_msg="assign_copilot_to_issue",
             )
@@ -2215,6 +2217,7 @@ class GitHubProjectsService:
             base_ref,
             custom_agent,
             custom_instructions,
+            model,
         )
 
     async def _assign_copilot_rest(
@@ -2226,6 +2229,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Fallback: Assign GitHub Copilot using REST API.
@@ -2238,6 +2242,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on
             custom_agent: Custom agent name
             custom_instructions: Custom instructions for the agent
+            model: AI model to use for the agent assignment
 
         Returns:
             True if assignment succeeded
@@ -2250,7 +2255,7 @@ class GitHubProjectsService:
                     "base_branch": base_ref,
                     "custom_instructions": custom_instructions,
                     "custom_agent": custom_agent,
-                    "model": "claude-opus-4.6",
+                    "model": model,
                 },
             }
 
@@ -2298,6 +2303,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Primary: Assign GitHub Copilot using GraphQL API.
@@ -2316,6 +2322,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on
             custom_agent: Custom agent name
             custom_instructions: Custom instructions for the agent
+            model: AI model to use for the agent assignment
 
         Returns:
             True if assignment succeeded
@@ -2338,6 +2345,7 @@ class GitHubProjectsService:
                 "baseRef": base_ref,
                 "customInstructions": custom_instructions,
                 "customAgent": custom_agent,
+                "model": model,
             },
             extra_headers={
                 "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
@@ -4558,6 +4566,7 @@ class GitHubProjectsService:
         head_oid: str,
         files: list[dict],
         message: str,
+        delete_files: list[str] | None = None,
     ) -> str | None:
         """Commit files to a branch without cloning.
 
@@ -4569,6 +4578,7 @@ class GitHubProjectsService:
             head_oid: Expected HEAD OID for optimistic concurrency.
             files: ``[{"path": "relative/path", "content": "text content"}]``
             message: Commit message headline.
+            delete_files: Optional list of file paths to delete.
 
         Returns:
             Commit OID on success, ``None`` on failure.
@@ -4580,6 +4590,10 @@ class GitHubProjectsService:
             }
             for f in files
         ]
+
+        file_changes: dict[str, list] = {"additions": additions}
+        if delete_files:
+            file_changes["deletions"] = [{"path": p} for p in delete_files]
 
         max_attempts = 3
         current_oid = head_oid
@@ -4593,7 +4607,7 @@ class GitHubProjectsService:
                         "branchName": branch_name,
                         "expectedHeadOid": current_oid,
                         "message": {"headline": message},
-                        "fileChanges": {"additions": additions},
+                        "fileChanges": file_changes,
                     },
                 )
                 commit = (data.get("createCommitOnBranch") or {}).get("commit") or {}

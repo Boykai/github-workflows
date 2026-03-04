@@ -40,16 +40,16 @@ from src.services.workflow_orchestrator import (
     get_workflow_orchestrator,
     set_workflow_config,
 )
-from src.utils import resolve_repository, utcnow
+from src.utils import BoundedDict, resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# In-memory storage for chat messages and proposals (MVP)
-_messages: dict[str, list[ChatMessage]] = {}
-_proposals: dict[str, AITaskProposal] = {}
+# TODO: Migrate to SQLite for persistence across restarts (MVP: in-memory only)
+_messages: BoundedDict[str, list[ChatMessage]] = BoundedDict(maxlen=1000)
+_proposals: BoundedDict[str, AITaskProposal] = BoundedDict(maxlen=1000)
 # In-memory storage for issue recommendations (T007)
-_recommendations: dict[str, IssueRecommendation] = {}
+_recommendations: BoundedDict[str, IssueRecommendation] = BoundedDict(maxlen=1000)
 
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
