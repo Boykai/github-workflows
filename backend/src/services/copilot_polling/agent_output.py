@@ -156,6 +156,16 @@ async def post_agent_outputs_from_pr(
                             # timeline events are relevant.
                             recon_started = datetime(2020, 1, 1, tzinfo=UTC)
 
+                        # Capture HEAD SHA from the main PR so that
+                        # _check_main_pr_completion can compare against
+                        # it (Signal 3).  Without this, agent_assigned_sha
+                        # is empty and the "no SHA" fallback path can
+                        # produce false-positive completions.
+                        recon_sha = ""
+                        main_br = _cp.get_issue_main_branch(task.issue_number)
+                        if main_br and main_br.get("head_sha"):
+                            recon_sha = main_br["head_sha"]
+
                         pipeline = _cp.PipelineState(
                             issue_number=task.issue_number,
                             project_id=project_id,
@@ -164,6 +174,7 @@ async def post_agent_outputs_from_pr(
                             current_agent_index=len(completed),
                             completed_agents=completed,
                             started_at=recon_started,
+                            agent_assigned_sha=recon_sha,
                         )
 
                         # Reconstruct sub-issue mappings from GitHub API

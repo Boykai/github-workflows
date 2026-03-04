@@ -22,6 +22,7 @@ vi.mock('@/services/api', () => ({
       this.name = 'ApiError';
     }
   },
+  onAuthExpired: vi.fn(() => () => {}),
 }));
 
 const mockAuthApi = api.authApi as unknown as {

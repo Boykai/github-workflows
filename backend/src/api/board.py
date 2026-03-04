@@ -3,15 +3,64 @@
 import logging
 from typing import Annotated
 
+import httpx
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
-from src.exceptions import GitHubAPIError, NotFoundError
+from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError
 from src.models.board import BoardDataResponse, BoardProjectListResponse, RateLimitInfo
 from src.models.user import UserSession
 from src.services.cache import cache, get_cache_key
 from src.services.github_projects import github_projects_service
+
+
+def _is_github_auth_error(exc: Exception) -> bool:
+    """Return True if *exc* indicates the GitHub token is invalid/expired.
+
+    Covers httpx status errors (401/403) and GraphQL "FORBIDDEN" / "UNAUTHORIZED"
+    errors that GitHub returns inside a 200 response.
+    """
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
+        return True
+    # GraphQL wraps auth problems in ValueError("GraphQL error: ...")
+    msg = str(exc).lower()
+    if any(
+        keyword in msg
+        for keyword in (
+            "bad credentials",
+            "unauthorized",
+            "forbidden",
+            "insufficient scopes",
+            "401",
+            "403",
+        )
+    ):
+        return True
+    return False
+
+
+def _classify_github_error(exc: Exception) -> str:
+    """Return a safe, user-facing error classification for *exc*.
+
+    Never exposes raw internal strings (URLs, hostnames, stack traces).
+    """
+    msg = str(exc).lower()
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code == 429:
+            return "GitHub API rate limit exceeded"
+        if code >= 500:
+            return "GitHub API is temporarily unavailable"
+        return f"GitHub API returned status {code}"
+    if "graphql error" in msg:
+        return "GitHub GraphQL query failed"
+    if "timeout" in msg or "timed out" in msg:
+        return "Request to GitHub API timed out"
+    if "connect" in msg:
+        return "Could not connect to GitHub API"
+    return "Unexpected error communicating with GitHub"
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,9 +106,18 @@ async def list_board_projects(
             session.access_token, session.github_username
         )
     except Exception as e:
+        if _is_github_auth_error(e):
+            logger.warning(
+                "GitHub token invalid/expired for user %s — returning 401",
+                session.github_username,
+            )
+            raise AuthenticationError(
+                "Your GitHub session has expired. Please log in again."
+            ) from e
         logger.error("Failed to fetch board projects: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch projects from GitHub",
+            details={"reason": _classify_github_error(e)},
         ) from e
 
     cache.set(cache_key, projects)
@@ -93,6 +151,14 @@ async def get_board_data(
         logger.warning("Project not found: %s - %s", project_id, e)
         raise NotFoundError("Project not found") from e
     except Exception as e:
+        if _is_github_auth_error(e):
+            logger.warning(
+                "GitHub token invalid/expired for user %s — returning 401",
+                session.github_username,
+            )
+            raise AuthenticationError(
+                "Your GitHub session has expired. Please log in again."
+            ) from e
         # Check if this is a rate limit error
         rl = github_projects_service.get_last_rate_limit()
         if isinstance(rl, dict) and rl.get("remaining") == 0:
@@ -114,6 +180,7 @@ async def get_board_data(
         logger.error("Failed to fetch board data: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch board data from GitHub",
+            details={"reason": _classify_github_error(e)},
         ) from e
 
     board_data.rate_limit = _get_rate_limit_info()

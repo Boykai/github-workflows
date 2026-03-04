@@ -167,6 +167,23 @@ async def _poll_loop(
                     len(review_results),
                 )
 
+            # Step 4b: Check "In Review" issues for completed Copilot reviews
+            # and advance the pipeline to "Done"
+            in_review_results = await _cp.check_in_review_issues(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                tasks=parent_tasks,
+            )
+
+            if in_review_results:
+                logger.info(
+                    "Poll #%d: Advanced %d issues after Copilot review completion",
+                    _polling_state.poll_count,
+                    len(in_review_results),
+                )
+
             # Step 5: Self-healing recovery — detect and fix stalled pipelines
             recovery_results = await _cp.recover_stalled_issues(
                 access_token=access_token,

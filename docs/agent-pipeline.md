@@ -134,6 +134,23 @@ The background polling service runs every 60 seconds (configurable via `COPILOT_
 4. Issue status updated to "In Review"
 5. Copilot code review requested on the main PR
 
+### copilot-review Step
+
+The `copilot-review` step is a **non-coding** agent. It does NOT assign Copilot
+to the sub-issue as a coding agent. Instead the pipeline:
+
+1. Resolves the main PR for the parent issue (branch created by `speckit.specify`)
+2. **Converts draft → ready for review** — GitHub does not allow requesting reviews
+   on draft PRs, so the pipeline ensures the PR is marked ready first
+3. Calls the GitHub GraphQL `requestReviewsByLogin` mutation with `botLogins: ["copilot"]`
+   (and the `GraphQL-Features: copilot_code_review` header) to request a Copilot code review
+4. Marks the `[copilot-review]` sub-issue as "in-progress" (tracking only)
+5. Sub-issue is closed when the review completes
+
+The polling service's "Check In Review" step acts as a safety net: on each cycle
+it verifies that Copilot has been requested as a reviewer for every "In Review"
+issue, converting draft PRs and requesting reviews as needed.
+
 ## Pipeline Reconstruction
 
 On server restart, the system reconstructs state from:

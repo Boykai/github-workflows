@@ -224,77 +224,48 @@ async def _process_pipeline_completion(
                 )
                 return None
 
-            # Check if current agent has started work (created a PR)
-            main_branch_info = _cp.get_issue_main_branch(task.issue_number)
-            if main_branch_info:
-                child_pr = await _cp._find_completed_child_pr(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    main_branch=main_branch_info["branch"],
-                    main_pr_number=main_branch_info["pr_number"],
-                    agent_name=current_agent,
-                    pipeline=pipeline,
-                )
-                # If no child PR exists (even incomplete), the agent was never assigned
-                if child_pr is None:
-                    # Check if there's even an incomplete child PR in progress
-                    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                    )
-                    # Count PRs that target the main branch (excluding the main PR itself)
-                    child_prs_for_current_agent = [
-                        pr
-                        for pr in (linked_prs or [])
-                        if int(pr.get("number", 0)) != main_branch_info["pr_number"]
-                        and _cp.github_projects_service.is_copilot_author(pr.get("author", ""))
-                    ]
-                    # If there are completed agents but the current agent's PR doesn't exist,
-                    # we need to trigger it. Count expected PRs vs actual child PRs.
-                    expected_child_prs = len(pipeline.completed_agents)
-                    actual_child_prs = len(child_prs_for_current_agent)
+            # At this point, all durable and in-memory indicators agree
+            # that the current agent was never assigned:
+            #   - No Done! marker exists (checked above)
+            #   - Tracking table shows ⏳ Pending, not 🔄 Active
+            #   - No in-memory pending assignment flag
+            #   - Grace period has elapsed
+            # Assign the agent now.  Dedup guards inside
+            # assign_agent_for_status prevent duplicate assignments
+            # even in edge cases.
+            logger.info(
+                "Agent '%s' was never assigned for issue #%d "
+                "(tracking=Pending, no pending flag, grace period elapsed) "
+                "— assigning now",
+                current_agent,
+                task.issue_number,
+            )
+            orchestrator = _cp.get_workflow_orchestrator()
+            ctx = _cp.WorkflowContext(
+                session_id="polling",
+                project_id=project_id,
+                access_token=access_token,
+                repository_owner=task_owner,
+                repository_name=task_repo,
+                issue_id=task.github_content_id,
+                issue_number=task.issue_number,
+                project_item_id=task.github_item_id,
+                current_state=_cp.WorkflowState.READY,
+            )
+            ctx.config = await _cp.get_workflow_config(project_id)
 
-                    if actual_child_prs < expected_child_prs + 1:
-                        # Current agent was never assigned - trigger it now
-                        logger.info(
-                            "Agent '%s' was never assigned for issue #%d (found %d child PRs, "
-                            "expected %d for %d completed agents) — assigning now",
-                            current_agent,
-                            task.issue_number,
-                            actual_child_prs,
-                            expected_child_prs + 1,
-                            len(pipeline.completed_agents),
-                        )
-                        orchestrator = _cp.get_workflow_orchestrator()
-                        ctx = _cp.WorkflowContext(
-                            session_id="polling",
-                            project_id=project_id,
-                            access_token=access_token,
-                            repository_owner=task_owner,
-                            repository_name=task_repo,
-                            issue_id=task.github_content_id,
-                            issue_number=task.issue_number,
-                            project_item_id=task.github_item_id,
-                            current_state=_cp.WorkflowState.READY,
-                        )
-                        ctx.config = await _cp.get_workflow_config(project_id)
-
-                        assigned = await orchestrator.assign_agent_for_status(
-                            ctx, from_status, agent_index=pipeline.current_agent_index
-                        )
-                        if assigned:
-                            _pending_agent_assignments[pending_key] = utcnow()
-                            return {
-                                "status": "success",
-                                "issue_number": task.issue_number,
-                                "action": "agent_assigned_after_reconstruction",
-                                "agent_name": current_agent,
-                                "from_status": from_status,
-                            }
+            assigned = await orchestrator.assign_agent_for_status(
+                ctx, from_status, agent_index=pipeline.current_agent_index
+            )
+            if assigned:
+                _pending_agent_assignments[pending_key] = utcnow()
+                return {
+                    "status": "success",
+                    "issue_number": task.issue_number,
+                    "action": "agent_assigned_after_reconstruction",
+                    "agent_name": current_agent,
+                    "from_status": from_status,
+                }
 
     return None
 
@@ -1202,6 +1173,8 @@ async def _transition_after_pipeline_complete(
                         access_token=access_token,
                         pr_node_id=str(main_pr_id),
                         pr_number=main_pr_number,
+                        owner=owner,
+                        repo=repo,
                     )
                     if review_requested:
                         logger.info(
@@ -1345,6 +1318,107 @@ async def _transition_after_pipeline_complete(
         "to_status": effective_status,
         "next_agents": new_status_agents,
     }
+
+
+async def check_in_review_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Check all issues in "In Review" status for completed Copilot code reviews.
+
+    When the copilot-review agent completes (Copilot has submitted a code
+    review on the main PR), advance the pipeline — close the copilot-review
+    sub-issue and transition the issue to "Done".
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items (optional)
+
+    Returns:
+        List of results for each processed issue
+    """
+    results = []
+
+    try:
+        if tasks is None:
+            tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+
+        config = await _cp.get_workflow_config(project_id)
+        if not config:
+            logger.debug("No workflow config for project %s, skipping in-review check", project_id)
+            return results
+
+        status_in_review = config.status_in_review.lower()
+        in_review_tasks = [
+            task
+            for task in tasks
+            if task.status
+            and task.status.lower() == status_in_review
+            and task.issue_number is not None
+        ]
+
+        if not in_review_tasks:
+            return results
+
+        logger.debug(
+            "Found %d issues in '%s' status for review-completion check",
+            len(in_review_tasks),
+            config.status_in_review,
+        )
+
+        agents = _cp.get_agent_slugs(config, config.status_in_review)
+        if not agents:
+            return results
+
+        # The target status after In Review is "Done".
+        # WorkflowConfiguration does not have a status_done field;
+        # use the conventional name.
+        to_status = getattr(config, "status_done", None) or "Done"
+
+        for task in in_review_tasks:
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
+            # Get or reconstruct pipeline state
+            pipeline = await _get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_in_review,
+                agents=agents,
+            )
+
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=config.status_in_review,
+                to_status=to_status,
+            )
+            if result:
+                results.append(result)
+
+    except Exception as e:
+        logger.error("Error checking in-review issues: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = str(e)
+
+    return results
 
 
 async def check_in_progress_issues(
@@ -1712,6 +1786,8 @@ async def process_in_progress_issue(
                     access_token=access_token,
                     pr_node_id=pr_id,
                     pr_number=pr_number,
+                    owner=owner,
+                    repo=repo,
                 )
 
                 if review_requested:

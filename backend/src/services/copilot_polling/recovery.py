@@ -147,7 +147,65 @@ async def recover_stalled_issues(
             pending_step = _cp.get_next_pending_agent(body)
 
             if active_step is None and pending_step is None:
-                # All agents are ✅ Done — nothing to recover
+                # All agents are ✅ Done for this status.  Check whether the
+                # issue has already advanced beyond its current board status.
+                # If it hasn't (e.g. the polling loop was down during the
+                # transition window), force the transition now so the pipeline
+                # always recovers without manual intervention.
+                current_status = task.status or ""
+                to_status = _cp.get_next_status(config, current_status) if config else None
+                if not to_status or to_status.lower() == current_status.lower():
+                    # No forward transition configured — genuinely nothing to do.
+                    continue
+
+                logger.warning(
+                    "Recovery: issue #%d — all agents ✅ Done in '%s' but still "
+                    "not transitioned to '%s' (polling was likely stopped during "
+                    "the transition window) — forcing transition now",
+                    issue_number,
+                    current_status,
+                    to_status,
+                )
+                _recovery_last_attempt[issue_number] = now
+
+                try:
+                    from .pipeline import _transition_after_pipeline_complete
+
+                    trans_result = await _transition_after_pipeline_complete(
+                        access_token=access_token,
+                        project_id=project_id,
+                        item_id=task.github_item_id,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=issue_number,
+                        issue_node_id=task.github_content_id,
+                        from_status=current_status,
+                        to_status=to_status,
+                        task_title=task.title or f"Issue #{issue_number}",
+                    )
+                    if trans_result:
+                        results.append(
+                            {
+                                "status": "recovered_transition",
+                                "issue_number": issue_number,
+                                "from_status": current_status,
+                                "to_status": to_status,
+                                "pipeline_result": trans_result,
+                            }
+                        )
+                        logger.info(
+                            "Recovery: issue #%d successfully transitioned from '%s' to '%s'",
+                            issue_number,
+                            current_status,
+                            to_status,
+                        )
+                except Exception as trans_err:
+                    logger.error(
+                        "Recovery: failed to force-transition issue #%d to '%s': %s",
+                        issue_number,
+                        to_status,
+                        trans_err,
+                    )
                 continue
 
             expected_agent = active_step or pending_step

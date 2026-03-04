@@ -58,6 +58,18 @@ ASSIGNMENT_GRACE_PERIOD_SECONDS = 120
 # a non-draft PR as agent completion when we ourselves marked it ready.
 _system_marked_ready_prs: BoundedSet[int] = BoundedSet(maxlen=500)  # pr_number
 
+# Track when a Copilot review was first detected on a PR.  The pipeline
+# requires the review to be confirmed on TWO consecutive poll cycles before
+# marking copilot-review as done.  This eliminates false positives from
+# transient GitHub API race conditions where a review object briefly
+# appears before being fully committed.
+_copilot_review_first_detected: BoundedDict[int, datetime] = BoundedDict(
+    maxlen=200
+)  # issue_number -> first detection timestamp
+COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS: float = (
+    30.0  # min seconds between first detection and confirmation
+)
+
 # Recovery cooldown: tracks when we last attempted recovery for each issue.
 # Prevents re-assigning an agent every poll cycle — gives Copilot time to start.
 _recovery_last_attempt: BoundedDict[int, datetime] = BoundedDict(

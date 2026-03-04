@@ -73,6 +73,7 @@ from .completion import (  # noqa: F401
 from .helpers import (  # noqa: F401
     _check_agent_done_on_parent,
     _check_agent_done_on_sub_or_parent,
+    _check_copilot_review_done,
     _get_linked_prs_including_sub_issues,
     _get_sub_issue_number,
     _get_sub_issue_numbers_for_issue,
@@ -90,6 +91,7 @@ from .pipeline import (  # noqa: F401
     _transition_after_pipeline_complete,
     check_backlog_issues,
     check_in_progress_issues,
+    check_in_review_issues,
     check_ready_issues,
     process_in_progress_issue,
 )
@@ -146,6 +148,7 @@ __all__ = [
     "_get_linked_prs_including_sub_issues",
     "_link_prs_to_parent",
     "_check_agent_done_on_sub_or_parent",
+    "_check_copilot_review_done",
     "_check_agent_done_on_parent",
     "_update_issue_tracking",
     "_get_tracking_state_from_issue",
@@ -169,6 +172,7 @@ __all__ = [
     "_advance_pipeline",
     "_transition_after_pipeline_complete",
     "check_in_progress_issues",
+    "check_in_review_issues",
     "process_in_progress_issue",
     # Agent output
     "post_agent_outputs_from_pr",

@@ -10,6 +10,7 @@ from src.services.copilot_polling import (
     _check_agent_done_on_parent,
     _check_agent_done_on_sub_or_parent,
     _check_child_pr_completion,
+    _check_copilot_review_done,
     _check_main_pr_completion,
     _claimed_child_prs,
     _filter_events_after,
@@ -27,6 +28,7 @@ from src.services.copilot_polling import (
     _update_issue_tracking,
     check_backlog_issues,
     check_in_progress_issues,
+    check_in_review_issues,
     check_in_review_issues_for_copilot_review,
     check_issue_for_copilot_completion,
     check_ready_issues,
@@ -37,6 +39,10 @@ from src.services.copilot_polling import (
     process_in_progress_issue,
     recover_stalled_issues,
     stop_polling,
+)
+from src.services.copilot_polling.state import (
+    COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
+    _copilot_review_first_detected,
 )
 from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
 from src.utils import utcnow
@@ -4865,3 +4871,991 @@ class TestProcessPipelineCompletionBatchTracking:
         pushed_body = mock_service.update_issue_body.call_args.kwargs["body"]
         assert "✅ Done" in pushed_body
         assert "🔄 Active" not in pushed_body
+
+
+# ────────────────────────────────────────────────────────────────────
+# Regression: pipeline stall after copilot-review (T-judge-stall)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestPipelineAdvancesAfterCopilotReview:
+    """Regression test: after copilot-review completes, judge must be
+    assigned even when child PRs from prior statuses exist.
+
+    Root cause: the "never assigned" heuristic compared total Copilot-
+    authored child PRs against completed-agents-in-current-status + 1.
+    Child PRs from previous statuses (speckit.plan, speckit.tasks,
+    speckit.implement) inflated the actual count, making the code
+    believe judge was already assigned.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        _pending_agent_assignments.clear()
+        yield
+        _pipeline_states.clear()
+        _pending_agent_assignments.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_judge_assigned_despite_prior_child_prs(
+        self,
+        mock_service,
+        mock_ws,
+        mock_get_orch,
+        mock_get_config,
+    ):
+        """When pipeline is reconstructed after copilot-review Done!, judge
+        must be assigned even if child PRs from prior agents exist."""
+        from src.services.copilot_polling import _process_pipeline_completion
+
+        # Pipeline reconstructed: copilot-review done, judge is next
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Review",
+            agents=["copilot-review", "judge", "linter"],
+            current_agent_index=1,
+            completed_agents=["copilot-review"],
+            started_at=utcnow() - timedelta(minutes=10),  # well past grace period
+        )
+
+        task = MagicMock()
+        task.issue_number = 42
+        task.github_item_id = "PVTI_123"
+        task.github_content_id = "I_123"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test Issue"
+
+        # judge has NOT completed (no Done! marker)
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        # Tracking table shows judge as ⏳ Pending (not 🔄 Active)
+        body_pending = (
+            "Body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 5 | In Review | `copilot-review` | ✅ Done |\n"
+            "| 6 | In Review | `judge` | ⏳ Pending |\n"
+            "| 7 | In Review | `linter` | ⏳ Pending |\n"
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": body_pending, "comments": []}
+        )
+
+        # Set up orchestrator mock
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+        mock_get_config.return_value = MagicMock()
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        result = await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_123",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="In Review",
+            to_status="Done",
+        )
+
+        # judge MUST be assigned
+        assert result is not None
+        assert result["action"] == "agent_assigned_after_reconstruction"
+        assert result["agent_name"] == "judge"
+        mock_orchestrator.assign_agent_for_status.assert_awaited_once()
+
+
+class TestCheckCopilotReviewDone:
+    """Tests for the copilot-review completion detection.
+
+    copilot-review is NOT a coding agent — it never posts a Done! comment.
+    Completion is detected by checking whether Copilot has submitted a code
+    review on the main PR.  A confirmation delay ensures the detection is
+    stable across two consecutive poll cycles.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _clear_review_detection_state(self):
+        """Ensure the confirmation-delay dict is clean between tests."""
+        _copilot_review_first_detected.clear()
+        yield
+        _copilot_review_first_detected.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_review_submitted_returns_true(self, mock_main_branch, mock_service):
+        """When Copilot has submitted a PR review and confirmation delay elapsed, the step is done."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+        # Pre-populate first-detection to simulate prior poll cycle
+        _copilot_review_first_detected[42] = utcnow() - timedelta(
+            seconds=COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS + 1
+        )
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is True
+        mock_service.has_copilot_reviewed_pr.assert_awaited_once_with(
+            access_token="token", owner="owner", repo="repo", pr_number=100
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_review_first_detection_returns_false(self, mock_main_branch, mock_service):
+        """On first detection of a Copilot review, return False (await confirmation)."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is False
+        # Should have recorded the first-detection timestamp
+        assert 42 in _copilot_review_first_detected
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_review_confirmation_delay_not_elapsed(self, mock_main_branch, mock_service):
+        """While confirmation delay has not elapsed, return False."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+
+        # First detection was recent — delay not elapsed
+        _copilot_review_first_detected[42] = utcnow() - timedelta(seconds=5)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is False
+        # Timestamp should NOT be cleared
+        assert 42 in _copilot_review_first_detected
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_no_review_returns_false(self, mock_main_branch, mock_service):
+        """When Copilot has not yet submitted a review, the step is not done."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is False
+        # Self-healing: should re-request the review since not yet reviewed
+        mock_service.request_copilot_review.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_no_main_branch_falls_back_to_api(self, mock_main_branch, mock_service):
+        """When main branch is not cached, fall back to API to find the PR."""
+        mock_main_branch.return_value = None
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.find_existing_pr_for_issue = AsyncMock(
+            return_value={"number": 200, "head_ref": "feature/issue-42"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_2", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+        # Pre-populate first-detection to simulate prior poll cycle
+        _copilot_review_first_detected[42] = utcnow() - timedelta(
+            seconds=COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS + 1
+        )
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is True
+        mock_service.find_existing_pr_for_issue.assert_awaited_once()
+        mock_service.has_copilot_reviewed_pr.assert_awaited_once_with(
+            access_token="token", owner="owner", repo="repo", pr_number=200
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_no_pr_found_returns_false(self, mock_main_branch, mock_service):
+        """When no main PR can be found, return False."""
+        mock_main_branch.return_value = None
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_false_positive_cleared_when_review_vanishes(
+        self, mock_main_branch, mock_service
+    ):
+        """If review detected then vanishes on next cycle, first-detection timestamp is cleared."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        # First cycle: review detected (sets timestamp)
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+        assert 42 in _copilot_review_first_detected
+
+        # Second cycle: review vanished (false positive) — timestamp cleared
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+        assert result is False
+        assert 42 not in _copilot_review_first_detected
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_two_cycle_confirmation_flow(self, mock_main_branch, mock_service):
+        """Full two-cycle flow: first detection returns False, after delay returns True."""
+        mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_1", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+        # Cycle 1: first detection — sets timestamp, returns False
+        result1 = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+        assert result1 is False
+        assert 42 in _copilot_review_first_detected
+
+        # Simulate delay elapsed
+        _copilot_review_first_detected[42] = utcnow() - timedelta(
+            seconds=COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS + 1
+        )
+
+        # Cycle 2: confirmed — returns True and posts Done! marker
+        result2 = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=42
+        )
+        assert result2 is True
+        mock_service.create_issue_comment.assert_awaited_once()
+        # Timestamp should be cleaned up
+        assert 42 not in _copilot_review_first_detected
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_copilot_review_agent_routed_to_review_check(self, mock_service):
+        """_check_agent_done_on_sub_or_parent should route copilot-review to PR review check."""
+        with patch("src.services.copilot_polling.get_issue_main_branch") as mock_main_branch:
+            mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+            mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+            mock_service.get_pull_request = AsyncMock(
+                return_value={"id": "PR_node_1", "is_draft": False}
+            )
+            mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+            mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+            # Pre-populate first-detection to simulate prior poll cycle
+            _copilot_review_first_detected[42] = utcnow() - timedelta(
+                seconds=COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS + 1
+            )
+
+            result = await _check_agent_done_on_sub_or_parent(
+                access_token="token",
+                owner="owner",
+                repo="repo",
+                parent_issue_number=42,
+                agent_name="copilot-review",
+            )
+
+            assert result is True
+            # check_agent_completion_comment IS called now (for Done! marker check)
+            # but the actual completion is detected via has_copilot_reviewed_pr
+            mock_service.has_copilot_reviewed_pr.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_copilot_review_not_done_returns_false(self, mock_service):
+        """_check_agent_done_on_sub_or_parent returns False when review not submitted."""
+        with patch("src.services.copilot_polling.get_issue_main_branch") as mock_main_branch:
+            mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
+            mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+            mock_service.get_pull_request = AsyncMock(
+                return_value={"id": "PR_node_1", "is_draft": False}
+            )
+            mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+            mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+            result = await _check_agent_done_on_sub_or_parent(
+                access_token="token",
+                owner="owner",
+                repo="repo",
+                parent_issue_number=42,
+                agent_name="copilot-review",
+            )
+
+            assert result is False
+            # check_agent_completion_comment IS called (for Done! marker)
+            # but has_copilot_reviewed_pr returned False so step is not done
+            mock_service.has_copilot_reviewed_pr.assert_awaited_once()
+
+
+# ────────────────────────────────────────────────────────────────────
+# check_in_review_issues
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckInReviewIssuesPipeline:
+    """Tests for check_in_review_issues — detects completed Copilot reviews
+    and advances the pipeline to Done."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_in_review_issues_returns_empty(self, mock_service, mock_config):
+        """When no issues are in 'In Review', return empty list."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Review": [MagicMock(slug="copilot-review")]},
+        )
+
+        task = MagicMock()
+        task.status = "Backlog"
+        task.issue_number = 42
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+
+        results = await check_in_review_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_no_config_returns_empty(self, mock_service, mock_config):
+        """When no workflow config exists, return empty list."""
+        mock_config.return_value = None
+
+        results = await check_in_review_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        assert results == []
+
+
+# ────────────────────────────────────────────────────────────────────
+# Regression: WIP child PR false completion (T-wip-false-positive)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestWipChildPrFalsePositive:
+    """Regression tests: child PRs with [WIP] title and only 1 commit
+    (the 'Initial plan' placeholder) must NOT be treated as complete,
+    even if draft=False.
+
+    Root cause: _find_completed_child_pr treated any non-draft child PR
+    as completed by Copilot.  But Copilot sometimes creates child PRs
+    as non-draft immediately, or marks them ready before doing real work.
+    """
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wip_non_draft_1_commit_not_complete(self, mock_service):
+        """A non-draft child PR with [WIP] title and 1 commit is NOT complete."""
+        mock_service.is_copilot_author.return_value = True
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 200, "state": "OPEN", "author": "Copilot"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_200",
+                "base_ref": "copilot/feature-branch",
+                "head_ref": "copilot/feature-branch-again",
+                "title": "[WIP] Implement feature",
+                "is_draft": False,
+                "commits": 1,
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+        # Timeline has no copilot_finished events
+        mock_service.get_pr_timeline_events = AsyncMock(return_value=[])
+        mock_service.check_copilot_finished_events.return_value = False
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            main_branch="copilot/feature-branch",
+            main_pr_number=100,
+            agent_name="linter",
+        )
+
+        # Must NOT be detected as complete
+        assert result is None
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_non_draft_no_wip_is_complete(self, mock_service):
+        """A non-draft child PR WITHOUT [WIP] title is considered complete."""
+        mock_service.is_copilot_author.return_value = True
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 200, "state": "OPEN", "author": "Copilot"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_200",
+                "base_ref": "copilot/feature-branch",
+                "head_ref": "copilot/feature-branch-again",
+                "title": "Implement feature",
+                "is_draft": False,
+                "commits": 3,
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            main_branch="copilot/feature-branch",
+            main_pr_number=100,
+            agent_name="linter",
+        )
+
+        # Should be detected as complete (no [WIP], multiple commits)
+        assert result is not None
+        assert result["copilot_finished"] is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wip_with_multiple_commits_is_complete(self, mock_service):
+        """A non-draft PR with [WIP] title but >1 commits IS complete
+        (Copilot pushed real work but title wasn't updated)."""
+        mock_service.is_copilot_author.return_value = True
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 200, "state": "OPEN", "author": "Copilot"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_200",
+                "base_ref": "copilot/feature-branch",
+                "head_ref": "copilot/feature-branch-again",
+                "title": "[WIP] Implement feature",
+                "is_draft": False,
+                "commits": 4,
+                "last_commit": {"sha": "abc123"},
+            }
+        )
+
+        result = await _find_completed_child_pr(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            main_branch="copilot/feature-branch",
+            main_pr_number=100,
+            agent_name="linter",
+        )
+
+        # Multiple commits = real work done, treat as complete
+        assert result is not None
+        assert result["copilot_finished"] is True
+
+
+# ────────────────────────────────────────────────────────────────────
+# Polling watchdog
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestPollingWatchdog:
+    """Tests for the _polling_watchdog_loop watchdog in main.py.
+
+    The watchdog ensures the agent pipeline always recovers even when
+    the polling loop stops unexpectedly (crash, task cancellation, etc.).
+    """
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_watchdog_restarts_stopped_polling(self, mock_sleep):
+        """When is_running=False the watchdog calls _auto_start_copilot_polling."""
+        import asyncio
+
+        sleep_calls = 0
+
+        async def sleep_side_effect(*a, **kw):
+            nonlocal sleep_calls
+            sleep_calls += 1
+            # Allow first cycle to run, then exit via CancelledError
+            if sleep_calls > 1:
+                raise asyncio.CancelledError()
+
+        mock_sleep.side_effect = sleep_side_effect
+
+        with patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock) as mock_restart:
+            with patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False, "errors_count": 1, "last_error": "crash"},
+            ):
+                mock_restart.return_value = True
+                from src.main import _polling_watchdog_loop
+
+                await _polling_watchdog_loop()
+
+        mock_restart.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_watchdog_does_not_restart_when_running(self, mock_sleep):
+        """When is_running=True the watchdog does NOT call _auto_start_copilot_polling."""
+        import asyncio
+
+        sleep_calls = 0
+
+        async def sleep_side_effect(*a, **kw):
+            nonlocal sleep_calls
+            sleep_calls += 1
+            if sleep_calls > 1:
+                raise asyncio.CancelledError()
+
+        mock_sleep.side_effect = sleep_side_effect
+
+        with patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock) as mock_restart:
+            with patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": True, "errors_count": 0, "last_error": None},
+            ):
+                from src.main import _polling_watchdog_loop
+
+                await _polling_watchdog_loop()
+
+        mock_restart.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_watchdog_tolerates_restart_failure(self, mock_sleep):
+        """A failed restart attempt should not crash the watchdog loop."""
+        import asyncio
+
+        sleep_calls = 0
+
+        async def sleep_side_effect(*a, **kw):
+            nonlocal sleep_calls
+            sleep_calls += 1
+            if sleep_calls > 1:
+                raise asyncio.CancelledError()
+
+        mock_sleep.side_effect = sleep_side_effect
+
+        with patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock) as mock_restart:
+            mock_restart.side_effect = RuntimeError("DB unavailable")
+            with patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False, "errors_count": 5, "last_error": "db error"},
+            ):
+                from src.main import _polling_watchdog_loop
+
+                # Should complete normally even though restart raised
+                await _polling_watchdog_loop()
+
+
+# ────────────────────────────────────────────────────────────────────
+# Recovery forced transition
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestRecoveryForcedTransition:
+    """Tests that recover_stalled_issues forces a status transition when all
+    agents are ✅ Done but the issue has not yet advanced to the next status.
+
+    Root cause of the issue #1474 regression: the polling loop stopped
+    between the 'speckit.implement: Done!' comment and the 'In Progress'→
+    'In Review' status update.  The next recovery cycle must detect this
+    and trigger the transition unconditionally.
+    """
+
+    TRACKING_BODY_ALL_DONE = (
+        "## Issue Body\n\n"
+        "---\n\n"
+        "## 🤖 Agent Pipeline\n\n"
+        "| # | Status | Agent | State |\n"
+        "|---|--------|-------|-------|\n"
+        "| 1 | In Progress | `speckit.plan` | ✅ Done |\n"
+        "| 2 | In Progress | `speckit.tasks` | ✅ Done |\n"
+        "| 3 | In Progress | `speckit.implement` | ✅ Done |\n"
+    )
+
+    @pytest.fixture(autouse=True)
+    def clear_recovery_state(self):
+        _recovery_last_attempt.clear()
+        _pending_agent_assignments.clear()
+        yield
+        _recovery_last_attempt.clear()
+        _pending_agent_assignments.clear()
+
+    @pytest.fixture
+    def mock_in_progress_task(self):
+        task = MagicMock()
+        task.github_item_id = "PVTI_1474"
+        task.github_content_id = "I_1474"
+        task.issue_number = 1474
+        task.repository_owner = "Boykai"
+        task.repository_name = "github-workflows"
+        task.title = "Audit & Refactor"
+        task.status = "In Progress"
+        return task
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._transition_after_pipeline_complete",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.get_next_status")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_forces_transition_when_all_done_not_yet_transitioned(
+        self,
+        mock_config,
+        mock_service,
+        mock_next_status,
+        mock_transition,
+        mock_in_progress_task,
+    ):
+        """All agents Done + non-terminal status → _transition_after_pipeline_complete called."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["speckit.plan", "speckit.tasks", "speckit.implement"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY_ALL_DONE}
+        )
+        mock_next_status.return_value = "In Review"
+        mock_transition.return_value = {"status": "success", "issue_number": 1474}
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="Boykai",
+            repo="github-workflows",
+            tasks=[mock_in_progress_task],
+        )
+
+        mock_transition.assert_awaited_once_with(
+            access_token="token",
+            project_id="PVT_1",
+            item_id="PVTI_1474",
+            owner="Boykai",
+            repo="github-workflows",
+            issue_number=1474,
+            issue_node_id="I_1474",
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Audit & Refactor",
+        )
+        assert len(results) == 1
+        assert results[0]["status"] == "recovered_transition"
+        assert results[0]["from_status"] == "In Progress"
+        assert results[0]["to_status"] == "In Review"
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._transition_after_pipeline_complete",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.get_next_status")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_skips_transition_when_no_next_status(
+        self,
+        mock_config,
+        mock_service,
+        mock_next_status,
+        mock_transition,
+        mock_in_progress_task,
+    ):
+        """When get_next_status returns None, no transition is attempted."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["speckit.plan"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY_ALL_DONE}
+        )
+        mock_next_status.return_value = None
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="Boykai",
+            repo="github-workflows",
+            tasks=[mock_in_progress_task],
+        )
+
+        mock_transition.assert_not_awaited()
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._transition_after_pipeline_complete",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.get_next_status")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_skips_transition_when_on_cooldown(
+        self,
+        mock_config,
+        mock_service,
+        mock_next_status,
+        mock_transition,
+        mock_in_progress_task,
+    ):
+        """Issues on recovery cooldown should not trigger another transition attempt."""
+        from datetime import UTC, datetime
+
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["speckit.plan"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY_ALL_DONE}
+        )
+        mock_next_status.return_value = "In Review"
+        # Simulate a very recent recovery attempt (still within cooldown)
+        _recovery_last_attempt[1474] = datetime.now(UTC)
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="Boykai",
+            repo="github-workflows",
+            tasks=[mock_in_progress_task],
+        )
+
+        mock_transition.assert_not_awaited()
+        assert results == []
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._transition_after_pipeline_complete",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.get_next_status")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_result_empty_when_transition_returns_none(
+        self,
+        mock_config,
+        mock_service,
+        mock_next_status,
+        mock_transition,
+        mock_in_progress_task,
+    ):
+        """When _transition_after_pipeline_complete returns None, results stay empty."""
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["speckit.plan"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": self.TRACKING_BODY_ALL_DONE}
+        )
+        mock_next_status.return_value = "In Review"
+        mock_transition.return_value = None  # transition returned nothing
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="Boykai",
+            repo="github-workflows",
+            tasks=[mock_in_progress_task],
+        )
+
+        mock_transition.assert_awaited_once()
+        # No result appended when transition returns None
+        assert results == []
+
+
+# ────────────────────────────────────────────────────────────────────
+# _check_copilot_review_done — Self-Healing
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCopilotReviewSelfHealing:
+    """Tests for the self-healing behaviour in _check_copilot_review_done.
+
+    When the initial copilot-review assignment fails to un-draft the PR
+    or request the review, the completion-check function should retry
+    those operations on every poll cycle.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _clear_review_detection_state(self):
+        """Ensure the confirmation-delay dict is clean between tests."""
+        _copilot_review_first_detected.clear()
+        yield
+        _copilot_review_first_detected.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_undrafts_pr_before_checking_review(self, mock_main_branch, mock_service):
+        """When the main PR is still a draft, self-healing converts it to ready."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_300", "is_draft": True}
+        )
+        mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=99
+        )
+
+        assert result is False  # Review not yet submitted
+        mock_service.mark_pr_ready_for_review.assert_awaited_once_with(
+            access_token="token", pr_node_id="PR_node_300"
+        )
+        # Should also re-request the review since not yet reviewed
+        mock_service.request_copilot_review.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_undraft_failure_returns_false(self, mock_main_branch, mock_service):
+        """When un-drafting fails, return False without checking review status."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_300", "is_draft": True}
+        )
+        mock_service.mark_pr_ready_for_review = AsyncMock(return_value=False)
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=99
+        )
+
+        assert result is False
+        mock_service.mark_pr_ready_for_review.assert_awaited_once()
+        # Should NOT check review status since PR is still a draft
+        mock_service.has_copilot_reviewed_pr.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_re_requests_review_when_not_reviewed(self, mock_main_branch, mock_service):
+        """When PR is ready but not yet reviewed, re-request the Copilot review."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_300", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=99
+        )
+
+        assert result is False
+        # Should NOT try to un-draft (already ready)
+        mock_service.mark_pr_ready_for_review.assert_not_called()
+        # Should re-request the review
+        mock_service.request_copilot_review.assert_awaited_once_with(
+            access_token="token",
+            pr_node_id="PR_node_300",
+            pr_number=300,
+            owner="owner",
+            repo="repo",
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_skips_self_healing_when_already_reviewed(self, mock_main_branch, mock_service):
+        """When Copilot has already reviewed, no self-healing calls are made."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_300", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1})
+
+        # Pre-populate first-detection to simulate prior poll cycle
+        _copilot_review_first_detected[99] = utcnow() - timedelta(
+            seconds=COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS + 1
+        )
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=99
+        )
+
+        assert result is True
+        mock_service.mark_pr_ready_for_review.assert_not_called()
+        mock_service.request_copilot_review.assert_not_called()

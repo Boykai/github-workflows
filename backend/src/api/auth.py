@@ -1,6 +1,7 @@
 """Authentication API endpoints - OAuth flow."""
 
 import logging
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
@@ -35,6 +36,11 @@ def _set_session_cookie(response: Response, session_id: str) -> None:
     )
 
 
+# Refresh the token when it expires within this window to avoid
+# mid-request failures against GitHub's API.
+_TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
+
+
 async def get_current_session(
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
 ) -> UserSession:
@@ -42,6 +48,10 @@ async def get_current_session(
 
     Can be used as a FastAPI ``Depends()`` or called directly with a raw
     session-id string (e.g. from a WebSocket query parameter).
+
+    Automatically refreshes the GitHub access token when it is expired
+    or about to expire (within a 5-minute buffer), so downstream API
+    calls always use a valid token.
     """
     if not session_id:
         raise AuthenticationError("No session cookie")
@@ -49,6 +59,31 @@ async def get_current_session(
     session = await github_auth_service.get_session(session_id)
     if not session:
         raise AuthenticationError("Invalid or expired session")
+
+    # Auto-refresh expired / nearly-expired tokens
+    if (
+        session.token_expires_at is not None
+        and session.token_expires_at - _TOKEN_REFRESH_BUFFER <= datetime.now(UTC)
+    ):
+        if session.refresh_token:
+            try:
+                session = await github_auth_service.refresh_token(session)
+                logger.info("Auto-refreshed token for user %s", session.github_username)
+            except Exception:
+                logger.warning(
+                    "Token refresh failed for user %s — forcing re-login",
+                    session.github_username,
+                    exc_info=True,
+                )
+                raise AuthenticationError(
+                    "Your GitHub session has expired. Please log in again."
+                ) from None
+        else:
+            logger.warning(
+                "Token expired with no refresh_token for user %s",
+                session.github_username,
+            )
+            raise AuthenticationError("Your GitHub session has expired. Please log in again.")
 
     return session
 

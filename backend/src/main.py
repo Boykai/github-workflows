@@ -80,6 +80,51 @@ async def _auto_start_copilot_polling() -> None:
         )
 
 
+async def _polling_watchdog_loop() -> None:
+    """Watchdog task: restart the Copilot polling loop if it stops unexpectedly.
+
+    Runs every 30 seconds and calls ``_auto_start_copilot_polling()`` whenever
+    ``is_running`` is False.  This ensures the agent pipeline always recovers
+    after crashes, task cancellations, or unexpected asyncio exits — without
+    manual intervention.
+
+    Uses a short fixed interval (30 s) so issues blocked by a stopped polling
+    loop are unblocked within at most one minute.
+    """
+    from src.services.copilot_polling import get_polling_status
+
+    consecutive_failures = 0
+
+    while True:
+        try:
+            await asyncio.sleep(30)
+
+            status = get_polling_status()
+            if not status["is_running"]:
+                logger.warning(
+                    "Polling watchdog: polling loop is stopped "
+                    "(errors=%d, last_error=%r) — attempting restart",
+                    status.get("errors_count", 0),
+                    status.get("last_error"),
+                )
+                try:
+                    restarted = await _auto_start_copilot_polling()
+                    if restarted:
+                        logger.info("Polling watchdog: polling loop restarted successfully")
+                    consecutive_failures = 0
+                except Exception:
+                    consecutive_failures += 1
+                    logger.exception(
+                        "Polling watchdog: restart attempt #%d failed",
+                        consecutive_failures,
+                    )
+        except asyncio.CancelledError:
+            logger.debug("Polling watchdog task cancelled")
+            break
+        except Exception:
+            logger.exception("Unexpected error in polling watchdog")
+
+
 async def _session_cleanup_loop() -> None:
     """Periodic background task to purge expired sessions.
 
@@ -146,6 +191,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     # block only tears down what actually started.
     db = None
     cleanup_task: asyncio.Task | None = None
+    watchdog_task: asyncio.Task | None = None
     signal_started = False
 
     try:
@@ -194,6 +240,10 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception:
             logger.exception("Failed to auto-start Copilot polling (non-fatal)")
 
+        # Start polling watchdog — restarts polling if it stops unexpectedly.
+        # This is the primary guarantee that the agent pipeline "always recovers".
+        watchdog_task = asyncio.create_task(_polling_watchdog_loop())
+
         yield
     finally:
         # Shutdown: stop Signal listener, cancel cleanup task, stop polling,
@@ -205,6 +255,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
             cleanup_task.cancel()
             try:
                 await cleanup_task
+            except asyncio.CancelledError:
+                pass
+
+        if watchdog_task is not None:
+            watchdog_task.cancel()
+            try:
+                await watchdog_task
             except asyncio.CancelledError:
                 pass
 

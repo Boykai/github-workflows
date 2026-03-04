@@ -382,6 +382,7 @@ class TestConfirmRecommendation:
                 default_assignee="copilot",
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
+                database_path=":memory:",
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
@@ -412,7 +413,7 @@ class TestConfirmRecommendation:
             patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch("src.config.get_settings") as ms,
         ):
-            ms.return_value = MagicMock(default_assignee="copilot")
+            ms.return_value = MagicMock(default_assignee="copilot", database_path=":memory:")
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
         assert resp.status_code == 200
@@ -539,7 +540,9 @@ class TestCheckIssueCopilotCompletion:
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
-            ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
+            ms.return_value = MagicMock(
+                default_repo_owner="", default_repo_name="", database_path=":memory:"
+            )
             resp = await client.post("/api/v1/workflow/polling/check-issue/42")
         assert resp.status_code == 422
 
@@ -644,7 +647,9 @@ class TestStartPolling:
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
-            ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
+            ms.return_value = MagicMock(
+                default_repo_owner="", default_repo_name="", database_path=":memory:"
+            )
             resp = await client.post("/api/v1/workflow/polling/start")
         assert resp.status_code == 422
 
@@ -685,7 +690,9 @@ class TestCheckAllInProgressIssues:
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.config.get_settings") as ms,
         ):
-            ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
+            ms.return_value = MagicMock(
+                default_repo_owner="", default_repo_name="", database_path=":memory:"
+            )
             resp = await client.post("/api/v1/workflow/polling/check-all")
         assert resp.status_code == 422
 
@@ -704,7 +711,9 @@ class TestCheckAllInProgressIssues:
             ),
         ):
             ms.return_value = MagicMock(
-                default_repo_owner="def_owner", default_repo_name="def_repo"
+                default_repo_owner="def_owner",
+                default_repo_name="def_repo",
+                database_path=":memory:",
             )
             resp = await client.post("/api/v1/workflow/polling/check-all")
         assert resp.status_code == 200
@@ -778,6 +787,7 @@ class TestConfirmRecommendationPreservesFullDescription:
                 default_assignee="copilot",
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
+                database_path=":memory:",
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
@@ -832,6 +842,7 @@ class TestConfirmRecommendationPreservesFullDescription:
                 default_assignee="copilot",
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
+                database_path=":memory:",
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
@@ -891,6 +902,7 @@ class TestConfirmRecommendationPreservesFullDescription:
                 default_assignee="copilot",
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
+                database_path=":memory:",
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
@@ -953,6 +965,7 @@ class TestConfirmRecommendationPreservesFullDescription:
                 default_assignee="copilot",
                 default_repo_owner="testowner",
                 default_repo_name="testrepo",
+                database_path=":memory:",
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
@@ -1005,7 +1018,7 @@ class TestWorkflowErrorSanitization:
             patch("src.api.workflow.get_workflow_orchestrator") as mock_orch,
             patch("src.config.get_settings") as mock_s,
         ):
-            mock_s.return_value = MagicMock(default_assignee="bot")
+            mock_s.return_value = MagicMock(default_assignee="bot", database_path=":memory:")
             mock_orch.return_value.execute_full_workflow = AsyncMock(
                 side_effect=RuntimeError("internal: DB lock timeout after 5000ms")
             )

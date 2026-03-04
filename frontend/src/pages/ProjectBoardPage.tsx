@@ -211,6 +211,12 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
+            {(() => {
+              if (!('error' in projectsError)) return null;
+              const err = projectsError as Record<string, Record<string, Record<string, string>>>;
+              const reason = err.error?.details?.reason;
+              return reason ? <p className="text-sm opacity-75">{reason}</p> : null;
+            })()}
           </div>
         </div>
       )}

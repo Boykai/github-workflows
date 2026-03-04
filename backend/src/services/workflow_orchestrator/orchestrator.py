@@ -1124,6 +1124,35 @@ class WorkflowOrchestrator:
                 if pr_details:
                     review_pr_id = pr_details.get("id")
 
+                    # Convert draft → ready BEFORE requesting review.
+                    # GitHub does not allow requesting reviews on draft PRs.
+                    if pr_details.get("is_draft") and review_pr_id:
+                        logger.info(
+                            "Main PR #%d is still draft — converting to ready for review "
+                            "before requesting Copilot code review",
+                            review_pr_number,
+                        )
+                        mark_ready_ok = await self.github.mark_pr_ready_for_review(
+                            access_token=ctx.access_token,
+                            pr_node_id=str(review_pr_id),
+                        )
+                        if mark_ready_ok:
+                            from ..copilot_polling.pipeline import (
+                                _system_marked_ready_prs,
+                            )
+
+                            _system_marked_ready_prs.add(review_pr_number)
+                            logger.info(
+                                "Successfully converted main PR #%d from draft to ready",
+                                review_pr_number,
+                            )
+                        else:
+                            logger.warning(
+                                "Failed to convert main PR #%d from draft to ready — "
+                                "Copilot review request will likely fail",
+                                review_pr_number,
+                            )
+
             # Request the Copilot code review on the main PR
             review_requested = False
             if review_pr_id and review_pr_number:
@@ -1131,6 +1160,8 @@ class WorkflowOrchestrator:
                     access_token=ctx.access_token,
                     pr_node_id=str(review_pr_id),
                     pr_number=review_pr_number,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
                 )
                 if review_requested:
                     logger.info(

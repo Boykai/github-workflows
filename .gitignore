@@ -61,7 +61,7 @@ htmlcov/
 coverage/
 frontend/test-results/
 frontend/e2e-report/
-backend/<MagicMock *
+<MagicMock *
 
 # SQLite database files
 *.db

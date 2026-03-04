@@ -436,23 +436,42 @@ async def _find_completed_child_pr(
 
             # Check if Copilot has finished work on this child PR
             is_draft = pr_details.get("is_draft", True)
+            pr_title = pr_details.get("title", "")
+            pr_commits = pr_details.get("commits", 0)
 
-            # If not draft, Copilot has finished
+            # If not draft, Copilot has likely finished.  But guard
+            # against Copilot "completing" immediately after creating
+            # the WIP PR without doing real work: if the title still
+            # starts with "[WIP]" and the PR has at most 1 commit
+            # (the initial "Initial plan" placeholder), Copilot just
+            # started — don't treat it as complete yet.
             if not is_draft:
-                logger.info(
-                    "Child PR #%d is ready for review (not draft), agent '%s' completed",
-                    pr_number,
-                    agent_name,
-                )
-                return {
-                    "number": pr_number,
-                    "id": pr_details.get("id"),
-                    "head_ref": pr_details.get("head_ref", ""),
-                    "base_ref": pr_base,
-                    "last_commit": pr_details.get("last_commit"),
-                    "copilot_finished": True,
-                    "is_child_pr": True,
-                }
+                if pr_title.startswith("[WIP]") and pr_commits <= 1:
+                    logger.info(
+                        "Child PR #%d is non-draft but still has [WIP] title "
+                        "and only %d commit(s) — Copilot likely just started, "
+                        "waiting for real work (agent '%s', issue #%d)",
+                        pr_number,
+                        pr_commits,
+                        agent_name,
+                        issue_number,
+                    )
+                    # Fall through to timeline event checks below
+                else:
+                    logger.info(
+                        "Child PR #%d is ready for review (not draft), agent '%s' completed",
+                        pr_number,
+                        agent_name,
+                    )
+                    return {
+                        "number": pr_number,
+                        "id": pr_details.get("id"),
+                        "head_ref": pr_details.get("head_ref", ""),
+                        "base_ref": pr_base,
+                        "last_commit": pr_details.get("last_commit"),
+                        "copilot_finished": True,
+                        "is_child_pr": True,
+                    }
 
             # Check timeline events for completion signals
             timeline_events = await _cp.github_projects_service.get_pr_timeline_events(
@@ -629,16 +648,30 @@ async def _check_child_pr_completion(
 
             # Check if Copilot has finished work on this child PR
             is_draft = pr_details.get("is_draft", True)
+            pr_title = pr_details.get("title", "")
+            pr_commits = pr_details.get("commits", 0)
 
-            # If not draft, Copilot has finished
+            # If not draft, Copilot has likely finished.  But guard
+            # against the WIP-only false positive (see _find_completed_child_pr).
             if not is_draft:
-                logger.info(
-                    "Child PR #%d is ready for review (not draft), agent '%s' completed",
-                    pr_number,
-                    agent_name,
-                )
-                return True
-
+                if pr_title.startswith("[WIP]") and pr_commits <= 1:
+                    logger.info(
+                        "Child PR #%d is non-draft but still has [WIP] title "
+                        "and only %d commit(s) — waiting for real work "
+                        "(agent '%s', issue #%d)",
+                        pr_number,
+                        pr_commits,
+                        agent_name,
+                        issue_number,
+                    )
+                    # Fall through to timeline event checks
+                else:
+                    logger.info(
+                        "Child PR #%d is ready for review (not draft), agent '%s' completed",
+                        pr_number,
+                        agent_name,
+                    )
+                    return True
             # Check timeline events for completion signals
             timeline_events = await _cp.github_projects_service.get_pr_timeline_events(
                 access_token=access_token,
@@ -1149,20 +1182,106 @@ async def ensure_copilot_review_requested(
         )
 
         if not result or not result.get("copilot_finished"):
-            return None
+            # Fallback: find the main PR directly.
+            # check_copilot_pr_completion detects Copilot *coding* agent
+            # completion (timeline events on a draft PR).  For the
+            # copilot-review step the coding is already done — the main PR
+            # may still be draft but all child PRs have been merged into it.
+            # Try to locate the main PR via the in-memory store or linked
+            # PRs and request the review directly.
+            main_branch_info = _cp.get_issue_main_branch(issue_number)
+            if main_branch_info:
+                result = {
+                    "pr_number": main_branch_info["pr_number"],
+                    "copilot_finished": True,
+                }
+            else:
+                # Attempt to find the PR via the API
+                try:
+                    found_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                    )
+                    if found_pr:
+                        result = {
+                            "pr_number": found_pr["number"],
+                            "copilot_finished": True,
+                        }
+                except Exception:
+                    pass
+
+            if not result or not result.get("copilot_finished"):
+                return None
 
         # Result has 'number' key from get_linked_pull_requests
         pr_number = result.get("pr_number") or result.get("number")
         pr_id = result.get("id")  # GraphQL node ID
 
-        if not pr_number or not pr_id:
+        if not pr_number:
             logger.warning(
-                "Missing PR number or ID for issue #%d: pr_number=%s, pr_id=%s",
+                "Missing PR number for issue #%d",
                 issue_number,
-                pr_number,
-                pr_id,
             )
             return None
+
+        # If the GraphQL node ID is missing (e.g. from the fallback path),
+        # fetch full PR details so we can obtain it and check draft status.
+        pr_is_draft = False
+        if not pr_id:
+            pr_details = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+            if pr_details:
+                pr_id = pr_details.get("id")
+                pr_is_draft = pr_details.get("is_draft", False)
+            else:
+                logger.warning(
+                    "Could not fetch PR #%d details for issue #%d",
+                    pr_number,
+                    issue_number,
+                )
+                return None
+
+        if not pr_id:
+            logger.warning(
+                "Missing PR node ID for issue #%d (PR #%s)",
+                issue_number,
+                pr_number,
+            )
+            return None
+
+        # Convert draft → ready before requesting review.
+        # GitHub does not allow requesting reviews on draft PRs.
+        if pr_is_draft:
+            logger.info(
+                "Main PR #%d is still draft — converting to ready for review "
+                "before requesting Copilot code review (issue #%d)",
+                pr_number,
+                issue_number,
+            )
+            mark_ready_ok = await _cp.github_projects_service.mark_pr_ready_for_review(
+                access_token=access_token,
+                pr_node_id=str(pr_id),
+            )
+            if mark_ready_ok:
+                from .pipeline import _system_marked_ready_prs
+
+                _system_marked_ready_prs.add(pr_number)
+                logger.info(
+                    "Successfully converted main PR #%d from draft to ready",
+                    pr_number,
+                )
+            else:
+                logger.warning(
+                    "Failed to convert main PR #%d from draft to ready — "
+                    "Copilot review request will likely fail",
+                    pr_number,
+                )
 
         # Check if Copilot has already reviewed
         has_reviewed = await _cp.github_projects_service.has_copilot_reviewed_pr(
@@ -1189,6 +1308,8 @@ async def ensure_copilot_review_requested(
             access_token=access_token,
             pr_node_id=pr_id,
             pr_number=pr_number,
+            owner=owner,
+            repo=repo,
         )
 
         if success:

@@ -62,6 +62,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Listeners notified when any API call receives a 401 response.
+ * Used by useAuth to auto-logout when the session/token expires.
+ */
+type AuthExpiredListener = () => void;
+const authExpiredListeners = new Set<AuthExpiredListener>();
+
+export function onAuthExpired(listener: AuthExpiredListener): () => void {
+  authExpiredListeners.add(listener);
+  return () => { authExpiredListeners.delete(listener); };
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -81,6 +93,14 @@ async function request<T>(
     const error: APIError = await response.json().catch(() => ({
       error: `HTTP ${response.status}: ${response.statusText}`,
     }));
+
+    // Auto-logout: if any non-auth endpoint returns 401, the session or
+    // GitHub token has expired.  Notify listeners (useAuth) so the UI
+    // clears cached credentials and shows the login screen.
+    if (response.status === 401 && !endpoint.startsWith('/auth/')) {
+      authExpiredListeners.forEach((fn) => fn());
+    }
+
     throw new ApiError(response.status, error);
   }
 

@@ -3216,37 +3216,89 @@ class GitHubProjectsService:
         access_token: str,
         pr_node_id: str,
         pr_number: int | None = None,
+        *,
+        owner: str = "",
+        repo: str = "",
     ) -> bool:
         """
         Request a code review from GitHub Copilot on a pull request.
 
+        Uses the REST API ``POST /repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers``
+        with ``reviewers: ["copilot-pull-request-reviewer[bot]"]``.
+        This is the documented way to programmatically request a Copilot
+        code review and does NOT consume the GraphQL rate limit.
+
+        Falls back to the GraphQL ``requestReviews`` mutation with
+        ``botIds`` when owner/repo are not provided (legacy callers).
+
         Args:
             access_token: GitHub OAuth access token
-            pr_node_id: Pull request node ID (GraphQL ID)
-            pr_number: Optional PR number for logging
+            pr_node_id: Pull request node ID (GraphQL ID) — used by GraphQL fallback
+            pr_number: Pull request number (required for REST path)
+            owner: Repository owner (required for REST path)
+            repo: Repository name (required for REST path)
 
         Returns:
             True if review was successfully requested
         """
+        # ── Primary path: REST API (preferred — no GraphQL rate-limit cost) ──
+        if pr_number and owner and repo:
+            try:
+                url = (
+                    f"https://api.github.com/repos/{owner}/{repo}"
+                    f"/pulls/{pr_number}/requested_reviewers"
+                )
+                headers = self._build_headers(access_token)
+                response = await self._client.post(
+                    url,
+                    json={"reviewers": ["copilot-pull-request-reviewer[bot]"]},
+                    headers=headers,
+                )
+
+                if response.status_code in (200, 201):
+                    logger.info(
+                        "Successfully requested Copilot code review on PR #%d "
+                        "via REST API (status=%d)",
+                        pr_number,
+                        response.status_code,
+                    )
+                    return True
+
+                # 422 often means the bot isn't available or PR is draft
+                body = response.text[:500] if response.text else ""
+                logger.warning(
+                    "REST Copilot review request for PR #%d returned %d: %s",
+                    pr_number,
+                    response.status_code,
+                    body,
+                )
+                # Fall through to GraphQL fallback
+            except Exception as e:
+                logger.warning(
+                    "REST Copilot review request failed for PR #%d, trying GraphQL fallback: %s",
+                    pr_number,
+                    e,
+                )
+
+        # ── Fallback: GraphQL requestReviews with botIds ──
         try:
             data = await self._graphql(
                 access_token,
                 REQUEST_COPILOT_REVIEW_MUTATION,
                 {"pullRequestId": pr_node_id},
-                # Include Copilot code review feature flag
                 extra_headers={"GraphQL-Features": "copilot_code_review"},
             )
 
-            pr = data.get("requestReviewsByLogin", {}).get("pullRequest", {})
+            pr = data.get("requestReviews", {}).get("pullRequest", {})
             if pr:
                 logger.info(
-                    "Successfully requested Copilot review for PR #%d: %s",
-                    pr.get("number") or pr_number,
+                    "Successfully requested Copilot review for PR #%d via GraphQL: %s",
+                    pr.get("number") or pr_number or 0,
                     pr.get("url", ""),
                 )
                 return True
             else:
-                logger.warning("Copilot review request may have failed: %s", data)
+                logger.warning("GraphQL Copilot review request may have failed: %s", data)
                 return False
 
         except Exception as e:
@@ -3555,14 +3607,25 @@ class GitHubProjectsService:
 
             reviews = pr.get("reviews", {}).get("nodes", [])
 
-            # Check if any review was submitted by copilot
+            # Check if any review was submitted by copilot.
+            # Require a non-empty body to guard against transient API states
+            # where a review object appears before Copilot has finished
+            # generating its feedback.
             for review in reviews:
                 author = review.get("author", {})
-                if author and self.is_copilot_author(author.get("login", "")):
+                state = review.get("state", "")
+                body = review.get("body", "")
+                if (
+                    author
+                    and self.is_copilot_author(author.get("login", ""))
+                    and state != "PENDING"
+                    and body.strip()
+                ):
                     logger.info(
-                        "Found existing Copilot review on PR #%d (state: %s)",
+                        "Found existing Copilot review on PR #%d (state: %s, body_len: %d)",
                         pr_number,
-                        review.get("state"),
+                        state,
+                        len(body),
                     )
                     return True
 
