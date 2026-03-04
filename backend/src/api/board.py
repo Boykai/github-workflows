@@ -91,7 +91,7 @@ async def get_board_data(
         board_data = await github_projects_service.get_board_data(session.access_token, project_id)
     except ValueError as e:
         logger.warning("Project not found: %s - %s", project_id, e)
-        raise NotFoundError(f"Project not found: {project_id}") from e
+        raise NotFoundError("Project not found") from e
     except Exception as e:
         # Check if this is a rate limit error
         rl = github_projects_service.get_last_rate_limit()
