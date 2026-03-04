@@ -296,13 +296,13 @@ async def handle_inbound_signal_message(
     conn = await get_connection_by_phone_hash(phone_hash)
     if not conn:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Unlinked sender",
         )
 
     if body.has_attachment and not body.message_text:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Only text messages are supported",
         )
 

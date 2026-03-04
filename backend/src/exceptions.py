@@ -43,7 +43,9 @@ class ValidationError(AppException):
     """Validation error."""
 
     def __init__(self, message: str, details: dict | None = None):
-        super().__init__(message, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, details=details)
+        super().__init__(
+            message, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, details=details
+        )
 
 
 class GitHubAPIError(AppException):
