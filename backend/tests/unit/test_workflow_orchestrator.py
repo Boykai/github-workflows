@@ -35,6 +35,7 @@ from src.services.workflow_orchestrator import (
     update_issue_main_branch_sha,
 )
 from src.utils import utcnow
+from tests.helpers.mocks import make_mock_ai_agent_service, make_mock_github_service
 
 
 class TestHandleReadyStatusWithAgentMappings:
@@ -57,20 +58,12 @@ class TestHandleReadyStatusWithAgentMappings:
     @pytest.fixture
     def mock_ai_service(self):
         """Create mock AI service."""
-        return Mock()
+        return make_mock_ai_agent_service()
 
     @pytest.fixture
     def mock_github_service(self):
         """Create mock GitHub service."""
-        service = Mock()
-        service.get_issue_with_comments = AsyncMock()
-        service.format_issue_context_as_prompt = Mock()
-        service.assign_copilot_to_issue = AsyncMock()
-        service.update_item_status_by_name = AsyncMock()
-        service.validate_assignee = AsyncMock()
-        service.assign_issue = AsyncMock()
-        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
-        return service
+        return make_mock_github_service()
 
     @pytest.fixture
     def orchestrator(self, mock_ai_service, mock_github_service):
@@ -328,16 +321,11 @@ class TestAssignAgentForStatus:
 
     @pytest.fixture
     def mock_ai_service(self):
-        return Mock()
+        return make_mock_ai_agent_service()
 
     @pytest.fixture
     def mock_github_service(self):
-        service = Mock()
-        service.get_issue_with_comments = AsyncMock()
-        service.format_issue_context_as_prompt = Mock()
-        service.assign_copilot_to_issue = AsyncMock()
-        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
-        return service
+        return make_mock_github_service()
 
     @pytest.fixture
     def orchestrator(self, mock_ai_service, mock_github_service):
@@ -867,13 +855,11 @@ class TestCreateIssueFromRecommendation:
 
     @pytest.fixture
     def mock_ai_service(self):
-        return Mock()
+        return make_mock_ai_agent_service()
 
     @pytest.fixture
     def mock_github_service(self):
-        service = Mock()
-        service.create_issue = AsyncMock()
-        return service
+        return make_mock_github_service()
 
     @pytest.fixture
     def orchestrator(self, mock_ai_service, mock_github_service):
@@ -1003,14 +989,11 @@ class TestAddToProjectWithBacklog:
 
     @pytest.fixture
     def mock_ai_service(self):
-        return Mock()
+        return make_mock_ai_agent_service()
 
     @pytest.fixture
     def mock_github_service(self):
-        service = Mock()
-        service.add_issue_to_project = AsyncMock()
-        service.update_item_status_by_name = AsyncMock()
-        return service
+        return make_mock_github_service()
 
     @pytest.fixture
     def orchestrator(self, mock_ai_service, mock_github_service):
@@ -1344,14 +1327,11 @@ class TestUpdateAgentTrackingState:
 
     @pytest.fixture
     def mock_github_service(self):
-        service = Mock()
-        service.get_issue_with_comments = AsyncMock()
-        service.update_issue_body = AsyncMock()
-        return service
+        return make_mock_github_service()
 
     @pytest.fixture
     def orchestrator(self, mock_github_service):
-        return WorkflowOrchestrator(Mock(), mock_github_service)
+        return WorkflowOrchestrator(make_mock_ai_agent_service(), mock_github_service)
 
     @pytest.fixture
     def ctx(self):
@@ -2882,24 +2862,18 @@ class TestAssignAgentUsesGlobalSubIssueStore:
     @pytest.fixture
     def mock_github_service(self):
         """Create mock GitHub service."""
-        service = Mock()
-        service.get_issue_with_comments = AsyncMock(
-            return_value={"body": "test body", "title": "Test"}
+        return make_mock_github_service(
+            get_issue_with_comments={"body": "test body", "title": "Test"},
+            format_issue_context_as_prompt="",
+            assign_copilot_to_issue=True,
+            update_item_status_by_name=True,
+            update_issue_state=True,
         )
-        service.format_issue_context_as_prompt = Mock(return_value="")
-        service.assign_copilot_to_issue = AsyncMock(return_value=True)
-        service.update_item_status_by_name = AsyncMock(return_value=True)
-        service.validate_assignee = AsyncMock()
-        service.assign_issue = AsyncMock()
-        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
-        service.update_issue_state = AsyncMock(return_value=True)
-        service.update_sub_issue_project_status = AsyncMock()
-        return service
 
     @pytest.fixture
     def orchestrator(self, mock_github_service):
         """Create WorkflowOrchestrator with mocked services."""
-        return WorkflowOrchestrator(Mock(), mock_github_service)
+        return WorkflowOrchestrator(make_mock_ai_agent_service(), mock_github_service)
 
     @pytest.fixture
     def config(self):
@@ -3005,33 +2979,24 @@ class TestOnTheFlySubIssueCreation:
     @pytest.fixture
     def mock_github_service(self):
         """Create mock GitHub service."""
-        service = Mock()
-        service.get_issue_with_comments = AsyncMock(
-            return_value={"body": "test body", "title": "Test Issue"}
-        )
-        service.format_issue_context_as_prompt = Mock(return_value="")
-        service.assign_copilot_to_issue = AsyncMock(return_value=True)
-        service.update_item_status_by_name = AsyncMock(return_value=True)
-        service.validate_assignee = AsyncMock()
-        service.assign_issue = AsyncMock()
-        service.find_existing_pr_for_issue = AsyncMock(return_value=None)
-        service.update_issue_state = AsyncMock(return_value=True)
-        service.update_sub_issue_project_status = AsyncMock()
-        service.tailor_body_for_agent = Mock(return_value="tailored body")
-        service.create_sub_issue = AsyncMock(
-            return_value={
+        return make_mock_github_service(
+            get_issue_with_comments={"body": "test body", "title": "Test Issue"},
+            format_issue_context_as_prompt="",
+            assign_copilot_to_issue=True,
+            update_item_status_by_name=True,
+            update_issue_state=True,
+            tailor_body_for_agent="tailored body",
+            create_sub_issue={
                 "number": 200,
                 "node_id": "I_200",
                 "html_url": "https://github.com/o/r/issues/200",
-            }
+            },
         )
-        service.add_issue_to_project = AsyncMock()
-        return service
 
     @pytest.fixture
     def orchestrator(self, mock_github_service):
         """Create WorkflowOrchestrator with mocked services."""
-        return WorkflowOrchestrator(Mock(), mock_github_service)
+        return WorkflowOrchestrator(make_mock_ai_agent_service(), mock_github_service)
 
     @pytest.fixture
     def config(self):

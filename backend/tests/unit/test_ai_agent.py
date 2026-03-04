@@ -10,41 +10,7 @@ from src.services.ai_agent import (
     GeneratedTask,
     StatusChangeIntent,
 )
-from src.services.completion_providers import CompletionProvider
-
-
-class MockCompletionProvider(CompletionProvider):
-    """Test double for CompletionProvider that returns configurable responses."""
-
-    def __init__(self, response: str = ""):
-        self._response = response
-        self._side_effect = None
-        self.last_messages = None
-        self.last_github_token = None
-
-    async def complete(
-        self,
-        messages: list[dict[str, str]],
-        temperature: float = 0.7,
-        max_tokens: int = 1000,
-        github_token: str | None = None,
-    ) -> str:
-        self.last_messages = messages
-        self.last_github_token = github_token
-        if self._side_effect:
-            raise self._side_effect
-        return self._response
-
-    def set_response(self, response: str) -> None:
-        self._response = response
-        self._side_effect = None
-
-    def set_error(self, error: Exception) -> None:
-        self._side_effect = error
-
-    @property
-    def name(self) -> str:
-        return "mock"
+from tests.helpers.mocks import MockCompletionProvider, make_mock_provider
 
 
 class TestAIAgentServiceInit:
@@ -72,7 +38,7 @@ class TestCallCompletion:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -109,7 +75,7 @@ class TestGenerateTaskFromDescription:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -212,7 +178,7 @@ class TestParseStatusChangeRequest:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -295,7 +261,7 @@ class TestDetectFeatureRequestIntent:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -451,7 +417,7 @@ class TestGenerateIssueRecommendation:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -816,7 +782,7 @@ class TestGenerateAgentConfig:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
@@ -865,7 +831,7 @@ class TestEditAgentConfig:
 
     @pytest.fixture
     def mock_provider(self):
-        return MockCompletionProvider()
+        return make_mock_provider()
 
     @pytest.fixture
     def service(self, mock_provider):
