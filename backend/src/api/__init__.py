@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from src.api.agents import router as agents_router
 from src.api.auth import router as auth_router
 from src.api.board import router as board_router
 from src.api.chat import router as chat_router
@@ -24,6 +25,7 @@ router.include_router(board_router, prefix="/board", tags=["board"])
 router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 router.include_router(chat_router, prefix="/chat", tags=["chat"])
 router.include_router(chores_router, prefix="/chores", tags=["chores"])
+router.include_router(agents_router, prefix="/agents", tags=["agents"])
 router.include_router(workflow_router, tags=["workflow"])
 router.include_router(settings_router, prefix="/settings", tags=["settings"])
 router.include_router(mcp_router, prefix="/settings", tags=["mcp"])

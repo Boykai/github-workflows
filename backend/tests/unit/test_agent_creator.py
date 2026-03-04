@@ -1,7 +1,7 @@
 """Unit tests for the agent creator service.
 
 Covers pure functions (parse_command, fuzzy_match_status,
-_generate_config_files, _format_preview, _format_pipeline_report),
+generate_config_files, _format_preview, _format_pipeline_report),
 the admin check (is_admin_user), and top-level handle_agent_command routing.
 """
 
@@ -21,9 +21,9 @@ from src.models.agent_creator import (
 from src.services.agent_creator import (
     _format_pipeline_report,
     _format_preview,
-    _generate_config_files,
     clear_session,
     fuzzy_match_status,
+    generate_config_files,
     get_active_session,
     handle_agent_command,
     is_admin_user,
@@ -141,7 +141,7 @@ class TestFuzzyMatchStatus:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# _generate_config_files
+# generate_config_files
 # ═══════════════════════════════════════════════════════════════════════
 
 
@@ -160,41 +160,41 @@ class TestGenerateConfigFiles:
         )
 
     def test_returns_two_files(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         assert len(files) == 2
 
     def test_agent_file_path(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         assert files[0]["path"] == ".github/agents/security-reviewer.agent.md"
 
     def test_prompt_file_path(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         assert files[1]["path"] == ".github/prompts/security-reviewer.prompt.md"
 
     def test_agent_file_has_yaml_frontmatter(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         content = files[0]["content"]
         assert content.startswith("---\n")
         assert "\n---\n" in content
 
     def test_agent_file_has_frontmatter(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         content = files[0]["content"]
         assert "description: Reviews PRs for security vulnerabilities" in content
 
     def test_agent_file_has_tools_in_frontmatter(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         content = files[0]["content"]
         assert "- search_code" in content
         assert "- create_issue" in content
 
     def test_agent_file_has_system_prompt_body(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         content = files[0]["content"]
         assert "You are a security reviewer..." in content
 
     def test_prompt_file_has_prompt_fence(self, preview: AgentPreview):
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         content = files[1]["content"]
         assert content.startswith("```prompt\n")
         assert "agent: security-reviewer" in content
@@ -208,7 +208,7 @@ class TestGenerateConfigFiles:
             status_column="Todo",
             tools=[],
         )
-        files = _generate_config_files(preview)
+        files = generate_config_files(preview)
         assert "tools:" not in files[0]["content"]
 
 

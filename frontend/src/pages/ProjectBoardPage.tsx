@@ -18,6 +18,7 @@ import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
+import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import type { BoardItem } from '@/types';
 
 interface ProjectBoardPageProps {
@@ -285,11 +286,19 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             )}
 
             {/* Chores Panel — right side of board */}
-            <ChoresPanel
-              projectId={selectedProjectId}
-              owner={cleanupRepo?.owner}
-              repo={cleanupRepo?.name}
-            />
+            <div className="flex flex-col gap-4">
+              <ChoresPanel
+                projectId={selectedProjectId}
+                owner={cleanupRepo?.owner}
+                repo={cleanupRepo?.name}
+              />
+              {/* Agents Panel — below Chores */}
+              <AgentsPanel
+                projectId={selectedProjectId}
+                owner={cleanupRepo?.owner}
+                repo={cleanupRepo?.name}
+              />
+            </div>
           </div>
         </div>
       )}
