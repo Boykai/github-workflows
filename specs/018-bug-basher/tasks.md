@@ -262,6 +262,8 @@
 For a single developer, the recommended execution order follows priority:
 1. Setup → Foundational → US1 (Security) → US2 (Runtime) → US3 (Logic) → US6 (Flagging) → US4 (Test Quality) → US5 (Code Quality) → Polish
 
+> **Note**: US6 (Flagging) MUST wait for US1–US3 to complete, as it reviews findings from those phases. US4 and US5 could theoretically start earlier (after Foundational), but are ordered later by priority. In the parallel team strategy, US4/US5 can be moved earlier if US6 is handled as a final pass.
+
 ### Within Each User Story
 
 - Audit tasks FIRST — identify all issues before fixing
