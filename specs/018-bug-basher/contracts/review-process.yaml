@@ -1,0 +1,172 @@
+# Bug Bash Review Process Contract
+# Feature: 018-bug-basher
+# Date: 2026-03-04
+#
+# This contract defines the structured process for the bug bash review.
+# Unlike typical API contracts, this defines the review workflow, inputs,
+# outputs, and validation gates that each review step must satisfy.
+
+process:
+  name: "Bug Bash — Full Codebase Review & Fix"
+  version: "1.0.0"
+
+phases:
+  - name: "Security Vulnerabilities"
+    priority: P1
+    category: Security
+    audit_targets:
+      - pattern: "backend/src/api/*.py"
+        checks:
+          - "Authentication/authorization on all endpoints"
+          - "No raw exception text in API responses (str(e))"
+          - "Input validation via Pydantic models"
+          - "No SQL injection in query construction"
+      - pattern: "backend/src/services/**/*.py"
+        checks:
+          - "No secrets/tokens hardcoded in source"
+          - "Proper input sanitization before external calls"
+          - "No command injection in subprocess calls"
+      - pattern: "backend/src/config.py"
+        checks:
+          - "Secrets loaded from environment, not hardcoded"
+          - "Secure defaults for all configuration"
+      - pattern: "frontend/src/components/**/*.tsx"
+        checks:
+          - "No dangerouslySetInnerHTML with unsanitized input"
+          - "User input properly escaped in rendered output"
+      - pattern: ".env.example"
+        checks:
+          - "No real secrets or tokens in example file"
+          - "Placeholder values only"
+    fix_pattern:
+      before: "return error response containing str(e)"
+      after: "log error server-side with exc_info=True, return static error message"
+    validation:
+      - "Regression test proves vulnerability is closed"
+      - "Full test suite passes"
+      - "ruff check passes"
+
+  - name: "Runtime Errors"
+    priority: P2
+    category: Runtime
+    audit_targets:
+      - pattern: "backend/src/**/*.py"
+        checks:
+          - "No assert in production code paths"
+          - "All async functions have proper error handling"
+          - "Resource cleanup uses context managers (with/async with)"
+          - "No missing imports"
+          - "No type errors detectable by pyright"
+      - pattern: "frontend/src/**/*.ts"
+        checks:
+          - "No unhandled promise rejections"
+          - "Null checks before property access on optional values"
+      - pattern: "frontend/src/**/*.tsx"
+        checks:
+          - "Error boundaries cover component trees"
+          - "No uncaught exceptions in event handlers"
+    fix_pattern:
+      before: "assert condition"
+      after: "if not condition: raise ValueError('description')"
+    validation:
+      - "Regression test exercises the error path"
+      - "Full test suite passes"
+
+  - name: "Logic Bugs"
+    priority: P3
+    category: Logic
+    audit_targets:
+      - pattern: "backend/src/services/**/*.py"
+        checks:
+          - "Correct state transitions"
+          - "Correct return values"
+          - "No off-by-one in loops/slicing"
+          - "Correct API call arguments"
+      - pattern: "frontend/src/hooks/*.ts"
+        checks:
+          - "Correct dependency arrays in useEffect/useMemo/useCallback"
+          - "Correct state update logic"
+      - pattern: "frontend/src/lib/**/*.ts"
+        checks:
+          - "Correct utility function behavior"
+          - "Edge case handling"
+    validation:
+      - "Regression test verifies correct output for previously buggy input"
+      - "Full test suite passes"
+
+  - name: "Test Gaps & Quality"
+    priority: P4
+    category: Test Quality
+    audit_targets:
+      - pattern: "backend/tests/unit/*.py"
+        checks:
+          - "Tests actually assert meaningful conditions"
+          - "Mock objects properly scoped and cleaned up"
+          - "No MagicMock leaking into production code paths"
+          - "Critical code paths have coverage"
+      - pattern: "frontend/src/**/*.test.tsx"
+        checks:
+          - "vi.spyOn paired with mockRestore() in afterEach"
+          - "Assertions are specific (not always-true)"
+          - "Mock scope does not leak between tests"
+    fix_pattern:
+      before: "test passes but assertion is always true"
+      after: "test has specific assertion that fails when code is broken"
+    validation:
+      - "New test fails when corresponding production code is intentionally broken"
+      - "Full test suite passes"
+
+  - name: "Code Quality"
+    priority: P5
+    category: Code Quality
+    audit_targets:
+      - pattern: "backend/src/**/*.py"
+        checks:
+          - "No dead code or unreachable branches"
+          - "No duplicated logic (DRY violations)"
+          - "No hardcoded values that should be configurable"
+          - "No silent except:pass blocks"
+          - "Error messages are informative"
+      - pattern: "frontend/src/**/*.{ts,tsx}"
+        checks:
+          - "No unused imports or variables"
+          - "No unreachable code"
+          - "Console.log statements removed"
+    validation:
+      - "ruff check passes"
+      - "eslint passes"
+      - "Full test suite passes"
+
+ambiguity_protocol:
+  trigger: "Multiple valid approaches exist OR correct fix is unclear"
+  action: "Add TODO comment, do NOT change source code"
+  format:
+    python: "# TODO(bug-bash): {description}\n# Options: {options}\n# Rationale: {rationale}"
+    typescript: "// TODO(bug-bash): {description}\n// Options: {options}\n// Rationale: {rationale}"
+  summary_status: "⚠️ Flagged (TODO)"
+
+output:
+  summary_table:
+    columns:
+      - "#"
+      - "File"
+      - "Line(s)"
+      - "Category"
+      - "Description"
+      - "Status"
+    statuses:
+      - value: "✅ Fixed"
+        meaning: "Bug resolved, tests added, all passing"
+      - value: "⚠️ Flagged (TODO)"
+        meaning: "Ambiguous issue left as TODO comment for human review"
+    rules:
+      - "Files with no bugs are omitted"
+      - "Entries ordered by category priority, then file path"
+
+constraints:
+  - "No new dependencies added"
+  - "No public API surface changes"
+  - "No architecture changes"
+  - "Each fix is minimal and focused"
+  - "Existing code style and patterns preserved"
+  - "No drive-by refactors"
