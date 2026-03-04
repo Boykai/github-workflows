@@ -105,3 +105,10 @@ npx playwright test             # E2E tests
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
 
+
+## Active Technologies
+- TypeScript 5.x (React 18+) + React (useState, useEffect, useCallback, useRef), existing ChatInterface component (001-chat-history-nav)
+- Browser localStorage (key-namespaced per chat context) (001-chat-history-nav)
+
+## Recent Changes
+- 001-chat-history-nav: Added TypeScript 5.x (React 18+) + React (useState, useEffect, useCallback, useRef), existing ChatInterface component
