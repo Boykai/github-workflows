@@ -158,13 +158,14 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
           {/* System Prompt */}
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label htmlFor="agent-system-prompt" className="block text-sm font-medium mb-1">
               System Prompt
               <span className="text-muted-foreground font-normal ml-2">
                 {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
               </span>
             </label>
             <textarea
+              id="agent-system-prompt"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               placeholder="Detailed instructions for the agent's behavior..."

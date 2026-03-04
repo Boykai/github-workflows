@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 import uuid
 
 import aiosqlite
@@ -37,7 +38,23 @@ logger = logging.getLogger(__name__)
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)", re.DOTALL)
 
 # ── Chat sessions (bounded) ─────────────────────────────────────────────
+_MAX_CHAT_SESSIONS = 200
+_SESSION_TTL_SECONDS = 30 * 60  # 30 minutes
 _chat_sessions: dict[str, list[dict]] = {}
+_chat_session_timestamps: dict[str, float] = {}
+
+
+def _prune_expired_sessions() -> None:
+    """Remove chat sessions that have exceeded the TTL."""
+    now = time.monotonic()
+    expired = [
+        sid
+        for sid, ts in _chat_session_timestamps.items()
+        if now - ts > _SESSION_TTL_SECONDS
+    ]
+    for sid in expired:
+        _chat_sessions.pop(sid, None)
+        _chat_session_timestamps.pop(sid, None)
 
 
 class AgentsService:
@@ -126,7 +143,7 @@ class AgentsService:
                     system_prompt=r.get("system_prompt", ""),
                     status=AgentStatus.PENDING_PR,
                     tools=tools,
-                    status_column=r.get("status_column"),
+                    status_column=r.get("status_column") or None,
                     github_issue_number=r.get("github_issue_number"),
                     github_pr_number=r.get("github_pr_number"),
                     branch_name=r.get("branch_name"),
@@ -249,6 +266,23 @@ class AgentsService:
         )
         if await cursor.fetchone():
             raise ValueError(f"An agent with slug '{slug}' already exists in this project.")
+
+        # Check for duplicates in the repo (.github/agents/<slug>.agent.md)
+        try:
+            existing_file = await github_projects_service.get_file_content(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                path=f".github/agents/{slug}.agent.md",
+            )
+            if existing_file:
+                raise ValueError(
+                    f"An agent file '.github/agents/{slug}.agent.md' already exists in the repository."
+                )
+        except ValueError:
+            raise  # Re-raise our own validation error
+        except Exception:
+            pass  # File not found or API error — safe to proceed
 
         description = body.description
         tools = list(body.tools)
@@ -416,6 +450,13 @@ class AgentsService:
         if not agent:
             raise LookupError(f"Agent '{agent_id}' not found")
 
+        # Repo-only agents cannot be deleted via the API
+        if agent.id.startswith("repo:") and agent.source == AgentSource.REPO:
+            raise ValueError(
+                "Repo-only agents cannot be deleted through the API. "
+                "Remove the .agent.md file directly from the repository."
+            )
+
         slug = agent.slug
         branch_name = f"agent/delete-{slug}"
 
@@ -495,6 +536,13 @@ class AgentsService:
         if not agent:
             raise LookupError(f"Agent '{agent_id}' not found")
 
+        # Repo-only agents cannot be updated via the API
+        if agent.id.startswith("repo:"):
+            raise ValueError(
+                "Repo-only agents cannot be updated through the API. "
+                "Edit the .agent.md file directly in the repository."
+            )
+
         # Apply updates
         name = body.name or agent.name
         description = body.description or agent.description
@@ -502,6 +550,21 @@ class AgentsService:
         tools = body.tools if body.tools is not None else agent.tools
 
         slug = AgentPreview.name_to_slug(name)
+
+        # Validate slug: non-empty and filename-safe
+        if not slug or not re.match(r"^[a-z0-9][a-z0-9._-]*$", slug):
+            raise ValueError(f"Invalid agent slug derived from name '{name}': '{slug}'")
+
+        # Ensure no other agent in SQLite uses this slug (conflict check)
+        async with self._db.execute(
+            "SELECT id FROM agent_configs WHERE project_id = ? AND slug = ? AND id != ?",
+            (project_id, slug, agent.id),
+        ) as cursor:
+            if await cursor.fetchone():
+                raise ValueError(
+                    f"An agent with slug '{slug}' already exists for this project."
+                )
+
         preview = AgentPreview(
             name=name,
             slug=slug,
@@ -596,8 +659,17 @@ class AgentsService:
 
         ai_service = get_ai_agent_service()
 
-        # Manage session
+        # Prune expired sessions before accessing
+        _prune_expired_sessions()
+
+        # Enforce max session limit
         sid = session_id or str(uuid.uuid4())
+        if sid not in _chat_sessions and len(_chat_sessions) >= _MAX_CHAT_SESSIONS:
+            # Evict the oldest session
+            oldest = min(_chat_session_timestamps, key=_chat_session_timestamps.get)  # type: ignore[arg-type]
+            _chat_sessions.pop(oldest, None)
+            _chat_session_timestamps.pop(oldest, None)
+
         history = _chat_sessions.get(sid, [])
 
         if not history:
@@ -633,6 +705,7 @@ class AgentsService:
         reply = response if isinstance(response, str) else str(response)
         history.append({"role": "assistant", "content": reply})
         _chat_sessions[sid] = history
+        _chat_session_timestamps[sid] = time.monotonic()
 
         # Check if the response contains a complete agent config
         preview = self._extract_agent_preview(reply)
@@ -641,6 +714,7 @@ class AgentsService:
         # Clean up session if complete
         if is_complete:
             _chat_sessions.pop(sid, None)
+            _chat_session_timestamps.pop(sid, None)
 
         return AgentChatResponse(
             reply=reply,
@@ -995,7 +1069,7 @@ class AgentsService:
             system_prompt=r.get("system_prompt", ""),
             status=AgentStatus.PENDING_PR,
             tools=tools,
-            status_column=r.get("status_column"),
+            status_column=r.get("status_column") or None,
             github_issue_number=r.get("github_issue_number"),
             github_pr_number=r.get("github_pr_number"),
             branch_name=r.get("branch_name"),

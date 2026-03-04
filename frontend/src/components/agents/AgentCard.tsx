@@ -31,6 +31,9 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
   const deleteMutation = useDeleteAgent(projectId);
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
 
+  // Repo-only agents cannot be edited or deleted via the API
+  const isRepoOnly = agent.source === 'repo';
+
   const handleDelete = () => {
     if (window.confirm(`Remove agent "${agent.name}"? This will open a PR to delete the agent files.`)) {
       deleteMutation.mutate(agent.id);
@@ -75,7 +78,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 mt-1">
-        {onEdit && (
+        {onEdit && !isRepoOnly && (
           <button
             className="px-2 py-0.5 text-[10px] font-medium rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
             onClick={() => onEdit(agent)}
@@ -83,13 +86,15 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
             Edit
           </button>
         )}
-        <button
-          className="px-2 py-0.5 text-[10px] font-medium rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-        >
-          {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-        </button>
+        {!isRepoOnly && (
+          <button
+            className="px-2 py-0.5 text-[10px] font-medium rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+          >
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+          </button>
+        )}
       </div>
 
       {/* Delete success feedback */}

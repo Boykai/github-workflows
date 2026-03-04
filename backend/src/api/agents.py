@@ -164,6 +164,8 @@ async def delete_agent(
             access_token=session.access_token,
             github_user_id=session.github_user_id,
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except RuntimeError as exc:
