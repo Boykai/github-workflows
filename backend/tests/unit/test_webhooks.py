@@ -626,5 +626,13 @@ class TestWebhookResponseSanitization:
         assert resp.status_code == 200
         body = resp.json()
         assert "<script>" not in body.get("message", "")
+        # Verify the response does not echo user-controlled header values in any field
+        assert "event" not in body, (
+            "Response must not include 'event' field that echoes user-controlled header"
+        )
+        for value in body.values():
+            assert "<script>" not in str(value), (
+                "No user-controlled input should appear anywhere in response"
+            )
         # Cleanup delivery ID to avoid side-effects on other tests
         _processed_delivery_ids.discard("unique-delivery-sanitize-test")

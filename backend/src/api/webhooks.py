@@ -260,10 +260,9 @@ async def github_webhook(
     if x_github_event == "pull_request":
         return await handle_pull_request_event(payload)
 
-    # Acknowledge other events
+    # Acknowledge other events — do not echo user-controlled header values
     return {
         "status": "ignored",
-        "event": x_github_event,
         "message": "Event type not handled",
     }
 

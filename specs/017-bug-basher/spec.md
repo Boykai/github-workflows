@@ -121,7 +121,7 @@ After completing the audit and fixes, the reviewer produces a structured summary
 - What happens when a file contains issues across multiple categories (e.g., both a security vulnerability and a logic bug)? Each issue is tracked and fixed independently with its own commit and regression test.
 - What happens when fixing one bug reveals another bug? The newly revealed bug is added to the audit, categorized, and handled according to its priority.
 - What happens when a fix in one file breaks a test in another file? The fix must be revised to maintain all existing passing tests. If the test was testing incorrect behavior, the test is updated along with the fix in the same commit.
-- What happens when no bugs are found in a particular category? That category is omitted from the summary — only files with actual findings are listed.
+- What happens when no bugs are found in a particular category? That category is still listed in the summary with an explicit "0 findings" entry so the report consistently covers all categories.
 - How does the process handle auto-generated or third-party files? Auto-generated files and vendored third-party code are excluded from the audit scope unless they contain locally introduced modifications.
 - What happens when a test passes for the wrong reason (e.g., a mock leaking into a production path like a database file)? The test is corrected so that it validates actual behavior, and the mock leak is fixed as a separate finding if applicable.
 

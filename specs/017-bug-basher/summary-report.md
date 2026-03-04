@@ -28,6 +28,7 @@
 | 🔴 Security | 4 | 4 | 0 |
 | 🟠 Runtime | 4 | 4 | 0 |
 | 🟡 Logic | 2 | 2 | 0 |
+| 🔵 Test Quality | 0 | 0 | 0 |
 | ⚪ Code Quality | 2 | 2 | 0 |
 | **Total** | **12** | **12** | **0** |
 
@@ -45,7 +46,7 @@
 
 ## Verification
 
-- **Backend tests**: 1340 passed (16 new regression tests added), 0 failed
+- **Backend tests**: 1276 passed (8 new regression test functions added across 6 test files), 0 failed
 - **Backend linting**: `ruff check` — all checks passed, `ruff format` — all files formatted
 - **Frontend tests**: 300 passed, 0 failed
 - **Frontend linting**: `eslint` — clean, `tsc --noEmit` — clean

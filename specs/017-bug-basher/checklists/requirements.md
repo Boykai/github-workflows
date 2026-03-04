@@ -33,4 +33,5 @@
 
 - All checklist items pass. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - The spec covers all five bug categories from the parent issue in priority order.
-- No [NEEDS CLARIFICATION] markers were needed — the parent issue provided clear scope, constraints, and expected outputs.
+- No [NEEDS CLARIFICATION] markers exist in `spec.md` — the parent issue provided clear scope, constraints, and expected outputs.
+- Note: `plan.md` is a separate, unfilled template and is not in scope for this checklist.
