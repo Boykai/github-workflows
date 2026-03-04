@@ -522,3 +522,67 @@ class TestIssueLinkage:
         close_pr_nums = [p.number for p in result.prs_to_close]
         assert 10 in preserved_pr_nums
         assert 11 in close_pr_nums
+
+
+# ── Regression: preserved counts must not be conflated with failed counts ────
+
+
+class TestPreservedVsFailedCounts:
+    """Bug-bash regression: branches_preserved / prs_preserved must report
+    the correct number of items that were NOT deleted, not the failure count."""
+
+    async def test_preserved_equals_total_minus_deleted(self, mock_db):
+        """If 3 branches are requested and 2 succeed, preserved must be 1."""
+        service = _make_github_service()
+        # First two deletions succeed, third fails
+        service.delete_branch = AsyncMock(side_effect=[True, True, False])
+
+        # Mock _request_with_retry for PR closure
+        pr_response_ok = MagicMock()
+        pr_response_ok.status_code = 200
+        pr_response_fail = MagicMock()
+        pr_response_fail.status_code = 422
+        service._request_with_retry = AsyncMock(side_effect=[pr_response_ok, pr_response_fail])
+
+        request = CleanupExecuteRequest(
+            owner="test",
+            repo="repo",
+            project_id="PVT_1",
+            branches_to_delete=["a", "b", "c"],
+            prs_to_close=[1, 2],
+        )
+
+        result = await cleanup_service.execute_cleanup(
+            service, "token", "test", "repo", request, mock_db, "user1"
+        )
+
+        assert result.branches_deleted == 2
+        # preserved = total(3) - deleted(2) = 1, NOT branches_failed(1)
+        assert result.branches_preserved == 1
+        assert result.prs_closed == 1
+        # preserved = total(2) - closed(1) = 1, NOT prs_failed(1)
+        assert result.prs_preserved == 1
+
+    async def test_error_messages_do_not_leak_exception_details(self, mock_db):
+        """Error messages in results must not include raw exception text."""
+        service = _make_github_service()
+        service.delete_branch = AsyncMock(
+            side_effect=RuntimeError("Connection to https://api.github.com refused")
+        )
+        service._request_with_retry = AsyncMock(side_effect=RuntimeError("SSL certificate error"))
+
+        request = CleanupExecuteRequest(
+            owner="test",
+            repo="repo",
+            project_id="PVT_1",
+            branches_to_delete=["branch-a"],
+            prs_to_close=[99],
+        )
+
+        result = await cleanup_service.execute_cleanup(
+            service, "token", "test", "repo", request, mock_db, "user1"
+        )
+
+        for err in result.errors:
+            assert "api.github.com" not in (err.error or "")
+            assert "SSL certificate" not in (err.error or "")

@@ -1095,7 +1095,8 @@ async def check_in_review_issues_for_copilot_review(
             if not task_owner or not task_repo:
                 continue
 
-            assert task.issue_number is not None  # filtered above
+            if task.issue_number is None:  # filtered above; guard for safety
+                continue
             result = await ensure_copilot_review_requested(
                 access_token=access_token,
                 owner=task_owner,
