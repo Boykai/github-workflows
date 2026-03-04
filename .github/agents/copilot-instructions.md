@@ -44,7 +44,7 @@ backend/
   src/
     api/              # FastAPI route handlers
     middleware/        # Request/response middleware
-    migrations/       # SQL migration files (001–007)
+    migrations/       # SQL migration files (001–010)
     models/           # Pydantic models (board, chat, settings, task, user, agent_creator, etc.)
     prompts/          # AI prompt templates
     services/         # Business logic
@@ -104,28 +104,4 @@ npx playwright test             # E2E tests
 - Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
 - Agent pipeline state tracks per-issue progress through configurable status→agent mappings
 - Session auth uses secure HTTP-only cookies set via a shared helper
-
-## Active Technologies
-- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend) (014-housekeeping-triggers)
-- SQLite (aiosqlite, WAL mode) — extends existing `settings.db` with new tables for housekeeping tasks, templates, and trigger history (014-housekeeping-triggers)
-- Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend) (016-replace-housekeeping-chores)
-- SQLite via aiosqlite, raw SQL (no ORM), Pydantic models, custom numbered SQL migrations (016-replace-housekeeping-chores)
-
-## Recent Changes
-- 014-housekeeping-triggers: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, Pydantic 2.5+, aiosqlite 0.20+ (backend); React 18, Vite 5, TanStack Query v5, Shadcn/ui (frontend)
-- 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
-- 014-board-refresh-ratelimit: Added Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client)
-- Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend) (014-human-agent-pipeline)
-- SQLite (WAL mode) via aiosqlite — no new tables required (reuses existing pipeline state and sub-issue tracking) (014-human-agent-pipeline)
-
-## Recent Changes
-- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
-- 014-human-agent-pipeline: Added Python 3.11 (backend), TypeScript/React (frontend) + FastAPI, aiosqlite, Pydantic v2 (backend); React 18, Vite, TanStack Query, @dnd-kit, shadcn/ui tokens (frontend)
-- Python 3.12 (backend), TypeScript 5.4 / Node 20 (frontend) + FastAPI, React 18, Vite 5, TanStack Query v5, httpx (backend HTTP client) (014-board-refresh-ratelimit)
-
-## Recent Changes
-- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
-
-## Recent Changes
-- 016-replace-housekeeping-chores: Added Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI 0.109+, Pydantic v2, httpx 0.26+, aiosqlite 0.20+ (backend); React 18, Vite 5, TailwindCSS 3.4, @tanstack/react-query 5, socket.io-client 4.7 (frontend)
 
