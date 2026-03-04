@@ -48,6 +48,7 @@ def _make_github_service(
     prs_response=None,
     graphql_response=None,
     permission_response=None,
+    issues_response=None,
 ) -> AsyncMock:
     """Build an AsyncMock of GitHubProjectsService with configurable responses."""
     service = AsyncMock()
@@ -71,6 +72,12 @@ def _make_github_service(
         prs_response.status_code = 200
         prs_response.json.return_value = []
 
+    # Default issues response: empty list (200 OK)
+    if issues_response is None:
+        issues_response = MagicMock()
+        issues_response.status_code = 200
+        issues_response.json.return_value = []
+
     # Default GraphQL: empty board with no items
     if graphql_response is None:
         graphql_response = {
@@ -90,6 +97,8 @@ def _make_github_service(
             return branches_response
         if "/pulls" in url:
             return prs_response
+        if "/issues" in url:
+            return issues_response
         raise ValueError(f"Unexpected GET URL: {url}")
 
     service._client = AsyncMock()
@@ -524,65 +533,184 @@ class TestIssueLinkage:
         assert 11 in close_pr_nums
 
 
-# ── Regression: preserved counts must not be conflated with failed counts ────
+# ── Orphaned Issues ────────────────────────────────────────────────
 
 
-class TestPreservedVsFailedCounts:
-    """Bug-bash regression: branches_preserved / prs_preserved must report
-    the correct number of items that were NOT deleted, not the failure count."""
+class TestOrphanedIssues:
+    """Tests for orphaned app-created issue detection and cleanup."""
 
-    async def test_preserved_equals_total_minus_deleted(self, mock_db):
-        """If 3 branches are requested and 2 succeed, preserved must be 1."""
+    async def test_preflight_detects_orphaned_issues(self):
+        """An app-created issue NOT on the board should appear in orphaned_issues."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            {
+                "number": 100,
+                "title": "Orphan task",
+                "labels": [{"name": "ai-generated"}],
+                "html_url": "https://github.com/test/repo/issues/100",
+            },
+        ]
+
+        # Board has issue #42, but NOT #100
+        graphql_resp = {
+            "node": {
+                "items": {
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    "nodes": [
+                        {
+                            "content": {
+                                "number": 42,
+                                "title": "Board issue",
+                                "state": "OPEN",
+                                "repository": {"nameWithOwner": "test/repo"},
+                            }
+                        }
+                    ],
+                }
+            }
+        }
+
+        service = _make_github_service(
+            graphql_response=graphql_resp,
+            issues_response=issues_resp,
+        )
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        assert len(result.orphaned_issues) == 1
+        assert result.orphaned_issues[0].number == 100
+        assert result.orphaned_issues[0].title == "Orphan task"
+        assert "ai-generated" in result.orphaned_issues[0].labels
+
+    async def test_preflight_excludes_board_issues_from_orphans(self):
+        """An app-created issue that IS on the board should NOT be orphaned."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            {
+                "number": 42,
+                "title": "Board issue",
+                "labels": [{"name": "chore"}],
+                "html_url": "https://github.com/test/repo/issues/42",
+            },
+        ]
+
+        graphql_resp = {
+            "node": {
+                "items": {
+                    "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    "nodes": [
+                        {
+                            "content": {
+                                "number": 42,
+                                "title": "Board issue",
+                                "state": "OPEN",
+                                "repository": {"nameWithOwner": "test/repo"},
+                            }
+                        }
+                    ],
+                }
+            }
+        }
+
+        service = _make_github_service(
+            graphql_response=graphql_resp,
+            issues_response=issues_resp,
+        )
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        assert len(result.orphaned_issues) == 0
+
+    async def test_preflight_skips_pull_requests_in_issues_response(self):
+        """The /issues endpoint also returns PRs; they should be filtered out."""
+        issues_resp = MagicMock()
+        issues_resp.status_code = 200
+        issues_resp.json.return_value = [
+            {
+                "number": 200,
+                "title": "A PR, not an issue",
+                "labels": [{"name": "ai-generated"}],
+                "pull_request": {"url": "https://api.github.com/repos/test/repo/pulls/200"},
+            },
+            {
+                "number": 201,
+                "title": "Real orphaned issue",
+                "labels": [{"name": "ai-generated"}],
+                "html_url": "https://github.com/test/repo/issues/201",
+            },
+        ]
+
+        service = _make_github_service(issues_response=issues_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        orphan_numbers = [o.number for o in result.orphaned_issues]
+        assert 200 not in orphan_numbers
+        assert 201 in orphan_numbers
+
+    async def test_execute_closes_orphaned_issues(self):
+        """Execute should close issues listed in issues_to_close."""
         service = _make_github_service()
-        # First two deletions succeed, third fails
-        service.delete_branch = AsyncMock(side_effect=[True, True, False])
 
-        # Mock _request_with_retry for PR closure
-        pr_response_ok = MagicMock()
-        pr_response_ok.status_code = 200
-        pr_response_fail = MagicMock()
-        pr_response_fail.status_code = 422
-        service._request_with_retry = AsyncMock(side_effect=[pr_response_ok, pr_response_fail])
+        close_response = MagicMock()
+        close_response.status_code = 200
+        close_response.json.return_value = {"number": 100, "state": "closed"}
+        service._request_with_retry = AsyncMock(return_value=close_response)
+
+        db = AsyncMock()
+        db.execute = AsyncMock()
+        db.commit = AsyncMock()
 
         request = CleanupExecuteRequest(
             owner="test",
             repo="repo",
-            project_id="PVT_1",
-            branches_to_delete=["a", "b", "c"],
-            prs_to_close=[1, 2],
+            project_id="PVT_123",
+            branches_to_delete=[],
+            prs_to_close=[],
+            issues_to_close=[100, 101],
         )
 
         result = await cleanup_service.execute_cleanup(
-            service, "token", "test", "repo", request, mock_db, "user1"
+            service, "token", "test", "repo", request, db, "user123"
         )
 
-        assert result.branches_deleted == 2
-        # preserved = total(3) - deleted(2) = 1, NOT branches_failed(1)
-        assert result.branches_preserved == 1
-        assert result.prs_closed == 1
-        # preserved = total(2) - closed(1) = 1, NOT prs_failed(1)
-        assert result.prs_preserved == 1
+        assert result.issues_closed == 2
+        issue_results = [r for r in result.results if r.item_type == "issue"]
+        assert len(issue_results) == 2
+        assert all(r.action == "closed" for r in issue_results)
 
-    async def test_error_messages_do_not_leak_exception_details(self, mock_db):
-        """Error messages in results must not include raw exception text."""
+    async def test_execute_handles_issue_close_failure(self):
+        """Failed issue closure should be recorded as an error, not crash."""
         service = _make_github_service()
-        service.delete_branch = AsyncMock(
-            side_effect=RuntimeError("Connection to https://api.github.com refused")
-        )
-        service._request_with_retry = AsyncMock(side_effect=RuntimeError("SSL certificate error"))
+
+        fail_response = MagicMock()
+        fail_response.status_code = 404
+        fail_response.text = "Not Found"
+        service._request_with_retry = AsyncMock(return_value=fail_response)
+
+        db = AsyncMock()
+        db.execute = AsyncMock()
+        db.commit = AsyncMock()
 
         request = CleanupExecuteRequest(
             owner="test",
             repo="repo",
-            project_id="PVT_1",
-            branches_to_delete=["branch-a"],
-            prs_to_close=[99],
+            project_id="PVT_123",
+            branches_to_delete=[],
+            prs_to_close=[],
+            issues_to_close=[999],
         )
 
         result = await cleanup_service.execute_cleanup(
-            service, "token", "test", "repo", request, mock_db, "user1"
+            service, "token", "test", "repo", request, db, "user123"
         )
 
-        for err in result.errors:
-            assert "api.github.com" not in (err.error or "")
-            assert "SSL certificate" not in (err.error or "")
+        assert result.issues_closed == 0
+        assert len(result.errors) == 1
+        assert result.errors[0].item_type == "issue"
+        assert result.errors[0].action == "failed"

@@ -653,18 +653,26 @@ export interface PullRequestInfo {
   preservation_reason: string | null;
 }
 
+export interface OrphanedIssueInfo {
+  number: number;
+  title: string;
+  labels: string[];
+  html_url: string | null;
+}
+
 export interface CleanupPreflightResponse {
   branches_to_delete: BranchInfo[];
   branches_to_preserve: BranchInfo[];
   prs_to_close: PullRequestInfo[];
   prs_to_preserve: PullRequestInfo[];
+  orphaned_issues: OrphanedIssueInfo[];
   open_issues_on_board: number;
   has_permission: boolean;
   permission_error: string | null;
 }
 
 export interface CleanupItemResult {
-  item_type: 'branch' | 'pr';
+  item_type: 'branch' | 'pr' | 'issue';
   identifier: string;
   action: 'deleted' | 'closed' | 'preserved' | 'failed';
   reason: string | null;
@@ -677,6 +685,7 @@ export interface CleanupExecuteRequest {
   project_id: string;
   branches_to_delete: string[];
   prs_to_close: number[];
+  issues_to_close: number[];
 }
 
 export interface CleanupExecuteResponse {
@@ -685,6 +694,7 @@ export interface CleanupExecuteResponse {
   branches_preserved: number;
   prs_closed: number;
   prs_preserved: number;
+  issues_closed: number;
   errors: CleanupItemResult[];
   results: CleanupItemResult[];
 }

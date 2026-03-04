@@ -21,6 +21,7 @@ from src.models.cleanup import (
     CleanupItemResult,
     CleanupPreflightRequest,
     CleanupPreflightResponse,
+    OrphanedIssueInfo,
     PullRequestInfo,
 )
 
@@ -43,6 +44,10 @@ PR_BODY_ISSUE_PATTERNS = [
     re.compile(r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.IGNORECASE),
     re.compile(r"#(\d+)"),
 ]
+
+# Labels that the app attaches to issues it creates.  Any open issue with one
+# of these labels that is *not* on the project board is considered orphaned.
+APP_CREATED_LABELS = frozenset(["ai-generated", "chore", "agent-config"])
 
 
 def _extract_issue_numbers_from_branch(branch_name: str) -> list[int]:
@@ -250,6 +255,68 @@ async def fetch_open_issues_on_board(
     return issues
 
 
+async def fetch_app_created_open_issues(
+    github_service,
+    access_token: str,
+    owner: str,
+    repo: str,
+) -> list[dict]:
+    """Fetch all open issues in the repo that carry an app-created label.
+
+    Uses the repository ``/issues`` listing endpoint with the ``labels`` query
+    parameter to find open issues labeled with any of the ``APP_CREATED_LABELS``.
+    Results are paginated to handle large result sets.  Since the ``/issues``
+    endpoint also returns pull requests, these are filtered out, and issues
+    are de-duplicated in case they carry multiple app-created labels.
+    """
+    issues: list[dict] = []
+    headers = github_service._build_headers(access_token)
+
+    for label in sorted(APP_CREATED_LABELS):
+        page = 1
+        per_page = 100
+        while True:
+            response = await github_service._client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/issues"
+                f"?state=open&labels={label}&per_page={per_page}&page={page}",
+                headers=headers,
+            )
+            if response.status_code != 200:
+                logger.error(
+                    "Failed to fetch app-created issues (label=%s) page %d: HTTP %d",
+                    label,
+                    page,
+                    response.status_code,
+                )
+                raise RuntimeError(
+                    f"Failed to fetch app-created issues from GitHub: "
+                    f"HTTP {response.status_code} on page {page} for label '{label}'"
+                )
+
+            page_issues = response.json()
+            if not page_issues:
+                break
+
+            # REST /issues also returns PRs — filter them out
+            for issue in page_issues:
+                if "pull_request" not in issue:
+                    issues.append(issue)
+
+            if len(page_issues) < per_page:
+                break
+            page += 1
+
+    # De-duplicate (an issue may carry multiple app labels)
+    seen: set[int] = set()
+    unique: list[dict] = []
+    for issue in issues:
+        num = issue.get("number")
+        if num is not None and num not in seen:
+            seen.add(num)
+            unique.append(issue)
+    return unique
+
+
 async def preflight(
     github_service,
     access_token: str,
@@ -280,10 +347,11 @@ async def preflight(
         )
 
     # 2. Fetch all data concurrently
-    branches_data, prs_data, board_issues = await asyncio.gather(
+    branches_data, prs_data, board_issues, app_issues = await asyncio.gather(
         fetch_all_branches(github_service, access_token, owner, repo),
         fetch_open_prs(github_service, access_token, owner, repo),
         fetch_open_issues_on_board(github_service, access_token, request.project_id),
+        fetch_app_created_open_issues(github_service, access_token, owner, repo),
     )
 
     # 3. Build set of open issue numbers on the project board
@@ -430,11 +498,30 @@ async def preflight(
                 )
             )
 
+    # 6. Identify orphaned app-created issues (open, labelled by app, not on board)
+    orphaned_issues: list[OrphanedIssueInfo] = []
+    for issue in app_issues:
+        issue_number = issue.get("number")
+        if issue_number is not None and issue_number not in open_issue_numbers:
+            issue_labels = [
+                lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+                for lbl in issue.get("labels", [])
+            ]
+            orphaned_issues.append(
+                OrphanedIssueInfo(
+                    number=issue_number,
+                    title=issue.get("title", ""),
+                    labels=issue_labels,
+                    html_url=issue.get("html_url"),
+                )
+            )
+
     return CleanupPreflightResponse(
         branches_to_delete=branches_to_delete,
         branches_to_preserve=branches_to_preserve,
         prs_to_close=prs_to_close,
         prs_to_preserve=prs_to_preserve,
+        orphaned_issues=orphaned_issues,
         open_issues_on_board=len(open_issue_numbers),
         has_permission=True,
         permission_error=None,
@@ -566,14 +653,64 @@ async def execute_cleanup(
         # Rate limit delay
         await asyncio.sleep(DELETION_DELAY_SECONDS)
 
+    # Close orphaned app-created issues sequentially
+    issues_closed = 0
+    for issue_number in request.issues_to_close:
+        try:
+            response = await github_service._request_with_retry(
+                "PATCH",
+                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+                json={"state": "closed", "state_reason": "not_planned"},
+                headers=headers,
+                idempotent=False,
+            )
+            if response.status_code == 200:
+                results.append(
+                    CleanupItemResult(
+                        item_type="issue",
+                        identifier=str(issue_number),
+                        action="closed",
+                    )
+                )
+                issues_closed += 1
+            else:
+                logger.error(
+                    "Failed to close issue %s: HTTP %s — %s",
+                    issue_number,
+                    response.status_code,
+                    response.text[:500],
+                )
+                item = CleanupItemResult(
+                    item_type="issue",
+                    identifier=str(issue_number),
+                    action="failed",
+                    error=f"Failed to close issue #{issue_number} (HTTP {response.status_code})",
+                )
+                results.append(item)
+                errors.append(item)
+        except Exception:
+            logger.exception("Exception closing issue %s during cleanup", issue_number)
+            item = CleanupItemResult(
+                item_type="issue",
+                identifier=str(issue_number),
+                action="failed",
+                error=f"Failed to close issue #{issue_number} due to an internal error.",
+            )
+            results.append(item)
+            errors.append(item)
+
+        # Rate limit delay
+        await asyncio.sleep(DELETION_DELAY_SECONDS)
+
     # Update audit log
     completed_at = datetime.now(UTC).isoformat()
     status = "completed" if not errors else "completed_with_errors"
     details_json = json.dumps({"results": [r.model_dump() for r in results]})
 
-    # "preserved" = items that were NOT successfully deleted/closed
-    branches_preserved = len(request.branches_to_delete) - branches_deleted
-    prs_preserved = len(request.prs_to_close) - prs_closed
+    branches_failed = len([e for e in errors if e.item_type == "branch"])
+    prs_failed = len([e for e in errors if e.item_type == "pr"])
+    # issues_failed tracked in errors list; no separate audit column yet
+    _ = len([e for e in errors if e.item_type == "issue"])
 
     await db.execute(
         """UPDATE cleanup_audit_logs SET
@@ -601,7 +738,8 @@ async def execute_cleanup(
         branches_deleted=branches_deleted,
         branches_preserved=branches_preserved,
         prs_closed=prs_closed,
-        prs_preserved=prs_preserved,
+        prs_preserved=prs_failed,
+        issues_closed=issues_closed,
         errors=errors,
         results=results,
     )

@@ -13,7 +13,6 @@ import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
-import { CleanUpButton } from '@/components/board/CleanUpButton';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
@@ -134,15 +133,6 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {/* Clean Up Button */}
-          {selectedProjectId && cleanupRepo && (
-            <CleanUpButton
-              owner={cleanupRepo.owner}
-              repo={cleanupRepo.name}
-              projectId={selectedProjectId}
-            />
-          )}
-
           {/* Sync status */}
           {selectedProjectId && (
             <span className="flex items-center gap-2">
@@ -295,7 +285,11 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             )}
 
             {/* Chores Panel — right side of board */}
-            <ChoresPanel projectId={selectedProjectId} />
+            <ChoresPanel
+              projectId={selectedProjectId}
+              owner={cleanupRepo?.owner}
+              repo={cleanupRepo?.name}
+            />
           </div>
         </div>
       )}

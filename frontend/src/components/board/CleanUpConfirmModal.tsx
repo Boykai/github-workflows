@@ -33,7 +33,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
     if (e.target === e.currentTarget) onCancel();
   };
 
-  const hasItemsToDelete = data.branches_to_delete.length > 0 || data.prs_to_close.length > 0;
+  const hasItemsToDelete = data.branches_to_delete.length > 0 || data.prs_to_close.length > 0 || (data.orphaned_issues ?? []).length > 0;
 
   return (
     <div
@@ -89,6 +89,30 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
                 <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {(data.orphaned_issues ?? []).length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-destructive mb-2">
+              🗑️ Orphaned Issues to Close ({data.orphaned_issues.length})
+            </h3>
+            <p className="text-xs text-muted-foreground mb-2">
+              App-created issues no longer attached to the project board.
+            </p>
+            <ul className="space-y-1 text-sm">
+              {data.orphaned_issues.map((issue) => (
+                <li key={issue.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
+                  <span className="font-medium">#{issue.number}</span>
+                  <span className="text-muted-foreground truncate">{issue.title}</span>
+                  {issue.labels.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      [{issue.labels.join(', ')}]
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
