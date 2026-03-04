@@ -49,7 +49,8 @@ export function useAuth(): UseAuthReturn {
           setIsProcessingToken(false);
         });
     }
-  }, [queryClient, isProcessingToken]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
 
   const {
     data: user,

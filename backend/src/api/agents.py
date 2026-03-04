@@ -90,7 +90,8 @@ async def create_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Agent creation validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid agent configuration") from exc
     except RuntimeError as exc:
         logger.error("Agent creation failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Agent creation failed") from exc
@@ -129,9 +130,11 @@ async def update_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Agent update validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid agent configuration") from exc
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        logger.warning("Agent not found: %s", exc)
+        raise HTTPException(status_code=404, detail="Agent not found") from exc
 
 
 # ── Delete ──
@@ -165,9 +168,11 @@ async def delete_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        logger.warning("Agent deletion validation error: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid agent configuration") from exc
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        logger.warning("Agent not found for deletion: %s", exc)
+        raise HTTPException(status_code=404, detail="Agent not found") from exc
     except RuntimeError as exc:
         logger.error("Agent deletion failed: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail="Agent deletion failed") from exc

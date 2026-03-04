@@ -161,7 +161,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           {/* Last updated */}
           {(lastUpdated || syncLastUpdate) && (
             <span className="text-xs">
-              Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
+              Updated {formatTimeAgo((syncLastUpdate ?? lastUpdated) as Date)}
             </span>
           )}
         </div>
