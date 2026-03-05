@@ -4674,7 +4674,6 @@ class GitHubProjectsService:
         body: str,
         head_branch: str,
         base_branch: str,
-        draft: bool = False,
     ) -> dict | None:
         """Create a Pull Request.
 
@@ -4685,7 +4684,6 @@ class GitHubProjectsService:
             body: PR body (markdown).
             head_branch: Bare head branch name.
             base_branch: Bare base branch name.
-            draft: Whether to create as draft.
 
         Returns:
             ``{"id": str, "number": int, "url": str}`` on success, ``None`` on failure.
