@@ -5,6 +5,7 @@ Covers:
 - CopilotCompletionProvider initialization and error handling
 - AzureOpenAICompletionProvider initialization and error handling
 - CompletionProvider ABC interface contract
+- CopilotClientPool shared client caching
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -15,6 +16,7 @@ from src.config import Settings
 from src.services.completion_providers import (
     AzureOpenAICompletionProvider,
     CompletionProvider,
+    CopilotClientPool,
     CopilotCompletionProvider,
     create_completion_provider,
 )
@@ -57,38 +59,28 @@ class TestCopilotCompletionProvider:
         with pytest.raises(ValueError, match="GitHub OAuth token required"):
             await p.complete([{"role": "user", "content": "hi"}], github_token=None)
 
-    def test_token_key_is_deterministic(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("abc")
-        assert k1 == k2
-
-    def test_token_key_differs_for_different_tokens(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("xyz")
-        assert k1 != k2
-
     async def test_cleanup_stops_clients(self):
         p = CopilotCompletionProvider()
         mock_client = AsyncMock()
-        p._clients["key1"] = mock_client
+        p._pool.clients["key1"] = mock_client
         await p.cleanup()
         mock_client.stop.assert_awaited_once()
-        assert len(p._clients) == 0
+        assert len(p._pool.clients) == 0
 
     async def test_cleanup_handles_errors(self):
         p = CopilotCompletionProvider()
         mock_client = AsyncMock()
         mock_client.stop.side_effect = RuntimeError("fail")
-        p._clients["key1"] = mock_client
+        p._pool.clients["key1"] = mock_client
         # Should not raise
         await p.cleanup()
-        assert len(p._clients) == 0
+        assert len(p._pool.clients) == 0
 
-    async def test_get_or_create_client_caches(self):
-        CopilotCompletionProvider()
+    async def test_pool_get_or_create_caches(self):
+        pool = CopilotClientPool()
         mock_client = AsyncMock()
         with patch(
-            "src.services.completion_providers.CopilotCompletionProvider._get_or_create_client"
+            "src.services.completion_providers.CopilotClientPool.get_or_create"
         ) as mock_get:
             mock_get.return_value = mock_client
             # Just verify the interface - we can't import copilot SDK
@@ -113,9 +105,9 @@ class TestCopilotCompletionProvider:
 
         mock_session.on = capture_on
 
-        # Pre-inject a cached client
-        key = CopilotCompletionProvider._token_key("test-token")
-        p._clients[key] = mock_client
+        # Pre-inject a cached client into the pool
+        key = CopilotClientPool.token_key("test-token")
+        p._pool.clients[key] = mock_client
 
         # Patch SessionEventType and session types
         mock_event_type = MagicMock()
@@ -273,3 +265,36 @@ class TestCreateCompletionProvider:
         with patch("src.services.completion_providers.get_settings", return_value=s):
             with pytest.raises(ValueError, match="Unknown AI provider"):
                 create_completion_provider()
+
+
+# =============================================================================
+# CopilotClientPool
+# =============================================================================
+
+
+class TestCopilotClientPool:
+    def test_token_key_is_deterministic(self):
+        k1 = CopilotClientPool.token_key("abc")
+        k2 = CopilotClientPool.token_key("abc")
+        assert k1 == k2
+
+    def test_token_key_differs_for_different_tokens(self):
+        k1 = CopilotClientPool.token_key("abc")
+        k2 = CopilotClientPool.token_key("xyz")
+        assert k1 != k2
+
+    def test_token_key_length(self):
+        k = CopilotClientPool.token_key("any-token")
+        assert len(k) == 16
+
+    def test_remove_nonexistent_key(self):
+        pool = CopilotClientPool()
+        # Should not raise
+        pool.remove("nonexistent-token")
+
+    def test_clear(self):
+        pool = CopilotClientPool()
+        pool.clients["key1"] = MagicMock()
+        pool.clients["key2"] = MagicMock()
+        pool.clear()
+        assert len(pool.clients) == 0

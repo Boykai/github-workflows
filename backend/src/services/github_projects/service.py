@@ -273,16 +273,13 @@ class GitHubProjectsService:
                     body_text = response.text[:500] if response.text else ""
                     is_primary_rate_limit = remaining == "0"
                     is_secondary_rate_limit = (
-                        "rate limit" in body_text.lower()
-                        or "secondary" in body_text.lower()
+                        "rate limit" in body_text.lower() or "secondary" in body_text.lower()
                     )
 
                     if is_primary_rate_limit or is_secondary_rate_limit:
                         if is_primary_rate_limit:
                             reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
-                            wait_seconds = max(
-                                reset_time - int(utcnow().timestamp()), backoff
-                            )
+                            wait_seconds = max(reset_time - int(utcnow().timestamp()), backoff)
                         else:
                             # Secondary rate limit — use Retry-After or backoff
                             retry_after = response.headers.get("Retry-After")

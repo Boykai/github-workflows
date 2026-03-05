@@ -32,8 +32,7 @@ def get_github_service(request: Request) -> GitHubProjectsService:
     if svc is not None:
         return svc
     raise RuntimeError(
-        "GitHubProjectsService not registered on app.state. "
-        "Ensure the lifespan in main.py has run."
+        "GitHubProjectsService not registered on app.state. Ensure the lifespan in main.py has run."
     )
 
 
@@ -43,8 +42,7 @@ def get_connection_manager(request: Request) -> ConnectionManager:
     if mgr is not None:
         return mgr
     raise RuntimeError(
-        "ConnectionManager not registered on app.state. "
-        "Ensure the lifespan in main.py has run."
+        "ConnectionManager not registered on app.state. Ensure the lifespan in main.py has run."
     )
 
 
@@ -54,8 +52,7 @@ def get_database(request: Request) -> aiosqlite.Connection:
     if db is not None:
         return db
     raise RuntimeError(
-        "Database not registered on app.state. "
-        "Ensure the lifespan in main.py has run."
+        "Database not registered on app.state. Ensure the lifespan in main.py has run."
     )
 
 

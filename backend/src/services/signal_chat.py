@@ -25,7 +25,6 @@ from src.models.signal import (
     SignalDeliveryStatus,
     SignalMessageDirection,
 )
-
 from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
