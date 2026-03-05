@@ -328,6 +328,19 @@ async def post_agent_outputs_from_pr(
             if already_done:
                 continue
 
+            # ── copilot-review: skip Step 0 child-PR detection entirely ──
+            # copilot-review is NOT a coding agent — its completion is
+            # exclusively detected by _check_copilot_review_done (checking
+            # whether Copilot submitted a code review on the main PR).
+            # If Copilot is inadvertently assigned to the copilot-review
+            # sub-issue (e.g. by GitHub project automation), it may create
+            # a child PR.  The standard Step 0 child-PR detection would
+            # find that PR, post a false "copilot-review: Done!" marker,
+            # and advance the pipeline before the actual code review
+            # completes.  Skip this agent entirely in Step 0.
+            if current_agent == "copilot-review":
+                continue
+
             # Determine if this is a subsequent agent (not the first in the overall pipeline).
             main_branch_info = _cp.get_issue_main_branch(task.issue_number)
             main_pr_number = main_branch_info["pr_number"] if main_branch_info else None
@@ -435,6 +448,11 @@ async def post_agent_outputs_from_pr(
                 # on the main PR (Copilot pushes commits to the same branch
                 # rather than creating a child PR).
                 if is_subsequent_agent and main_pr_number is not None:
+                    # Resolve sub-issue number for accurate Copilot assignment
+                    # checks — Copilot is assigned to the sub-issue, not parent.
+                    agent_sub_number = _cp._get_sub_issue_number(
+                        pipeline, current_agent, task.issue_number
+                    )
                     main_pr_completed = await _cp._check_main_pr_completion(
                         access_token=access_token,
                         owner=task_owner,
@@ -445,6 +463,7 @@ async def post_agent_outputs_from_pr(
                         pipeline_started_at=pipeline.started_at,
                         agent_assigned_sha=pipeline.agent_assigned_sha,
                         is_subsequent_agent=True,
+                        sub_issue_number=agent_sub_number,
                     )
                     if main_pr_completed:
                         # Use the main PR as the finished PR
@@ -482,6 +501,11 @@ async def post_agent_outputs_from_pr(
             # so the freshness filter correctly passes the first agent's own
             # completion events after a container restart.
             if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
+                # Resolve sub-issue number for accurate Copilot assignment
+                # checks — Copilot is assigned to the sub-issue, not parent.
+                verify_sub_number = _cp._get_sub_issue_number(
+                    pipeline, current_agent, task.issue_number
+                )
                 main_pr_completed = await _cp._check_main_pr_completion(
                     access_token=access_token,
                     owner=task_owner,
@@ -492,6 +516,7 @@ async def post_agent_outputs_from_pr(
                     pipeline_started_at=pipeline.started_at,
                     agent_assigned_sha=pipeline.agent_assigned_sha,
                     is_subsequent_agent=True,
+                    sub_issue_number=verify_sub_number,
                 )
                 if not main_pr_completed:
                     logger.debug(

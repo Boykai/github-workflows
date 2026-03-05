@@ -8,11 +8,61 @@ import src.services.copilot_polling as _cp
 from src.utils import utcnow
 
 from .state import (
+    RATE_LIMIT_PAUSE_THRESHOLD,
+    RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
+    RATE_LIMIT_SLOW_THRESHOLD,
     _polling_state,
     _processed_issue_prs,
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ── Rate-limit helpers ──────────────────────────────────────────
+
+
+async def _check_rate_limit_budget() -> tuple[int | None, int | None]:
+    """Read the latest rate-limit info and return (remaining, reset_at).
+
+    Returns (None, None) when no rate-limit data is available yet.
+    """
+    rl = _cp.github_projects_service.get_last_rate_limit()
+    if rl is None:
+        return None, None
+    return rl.get("remaining"), rl.get("reset_at")
+
+
+async def _pause_if_rate_limited(step_name: str) -> bool:
+    """If remaining quota is at or below the pause threshold, sleep until reset.
+
+    Returns True if the loop should abort the current cycle (quota exhausted).
+    """
+    remaining, reset_at = await _check_rate_limit_budget()
+    if remaining is None:
+        return False
+
+    if remaining <= RATE_LIMIT_PAUSE_THRESHOLD:
+        now_ts = int(utcnow().timestamp())
+        wait = max((reset_at or now_ts) - now_ts, 10)
+        # Cap wait to 15 minutes to prevent pathological sleeps
+        wait = min(wait, 900)
+        logger.warning(
+            "Rate limit nearly exhausted after %s (remaining=%d). "
+            "Pausing polling for %d seconds until reset.",
+            step_name,
+            remaining,
+            wait,
+        )
+        await asyncio.sleep(wait)
+        return True  # abort this cycle — start fresh
+
+    if remaining <= RATE_LIMIT_SLOW_THRESHOLD:
+        logger.info(
+            "Rate limit getting low after %s (remaining=%d). Proceeding cautiously.",
+            step_name,
+            remaining,
+        )
+    return False
 
 
 async def poll_for_copilot_completion(
@@ -66,6 +116,12 @@ async def _poll_loop(
                 _polling_state.poll_count,
             )
 
+            # ── Pre-cycle rate-limit check ──
+            # After a restart the first poll triggers expensive reconstruction.
+            # If we already know the budget is critically low, pause now.
+            if await _pause_if_rate_limited("pre-cycle"):
+                continue  # restart the while loop
+
             # Fetch all project items once per poll cycle
             all_tasks = await _cp.github_projects_service.get_project_items(
                 access_token, project_id
@@ -88,13 +144,28 @@ async def _poll_loop(
 
             # Step 0: Post agent .md outputs from completed PRs as issue comments
             # This runs first so Done! markers are available for steps 1-3
-            output_results = await _cp.post_agent_outputs_from_pr(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
+            # This is the MOST expensive step — skip it when budget is low.
+            remaining_pre, _ = await _check_rate_limit_budget()
+            skip_expensive = (
+                remaining_pre is not None and remaining_pre <= RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD
             )
+
+            if skip_expensive:
+                logger.warning(
+                    "Poll #%d: Skipping Step 0 (agent outputs) — "
+                    "rate limit budget low (remaining=%d)",
+                    _polling_state.poll_count,
+                    remaining_pre,
+                )
+                output_results = []
+            else:
+                output_results = await _cp.post_agent_outputs_from_pr(
+                    access_token=access_token,
+                    project_id=project_id,
+                    owner=owner,
+                    repo=repo,
+                    tasks=parent_tasks,
+                )
 
             if output_results:
                 logger.info(
@@ -102,6 +173,9 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(output_results),
                 )
+
+            if await _pause_if_rate_limited("Step 0"):
+                continue
 
             # Step 1: Check "Backlog" issues for agent completion
             backlog_results = await _cp.check_backlog_issues(
@@ -119,6 +193,9 @@ async def _poll_loop(
                     len(backlog_results),
                 )
 
+            if await _pause_if_rate_limited("Step 1"):
+                continue
+
             # Step 2: Check "Ready" issues for agent pipeline completion
             ready_results = await _cp.check_ready_issues(
                 access_token=access_token,
@@ -134,6 +211,9 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(ready_results),
                 )
+
+            if await _pause_if_rate_limited("Step 2"):
+                continue
 
             # Step 3: Check "In Progress" issues for completed Copilot PRs
             results = await _cp.check_in_progress_issues(
@@ -151,6 +231,9 @@ async def _poll_loop(
                     len(results),
                 )
 
+            if await _pause_if_rate_limited("Step 3"):
+                continue
+
             # Step 4: Check "In Review" issues to ensure Copilot has reviewed their PRs
             review_results = await _cp.check_in_review_issues_for_copilot_review(
                 access_token=access_token,
@@ -166,6 +249,9 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(review_results),
                 )
+
+            if await _pause_if_rate_limited("Step 4"):
+                continue
 
             # Step 4b: Check "In Review" issues for completed Copilot reviews
             # and advance the pipeline to "Done"
@@ -184,29 +270,51 @@ async def _poll_loop(
                     len(in_review_results),
                 )
 
-            # Step 5: Self-healing recovery — detect and fix stalled pipelines
-            recovery_results = await _cp.recover_stalled_issues(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
+            if await _pause_if_rate_limited("Step 4b"):
+                continue
 
-            if recovery_results:
-                logger.info(
-                    "Poll #%d: Recovered %d stalled issues",
+            # Step 5: Self-healing recovery — detect and fix stalled pipelines
+            # Skip if budget is low — recovery is least critical.
+            if skip_expensive:
+                logger.debug(
+                    "Poll #%d: Skipping Step 5 (recovery) — rate limit budget low",
                     _polling_state.poll_count,
-                    len(recovery_results),
                 )
+            else:
+                recovery_results = await _cp.recover_stalled_issues(
+                    access_token=access_token,
+                    project_id=project_id,
+                    owner=owner,
+                    repo=repo,
+                    tasks=parent_tasks,
+                )
+
+                if recovery_results:
+                    logger.info(
+                        "Poll #%d: Recovered %d stalled issues",
+                        _polling_state.poll_count,
+                        len(recovery_results),
+                    )
 
         except Exception as e:
             logger.error("Error in polling loop: %s", e)
             _polling_state.errors_count += 1
             _polling_state.last_error = str(e)
 
-        # Wait for next poll
-        await asyncio.sleep(interval_seconds)
+        # ── Dynamic interval based on remaining rate-limit budget ──
+        remaining, _ = await _check_rate_limit_budget()
+        if remaining is not None and remaining <= RATE_LIMIT_SLOW_THRESHOLD:
+            # Double the interval when budget is getting low
+            effective_interval = interval_seconds * 2
+            logger.info(
+                "Rate limit budget low (remaining=%d). Doubling poll interval to %ds.",
+                remaining,
+                effective_interval,
+            )
+        else:
+            effective_interval = interval_seconds
+
+        await asyncio.sleep(effective_interval)
 
     logger.info("Copilot PR completion polling stopped")
     _polling_state.is_running = False
@@ -230,6 +338,15 @@ def stop_polling() -> None:
 
 def get_polling_status() -> dict[str, Any]:
     """Get current polling status."""
+    rl = _cp.github_projects_service.get_last_rate_limit()
+    rate_limit_info: dict[str, Any] | None = None
+    if rl:
+        rate_limit_info = {
+            "limit": rl.get("limit"),
+            "remaining": rl.get("remaining"),
+            "used": rl.get("used"),
+            "reset_at": rl.get("reset_at"),
+        }
     return {
         "is_running": _polling_state.is_running,
         "last_poll_time": (
@@ -239,4 +356,5 @@ def get_polling_status() -> dict[str, Any]:
         "errors_count": _polling_state.errors_count,
         "last_error": _polling_state.last_error,
         "processed_issues_count": len(_processed_issue_prs),
+        "rate_limit": rate_limit_info,
     }

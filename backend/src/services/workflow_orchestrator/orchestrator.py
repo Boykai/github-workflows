@@ -12,7 +12,7 @@ from src.models.workflow import (
     WorkflowResult,
     WorkflowTransition,
 )
-from src.services.agent_tracking import append_tracking_to_body
+from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
 from src.utils import utcnow
 
 from .config import _transitions, get_workflow_config
@@ -686,6 +686,47 @@ class WorkflowOrchestrator:
             logger.info("No agents configured for status '%s'", status)
             return True  # No agents to assign is not an error
 
+        # ── Override with tracking table agents if available ─────────
+        # The tracking table is frozen in the issue body when the issue
+        # is created and records the full agent pipeline the user was
+        # promised.  If the DB config was later modified (agents removed
+        # or reordered), the tracking table preserves the original
+        # contract.  Use tracking table agents for this status when they
+        # contain agents the current config no longer includes.
+        if ctx.issue_number:
+            try:
+                issue_data = await self.github.get_issue_with_comments(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
+                body = issue_data.get("body", "") if issue_data else ""
+                if body:
+                    steps = parse_tracking_from_body(body)
+                    if steps:
+                        tracking_agents = [
+                            s.agent_name for s in steps if s.status.lower() == status.lower()
+                        ]
+                        config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
+                        if tracking_agents and tracking_agents != config_slugs:
+                            logger.info(
+                                "Overriding config agents %s with tracking "
+                                "table agents %s for status '%s' on issue #%d",
+                                config_slugs,
+                                tracking_agents,
+                                status,
+                                ctx.issue_number,
+                            )
+                            agents = tracking_agents
+            except Exception as e:
+                logger.warning(
+                    "Failed to fetch tracking table for issue #%d, "
+                    "falling back to config agents: %s",
+                    ctx.issue_number,
+                    e,
+                )
+
         if agent_index >= len(agents):
             logger.info(
                 "Agent index %d out of range for status '%s' (has %d agents)",
@@ -695,11 +736,12 @@ class WorkflowOrchestrator:
             )
             return True  # All agents already processed
 
-        agent_name = (
-            agents[agent_index].slug
-            if hasattr(agents[agent_index], "slug")
-            else str(agents[agent_index])
-        )
+        # Normalise to plain slug strings.  `agents` may be a mix of
+        # AgentAssignment objects (from config) or bare strings (from
+        # the tracking-table override above).
+        agent_slugs: list[str] = [getattr(a, "slug", None) or str(a) for a in agents]
+
+        agent_name = agent_slugs[agent_index]
         logger.info(
             "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
             agent_name,
@@ -1036,11 +1078,9 @@ class WorkflowOrchestrator:
                 issue_number=ctx.issue_number,
                 project_id=ctx.project_id,
                 status=status,
-                agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                agents=agent_slugs,
                 current_agent_index=agent_index,
-                completed_agents=[
-                    a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-                ],
+                completed_agents=agent_slugs[:agent_index],
                 started_at=utcnow(),
                 error=None,
                 agent_assigned_sha="",
@@ -1233,11 +1273,9 @@ class WorkflowOrchestrator:
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
                     status=status,
-                    agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                    agents=agent_slugs,
                     current_agent_index=agent_index,
-                    completed_agents=[
-                        a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-                    ],
+                    completed_agents=agent_slugs[:agent_index],
                     started_at=utcnow(),
                     error=None,
                     agent_assigned_sha="",
@@ -1446,11 +1484,9 @@ class WorkflowOrchestrator:
             issue_number=ctx.issue_number,
             project_id=ctx.project_id,
             status=status,
-            agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+            agents=agent_slugs,
             current_agent_index=agent_index,
-            completed_agents=[
-                a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-            ],
+            completed_agents=agent_slugs[:agent_index],
             started_at=utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,

@@ -56,7 +56,62 @@ async def _get_or_reconstruct_pipeline(
         if expected_status is None or pipeline.status == expected_status:
             return pipeline
 
-    # Reconstruct from comments
+    # Before reconstructing with the caller's agents, check the tracking
+    # table in the issue body.  If an earlier pipeline status still has
+    # pending agents (e.g. "In Progress" agents unfinished but the board
+    # jumped to "In Review"), reconstruct for THAT status so the pending
+    # agents aren't silently skipped.
+    try:
+        issue_data = await _cp.github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        body = issue_data.get("body", "") if issue_data else ""
+        if body:
+            steps = _cp.parse_tracking_from_body(body)
+            if steps:
+                # Find the first agent that is ⏳ Pending or 🔄 Active
+                first_incomplete = next(
+                    (s for s in steps if "Pending" in s.state or "Active" in s.state),
+                    None,
+                )
+                if first_incomplete and first_incomplete.status.lower() != status.lower():
+                    # There are incomplete agents in an earlier status.
+                    # Reconstruct for THAT status so the pipeline resumes
+                    # from the correct point.
+                    earlier_status = first_incomplete.status
+                    earlier_agents = [
+                        s.agent_name for s in steps if s.status.lower() == earlier_status.lower()
+                    ]
+                    if earlier_agents:
+                        logger.info(
+                            "Tracking table for issue #%d shows incomplete "
+                            "agents in '%s' (first: %s) — reconstructing "
+                            "pipeline for that status instead of '%s'",
+                            issue_number,
+                            earlier_status,
+                            first_incomplete.agent_name,
+                            status,
+                        )
+                        return await _reconstruct_pipeline_state(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            issue_number=issue_number,
+                            project_id=project_id,
+                            status=earlier_status,
+                            agents=earlier_agents,
+                        )
+    except Exception as e:
+        logger.debug(
+            "Could not check tracking table for issue #%d during pipeline reconstruction: %s",
+            issue_number,
+            e,
+        )
+
+    # Default: reconstruct for the requested status
     return await _reconstruct_pipeline_state(
         access_token=access_token,
         owner=owner,
@@ -1021,7 +1076,22 @@ async def _advance_pipeline(
         pipeline.started_at = utcnow()
         _cp.set_pipeline_state(issue_number, pipeline)
 
-        logger.info("Assigning next agent '%s' to issue #%d", next_agent, issue_number)
+        # Use the pipeline's own status for agent lookup, not from_status.
+        # When the board status moves ahead of the pipeline (e.g., GitHub
+        # automation moves issue to "In Review" while "In Progress" agents
+        # are still running), from_status reflects the BOARD status.  Looking
+        # up agents for the board status would return the wrong agent list
+        # (e.g., ["human"] instead of ["judge", "linter"]), causing the
+        # pipeline to silently skip remaining agents.
+        agent_lookup_status = pipeline.status if pipeline.status else from_status
+
+        logger.info(
+            "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",
+            next_agent,
+            issue_number,
+            agent_lookup_status,
+            from_status,
+        )
 
         orchestrator = _cp.get_workflow_orchestrator()
         ctx = _cp.WorkflowContext(
@@ -1038,7 +1108,7 @@ async def _advance_pipeline(
         ctx.config = await _cp.get_workflow_config(project_id)
 
         success = await orchestrator.assign_agent_for_status(
-            ctx, from_status, agent_index=pipeline.current_agent_index
+            ctx, agent_lookup_status, agent_index=pipeline.current_agent_index
         )
 
         # Send agent_assigned WebSocket notification
@@ -1049,7 +1119,7 @@ async def _advance_pipeline(
                     "type": "agent_assigned",
                     "issue_number": issue_number,
                     "agent_name": next_agent,
-                    "status": from_status,
+                    "status": agent_lookup_status,
                     "next_agent": pipeline.next_agent,
                     "timestamp": utcnow().isoformat(),
                 },
@@ -1412,16 +1482,47 @@ async def check_in_review_issues(
             if not task_owner or not task_repo:
                 continue
 
-            # Get or reconstruct pipeline state
-            pipeline = await _get_or_reconstruct_pipeline(
-                access_token=access_token,
-                owner=task_owner,
-                repo=task_repo,
-                issue_number=task.issue_number,
-                project_id=project_id,
-                status=config.status_in_review,
-                agents=agents,
-            )
+            effective_from_status = config.status_in_review
+            effective_to_status = to_status
+
+            # Guard: handle issues managed by a pipeline for a different
+            # status.  When copilot-review un-drafts the main PR, GitHub
+            # project automation may move the issue to "In Review" before
+            # the remaining "In Progress" agents (e.g. judge, linter)
+            # have run.  Detect this mismatch and use the PIPELINE's
+            # status so _advance_pipeline resolves the correct agents.
+            pipeline = _cp.get_pipeline_state(task.issue_number)
+            if pipeline and not pipeline.is_complete:
+                pipeline_status = pipeline.status.lower() if pipeline.status else ""
+                if pipeline_status and pipeline_status != status_in_review:
+                    original_status = pipeline.status
+                    next_status = _cp.get_next_status(config, original_status) if config else None
+                    if next_status:
+                        effective_from_status = original_status
+                        effective_to_status = next_status
+                    logger.info(
+                        "Issue #%d is in 'In Review' but pipeline tracks '%s' "
+                        "status (agent: %s, %d/%d done). Accepting board status — "
+                        "continuing pipeline with transition target: '%s' → '%s'.",
+                        task.issue_number,
+                        pipeline.status,
+                        pipeline.current_agent or "none",
+                        len(pipeline.completed_agents),
+                        len(pipeline.agents),
+                        effective_from_status,
+                        effective_to_status,
+                    )
+            else:
+                # No cached pipeline or it's complete — get or reconstruct
+                pipeline = await _get_or_reconstruct_pipeline(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    project_id=project_id,
+                    status=config.status_in_review,
+                    agents=agents,
+                )
 
             # Process pipeline completion/advancement
             result = await _process_pipeline_completion(
@@ -1431,8 +1532,8 @@ async def check_in_review_issues(
                 owner=owner,
                 repo=repo,
                 pipeline=pipeline,
-                from_status=config.status_in_review,
-                to_status=to_status,
+                from_status=effective_from_status,
+                to_status=effective_to_status,
             )
             if result:
                 results.append(result)

@@ -304,6 +304,13 @@ async def _find_completed_child_pr(
     Returns:
         Dict with PR details if a completed child PR exists, None otherwise
     """
+    # copilot-review is NOT a coding agent — it never creates child PRs.
+    # Any PR linked to its sub-issue was created by an inadvertent Copilot
+    # coding assignment (e.g. GitHub project automation).  Return None so
+    # the caller does not falsely detect copilot-review as complete.
+    if agent_name == "copilot-review":
+        return None
+
     try:
         # Get all linked PRs for this issue (including sub-issues)
         linked_prs = await _cp._get_linked_prs_including_sub_issues(
@@ -726,6 +733,7 @@ async def _check_main_pr_completion(
     pipeline_started_at: datetime | None = None,
     agent_assigned_sha: str = "",
     is_subsequent_agent: bool = False,
+    sub_issue_number: int | None = None,
 ) -> bool:
     """
     Check if a Copilot agent completed work directly on the main PR.
@@ -743,6 +751,10 @@ async def _check_main_pr_completion(
     GitHub does not always fire copilot_work_finished timeline events when
     Copilot works on an already-open PR branch.
 
+    IMPORTANT: Copilot is assigned to the agent's *sub-issue*, NOT the parent
+    issue.  All Copilot assignment checks must use sub_issue_number to avoid
+    false negatives that cause premature completion detection.
+
     Args:
         access_token: GitHub access token
         owner: Repository owner
@@ -754,10 +766,19 @@ async def _check_main_pr_completion(
             stale events from earlier agents)
         agent_assigned_sha: The HEAD SHA captured when the agent was assigned.
             If empty, commit-based detection is skipped.
+        sub_issue_number: The sub-issue where Copilot is actually assigned.
+            If provided, Copilot assignment is checked on this issue instead
+            of the parent.  Falls back to parent if not provided.
 
     Returns:
         True if the main PR shows fresh completion signals, False otherwise
     """
+    # Copilot is assigned to the SUB-ISSUE, not the parent.  Use the
+    # sub-issue for all "is Copilot still assigned?" checks.  Fall back
+    # to the parent only when no sub-issue is available.
+    copilot_check_issue = (
+        sub_issue_number if sub_issue_number and sub_issue_number != issue_number else issue_number
+    )
     try:
         # Get main PR details
         pr_details = await _cp.github_projects_service.get_pull_request(
@@ -883,13 +904,14 @@ async def _check_main_pr_completion(
                     current_sha[:8],
                 )
 
-                # Check if Copilot is still assigned to the issue
+                # Check if Copilot is still assigned to the sub-issue
+                # (where it was actually assigned, not the parent issue)
                 copilot_still_assigned = (
                     await _cp.github_projects_service.is_copilot_assigned_to_issue(
                         access_token=access_token,
                         owner=owner,
                         repo=repo,
-                        issue_number=issue_number,
+                        issue_number=copilot_check_issue,
                     )
                 )
 
@@ -925,7 +947,7 @@ async def _check_main_pr_completion(
                         access_token=access_token,
                         owner=owner,
                         repo=repo,
-                        issue_number=issue_number,
+                        issue_number=copilot_check_issue,
                     )
                 )
                 if not copilot_still_assigned:
@@ -961,7 +983,7 @@ async def _check_main_pr_completion(
                 access_token=access_token,
                 owner=owner,
                 repo=repo,
-                issue_number=issue_number,
+                issue_number=copilot_check_issue,
             )
             if not copilot_still_assigned:
                 # Double-check: make sure there are new commits since pipeline start
@@ -1011,7 +1033,7 @@ async def _check_main_pr_completion(
                     access_token=access_token,
                     owner=owner,
                     repo=repo,
-                    issue_number=issue_number,
+                    issue_number=copilot_check_issue,
                 )
             )
             if not fallback_copilot_assigned:

@@ -97,6 +97,8 @@ from .pipeline import (  # noqa: F401
     process_in_progress_issue,
 )
 from .polling_loop import (  # noqa: F401
+    _check_rate_limit_budget,
+    _pause_if_rate_limited,
     _poll_loop,
     get_polling_status,
     poll_for_copilot_completion,
@@ -114,6 +116,9 @@ from .recovery import (  # noqa: F401
 from .state import (  # noqa: F401
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     POST_ACTION_DELAY_SECONDS,
+    RATE_LIMIT_PAUSE_THRESHOLD,
+    RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
+    RATE_LIMIT_SLOW_THRESHOLD,
     RECOVERY_COOLDOWN_SECONDS,
     PollingState,
     _claimed_child_prs,
