@@ -34,3 +34,6 @@
 - All items pass validation. The spec is ready for `/speckit.clarify` or `/speckit.plan`.
 - Assumptions section documents reasonable defaults for scoping decisions (single chat context, client-side storage, standard web keyboard events).
 - No [NEEDS CLARIFICATION] markers were needed — the original issue provided sufficient detail to make informed decisions for all requirements.
+- Visual feedback during history-navigation mode added as User Story 5 (P2) and FR-009, per the UI/UX description in the original issue.
+- 6 user stories covering: up arrow navigation (P1), down arrow + draft restore (P1), session persistence (P2), cursor positioning (P2), visual feedback (P2), mobile/touch access (P3).
+- 13 functional requirements (FR-001 through FR-013) covering all MUST and SHOULD behaviors.
