@@ -22,8 +22,8 @@
 
 **Purpose**: Create the new hook file and establish project structure for the feature
 
-- [ ] T001 Create `useChatHistory` hook file with minimal scaffolding (empty function, placeholder return object) in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T002 [P] Verify existing imports and dependencies are available (React 18.3, Lucide React `History` icon, Tailwind CSS utilities) — no new packages needed
+- [x] T001 Create `useChatHistory` hook file with minimal scaffolding (empty function, placeholder return object) in `frontend/src/hooks/useChatHistory.ts`
+- [x] T002 [P] Verify existing imports and dependencies are available (React 18.3, Lucide React `History` icon, Tailwind CSS utilities) — no new packages needed
 
 ---
 
@@ -33,13 +33,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `UseChatHistoryOptions` and `UseChatHistoryReturn` interfaces in `frontend/src/hooks/useChatHistory.ts` per the contract in `specs/018-chat-history-navigation/contracts/useChatHistory-api.md`
-- [ ] T004 Implement localStorage load logic in `useChatHistory` hook: read from key `chat-message-history`, parse JSON, return `string[]`, fallback to `[]` on error — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T005 Implement localStorage save logic in `useChatHistory` hook: serialize history array to JSON, write to key `chat-message-history`, silently catch errors — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T006 Implement core hook state: `history` (useState, initialized from localStorage), `historyIndex` (useState, initialized to -1), `draftBuffer` (useRef<string>) — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T007 Implement `addToHistory(message: string)` method: append message to history array, enforce max 100 cap by removing oldest, persist to localStorage, reset historyIndex to -1 — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T008 Implement `resetNavigation()` method: set historyIndex to -1, clear draftBuffer ref — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T009 Export `useChatHistory` hook function with the `UseChatHistoryReturn` interface from `frontend/src/hooks/useChatHistory.ts`
+- [x] T003 Implement `UseChatHistoryOptions` and `UseChatHistoryReturn` interfaces in `frontend/src/hooks/useChatHistory.ts` per the contract in `specs/018-chat-history-navigation/contracts/useChatHistory-api.md`
+- [x] T004 Implement localStorage load logic in `useChatHistory` hook: read from key `chat-message-history`, parse JSON, return `string[]`, fallback to `[]` on error — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T005 Implement localStorage save logic in `useChatHistory` hook: serialize history array to JSON, write to key `chat-message-history`, silently catch errors — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T006 Implement core hook state: `history` (useState, initialized from localStorage), `historyIndex` (useState, initialized to -1), `draftBuffer` (useRef<string>) — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T007 Implement `addToHistory(message: string)` method: append message to history array, enforce max 100 cap by removing oldest, persist to localStorage, reset historyIndex to -1 — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T008 Implement `resetNavigation()` method: set historyIndex to -1, clear draftBuffer ref — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T009 Export `useChatHistory` hook function with the `UseChatHistoryReturn` interface from `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: Foundation ready — hook is importable and has core state management + localStorage persistence. User story implementation can now begin.
 
@@ -53,10 +53,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `navigateUp(currentInput: string)` method in `useChatHistory` hook: on first call (historyIndex === -1) capture currentInput to draftBuffer ref and set historyIndex to 0; on subsequent calls increase historyIndex by 1 (capped at history.length - 1) to step toward older messages; return `history[history.length - 1 - historyIndex]` or null if no history — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T011 [US1] Import `useChatHistory` hook in `ChatInterface` component and destructure all returned methods/properties (`navigateUp`, `navigateDown`, `addToHistory`, `resetNavigation`, `isNavigating`, `history`, `selectFromHistory`); note: the hook exports stubs for all methods from T009 so all destructured names are safe even before later stories implement them — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T012 [US1] Add ArrowUp history navigation to `handleKeyDown` in `ChatInterface.tsx`: after the autocomplete guard block and before Enter-to-submit, check `e.key === 'ArrowUp'` when autocomplete is NOT active, verify cursor is on first line via `(input.indexOf('\n') === -1 || selectionStart <= input.indexOf('\n'))`, call `navigateUp(input)`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T013 [US1] Integrate `addToHistory(trimmed)` and `resetNavigation()` calls into `doSubmit` function, placed before `onSendMessage()` and `setInput('')` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T010 [US1] Implement `navigateUp(currentInput: string)` method in `useChatHistory` hook: on first call (historyIndex === -1) capture currentInput to draftBuffer ref and set historyIndex to 0; on subsequent calls increase historyIndex by 1 (capped at history.length - 1) to step toward older messages; return `history[history.length - 1 - historyIndex]` or null if no history — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T011 [US1] Import `useChatHistory` hook in `ChatInterface` component and destructure all returned methods/properties (`navigateUp`, `navigateDown`, `addToHistory`, `resetNavigation`, `isNavigating`, `history`, `selectFromHistory`); note: the hook exports stubs for all methods from T009 so all destructured names are safe even before later stories implement them — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T012 [US1] Add ArrowUp history navigation to `handleKeyDown` in `ChatInterface.tsx`: after the autocomplete guard block and before Enter-to-submit, check `e.key === 'ArrowUp'` when autocomplete is NOT active, verify cursor is on first line via `(input.indexOf('\n') === -1 || selectionStart <= input.indexOf('\n'))`, call `navigateUp(input)`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T013 [US1] Integrate `addToHistory(trimmed)` and `resetNavigation()` calls into `doSubmit` function, placed before `onSendMessage()` and `setInput('')` — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — users can send messages and recall them with the up arrow key.
 
@@ -70,8 +70,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Implement `navigateDown()` method in `useChatHistory` hook: decrement historyIndex; when reaching -1, return draftBuffer value (restoring draft); return the corresponding history message or null if not navigating — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T015 [US2] Add ArrowDown history navigation to `handleKeyDown` in `ChatInterface.tsx`: check `e.key === 'ArrowDown'` when autocomplete is NOT active and `isNavigating` is true, verify cursor is on last line via `(input.indexOf('\n') === -1 || selectionStart > input.lastIndexOf('\n'))`, call `navigateDown()`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T014 [US2] Implement `navigateDown()` method in `useChatHistory` hook: decrement historyIndex; when reaching -1, return draftBuffer value (restoring draft); return the corresponding history message or null if not navigating — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T015 [US2] Add ArrowDown history navigation to `handleKeyDown` in `ChatInterface.tsx`: check `e.key === 'ArrowDown'` when autocomplete is NOT active and `isNavigating` is true, verify cursor is on last line via `(input.indexOf('\n') === -1 || selectionStart > input.lastIndexOf('\n'))`, call `navigateDown()`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — full up/down navigation with draft preservation.
 
@@ -85,8 +85,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Verify and harden history cap enforcement in `addToHistory`: ensure that when `history.length >= 100`, the oldest entry (index 0) is removed before appending the new message — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T017 [US3] Implement graceful localStorage degradation: wrap all `localStorage.getItem` and `localStorage.setItem` calls in try-catch blocks so that in-session history navigation works even when storage is unavailable (e.g., private browsing mode) — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T016 [US3] Verify and harden history cap enforcement in `addToHistory`: ensure that when `history.length >= 100`, the oldest entry (index 0) is removed before appending the new message — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T017 [US3] Implement graceful localStorage degradation: wrap all `localStorage.getItem` and `localStorage.setItem` calls in try-catch blocks so that in-session history navigation works even when storage is unavailable (e.g., private browsing mode) — in `frontend/src/hooks/useChatHistory.ts`
 
 **Checkpoint**: History persists across sessions and degrades gracefully when localStorage is unavailable.
 
@@ -100,7 +100,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] Add a `useEffect` in `ChatInterface.tsx` that watches for input changes triggered by history navigation (use `isNavigating` as a dependency): when `isNavigating` is true and `inputRef.current` exists, set `inputRef.current.selectionStart` and `inputRef.current.selectionEnd` to the end of the input value — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T018 [US4] Add a `useEffect` in `ChatInterface.tsx` that watches for input changes triggered by history navigation (use `isNavigating` as a dependency): when `isNavigating` is true and `inputRef.current` exists, set `inputRef.current.selectionStart` and `inputRef.current.selectionEnd` to the end of the input value — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Cursor is correctly positioned at end of text when navigating history.
 
@@ -114,7 +114,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T019 [US5] Add conditional Tailwind CSS classes to the textarea element: when `isNavigating` is true, apply `border-l-4 border-l-primary bg-primary/5` to the existing className — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T019 [US5] Add conditional Tailwind CSS classes to the textarea element: when `isNavigating` is true, apply `border-l-4 border-l-primary bg-primary/5` to the existing className — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Visual feedback clearly indicates when the user is browsing history vs. composing a new message.
 
@@ -128,12 +128,12 @@
 
 ### Implementation for User Story 6
 
-- [ ] T020 [US6] Implement `selectFromHistory(index: number, currentInput: string)` method in `useChatHistory` hook: save currentInput to draftBuffer if not already navigating, set historyIndex to map to the given array index, return `history[index]` or null if index is invalid — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T021 [US6] Add a history button (Lucide React `History` icon) adjacent to the textarea in the form area, visible only when `history.length > 0`, with `aria-label="Message history"` and `type="button"` — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T022 [US6] Add local state `showHistoryPopover` (boolean) to `ChatInterface.tsx` and toggle it on history button click — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T023 [US6] Implement history popover UI: a scrollable dropdown positioned near the history button, listing `history` array entries (most recent first), each entry clickable to call `selectFromHistory(index, input)` and set the input field — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T024 [US6] Add empty-state message in the history popover when `history.length === 0`, e.g., "No message history yet" — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T025 [US6] Dismiss the history popover when a message is selected, when the user clicks outside, or when a message is sent — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T020 [US6] Implement `selectFromHistory(index: number, currentInput: string)` method in `useChatHistory` hook: save currentInput to draftBuffer if not already navigating, set historyIndex to map to the given array index, return `history[index]` or null if index is invalid — in `frontend/src/hooks/useChatHistory.ts`
+- [x] T021 [US6] Add a history button (Lucide React `History` icon) adjacent to the textarea in the form area, visible only when `history.length > 0`, with `aria-label="Message history"` and `type="button"` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T022 [US6] Add local state `showHistoryPopover` (boolean) to `ChatInterface.tsx` and toggle it on history button click — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T023 [US6] Implement history popover UI: a scrollable dropdown positioned near the history button, listing `history` array entries (most recent first), each entry clickable to call `selectFromHistory(index, input)` and set the input field — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T024 [US6] Add empty-state message in the history popover when `history.length === 0`, e.g., "No message history yet" — in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T025 [US6] Dismiss the history popover when a message is selected, when the user clicks outside, or when a message is sent — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Mobile and touch-device users can access message history through the button alternative.
 
@@ -143,11 +143,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T026 Ensure history navigation does not fire when chat input is not focused (ArrowUp/Down interception only applies inside the textarea's onKeyDown) — verify in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T027 Ensure that editing a recalled message and navigating away with up/down discards the edit (original history is unchanged) — verify behavior in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T028 Ensure duplicate messages are stored as separate history entries (identical content creates a new entry) — verify in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T029 [P] Run quickstart.md manual validation scenarios from `specs/018-chat-history-navigation/quickstart.md`
-- [ ] T030 [P] Code cleanup: remove any unused imports, ensure consistent code style with existing codebase patterns
+- [x] T026 Ensure history navigation does not fire when chat input is not focused (ArrowUp/Down interception only applies inside the textarea's onKeyDown) — verify in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T027 Ensure that editing a recalled message and navigating away with up/down discards the edit (original history is unchanged) — verify behavior in `frontend/src/hooks/useChatHistory.ts`
+- [x] T028 Ensure duplicate messages are stored as separate history entries (identical content creates a new entry) — verify in `frontend/src/hooks/useChatHistory.ts`
+- [x] T029 [P] Run quickstart.md manual validation scenarios from `specs/018-chat-history-navigation/quickstart.md`
+- [x] T030 [P] Code cleanup: remove any unused imports, ensure consistent code style with existing codebase patterns
 
 ---
 

@@ -13,6 +13,7 @@ import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import type { CommandDefinition } from '@/lib/commands/types';
+import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -346,7 +347,10 @@ export function ChatInterface({
           placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
-          className={`flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted ${isNavigating ? 'border-l-4 border-l-primary bg-primary/5' : ''}`}
+          className={cn(
+            'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted',
+            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+          )}
         />
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
           {chatHistory.length > 0 && (
@@ -365,25 +369,28 @@ export function ChatInterface({
                 <p className="p-3 text-sm text-muted-foreground text-center">No message history yet</p>
               ) : (
                 <ul className="py-1">
-                  {[...chatHistory].reverse().map((msg, reverseIdx) => (
-                    <li key={reverseIdx}>
-                      <button
-                        type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
-                        onClick={() => {
-                          const actualIndex = chatHistory.length - 1 - reverseIdx;
-                          const result = selectFromHistory(actualIndex, input);
-                          if (result !== null) {
-                            setInput(result);
-                          }
-                          setShowHistoryPopover(false);
-                          inputRef.current?.focus();
-                        }}
-                      >
-                        {msg}
-                      </button>
-                    </li>
-                  ))}
+                  {chatHistory.map((_, idx) => {
+                    const reverseIdx = chatHistory.length - 1 - idx;
+                    const msg = chatHistory[reverseIdx];
+                    return (
+                      <li key={reverseIdx}>
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
+                          onClick={() => {
+                            const result = selectFromHistory(reverseIdx, input);
+                            if (result !== null) {
+                              setInput(result);
+                            }
+                            setShowHistoryPopover(false);
+                            inputRef.current?.focus();
+                          }}
+                        >
+                          {msg}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
