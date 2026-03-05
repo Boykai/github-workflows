@@ -22,7 +22,7 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.models.chat import DEFAULT_AGENT_MAPPINGS
+from src.constants import DEFAULT_AGENT_MAPPINGS
 from src.services.github_projects import GitHubProjectsService
 
 

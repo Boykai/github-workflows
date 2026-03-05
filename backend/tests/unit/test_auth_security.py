@@ -31,7 +31,7 @@ class TestCookieBasedTokenDelivery:
 
     async def test_callback_sets_session_cookie(self):
         """After successful OAuth, session_id should be in Set-Cookie header."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         mock_auth = AsyncMock(name="GitHubAuthService")
@@ -40,7 +40,7 @@ class TestCookieBasedTokenDelivery:
         mock_auth.create_session.return_value = session
 
         app = create_app()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.api.auth.github_auth_service", mock_auth),
             patch("src.config.get_settings", return_value=_prod_like_settings(debug=True)),
@@ -63,7 +63,7 @@ class TestCookieBasedTokenDelivery:
 
     async def test_callback_does_not_leak_token_in_url(self):
         """Redirect URL must NOT contain session_token query parameter."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         mock_auth = AsyncMock(name="GitHubAuthService")
@@ -72,7 +72,7 @@ class TestCookieBasedTokenDelivery:
         mock_auth.create_session.return_value = session
 
         app = create_app()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.api.auth.github_auth_service", mock_auth),
             patch("src.config.get_settings", return_value=_prod_like_settings(debug=True)),
@@ -92,7 +92,7 @@ class TestCookieBasedTokenDelivery:
 
     async def test_cookie_attributes(self):
         """Set-Cookie must include HttpOnly, SameSite=Lax, Path=/."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         mock_auth = AsyncMock(name="GitHubAuthService")
@@ -101,7 +101,7 @@ class TestCookieBasedTokenDelivery:
         mock_auth.create_session.return_value = session
 
         app = create_app()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.api.auth.github_auth_service", mock_auth),
             patch("src.config.get_settings", return_value=_prod_like_settings(debug=True)),
@@ -129,13 +129,13 @@ class TestDevLoginGating:
 
     async def test_dev_login_returns_404_production(self):
         """dev-login endpoint should return 404 Not Found in production."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         mock_auth = AsyncMock(name="GitHubAuthService")
         app = create_app()
         session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.config.get_settings", return_value=_prod_like_settings(debug=False)),
             patch("src.api.auth.github_auth_service", mock_auth),

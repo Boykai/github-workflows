@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.dependencies import require_admin
 from src.models.settings import (
     AIProvider,
@@ -38,7 +38,7 @@ router = APIRouter()
 
 @router.get("/user", response_model=EffectiveUserSettings)
 async def get_user_settings(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> EffectiveUserSettings:
     """Get authenticated user's effective settings (merged with global defaults)."""
     db = get_db()
@@ -48,7 +48,7 @@ async def get_user_settings(
 @router.put("/user", response_model=EffectiveUserSettings)
 async def update_user_settings(
     body: UserPreferencesUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> EffectiveUserSettings:
     """Update authenticated user's preferences (partial update)."""
     db = get_db()
@@ -65,7 +65,7 @@ async def update_user_settings(
 
 @router.get("/global", response_model=GlobalSettingsResponse)
 async def get_global_settings_endpoint(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> GlobalSettingsResponse:
     """Get global/instance-level settings."""
     db = get_db()
@@ -93,7 +93,7 @@ async def update_global_settings_endpoint(
 @router.get("/project/{project_id}", response_model=EffectiveProjectSettings)
 async def get_project_settings_endpoint(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> EffectiveProjectSettings:
     """Get per-project effective settings for authenticated user."""
     db = get_db()
@@ -104,7 +104,7 @@ async def get_project_settings_endpoint(
 async def update_project_settings_endpoint(
     project_id: str,
     body: ProjectSettingsUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> EffectiveProjectSettings:
     """Update per-project settings for authenticated user (partial update)."""
     db = get_db()
@@ -157,7 +157,7 @@ async def update_project_settings_endpoint(
 @router.get("/models/{provider}", response_model=ModelsResponse)
 async def get_models_for_provider(
     provider: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     force_refresh: bool = Query(False, description="Bypass cache and fetch fresh values"),
 ) -> ModelsResponse:
     """Fetch available models for a provider.

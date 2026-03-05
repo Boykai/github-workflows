@@ -69,7 +69,7 @@ class TestModuleBoundaries:
                 for m in matches:
                     attr = m.strip().lstrip(".")
                     # Allow known standard library / FastAPI privates
-                    if attr in ("_get_session_dep", "_env_file"):
+                    if attr in ("_get_current_session", "_env_file"):
                         continue
                     violations.append(f"{py_file.name}:{i}: {line.strip()}")
 

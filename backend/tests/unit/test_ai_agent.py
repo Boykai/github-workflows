@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.models.chat import IssuePriority, IssueSize, RecommendationStatus
+from src.models.recommendation import IssuePriority, IssueSize, RecommendationStatus
 from src.services.ai_agent import (
     AIAgentService,
     GeneratedTask,

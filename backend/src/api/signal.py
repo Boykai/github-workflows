@@ -12,7 +12,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.config import get_settings
 from src.models.signal import (
     SignalBanner,
@@ -51,7 +51,7 @@ router = APIRouter()
 
 @router.get("/connection", response_model=SignalConnectionResponse)
 async def get_signal_connection(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalConnectionResponse:
     """Get current Signal connection status. FR-002."""
     conn = await get_connection_by_user(session.github_user_id)
@@ -81,7 +81,7 @@ async def get_signal_connection(
 @router.post("/connection/link", response_model=SignalLinkResponse)
 async def initiate_signal_link(
     body: SignalLinkRequest,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalLinkResponse:
     """Generate QR code for Signal linking. FR-001."""
     # Check for existing active connection
@@ -109,7 +109,7 @@ async def initiate_signal_link(
 
 @router.get("/connection/link/status", response_model=SignalLinkStatusResponse)
 async def check_signal_link_status(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalLinkStatusResponse:
     """Poll link completion status after QR code display."""
     # First check if user already has a completed connection
@@ -173,7 +173,7 @@ async def check_signal_link_status(
 
 @router.delete("/connection")
 async def disconnect_signal(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Disconnect Signal account and purge PII. FR-003, FR-014."""
     deleted = await disconnect_and_purge(session.github_user_id)
@@ -190,7 +190,7 @@ async def disconnect_signal(
 
 @router.get("/preferences", response_model=SignalPreferencesResponse)
 async def get_signal_preferences(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalPreferencesResponse:
     """Get Signal notification preferences. FR-007."""
     conn = await get_connection_by_user(session.github_user_id)
@@ -205,7 +205,7 @@ async def get_signal_preferences(
 @router.put("/preferences", response_model=SignalPreferencesResponse)
 async def update_signal_preferences(
     body: SignalPreferencesUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalPreferencesResponse:
     """Update Signal notification preferences. FR-007."""
     from datetime import datetime
@@ -241,7 +241,7 @@ async def update_signal_preferences(
 
 @router.get("/banners", response_model=SignalBannersResponse)
 async def get_signal_banners(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> SignalBannersResponse:
     """Get active (undismissed) conflict banners. FR-015."""
     banners = await get_banners_for_user(session.github_user_id)
@@ -253,7 +253,7 @@ async def get_signal_banners(
 @router.post("/banners/{banner_id}/dismiss")
 async def dismiss_signal_banner(
     banner_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Dismiss a conflict banner. FR-015."""
     dismissed = await dismiss_banner(banner_id, session.github_user_id)

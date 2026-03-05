@@ -42,7 +42,7 @@ class TestAdminAuthorization:
 
     async def test_non_admin_gets_403(self):
         """A non-admin user should receive 403 on PUT /settings/global."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         _make_session(
@@ -58,7 +58,7 @@ class TestAdminAuthorization:
         app = create_app()
 
         # Override to return non-admin session
-        app.dependency_overrides[get_session_dep] = lambda: non_admin_session
+        app.dependency_overrides[get_current_session] = lambda: non_admin_session
 
         # We need a DB with admin already set
         db = await aiosqlite.connect(":memory:")
@@ -100,7 +100,7 @@ class TestAdminAuthorization:
 
     async def test_first_user_auto_promoted(self):
         """First authenticated user should be auto-promoted as admin."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         first_session = _make_session(
@@ -110,7 +110,7 @@ class TestAdminAuthorization:
 
         settings = _make_settings()
         app = create_app()
-        app.dependency_overrides[get_session_dep] = lambda: first_session
+        app.dependency_overrides[get_current_session] = lambda: first_session
 
         db = await aiosqlite.connect(":memory:")
         db.row_factory = aiosqlite.Row

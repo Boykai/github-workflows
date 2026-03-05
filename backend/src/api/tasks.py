@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.exceptions import ValidationError
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
@@ -22,7 +22,7 @@ router = APIRouter()
 @router.post("", response_model=Task)
 async def create_task(
     request: TaskCreateRequest,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> Task:
     """Create a new task in a GitHub Project."""
     # Validate project is selected or provided
@@ -96,7 +96,7 @@ async def create_task(
 async def update_task_status(
     task_id: str,
     status: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> JSONResponse:
     """Update a task's status.
 

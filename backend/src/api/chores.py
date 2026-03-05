@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.models.chores import (
     Chore,
     ChoreChatMessage,
@@ -43,7 +43,7 @@ def _get_service() -> ChoresService:
 @router.get("/{project_id}", response_model=list[Chore])
 async def list_chores(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> list[Chore]:
     """List all chores for a project."""
     service = _get_service()
@@ -57,7 +57,7 @@ async def list_chores(
 async def create_chore(
     project_id: str,
     body: ChoreCreate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> Chore:
     """Create a new chore (generates template, commits via PR, creates tracking issue)."""
     service = _get_service()
@@ -131,7 +131,7 @@ async def update_chore(
     project_id: str,
     chore_id: str,
     body: ChoreUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> Chore:
     """Update a chore (schedule, status)."""
     service = _get_service()
@@ -159,7 +159,7 @@ async def update_chore(
 async def delete_chore(
     project_id: str,
     chore_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Remove a chore, closing any open associated issue."""
     service = _get_service()
@@ -203,7 +203,7 @@ async def delete_chore(
 async def trigger_chore(
     project_id: str,
     chore_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> ChoreTriggerResult:
     """Manually trigger a chore — creates a GitHub issue and runs agent pipeline."""
     service = _get_service()
@@ -237,7 +237,7 @@ async def trigger_chore(
 async def chore_chat(
     project_id: str,
     body: ChoreChatMessage,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> ChoreChatResponse:
     """Interactive chat for sparse-input template refinement."""
     from src.services.chores.chat import generate_chat_response
@@ -265,7 +265,7 @@ async def chore_chat(
 
 @router.post("/evaluate-triggers", response_model=EvaluateChoreTriggersResponse)
 async def evaluate_triggers(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     body: EvaluateChoreTriggersRequest | None = None,
 ) -> EvaluateChoreTriggersResponse:
     """Evaluate all active chores for trigger conditions."""

@@ -12,7 +12,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.exceptions import NotFoundError
 from src.models.mcp import (
     McpConfigurationCreate,
@@ -29,7 +29,7 @@ router = APIRouter()
 
 @router.get("/mcps", response_model=McpConfigurationListResponse)
 async def list_mcp_configurations(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> McpConfigurationListResponse:
     """List all MCP configurations for the authenticated user."""
     db = get_db()
@@ -43,7 +43,7 @@ async def list_mcp_configurations(
 )
 async def create_mcp_configuration(
     body: McpConfigurationCreate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> McpConfigurationResponse:
     """Add a new MCP configuration for the authenticated user."""
     db = get_db()
@@ -59,7 +59,7 @@ async def create_mcp_configuration(
 @router.delete("/mcps/{mcp_id}")
 async def delete_mcp_configuration(
     mcp_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Remove an MCP configuration. Only the owning user can delete."""
     db = get_db()

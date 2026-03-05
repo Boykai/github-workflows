@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 
-from src.api.auth import get_current_session, get_session_dep
+from src.api.auth import get_current_session
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import NotFoundError
 from src.models.project import GitHubProject, ProjectListResponse
@@ -30,7 +30,7 @@ router = APIRouter()
 
 @router.get("", response_model=ProjectListResponse)
 async def list_projects(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
 ) -> ProjectListResponse:
     """List user's accessible GitHub Projects."""
@@ -65,7 +65,7 @@ async def list_projects(
 @router.get("/{project_id}", response_model=GitHubProject)
 async def get_project(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> GitHubProject:
     """Get project details including status columns."""
     # First check if we have the project cached in the list
@@ -90,7 +90,7 @@ async def get_project(
 @router.get("/{project_id}/tasks", response_model=TaskListResponse)
 async def get_project_tasks(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
 ) -> TaskListResponse:
     """Get tasks/items for a project."""
@@ -116,7 +116,7 @@ async def get_project_tasks(
 @router.post("/{project_id}/select", response_model=UserResponse)
 async def select_project(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> UserResponse:
     """Select a project as the active project and start Copilot polling."""
     # Verify project exists and user has access
@@ -283,7 +283,7 @@ async def websocket_subscribe(
 @router.get("/{project_id}/events")
 async def sse_subscribe(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ):
     """
     Server-Sent Events endpoint for real-time updates.

@@ -18,6 +18,7 @@ from src.services.completion_providers import (
     CopilotCompletionProvider,
     create_completion_provider,
 )
+from src.services.token_client_cache import TokenClientCache
 
 
 def _settings(**overrides) -> Settings:
@@ -58,31 +59,31 @@ class TestCopilotCompletionProvider:
             await p.complete([{"role": "user", "content": "hi"}], github_token=None)
 
     def test_token_key_is_deterministic(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("abc")
+        k1 = TokenClientCache.token_key("abc")
+        k2 = TokenClientCache.token_key("abc")
         assert k1 == k2
 
     def test_token_key_differs_for_different_tokens(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("xyz")
+        k1 = TokenClientCache.token_key("abc")
+        k2 = TokenClientCache.token_key("xyz")
         assert k1 != k2
 
     async def test_cleanup_stops_clients(self):
         p = CopilotCompletionProvider()
         mock_client = AsyncMock()
-        p._clients["key1"] = mock_client
+        p._cache._clients["key1"] = mock_client
         await p.cleanup()
         mock_client.stop.assert_awaited_once()
-        assert len(p._clients) == 0
+        assert len(p._cache._clients) == 0
 
     async def test_cleanup_handles_errors(self):
         p = CopilotCompletionProvider()
         mock_client = AsyncMock()
         mock_client.stop.side_effect = RuntimeError("fail")
-        p._clients["key1"] = mock_client
+        p._cache._clients["key1"] = mock_client
         # Should not raise
         await p.cleanup()
-        assert len(p._clients) == 0
+        assert len(p._cache._clients) == 0
 
     async def test_get_or_create_client_caches(self):
         CopilotCompletionProvider()
@@ -114,8 +115,8 @@ class TestCopilotCompletionProvider:
         mock_session.on = capture_on
 
         # Pre-inject a cached client
-        key = CopilotCompletionProvider._token_key("test-token")
-        p._clients[key] = mock_client
+        key = TokenClientCache.token_key("test-token")
+        p._cache._clients[key] = mock_client
 
         # Patch SessionEventType and session types
         mock_event_type = MagicMock()

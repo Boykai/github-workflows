@@ -7,7 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError
 from src.models.board import BoardDataResponse, BoardProjectListResponse, RateLimitInfo
 from src.models.user import UserSession
@@ -101,7 +101,7 @@ def _get_rate_limit_info() -> RateLimitInfo | None:
 
 @router.get("/projects", response_model=BoardProjectListResponse)
 async def list_board_projects(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
 ) -> BoardProjectListResponse:
     """List available GitHub Projects with status field configuration for board display."""
@@ -141,7 +141,7 @@ async def list_board_projects(
 @router.get("/projects/{project_id}", response_model=BoardDataResponse)
 async def get_board_data(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
 ) -> BoardDataResponse | JSONResponse:
     """Get board data for a specific project with columns and items."""

@@ -7,6 +7,7 @@
  */
 
 import { type ModelsResponse } from '@/types';
+import { formatTimeAgo } from '@/utils/formatTime';
 
 interface DynamicDropdownProps {
   /** Current selected value */
@@ -29,19 +30,6 @@ interface DynamicDropdownProps {
   id: string;
   /** Static fallback options (for providers without dynamic fetching) */
   staticOptions?: { id: string; name: string }[];
-}
-
-function formatTimeAgo(isoString: string): string {
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return '';
-  const diff = Date.now() - date.getTime();
-  if (diff < 0) return 'just now';
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h ago`;
 }
 
 const selectClass =
@@ -255,7 +243,7 @@ export function DynamicDropdown({
       <div className="flex items-center gap-2" aria-live="polite">
         {fetchedAt && (
           <span className="text-xs text-muted-foreground">
-            Last updated {formatTimeAgo(fetchedAt)}
+            Last updated {formatTimeAgo(new Date(fetchedAt))}
           </span>
         )}
         {rateLimitWarning && (

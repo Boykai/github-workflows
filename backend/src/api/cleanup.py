@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.dependencies import get_database, get_github_service
 from src.exceptions import AppException, GitHubAPIError
 from src.models.cleanup import (
@@ -25,7 +25,7 @@ router = APIRouter()
 @router.post("/preflight", response_model=CleanupPreflightResponse)
 async def cleanup_preflight(
     request: CleanupPreflightRequest,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     github_service=Depends(get_github_service),  # noqa: B008
 ) -> CleanupPreflightResponse:
     """Perform a preflight check: fetch branches, PRs, and project board issues.
@@ -55,7 +55,7 @@ async def cleanup_preflight(
 @router.post("/execute", response_model=CleanupExecuteResponse)
 async def cleanup_execute(
     request: CleanupExecuteRequest,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     github_service=Depends(get_github_service),  # noqa: B008
     db=Depends(get_database),  # noqa: B008
 ) -> CleanupExecuteResponse:
@@ -105,7 +105,7 @@ async def cleanup_execute(
 
 @router.get("/history", response_model=CleanupHistoryResponse)
 async def cleanup_history(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     owner: Annotated[str, Query(description="Repository owner")],
     repo: Annotated[str, Query(description="Repository name")],
     limit: Annotated[int, Query(description="Max results", ge=1, le=50)] = 10,
