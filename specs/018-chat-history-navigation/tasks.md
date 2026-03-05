@@ -22,7 +22,7 @@
 
 **Purpose**: Create the new hook file and establish project structure for the feature
 
-- [ ] T001 Create `useChatHistory` hook file with type definitions and empty export in `frontend/src/hooks/useChatHistory.ts`
+- [ ] T001 Create `useChatHistory` hook file with minimal scaffolding (empty function, placeholder return object) in `frontend/src/hooks/useChatHistory.ts`
 - [ ] T002 [P] Verify existing imports and dependencies are available (React 18.3, Lucide React `History` icon, Tailwind CSS utilities) — no new packages needed
 
 ---
@@ -53,9 +53,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `navigateUp(currentInput: string)` method in `useChatHistory` hook: on first call capture currentInput to draftBuffer ref and set historyIndex to 0; on subsequent calls increment historyIndex (capped at history.length - 1); return `history[history.length - 1 - historyIndex]` or null if no history — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T011 [US1] Import `useChatHistory` hook in `ChatInterface` component and destructure `navigateUp`, `addToHistory`, `resetNavigation`, `isNavigating`, `history`, `navigateDown`, `selectFromHistory` — in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T012 [US1] Add ArrowUp history navigation to `handleKeyDown` in `ChatInterface.tsx`: after the autocomplete guard block and before Enter-to-submit, check `e.key === 'ArrowUp'` when autocomplete is NOT active, verify cursor is on first line via `selectionStart <= input.indexOf('\n')` (or full length if no newline), call `navigateUp(input)`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [ ] T010 [US1] Implement `navigateUp(currentInput: string)` method in `useChatHistory` hook: on first call (historyIndex === -1) capture currentInput to draftBuffer ref and set historyIndex to 0; on subsequent calls increase historyIndex by 1 (capped at history.length - 1) to step toward older messages; return `history[history.length - 1 - historyIndex]` or null if no history — in `frontend/src/hooks/useChatHistory.ts`
+- [ ] T011 [US1] Import `useChatHistory` hook in `ChatInterface` component and destructure all returned methods/properties (`navigateUp`, `navigateDown`, `addToHistory`, `resetNavigation`, `isNavigating`, `history`, `selectFromHistory`); note: the hook exports stubs for all methods from T009 so all destructured names are safe even before later stories implement them — in `frontend/src/components/chat/ChatInterface.tsx`
+- [ ] T012 [US1] Add ArrowUp history navigation to `handleKeyDown` in `ChatInterface.tsx`: after the autocomplete guard block and before Enter-to-submit, check `e.key === 'ArrowUp'` when autocomplete is NOT active, verify cursor is on first line via `(input.indexOf('\n') === -1 || selectionStart <= input.indexOf('\n'))`, call `navigateUp(input)`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
 - [ ] T013 [US1] Integrate `addToHistory(trimmed)` and `resetNavigation()` calls into `doSubmit` function, placed before `onSendMessage()` and `setInput('')` — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — users can send messages and recall them with the up arrow key.
@@ -71,7 +71,7 @@
 ### Implementation for User Story 2
 
 - [ ] T014 [US2] Implement `navigateDown()` method in `useChatHistory` hook: decrement historyIndex; when reaching -1, return draftBuffer value (restoring draft); return the corresponding history message or null if not navigating — in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T015 [US2] Add ArrowDown history navigation to `handleKeyDown` in `ChatInterface.tsx`: check `e.key === 'ArrowDown'` when autocomplete is NOT active and `isNavigating` is true, verify cursor is on last line via `selectionStart > input.lastIndexOf('\n')`, call `navigateDown()`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
+- [ ] T015 [US2] Add ArrowDown history navigation to `handleKeyDown` in `ChatInterface.tsx`: check `e.key === 'ArrowDown'` when autocomplete is NOT active and `isNavigating` is true, verify cursor is on last line via `(input.indexOf('\n') === -1 || selectionStart > input.lastIndexOf('\n'))`, call `navigateDown()`, if result is non-null call `e.preventDefault()` and `setInput(result)` — in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — full up/down navigation with draft preservation.
 
