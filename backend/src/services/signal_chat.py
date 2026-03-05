@@ -25,11 +25,12 @@ from src.models.signal import (
     SignalDeliveryStatus,
     SignalMessageDirection,
 )
+from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
 
 # One pending proposal per user — new proposals overwrite old ones.
-_signal_pending: dict[str, dict] = {}
+_signal_pending: BoundedDict[str, dict] = BoundedDict(maxlen=500)
 
 _CONFIRM_WORDS = frozenset({"confirm", "yes", "approve", "ok", "y"})
 _REJECT_WORDS = frozenset({"reject", "no", "cancel", "n"})

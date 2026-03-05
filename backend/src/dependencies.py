@@ -4,9 +4,9 @@ Provide singleton services stored on ``app.state`` to endpoint handlers via
 ``Depends()``.  The lifespan in ``main.py`` is responsible for registering
 instances on ``app.state`` at startup.
 
-During the transition period, each getter falls back to the module-level
-global when ``app.state`` has not yet been populated (e.g. in tests that
-don't go through the full lifespan).
+All service access goes through ``app.state`` exclusively — there are no
+module-global fallback variables.  This ensures clean test isolation via
+``TestClient`` with custom ``app.state`` overrides.
 """
 
 from __future__ import annotations
@@ -31,10 +31,10 @@ def get_github_service(request: Request) -> GitHubProjectsService:
     svc = getattr(request.app.state, "github_service", None)
     if svc is not None:
         return svc
-    # Fallback to module-level global during transition
-    from src.services.github_projects import github_projects_service
-
-    return github_projects_service
+    raise RuntimeError(
+        "GitHubProjectsService not registered on app.state. "
+        "In tests, register via app.state overrides or use the full application lifespan."
+    )
 
 
 def get_connection_manager(request: Request) -> ConnectionManager:
@@ -42,9 +42,10 @@ def get_connection_manager(request: Request) -> ConnectionManager:
     mgr = getattr(request.app.state, "connection_manager", None)
     if mgr is not None:
         return mgr
-    from src.services.websocket import connection_manager
-
-    return connection_manager
+    raise RuntimeError(
+        "ConnectionManager not registered on app.state. "
+        "In tests, register via app.state overrides or use the full application lifespan."
+    )
 
 
 def get_database(request: Request) -> aiosqlite.Connection:
@@ -52,9 +53,10 @@ def get_database(request: Request) -> aiosqlite.Connection:
     db = getattr(request.app.state, "db", None)
     if db is not None:
         return db
-    from src.services.database import get_db
-
-    return get_db()
+    raise RuntimeError(
+        "Database not registered on app.state. "
+        "In tests, register via app.state overrides or use the full application lifespan."
+    )
 
 
 def _get_session_dep():

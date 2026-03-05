@@ -6,10 +6,12 @@ import logging
 import uuid
 from datetime import UTC, datetime
 
+from src.utils import BoundedDict
+
 logger = logging.getLogger(__name__)
 
 # In-memory conversation store: conversation_id → conversation data
-_conversations: dict[str, dict] = {}
+_conversations: BoundedDict[str, dict] = BoundedDict(maxlen=200)
 
 # Limits to prevent unbounded memory growth
 _MAX_CONVERSATIONS = 100

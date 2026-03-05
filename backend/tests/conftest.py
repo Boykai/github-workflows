@@ -194,6 +194,11 @@ async def client(
 
     app = create_app()
 
+    # Register mock services on app.state (matches main.py lifespan)
+    app.state.github_service = mock_github_service
+    app.state.connection_manager = mock_websocket_manager
+    app.state.db = mock_db
+
     # FastAPI dependency overrides
     app.dependency_overrides[get_session_dep] = lambda: mock_session
     app.dependency_overrides[get_github_service] = lambda: mock_github_service

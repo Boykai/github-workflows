@@ -251,10 +251,13 @@ query($projectId: ID!) {
 }
 """
 
+# Default model for Copilot agent assignments
+DEFAULT_COPILOT_MODEL = "claude-opus-4.6"
+
 # GraphQL mutation to assign Copilot to an issue with agent assignment config
 # Requires headers: GraphQL-Features: issues_copilot_assignment_api_support,coding_agent_model_selection
 ASSIGN_COPILOT_MUTATION = """
-mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $customInstructions: String!, $customAgent: String!) {
+mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $customInstructions: String!, $customAgent: String!, $model: String!) {
   addAssigneesToAssignable(input: {
     assignableId: $issueId,
     assigneeIds: $assigneeIds,
@@ -263,7 +266,7 @@ mutation($issueId: ID!, $assigneeIds: [ID!]!, $repoId: ID!, $baseRef: String!, $
       baseRef: $baseRef,
       customInstructions: $customInstructions,
       customAgent: $customAgent,
-      model: "claude-opus-4.6"
+      model: $model
     }
   }) {
     assignable {

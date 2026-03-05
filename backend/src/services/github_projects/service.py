@@ -25,6 +25,7 @@ from src.services.github_projects.graphql import (
     CREATE_COMMIT_ON_BRANCH_MUTATION,
     CREATE_DRAFT_ITEM_MUTATION,
     CREATE_PULL_REQUEST_MUTATION,
+    DEFAULT_COPILOT_MODEL,
     DELETE_PROJECT_ITEM_MUTATION,
     GET_BRANCH_HEAD_QUERY,
     GET_ISSUE_LINKED_PRS_QUERY,
@@ -92,13 +93,33 @@ class GitHubProjectsService:
         return await self._client.get(url, headers=headers)
 
     @staticmethod
-    def _build_headers(access_token: str) -> dict[str, str]:
-        """Build standard REST API headers for GitHub."""
-        return {
+    def _build_headers(
+        access_token: str,
+        *,
+        extra_headers: dict[str, str] | None = None,
+        graphql_features: list[str] | None = None,
+    ) -> dict[str, str]:
+        """Build standard API headers for GitHub.
+
+        Args:
+            access_token: GitHub access token (required).
+            extra_headers: Additional headers to merge (optional).
+            graphql_features: GraphQL feature flags for the
+                ``GraphQL-Features`` header (optional).
+
+        Returns:
+            Merged header dict.
+        """
+        headers: dict[str, str] = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
+        if graphql_features:
+            headers["GraphQL-Features"] = ",".join(graphql_features)
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers
 
     @staticmethod
     def is_copilot_author(login: str) -> bool:
@@ -158,6 +179,47 @@ class GitHubProjectsService:
         """
         return _request_rate_limit.get() or self._last_rate_limit
 
+    async def _with_fallback(
+        self,
+        primary_fn,
+        fallback_fn,
+        context_msg: str,
+    ):
+        """Execute *primary_fn*; on failure log and try *fallback_fn*.
+
+        Both callables must be async no-arg functions (use ``lambda`` or
+        ``functools.partial`` to bind arguments).
+
+        Args:
+            primary_fn: Async callable for the primary strategy.
+            fallback_fn: Async callable for the fallback strategy.
+            context_msg: Human-readable context included in log messages.
+
+        Returns:
+            The result of whichever function succeeds.
+
+        Raises:
+            Exception: If both primary and fallback fail, the fallback
+                exception is raised (primary error is logged).
+        """
+        try:
+            return await primary_fn()
+        except Exception as primary_exc:
+            logger.warning(
+                "%s: primary strategy failed (%s), trying fallback",
+                context_msg,
+                primary_exc,
+            )
+            try:
+                return await fallback_fn()
+            except Exception as fallback_exc:
+                logger.error(
+                    "%s: fallback strategy also failed (%s)",
+                    context_msg,
+                    fallback_exc,
+                )
+                raise
+
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
     # ──────────────────────────────────────────────────────────────────
@@ -204,16 +266,29 @@ class GitHubProjectsService:
                 else:
                     raise ValueError(f"Unsupported method: {method}")
 
-                # Check for rate limit
-                if response.status_code == 403:
-                    remaining = response.headers.get("X-RateLimit-Remaining", "0")
-                    if remaining == "0":
-                        reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
-                        wait_seconds = max(reset_time - int(utcnow().timestamp()), backoff)
+                # Check for primary rate limit (403 with X-RateLimit-Remaining: 0)
+                # and secondary rate limit (403 with "rate limit" in body)
+                if response.status_code == 403 and attempt < max_attempts - 1:
+                    remaining = response.headers.get("X-RateLimit-Remaining", "")
+                    body_text = response.text[:500] if response.text else ""
+                    is_primary_rate_limit = remaining == "0"
+                    is_secondary_rate_limit = (
+                        "rate limit" in body_text.lower() or "secondary" in body_text.lower()
+                    )
+
+                    if is_primary_rate_limit or is_secondary_rate_limit:
+                        if is_primary_rate_limit:
+                            reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
+                            wait_seconds = max(reset_time - int(utcnow().timestamp()), backoff)
+                        else:
+                            # Secondary rate limit — use Retry-After or backoff
+                            retry_after = response.headers.get("Retry-After")
+                            wait_seconds = int(retry_after) if retry_after else backoff
                         wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
 
                         logger.warning(
-                            "Rate limited. Waiting %d seconds before retry %d/%d",
+                            "Rate limited (%s). Waiting %d seconds before retry %d/%d",
+                            "primary" if is_primary_rate_limit else "secondary",
                             wait_seconds,
                             attempt + 1,
                             MAX_RETRIES,
@@ -281,9 +356,7 @@ class GitHubProjectsService:
         Returns:
             GraphQL response data
         """
-        headers = self._build_headers(access_token)
-        if extra_headers:
-            headers.update(extra_headers)
+        headers = self._build_headers(access_token, extra_headers=extra_headers)
 
         # Build a stable cache key scoped by token identity so responses
         # are never shared across different users/permissions.
@@ -2196,6 +2269,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = DEFAULT_COPILOT_MODEL,
     ) -> bool:
         """
         Fallback: Assign GitHub Copilot using REST API.
@@ -2208,6 +2282,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on
             custom_agent: Custom agent name
             custom_instructions: Custom instructions for the agent
+            model: AI model identifier for the agent assignment
 
         Returns:
             True if assignment succeeded
@@ -2220,7 +2295,7 @@ class GitHubProjectsService:
                     "base_branch": base_ref,
                     "custom_instructions": custom_instructions,
                     "custom_agent": custom_agent,
-                    "model": "claude-opus-4.6",
+                    "model": model,
                 },
             }
 
@@ -2268,6 +2343,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = DEFAULT_COPILOT_MODEL,
     ) -> bool:
         """
         Primary: Assign GitHub Copilot using GraphQL API.
@@ -2284,6 +2360,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on
             custom_agent: Custom agent name
             custom_instructions: Custom instructions for the agent
+            model: AI model identifier for the agent assignment
 
         Returns:
             True if assignment succeeded
@@ -2309,6 +2386,7 @@ class GitHubProjectsService:
                     "baseRef": base_ref,
                     "customInstructions": custom_instructions,
                     "customAgent": custom_agent,
+                    "model": model,
                 },
                 extra_headers={
                     "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
@@ -4596,6 +4674,7 @@ class GitHubProjectsService:
         head_oid: str,
         files: list[dict],
         message: str,
+        delete_files: list[str] | None = None,
     ) -> str | None:
         """Commit files to a branch without cloning.
 
@@ -4607,6 +4686,9 @@ class GitHubProjectsService:
             head_oid: Expected HEAD OID for optimistic concurrency.
             files: ``[{"path": "relative/path", "content": "text content"}]``
             message: Commit message headline.
+            delete_files: Optional list of file paths to delete via
+                ``fileChanges.deletions`` in the ``createCommitOnBranch``
+                GraphQL mutation.
 
         Returns:
             Commit OID on success, ``None`` on failure.
@@ -4618,6 +4700,10 @@ class GitHubProjectsService:
             }
             for f in files
         ]
+
+        file_changes: dict = {"additions": additions}
+        if delete_files:
+            file_changes["deletions"] = [{"path": p} for p in delete_files]
 
         max_attempts = 3
         current_oid = head_oid
@@ -4631,7 +4717,7 @@ class GitHubProjectsService:
                         "branchName": branch_name,
                         "expectedHeadOid": current_oid,
                         "message": {"headline": message},
-                        "fileChanges": {"additions": additions},
+                        "fileChanges": file_changes,
                     },
                 )
                 commit = (data.get("createCommitOnBranch") or {}).get("commit") or {}

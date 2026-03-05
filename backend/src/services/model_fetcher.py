@@ -11,10 +11,10 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any
 
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
+from src.services.completion_providers import _copilot_client_pool
 
 logger = logging.getLogger(__name__)
 
@@ -68,40 +68,17 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
     """Fetches available models from the GitHub Copilot SDK.
 
     Uses the Copilot SDK's ``CopilotClient.list_models()`` to retrieve
-    models, following the same client-caching pattern used by
-    ``CopilotCompletionProvider``.
+    models, delegating client caching to the shared ``CopilotClientPool``.
     """
 
     def __init__(self) -> None:
-        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
-
-    @staticmethod
-    def _token_key(token: str) -> str:
-        """Return a stable hash of the token for use as a cache key."""
-        return hashlib.sha256(token.encode()).hexdigest()[:16]
-
-    async def _get_or_create_client(self, github_token: str) -> Any:
-        """Get cached or create new CopilotClient for a given token."""
-        key = self._token_key(github_token)
-        if key not in self._clients:
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
-
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
-            await client.start()
-            self._clients[key] = client
-            logger.info(
-                "Created new CopilotClient for model fetching (total cached: %d)",
-                len(self._clients),
-            )
-        return self._clients[key]
+        self._pool = _copilot_client_pool
 
     async def fetch_models(self, token: str | None = None) -> list[ModelOption]:
         if not token:
             raise ValueError("GitHub OAuth token required for Copilot model fetching")
 
-        client = await self._get_or_create_client(token)
+        client = await self._pool.get_or_create(token)
         model_list = await client.list_models()
 
         models: list[ModelOption] = []

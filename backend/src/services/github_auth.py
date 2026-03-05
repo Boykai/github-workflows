@@ -28,6 +28,17 @@ logger = logging.getLogger(__name__)
 
 # OAuth state storage — bounded to prevent unbounded memory growth.
 # Expired entries are pruned on each new state generation.
+#
+# Design notes (intentional MVP constraints):
+# - BoundedDict(maxlen=1000) provides FIFO eviction when capacity is reached,
+#   so at most 1000 concurrent OAuth flows are supported.
+# - States are lost on process restart — this is acceptable because OAuth
+#   flows are short-lived (10-minute TTL) and users simply re-initiate login.
+# - The 10-minute TTL (_OAUTH_STATE_TTL) provides additional pruning for
+#   abandoned flows that were never completed.
+# - Optional future improvement: migrate to SQLite using the existing
+#   database service for persistence across restarts, though the ephemeral
+#   nature of OAuth state makes this low priority.
 _oauth_states: BoundedDict[str, datetime] = BoundedDict(maxlen=1000)
 
 _OAUTH_STATE_TTL = timedelta(minutes=10)
