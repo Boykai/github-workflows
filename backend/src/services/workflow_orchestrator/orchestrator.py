@@ -1118,6 +1118,39 @@ class WorkflowOrchestrator:
                 ctx.issue_number,
             )
 
+            # ── Defensive: un-assign Copilot SWE from the sub-issue ──
+            # If Copilot SWE was assigned to the copilot-review sub-issue
+            # through an external mechanism (GitHub platform auto-trigger,
+            # manual action), it would error because no copilot-review.agent.md
+            # exists.  Un-assign it so the error state is cleaned up and the
+            # sub-issue reflects the correct status.
+            if sub_issue_info and sub_issue_number != ctx.issue_number:
+                try:
+                    swe_assigned = await self.github.is_copilot_assigned_to_issue(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=sub_issue_number,
+                    )
+                    if swe_assigned:
+                        logger.warning(
+                            "copilot-review sub-issue #%d has Copilot SWE assigned "
+                            "(incorrect) — un-assigning to prevent coding agent errors",
+                            sub_issue_number,
+                        )
+                        await self.github.unassign_copilot_from_issue(
+                            access_token=ctx.access_token,
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            issue_number=sub_issue_number,
+                        )
+                except Exception as e:
+                    logger.debug(
+                        "Could not check/un-assign Copilot SWE from sub-issue #%d: %s",
+                        sub_issue_number,
+                        e,
+                    )
+
             # Resolve the main PR using comprehensive multi-strategy discovery:
             # 1. In-memory cache, 2. Parent issue timeline/REST search,
             # 3. Sub-issue PR discovery (reconstructs sub-issue mappings),

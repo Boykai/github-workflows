@@ -3507,6 +3507,121 @@ class TestRecoverStalledIssues:
         # Cooldown should still be set to avoid repeated checks
         assert 100 in _recovery_last_attempt
 
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling._check_agent_done_on_sub_or_parent",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_skips_copilot_review_agent_stall_checks(
+        self, mock_config, mock_service, mock_check_done
+    ):
+        """Recovery should skip copilot_assigned / has_wip_pr for copilot-review.
+
+        copilot-review is a non-coding agent — it never has Copilot SWE assigned
+        and never creates a WIP PR.  Recovery should skip the stall detection
+        logic and set the cooldown without triggering re-assignment.
+        """
+        tracking_body = (
+            "## Issue Body\n\n"
+            "---\n\n"
+            "## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | In Progress | `copilot-review` | 🔄 Active |\n"
+            "| 2 | In Progress | `judge` | ⏳ Pending |\n"
+        )
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["copilot-review", "judge"]},
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[])
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": tracking_body})
+        # If recovery incorrectly proceeds to stall checks, it would call these.
+        # Mark them as side-effect to ensure they're NOT called.
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+
+        task = MagicMock()
+        task.github_item_id = "PVTI_300"
+        task.github_content_id = "I_300"
+        task.issue_number = 300
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Copilot Review Issue"
+        task.status = "In Progress"
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[task],
+        )
+
+        # Should NOT have recovered — copilot-review is a non-coding agent
+        assert results == []
+        # Cooldown should be set
+        assert 300 in _recovery_last_attempt
+        # Stall detection APIs should NOT have been called
+        mock_service.is_copilot_assigned_to_issue.assert_not_called()
+        mock_service.get_linked_pull_requests.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling._check_agent_done_on_sub_or_parent",
+        new_callable=AsyncMock,
+        return_value=False,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_skips_human_agent_stall_checks(self, mock_config, mock_service, mock_check_done):
+        """Recovery should skip copilot_assigned / has_wip_pr for human agent.
+
+        The human agent waits for user action — Copilot SWE is never assigned
+        and no WIP PR is expected.  Recovery should skip stall detection.
+        """
+        tracking_body = (
+            "## Issue Body\n\n"
+            "---\n\n"
+            "## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | In Progress | `human` | 🔄 Active |\n"
+        )
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Progress": ["human"]},
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[])
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": tracking_body})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+
+        task = MagicMock()
+        task.github_item_id = "PVTI_400"
+        task.github_content_id = "I_400"
+        task.issue_number = 400
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Human Review Issue"
+        task.status = "In Progress"
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[task],
+        )
+
+        assert results == []
+        assert 400 in _recovery_last_attempt
+        mock_service.is_copilot_assigned_to_issue.assert_not_called()
+        mock_service.get_linked_pull_requests.assert_not_called()
+
 
 # ────────────────────────────────────────────────────────────────────
 # ensure_copilot_review_requested  (~80 uncovered lines)

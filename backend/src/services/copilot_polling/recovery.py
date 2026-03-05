@@ -239,6 +239,40 @@ async def recover_stalled_issues(
                     )
                     _pending_agent_assignments.pop(pending_key, None)
 
+            # ── Non-coding agent guard ─────────────────────────────────
+            # ``copilot-review`` and ``human`` are NOT traditional coding
+            # agents — they don't have Copilot SWE assigned and don't
+            # create WIP PRs.  Checking ``copilot_assigned`` and
+            # ``has_wip_pr`` would always report False, causing recovery
+            # to fire every cycle (wasting API calls and adding risk
+            # of duplicate review requests).  Instead, check their own
+            # completion signals directly and skip if not yet done.
+            if agent_name in ("copilot-review", "human"):
+                already_done = await _cp._check_agent_done_on_sub_or_parent(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    parent_issue_number=issue_number,
+                    agent_name=agent_name,
+                    pipeline=_cp.get_pipeline_state(issue_number),
+                )
+                if already_done:
+                    logger.debug(
+                        "Recovery: non-coding agent '%s' on issue #%d already done — skipping",
+                        agent_name,
+                        issue_number,
+                    )
+                else:
+                    logger.debug(
+                        "Recovery: non-coding agent '%s' on issue #%d waiting "
+                        "for external completion — skipping stall checks "
+                        "(copilot_assigned / has_wip_pr do not apply)",
+                        agent_name,
+                        issue_number,
+                    )
+                _recovery_last_attempt[issue_number] = now
+                continue
+
             # ── Check condition A: Copilot is assigned ────────────────────
             # With the sub-issue-per-agent model, Copilot is assigned to the
             # *sub-issue*, not the parent.  Check the sub-issue first to avoid
