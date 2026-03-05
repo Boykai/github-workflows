@@ -123,14 +123,6 @@ def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]  # pydantic-settings loads from env
 
 
-def clear_settings_cache() -> None:
-    """Clear the cached :func:`get_settings` instance.
-
-    Useful in test teardown to prevent ``MagicMock`` leaks between tests.
-    """
-    get_settings.cache_clear()
-
-
 # Logging configuration
 def setup_logging(debug: bool = False, *, structured: bool = False) -> None:
     """Configure application logging.

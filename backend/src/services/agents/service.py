@@ -881,64 +881,6 @@ class AgentsService:
                 continue
         return examples
 
-    async def _auto_generate_metadata(
-        self,
-        *,
-        name: str,
-        system_prompt: str,
-        access_token: str,
-    ) -> dict:
-        """Use AI to generate a description and tools list from the system prompt.
-
-        Returns ``{"description": str, "tools": list[str]}``.
-        """
-        from src.services.ai_agent import get_ai_agent_service
-
-        ai_service = get_ai_agent_service()
-
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You generate metadata for a Custom GitHub Agent. "
-                    "Given the agent name and system prompt, respond with ONLY a JSON object "
-                    "(no markdown fences, no explanation) with exactly two keys:\n"
-                    '  "description": a concise one-line summary (max 100 chars) of what the agent does\n'
-                    '  "tools": an array of GitHub Copilot tool aliases the agent needs '
-                    '(choose from: "read", "edit", "search", "execute", "web", "agent", "github/*", "playwright/*"; '
-                    "use an empty array if no specific tools are needed)\n"
-                    "Example response:\n"
-                    '{"description": "Reviews PRs for security vulnerabilities", "tools": ["read", "search", "github/*"]}'
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Agent name: {name}\n\nSystem prompt:\n{system_prompt[:3000]}",
-            },
-        ]
-
-        response = await ai_service._call_completion(
-            messages=messages,
-            github_token=access_token,
-            temperature=0.3,
-            max_tokens=200,
-        )
-
-        # Parse JSON from response (strip markdown fences if present)
-        text = response.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-
-        try:
-            result = json.loads(text)
-            desc = str(result.get("description", name))[:500]
-            raw_tools = result.get("tools", [])
-            tools = [str(t) for t in raw_tools] if isinstance(raw_tools, list) else []
-            return {"description": desc, "tools": tools}
-        except (json.JSONDecodeError, AttributeError):
-            logger.warning("Could not parse AI metadata response: %s", text[:200])
-            return {"description": name, "tools": []}
-
     async def _generate_rich_descriptions(
         self,
         *,

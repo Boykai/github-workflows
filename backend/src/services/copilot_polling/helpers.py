@@ -822,7 +822,6 @@ async def _discover_main_pr_for_review(
                 body=f"Resolves #{parent_issue_number}\n\nAuto-created PR for Copilot code review.",
                 head_branch=candidate_branch,
                 base_branch=default_branch,
-                draft=False,
             )
             if new_pr and new_pr.get("number"):
                 pr_num = new_pr["number"]

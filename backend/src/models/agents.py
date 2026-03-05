@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 class AgentStatus(StrEnum):
     ACTIVE = "active"
     PENDING_PR = "pending_pr"
-    PENDING_DELETION = "pending_deletion"
 
 
 class AgentSource(StrEnum):
