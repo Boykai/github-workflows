@@ -190,6 +190,20 @@ export interface IssueMetadata {
   start_date: string;
   target_date: string;
   labels: IssueLabel[];
+  assignees: string[];
+  milestone: string | null;
+  branch: string | null;
+}
+
+export interface RepositoryMetadata {
+  repo_key: string;
+  labels: Array<{ name: string; color: string; description: string }>;
+  branches: Array<{ name: string; protected: boolean }>;
+  milestones: Array<{ number: number; title: string; due_on: string | null; state: string }>;
+  collaborators: Array<{ login: string; avatar_url: string }>;
+  fetched_at: string;
+  is_stale: boolean;
+  source: 'fresh' | 'cache' | 'fallback';
 }
 
 export interface IssueRecommendation {

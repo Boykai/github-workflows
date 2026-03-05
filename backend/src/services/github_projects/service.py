@@ -1223,6 +1223,8 @@ class GitHubProjectsService:
         title: str,
         body: str,
         labels: list[str] | None = None,
+        milestone: int | None = None,
+        assignees: list[str] | None = None,
     ) -> dict:
         """
         Create a GitHub Issue using REST API (T018).
@@ -1239,17 +1241,23 @@ class GitHubProjectsService:
             title: Issue title
             body: Issue body (markdown)
             labels: Optional list of label names
+            milestone: Optional milestone number
+            assignees: Optional list of GitHub usernames to assign
 
         Returns:
             Dict with issue details: id, node_id, number, html_url
         """
         url = f"https://api.github.com/repos/{owner}/{repo}/issues"
         headers = self._build_headers(access_token)
-        payload = {
+        payload: dict = {
             "title": title,
             "body": body,
             "labels": labels or [],
         }
+        if milestone is not None:
+            payload["milestone"] = milestone
+        if assignees:
+            payload["assignees"] = assignees
 
         response = await self._request_with_retry(
             method="POST",

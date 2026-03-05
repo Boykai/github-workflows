@@ -48,6 +48,7 @@ import type {
   ChoreChatMessage,
   ChoreChatResponse,
   EvaluateChoreTriggersResponse,
+  RepositoryMetadata,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -400,6 +401,26 @@ export const workflowApi = {
    */
   listAgents(): Promise<{ agents: AvailableAgent[] }> {
     return request<{ agents: AvailableAgent[] }>('/workflow/agents');
+  },
+};
+
+// ============ Metadata API ============
+
+export const metadataApi = {
+  /**
+   * Get cached repository metadata (labels, branches, milestones, collaborators).
+   */
+  getMetadata(owner: string, repo: string): Promise<RepositoryMetadata> {
+    return request<RepositoryMetadata>(`/metadata/${owner}/${repo}`);
+  },
+
+  /**
+   * Force-refresh repository metadata from the GitHub API.
+   */
+  refreshMetadata(owner: string, repo: string): Promise<RepositoryMetadata> {
+    return request<RepositoryMetadata>(`/metadata/${owner}/${repo}/refresh`, {
+      method: 'POST',
+    });
   },
 };
 

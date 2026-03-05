@@ -149,6 +149,7 @@ class AIAgentService:
         project_name: str,
         session_id: str,
         github_token: str | None = None,
+        metadata_context: dict | None = None,
     ) -> IssueRecommendation:
         """
         Generate a structured issue recommendation from feature request (T011).
@@ -158,6 +159,8 @@ class AIAgentService:
             project_name: Name of the target project for context
             session_id: Current session ID
             github_token: GitHub OAuth token (required for Copilot provider)
+            metadata_context: Optional repo metadata (labels, branches, milestones,
+                collaborators) to inject into the AI prompt.
 
         Returns:
             IssueRecommendation with AI-generated content
@@ -165,7 +168,9 @@ class AIAgentService:
         Raises:
             ValueError: If AI response cannot be parsed
         """
-        prompt_messages = create_issue_generation_prompt(user_input, project_name)
+        prompt_messages = create_issue_generation_prompt(
+            user_input, project_name, metadata_context=metadata_context
+        )
 
         try:
             messages = [
@@ -346,6 +351,9 @@ class AIAgentService:
             start_date=start_date,
             target_date=target_date,
             labels=validated_labels,
+            assignees=self._parse_string_list(metadata_data.get("assignees")),
+            milestone=self._parse_optional_string(metadata_data.get("milestone")),
+            branch=self._parse_optional_string(metadata_data.get("branch")),
         )
 
     def _is_valid_date(self, date_str: str) -> bool:
@@ -372,6 +380,20 @@ class AIAgentService:
         days = days_map.get(size, 1)
         target = start + timedelta(days=days)
         return target.strftime("%Y-%m-%d")
+
+    @staticmethod
+    def _parse_string_list(value: Any) -> list[str]:
+        """Parse a value into a list of strings, returning empty list on failure."""
+        if isinstance(value, list):
+            return [str(v) for v in value if isinstance(v, str) and v.strip()]
+        return []
+
+    @staticmethod
+    def _parse_optional_string(value: Any) -> str | None:
+        """Parse a value into an optional string, returning None on failure."""
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
 
     # ──────────────────────────────────────────────────────────────────
     # Existing Task Generation Methods

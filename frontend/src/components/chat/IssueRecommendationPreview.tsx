@@ -215,6 +215,32 @@ export function IssueRecommendationPreview({
                 </div>
               </div>
             )}
+            {recommendation.metadata.assignees && recommendation.metadata.assignees.length > 0 && (
+              <div className="col-span-2 flex flex-col gap-1">
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">Assignees</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {recommendation.metadata.assignees.map((assignee, idx) => (
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-[11px] font-medium">@{assignee}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {recommendation.metadata.milestone && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">Milestone</span>
+                <span className="text-sm font-medium text-foreground">
+                  {recommendation.metadata.milestone}
+                </span>
+              </div>
+            )}
+            {recommendation.metadata.branch && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">Branch</span>
+                <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-500 rounded text-[11px] font-mono w-fit">
+                  {recommendation.metadata.branch}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
