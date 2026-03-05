@@ -111,6 +111,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0 (017-agents-section)
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
+- Python 3.11+ (backend), TypeScript 5.4 (frontend) + FastAPI ≥0.109.0, httpx ≥0.26.0, github-copilot-sdk ≥0.1.0, openai ≥1.0.0, azure-ai-inference ≥1.0.0b1, React 18, Vite 5, @tanstack/react-query 5 (018-audit-refactor-codebase)
+- SQLite/WAL via aiosqlite ≥0.20.0 (backend); browser state via React Query (frontend) (018-audit-refactor-codebase)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0
