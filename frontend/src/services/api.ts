@@ -98,7 +98,17 @@ async function request<T>(
     // GitHub token has expired.  Notify listeners (useAuth) so the UI
     // clears cached credentials and shows the login screen.
     if (response.status === 401 && !endpoint.startsWith('/auth/')) {
-      authExpiredListeners.forEach((fn) => fn());
+      // Notify auth-expired subscribers (e.g. useAuth) so the UI can
+      // clear cached credentials.  Each listener is wrapped in try/catch
+      // so a throwing subscriber cannot prevent remaining listeners from
+      // running or mask the ApiError that is thrown below.
+      authExpiredListeners.forEach((fn) => {
+        try {
+          fn();
+        } catch (listenerError) {
+          console.error('Auth-expired listener threw:', listenerError);
+        }
+      });
     }
 
     throw new ApiError(response.status, error);
