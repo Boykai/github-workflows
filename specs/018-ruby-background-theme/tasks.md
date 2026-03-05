@@ -99,7 +99,7 @@
 ### Implementation for User Story 4
 
 - [ ] T015 [US4] Add a CSS fallback `background-color: #9B111E;` and `color: #FFFFFF;` before the `@apply` directive in the `body` rule in `frontend/src/index.css` for browsers without CSS custom property support
-- [ ] T016 [US4] Verify the ruby color is defined exclusively via CSS custom properties (`--background` in `:root` and `.dark` scopes) and not hardcoded elsewhere — confirm single-source-of-truth by searching for `#9B111E` in the codebase (should only appear as fallback)
+- [ ] T016 [US4] Verify the ruby color is defined exclusively via CSS custom properties (`--background` in `:root` and `.dark` scopes) and not hardcoded elsewhere — confirm single-source-of-truth by searching for `#9B111E` in the codebase (should only appear in the body rule fallback added by T015)
 - [ ] T017 [US4] Verify that changing the `--background` token value in `frontend/src/index.css` updates the ruby color application-wide on reload without any additional file changes
 
 **Checkpoint**: The ruby color is centralized as a design token with a CSS fallback. A developer can modify the color in one place.
