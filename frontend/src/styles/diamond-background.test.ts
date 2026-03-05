@@ -113,18 +113,16 @@ describe('Diamond Background', () => {
 
   describe('#root stacking context', () => {
     it('sits above the diamond overlay (z-index: 1)', () => {
-      let rootEl = document.getElementById('root');
-      let created = false;
-      if (!rootEl) {
-        rootEl = document.createElement('div');
-        rootEl.id = 'root';
-        document.body.appendChild(rootEl);
-        created = true;
+      const rootEl = document.createElement('div');
+      rootEl.id = 'root';
+      document.body.appendChild(rootEl);
+      try {
+        const style = getComputedStyle(rootEl);
+        expect(style.position).toBe('relative');
+        expect(style.zIndex).toBe('1');
+      } finally {
+        rootEl.remove();
       }
-      const style = getComputedStyle(rootEl);
-      expect(style.position).toBe('relative');
-      expect(style.zIndex).toBe('1');
-      if (created) rootEl.remove();
     });
   });
 });
