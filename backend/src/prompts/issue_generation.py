@@ -165,16 +165,14 @@ def create_issue_generation_prompt(
         repo_milestones = metadata_context.get("milestones", [])
         if repo_milestones:
             ms_titles = [ms["title"] if isinstance(ms, dict) else ms for ms in repo_milestones]
-            parts.append(
-                "AVAILABLE MILESTONES:\n" + ", ".join(f'"{t}"' for t in ms_titles)
-            )
+            parts.append("AVAILABLE MILESTONES:\n" + ", ".join(f'"{t}"' for t in ms_titles))
 
         repo_collaborators = metadata_context.get("collaborators", [])
         if repo_collaborators:
-            collab_logins = [co["login"] if isinstance(co, dict) else co for co in repo_collaborators]
-            parts.append(
-                "ASSIGNEE CANDIDATES:\n" + ", ".join(f'"{c}"' for c in collab_logins)
-            )
+            collab_logins = [
+                co["login"] if isinstance(co, dict) else co for co in repo_collaborators
+            ]
+            parts.append("ASSIGNEE CANDIDATES:\n" + ", ".join(f'"{c}"' for c in collab_logins))
 
         if parts:
             metadata_section = "\n\n" + "\n\n".join(parts) + "\n"

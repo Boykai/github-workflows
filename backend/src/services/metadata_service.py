@@ -26,7 +26,9 @@ class RepositoryMetadataContext(BaseModel):
     labels: list[dict] = Field(default_factory=list, description="Cached label objects")
     branches: list[dict] = Field(default_factory=list, description="Cached branch objects")
     milestones: list[dict] = Field(default_factory=list, description="Cached milestone objects")
-    collaborators: list[dict] = Field(default_factory=list, description="Cached collaborator objects")
+    collaborators: list[dict] = Field(
+        default_factory=list, description="Cached collaborator objects"
+    )
     fetched_at: str = Field(default="", description="ISO 8601 timestamp of last fetch")
     is_stale: bool = Field(default=False, description="True if cache TTL has expired")
     source: str = Field(default="fresh", description="Data source: fresh, cache, or fallback")
@@ -144,12 +146,15 @@ class MetadataService:
 
         # Normalize to minimal dicts
         label_dicts = [
-            {"name": lb.get("name", ""), "color": lb.get("color", ""), "description": lb.get("description", "") or ""}
+            {
+                "name": lb.get("name", ""),
+                "color": lb.get("color", ""),
+                "description": lb.get("description", "") or "",
+            }
             for lb in labels
         ]
         branch_dicts = [
-            {"name": br.get("name", ""), "protected": br.get("protected", False)}
-            for br in branches
+            {"name": br.get("name", ""), "protected": br.get("protected", False)} for br in branches
         ]
         milestone_dicts = [
             {

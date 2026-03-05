@@ -23,8 +23,8 @@
 
 **Purpose**: Database migration and configuration for the metadata cache
 
-- [ ] T001 Create SQLite migration for github_metadata_cache table in backend/src/migrations/011_metadata_cache.sql
-- [ ] T002 [P] Add metadata_cache_ttl_seconds setting (default 3600) to Settings class in backend/src/config.py
+- [x] T001 Create SQLite migration for github_metadata_cache table in backend/src/migrations/011_metadata_cache.sql
+- [x] T002 [P] Add metadata_cache_ttl_seconds setting (default 3600) to Settings class in backend/src/config.py
 
 ---
 
@@ -34,9 +34,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Add assignees (list[str]), milestone (str|None), and branch (str|None) fields to IssueMetadata model in backend/src/models/recommendation.py
-- [ ] T004 [P] Create RepositoryMetadataContext Pydantic model (repo_key, labels, branches, milestones, collaborators, fetched_at, is_stale, source) in backend/src/services/metadata_service.py
-- [ ] T005 Implement MetadataService class with fetch_metadata (GitHub REST API pagination for labels, branches, milestones, collaborators), get_metadata (read from SQLite), invalidate (clear cache for repo), and get_or_fetch (return cached if fresh, fetch if stale/missing) in backend/src/services/metadata_service.py
+- [x] T003 [P] Add assignees (list[str]), milestone (str|None), and branch (str|None) fields to IssueMetadata model in backend/src/models/recommendation.py
+- [x] T004 [P] Create RepositoryMetadataContext Pydantic model (repo_key, labels, branches, milestones, collaborators, fetched_at, is_stale, source) in backend/src/services/metadata_service.py
+- [x] T005 Implement MetadataService class with fetch_metadata (GitHub REST API pagination for labels, branches, milestones, collaborators), get_metadata (read from SQLite), invalidate (clear cache for repo), and get_or_fetch (return cached if fresh, fetch if stale/missing) in backend/src/services/metadata_service.py
 
 **Checkpoint**: Foundation ready — MetadataService can fetch, cache, and return repo metadata; IssueMetadata supports all fields
 
@@ -50,12 +50,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Update create_issue_generation_prompt to accept optional metadata_context dict and inject dynamic labels, branches, milestones, and collaborators into the system prompt (fall back to PREDEFINED_LABELS when not provided) in backend/src/prompts/issue_generation.py
-- [ ] T007 [P] [US1] Expand create_issue to accept optional milestone (int|None) and assignees (list[str]|None) parameters and include them in the GitHub REST API payload in backend/src/services/github_projects/service.py
-- [ ] T008 [US1] Update generate_issue_recommendation to call MetadataService.get_or_fetch for the target repo and pass the resulting metadata_context to create_issue_generation_prompt; update _parse_issue_metadata to extract assignees, milestone, and branch fields in backend/src/services/ai_agent.py
-- [ ] T009 [US1] Update create_issue_from_recommendation to pass full metadata (labels array, milestone number resolved from title, assignees list) to create_issue and add branch reference to issue body in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T010 [US1] Implement priority/size to repo label mapping logic — map AI-selected priority (e.g., "P1") and size (e.g., "M") to matching repo labels (e.g., "P1", "size:M") and merge into labels array before submission in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T011 [P] [US1] Add structured logging for each issue creation event recording the full metadata payload sent to GitHub (labels, milestone, assignees, branch, priority, size, estimate, dates) in backend/src/services/workflow_orchestrator/orchestrator.py
+- [x] T006 [P] [US1] Update create_issue_generation_prompt to accept optional metadata_context dict and inject dynamic labels, branches, milestones, and collaborators into the system prompt (fall back to PREDEFINED_LABELS when not provided) in backend/src/prompts/issue_generation.py
+- [x] T007 [P] [US1] Expand create_issue to accept optional milestone (int|None) and assignees (list[str]|None) parameters and include them in the GitHub REST API payload in backend/src/services/github_projects/service.py
+- [x] T008 [US1] Update generate_issue_recommendation to call MetadataService.get_or_fetch for the target repo and pass the resulting metadata_context to create_issue_generation_prompt; update _parse_issue_metadata to extract assignees, milestone, and branch fields in backend/src/services/ai_agent.py
+- [x] T009 [US1] Update create_issue_from_recommendation to pass full metadata (labels array, milestone number resolved from title, assignees list) to create_issue and add branch reference to issue body in backend/src/services/workflow_orchestrator/orchestrator.py
+- [x] T010 [US1] Implement priority/size to repo label mapping logic — map AI-selected priority (e.g., "P1") and size (e.g., "M") to matching repo labels (e.g., "P1", "size:M") and merge into labels array before submission in backend/src/services/workflow_orchestrator/orchestrator.py
+- [x] T011 [P] [US1] Add structured logging for each issue creation event recording the full metadata payload sent to GitHub (labels, milestone, assignees, branch, priority, size, estimate, dates) in backend/src/services/workflow_orchestrator/orchestrator.py
 
 **Checkpoint**: Issues created via the chat agent now include all metadata fields in the GitHub API payload. US1 is fully functional and testable independently.
 
@@ -69,12 +69,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Integrate existing InMemoryCache as L1 cache layer in MetadataService — check L1 before SQLite reads, populate L1 on SQLite reads and API fetches in backend/src/services/metadata_service.py
-- [ ] T013 [P] [US2] Create metadata API endpoints: GET /api/v1/metadata/{owner}/{repo} (returns cached metadata) and POST /api/v1/metadata/{owner}/{repo}/refresh (force-refresh cache) in backend/src/api/metadata.py
-- [ ] T014 [US2] Register metadata router with prefix in api_router in backend/src/api/__init__.py
-- [ ] T015 [P] [US2] Add RepositoryMetadata interface (repo_key, labels, branches, milestones, collaborators, fetched_at, is_stale, source) and update IssueMetadata interface with assignees, milestone, branch fields in frontend/src/types/index.ts
-- [ ] T016 [P] [US2] Add getMetadata(owner, repo) and refreshMetadata(owner, repo) API call functions in frontend/src/services/api.ts
-- [ ] T017 [US2] Create useMetadata hook that fetches repository metadata from backend on mount, caches in React state, exposes refresh() function, and provides loading/error states in frontend/src/hooks/useMetadata.ts
+- [x] T012 [P] [US2] Integrate existing InMemoryCache as L1 cache layer in MetadataService — check L1 before SQLite reads, populate L1 on SQLite reads and API fetches in backend/src/services/metadata_service.py
+- [x] T013 [P] [US2] Create metadata API endpoints: GET /api/v1/metadata/{owner}/{repo} (returns cached metadata) and POST /api/v1/metadata/{owner}/{repo}/refresh (force-refresh cache) in backend/src/api/metadata.py
+- [x] T014 [US2] Register metadata router with prefix in api_router in backend/src/api/__init__.py
+- [x] T015 [P] [US2] Add RepositoryMetadata interface (repo_key, labels, branches, milestones, collaborators, fetched_at, is_stale, source) and update IssueMetadata interface with assignees, milestone, branch fields in frontend/src/types/index.ts
+- [x] T016 [P] [US2] Add getMetadata(owner, repo) and refreshMetadata(owner, repo) API call functions in frontend/src/services/api.ts
+- [x] T017 [US2] Create useMetadata hook that fetches repository metadata from backend on mount, caches in React state, exposes refresh() function, and provides loading/error states in frontend/src/hooks/useMetadata.ts
 
 **Checkpoint**: Metadata is cached in SQLite + L1 memory, served via API to frontend, and frontend can fetch/refresh it. US2 is independently testable.
 
@@ -88,12 +88,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Add editable dropdown controls for priority (P0–P3) and size (XS–XL) fields replacing read-only badges in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T019 [US3] Add editable multi-select chip input for labels with typeahead filtering from cached repo labels in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T020 [US3] Add editable dropdown for assignees (multi-select from cached collaborators), milestone (single-select from cached milestones), and branch (single-select from cached branches) in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T021 [US3] Add date picker inputs for start_date and target_date and number input for estimate_hours in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T022 [US3] Implement ConfirmationOverrides payload — on confirm, diff user edits against AI defaults and send only changed fields as overrides to the confirmation endpoint in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T023 [US3] Handle ConfirmationOverrides in backend confirmation endpoint — merge user overrides into recommendation metadata before calling create_issue_from_recommendation in backend/src/api/workflow.py
+- [x] T018 [US3] Add editable dropdown controls for priority (P0–P3) and size (XS–XL) fields replacing read-only badges in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T019 [US3] Add editable multi-select chip input for labels with typeahead filtering from cached repo labels in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T020 [US3] Add editable dropdown for assignees (multi-select from cached collaborators), milestone (single-select from cached milestones), and branch (single-select from cached branches) in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T021 [US3] Add date picker inputs for start_date and target_date and number input for estimate_hours in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T022 [US3] Implement ConfirmationOverrides payload — on confirm, diff user edits against AI defaults and send only changed fields as overrides to the confirmation endpoint in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T023 [US3] Handle ConfirmationOverrides in backend confirmation endpoint — merge user overrides into recommendation metadata before calling create_issue_from_recommendation in backend/src/api/workflow.py
 
 **Checkpoint**: Users can review and override all metadata fields in the preview card before submission. US3 is independently testable.
 
@@ -107,10 +107,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement three-tier fallback in MetadataService.get_or_fetch: try L1 memory → try SQLite cache → fall back to hardcoded constants.LABELS with source="fallback" indicator in backend/src/services/metadata_service.py
-- [ ] T025 [US4] Add error handling for GitHub API errors (httpx.HTTPStatusError for 403/429, httpx.ConnectError for network failures) in fetch_metadata — catch, log warning, and return cached/fallback data instead of raising in backend/src/services/metadata_service.py
-- [ ] T026 [P] [US4] Show degraded-state notification in the metadata preview area — display "Using cached data" banner when source is "cache" and "Limited metadata available" warning when source is "fallback" in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T027 [US4] Implement retry-on-next-access logic — after an API failure, mark cache as stale so the next get_or_fetch attempt retries the API rather than serving stale data indefinitely in backend/src/services/metadata_service.py
+- [x] T024 [US4] Implement three-tier fallback in MetadataService.get_or_fetch: try L1 memory → try SQLite cache → fall back to hardcoded constants.LABELS with source="fallback" indicator in backend/src/services/metadata_service.py
+- [x] T025 [US4] Add error handling for GitHub API errors (httpx.HTTPStatusError for 403/429, httpx.ConnectError for network failures) in fetch_metadata — catch, log warning, and return cached/fallback data instead of raising in backend/src/services/metadata_service.py
+- [x] T026 [P] [US4] Show degraded-state notification in the metadata preview area — display "Using cached data" banner when source is "cache" and "Limited metadata available" warning when source is "fallback" in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T027 [US4] Implement retry-on-next-access logic — after an API failure, mark cache as stale so the next get_or_fetch attempt retries the API rather than serving stale data indefinitely in backend/src/services/metadata_service.py
 
 **Checkpoint**: System gracefully handles API failures with fallback data and user notification. US4 is independently testable.
 
@@ -120,9 +120,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T028 [P] Add cache-source indicator (fresh/cached/fallback badge) next to metadata fields in the issue preview in frontend/src/components/chat/IssueRecommendationPreview.tsx
-- [ ] T029 Code cleanup and refactoring across all modified files (remove dead code, ensure consistent error handling patterns)
-- [ ] T030 Run quickstart.md validation scenarios end-to-end (create issue with full metadata, verify cache behavior, test override flow, test fallback behavior)
+- [x] T028 [P] Add cache-source indicator (fresh/cached/fallback badge) next to metadata fields in the issue preview in frontend/src/components/chat/IssueRecommendationPreview.tsx
+- [x] T029 Code cleanup and refactoring across all modified files (remove dead code, ensure consistent error handling patterns)
+- [x] T030 Run quickstart.md validation scenarios end-to-end (create issue with full metadata, verify cache behavior, test override flow, test fallback behavior)
 
 ---
 
