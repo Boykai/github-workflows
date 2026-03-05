@@ -190,9 +190,9 @@ export interface IssueMetadata {
   start_date: string;
   target_date: string;
   labels: IssueLabel[];
-  assignees: string[];
-  milestone: string | null;
-  branch: string | null;
+  assignees?: string[];
+  milestone?: string | null;
+  branch?: string | null;
 }
 
 export interface RepositoryMetadata {

@@ -183,7 +183,9 @@ class AIAgentService:
             )
             logger.debug("Issue recommendation response: %s", content[:500])
 
-            return self._parse_issue_recommendation_response(content, user_input, session_id)
+            return self._parse_issue_recommendation_response(
+                content, user_input, session_id, metadata_context=metadata_context
+            )
 
         except Exception as e:
             error_msg = str(e)
@@ -202,7 +204,11 @@ class AIAgentService:
                 raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
 
     def _parse_issue_recommendation_response(
-        self, content: str, original_input: str, session_id: str
+        self,
+        content: str,
+        original_input: str,
+        session_id: str,
+        metadata_context: dict | None = None,
     ) -> IssueRecommendation:
         """
         Parse AI response into IssueRecommendation model (T012).
@@ -211,6 +217,7 @@ class AIAgentService:
             content: Raw AI response
             original_input: User's original input
             session_id: Current session ID
+            metadata_context: Optional repo metadata for label validation
 
         Returns:
             IssueRecommendation instance
@@ -242,7 +249,9 @@ class AIAgentService:
         original_context = original_input
 
         # Parse metadata with defaults
-        metadata = self._parse_issue_metadata(data.get("metadata", {}))
+        metadata = self._parse_issue_metadata(
+            data.get("metadata", {}), metadata_context=metadata_context
+        )
 
         return IssueRecommendation(
             session_id=UUID(session_id),
@@ -257,12 +266,19 @@ class AIAgentService:
             status=RecommendationStatus.PENDING,
         )
 
-    def _parse_issue_metadata(self, metadata_data: dict) -> IssueMetadata:
+    def _parse_issue_metadata(
+        self,
+        metadata_data: dict,
+        metadata_context: dict | None = None,
+    ) -> IssueMetadata:
         """
         Parse metadata from AI response with safe defaults.
 
         Args:
             metadata_data: Raw metadata dict from AI response
+            metadata_context: Optional repo metadata with real label names.
+                When provided, labels are validated against the actual
+                repository label set instead of the hardcoded constants.
 
         Returns:
             IssueMetadata instance with validated values
@@ -309,19 +325,30 @@ class AIAgentService:
         if not target_date:
             target_date = self._calculate_target_date(today, size)
 
-        # Parse labels with default - validate against pre-defined labels
+        # Parse labels with default - validate against known labels
         labels = metadata_data.get("labels", [])
         if not isinstance(labels, list):
             labels = ["ai-generated"]
 
-        # Filter to only include valid pre-defined labels
+        # Build the set of valid labels.  When repo metadata is available
+        # (dynamic context), use the actual repo labels so that AI-selected
+        # repo-specific labels are preserved.  Fall back to the hardcoded
+        # constants list when no metadata context is provided.
         from src.constants import LABELS
+
+        valid_label_set: set[str] = set(LABELS)
+        if metadata_context:
+            repo_labels = metadata_context.get("labels", [])
+            for lb in repo_labels:
+                name = lb["name"] if isinstance(lb, dict) else lb
+                if isinstance(name, str):
+                    valid_label_set.add(name.lower())
 
         validated_labels = []
         for label in labels:
             if isinstance(label, str):
                 label_lower = label.lower()
-                if label_lower in LABELS:
+                if label_lower in valid_label_set:
                     validated_labels.append(label_lower)
                 else:
                     logger.debug("Skipping invalid label: %s", label)
