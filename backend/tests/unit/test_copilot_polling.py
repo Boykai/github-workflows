@@ -4224,6 +4224,153 @@ class TestRateLimitAwarePolling:
         mock_sleep.assert_not_awaited()
 
     @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pause_if_rate_limited_clears_stale_when_reset_passed(
+        self, mock_service, mock_sleep
+    ):
+        """When remaining=0 but reset_at is in the past, clear stale data and return False.
+
+        This prevents the infinite sleep-10s deadlock where stale cached
+        rate-limit data (remaining=0, reset_at already passed) causes the
+        loop to never make a fresh API call to update headers.
+        """
+        from src.services.copilot_polling.polling_loop import _pause_if_rate_limited
+
+        past_reset = int(utcnow().timestamp()) - 600  # 10 minutes ago
+        mock_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": past_reset,
+            "used": 5000,
+        }
+        mock_service._last_rate_limit = {"remaining": 0}  # will be cleared
+
+        result = await _pause_if_rate_limited("test-stale")
+
+        assert result is False  # should NOT block
+        mock_sleep.assert_not_awaited()  # should NOT sleep
+        # clear_last_rate_limit() should have been called to wipe both
+        # the contextvar and instance-level caches.
+        mock_service.clear_last_rate_limit.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pause_if_rate_limited_sleeps_when_reset_in_future(
+        self, mock_service, mock_sleep
+    ):
+        """When remaining=0 and reset_at is in the future, should still sleep normally."""
+        from src.services.copilot_polling.polling_loop import _pause_if_rate_limited
+
+        future_reset = int(utcnow().timestamp()) + 120  # 2 minutes from now
+        mock_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": future_reset,
+            "used": 5000,
+        }
+        result = await _pause_if_rate_limited("test-future")
+        assert result is True  # should block
+        mock_sleep.assert_awaited_once()  # should sleep
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_error_handler_clears_stale_rate_limit(self, mock_sleep, mock_service):
+        """After an exception with stale rate-limit data, the error handler should clear it.
+
+        Scenario: pre-cycle check sees no rate data (returns None) so it passes.
+        get_project_items raises. The error triggers a 403 that populates stale
+        cached headers (remaining=0, reset_at in the past).  The error handler
+        should detect the stale data and clear it.
+        """
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+
+        past_reset = int(utcnow().timestamp()) - 60  # 1 minute ago
+        stale_rl = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": past_reset,
+            "used": 5000,
+        }
+
+        # Pre-cycle: no rate-limit data → passes check
+        # After error: stale data appears (simulating 403 populating headers)
+        call_count = 0
+
+        def rl_side_effect():
+            nonlocal call_count
+            call_count += 1
+            # First call is from pre-cycle _pause_if_rate_limited
+            if call_count <= 1:
+                return None
+            return stale_rl
+
+        mock_service.get_last_rate_limit.side_effect = rl_side_effect
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("rate limit 403"))
+        mock_service._last_rate_limit = {"remaining": 0}
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.errors_count == 1
+        # clear_last_rate_limit() should have been called to wipe both
+        # the contextvar and instance-level caches.
+        mock_service.clear_last_rate_limit.assert_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_error_handler_preserves_fresh_rate_limit(self, mock_sleep, mock_service):
+        """After an exception with fresh (future) rate-limit data, handler should NOT clear it.
+
+        Same setup as above but the cached headers have a future reset_at,
+        so the error handler should leave them alone.
+        """
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+
+        future_reset = int(utcnow().timestamp()) + 300  # 5 minutes from now
+        fresh_rl = {
+            "limit": 5000,
+            "remaining": 10,
+            "reset_at": future_reset,
+            "used": 4990,
+        }
+
+        call_count = 0
+
+        def rl_side_effect():
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return None  # pre-cycle sees no data
+            return fresh_rl
+
+        mock_service.get_last_rate_limit.side_effect = rl_side_effect
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("server error"))
+        mock_service._last_rate_limit = {"remaining": 10}
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.errors_count == 1
+        # Fresh data should NOT be cleared
+        assert mock_service._last_rate_limit == {"remaining": 10}
+
+    @pytest.mark.asyncio
     @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
     @patch(
         "src.services.copilot_polling.check_in_review_issues",
@@ -7266,3 +7413,377 @@ class TestCheckMainPrSubIssueCheck:
         # Must check sub-issue, not parent
         for call_args in mock_service.is_copilot_assigned_to_issue.call_args_list:
             assert call_args.kwargs["issue_number"] == 1625
+
+
+# ────────────────────────────────────────────────────────────────────
+# Fix: _get_or_reconstruct_pipeline uses tracking table agents for
+# the CURRENT status (not just earlier statuses) — issue #1655
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestGetOrReconstructPipelineCurrentStatusOverride:
+    """When the tracking table exists and its agent list for the CURRENT
+    status differs from the DB config, reconstruction should use the
+    tracking table's agents.  This prevents agents like judge/linter
+    from being silently skipped when the DB config is modified after
+    issue creation.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        yield
+        _pipeline_states.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._reconstruct_pipeline_state", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.parse_tracking_from_body")
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_overrides_agents_for_current_status_from_tracking_table(
+        self,
+        mock_service,
+        mock_parse_tracking,
+        mock_reconstruct,
+    ):
+        """When the DB config only has ['speckit.implement'] for In Progress
+        but the tracking table shows ['speckit.implement', 'judge', 'linter'],
+        reconstruction must use the tracking table's list.
+        """
+        from src.services.agent_tracking import AgentStep
+        from src.services.copilot_polling import _get_or_reconstruct_pipeline
+
+        mock_parse_tracking.return_value = [
+            AgentStep(index=1, status="Backlog", agent_name="speckit.specify", state="✅ Done"),
+            AgentStep(index=2, status="Ready", agent_name="speckit.plan", state="✅ Done"),
+            AgentStep(index=3, status="Ready", agent_name="speckit.tasks", state="✅ Done"),
+            AgentStep(
+                index=4, status="In Progress", agent_name="speckit.implement", state="✅ Done"
+            ),
+            AgentStep(index=5, status="In Progress", agent_name="judge", state="⏳ Pending"),
+            AgentStep(index=6, status="In Progress", agent_name="linter", state="⏳ Pending"),
+            AgentStep(index=7, status="In Review", agent_name="copilot-review", state="⏳ Pending"),
+            AgentStep(index=8, status="In Review", agent_name="human", state="⏳ Pending"),
+        ]
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "...tracking table...", "comments": []}
+        )
+
+        mock_reconstruct.return_value = PipelineState(
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement", "judge", "linter"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+        )
+
+        # DB config says only ["speckit.implement"] for In Progress
+        await _get_or_reconstruct_pipeline(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],  # shortened DB config
+        )
+
+        # _reconstruct_pipeline_state should have been called with
+        # the tracking table's full agent list for "In Progress"
+        mock_reconstruct.assert_called_once()
+        call_kwargs = mock_reconstruct.call_args[1]
+        assert call_kwargs["status"] == "In Progress"
+        assert call_kwargs["agents"] == ["speckit.implement", "judge", "linter"]
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._reconstruct_pipeline_state", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.parse_tracking_from_body")
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_no_override_when_tracking_matches_config(
+        self,
+        mock_service,
+        mock_parse_tracking,
+        mock_reconstruct,
+    ):
+        """When the tracking table agents match the DB config, no override occurs."""
+        from src.services.agent_tracking import AgentStep
+        from src.services.copilot_polling import _get_or_reconstruct_pipeline
+
+        mock_parse_tracking.return_value = [
+            AgentStep(
+                index=1, status="In Progress", agent_name="speckit.implement", state="✅ Done"
+            ),
+        ]
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "...tracking...", "comments": []}
+        )
+
+        mock_reconstruct.return_value = PipelineState(
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+        )
+
+        await _get_or_reconstruct_pipeline(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+        )
+
+        # Agents should be passed through unchanged
+        call_kwargs = mock_reconstruct.call_args[1]
+        assert call_kwargs["agents"] == ["speckit.implement"]
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._reconstruct_pipeline_state", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_no_override_when_no_tracking_table(
+        self,
+        mock_service,
+        mock_reconstruct,
+    ):
+        """When there is no tracking table in the issue body, reconstruction
+        uses the caller-provided agents from DB config (no crash, no override).
+        """
+        from src.services.copilot_polling import _get_or_reconstruct_pipeline
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "No tracking table here.", "comments": []}
+        )
+
+        mock_reconstruct.return_value = PipelineState(
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+        )
+
+        await _get_or_reconstruct_pipeline(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=1655,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement"],
+        )
+
+        # Should use the caller's agents since no tracking table exists
+        call_kwargs = mock_reconstruct.call_args[1]
+        assert call_kwargs["agents"] == ["speckit.implement"]
+
+
+# ────────────────────────────────────────────────────────────────────
+# Fix: post_agent_outputs_from_pr skips 'human' agent in Step 0
+# (issue #1655 — human agent auto-completed by stale merged child PR)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestAgentOutputSkipsHumanStep0:
+    """Regression tests for the bug where post_agent_outputs_from_pr found
+    a stale merged child PR from a previous agent and misattributed it to
+    the 'human' agent, auto-posting 'human: Done!' before a human actually
+    reviewed and closed the sub-issue.
+
+    The human agent is not a coding agent — it never creates child PRs.
+    Step 0 must skip it entirely, just like copilot-review.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_caches(self):
+        _posted_agent_outputs.clear()
+        _issue_main_branches.clear()
+        _claimed_child_prs.clear()
+        yield
+        _posted_agent_outputs.clear()
+        _issue_main_branches.clear()
+        _claimed_child_prs.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_agent_output_skips_human_step0(self, mock_pipeline, mock_config, mock_service):
+        """post_agent_outputs_from_pr must NOT invoke child-PR detection
+        when the current agent is 'human'.  Without this guard, a stale
+        merged child PR would trigger a false 'human: Done!' marker.
+        """
+        mock_config.return_value = MagicMock()
+
+        pipeline = PipelineState(
+            issue_number=1655,
+            project_id="PVT_1",
+            status="In Review",
+            agents=["copilot-review", "human"],
+            current_agent_index=1,  # human is the active agent
+            completed_agents=["copilot-review"],
+        )
+        pipeline.agent_sub_issues = {
+            "human": {"number": 1663, "node_id": "I_1663", "assignee": "Boykai"},
+        }
+        mock_pipeline.return_value = pipeline
+
+        # _check_agent_done_on_sub_or_parent returns False (sub-issue not closed)
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "", "comments": [], "user": {"login": "Boykai"}}
+        )
+
+        # A merged child PR exists (stale PR from a previous agent)
+        _issue_main_branches[1655] = {
+            "branch": "copilot/audit-refactor-fastapi-react",
+            "pr_number": 1664,
+        }
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 1664, "state": "OPEN"},
+                {"number": 1686, "state": "MERGED"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_1686",
+                "base_ref": "copilot/audit-refactor-fastapi-react",
+                "head_ref": "copilot/human-audit",
+                "is_draft": False,
+            }
+        )
+
+        task = MagicMock()
+        task.github_item_id = "PVTI_1655"
+        task.github_content_id = "I_1655"
+        task.issue_number = 1655
+        task.repository_owner = "Boykai"
+        task.repository_name = "github-workflows"
+        task.title = "Audit & Refactor"
+        task.status = "In Review"
+
+        await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="Boykai",
+            repo="github-workflows",
+            tasks=[task],
+        )
+
+        # No "human: Done!" marker should have been posted
+        for call in mock_service.create_issue_comment.call_args_list:
+            body = call.kwargs.get("body") or call[1].get("body", "")
+            assert "human: Done!" not in body, (
+                "human: Done! was falsely posted via child-PR detection"
+            )
+
+
+# ────────────────────────────────────────────────────────────────────
+# Fix: _check_human_agent_done accepts "human: Done!" marker
+# (issue #1655 — standard {agent}: Done! format for human step)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCheckHumanAgentDoneMarkerFormat:
+    """Tests that the human agent completion check accepts both
+    'Done!' and 'human: Done!' as valid completion signals.
+    """
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_human_done_marker_format_accepted(self, mock_service):
+        """'human: Done!' from the assignee should complete the human step."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "Boykai"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "Boykai", "body": "human: Done!"},
+                ],
+                "user": {"login": "Boykai"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_human_done_marker_from_non_assignee_rejected(self, mock_service):
+        """'human: Done!' from a non-assignee must NOT complete the step."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "Boykai"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "intruder", "body": "human: Done!"},
+                ],
+                "user": {"login": "Boykai"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_done_excl_still_accepted(self, mock_service):
+        """The original 'Done!' format should still work (backward compat)."""
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"human": {"number": 99, "assignee": "Boykai"}}
+
+        mock_service.check_issue_closed = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {"author": "Boykai", "body": "Done!"},
+                ],
+                "user": {"login": "Boykai"},
+            }
+        )
+
+        result = await _check_agent_done_on_sub_or_parent(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            parent_issue_number=42,
+            agent_name="human",
+            pipeline=pipeline,
+        )
+
+        assert result is True

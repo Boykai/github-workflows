@@ -104,6 +104,27 @@ async def _get_or_reconstruct_pipeline(
                             status=earlier_status,
                             agents=earlier_agents,
                         )
+
+                # Always prefer the tracking table's agent list for the
+                # CURRENT status over the caller-provided agents (which
+                # come from the mutable DB config).  The tracking table
+                # is frozen at issue-creation time and is the source of
+                # truth — if the user later removes agents from the
+                # config, already-created issues must still honour their
+                # original pipeline.
+                tracking_agents_for_status = [
+                    s.agent_name for s in steps if s.status.lower() == status.lower()
+                ]
+                if tracking_agents_for_status and tracking_agents_for_status != agents:
+                    logger.info(
+                        "Tracking table for issue #%d overrides agents for '%s': "
+                        "%s → %s (DB config differs from issue-creation snapshot)",
+                        issue_number,
+                        status,
+                        agents,
+                        tracking_agents_for_status,
+                    )
+                    agents = tracking_agents_for_status
     except Exception as e:
         logger.debug(
             "Could not check tracking table for issue #%d during pipeline reconstruction: %s",

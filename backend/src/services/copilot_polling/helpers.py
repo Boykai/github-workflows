@@ -320,11 +320,15 @@ async def _check_human_agent_done(
 ) -> bool:
     """Check if a Human agent step is complete.
 
-    Two completion signals:
+    Three completion signals (any one is sufficient):
     1. The Human sub-issue has been closed.
-    2. The assigned user commented exactly 'Done!' on the parent issue.
+    2. The assigned user (or parent-issue author) commented exactly
+       ``Done!`` on the parent issue.
+    3. The assigned user (or parent-issue author) commented exactly
+       ``human: Done!`` on the parent issue — matching the standard
+       ``{agent}: Done!`` marker format used by all other agents.
 
-    Returns True if either signal is detected.
+    Returns True if any signal is detected.
     """
     sub_number = _get_sub_issue_number(pipeline, "human", parent_issue_number)
 
@@ -376,23 +380,25 @@ async def _check_human_agent_done(
             )
         else:
             for comment in reversed(comments):
-                # Exact match only — no .strip() per spec requirement.
-                # The GitHub API returns the raw comment body; only the
-                # literal string "Done!" (no surrounding whitespace) triggers
-                # Human step completion.
                 body = comment.get("body", "")
-                if body == "Done!":
+                # Accept both "Done!" and "human: Done!" — the latter
+                # matches the standard {agent}: Done! format used by
+                # all other agents and is the most natural way for a
+                # human to signal completion on the parent issue.
+                if body in ("Done!", "human: Done!"):
                     comment_author = comment.get("author", "")
                     if comment_author == assignee:
                         logger.info(
-                            "Human step complete via 'Done!' comment from '%s' on parent issue #%d",
+                            "Human step complete via '%s' comment from '%s' on parent issue #%d",
+                            body,
                             comment_author,
                             parent_issue_number,
                         )
                         return True
                     else:
                         logger.debug(
-                            "Ignoring 'Done!' comment from '%s' (expected '%s') on issue #%d",
+                            "Ignoring '%s' comment from '%s' (expected '%s') on issue #%d",
+                            body,
                             comment_author,
                             assignee,
                             parent_issue_number,
@@ -550,10 +556,10 @@ async def _discover_main_pr_for_review(
     3. Sub-issue PR discovery — checks PRs linked to agent sub-issues
        (the main PR is typically linked to the ``speckit.specify`` sub-issue,
        NOT the parent).
-    5. REST search for open PRs matching the issue by branch-name pattern
+    4. REST search for open PRs matching the issue by branch-name pattern
        or body reference — catches cases where sub-issue reconstruction
        fails or the PR only references a sub-issue number.
-    6. If a branch is found via sub-issue PRs but no **open** PR exists for
+    5. If a branch is found via sub-issue PRs but no **open** PR exists for
        it, creates a new PR from the branch to the default branch (WIP →
        ready-for-review).
 
@@ -710,7 +716,8 @@ async def _discover_main_pr_for_review(
                         "is_draft": is_draft,
                     }
 
-                # Track closed/merged PRs with a branch for Strategy 4
+                # Track closed/merged PRs with a branch for Strategy 5
+                # (create-PR-from-existing-branch fallback).
                 if head_ref and not candidate_pr:
                     candidate_pr = pr_det
                     candidate_branch = head_ref
@@ -722,7 +729,7 @@ async def _discover_main_pr_for_review(
             e,
         )
 
-    # ── Strategy 5: REST search for open Copilot PRs targeting the default branch ──
+    # ── Strategy 4: REST search for open Copilot PRs targeting the default branch ──
     # Catches cases where sub-issue reconstruction fails or the PR is
     # not linked to the parent issue (e.g. it references a sub-issue number
     # only).  Searches ALL open PRs for branch-name patterns that include
@@ -770,7 +777,7 @@ async def _discover_main_pr_for_review(
                         _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_num, h_sha)
 
                     logger.info(
-                        "Strategy 5: discovered PR #%d (branch '%s') for issue #%d "
+                        "Strategy 4: discovered PR #%d (branch '%s') for issue #%d "
                         "via REST branch/body search",
                         pr_num,
                         head_ref,
@@ -784,12 +791,12 @@ async def _discover_main_pr_for_review(
                     }
         except Exception as e:
             logger.debug(
-                "Strategy 5 (REST PR search) failed for issue #%d: %s",
+                "Strategy 4 (REST PR search) failed for issue #%d: %s",
                 parent_issue_number,
                 e,
             )
 
-    # ── Strategy 6: Branch exists but no open PR — create one ──
+    # ── Strategy 5: Branch exists but no open PR — create one ──
     if candidate_branch:
         logger.info(
             "No open PR found for issue #%d but branch '%s' exists — "
@@ -842,7 +849,7 @@ async def _discover_main_pr_for_review(
                 }
         except Exception as e:
             logger.warning(
-                "Strategy 6 (create PR) failed for issue #%d branch '%s': %s",
+                "Strategy 5 (create PR) failed for issue #%d branch '%s': %s",
                 parent_issue_number,
                 candidate_branch,
                 e,

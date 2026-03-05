@@ -111,8 +111,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0 (017-agents-section)
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
-- TypeScript 5.x, React 18.3.1 + React 18.3, TanStack React Query 5.x, Tailwind CSS 3.4, Lucide React (icons) (018-chat-history-navigation)
-- localStorage (client-side, JSON-serialized array of strings, keyed `chat-message-history`) (018-chat-history-navigation)
+- Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI ≥ 0.109, Pydantic ≥ 2.5, aiosqlite ≥ 0.20, httpx ≥ 0.26, React 18 + Tailwind CSS (frontend) (018-issue-metadata-autogen)
+- SQLite (`/app/data/settings.db`) — existing database with custom migration runner (018-issue-metadata-autogen)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0

@@ -48,6 +48,7 @@ import type {
   ChoreChatMessage,
   ChoreChatResponse,
   EvaluateChoreTriggersResponse,
+  RepositoryMetadata,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -98,7 +99,17 @@ async function request<T>(
     // GitHub token has expired.  Notify listeners (useAuth) so the UI
     // clears cached credentials and shows the login screen.
     if (response.status === 401 && !endpoint.startsWith('/auth/')) {
-      authExpiredListeners.forEach((fn) => fn());
+      // Notify auth-expired subscribers (e.g. useAuth) so the UI can
+      // clear cached credentials.  Each listener is wrapped in try/catch
+      // so a throwing subscriber cannot prevent remaining listeners from
+      // running or mask the ApiError that is thrown below.
+      authExpiredListeners.forEach((fn) => {
+        try {
+          fn();
+        } catch (listenerError) {
+          console.error('Auth-expired listener threw:', listenerError);
+        }
+      });
     }
 
     throw new ApiError(response.status, error);
@@ -400,6 +411,26 @@ export const workflowApi = {
    */
   listAgents(): Promise<{ agents: AvailableAgent[] }> {
     return request<{ agents: AvailableAgent[] }>('/workflow/agents');
+  },
+};
+
+// ============ Metadata API ============
+
+export const metadataApi = {
+  /**
+   * Get cached repository metadata (labels, branches, milestones, collaborators).
+   */
+  getMetadata(owner: string, repo: string): Promise<RepositoryMetadata> {
+    return request<RepositoryMetadata>(`/metadata/${owner}/${repo}`);
+  },
+
+  /**
+   * Force-refresh repository metadata from the GitHub API.
+   */
+  refreshMetadata(owner: string, repo: string): Promise<RepositoryMetadata> {
+    return request<RepositoryMetadata>(`/metadata/${owner}/${repo}/refresh`, {
+      method: 'POST',
+    });
   },
 };
 
