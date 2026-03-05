@@ -24,9 +24,9 @@
 
 **Purpose**: Verify current state and confirm no prerequisite changes are needed
 
-- [ ] T001 Verify current theme token values in `frontend/src/index.css` match expected baseline (`:root` `--background: 0 0% 100%`, `--foreground: 222.2 84% 4.9%`; `.dark` `--background: 222.2 84% 4.9%`, `--foreground: 210 40% 98%`)
-- [ ] T002 Confirm `frontend/tailwind.config.js` maps `background` to `hsl(var(--background))` and `foreground` to `hsl(var(--foreground))` — no changes needed
-- [ ] T003 Confirm `frontend/src/components/ThemeProvider.tsx` toggles `.dark` class on `document.documentElement` — no changes needed
+- [x] T001 Verify current theme token values in `frontend/src/index.css` match expected baseline (`:root` `--background: 0 0% 100%`, `--foreground: 222.2 84% 4.9%`; `.dark` `--background: 222.2 84% 4.9%`, `--foreground: 210 40% 98%`)
+- [x] T002 Confirm `frontend/tailwind.config.js` maps `background` to `hsl(var(--background))` and `foreground` to `hsl(var(--foreground))` — no changes needed
+- [x] T003 Confirm `frontend/src/components/ThemeProvider.tsx` toggles `.dark` class on `document.documentElement` — no changes needed
 
 ---
 
@@ -48,9 +48,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update `:root` scope `--background` token from `0 0% 100%` to `355 80% 34%` (ruby #9B111E) in `frontend/src/index.css`
-- [ ] T005 [US1] Update `.dark` scope `--background` token from `222.2 84% 4.9%` to `355 80% 22%` (dark ruby #6B0C15) in `frontend/src/index.css`
-- [ ] T006 [US1] Verify ruby background renders on all primary views by running `cd frontend && npm run dev` and navigating through the application
+- [x] T004 [US1] Update `:root` scope `--background` token from `0 0% 100%` to `355 80% 34%` (ruby #9B111E) in `frontend/src/index.css`
+- [x] T005 [US1] Update `.dark` scope `--background` token from `222.2 84% 4.9%` to `355 80% 22%` (dark ruby #6B0C15) in `frontend/src/index.css`
+- [x] T006 [US1] Verify ruby background renders on all primary views by running `cd frontend && npm run dev` and navigating through the application
 
 **Checkpoint**: At this point, the ruby background should be visible across all views in both light and dark modes. Text may not yet be optimally readable — that is addressed in User Story 2.
 
@@ -64,10 +64,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Update `:root` scope `--foreground` token from `222.2 84% 4.9%` to `0 0% 100%` (white #FFFFFF) in `frontend/src/index.css`
-- [ ] T008 [US2] Update `.dark` scope `--foreground` token from `210 40% 98%` to `0 0% 98%` (near-white #FAFAFA) in `frontend/src/index.css`
-- [ ] T009 [US2] Verify contrast ratios using a contrast checker tool — confirm light mode (#FFFFFF on #9B111E) ≥ 4.5:1 and dark mode (#FAFAFA on #6B0C15) ≥ 4.5:1
-- [ ] T010 [US2] Visually verify that card, popover, modal, and input components retain their own distinct surface/foreground colors and remain readable (these use `--card`, `--popover`, `--muted` tokens which are unchanged)
+- [x] T007 [US2] Update `:root` scope `--foreground` token from `222.2 84% 4.9%` to `0 0% 100%` (white #FFFFFF) in `frontend/src/index.css`
+- [x] T008 [US2] Update `.dark` scope `--foreground` token from `210 40% 98%` to `0 0% 98%` (near-white #FAFAFA) in `frontend/src/index.css`
+- [x] T009 [US2] Verify contrast ratios using a contrast checker tool — confirm light mode (#FFFFFF on #9B111E) ≥ 4.5:1 and dark mode (#FAFAFA on #6B0C15) ≥ 4.5:1
+- [x] T010 [US2] Visually verify that card, popover, modal, and input components retain their own distinct surface/foreground colors and remain readable (these use `--card`, `--popover`, `--muted` tokens which are unchanged)
 
 **Checkpoint**: At this point, the ruby background with accessible foreground text should be fully functional. User Stories 1 AND 2 together form the MVP — the application is visually themed and accessible.
 
@@ -81,10 +81,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Test ruby background at mobile breakpoint (375px width) using browser DevTools — verify full viewport coverage in `frontend/src/index.css` body styles
-- [ ] T012 [US3] Test ruby background at tablet breakpoint (768px width) using browser DevTools — verify consistent rendering
-- [ ] T013 [US3] Test ruby background at desktop breakpoint (1440px width) using browser DevTools — verify no horizontal or vertical gaps
-- [ ] T014 [US3] Verify the existing diamond background pattern (applied via `body::before` in `frontend/src/index.css`) harmonizes with the ruby background color — adjust `--diamond-color` if needed to complement ruby
+- [x] T011 [US3] Test ruby background at mobile breakpoint (375px width) using browser DevTools — verify full viewport coverage in `frontend/src/index.css` body styles
+- [x] T012 [US3] Test ruby background at tablet breakpoint (768px width) using browser DevTools — verify consistent rendering
+- [x] T013 [US3] Test ruby background at desktop breakpoint (1440px width) using browser DevTools — verify no horizontal or vertical gaps
+- [x] T014 [US3] Verify the existing diamond background pattern (applied via `body::before` in `frontend/src/index.css`) harmonizes with the ruby background color — adjust `--diamond-color` if needed to complement ruby
 
 **Checkpoint**: The ruby background should now render consistently across all device sizes. No code changes are expected in this phase unless the diamond pattern needs color adjustment.
 
@@ -98,9 +98,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Add a CSS fallback `background-color: #9B111E;` and `color: #FFFFFF;` before the `@apply` directive in the `body` rule in `frontend/src/index.css` for browsers without CSS custom property support
-- [ ] T016 [US4] Verify the ruby color is defined exclusively via CSS custom properties (`--background` in `:root` and `.dark` scopes) and not hardcoded elsewhere — confirm single-source-of-truth by searching for `#9B111E` in the codebase (should only appear in the body rule fallback added by T015)
-- [ ] T017 [US4] Verify that changing the `--background` token value in `frontend/src/index.css` updates the ruby color application-wide on reload without any additional file changes
+- [x] T015 [US4] Add a CSS fallback `background-color: #9B111E;` and `color: #FFFFFF;` before the `@apply` directive in the `body` rule in `frontend/src/index.css` for browsers without CSS custom property support
+- [x] T016 [US4] Verify the ruby color is defined exclusively via CSS custom properties (`--background` in `:root` and `.dark` scopes) and not hardcoded elsewhere — confirm single-source-of-truth by searching for `#9B111E` in the codebase (should only appear in the body rule fallback added by T015)
+- [x] T017 [US4] Verify that changing the `--background` token value in `frontend/src/index.css` updates the ruby color application-wide on reload without any additional file changes
 
 **Checkpoint**: The ruby color is centralized as a design token with a CSS fallback. A developer can modify the color in one place.
 
@@ -110,10 +110,10 @@
 
 **Purpose**: Final validation and cleanup across all user stories
 
-- [ ] T018 Verify no existing UI components (modals, cards, forms, navigation) exhibit layout, spacing, or styling regressions after the ruby background change — run the application and navigate all views
-- [ ] T019 Verify the diamond background pattern in `frontend/src/index.css` (body::before pseudo-element) displays correctly over the ruby background in both light and dark modes
-- [ ] T020 Run quickstart.md validation steps end-to-end: start dev server, check light mode, toggle dark mode, check components, check responsive, verify contrast ratios
-- [ ] T021 Verify the existing frontend build succeeds with no errors by running `cd frontend && npm run build`
+- [x] T018 Verify no existing UI components (modals, cards, forms, navigation) exhibit layout, spacing, or styling regressions after the ruby background change — run the application and navigate all views
+- [x] T019 Verify the diamond background pattern in `frontend/src/index.css` (body::before pseudo-element) displays correctly over the ruby background in both light and dark modes
+- [x] T020 Run quickstart.md validation steps end-to-end: start dev server, check light mode, toggle dark mode, check components, check responsive, verify contrast ratios
+- [x] T021 Verify the existing frontend build succeeds with no errors by running `cd frontend && npm run build`
 
 ---
 
