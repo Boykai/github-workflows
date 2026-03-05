@@ -18,14 +18,8 @@ export const STALE_TIME_SHORT = 60 * 1000;
 
 // ============ Polling Intervals ============
 
-/** Board data polling interval (60 seconds). */
-export const BOARD_POLL_INTERVAL_MS = 60_000;
-
 /** WebSocket fallback polling interval (30 seconds). */
 export const WS_FALLBACK_POLL_MS = 30_000;
-
-/** WebSocket reconnect delay after disconnect (5 seconds). */
-export const WS_RECONNECT_DELAY_MS = 5_000;
 
 /** WebSocket connection timeout (5 seconds). */
 export const WS_CONNECTION_TIMEOUT_MS = 5_000;
@@ -50,6 +44,3 @@ export const TOAST_SUCCESS_MS = 2_000;
 
 /** Error toast auto-dismiss delay (3 seconds). */
 export const TOAST_ERROR_MS = 3_000;
-
-/** Highlight animation duration for recently-updated items (2 seconds). */
-export const HIGHLIGHT_DURATION_MS = 2_000;

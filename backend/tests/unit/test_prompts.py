@@ -9,10 +9,10 @@ Covers:
 
 from datetime import timedelta
 
+from src.constants import LABELS
 from src.prompts.issue_generation import (
     FEATURE_REQUEST_DETECTION_PROMPT,
     ISSUE_GENERATION_SYSTEM_PROMPT,
-    PREDEFINED_LABELS,
     create_feature_request_detection_prompt,
     create_issue_generation_prompt,
 )
@@ -166,17 +166,17 @@ class TestCreateStatusChangePrompt:
 
 
 class TestPredefinedLabels:
-    """Verify PREDEFINED_LABELS is well-formed."""
+    """Verify LABELS is well-formed."""
 
     def test_contains_ai_generated(self):
-        assert "ai-generated" in PREDEFINED_LABELS
+        assert "ai-generated" in LABELS
 
     def test_contains_feature(self):
-        assert "feature" in PREDEFINED_LABELS
+        assert "feature" in LABELS
 
     def test_all_lowercase(self):
-        for label in PREDEFINED_LABELS:
+        for label in LABELS:
             assert label == label.lower(), f"Label not lowercase: {label}"
 
     def test_no_duplicates(self):
-        assert len(PREDEFINED_LABELS) == len(set(PREDEFINED_LABELS))
+        assert len(LABELS) == len(set(LABELS))

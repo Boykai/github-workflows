@@ -142,7 +142,7 @@ class TestResolveRepository:
         assert repo == "repo"
 
     async def test_resolve_from_workflow_config(self):
-        from src.models.chat import WorkflowConfiguration
+        from src.models.workflow import WorkflowConfiguration
         from src.utils import resolve_repository
 
         mock_svc = AsyncMock()

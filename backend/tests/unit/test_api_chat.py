@@ -14,11 +14,7 @@ from uuid import uuid4
 
 import pytest
 
-from src.models.chat import (
-    AITaskProposal,
-    IssueRecommendation,
-    ProposalStatus,
-)
+from src.models.recommendation import AITaskProposal, IssueRecommendation, ProposalStatus
 from src.models.task import Task
 from src.models.user import UserSession
 
