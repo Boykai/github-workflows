@@ -328,17 +328,20 @@ async def post_agent_outputs_from_pr(
             if already_done:
                 continue
 
-            # ── copilot-review: skip Step 0 child-PR detection entirely ──
-            # copilot-review is NOT a coding agent — its completion is
-            # exclusively detected by _check_copilot_review_done (checking
-            # whether Copilot submitted a code review on the main PR).
-            # If Copilot is inadvertently assigned to the copilot-review
-            # sub-issue (e.g. by GitHub project automation), it may create
-            # a child PR.  The standard Step 0 child-PR detection would
-            # find that PR, post a false "copilot-review: Done!" marker,
-            # and advance the pipeline before the actual code review
-            # completes.  Skip this agent entirely in Step 0.
-            if current_agent == "copilot-review":
+            # ── Non-coding agents: skip Step 0 child-PR detection ──────
+            # copilot-review and human are NOT coding agents — they never
+            # create child PRs.  Their completion is detected exclusively
+            # by dedicated helpers:
+            #   • copilot-review → _check_copilot_review_done (Copilot
+            #     submitted a code review on the main PR)
+            #   • human → _check_human_agent_done (sub-issue closed, or
+            #     authorised user comments "human: Done!" / "Done!")
+            # If a stale merged child PR from a previous agent is
+            # misattributed to one of these agents (e.g. after a
+            # container restart where _claimed_child_prs is empty), the
+            # standard Step 0 detection would post a false Done! marker
+            # and advance the pipeline prematurely.  Skip them entirely.
+            if current_agent in ("copilot-review", "human"):
                 continue
 
             # Determine if this is a subsequent agent (not the first in the overall pipeline).

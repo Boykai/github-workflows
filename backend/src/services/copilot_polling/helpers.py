@@ -320,11 +320,15 @@ async def _check_human_agent_done(
 ) -> bool:
     """Check if a Human agent step is complete.
 
-    Two completion signals:
+    Three completion signals (any one is sufficient):
     1. The Human sub-issue has been closed.
-    2. The assigned user commented exactly 'Done!' on the parent issue.
+    2. The assigned user (or parent-issue author) commented exactly
+       ``Done!`` on the parent issue.
+    3. The assigned user (or parent-issue author) commented exactly
+       ``human: Done!`` on the parent issue — matching the standard
+       ``{agent}: Done!`` marker format used by all other agents.
 
-    Returns True if either signal is detected.
+    Returns True if any signal is detected.
     """
     sub_number = _get_sub_issue_number(pipeline, "human", parent_issue_number)
 
@@ -376,23 +380,25 @@ async def _check_human_agent_done(
             )
         else:
             for comment in reversed(comments):
-                # Exact match only — no .strip() per spec requirement.
-                # The GitHub API returns the raw comment body; only the
-                # literal string "Done!" (no surrounding whitespace) triggers
-                # Human step completion.
                 body = comment.get("body", "")
-                if body == "Done!":
+                # Accept both "Done!" and "human: Done!" — the latter
+                # matches the standard {agent}: Done! format used by
+                # all other agents and is the most natural way for a
+                # human to signal completion on the parent issue.
+                if body in ("Done!", "human: Done!"):
                     comment_author = comment.get("author", "")
                     if comment_author == assignee:
                         logger.info(
-                            "Human step complete via 'Done!' comment from '%s' on parent issue #%d",
+                            "Human step complete via '%s' comment from '%s' on parent issue #%d",
+                            body,
                             comment_author,
                             parent_issue_number,
                         )
                         return True
                     else:
                         logger.debug(
-                            "Ignoring 'Done!' comment from '%s' (expected '%s') on issue #%d",
+                            "Ignoring '%s' comment from '%s' (expected '%s') on issue #%d",
+                            body,
                             comment_author,
                             assignee,
                             parent_issue_number,
