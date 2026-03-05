@@ -1,0 +1,187 @@
+# Metadata API Contract
+# Feature: 018-issue-metadata-autogen
+# These endpoints provide repository metadata for the issue creation flow.
+
+openapi: "3.1.0"
+info:
+  title: GitHub Repository Metadata API
+  version: "1.0.0"
+  description: >
+    Endpoints for fetching, caching, and serving GitHub repository metadata
+    (labels, branches, milestones, collaborators) used by the AI chat agent
+    to populate issue metadata fields.
+
+paths:
+  /api/v1/metadata/{owner}/{repo}:
+    get:
+      operationId: getRepositoryMetadata
+      summary: Get cached repository metadata
+      description: >
+        Returns cached metadata for the specified repository. If the cache is
+        stale (TTL exceeded), triggers a background refresh and returns the
+        stale data immediately. If no cache exists, fetches from GitHub API
+        synchronously.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Repository owner (user or organization)
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Repository name
+      responses:
+        "200":
+          description: Repository metadata (fresh or cached)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepositoryMetadata"
+        "401":
+          description: Not authenticated
+        "404":
+          description: Repository not found or not accessible
+        "502":
+          description: GitHub API unavailable and no cached data exists
+
+  /api/v1/metadata/{owner}/{repo}/refresh:
+    post:
+      operationId: refreshRepositoryMetadata
+      summary: Force-refresh repository metadata cache
+      description: >
+        Invalidates the current cache for the specified repository and
+        fetches fresh metadata from the GitHub API. Returns the newly
+        fetched data.
+      parameters:
+        - name: owner
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: repo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Freshly fetched repository metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepositoryMetadata"
+        "401":
+          description: Not authenticated
+        "502":
+          description: GitHub API unavailable — returns last cached data if available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepositoryMetadata"
+
+components:
+  schemas:
+    RepositoryMetadata:
+      type: object
+      required:
+        - repo_key
+        - labels
+        - branches
+        - milestones
+        - collaborators
+        - fetched_at
+        - is_stale
+        - source
+      properties:
+        repo_key:
+          type: string
+          description: "Repository identifier in 'owner/repo' format"
+          example: "octocat/hello-world"
+        labels:
+          type: array
+          items:
+            $ref: "#/components/schemas/LabelEntry"
+        branches:
+          type: array
+          items:
+            $ref: "#/components/schemas/BranchEntry"
+        milestones:
+          type: array
+          items:
+            $ref: "#/components/schemas/MilestoneEntry"
+        collaborators:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollaboratorEntry"
+        fetched_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the last successful fetch
+        is_stale:
+          type: boolean
+          description: "True if the cache TTL has expired"
+        source:
+          type: string
+          enum: [fresh, cache, fallback]
+          description: "Where the data came from: fresh API fetch, SQLite cache, or hardcoded fallback"
+
+    LabelEntry:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: "bug"
+        color:
+          type: string
+          example: "d73a4a"
+        description:
+          type: string
+          example: "Something isn't working"
+
+    BranchEntry:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: "main"
+        protected:
+          type: boolean
+          example: true
+
+    MilestoneEntry:
+      type: object
+      required: [number, title, state]
+      properties:
+        number:
+          type: integer
+          example: 3
+        title:
+          type: string
+          example: "v2.0 Release"
+        due_on:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-04-01T00:00:00Z"
+        state:
+          type: string
+          enum: [open, closed]
+          example: "open"
+
+    CollaboratorEntry:
+      type: object
+      required: [login]
+      properties:
+        login:
+          type: string
+          example: "octocat"
+        avatar_url:
+          type: string
+          format: uri
+          example: "https://avatars.githubusercontent.com/u/1?v=4"
