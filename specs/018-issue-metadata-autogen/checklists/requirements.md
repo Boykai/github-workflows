@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-05  
+**Updated**: 2026-03-05  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -33,5 +34,7 @@
 
 - All checklist items pass validation. Specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - Assumptions section documents reasonable defaults for priority naming (P0–P3), size naming (T-shirt sizing), estimate format (hours), and date format (ISO 8601).
+- Tags/labels clarification: "Tags" from the original request is documented as synonymous with GitHub "labels".
 - Four user stories cover the full feature scope: core metadata generation (P1), caching (P2), preview/override (P3), and error handling (P4).
 - Six edge cases cover boundary conditions including empty repos, stale cache, API failures, multi-repo sessions, and large metadata sets.
+- Updated to include projects, collaborators (assignees) across all requirements, acceptance scenarios, and key entities per original issue requirements.
