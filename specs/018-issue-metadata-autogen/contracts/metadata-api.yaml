@@ -18,9 +18,8 @@ paths:
       summary: Get cached repository metadata
       description: >
         Returns cached metadata for the specified repository. If the cache is
-        stale (TTL exceeded), triggers a background refresh and returns the
-        stale data immediately. If no cache exists, fetches from GitHub API
-        synchronously.
+        stale (TTL exceeded) or missing, fetches fresh data from the GitHub
+        API synchronously before returning the response.
       parameters:
         - name: owner
           in: path

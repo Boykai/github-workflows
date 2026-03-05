@@ -18,6 +18,11 @@ from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
+# Module-level shared L1 cache so all MetadataService instances share the same
+# in-memory store.  Without this each ``MetadataService()`` created per-request
+# would have its own empty cache, defeating the L1 optimisation.
+_shared_l1_cache = InMemoryCache()
+
 
 class RepositoryMetadataContext(BaseModel):
     """Cached repository metadata used for AI prompt injection and validation."""
@@ -42,7 +47,7 @@ class MetadataService:
     """
 
     def __init__(self, l1_cache: InMemoryCache | None = None) -> None:
-        self._l1 = l1_cache or InMemoryCache()
+        self._l1 = l1_cache or _shared_l1_cache
         self._settings = get_settings()
 
     # ──────────────────────────────────────────────────────────────────
@@ -125,21 +130,23 @@ class MetadataService:
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            labels = await self._fetch_paginated(
+            labels, labels_ok = await self._fetch_paginated(
                 client, f"https://api.github.com/repos/{owner}/{repo}/labels", headers
             )
-            branches = await self._fetch_paginated(
+            branches, branches_ok = await self._fetch_paginated(
                 client, f"https://api.github.com/repos/{owner}/{repo}/branches", headers
             )
-            milestones = await self._fetch_paginated(
+            milestones, milestones_ok = await self._fetch_paginated(
                 client,
                 f"https://api.github.com/repos/{owner}/{repo}/milestones",
                 headers,
                 params={"state": "open"},
             )
-            collaborators = await self._fetch_paginated(
+            collaborators, collabs_ok = await self._fetch_paginated(
                 client, f"https://api.github.com/repos/{owner}/{repo}/collaborators", headers
             )
+
+        all_fetches_ok = labels_ok and branches_ok and milestones_ok and collabs_ok
 
         now = utcnow().isoformat()
         ttl = self._settings.metadata_cache_ttl_seconds
@@ -181,11 +188,19 @@ class MetadataService:
             source="fresh",
         )
 
-        # Persist to L2 (SQLite) and L1 (memory)
-        try:
-            await self._write_to_sqlite(ctx)
-        except Exception:
-            logger.warning("Failed to write metadata to SQLite for %s", repo_key, exc_info=True)
+        # Persist to L2 (SQLite) and L1 (memory) only when all fetches
+        # completed without errors.  Partial data must not overwrite a
+        # previously-good cache (e.g., rate-limited on page 2 → truncated).
+        if all_fetches_ok:
+            try:
+                await self._write_to_sqlite(ctx)
+            except Exception:
+                logger.warning("Failed to write metadata to SQLite for %s", repo_key, exc_info=True)
+        else:
+            logger.warning(
+                "Skipping SQLite cache write for %s — one or more fetches were incomplete",
+                repo_key,
+            )
 
         self._l1.set(f"metadata:{repo_key}", ctx.model_dump(), ttl_seconds=ttl)
 
@@ -251,17 +266,20 @@ class MetadataService:
         url: str,
         headers: dict,
         params: dict | None = None,
-    ) -> list[dict]:
+    ) -> tuple[list[dict], bool]:
         """Fetch all pages from a GitHub REST API list endpoint.
 
-        Returns whatever results were fetched successfully. On API errors
-        (rate limit, network, etc.) the loop breaks and partial results
-        are returned — the caller handles the fallback logic.
+        Returns a tuple of (results, complete) where *complete* is True when
+        all pages were fetched without errors.  On API errors (rate limit,
+        network, etc.) the loop breaks and partial results are returned
+        with complete=False — the caller can decide whether to persist the
+        partial data.
         """
         results: list[dict] = []
         page = 1
         per_page = 100
         base_params = dict(params or {})
+        complete = True
 
         while True:
             request_params = {**base_params, "per_page": per_page, "page": page}
@@ -269,6 +287,7 @@ class MetadataService:
                 response = await client.get(url, headers=headers, params=request_params)
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
+                complete = False
                 if exc.response.status_code in (403, 429):
                     logger.warning(
                         "GitHub API rate limit or forbidden for %s: %s",
@@ -281,6 +300,7 @@ class MetadataService:
                     logger.warning("GitHub API error for %s: %s", url, exc.response.status_code)
                 break
             except httpx.ConnectError:
+                complete = False
                 logger.warning("Network error fetching %s", url)
                 break
 
@@ -295,7 +315,7 @@ class MetadataService:
 
             page += 1
 
-        return results
+        return results, complete
 
     async def _read_from_sqlite(self, repo_key: str) -> RepositoryMetadataContext | None:
         """Read cached metadata from SQLite."""
@@ -377,7 +397,8 @@ class MetadataService:
                 "VALUES (?, ?, ?, ?)",
                 rows,
             )
-            await db.commit()
+
+        await db.commit()
 
     def _is_stale(self, fetched_at: str, ttl_seconds: int) -> bool:
         """Check if a fetched_at timestamp is older than TTL."""
