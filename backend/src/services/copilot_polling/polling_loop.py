@@ -36,6 +36,13 @@ async def _pause_if_rate_limited(step_name: str) -> bool:
     """If remaining quota is at or below the pause threshold, sleep until reset.
 
     Returns True if the loop should abort the current cycle (quota exhausted).
+
+    **Stale-data guard**: if ``reset_at`` is in the past, the rate-limit
+    window has already rolled over but no fresh API call has updated the
+    cached headers.  In that case we clear the stale data and allow the
+    cycle to proceed — the next API call will populate up-to-date headers.
+    This prevents an infinite sleep-10s loop where the polling never makes
+    a single request because it keeps re-reading the same stale remaining=0.
     """
     remaining, reset_at = await _check_rate_limit_budget()
     if remaining is None:
@@ -43,6 +50,23 @@ async def _pause_if_rate_limited(step_name: str) -> bool:
 
     if remaining <= RATE_LIMIT_PAUSE_THRESHOLD:
         now_ts = int(utcnow().timestamp())
+
+        # If the reset window has already passed, the cached data is stale.
+        # Clear it so the next cycle proceeds and fetches fresh headers.
+        if reset_at is not None and reset_at <= now_ts:
+            logger.info(
+                "Rate-limit reset window has passed (reset_at=%d <= now=%d) "
+                "but cached remaining=%d after %s. Clearing stale data — "
+                "next API call will refresh headers.",
+                reset_at,
+                now_ts,
+                remaining,
+                step_name,
+            )
+            # Clear both instance-level and context-var caches
+            _cp.github_projects_service._last_rate_limit = None
+            return False  # allow the cycle to proceed
+
         wait = max((reset_at or now_ts) - now_ts, 10)
         # Cap wait to 15 minutes to prevent pathological sleeps
         wait = min(wait, 900)
@@ -300,6 +324,23 @@ async def _poll_loop(
             logger.error("Error in polling loop: %s", e)
             _polling_state.errors_count += 1
             _polling_state.last_error = str(e)
+
+            # If the error came from a rate-limit 403, the cached headers
+            # may show remaining=0 with a reset_at that is already past
+            # (or about to be).  Clear stale data so the next cycle's
+            # pre-cycle check doesn't enter an infinite 10s sleep loop.
+            err_remaining, err_reset = await _check_rate_limit_budget()
+            if err_remaining is not None and err_remaining <= RATE_LIMIT_PAUSE_THRESHOLD:
+                now_err = int(utcnow().timestamp())
+                if err_reset is not None and err_reset <= now_err:
+                    logger.info(
+                        "Post-error: clearing stale rate-limit data "
+                        "(remaining=%d, reset_at=%d <= now=%d)",
+                        err_remaining,
+                        err_reset,
+                        now_err,
+                    )
+                    _cp.github_projects_service._last_rate_limit = None
 
         # ── Dynamic interval based on remaining rate-limit budget ──
         remaining, _ = await _check_rate_limit_budget()

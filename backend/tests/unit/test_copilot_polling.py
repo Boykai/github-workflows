@@ -4224,6 +4224,149 @@ class TestRateLimitAwarePolling:
         mock_sleep.assert_not_awaited()
 
     @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pause_if_rate_limited_clears_stale_when_reset_passed(
+        self, mock_service, mock_sleep
+    ):
+        """When remaining=0 but reset_at is in the past, clear stale data and return False.
+
+        This prevents the infinite sleep-10s deadlock where stale cached
+        rate-limit data (remaining=0, reset_at already passed) causes the
+        loop to never make a fresh API call to update headers.
+        """
+        from src.services.copilot_polling.polling_loop import _pause_if_rate_limited
+
+        past_reset = int(utcnow().timestamp()) - 600  # 10 minutes ago
+        mock_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": past_reset,
+            "used": 5000,
+        }
+        mock_service._last_rate_limit = {"remaining": 0}  # will be cleared
+
+        result = await _pause_if_rate_limited("test-stale")
+
+        assert result is False  # should NOT block
+        mock_sleep.assert_not_awaited()  # should NOT sleep
+        assert mock_service._last_rate_limit is None  # stale data cleared
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pause_if_rate_limited_sleeps_when_reset_in_future(
+        self, mock_service, mock_sleep
+    ):
+        """When remaining=0 and reset_at is in the future, should still sleep normally."""
+        from src.services.copilot_polling.polling_loop import _pause_if_rate_limited
+
+        future_reset = int(utcnow().timestamp()) + 120  # 2 minutes from now
+        mock_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": future_reset,
+            "used": 5000,
+        }
+        result = await _pause_if_rate_limited("test-future")
+        assert result is True  # should block
+        mock_sleep.assert_awaited_once()  # should sleep
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_error_handler_clears_stale_rate_limit(self, mock_sleep, mock_service):
+        """After an exception with stale rate-limit data, the error handler should clear it.
+
+        Scenario: pre-cycle check sees no rate data (returns None) so it passes.
+        get_project_items raises. The error triggers a 403 that populates stale
+        cached headers (remaining=0, reset_at in the past).  The error handler
+        should detect the stale data and clear it.
+        """
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+
+        past_reset = int(utcnow().timestamp()) - 60  # 1 minute ago
+        stale_rl = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": past_reset,
+            "used": 5000,
+        }
+
+        # Pre-cycle: no rate-limit data → passes check
+        # After error: stale data appears (simulating 403 populating headers)
+        call_count = 0
+
+        def rl_side_effect():
+            nonlocal call_count
+            call_count += 1
+            # First call is from pre-cycle _pause_if_rate_limited
+            if call_count <= 1:
+                return None
+            return stale_rl
+
+        mock_service.get_last_rate_limit.side_effect = rl_side_effect
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("rate limit 403"))
+        mock_service._last_rate_limit = {"remaining": 0}
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.errors_count == 1
+        assert mock_service._last_rate_limit is None  # stale data cleared
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_error_handler_preserves_fresh_rate_limit(self, mock_sleep, mock_service):
+        """After an exception with fresh (future) rate-limit data, handler should NOT clear it.
+
+        Same setup as above but the cached headers have a future reset_at,
+        so the error handler should leave them alone.
+        """
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+
+        future_reset = int(utcnow().timestamp()) + 300  # 5 minutes from now
+        fresh_rl = {
+            "limit": 5000,
+            "remaining": 10,
+            "reset_at": future_reset,
+            "used": 4990,
+        }
+
+        call_count = 0
+
+        def rl_side_effect():
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 1:
+                return None  # pre-cycle sees no data
+            return fresh_rl
+
+        mock_service.get_last_rate_limit.side_effect = rl_side_effect
+        mock_service.get_project_items = AsyncMock(side_effect=Exception("server error"))
+        mock_service._last_rate_limit = {"remaining": 10}
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        await _poll_loop("tok", "P1", "o", "r", 60)
+
+        assert _polling_state.errors_count == 1
+        # Fresh data should NOT be cleared
+        assert mock_service._last_rate_limit == {"remaining": 10}
+
+    @pytest.mark.asyncio
     @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
     @patch(
         "src.services.copilot_polling.check_in_review_issues",
