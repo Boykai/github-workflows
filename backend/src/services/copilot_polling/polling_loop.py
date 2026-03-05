@@ -63,8 +63,10 @@ async def _pause_if_rate_limited(step_name: str) -> bool:
                 remaining,
                 step_name,
             )
-            # Clear both instance-level and context-var caches
-            _cp.github_projects_service._last_rate_limit = None
+            # Clear both request-scoped contextvar and instance-level
+            # caches so get_last_rate_limit() returns None on the next
+            # call, allowing the cycle to proceed with a fresh API request.
+            _cp.github_projects_service.clear_last_rate_limit()
             return False  # allow the cycle to proceed
 
         wait = max((reset_at or now_ts) - now_ts, 10)
@@ -340,7 +342,7 @@ async def _poll_loop(
                         err_reset,
                         now_err,
                     )
-                    _cp.github_projects_service._last_rate_limit = None
+                    _cp.github_projects_service.clear_last_rate_limit()
 
         # ── Dynamic interval based on remaining rate-limit budget ──
         remaining, _ = await _check_rate_limit_budget()

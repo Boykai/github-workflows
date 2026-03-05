@@ -556,10 +556,10 @@ async def _discover_main_pr_for_review(
     3. Sub-issue PR discovery — checks PRs linked to agent sub-issues
        (the main PR is typically linked to the ``speckit.specify`` sub-issue,
        NOT the parent).
-    5. REST search for open PRs matching the issue by branch-name pattern
+    4. REST search for open PRs matching the issue by branch-name pattern
        or body reference — catches cases where sub-issue reconstruction
        fails or the PR only references a sub-issue number.
-    6. If a branch is found via sub-issue PRs but no **open** PR exists for
+    5. If a branch is found via sub-issue PRs but no **open** PR exists for
        it, creates a new PR from the branch to the default branch (WIP →
        ready-for-review).
 
@@ -716,7 +716,8 @@ async def _discover_main_pr_for_review(
                         "is_draft": is_draft,
                     }
 
-                # Track closed/merged PRs with a branch for Strategy 4
+                # Track closed/merged PRs with a branch for Strategy 5
+                # (create-PR-from-existing-branch fallback).
                 if head_ref and not candidate_pr:
                     candidate_pr = pr_det
                     candidate_branch = head_ref
@@ -728,7 +729,7 @@ async def _discover_main_pr_for_review(
             e,
         )
 
-    # ── Strategy 5: REST search for open Copilot PRs targeting the default branch ──
+    # ── Strategy 4: REST search for open Copilot PRs targeting the default branch ──
     # Catches cases where sub-issue reconstruction fails or the PR is
     # not linked to the parent issue (e.g. it references a sub-issue number
     # only).  Searches ALL open PRs for branch-name patterns that include
@@ -776,7 +777,7 @@ async def _discover_main_pr_for_review(
                         _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_num, h_sha)
 
                     logger.info(
-                        "Strategy 5: discovered PR #%d (branch '%s') for issue #%d "
+                        "Strategy 4: discovered PR #%d (branch '%s') for issue #%d "
                         "via REST branch/body search",
                         pr_num,
                         head_ref,
@@ -790,12 +791,12 @@ async def _discover_main_pr_for_review(
                     }
         except Exception as e:
             logger.debug(
-                "Strategy 5 (REST PR search) failed for issue #%d: %s",
+                "Strategy 4 (REST PR search) failed for issue #%d: %s",
                 parent_issue_number,
                 e,
             )
 
-    # ── Strategy 6: Branch exists but no open PR — create one ──
+    # ── Strategy 5: Branch exists but no open PR — create one ──
     if candidate_branch:
         logger.info(
             "No open PR found for issue #%d but branch '%s' exists — "
@@ -848,7 +849,7 @@ async def _discover_main_pr_for_review(
                 }
         except Exception as e:
             logger.warning(
-                "Strategy 6 (create PR) failed for issue #%d branch '%s': %s",
+                "Strategy 5 (create PR) failed for issue #%d branch '%s': %s",
                 parent_issue_number,
                 candidate_branch,
                 e,

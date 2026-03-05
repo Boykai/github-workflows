@@ -40,6 +40,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Per-issue cache for parsed tracking table agents.  The tracking table
+# is frozen in the issue body at creation time and never changes, so this
+# cache can persist for the lifetime of the process without a TTL.
+# Key: issue_number → list[AgentStep]
+_tracking_table_cache: dict[int, list] = {}
+
 
 def _polling_state_objects():
     """Lazy accessor for copilot_polling state — avoids circular import at module level."""
@@ -693,32 +699,41 @@ class WorkflowOrchestrator:
         # or reordered), the tracking table preserves the original
         # contract.  Use tracking table agents for this status when they
         # contain agents the current config no longer includes.
+        #
+        # The parsed tracking table is cached per issue_number because
+        # the issue body (and thus the tracking table) is immutable
+        # after creation.  This avoids an extra GitHub API call on
+        # every agent assignment within the same issue.
         if ctx.issue_number:
             try:
-                issue_data = await self.github.get_issue_with_comments(
-                    access_token=ctx.access_token,
-                    owner=ctx.repository_owner,
-                    repo=ctx.repository_name,
-                    issue_number=ctx.issue_number,
-                )
-                body = issue_data.get("body", "") if issue_data else ""
-                if body:
-                    steps = parse_tracking_from_body(body)
-                    if steps:
-                        tracking_agents = [
-                            s.agent_name for s in steps if s.status.lower() == status.lower()
-                        ]
-                        config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
-                        if tracking_agents and tracking_agents != config_slugs:
-                            logger.info(
-                                "Overriding config agents %s with tracking "
-                                "table agents %s for status '%s' on issue #%d",
-                                config_slugs,
-                                tracking_agents,
-                                status,
-                                ctx.issue_number,
-                            )
-                            agents = tracking_agents
+                if ctx.issue_number in _tracking_table_cache:
+                    steps = _tracking_table_cache[ctx.issue_number]
+                else:
+                    issue_data = await self.github.get_issue_with_comments(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        issue_number=ctx.issue_number,
+                    )
+                    body = issue_data.get("body", "") if issue_data else ""
+                    steps = parse_tracking_from_body(body) if body else []
+                    _tracking_table_cache[ctx.issue_number] = steps or []
+
+                if steps:
+                    tracking_agents = [
+                        s.agent_name for s in steps if s.status.lower() == status.lower()
+                    ]
+                    config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
+                    if tracking_agents and tracking_agents != config_slugs:
+                        logger.info(
+                            "Overriding config agents %s with tracking "
+                            "table agents %s for status '%s' on issue #%d",
+                            config_slugs,
+                            tracking_agents,
+                            status,
+                            ctx.issue_number,
+                        )
+                        agents = tracking_agents
             except Exception as e:
                 logger.warning(
                     "Failed to fetch tracking table for issue #%d, "

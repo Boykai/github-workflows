@@ -158,6 +158,20 @@ class GitHubProjectsService:
         """
         return _request_rate_limit.get() or self._last_rate_limit
 
+    def clear_last_rate_limit(self) -> None:
+        """Clear both the request-scoped contextvar and instance-level rate-limit caches.
+
+        Called by the polling loop when stale rate-limit data is detected
+        (e.g. the reset window has already passed but the cached remaining
+        count is still zero).  Both caches must be cleared because
+        ``get_last_rate_limit`` prefers the contextvar — clearing only
+        the instance attribute would leave stale data in the contextvar,
+        causing the polling loop to re-read it and enter an infinite
+        pause/sleep cycle.
+        """
+        _request_rate_limit.set(None)
+        self._last_rate_limit = None
+
     # ──────────────────────────────────────────────────────────────────
     # T057: Rate limit handling with exponential backoff
     # ──────────────────────────────────────────────────────────────────

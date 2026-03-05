@@ -4250,7 +4250,9 @@ class TestRateLimitAwarePolling:
 
         assert result is False  # should NOT block
         mock_sleep.assert_not_awaited()  # should NOT sleep
-        assert mock_service._last_rate_limit is None  # stale data cleared
+        # clear_last_rate_limit() should have been called to wipe both
+        # the contextvar and instance-level caches.
+        mock_service.clear_last_rate_limit.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("asyncio.sleep", new_callable=AsyncMock)
@@ -4319,7 +4321,9 @@ class TestRateLimitAwarePolling:
         await _poll_loop("tok", "P1", "o", "r", 60)
 
         assert _polling_state.errors_count == 1
-        assert mock_service._last_rate_limit is None  # stale data cleared
+        # clear_last_rate_limit() should have been called to wipe both
+        # the contextvar and instance-level caches.
+        mock_service.clear_last_rate_limit.assert_called()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
