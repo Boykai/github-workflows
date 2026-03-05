@@ -18,7 +18,7 @@ interface UseChatReturn {
   pendingProposals: Map<string, AITaskProposal>;
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
-  sendMessage: (content: string, options?: { isCommand?: boolean }) => Promise<void>;
+  sendMessage: (content: string, options?: { isCommand?: boolean; attachmentIds?: string[] }) => Promise<void>;
   confirmProposal: (proposalId: string, edits?: ProposalConfirmRequest) => Promise<void>;
   confirmStatusChange: (proposalId: string) => Promise<void>;
   rejectProposal: (proposalId: string) => Promise<void>;
@@ -164,7 +164,7 @@ export function useChat(): UseChatReturn {
   });
 
   const sendMessage = useCallback(
-    async (content: string, options?: { isCommand?: boolean }) => {
+    async (content: string, options?: { isCommand?: boolean; attachmentIds?: string[] }) => {
       // Check if this is a command — intercept before sending to AI
       if (options?.isCommand || isCommand(content)) {
         // Execute command to determine how to handle it.
@@ -225,7 +225,11 @@ export function useChat(): UseChatReturn {
         return;
       }
 
-      await sendMutation.mutateAsync({ content });
+      const payload: { content: string; attachment_ids?: string[] } = { content };
+      if (options?.attachmentIds && options.attachmentIds.length > 0) {
+        payload.attachment_ids = options.attachmentIds;
+      }
+      await sendMutation.mutateAsync(payload);
     },
     [sendMutation, isCommand, executeCommand]
   );

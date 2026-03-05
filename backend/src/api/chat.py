@@ -5,7 +5,8 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile
+from fastapi.responses import FileResponse, Response
 
 from src.api.auth import get_session_dep
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
@@ -16,6 +17,7 @@ from src.models.chat import (
     ChatMessage,
     ChatMessageRequest,
     ChatMessagesResponse,
+    FileAttachmentResponse,
     SenderType,
 )
 from src.models.recommendation import (
@@ -123,6 +125,63 @@ async def clear_messages(
     return {"message": "Chat history cleared"}
 
 
+# ---- File Upload Endpoints ------------------------------------------------
+
+@router.post("/upload", response_model=FileAttachmentResponse, status_code=201)
+async def upload_chat_file(
+    file: UploadFile,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> FileAttachmentResponse:
+    """Upload a file attachment for a chat message."""
+    from src.services.file_upload import to_response, upload_file
+
+    try:
+        attachment = await upload_file(file)
+    except ValueError as e:
+        raise ValidationError(str(e)) from None
+
+    return to_response(attachment)
+
+
+@router.get("/upload/{file_id}")
+async def get_chat_file(
+    file_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> Response:
+    """Retrieve an uploaded file."""
+    import os
+
+    from src.services.file_upload import get_file_attachment
+
+    attachment = get_file_attachment(file_id)
+    if not attachment:
+        raise NotFoundError(f"File not found: {file_id}")
+
+    if not os.path.exists(attachment.storage_path):
+        raise NotFoundError(f"File not found: {file_id}")
+
+    return FileResponse(
+        path=attachment.storage_path,
+        media_type=attachment.mime_type,
+        filename=attachment.original_filename,
+    )
+
+
+@router.delete("/upload/{file_id}", status_code=204)
+async def delete_chat_file(
+    file_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> Response:
+    """Delete a previously uploaded file."""
+    from src.services.file_upload import delete_file
+
+    deleted = delete_file(file_id)
+    if not deleted:
+        raise NotFoundError(f"File not found: {file_id}")
+
+    return Response(status_code=204)
+
+
 @router.post("/messages", response_model=ChatMessage)
 async def send_message(
     request: ChatMessageRequest,
@@ -148,11 +207,18 @@ async def send_message(
         add_message(session.session_id, error_msg)
         return error_msg
 
-    # Create user message
+    # Create user message with file attachments if present
+    attachments = []
+    if request.attachment_ids:
+        from src.services.file_upload import get_attachment_responses
+
+        attachments = get_attachment_responses(request.attachment_ids)
+
     user_message = ChatMessage(
         session_id=session.session_id,
         sender_type=SenderType.USER,
         content=request.content,
+        attachments=attachments,
     )
     add_message(session.session_id, user_message)
 

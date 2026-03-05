@@ -10,7 +10,15 @@ import { CommandAutocomplete } from './CommandAutocomplete';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
+import { FileUploadButton } from './FileUploadButton';
+import { FilePreviewArea } from './FilePreviewArea';
+import { DragDropOverlay } from './DragDropOverlay';
+import { VoiceInputButton } from './VoiceInputButton';
+import { RecordingIndicator } from './RecordingIndicator';
 import { useCommands } from '@/hooks/useCommands';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { useDragDrop } from '@/hooks/useDragDrop';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import type { CommandDefinition } from '@/lib/commands/types';
 
 interface ChatInterfaceProps {
@@ -19,7 +27,7 @@ interface ChatInterfaceProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
+  onSendMessage: (content: string, options?: { isCommand?: boolean; attachmentIds?: string[] }) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
@@ -46,12 +54,68 @@ export function ChatInterface({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
+  const [ariaAnnouncement, setAriaAnnouncement] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
   const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
+
+  // File upload
+  const {
+    queuedFiles,
+    validationError,
+    isUploading,
+    addFiles,
+    removeFile,
+    uploadAll,
+    clearAll: clearFiles,
+    clearError,
+  } = useFileUpload();
+
+  // Drag-and-drop
+  const { isDragging, dragHandlers } = useDragDrop(addFiles);
+
+  // Voice input
+  const {
+    isRecording,
+    isSupported: isVoiceSupported,
+    transcribedText,
+    interimText,
+    error: voiceError,
+    toggleRecording,
+    clearTranscription,
+  } = useVoiceInput();
+
+  // Append transcribed text to input when finalized
+  useEffect(() => {
+    if (transcribedText) {
+      setInput((prev) => prev + transcribedText);
+      clearTranscription();
+      setAriaAnnouncement('Transcription complete');
+    }
+  }, [transcribedText, clearTranscription]);
+
+  // Announce recording state changes
+  useEffect(() => {
+    if (isRecording) {
+      setAriaAnnouncement('Recording started');
+    }
+  }, [isRecording]);
+
+  // Announce file attachment changes
+  const prevFileCountRef = useRef(0);
+  useEffect(() => {
+    const currentCount = queuedFiles.length;
+    if (currentCount > prevFileCountRef.current) {
+      const lastFile = queuedFiles[queuedFiles.length - 1];
+      setAriaAnnouncement(`File attached: ${lastFile.file.name}`);
+    } else if (currentCount < prevFileCountRef.current) {
+      setAriaAnnouncement('File removed');
+    }
+    prevFileCountRef.current = currentCount;
+  }, [queuedFiles]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -92,16 +156,27 @@ export function ChatInterface({
     inputRef.current?.focus();
   }, []);
 
-  const doSubmit = () => {
+  const doSubmit = async () => {
     const content = input.trim();
-    if (content && !isSending) {
-      setShowAutocomplete(false);
-      const commandInput = isCommandFn(content);
-      onSendMessage(content, { isCommand: commandInput });
-      // Always clear input after submission — command-level input preservation
-      // is handled by the useChat hook via CommandResult.clearInput when needed.
-      setInput('');
+    if ((!content && queuedFiles.length === 0) || isSending || isUploading) return;
+
+    setShowAutocomplete(false);
+
+    // Upload queued files first
+    let attachmentIds: string[] = [];
+    if (queuedFiles.length > 0) {
+      attachmentIds = await uploadAll();
+      clearFiles();
     }
+
+    const messageContent = content || (attachmentIds.length > 0 ? '(attached files)' : '');
+    if (!messageContent) return;
+
+    const commandInput = isCommandFn(messageContent);
+    onSendMessage(messageContent, { isCommand: commandInput, attachmentIds });
+    // Always clear input after submission — command-level input preservation
+    // is handled by the useChat hook via CommandResult.clearInput when needed.
+    setInput('');
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -150,6 +225,29 @@ export function ChatInterface({
     }
   };
 
+  // Handle clipboard paste for images
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const files: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+
+      if (files.length > 0) {
+        e.preventDefault();
+        addFiles(files);
+      }
+    },
+    [addFiles]
+  );
+
   // Auto-resize textarea to fit content
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -165,8 +263,21 @@ export function ChatInterface({
     }
   }, [input]);
 
+  const hasContent = input.trim().length > 0 || queuedFiles.length > 0;
+
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div
+      className="relative flex flex-col h-full bg-background"
+      {...dragHandlers}
+    >
+      {/* Drag-and-drop overlay */}
+      <DragDropOverlay isDragging={isDragging} />
+
+      {/* ARIA live region for state announcements */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {ariaAnnouncement}
+      </div>
+
       {messages.length > 0 && (
         <div className="flex justify-end p-3 border-b border-border bg-background">
           <button
@@ -261,7 +372,29 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="relative flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
+      {/* File preview area */}
+      <FilePreviewArea
+        queuedFiles={queuedFiles}
+        validationError={validationError}
+        onRemoveFile={removeFile}
+        onClearError={clearError}
+      />
+
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="flex justify-center py-2">
+          <RecordingIndicator />
+        </div>
+      )}
+
+      {/* Interim transcription preview */}
+      {interimText && (
+        <div className="px-4 py-1 text-xs text-muted-foreground italic">
+          {interimText}
+        </div>
+      )}
+
+      <form className="relative flex items-end gap-2 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
         {showAutocomplete && (
           <CommandAutocomplete
             commands={autocompleteCommands}
@@ -271,11 +404,28 @@ export function ChatInterface({
             onHighlightChange={setHighlightedIndex}
           />
         )}
+
+        {/* File upload button */}
+        <FileUploadButton
+          onFilesSelected={addFiles}
+          disabled={isSending || isUploading}
+        />
+
+        {/* Voice input button */}
+        <VoiceInputButton
+          isRecording={isRecording}
+          isSupported={isVoiceSupported}
+          error={voiceError}
+          onToggle={toggleRecording}
+          disabled={isSending}
+        />
+
         <textarea
           ref={inputRef}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
@@ -283,7 +433,8 @@ export function ChatInterface({
         />
         <button
           type="submit"
-          disabled={!input.trim() || isSending}
+          disabled={!hasContent || isSending || isUploading}
+          aria-label="Send message"
           className="w-11 h-11 p-0 bg-primary text-primary-foreground rounded-full flex items-center justify-center shrink-0 transition-colors hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
         >
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">

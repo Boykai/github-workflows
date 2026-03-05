@@ -17,9 +17,9 @@
 
 **Purpose**: Project initialization — create new files and directories needed for the feature, install any new dependencies
 
-- [ ] T001 Create upload storage directory and add to .gitignore at project root
-- [ ] T002 [P] Add `UploadStatus` enum and `FileAttachment` / `FileAttachmentResponse` models to backend/src/models/chat.py per data-model.md
-- [ ] T003 [P] Extend `ChatMessage` model with optional `attachments` field and `ChatMessageRequest` with optional `attachment_ids` field in backend/src/models/chat.py
+- [x] T001 Create upload storage directory and add to .gitignore at project root
+- [x] T002 [P] Add `UploadStatus` enum and `FileAttachment` / `FileAttachmentResponse` models to backend/src/models/chat.py per data-model.md
+- [x] T003 [P] Extend `ChatMessage` model with optional `attachments` field and `ChatMessageRequest` with optional `attachment_ids` field in backend/src/models/chat.py
 
 ---
 
@@ -29,12 +29,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create file upload service with validation (size ≤ 25 MB, MIME allowlist), UUID-based local filesystem storage, and in-memory metadata registry in backend/src/services/file_upload.py
-- [ ] T005 Add `POST /api/v1/chat/upload` endpoint (multipart/form-data) returning `FileAttachmentResponse` in backend/src/api/chat.py per contracts/api.yaml
-- [ ] T006 [P] Add `GET /api/v1/chat/upload/{file_id}` endpoint to serve uploaded file content in backend/src/api/chat.py per contracts/api.yaml
-- [ ] T007 [P] Add `DELETE /api/v1/chat/upload/{file_id}` endpoint to remove queued files in backend/src/api/chat.py per contracts/api.yaml
-- [ ] T008 Extend existing chat message send endpoint to accept `attachment_ids` and associate `FileAttachment` references with the message in backend/src/api/chat.py per contracts/api.yaml
-- [ ] T009 [P] Add file upload API client functions (`uploadFile`, `getFileUrl`, `deleteFile`) in frontend/src/services/api.ts
+- [x] T004 Create file upload service with validation (size ≤ 25 MB, MIME allowlist), UUID-based local filesystem storage, and in-memory metadata registry in backend/src/services/file_upload.py
+- [x] T005 Add `POST /api/v1/chat/upload` endpoint (multipart/form-data) returning `FileAttachmentResponse` in backend/src/api/chat.py per contracts/api.yaml
+- [x] T006 [P] Add `GET /api/v1/chat/upload/{file_id}` endpoint to serve uploaded file content in backend/src/api/chat.py per contracts/api.yaml
+- [x] T007 [P] Add `DELETE /api/v1/chat/upload/{file_id}` endpoint to remove queued files in backend/src/api/chat.py per contracts/api.yaml
+- [x] T008 Extend existing chat message send endpoint to accept `attachment_ids` and associate `FileAttachment` references with the message in backend/src/api/chat.py per contracts/api.yaml
+- [x] T009 [P] Add file upload API client functions (`uploadFile`, `getFileUrl`, `deleteFile`) in frontend/src/services/api.ts
 
 **Checkpoint**: Backend upload/retrieval/deletion pipeline functional; frontend API client ready — user story implementation can now begin
 
@@ -48,14 +48,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Create `useFileUpload` hook (file selection, client-side validation, upload state, queue management) in frontend/src/hooks/useFileUpload.ts
-- [ ] T011 [P] [US1] Create `useDragDrop` hook (dragenter/dragleave/dragover/drop event handling with counter pattern) in frontend/src/hooks/useDragDrop.ts
-- [ ] T012 [P] [US1] Create `FileUploadButton` component (paperclip icon via lucide-react, hidden `<input type="file">` with accept attribute) in frontend/src/components/chat/FileUploadButton.tsx
-- [ ] T013 [P] [US1] Create `FilePreviewItem` component (image thumbnail via `URL.createObjectURL` or file-name chip with type icon, dismiss button) in frontend/src/components/chat/FilePreviewItem.tsx
-- [ ] T014 [P] [US1] Create `FilePreviewArea` component (container rendering list of `FilePreviewItem` components) in frontend/src/components/chat/FilePreviewArea.tsx
-- [ ] T015 [P] [US1] Create `DragDropOverlay` component (dashed border overlay with "Drop files here" text, visible during drag) in frontend/src/components/chat/DragDropOverlay.tsx
-- [ ] T016 [US1] Integrate `FileUploadButton` into chat input toolbar, `FilePreviewArea` above text input, drag-and-drop handlers on chat container, and clipboard paste handler in frontend/src/components/chat/ChatInterface.tsx
-- [ ] T017 [US1] Wire message send flow to upload queued files, collect attachment IDs, and include them in the message payload in frontend/src/components/chat/ChatInterface.tsx
+- [x] T010 [P] [US1] Create `useFileUpload` hook (file selection, client-side validation, upload state, queue management) in frontend/src/hooks/useFileUpload.ts
+- [x] T011 [P] [US1] Create `useDragDrop` hook (dragenter/dragleave/dragover/drop event handling with counter pattern) in frontend/src/hooks/useDragDrop.ts
+- [x] T012 [P] [US1] Create `FileUploadButton` component (paperclip icon via lucide-react, hidden `<input type="file">` with accept attribute) in frontend/src/components/chat/FileUploadButton.tsx
+- [x] T013 [P] [US1] Create `FilePreviewItem` component (image thumbnail via `URL.createObjectURL` or file-name chip with type icon, dismiss button) in frontend/src/components/chat/FilePreviewItem.tsx
+- [x] T014 [P] [US1] Create `FilePreviewArea` component (container rendering list of `FilePreviewItem` components) in frontend/src/components/chat/FilePreviewArea.tsx
+- [x] T015 [P] [US1] Create `DragDropOverlay` component (dashed border overlay with "Drop files here" text, visible during drag) in frontend/src/components/chat/DragDropOverlay.tsx
+- [x] T016 [US1] Integrate `FileUploadButton` into chat input toolbar, `FilePreviewArea` above text input, drag-and-drop handlers on chat container, and clipboard paste handler in frontend/src/components/chat/ChatInterface.tsx
+- [x] T017 [US1] Wire message send flow to upload queued files, collect attachment IDs, and include them in the message payload in frontend/src/components/chat/ChatInterface.tsx
 
 **Checkpoint**: File upload feature fully functional — button select, drag-and-drop, clipboard paste, preview, dismiss, and send with attachments all work end-to-end
 
@@ -69,11 +69,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Create `useVoiceInput` hook (Web Speech API `SpeechRecognition`/`webkitSpeechRecognition` wrapper, recording state, interim/final transcription, browser support detection, permission error handling) in frontend/src/hooks/useVoiceInput.ts
-- [ ] T019 [P] [US2] Create `RecordingIndicator` component (animated pulsing mic icon or waveform indicator) in frontend/src/components/chat/RecordingIndicator.tsx
-- [ ] T020 [US2] Create `VoiceInputButton` component (microphone icon via lucide-react, toggles recording, hidden/disabled with tooltip when browser unsupported) in frontend/src/components/chat/VoiceInputButton.tsx
-- [ ] T021 [US2] Integrate `VoiceInputButton` into chat input toolbar, append transcribed text to input field on completion, show `RecordingIndicator` when recording in frontend/src/components/chat/ChatInterface.tsx
-- [ ] T022 [US2] Handle microphone permission denial by displaying informative guidance message in frontend/src/components/chat/VoiceInputButton.tsx
+- [x] T018 [P] [US2] Create `useVoiceInput` hook (Web Speech API `SpeechRecognition`/`webkitSpeechRecognition` wrapper, recording state, interim/final transcription, browser support detection, permission error handling) in frontend/src/hooks/useVoiceInput.ts
+- [x] T019 [P] [US2] Create `RecordingIndicator` component (animated pulsing mic icon or waveform indicator) in frontend/src/components/chat/RecordingIndicator.tsx
+- [x] T020 [US2] Create `VoiceInputButton` component (microphone icon via lucide-react, toggles recording, hidden/disabled with tooltip when browser unsupported) in frontend/src/components/chat/VoiceInputButton.tsx
+- [x] T021 [US2] Integrate `VoiceInputButton` into chat input toolbar, append transcribed text to input field on completion, show `RecordingIndicator` when recording in frontend/src/components/chat/ChatInterface.tsx
+- [x] T022 [US2] Handle microphone permission denial by displaying informative guidance message in frontend/src/components/chat/VoiceInputButton.tsx
 
 **Checkpoint**: Voice input feature fully functional — record, transcribe, review, edit, and send all work; permission denial handled gracefully; unsupported browsers show disabled state
 
@@ -87,10 +87,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Add inline error message display for file size exceeded (>25 MB) and unsupported file type with accepted formats list in frontend/src/hooks/useFileUpload.ts
-- [ ] T024 [US3] Add max attachment count enforcement (≤10 files per message) with error message in frontend/src/hooks/useFileUpload.ts
-- [ ] T025 [US3] Add network/server error handling with retry option for failed uploads in frontend/src/hooks/useFileUpload.ts
-- [ ] T026 [US3] Display validation and upload error messages inline in the `FilePreviewArea` component in frontend/src/components/chat/FilePreviewArea.tsx
+- [x] T023 [US3] Add inline error message display for file size exceeded (>25 MB) and unsupported file type with accepted formats list in frontend/src/hooks/useFileUpload.ts
+- [x] T024 [US3] Add max attachment count enforcement (≤10 files per message) with error message in frontend/src/hooks/useFileUpload.ts
+- [x] T025 [US3] Add network/server error handling with retry option for failed uploads in frontend/src/hooks/useFileUpload.ts
+- [x] T026 [US3] Display validation and upload error messages inline in the `FilePreviewArea` component in frontend/src/components/chat/FilePreviewArea.tsx
 
 **Checkpoint**: All validation errors surface immediately with clear messaging; retry available for transient failures; user is never blocked from continuing to use chat
 
@@ -104,10 +104,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T027 [P] [US4] Add `aria-label`, `role`, keyboard focus styles (`focus-visible:` Tailwind utilities) to `FileUploadButton` in frontend/src/components/chat/FileUploadButton.tsx
-- [ ] T028 [P] [US4] Add `aria-label`, `role`, keyboard focus styles, and `aria-pressed` for recording toggle to `VoiceInputButton` in frontend/src/components/chat/VoiceInputButton.tsx
-- [ ] T029 [P] [US4] Add accessible labels and keyboard-focusable dismiss buttons with `aria-label` to `FilePreviewItem` in frontend/src/components/chat/FilePreviewItem.tsx
-- [ ] T030 [US4] Add ARIA live region (`role="status"`, `aria-live="polite"`) for recording state changes ("Recording started", "Recording stopped", "Transcription complete") and file attachment announcements ("File attached: filename", "File removed") in frontend/src/components/chat/ChatInterface.tsx
+- [x] T027 [P] [US4] Add `aria-label`, `role`, keyboard focus styles (`focus-visible:` Tailwind utilities) to `FileUploadButton` in frontend/src/components/chat/FileUploadButton.tsx
+- [x] T028 [P] [US4] Add `aria-label`, `role`, keyboard focus styles, and `aria-pressed` for recording toggle to `VoiceInputButton` in frontend/src/components/chat/VoiceInputButton.tsx
+- [x] T029 [P] [US4] Add accessible labels and keyboard-focusable dismiss buttons with `aria-label` to `FilePreviewItem` in frontend/src/components/chat/FilePreviewItem.tsx
+- [x] T030 [US4] Add ARIA live region (`role="status"`, `aria-live="polite"`) for recording state changes ("Recording started", "Recording stopped", "Transcription complete") and file attachment announcements ("File attached: filename", "File removed") in frontend/src/components/chat/ChatInterface.tsx
 
 **Checkpoint**: All new controls pass keyboard-only navigation test; screen readers announce all state changes within 2 seconds of the event
 
@@ -121,9 +121,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T031 [US5] Add `accept` attribute with image and document MIME types and optional `capture` attribute for mobile camera access on the file input element in frontend/src/components/chat/FileUploadButton.tsx
-- [ ] T032 [US5] Verify voice input hook triggers native microphone on mobile browsers and recording indicator is visible on small screens in frontend/src/hooks/useVoiceInput.ts and frontend/src/components/chat/RecordingIndicator.tsx
-- [ ] T033 [US5] Ensure touch-friendly sizing (min 44×44px tap targets) and responsive layout for all new toolbar buttons and preview areas in frontend/src/components/chat/ChatInterface.tsx
+- [x] T031 [US5] Add `accept` attribute with image and document MIME types and optional `capture` attribute for mobile camera access on the file input element in frontend/src/components/chat/FileUploadButton.tsx
+- [x] T032 [US5] Verify voice input hook triggers native microphone on mobile browsers and recording indicator is visible on small screens in frontend/src/hooks/useVoiceInput.ts and frontend/src/components/chat/RecordingIndicator.tsx
+- [x] T033 [US5] Ensure touch-friendly sizing (min 44×44px tap targets) and responsive layout for all new toolbar buttons and preview areas in frontend/src/components/chat/ChatInterface.tsx
 
 **Checkpoint**: Mobile users can access camera, photo library, files via native picker and use device microphone for voice input
 
@@ -133,10 +133,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T034 [P] Revoke `URL.createObjectURL` references (created in the hook for preview display) on file removal and component unmount to prevent memory leaks in frontend/src/hooks/useFileUpload.ts
-- [ ] T035 [P] Stop active voice recording and clean up `SpeechRecognition` instance on component unmount or navigation away in frontend/src/hooks/useVoiceInput.ts
-- [ ] T036 [P] Add server-side filename sanitization (strip path components, limit length) and defense-in-depth MIME type re-validation in backend/src/services/file_upload.py
-- [ ] T037 Run quickstart.md validation checklist against completed implementation
+- [x] T034 [P] Revoke `URL.createObjectURL` references (created in the hook for preview display) on file removal and component unmount to prevent memory leaks in frontend/src/hooks/useFileUpload.ts
+- [x] T035 [P] Stop active voice recording and clean up `SpeechRecognition` instance on component unmount or navigation away in frontend/src/hooks/useVoiceInput.ts
+- [x] T036 [P] Add server-side filename sanitization (strip path components, limit length) and defense-in-depth MIME type re-validation in backend/src/services/file_upload.py
+- [x] T037 Run quickstart.md validation checklist against completed implementation
 
 ---
 
