@@ -28,7 +28,7 @@ export function VoiceInputButton({
         disabled
         aria-label="Voice input not supported in this browser"
         title="Voice input not supported in this browser"
-        className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground/50 cursor-not-allowed"
+        className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted-foreground/50 cursor-not-allowed"
       >
         <MicOff size={18} />
       </button>
@@ -43,7 +43,7 @@ export function VoiceInputButton({
         disabled={disabled}
         aria-label={isRecording ? 'Stop recording' : 'Start voice input'}
         aria-pressed={isRecording}
-        className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed ${
           isRecording
             ? 'text-destructive bg-destructive/10 hover:bg-destructive/20'
             : 'text-muted-foreground hover:text-foreground hover:bg-muted'

@@ -43,7 +43,7 @@ export function FileUploadButton({ onFilesSelected, disabled }: FileUploadButton
         onClick={handleClick}
         disabled={disabled}
         aria-label="Attach file"
-        className="w-9 h-9 flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Paperclip size={18} />
       </button>
