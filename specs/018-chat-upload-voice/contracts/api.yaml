@@ -1,0 +1,258 @@
+openapi: "3.0.3"
+info:
+  title: Chat File Upload & Voice Input API
+  description: |
+    API contract for file upload and voice input support in the app chat experience.
+    Extends the existing `/api/v1/chat/` endpoints with file attachment capabilities.
+  version: "1.0.0"
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+paths:
+  /chat/upload:
+    post:
+      operationId: uploadChatFile
+      summary: Upload a file attachment for a chat message
+      description: |
+        Accepts a single file via multipart/form-data, validates size and type,
+        stores the file, and returns a file attachment reference. The returned
+        attachment ID is included in the message payload when sending a message
+        with attachments.
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (max 25 MB)
+      responses:
+        "201":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileAttachmentResponse"
+        "400":
+          description: Validation error (file too large, unsupported type, missing file)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                fileTooLarge:
+                  summary: File exceeds size limit
+                  value:
+                    detail: "File exceeds the maximum size of 25 MB"
+                    error_code: "FILE_TOO_LARGE"
+                unsupportedType:
+                  summary: Unsupported file type
+                  value:
+                    detail: "File type not supported. Accepted formats: JPG, PNG, GIF, WEBP, PDF, DOCX, TXT"
+                    error_code: "UNSUPPORTED_FILE_TYPE"
+
+  /chat/upload/{file_id}:
+    get:
+      operationId: getChatFile
+      summary: Retrieve an uploaded file
+      description: Returns the file content for display or download.
+      tags:
+        - Chat
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The unique file attachment identifier
+      responses:
+        "200":
+          description: File content
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/gif: {}
+            image/webp: {}
+            application/pdf: {}
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document: {}
+            text/plain: {}
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteChatFile
+      summary: Remove an uploaded file before it is sent
+      description: |
+        Deletes a previously uploaded file that has not yet been attached to a
+        sent message. Used when the user dismisses a queued attachment.
+      tags:
+        - Chat
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: File deleted successfully
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chat/messages:
+    post:
+      operationId: sendChatMessage
+      summary: Send a chat message (extended with attachments)
+      description: |
+        Existing endpoint extended to accept optional file attachment IDs.
+        When attachment_ids are provided, the referenced files are associated
+        with the message.
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageRequest"
+      responses:
+        "200":
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessageResponse"
+
+components:
+  schemas:
+    FileAttachmentResponse:
+      type: object
+      required:
+        - id
+        - original_filename
+        - mime_type
+        - file_size
+        - upload_status
+        - url
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique attachment identifier
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        original_filename:
+          type: string
+          maxLength: 255
+          description: Original filename as provided by the user
+          example: "screenshot.png"
+        mime_type:
+          type: string
+          description: MIME type of the uploaded file
+          example: "image/png"
+        file_size:
+          type: integer
+          description: File size in bytes
+          example: 245760
+        upload_status:
+          type: string
+          enum:
+            - pending
+            - uploaded
+            - failed
+          description: Current upload processing status
+          example: "uploaded"
+        url:
+          type: string
+          format: uri
+          description: URL to retrieve the file
+          example: "/api/v1/chat/upload/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    ChatMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 102400
+          description: Message text content
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 10
+          description: IDs of previously uploaded file attachments to include
+          example: ["a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
+
+    ChatMessageResponse:
+      type: object
+      required:
+        - message_id
+        - session_id
+        - sender_type
+        - content
+        - timestamp
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+        sender_type:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+        content:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileAttachmentResponse"
+          description: File attachments included with the message
+        action_type:
+          type: string
+          nullable: true
+        action_data:
+          type: object
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - FILE_TOO_LARGE
+            - UNSUPPORTED_FILE_TYPE
+            - FILE_NOT_FOUND
+            - MAX_ATTACHMENTS_EXCEEDED
