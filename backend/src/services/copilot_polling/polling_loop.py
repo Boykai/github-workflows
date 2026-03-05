@@ -295,6 +295,21 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(in_review_results),
                 )
+            else:
+                recovery_results = await _cp.recover_stalled_issues(
+                    access_token=access_token,
+                    project_id=project_id,
+                    owner=owner,
+                    repo=repo,
+                    tasks=parent_tasks,
+                )
+
+                if recovery_results:
+                    logger.info(
+                        "Poll #%d: Recovered %d stalled issues",
+                        _polling_state.poll_count,
+                        len(recovery_results),
+                    )
 
             if await _pause_if_rate_limited("Step 4b"):
                 continue
