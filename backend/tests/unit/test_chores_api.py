@@ -539,12 +539,18 @@ class TestEvaluateTriggers:
         """
         # Insert chores in two different projects
         await _insert_chore(
-            mock_db, project_id="PVT_1", name="Chore A",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            project_id="PVT_1",
+            name="Chore A",
+            schedule_type="time",
+            schedule_value=7,
         )
         await _insert_chore(
-            mock_db, project_id="PVT_2", name="Chore B",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            project_id="PVT_2",
+            name="Chore B",
+            schedule_type="time",
+            schedule_value=7,
         )
 
         mock_github_service.check_issue_closed = AsyncMock(return_value=False)
