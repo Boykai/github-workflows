@@ -1,104 +1,100 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Audit & Refactor FastAPI + React GitHub Projects V2 Codebase
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `018-audit-refactor-codebase` | **Date**: 2026-03-05 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/018-audit-refactor-codebase/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Full-sweep audit and in-place refactor of the FastAPI (Python 3.11+) backend and React 18 + TypeScript frontend. Three phases: (1) modernize all dependencies to latest stable, removing unused `agent-framework-core`; (2) DRY consolidation — extract shared `CopilotClientPool`, introduce `_with_fallback` helper, unify retry logic, consolidate header builders; (3) fix six identified anti-patterns including hardcoded model values, unpersisted in-memory state, stub file-deletion parameter, undocumented OAuth bounds, inconsistent singleton registration, and unbounded caches. All changes are in-place with no new files or module restructuring.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11+ (backend), TypeScript 5.4 (frontend)
+**Primary Dependencies**: FastAPI ≥0.109.0, httpx ≥0.26.0, github-copilot-sdk ≥0.1.0, openai ≥1.0.0, azure-ai-inference ≥1.0.0b1, React 18, Vite 5, @tanstack/react-query 5
+**Storage**: SQLite/WAL via aiosqlite ≥0.20.0 (backend); browser state via React Query (frontend)
+**Testing**: pytest + pytest-asyncio (backend), vitest (frontend unit), playwright (frontend e2e)
+**Target Platform**: Linux server (backend), modern browsers (frontend)
+**Project Type**: Web application (backend + frontend)
+**Performance Goals**: Maintain existing performance characteristics; no regression in API response times
+**Constraints**: Refactor in-place only (no new files/modules), preserve dual AI provider pattern, maintain full API backward compatibility
+**Scale/Scope**: ~30 backend Python files modified, ~0 frontend source files modified (deps only), 12 unbounded caches to bound
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | spec.md complete with 3 prioritized user stories, acceptance scenarios, edge cases |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates |
+| **III. Agent-Orchestrated** | ✅ PASS | speckit.plan phase producing plan.md, research.md, data-model.md, contracts/, quickstart.md |
+| **IV. Test Optionality** | ✅ PASS | Tests mandated by spec (FR-018, FR-019): existing tests must pass, affected tests must be updated |
+| **V. Simplicity and DRY** | ✅ PASS | The entire feature IS about DRY consolidation; no premature abstraction — all extractions address documented duplication |
+
+**Gate result: PASS** — No violations. Proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/018-audit-refactor-codebase/
+├── plan.md              # This file
+├── research.md          # Phase 0: dependency research & design decisions
+├── data-model.md        # Phase 1: entity model for new/changed abstractions
+├── quickstart.md        # Phase 1: developer quickstart for the refactor
+├── contracts/           # Phase 1: internal API contracts for new helpers
+│   ├── copilot-client-pool.md
+│   ├── fallback-helper.md
+│   ├── unified-retry.md
+│   └── header-builder.md
+├── checklists/
+│   └── requirements.md
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
+├── pyproject.toml                          # Phase 1: dependency updates
 ├── src/
-│   ├── models/
+│   ├── utils.py                            # Existing BoundedDict/BoundedSet (unchanged)
+│   ├── main.py                             # Phase 3E: singleton registration cleanup
+│   ├── dependencies.py                     # Phase 3E: remove module-global fallbacks
+│   ├── api/
+│   │   ├── chat.py                         # Phase 3B: persist or document in-memory state
+│   │   └── workflow.py                     # Phase 3F: bound _recent_requests cache
 │   ├── services/
-│   └── api/
-└── tests/
+│   │   ├── completion_providers.py         # Phase 2A: use shared CopilotClientPool
+│   │   ├── model_fetcher.py               # Phase 2A: use shared CopilotClientPool
+│   │   ├── github_auth.py                 # Phase 3D: document OAuth state bounds
+│   │   ├── github_commit_workflow.py       # Phase 3C: implement or remove delete_files
+│   │   ├── agents/
+│   │   │   └── service.py                  # Phase 3F: bound chat session caches
+│   │   ├── chores/
+│   │   │   └── chat.py                     # Phase 3F: bound _conversations cache
+│   │   ├── signal_chat.py                  # Phase 3F: bound _signal_pending cache
+│   │   ├── github_projects/
+│   │   │   ├── graphql.py                  # Phase 3A: parameterize hardcoded model
+│   │   │   └── service.py                  # Phase 2B/2C/2D: fallback, retry, headers
+│   │   └── workflow_orchestrator/
+│   │       ├── transitions.py              # Phase 3F: bound pipeline state caches
+│   │       └── config.py                   # Phase 3F: bound _workflow_configs cache
+│   └── ...
+└── tests/                                  # Update affected tests
 
 frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+├── package.json                            # Phase 1: dependency updates
+└── src/                                    # No source changes expected
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application structure (backend/ + frontend/) is preserved. All refactoring is in-place within existing files per FR-015.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations to justify. All changes follow simplicity and DRY principles.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
