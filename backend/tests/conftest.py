@@ -183,19 +183,19 @@ async def client(
     """httpx.AsyncClient wired to the FastAPI app with all deps overridden.
 
     Patches:
-    - get_session_dep → returns mock_session (auth bypass)
+    - get_current_session → returns mock_session (auth bypass)
     - database.get_db → returns mock_db
     - get_settings → returns mock_settings
     - Global service singletons → AsyncMocks
     """
-    from src.api.auth import get_session_dep
+    from src.api.auth import get_current_session
     from src.dependencies import get_connection_manager, get_github_service
     from src.main import create_app
 
     app = create_app()
 
     # FastAPI dependency overrides
-    app.dependency_overrides[get_session_dep] = lambda: mock_session
+    app.dependency_overrides[get_current_session] = lambda: mock_session
     app.dependency_overrides[get_github_service] = lambda: mock_github_service
     app.dependency_overrides[get_connection_manager] = lambda: mock_websocket_manager
 

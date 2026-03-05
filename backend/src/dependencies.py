@@ -57,16 +57,16 @@ def get_database(request: Request) -> aiosqlite.Connection:
     return get_db()
 
 
-def _get_session_dep():
+def _get_current_session():
     """Lazy import to avoid circular imports with api.auth at module level."""
-    from src.api.auth import get_session_dep
+    from src.api.auth import get_current_session
 
-    return get_session_dep
+    return get_current_session
 
 
 async def require_admin(
     request: Request,
-    session=Depends(_get_session_dep()),  # noqa: B008
+    session=Depends(_get_current_session()),  # noqa: B008
 ) -> UserSession:
     """Verify the current session belongs to the admin user.
 

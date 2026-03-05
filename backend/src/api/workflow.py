@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.api.chat import _recommendations
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.models.agent import AvailableAgentsResponse
@@ -111,7 +111,7 @@ def _get_repository_info(session: UserSession) -> tuple[str, str]:
 @router.post("/recommendations/{recommendation_id}/confirm", response_model=WorkflowResult)
 async def confirm_recommendation(
     recommendation_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> WorkflowResult:
     """
     Confirm an AI-generated issue recommendation (T025).
@@ -257,7 +257,7 @@ async def confirm_recommendation(
 @router.post("/recommendations/{recommendation_id}/reject")
 async def reject_recommendation(
     recommendation_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Reject an AI-generated issue recommendation (T026).
@@ -284,7 +284,7 @@ async def reject_recommendation(
 @router.post("/pipeline/{issue_number}/retry")
 async def retry_pipeline(
     issue_number: int,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Retry a failed or stalled agent assignment for an issue.
@@ -403,7 +403,7 @@ async def retry_pipeline(
 
 @router.get("/config", response_model=WorkflowConfiguration)
 async def get_config(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> WorkflowConfiguration:
     """
     Get workflow configuration for the selected project (T039).
@@ -427,7 +427,7 @@ async def get_config(
 @router.put("/config", response_model=WorkflowConfiguration)
 async def update_config(
     config_update: WorkflowConfiguration,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> WorkflowConfiguration:
     """
     Update workflow configuration (T040).
@@ -457,7 +457,7 @@ async def update_config(
 
 @router.get("/agents", response_model=AvailableAgentsResponse)
 async def list_agents(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     owner: str | None = Query(None, description="Repository owner (default: config)"),
     repo: str | None = Query(None, description="Repository name (default: config)"),
 ) -> AvailableAgentsResponse:
@@ -494,7 +494,7 @@ async def list_agents(
 
 @router.get("/transitions", response_model=list[WorkflowTransition])
 async def get_transition_history(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     issue_id: str | None = Query(None, description="Filter by issue ID"),
     limit: int = Query(50, ge=1, le=200, description="Maximum results"),
 ) -> list[WorkflowTransition]:
@@ -507,7 +507,7 @@ async def get_transition_history(
 
 @router.get("/pipeline-states")
 async def list_pipeline_states(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Get all active pipeline states for the current project.
@@ -545,7 +545,7 @@ async def list_pipeline_states(
 @router.get("/pipeline-states/{issue_number}")
 async def get_pipeline_state_for_issue(
     issue_number: int,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Get pipeline state for a specific issue.
@@ -577,7 +577,7 @@ async def get_pipeline_state_for_issue(
 
 @router.post("/notify/in-review")
 async def notify_in_review(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     issue_id: str = Query(..., description="GitHub Issue node ID"),
     issue_number: int = Query(..., description="Issue number"),
     title: str = Query(..., description="Issue title"),
@@ -621,7 +621,7 @@ async def notify_in_review(
 
 @router.get("/polling/status")
 async def get_polling_status(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Get the current status of the Copilot PR polling service."""
     from src.services.copilot_polling import get_polling_status
@@ -632,7 +632,7 @@ async def get_polling_status(
 @router.post("/polling/check-issue/{issue_number}")
 async def check_issue_copilot_completion(
     issue_number: int,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Manually check a specific issue for Copilot PR completion.
@@ -676,7 +676,7 @@ async def check_issue_copilot_completion(
 
 @router.post("/polling/start")
 async def start_copilot_polling(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     interval_seconds: int = 15,
 ) -> dict:
     """
@@ -726,7 +726,7 @@ async def start_copilot_polling(
 
 @router.post("/polling/stop")
 async def stop_copilot_polling(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Stop the background Copilot PR polling."""
     from src.services.copilot_polling import get_polling_status, stop_polling
@@ -744,7 +744,7 @@ async def stop_copilot_polling(
 
 @router.post("/polling/check-all")
 async def check_all_in_progress_issues(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """
     Check all issues in "In Progress" status for Copilot PR completion.

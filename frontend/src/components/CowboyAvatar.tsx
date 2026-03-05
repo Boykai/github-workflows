@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Using imports to ensure Vite bundles them if needed, or point to public/assets. 
 // Since we placed them in src/assets/avatars, let's use standard imports.
 import sheriffLogo from '@/assets/avatars/sheriff.svg';

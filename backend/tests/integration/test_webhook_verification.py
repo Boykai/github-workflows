@@ -38,7 +38,7 @@ class TestWebhookVerification:
 
     async def test_unsigned_payload_rejected_in_production(self):
         """POST /webhooks/github without signature → 401 when debug=False."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         prod_settings = Settings(
@@ -51,7 +51,7 @@ class TestWebhookVerification:
         )
         app = create_app()
         session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.config.get_settings", return_value=prod_settings),
             patch("src.api.webhooks.get_settings", return_value=prod_settings),
@@ -74,7 +74,7 @@ class TestWebhookVerification:
 
     async def test_unsigned_payload_accepted_in_debug(self):
         """POST /webhooks/github without signature → allowed when debug=True."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         debug_settings = Settings(
@@ -87,7 +87,7 @@ class TestWebhookVerification:
         )
         app = create_app()
         session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         mock_gh = AsyncMock(name="github_projects_service")
         with (
             patch("src.config.get_settings", return_value=debug_settings),
@@ -113,7 +113,7 @@ class TestWebhookVerification:
 
     async def test_valid_signature_accepted(self):
         """POST /webhooks/github with valid signature → 200."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.main import create_app
 
         webhook_secret = "test-webhook-secret"
@@ -131,7 +131,7 @@ class TestWebhookVerification:
 
         app = create_app()
         session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         mock_gh = AsyncMock(name="github_projects_service")
         with (
             patch("src.config.get_settings", return_value=settings),

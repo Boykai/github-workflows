@@ -7,7 +7,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.models.agents import (
     Agent,
     AgentChatMessage,
@@ -37,7 +37,7 @@ def _get_service() -> AgentsService:
 @router.get("/{project_id}", response_model=list[Agent])
 async def list_agents(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> list[Agent]:
     """List all agents for a project (merged from SQLite + GitHub repo)."""
     service = _get_service()
@@ -66,7 +66,7 @@ async def list_agents(
 async def create_agent(
     project_id: str,
     body: AgentCreate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> AgentCreateResult:
     """Create a new Custom GitHub Agent (branch + commit + PR)."""
     service = _get_service()
@@ -104,7 +104,7 @@ async def update_agent(
     project_id: str,
     agent_id: str,
     body: AgentUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> AgentCreateResult:
     """Update an existing agent's configuration (opens PR with changes)."""
     service = _get_service()
@@ -141,7 +141,7 @@ async def update_agent(
 async def delete_agent(
     project_id: str,
     agent_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> AgentDeleteResult:
     """Delete an agent — opens a PR to remove files from the repo."""
     service = _get_service()
@@ -180,7 +180,7 @@ async def delete_agent(
 async def agent_chat(
     project_id: str,
     body: AgentChatMessage,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> AgentChatResponse:
     """AI-assisted agent content refinement (multi-turn chat)."""
     service = _get_service()

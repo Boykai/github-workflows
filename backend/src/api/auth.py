@@ -88,10 +88,6 @@ async def get_current_session(
     return session
 
 
-# Backward-compatible alias — callers may use either name.
-get_session_dep = get_current_session
-
-
 @router.get("/github")
 async def initiate_github_oauth() -> RedirectResponse:
     """Initiate GitHub OAuth flow by redirecting to GitHub authorization."""

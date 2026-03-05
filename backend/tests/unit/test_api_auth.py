@@ -35,7 +35,7 @@ def _make_session(**overrides) -> UserSession:
 class TestGetCurrentUser:
     """Tests for the /auth/me endpoint.
 
-    NOTE: /me does NOT use Depends(get_session_dep). It reads the session
+    NOTE: /me does NOT use Depends(get_current_session). It reads the session
     cookie directly and calls get_current_session → github_auth_service.get_session.
     """
 
@@ -158,7 +158,7 @@ class TestDevLogin:
 
     async def test_dev_login_production_mode(self, mock_github_auth_service):
         """dev-login returns 404 when debug=False."""
-        from src.api.auth import get_session_dep
+        from src.api.auth import get_current_session
         from src.config import Settings
         from src.main import create_app
 
@@ -171,7 +171,7 @@ class TestDevLogin:
         )
         app = create_app()
         session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app.dependency_overrides[get_current_session] = lambda: session
         with (
             patch("src.config.get_settings", return_value=prod_settings),
             patch("src.api.auth.github_auth_service", mock_github_auth_service),

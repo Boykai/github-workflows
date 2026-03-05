@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
-from src.api.auth import get_session_dep
+from src.api.auth import get_current_session
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
@@ -105,7 +105,7 @@ def _trigger_signal_delivery(
 
 @router.get("/messages", response_model=ChatMessagesResponse)
 async def get_messages(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> ChatMessagesResponse:
     """Get chat messages for current session."""
     messages = get_session_messages(session.session_id)
@@ -114,7 +114,7 @@ async def get_messages(
 
 @router.delete("/messages")
 async def clear_messages(
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict[str, str]:
     """Clear all chat messages for current session."""
     key = str(session.session_id)
@@ -126,7 +126,7 @@ async def clear_messages(
 @router.post("/messages", response_model=ChatMessage)
 async def send_message(
     request: ChatMessageRequest,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> ChatMessage:
     """Send a chat message and get AI response."""
     # Require project selection
@@ -431,7 +431,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 async def confirm_proposal(
     proposal_id: str,
     request: ProposalConfirmRequest | None,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
     github_projects_service=Depends(get_github_service),  # noqa: B008
     connection_manager=Depends(get_connection_manager),  # noqa: B008
 ) -> AITaskProposal:
@@ -688,7 +688,7 @@ async def confirm_proposal(
 @router.delete("/proposals/{proposal_id}")
 async def cancel_proposal(
     proposal_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
+    session: Annotated[UserSession, Depends(get_current_session)],
 ) -> dict:
     """Cancel an AI task proposal."""
     proposal = _proposals.get(proposal_id)
