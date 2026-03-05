@@ -13,7 +13,7 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
-from src.utils import utcnow
+from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
@@ -29,9 +29,11 @@ from .transitions import (
     get_issue_main_branch,
     get_issue_sub_issues,
     get_pipeline_state,
+    release_agent_trigger,
     set_issue_main_branch,
     set_issue_sub_issues,
     set_pipeline_state,
+    should_skip_agent_trigger,
 )
 
 if TYPE_CHECKING:
@@ -44,7 +46,7 @@ logger = logging.getLogger(__name__)
 # is frozen in the issue body at creation time and never changes, so this
 # cache can persist for the lifetime of the process without a TTL.
 # Key: issue_number → list[AgentStep]
-_tracking_table_cache: dict[int, list] = {}
+_tracking_table_cache: BoundedDict[int, list] = BoundedDict(maxlen=200)
 
 
 def _polling_state_objects():
@@ -1457,6 +1459,22 @@ class WorkflowOrchestrator:
         pending_key = f"{ctx.issue_number}:{agent_name}"
         pending, recovery, grace_period = _polling_state_objects()
 
+        skip_trigger, age_seconds = should_skip_agent_trigger(
+            issue_number=ctx.issue_number,
+            status=status,
+            agent_name=agent_name,
+        )
+        if skip_trigger:
+            logger.warning(
+                "Skipping overlapped trigger for issue #%d status '%s' agent '%s' "
+                "(in-flight for %.1fs)",
+                ctx.issue_number,
+                status,
+                agent_name,
+                age_seconds,
+            )
+            return True
+
         existing_ts = pending.get(pending_key)
         if existing_ts is not None:
             age = (utcnow() - existing_ts).total_seconds()
@@ -1469,6 +1487,7 @@ class WorkflowOrchestrator:
                     age,
                     grace_period,
                 )
+                release_agent_trigger(ctx.issue_number, status, agent_name)
                 return True  # Treat as success — the original assignment is in flight
 
         # Pre-set recovery cooldown and pending flag BEFORE the assignment
@@ -1487,146 +1506,151 @@ class WorkflowOrchestrator:
         base_delay = 3  # seconds
         success = False
 
-        for attempt in range(max_retries):
-            logger.info(
-                "Assigning agent '%s' to sub-issue #%s (parent #%s) with base_ref='%s' (attempt %d/%d)",
-                agent_name,
-                sub_issue_number,
-                ctx.issue_number,
-                base_ref,
-                attempt + 1,
-                max_retries,
-            )
-            success = await self.github.assign_copilot_to_issue(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-                issue_node_id=sub_issue_node_id,
-                issue_number=sub_issue_number,
-                base_ref=base_ref,
-                custom_agent=agent_name,
-                custom_instructions=custom_instructions,
-            )
+        try:
+            for attempt in range(max_retries):
+                logger.info(
+                    "Assigning agent '%s' to sub-issue #%s (parent #%s) with base_ref='%s' (attempt %d/%d)",
+                    agent_name,
+                    sub_issue_number,
+                    ctx.issue_number,
+                    base_ref,
+                    attempt + 1,
+                    max_retries,
+                )
+                success = await self.github.assign_copilot_to_issue(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_node_id=sub_issue_node_id,
+                    issue_number=sub_issue_number,
+                    base_ref=base_ref,
+                    custom_agent=agent_name,
+                    custom_instructions=custom_instructions,
+                )
+
+                if success:
+                    break
+
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2**attempt)  # 3s, 6s, 12s
+                    logger.warning(
+                        "Agent assignment failed for '%s' on issue #%s, retrying in %ds...",
+                        agent_name,
+                        ctx.issue_number,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
 
             if success:
-                break
-
-            if attempt < max_retries - 1:
-                delay = base_delay * (2**attempt)  # 3s, 6s, 12s
-                logger.warning(
-                    "Agent assignment failed for '%s' on issue #%s, retrying in %ds...",
+                logger.info(
+                    "Successfully assigned agent '%s' to issue #%s (base_ref='%s')",
                     agent_name,
                     ctx.issue_number,
-                    delay,
+                    base_ref,
                 )
-                await asyncio.sleep(delay)
 
-        if success:
-            logger.info(
-                "Successfully assigned agent '%s' to issue #%s (base_ref='%s')",
-                agent_name,
-                ctx.issue_number,
-                base_ref,
-            )
+                # Mark agent as 🔄 Active in the issue body tracking table
+                await self._update_agent_tracking_state(ctx, agent_name, "active")
 
-            # Mark agent as 🔄 Active in the issue body tracking table
-            await self._update_agent_tracking_state(ctx, agent_name, "active")
-
-            # Mark the sub-issue as "in progress" (add label, ensure open)
-            if sub_issue_info and sub_issue_number != ctx.issue_number:
-                try:
-                    await self.github.update_issue_state(
-                        access_token=ctx.access_token,
-                        owner=ctx.repository_owner,
-                        repo=ctx.repository_name,
-                        issue_number=sub_issue_number,
-                        state="open",
-                        labels_add=["in-progress"],
-                    )
-                    logger.info(
-                        "Marked sub-issue #%d as in-progress for agent '%s'",
-                        sub_issue_number,
-                        agent_name,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to mark sub-issue #%d as in-progress: %s",
-                        sub_issue_number,
-                        e,
-                    )
-
-                # Update the sub-issue's project board Status to "In Progress"
-                try:
-                    sub_node_id = sub_issue_info.get("node_id", "")
-                    if sub_node_id:
-                        await self.github.update_sub_issue_project_status(
+                # Mark the sub-issue as "in progress" (add label, ensure open)
+                if sub_issue_info and sub_issue_number != ctx.issue_number:
+                    try:
+                        await self.github.update_issue_state(
                             access_token=ctx.access_token,
-                            project_id=ctx.project_id,
-                            sub_issue_node_id=sub_node_id,
-                            status_name=(config.status_in_progress if config else "In Progress"),
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            issue_number=sub_issue_number,
+                            state="open",
+                            labels_add=["in-progress"],
                         )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to update sub-issue #%d project board status: %s",
-                        sub_issue_number,
-                        e,
-                    )
+                        logger.info(
+                            "Marked sub-issue #%d as in-progress for agent '%s'",
+                            sub_issue_number,
+                            agent_name,
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to mark sub-issue #%d as in-progress: %s",
+                            sub_issue_number,
+                            e,
+                        )
 
-            # Refresh recovery cooldown timestamp now that assignment succeeded
-            _, recovery_2, _ = _polling_state_objects()
-            recovery_2[ctx.issue_number] = utcnow()
-        else:
-            logger.warning(
-                "Failed to assign agent '%s' to issue #%s",
-                agent_name,
-                ctx.issue_number,
+                    # Update the sub-issue's project board Status to "In Progress"
+                    try:
+                        sub_node_id = sub_issue_info.get("node_id", "")
+                        if sub_node_id:
+                            await self.github.update_sub_issue_project_status(
+                                access_token=ctx.access_token,
+                                project_id=ctx.project_id,
+                                sub_issue_node_id=sub_node_id,
+                                status_name=(
+                                    config.status_in_progress if config else "In Progress"
+                                ),
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to update sub-issue #%d project board status: %s",
+                            sub_issue_number,
+                            e,
+                        )
+
+                # Refresh recovery cooldown timestamp now that assignment succeeded
+                _, recovery_2, _ = _polling_state_objects()
+                recovery_2[ctx.issue_number] = utcnow()
+            else:
+                logger.warning(
+                    "Failed to assign agent '%s' to issue #%s",
+                    agent_name,
+                    ctx.issue_number,
+                )
+                # Clear pending flag so recovery can retry later
+                pending_2, _, _ = _polling_state_objects()
+                pending_2.pop(pending_key, None)
+
+            # Create / update pipeline state
+            # Capture the HEAD SHA at assignment time for commit-based completion detection
+            assigned_sha = current_head_sha or ""
+            if not assigned_sha and ctx.issue_number:
+                main_branch_info = get_issue_main_branch(ctx.issue_number)
+                if main_branch_info and main_branch_info.get("head_sha"):
+                    assigned_sha = main_branch_info.get("head_sha", "")
+
+            # Preserve existing sub-issue mappings from previous agents
+            existing_pipeline = get_pipeline_state(ctx.issue_number)
+            existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
+
+            # Add the new agent's sub-issue info
+            agent_sub_issues = dict(existing_sub_issues)
+            if sub_issue_info:
+                agent_sub_issues[agent_name] = sub_issue_info
+
+            pipeline_state = PipelineState(
+                issue_number=ctx.issue_number,
+                project_id=ctx.project_id,
+                status=status,
+                agents=agent_slugs,
+                current_agent_index=agent_index,
+                completed_agents=agent_slugs[:agent_index],
+                started_at=utcnow(),
+                error=None if success else f"Failed to assign agent '{agent_name}'",
+                agent_assigned_sha=assigned_sha,
+                agent_sub_issues=agent_sub_issues,
             )
-            # Clear pending flag so recovery can retry later
-            pending_2, _, _ = _polling_state_objects()
-            pending_2.pop(pending_key, None)
+            set_pipeline_state(ctx.issue_number, pipeline_state)
 
-        # Create / update pipeline state
-        # Capture the HEAD SHA at assignment time for commit-based completion detection
-        assigned_sha = current_head_sha or ""
-        if not assigned_sha and ctx.issue_number:
-            main_branch_info = get_issue_main_branch(ctx.issue_number)
-            if main_branch_info and main_branch_info.get("head_sha"):
-                assigned_sha = main_branch_info.get("head_sha", "")
+            # Log the transition
+            self.log_transition(
+                ctx=ctx,
+                from_status=status,
+                to_status=status,
+                triggered_by=TriggeredBy.AUTOMATIC,
+                success=success,
+                assigned_user=f"copilot:{agent_name}" if success else None,
+                error_message=None if success else f"Failed to assign agent '{agent_name}'",
+            )
 
-        # Preserve existing sub-issue mappings from previous agents
-        existing_pipeline = get_pipeline_state(ctx.issue_number)
-        existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
-
-        # Add the new agent's sub-issue info
-        agent_sub_issues = dict(existing_sub_issues)
-        if sub_issue_info:
-            agent_sub_issues[agent_name] = sub_issue_info
-
-        pipeline_state = PipelineState(
-            issue_number=ctx.issue_number,
-            project_id=ctx.project_id,
-            status=status,
-            agents=agent_slugs,
-            current_agent_index=agent_index,
-            completed_agents=agent_slugs[:agent_index],
-            started_at=utcnow(),
-            error=None if success else f"Failed to assign agent '{agent_name}'",
-            agent_assigned_sha=assigned_sha,
-            agent_sub_issues=agent_sub_issues,
-        )
-        set_pipeline_state(ctx.issue_number, pipeline_state)
-
-        # Log the transition
-        self.log_transition(
-            ctx=ctx,
-            from_status=status,
-            to_status=status,
-            triggered_by=TriggeredBy.AUTOMATIC,
-            success=success,
-            assigned_user=f"copilot:{agent_name}" if success else None,
-            error_message=None if success else f"Failed to assign agent '{agent_name}'",
-        )
-
+        finally:
+            release_agent_trigger(ctx.issue_number, status, agent_name)
         return success
 
     # ──────────────────────────────────────────────────────────────────

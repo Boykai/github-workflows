@@ -19,6 +19,7 @@ vi.mock('@/services/api', () => ({
 // Mock constants so queries fire immediately
 vi.mock('@/constants', () => ({
   STALE_TIME_LONG: 0,
+  STALE_TIME_PROJECTS: 0,
   STALE_TIME_SHORT: 0,
 }));
 

@@ -115,17 +115,6 @@ async def commit_files_workflow(
 
     # ── Step 4: Commit files ──
     try:
-        # NOTE: delete_files is accepted but not yet implemented.
-        # The GraphQL createCommitOnBranch mutation supports fileChanges.deletions,
-        # but commit_files() currently only handles additions. File deletions
-        # require extending commit_files() or adding a dedicated helper.
-        if delete_files:
-            logger.warning(
-                "delete_files=%s was requested but file deletion is not yet "
-                "implemented in commit_files(). Only additions will be committed.",
-                delete_files,
-            )
-
         commit_oid = await github_projects_service.commit_files(
             access_token=access_token,
             owner=owner,
@@ -134,6 +123,7 @@ async def commit_files_workflow(
             head_oid=repo_info["head_oid"],
             files=files if files else [],
             message=commit_message,
+            deletions=delete_files,
         )
         if not commit_oid:
             result.errors.append("commit_files returned None")

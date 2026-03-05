@@ -15,6 +15,7 @@ from src.config import Settings
 from src.services.completion_providers import (
     AzureOpenAICompletionProvider,
     CompletionProvider,
+    CopilotClientPool,
     CopilotCompletionProvider,
     create_completion_provider,
 )
@@ -58,40 +59,39 @@ class TestCopilotCompletionProvider:
             await p.complete([{"role": "user", "content": "hi"}], github_token=None)
 
     def test_token_key_is_deterministic(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("abc")
+        k1 = CopilotClientPool._token_key("abc")
+        k2 = CopilotClientPool._token_key("abc")
         assert k1 == k2
 
     def test_token_key_differs_for_different_tokens(self):
-        k1 = CopilotCompletionProvider._token_key("abc")
-        k2 = CopilotCompletionProvider._token_key("xyz")
+        k1 = CopilotClientPool._token_key("abc")
+        k2 = CopilotClientPool._token_key("xyz")
         assert k1 != k2
 
     async def test_cleanup_stops_clients(self):
-        p = CopilotCompletionProvider()
+        pool = CopilotClientPool()
+        p = CopilotCompletionProvider(pool=pool)
         mock_client = AsyncMock()
-        p._clients["key1"] = mock_client
+        pool._clients["key1"] = mock_client
         await p.cleanup()
         mock_client.stop.assert_awaited_once()
-        assert len(p._clients) == 0
+        assert len(pool._clients) == 0
 
     async def test_cleanup_handles_errors(self):
-        p = CopilotCompletionProvider()
+        pool = CopilotClientPool()
+        p = CopilotCompletionProvider(pool=pool)
         mock_client = AsyncMock()
         mock_client.stop.side_effect = RuntimeError("fail")
-        p._clients["key1"] = mock_client
+        pool._clients["key1"] = mock_client
         # Should not raise
         await p.cleanup()
-        assert len(p._clients) == 0
+        assert len(pool._clients) == 0
 
-    async def test_get_or_create_client_caches(self):
-        CopilotCompletionProvider()
+    async def test_pool_get_or_create_client_caches(self):
+        CopilotClientPool()  # ensure constructor works
         mock_client = AsyncMock()
-        with patch(
-            "src.services.completion_providers.CopilotCompletionProvider._get_or_create_client"
-        ) as mock_get:
+        with patch("src.services.completion_providers.CopilotClientPool.get_or_create") as mock_get:
             mock_get.return_value = mock_client
-            # Just verify the interface - we can't import copilot SDK
             client = await mock_get("token123")
             assert client is mock_client
 
@@ -113,9 +113,11 @@ class TestCopilotCompletionProvider:
 
         mock_session.on = capture_on
 
-        # Pre-inject a cached client
-        key = CopilotCompletionProvider._token_key("test-token")
-        p._clients[key] = mock_client
+        # Pre-inject a cached client into the pool
+        pool = CopilotClientPool()
+        key = CopilotClientPool._token_key("test-token")
+        pool._clients[key] = mock_client
+        p = CopilotCompletionProvider(pool=pool)
 
         # Patch SessionEventType and session types
         mock_event_type = MagicMock()

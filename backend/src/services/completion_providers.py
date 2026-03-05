@@ -3,10 +3,6 @@
 Provides a unified interface for different AI backends:
 - CopilotCompletionProvider: Default. Uses GitHub Copilot SDK with user's OAuth token.
 - AzureOpenAICompletionProvider: Optional. Uses Azure OpenAI with static API keys.
-
-Microsoft Agent Framework (agent-framework-core) is available as a dependency for
-advanced orchestration patterns (multi-agent, tool calling, workflows) that can
-wrap around either provider.
 """
 
 import asyncio
@@ -16,8 +12,83 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from src.config import get_settings
+from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
+
+
+class CopilotClientPool:
+    """Shared, bounded cache of CopilotClient instances keyed by token hash.
+
+    Used by both CopilotCompletionProvider and GitHubCopilotModelFetcher to avoid
+    duplicate client creation. Each unique GitHub token maps to exactly one
+    CopilotClient, regardless of which service requests it.
+
+    Thread-safe via asyncio.Lock for concurrent get_or_create calls.
+    Memory-safe via BoundedDict with FIFO eviction when capacity is reached.
+    """
+
+    def __init__(self, maxlen: int = 50) -> None:
+        self._clients: BoundedDict[str, Any] = BoundedDict(maxlen=maxlen)
+        self._lock = asyncio.Lock()
+
+    @staticmethod
+    def _token_key(github_token: str) -> str:
+        """Return a stable hash of the token for use as a cache key.
+
+        Avoids keeping raw tokens as dict keys where they could be
+        exposed by debug tooling or log dumps.
+        """
+        return hashlib.sha256(github_token.encode()).hexdigest()[:16]
+
+    async def get_or_create(self, github_token: str) -> Any:
+        """Get cached or create new CopilotClient for a given token."""
+        key = self._token_key(github_token)
+        if key in self._clients:
+            return self._clients[key]
+
+        async with self._lock:
+            # Double-check after acquiring lock
+            if key in self._clients:
+                return self._clients[key]
+
+            from copilot import CopilotClient  # type: ignore[reportMissingImports]
+            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
+
+            options = CopilotClientOptions(github_token=github_token)
+            client = CopilotClient(options=options)
+            await client.start()
+            self._clients[key] = client
+            logger.info(
+                "Created new CopilotClient (pool size: %d/%d)",
+                len(self._clients),
+                self._clients._maxlen,
+            )
+            return client
+
+    async def cleanup(self) -> None:
+        """Stop all cached CopilotClient instances. Call on app shutdown."""
+        for _token_hash, client in list(self._clients.items()):
+            try:
+                await client.stop()
+            except Exception as e:
+                logger.warning("Error stopping CopilotClient: %s", e)
+        self._clients.clear()
+        logger.info("Cleaned up all CopilotClient instances")
+
+    async def remove(self, github_token: str) -> None:
+        """Stop and remove a single client by token."""
+        key = self._token_key(github_token)
+        client = self._clients.pop(key, None)
+        if client:
+            try:
+                await client.stop()
+            except Exception as e:
+                logger.warning("Error stopping CopilotClient: %s", e)
+
+
+# Module-level shared pool instance used by both providers and model fetcher
+copilot_client_pool = CopilotClientPool()
 
 
 class CompletionProvider(ABC):
@@ -54,44 +125,18 @@ class CompletionProvider(ABC):
 class CopilotCompletionProvider(CompletionProvider):
     """Completion provider using GitHub Copilot SDK.
 
-    Authenticates using the user's GitHub OAuth token. Each unique token
-    gets a cached CopilotClient instance to avoid spawning new CLI processes
-    per request.
+    Authenticates using the user's GitHub OAuth token. Client instances are
+    managed by the shared CopilotClientPool to avoid duplication with the
+    model fetcher service.
 
     Requires:
         pip install github-copilot-sdk
     """
 
-    def __init__(self, model: str = "gpt-4o"):
+    def __init__(self, model: str = "gpt-4o", pool: CopilotClientPool | None = None):
         self._model = model
-        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
+        self._pool = pool or copilot_client_pool
         logger.info("Initialized Copilot completion provider (model: %s)", model)
-
-    @staticmethod
-    def _token_key(github_token: str) -> str:
-        """Return a stable hash of the token for use as a cache key.
-
-        Avoids keeping raw tokens as dict keys where they could be
-        exposed by debug tooling or log dumps.
-        """
-        return hashlib.sha256(github_token.encode()).hexdigest()[:16]
-
-    async def _get_or_create_client(self, github_token: str) -> Any:
-        """Get cached or create new CopilotClient for a given token."""
-        key = self._token_key(github_token)
-        if key not in self._clients:
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
-
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
-            await client.start()
-            self._clients[key] = client
-            logger.info(
-                "Created new CopilotClient (total cached: %d)",
-                len(self._clients),
-            )
-        return self._clients[key]
 
     async def complete(
         self,
@@ -106,7 +151,7 @@ class CopilotCompletionProvider(CompletionProvider):
                 "Ensure user is authenticated via GitHub OAuth."
             )
 
-        client = await self._get_or_create_client(github_token)
+        client = await self._pool.get_or_create(github_token)
 
         from copilot import PermissionHandler  # type: ignore[reportMissingImports]
         from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
@@ -178,14 +223,8 @@ class CopilotCompletionProvider(CompletionProvider):
         return "".join(result_content) if result_content else ""
 
     async def cleanup(self) -> None:
-        """Stop all cached CopilotClient instances. Call on app shutdown."""
-        for _token_hash, client in self._clients.items():
-            try:
-                await client.stop()
-            except Exception as e:
-                logger.warning("Error stopping CopilotClient: %s", e)
-        self._clients.clear()
-        logger.info("Cleaned up all CopilotClient instances")
+        """Stop all cached CopilotClient instances. Delegates to the shared pool."""
+        await self._pool.cleanup()
 
     @property
     def name(self) -> str:

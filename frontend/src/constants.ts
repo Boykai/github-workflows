@@ -10,6 +10,9 @@
 /** Default stale time for infrequently-changing data (5 minutes). */
 export const STALE_TIME_LONG = 5 * 60 * 1000;
 
+/** Stale time for project-list data (15 minutes). */
+export const STALE_TIME_PROJECTS = 15 * 60 * 1000;
+
 /** Stale time for moderately-changing data (1 minute). */
 export const STALE_TIME_MEDIUM = 60 * 1000;
 

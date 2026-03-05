@@ -12,6 +12,7 @@ import { useUserSettings, useSignalBanners, useDismissBanner } from '@/hooks/use
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ApiError } from '@/services/api';
 import { Button } from '@/components/ui/button';
 
 /** Dismissible Signal conflict banner bar (FR-015). */
@@ -46,7 +47,17 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (error instanceof ApiError) {
+          if (error.status === 401 || error.status === 403 || error.status === 404) {
+            return false;
+          }
+          if (error.status === 429) {
+            return false;
+          }
+        }
+        return failureCount < 1;
+      },
     },
   },
 });

@@ -8,6 +8,7 @@ import src.services.copilot_polling as _cp
 from src.utils import utcnow
 
 from .state import (
+    MAX_POLL_INTERVAL_SECONDS,
     RATE_LIMIT_PAUSE_THRESHOLD,
     RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
     RATE_LIMIT_SLOW_THRESHOLD,
@@ -133,9 +134,22 @@ async def _poll_loop(
     """Inner polling loop, separated so CancelledError is handled in the caller."""
 
     while _polling_state.is_running:
+        # Initialize result variables so the activity check after the
+        # try/except always has valid references (even after continue).
+        output_results: list = []
+        backlog_results: list = []
+        ready_results: list = []
+        results: list = []
+        review_results: list = []
+        in_review_results: list = []
+        recovery_results: list = []
+        skip_expensive = False
         try:
             _polling_state.last_poll_time = utcnow()
             _polling_state.poll_count += 1
+
+            # Clear per-cycle cache so each iteration starts with fresh data.
+            _cp.github_projects_service.clear_cycle_cache()
 
             logger.debug(
                 "Polling for Copilot PR completions (poll #%d)",
@@ -295,7 +309,7 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(in_review_results),
                 )
-            else:
+            elif not skip_expensive:
                 recovery_results = await _cp.recover_stalled_issues(
                     access_token=access_token,
                     project_id=project_id,
@@ -371,6 +385,49 @@ async def _poll_loop(
             )
         else:
             effective_interval = interval_seconds
+
+        # ── Activity-based adaptive polling (FR-019) ──
+        # Detect whether this cycle produced any results; if so, treat it
+        # as "active" and reset the idle counter back to baseline.
+        import src.services.copilot_polling.state as _poll_state
+
+        had_activity = bool(
+            output_results
+            or backlog_results
+            or ready_results
+            or results
+            or review_results
+            or in_review_results
+            or (not skip_expensive and recovery_results)
+        )
+
+        if had_activity:
+            if _poll_state._consecutive_idle_polls:
+                logger.info(
+                    "Adaptive polling: activity detected, resetting idle counter from %d to 0",
+                    _poll_state._consecutive_idle_polls,
+                )
+            _poll_state._consecutive_idle_polls = 0
+        else:
+            _poll_state._consecutive_idle_polls += 1
+
+        # Only apply adaptive backoff when rate-limit doubling is NOT already
+        # active — avoid stacking both multipliers.
+        if _poll_state._consecutive_idle_polls > 0 and effective_interval == interval_seconds:
+            max_doublings = 3  # 60 → 120 → 240 → 300 (capped)
+            idle_multiplier = 2 ** min(_poll_state._consecutive_idle_polls, max_doublings)
+            adaptive_interval = min(
+                interval_seconds * idle_multiplier,
+                MAX_POLL_INTERVAL_SECONDS,
+            )
+            if adaptive_interval > effective_interval:
+                logger.info(
+                    "Adaptive polling: %d consecutive idle polls, interval %ds → %ds",
+                    _poll_state._consecutive_idle_polls,
+                    effective_interval,
+                    adaptive_interval,
+                )
+                effective_interval = adaptive_interval
 
         await asyncio.sleep(effective_interval)
 

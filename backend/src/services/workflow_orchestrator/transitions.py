@@ -1,25 +1,86 @@
 """Pipeline state, branch tracking, and sub-issue map management."""
 
 import logging
+from datetime import datetime
+
+from src.utils import BoundedDict, utcnow
 
 from .models import MainBranchInfo, PipelineState
 
 logger = logging.getLogger(__name__)
 
 # In-memory storage for pipeline states (per issue number)
-_pipeline_states: dict[int, PipelineState] = {}
+_pipeline_states: BoundedDict[int, PipelineState] = BoundedDict(maxlen=500)
 
 # In-memory storage for the "main" PR branch per issue
 # The first PR's branch becomes the base for all subsequent agent branches
 # Maps issue_number -> {branch: str, pr_number: int}
-_issue_main_branches: dict[int, MainBranchInfo] = {}
+_issue_main_branches: BoundedDict[int, MainBranchInfo] = BoundedDict(maxlen=500)
 
 # Global sub-issue mapping store that persists across pipeline state resets.
 # When pipeline state is removed during status transitions (e.g., Backlog → Ready),
 # the agent_sub_issues on PipelineState are lost.  This global store retains the
 # mapping so subsequent agents can still look up (and close) their sub-issues.
 # Maps issue_number → {agent_name → {"number": int, "node_id": str, "url": str}}
-_issue_sub_issue_map: dict[int, dict[str, dict]] = {}
+_issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500)
+
+# Guard for overlapping trigger paths (polling + manual/user actions).
+# Key format: "issue:status:agent" → timestamp of in-flight trigger start.
+_agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=2000)
+AGENT_TRIGGER_STALE_SECONDS = 120
+
+
+def _agent_trigger_key(issue_number: int, status: str, agent_name: str) -> str:
+    return f"{issue_number}:{status.lower()}:{agent_name}"
+
+
+def should_skip_agent_trigger(
+    issue_number: int,
+    status: str,
+    agent_name: str,
+    stale_seconds: int = AGENT_TRIGGER_STALE_SECONDS,
+) -> tuple[bool, float]:
+    """Return (should_skip, age_seconds) for an agent trigger.
+
+    This function also *claims* the trigger when it returns ``False`` by
+    recording it in the in-flight map. Callers should release via
+    ``release_agent_trigger`` when done.
+    """
+    key = _agent_trigger_key(issue_number, status, agent_name)
+    now = utcnow()
+
+    inflight_started = _agent_trigger_inflight.get(key)
+    if inflight_started is not None:
+        age_seconds = (now - inflight_started).total_seconds()
+        if age_seconds < stale_seconds:
+            return True, age_seconds
+        # Stale in-flight marker (e.g. crash/exception path) — replace it.
+        logger.warning(
+            "Replacing stale in-flight trigger marker for issue=%d status='%s' agent='%s' "
+            "(age=%.1fs)",
+            issue_number,
+            status,
+            agent_name,
+            age_seconds,
+        )
+
+    _agent_trigger_inflight[key] = now
+    return False, 0.0
+
+
+def release_agent_trigger(issue_number: int, status: str, agent_name: str) -> None:
+    """Release in-flight marker for an agent trigger."""
+    _agent_trigger_inflight.pop(_agent_trigger_key(issue_number, status, agent_name), None)
+
+
+def clear_agent_trigger_buffer(issue_number: int, status: str, agent_name: str) -> None:
+    """Backward-compatible alias for clearing an in-flight marker."""
+    release_agent_trigger(issue_number, status, agent_name)
+
+
+def clear_all_agent_trigger_buffers() -> None:
+    """Clear all trigger buffer entries."""
+    _agent_trigger_inflight.clear()
 
 
 def get_pipeline_state(issue_number: int) -> PipelineState | None:
