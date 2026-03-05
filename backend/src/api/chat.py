@@ -126,6 +126,8 @@ async def clear_messages(
 
 
 # ---- File Upload Endpoints ------------------------------------------------
+
+
 @router.post("/upload", response_model=FileAttachmentResponse, status_code=201)
 async def upload_chat_file(
     file: UploadFile,
