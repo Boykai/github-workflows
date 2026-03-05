@@ -1,104 +1,80 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Ruby-Colored Background Theme
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `018-ruby-background-theme` | **Date**: 2026-03-05 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/018-ruby-background-theme/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Apply a ruby-colored background (deep red, #9B111E) to the application by updating the existing CSS custom property theming system in `frontend/src/index.css`. The change targets the `--background` token (and related foreground tokens) in both `:root` (light) and `.dark` scopes, leveraging the existing Tailwind CSS + HSL custom property architecture. Foreground colors will be adjusted to ensure WCAG AA 4.5:1 contrast compliance. No new dependencies or structural changes are required—this is a pure CSS token update.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.x (React 18 frontend), CSS3 with Tailwind CSS  
+**Primary Dependencies**: React 18, Tailwind CSS 3.x, shadcn/ui component library, `tailwindcss-animate`  
+**Storage**: N/A (frontend-only styling change)  
+**Testing**: Vitest (frontend unit tests exist in `frontend/src/test/`)  
+**Target Platform**: Web browsers (desktop, tablet, mobile)  
+**Project Type**: Web application (frontend + backend monorepo)  
+**Performance Goals**: N/A (no runtime performance impact—static CSS change)  
+**Constraints**: WCAG AA minimum 4.5:1 contrast ratio for all foreground text against ruby background  
+**Scale/Scope**: Single CSS file change (`index.css`) affecting global theme tokens; potential adjustments to component-level foreground colors if contrast fails
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | `spec.md` exists with prioritized user stories (P1–P3), acceptance scenarios, and edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates; plan.md uses plan-template.md structure |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase produces plan.md, research.md, data-model.md, contracts/, quickstart.md per workflow |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests not explicitly requested in spec; contrast verification is a manual/tool check, not automated test |
+| V. Simplicity and DRY | ✅ PASS | Change is minimal—updating existing CSS tokens in a single file; no new abstractions introduced |
+
+**Gate Result**: ✅ ALL PASS — Proceed to Phase 0.
+
+### Post-Design Re-Check (after Phase 1)
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | Design artifacts trace directly to spec requirements (FR-001 through FR-008) |
+| II. Template-Driven Workflow | ✅ PASS | All Phase 0/1 artifacts generated: research.md, data-model.md, contracts/README.md, quickstart.md |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan phase complete; agent context updated via `update-agent-context.sh copilot` |
+| IV. Test Optionality with Clarity | ✅ PASS | No tests mandated; contrast verification documented as manual check in quickstart.md |
+| V. Simplicity and DRY | ✅ PASS | Solution modifies only 4 CSS token values in 1 file; no new abstractions, dependencies, or patterns |
+
+**Post-Design Gate Result**: ✅ ALL PASS — Ready for Phase 2 (tasks generation).
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/018-ruby-background-theme/
+├── plan.md              # This file
+├── research.md          # Phase 0: Color research & contrast analysis
+├── data-model.md        # Phase 1: Design token definitions
+├── quickstart.md        # Phase 1: Quick implementation guide
+├── contracts/           # Phase 1: N/A (no API contracts for CSS-only change)
+│   └── README.md        # Explanation of why contracts are not applicable
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
+│   ├── index.css              # PRIMARY: Theme tokens (:root, .dark) — update --background, --foreground
+│   ├── App.tsx                # Uses bg-background text-foreground — inherits token changes
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── ThemeProvider.tsx   # Toggles .dark class — no changes needed
+│   └── ...
+└── tailwind.config.js         # Maps hsl(var(--background)) — no changes needed
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (frontend + backend). This feature only touches the frontend, specifically `frontend/src/index.css` where theme tokens are defined. The Tailwind config and ThemeProvider are consumed as-is with no modifications needed—they already reference `hsl(var(--background))` and toggle `.dark` class respectively.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations detected. No complexity justifications needed.
