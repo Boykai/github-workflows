@@ -9,6 +9,7 @@ import type {
   ChatMessage,
   ChatMessageRequest,
   ChatMessagesResponse,
+  FileAttachmentResponse,
   AITaskProposal,
   ProposalConfirmRequest,
   Project,
@@ -254,6 +255,46 @@ export const chatApi = {
    */
   cancelProposal(proposalId: string): Promise<void> {
     return request<void>(`/chat/proposals/${proposalId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Upload a file attachment for a chat message.
+   */
+  async uploadFile(file: File): Promise<FileAttachmentResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/chat/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error: APIError = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      throw new ApiError(response.status, error);
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get URL for an uploaded file.
+   */
+  getFileUrl(fileId: string): string {
+    return `${API_BASE_URL}/chat/upload/${fileId}`;
+  },
+
+  /**
+   * Delete an uploaded file.
+   */
+  deleteFile(fileId: string): Promise<void> {
+    return request<void>(`/chat/upload/${fileId}`, {
       method: 'DELETE',
     });
   },

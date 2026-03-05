@@ -114,11 +114,26 @@ export interface ChatMessage {
   content: string;
   action_type?: ActionType;
   action_data?: ActionData;
+  attachments?: FileAttachmentResponse[];
   timestamp: string;
 }
 
 export interface ChatMessageRequest {
   content: string;
+  attachment_ids?: string[];
+}
+
+// ============ File Attachments ============
+
+export type UploadStatus = 'pending' | 'uploaded' | 'failed';
+
+export interface FileAttachmentResponse {
+  id: string;
+  original_filename: string;
+  mime_type: string;
+  file_size: number;
+  upload_status: UploadStatus;
+  url: string;
 }
 
 export interface ChatMessagesResponse {

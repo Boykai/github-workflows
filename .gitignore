@@ -68,6 +68,9 @@ frontend/e2e-report/
 *.db-wal
 *.db-shm
 
+# Uploads
+uploads/
+
 # Misc
 *.tmp
 *.bak

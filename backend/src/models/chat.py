@@ -65,6 +65,52 @@ class ActionType(StrEnum):
     ISSUE_CREATE = "issue_create"
 
 
+class UploadStatus(StrEnum):
+    """Upload processing status for file attachments."""
+
+    PENDING = "pending"
+    UPLOADED = "uploaded"
+    FAILED = "failed"
+
+
+# Allowed MIME types for file uploads
+ALLOWED_MIME_TYPES: set[str] = {
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+}
+
+MAX_FILE_SIZE = 26_214_400  # 25 MB in bytes
+MAX_ATTACHMENTS_PER_MESSAGE = 10
+
+
+class FileAttachment(BaseModel):
+    """Represents a file queued for upload or already uploaded."""
+
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique attachment ID")
+    original_filename: str = Field(..., max_length=255, description="User's original filename")
+    mime_type: str = Field(..., description="MIME type of the file")
+    file_size: int = Field(..., description="File size in bytes")
+    storage_path: str = Field(..., description="Server-side file path")
+    upload_status: UploadStatus = Field(default=UploadStatus.PENDING, description="Upload state")
+    created_at: datetime = Field(default_factory=utcnow, description="Upload timestamp")
+
+
+class FileAttachmentResponse(BaseModel):
+    """API response representation of a file attachment."""
+
+    id: str
+    original_filename: str
+    mime_type: str
+    file_size: int
+    upload_status: str
+    url: str
+
+
 class ChatMessage(BaseModel):
     """Represents a single message in the chat conversation."""
 
@@ -74,6 +120,7 @@ class ChatMessage(BaseModel):
     content: str = Field(..., max_length=100000, description="Message text content")
     action_type: ActionType | None = Field(default=None, description="Associated action type")
     action_data: dict[str, Any] | None = Field(default=None, description="Action-specific payload")
+    attachments: list[FileAttachmentResponse] = Field(default_factory=list, description="File attachments")
     timestamp: datetime = Field(default_factory=utcnow, description="Message timestamp")
 
     model_config = {
@@ -85,6 +132,7 @@ class ChatMessage(BaseModel):
                 "content": "Create a task to fix the login bug",
                 "action_type": None,
                 "action_data": None,
+                "attachments": [],
                 "timestamp": "2026-01-30T10:00:00Z",
             }
         }
@@ -95,6 +143,7 @@ class ChatMessageRequest(BaseModel):
     """Request to send a chat message."""
 
     content: str = Field(..., max_length=100000, description="Message content")
+    attachment_ids: list[str] = Field(default_factory=list, max_length=MAX_ATTACHMENTS_PER_MESSAGE, description="IDs of file attachments")
 
     @field_validator("content")
     @classmethod
