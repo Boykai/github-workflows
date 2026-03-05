@@ -6,7 +6,7 @@ persisted in SQLite with an in-memory L1 cache layer for performance.
 
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 from pydantic import BaseModel, Field
@@ -376,7 +376,7 @@ class MetadataService:
         try:
             fetched = datetime.fromisoformat(fetched_at)
             if fetched.tzinfo is None:
-                fetched = fetched.replace(tzinfo=timezone.utc)
+                fetched = fetched.replace(tzinfo=UTC)
             now = utcnow()
             return (now - fetched).total_seconds() > ttl_seconds
         except (ValueError, TypeError):
