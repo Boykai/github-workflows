@@ -30,7 +30,7 @@ from src.models.agents import (
 from src.services.agent_creator import generate_config_files, generate_issue_body
 from src.services.github_commit_workflow import commit_files_workflow
 from src.services.github_projects import github_projects_service
-from src.utils import utcnow
+from src.utils import BoundedDict, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +40,8 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)", re.DOTALL)
 # ── Chat sessions (bounded) ─────────────────────────────────────────────
 _MAX_CHAT_SESSIONS = 200
 _SESSION_TTL_SECONDS = 30 * 60  # 30 minutes
-_chat_sessions: dict[str, list[dict]] = {}
-_chat_session_timestamps: dict[str, float] = {}
+_chat_sessions: BoundedDict[str, list[dict]] = BoundedDict(maxlen=200)
+_chat_session_timestamps: BoundedDict[str, float] = BoundedDict(maxlen=200)
 
 
 def _prune_expired_sessions() -> None:
