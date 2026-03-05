@@ -120,7 +120,9 @@ class ChatMessage(BaseModel):
     content: str = Field(..., max_length=100000, description="Message text content")
     action_type: ActionType | None = Field(default=None, description="Associated action type")
     action_data: dict[str, Any] | None = Field(default=None, description="Action-specific payload")
-    attachments: list[FileAttachmentResponse] = Field(default_factory=list, description="File attachments")
+    attachments: list[FileAttachmentResponse] = Field(
+        default_factory=list, description="File attachments"
+    )
     timestamp: datetime = Field(default_factory=utcnow, description="Message timestamp")
 
     model_config = {
@@ -143,7 +145,11 @@ class ChatMessageRequest(BaseModel):
     """Request to send a chat message."""
 
     content: str = Field(..., max_length=100000, description="Message content")
-    attachment_ids: list[str] = Field(default_factory=list, max_length=MAX_ATTACHMENTS_PER_MESSAGE, description="IDs of file attachments")
+    attachment_ids: list[str] = Field(
+        default_factory=list,
+        max_length=MAX_ATTACHMENTS_PER_MESSAGE,
+        description="IDs of file attachments",
+    )
 
     @field_validator("content")
     @classmethod
