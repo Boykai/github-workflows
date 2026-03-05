@@ -138,6 +138,40 @@ class TestConnectionManager:
         # Working connection should still be there
         mock_websocket2.send_json.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_broadcast_snapshot_prevents_set_mutation_error(self, manager):
+        """Bug fix: broadcast_to_project must snapshot the connections set.
+
+        Previously, broadcast_to_project iterated directly over the mutable
+        set reference from self._connections. If a failed send triggered
+        disconnect() during iteration, a RuntimeError ('Set changed size
+        during iteration') could occur. The fix copies the set to a list
+        before iterating.
+        """
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+        ws1.send_json = AsyncMock(side_effect=Exception("dead"))
+
+        ws2 = MagicMock()
+        ws2.accept = AsyncMock()
+        ws2.send_json = AsyncMock()
+
+        ws3 = MagicMock()
+        ws3.accept = AsyncMock()
+        ws3.send_json = AsyncMock()
+
+        await manager.connect(ws1, "PVT_SNAP")
+        await manager.connect(ws2, "PVT_SNAP")
+        await manager.connect(ws3, "PVT_SNAP")
+
+        # Should not raise RuntimeError even though ws1 fails and gets removed
+        await manager.broadcast_to_project("PVT_SNAP", {"type": "test"})
+
+        # ws1 should be disconnected, ws2 and ws3 should remain
+        assert manager.get_connection_count("PVT_SNAP") == 2
+        ws2.send_json.assert_called_once()
+        ws3.send_json.assert_called_once()
+
     def test_get_connection_count_unknown_project(self, manager):
         """Should return 0 for unknown projects."""
         assert manager.get_connection_count("PVT_UNKNOWN") == 0

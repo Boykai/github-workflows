@@ -518,3 +518,51 @@ class TestManualTrigger:
             resp = await client.post(f"/api/v1/chores/PVT_1/{cid}/trigger")
 
         assert resp.status_code == 404
+
+
+# =============================================================================
+# POST /chores/evaluate-triggers — project_id filtering regression
+# =============================================================================
+
+
+class TestEvaluateTriggers:
+    """Regression tests for evaluate-triggers endpoint (project_id filtering)."""
+
+    @pytest.mark.anyio
+    async def test_evaluate_triggers_passes_project_id(self, client, mock_db, mock_github_service):
+        """Bug fix: evaluate-triggers must pass project_id to service.evaluate_triggers().
+
+        Previously, the API endpoint resolved the project_id from the request
+        body but did not forward it to the service method, causing all chores
+        across all projects to be evaluated instead of only those in the
+        specified project.
+        """
+        # Insert chores in two different projects
+        await _insert_chore(
+            mock_db, project_id="PVT_1", name="Chore A",
+            schedule_type="time", schedule_value=7,
+        )
+        await _insert_chore(
+            mock_db, project_id="PVT_2", name="Chore B",
+            schedule_type="time", schedule_value=7,
+        )
+
+        mock_github_service.check_issue_closed = AsyncMock(return_value=False)
+
+        with patch("src.api.chores.resolve_repository", return_value=("owner", "repo")):
+            resp = await client.post(
+                "/api/v1/chores/evaluate-triggers",
+                json={"project_id": "PVT_1"},
+            )
+
+        assert resp.status_code == 200
+        # The service should only evaluate chores for PVT_1, not PVT_2
+
+    @pytest.mark.anyio
+    async def test_evaluate_triggers_without_project_id(self, client, mock_db):
+        """Evaluate-triggers without project_id returns empty result."""
+        resp = await client.post("/api/v1/chores/evaluate-triggers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["evaluated"] == 0
+        assert data["triggered"] == 0
