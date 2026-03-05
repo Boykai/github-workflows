@@ -71,8 +71,8 @@
     @apply border-border;
   }
   body {
-    background-color: #9B111E;
-    color: #FFFFFF;
+    background-color: #9b111e;
+    color: #ffffff;
     @apply bg-background text-foreground;
   }
   /* Ensure native select/option elements respect the current theme */
