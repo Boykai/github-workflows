@@ -20,9 +20,23 @@ def _is_github_auth_error(exc: Exception) -> bool:
 
     Covers httpx status errors (401/403) and GraphQL "FORBIDDEN" / "UNAUTHORIZED"
     errors that GitHub returns inside a 200 response.
+
+    A 403 with ``X-RateLimit-Remaining: 0`` is a primary rate-limit response,
+    NOT an auth error — those are handled separately by the retry logic.
     """
-    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (401, 403):
-        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        response = exc.response
+        code = response.status_code
+        if code == 401:
+            return True
+        if code == 403:
+            # GitHub uses 403 for both auth/permission errors AND primary rate
+            # limiting.  When rate-limited, X-RateLimit-Remaining is "0".
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            if remaining is not None and remaining.strip() == "0":
+                return False
+            return True
+        return False
     # GraphQL wraps auth problems in ValueError("GraphQL error: ...")
     msg = str(exc).lower()
     if any(

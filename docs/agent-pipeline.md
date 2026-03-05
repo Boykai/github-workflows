@@ -142,10 +142,14 @@ to the sub-issue as a coding agent. Instead the pipeline:
 1. Resolves the main PR for the parent issue (branch created by `speckit.specify`)
 2. **Converts draft → ready for review** — GitHub does not allow requesting reviews
    on draft PRs, so the pipeline ensures the PR is marked ready first
-3. Calls the GitHub GraphQL `requestReviewsByLogin` mutation with `botLogins: ["copilot"]`
-   (and the `GraphQL-Features: copilot_code_review` header) to request a Copilot code review
-4. Marks the `[copilot-review]` sub-issue as "in-progress" (tracking only)
-5. Sub-issue is closed when the review completes
+3. Uses the GitHub REST API `POST /repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers`
+   to add `copilot-pull-request-reviewer[bot]` as a requested reviewer (preferred path —
+   does not consume the GraphQL rate limit)
+4. If the REST call is unavailable or fails, falls back to the GitHub GraphQL
+   `requestReviews` mutation with `botLogins: ["copilot-pull-request-reviewer"]`
+   and the `GraphQL-Features: copilot_code_review` header
+5. Marks the `[copilot-review]` sub-issue as "in-progress" (tracking only)
+6. Sub-issue is closed when the review completes
 
 The polling service's "Check In Review" step acts as a safety net: on each cycle
 it verifies that Copilot has been requested as a reviewer for every "In Review"

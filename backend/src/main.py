@@ -15,7 +15,7 @@ from src.exceptions import AppException, RateLimitError
 logger = logging.getLogger(__name__)
 
 
-async def _auto_start_copilot_polling() -> None:
+async def _auto_start_copilot_polling() -> bool:
     """Resume Copilot polling after a restart using a persisted session.
 
     The copilot polling loop is an in-memory ``asyncio.Task`` that is
@@ -39,7 +39,7 @@ async def _auto_start_copilot_polling() -> None:
 
     polling_status = get_polling_status()
     if polling_status["is_running"]:
-        return
+        return False
 
     db = get_db()
 
@@ -81,7 +81,7 @@ async def _auto_start_copilot_polling() -> None:
                         owner,
                         repo,
                     )
-                return
+                return started
 
     # ── Strategy 2: Webhook token + project_settings fallback ──
     # When no UI session exists, use GITHUB_WEBHOOK_TOKEN and discover
@@ -96,7 +96,7 @@ async def _auto_start_copilot_polling() -> None:
             "No active session and no GITHUB_WEBHOOK_TOKEN/DEFAULT_REPOSITORY "
             "configured — polling not auto-started"
         )
-        return
+        return False
 
     # Prefer explicit DEFAULT_PROJECT_ID if configured.
     project_id: str | None = settings.default_project_id
@@ -141,7 +141,7 @@ async def _auto_start_copilot_polling() -> None:
             owner_name,
             repo_name,
         )
-        return
+        return False
 
     started = await ensure_polling_started(
         access_token=token,
@@ -157,6 +157,7 @@ async def _auto_start_copilot_polling() -> None:
             owner_name,
             repo_name,
         )
+    return started
 
 
 async def _polling_watchdog_loop() -> None:

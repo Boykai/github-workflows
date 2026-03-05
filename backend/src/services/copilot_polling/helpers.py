@@ -26,7 +26,7 @@ def is_sub_issue(task: Any) -> bool:
         return True
     # Fallback: check for the "sub-issue" label applied during creation
     labels = getattr(task, "labels", None) or []
-    if isinstance(labels, list | tuple):
+    if isinstance(labels, (list, tuple)):
         for lbl in labels:
             name = lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
             if name == "sub-issue":
