@@ -11,7 +11,10 @@ import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { useCommands } from '@/hooks/useCommands';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import type { CommandDefinition } from '@/lib/commands/types';
+import { cn } from '@/lib/utils';
+import { History } from 'lucide-react';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -46,12 +49,25 @@ export function ChatInterface({
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
+  const [showHistoryPopover, setShowHistoryPopover] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const historyPopoverRef = useRef<HTMLDivElement>(null);
 
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
   const { isCommand: isCommandFn, getFilteredCommands } = useCommands();
+
+  // Chat message history navigation
+  const {
+    addToHistory,
+    navigateUp,
+    navigateDown,
+    isNavigating,
+    resetNavigation,
+    history: chatHistory,
+    selectFromHistory,
+  } = useChatHistory();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -96,6 +112,9 @@ export function ChatInterface({
     const content = input.trim();
     if (content && !isSending) {
       setShowAutocomplete(false);
+      setShowHistoryPopover(false);
+      addToHistory(content);
+      resetNavigation();
       const commandInput = isCommandFn(content);
       onSendMessage(content, { isCommand: commandInput });
       // Always clear input after submission — command-level input preservation
@@ -144,6 +163,34 @@ export function ChatInterface({
       }
     }
 
+    // History navigation — ArrowUp to go to older messages
+    if (e.key === 'ArrowUp' && !autocompleteActive) {
+      const textarea = e.currentTarget;
+      const firstNewline = input.indexOf('\n');
+      const isOnFirstLine = firstNewline === -1 || textarea.selectionStart <= firstNewline;
+      if (isOnFirstLine) {
+        const result = navigateUp(input);
+        if (result !== null) {
+          e.preventDefault();
+          setInput(result);
+        }
+      }
+    }
+
+    // History navigation — ArrowDown to go to newer messages / restore draft
+    if (e.key === 'ArrowDown' && !autocompleteActive && isNavigating) {
+      const textarea = e.currentTarget;
+      const lastNewline = input.lastIndexOf('\n');
+      const isOnLastLine = lastNewline === -1 || textarea.selectionStart > lastNewline;
+      if (isOnLastLine) {
+        const result = navigateDown();
+        if (result !== null) {
+          e.preventDefault();
+          setInput(result);
+        }
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       doSubmit();
@@ -164,6 +211,27 @@ export function ChatInterface({
       inputRef.current.style.height = 'auto';
     }
   }, [input]);
+
+  // Position cursor at end when navigating history
+  useEffect(() => {
+    if (isNavigating && inputRef.current) {
+      const len = inputRef.current.value.length;
+      inputRef.current.selectionStart = len;
+      inputRef.current.selectionEnd = len;
+    }
+  }, [isNavigating, input]);
+
+  // Dismiss history popover on click outside
+  useEffect(() => {
+    if (!showHistoryPopover) return;
+    const handleClick = (e: MouseEvent) => {
+      if (historyPopoverRef.current && !historyPopoverRef.current.contains(e.target as Node)) {
+        setShowHistoryPopover(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showHistoryPopover]);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -279,8 +347,55 @@ export function ChatInterface({
           placeholder="Describe a task or type # for commands..."
           disabled={isSending}
           rows={2}
-          className="flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted"
+          className={cn(
+            'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted',
+            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+          )}
         />
+        <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
+          {chatHistory.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowHistoryPopover((prev) => !prev)}
+              aria-label="Message history"
+              className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <History className="w-4 h-4" />
+            </button>
+          )}
+          {showHistoryPopover && (
+            <div className="absolute bottom-full mb-2 right-0 w-64 max-h-60 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg z-20">
+              {chatHistory.length === 0 ? (
+                <p className="p-3 text-sm text-muted-foreground text-center">No message history yet</p>
+              ) : (
+                <ul className="py-1">
+                  {chatHistory.map((_, idx) => {
+                    const reverseIdx = chatHistory.length - 1 - idx;
+                    const msg = chatHistory[reverseIdx];
+                    return (
+                      <li key={reverseIdx}>
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
+                          onClick={() => {
+                            const result = selectFromHistory(reverseIdx, input);
+                            if (result !== null) {
+                              setInput(result);
+                            }
+                            setShowHistoryPopover(false);
+                            inputRef.current?.focus();
+                          }}
+                        >
+                          {msg}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
         <button
           type="submit"
           disabled={!input.trim() || isSending}
