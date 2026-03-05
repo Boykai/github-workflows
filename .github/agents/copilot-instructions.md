@@ -113,6 +113,8 @@ npx playwright test             # E2E tests
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
 - Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI ≥ 0.109, Pydantic ≥ 2.5, aiosqlite ≥ 0.20, httpx ≥ 0.26, React 18 + Tailwind CSS (frontend) (018-issue-metadata-autogen)
 - SQLite (`/app/data/settings.db`) — existing database with custom migration runner (018-issue-metadata-autogen)
+- TypeScript 5.x, CSS3 + Tailwind CSS 3.4, PostCSS, tailwindcss-animate (019-purple-background)
+- N/A (no data persistence changes) (019-purple-background)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0
