@@ -14,7 +14,7 @@ This guide describes how to implement and test the metadata auto-generation feat
 
 ## Implementation Order
 
-Follow this sequence to minimise integration risk:
+Follow this sequence to minimize integration risk:
 
 ### Step 1: Database Migration (backend)
 

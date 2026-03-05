@@ -111,8 +111,8 @@
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `assignees` | `list[str]` | `[]` | GitHub usernames to assign |
-| `milestone` | `str \| None` | `None` | Milestone title (mapped to number at submission) |
-| `branch` | `str \| None` | `None` | Development/parent branch name |
+| `milestone` | `str` or `None` | `None` | Milestone title (mapped to number at submission) |
+| `branch` | `str` or `None` | `None` | Development/parent branch name |
 
 ### Validation Rules
 
