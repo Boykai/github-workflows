@@ -15,6 +15,7 @@ from typing import Any
 
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
+from src.services.token_client_cache import TokenClientCache
 
 logger = logging.getLogger(__name__)
 
@@ -73,29 +74,11 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
     """
 
     def __init__(self) -> None:
-        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
-
-    @staticmethod
-    def _token_key(token: str) -> str:
-        """Return a stable hash of the token for use as a cache key."""
-        return hashlib.sha256(token.encode()).hexdigest()[:16]
+        self._cache = TokenClientCache(label="model-fetching")
 
     async def _get_or_create_client(self, github_token: str) -> Any:
         """Get cached or create new CopilotClient for a given token."""
-        key = self._token_key(github_token)
-        if key not in self._clients:
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
-
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
-            await client.start()
-            self._clients[key] = client
-            logger.info(
-                "Created new CopilotClient for model fetching (total cached: %d)",
-                len(self._clients),
-            )
-        return self._clients[key]
+        return await self._cache.get_or_create(github_token)
 
     async def fetch_models(self, token: str | None = None) -> list[ModelOption]:
         if not token:

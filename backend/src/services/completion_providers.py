@@ -10,12 +10,12 @@ wrap around either provider.
 """
 
 import asyncio
-import hashlib
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
 from src.config import get_settings
+from src.services.token_client_cache import TokenClientCache
 
 logger = logging.getLogger(__name__)
 
@@ -64,34 +64,12 @@ class CopilotCompletionProvider(CompletionProvider):
 
     def __init__(self, model: str = "gpt-4o"):
         self._model = model
-        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
+        self._cache = TokenClientCache(label="completion")
         logger.info("Initialized Copilot completion provider (model: %s)", model)
-
-    @staticmethod
-    def _token_key(github_token: str) -> str:
-        """Return a stable hash of the token for use as a cache key.
-
-        Avoids keeping raw tokens as dict keys where they could be
-        exposed by debug tooling or log dumps.
-        """
-        return hashlib.sha256(github_token.encode()).hexdigest()[:16]
 
     async def _get_or_create_client(self, github_token: str) -> Any:
         """Get cached or create new CopilotClient for a given token."""
-        key = self._token_key(github_token)
-        if key not in self._clients:
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
-
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
-            await client.start()
-            self._clients[key] = client
-            logger.info(
-                "Created new CopilotClient (total cached: %d)",
-                len(self._clients),
-            )
-        return self._clients[key]
+        return await self._cache.get_or_create(github_token)
 
     async def complete(
         self,
@@ -179,13 +157,7 @@ class CopilotCompletionProvider(CompletionProvider):
 
     async def cleanup(self) -> None:
         """Stop all cached CopilotClient instances. Call on app shutdown."""
-        for _token_hash, client in self._clients.items():
-            try:
-                await client.stop()
-            except Exception as e:
-                logger.warning("Error stopping CopilotClient: %s", e)
-        self._clients.clear()
-        logger.info("Cleaned up all CopilotClient instances")
+        await self._cache.cleanup()
 
     @property
     def name(self) -> str:
