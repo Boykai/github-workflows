@@ -13,9 +13,11 @@
 - Dates (start date, target date) are expressed in ISO 8601 format (YYYY-MM-DD).
 - The chat agent already has the ability to create basic GitHub Issues (title + body); this feature extends that existing capability.
 - The metadata cache uses a configurable time-to-live (TTL) of 1 hour as the default staleness threshold.
+- "Tags" as referenced in the original request is synonymous with "labels" in GitHub; the system treats these as a single concept using the GitHub labels API.
 - The "development/parent branch" field refers to the branch the issue's future pull request should target or branch from.
 - When the user does not override AI-generated values, the system uses the AI's selections as-is.
 - Standard session-based authentication is already in place for GitHub API access.
+- Assignees are auto-suggested based on available repository collaborators and can be overridden by the user before submission.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -29,8 +31,8 @@ As a developer using the chat agent, I want the agent to automatically generate 
 
 **Acceptance Scenarios**:
 
-1. **Given** a developer requests the chat agent to create an issue with a title and description, **When** the agent processes the request, **Then** the agent generates values for all metadata fields: priority, size, estimate, start date, target date, labels (from the repository's actual label list), and development branch (from the repository's actual branch list).
-2. **Given** the agent has generated metadata for a new issue, **When** the issue is submitted to GitHub, **Then** the GitHub API payload includes all generated metadata fields and the resulting issue on GitHub displays the correct labels, milestone association, and any applicable project fields.
+1. **Given** a developer requests the chat agent to create an issue with a title and description, **When** the agent processes the request, **Then** the agent generates values for all metadata fields: priority, size, estimate, start date, target date, labels (from the repository's actual label list), assignee(s) (from the repository's collaborators), and development branch (from the repository's actual branch list).
+2. **Given** the agent has generated metadata for a new issue, **When** the issue is submitted to GitHub, **Then** the GitHub API payload includes all generated metadata fields and the resulting issue on GitHub displays the correct labels, assignee(s), milestone association, and any applicable project fields.
 3. **Given** the agent selects a priority of "P1" and a size of "M", **When** the issue is submitted, **Then** the labels array in the API payload contains the exact matching repository labels (e.g., "P1", "size:M") rather than free-text values.
 
 ---
@@ -45,7 +47,7 @@ As a developer, I want the system to fetch all available repository metadata (la
 
 **Acceptance Scenarios**:
 
-1. **Given** the system has never fetched metadata for a repository, **When** the chat agent is asked to create an issue for that repository, **Then** the system fetches all labels, branches, and milestones from the GitHub API and stores them locally before proceeding with issue creation.
+1. **Given** the system has never fetched metadata for a repository, **When** the chat agent is asked to create an issue for that repository, **Then** the system fetches all labels, branches, milestones, project fields, and collaborators from the GitHub API and stores them locally before proceeding with issue creation.
 2. **Given** the metadata cache was populated less than the configured TTL ago, **When** the chat agent creates another issue, **Then** the system uses cached values without making new API calls.
 3. **Given** the metadata cache is older than the configured TTL, **When** the chat agent is asked to create an issue, **Then** the system re-fetches metadata from GitHub, updates the cache, and indicates to the user that metadata is being refreshed.
 4. **Given** the app is restarted, **When** the chat agent is asked to create an issue, **Then** the previously cached metadata is available immediately without requiring a fresh fetch from GitHub.
@@ -62,7 +64,7 @@ As a developer, I want to see a structured preview of all auto-generated metadat
 
 **Acceptance Scenarios**:
 
-1. **Given** the agent has generated all metadata for a new issue, **When** the preview is displayed to the user, **Then** each metadata field (priority, size, estimate, start date, target date, labels, branch) is shown with its auto-generated value in a visually distinct format (e.g., badge or chip style).
+1. **Given** the agent has generated all metadata for a new issue, **When** the preview is displayed to the user, **Then** each metadata field (priority, size, estimate, start date, target date, labels, assignee(s), branch) is shown with its auto-generated value in a visually distinct format (e.g., badge or chip style).
 2. **Given** the preview is displayed, **When** the user modifies the priority from "P2" to "P1" and removes one label, **Then** the final submission uses the user's overridden values.
 3. **Given** the preview is displayed, **When** the user accepts all auto-generated values without changes, **Then** the issue is submitted with the original AI-generated metadata.
 
@@ -96,10 +98,10 @@ As a developer, I want the system to handle GitHub API failures gracefully by fa
 
 ### Functional Requirements
 
-- **FR-001**: System MUST fetch all available repository labels, milestones, and branches from GitHub when initializing metadata context for a repository, and store the results in a persistent local cache keyed by repository identifier.
-- **FR-002**: System MUST use only cached metadata values (labels, branches, milestones) as the selection pool when the AI chat agent generates issue metadata, ensuring no invalid or non-existent values are submitted to the GitHub API.
-- **FR-003**: System MUST auto-generate values for all of the following fields for every GitHub Issue created via the chat agent: priority, size, estimate (in hours), start date, target date, labels (mapped to actual repository labels), and development/parent branch.
-- **FR-004**: System MUST include all generated metadata fields in the GitHub Issues API creation payload, including the labels array, milestone reference, and any applicable project field values.
+- **FR-001**: System MUST fetch all available repository labels, milestones, project fields, branches, and collaborators (potential assignees) from GitHub when initializing metadata context for a repository, and store the results in a persistent local cache keyed by repository identifier.
+- **FR-002**: System MUST use only cached metadata values (labels, branches, milestones, project fields, collaborators) as the selection pool when the AI chat agent generates issue metadata, ensuring no invalid or non-existent values are submitted to the GitHub API.
+- **FR-003**: System MUST auto-generate values for all of the following fields for every GitHub Issue created via the chat agent: priority, size, estimate (in hours), start date, target date, labels (mapped to actual repository labels), assignee(s), and development/parent branch.
+- **FR-004**: System MUST include all generated metadata fields in the GitHub Issues API creation payload, including the labels array, milestone reference, assignee(s), and any applicable project field values.
 - **FR-005**: System MUST map AI-determined priority and size values to the closest matching repository label from the cached label list before submission, rather than submitting arbitrary free-text values.
 - **FR-006**: System MUST invalidate and re-fetch cached metadata when the cache age exceeds a configurable TTL (default: 1 hour) or when the user explicitly requests a refresh.
 - **FR-007**: System MUST persist the metadata cache so that it survives application restarts and is available immediately on the next session without requiring a fresh API fetch.
@@ -111,15 +113,15 @@ As a developer, I want the system to handle GitHub API failures gracefully by fa
 
 ### Key Entities
 
-- **Metadata Cache Entry**: Represents a single cached value from GitHub (e.g., a label, branch, or milestone). Key attributes: repository identifier, field type (label, branch, milestone), value, display name, and timestamp of last fetch.
-- **Issue Metadata**: The complete set of auto-generated fields for a single issue. Key attributes: priority, size, estimate, start date, target date, selected labels, selected branch, and selected milestone.
+- **Metadata Cache Entry**: Represents a single cached value from GitHub (e.g., a label, branch, milestone, project field, or collaborator). Key attributes: repository identifier, field type (label, branch, milestone, project, collaborator), value, display name, and timestamp of last fetch.
+- **Issue Metadata**: The complete set of auto-generated fields for a single issue. Key attributes: priority, size, estimate, start date, target date, selected labels, assignee(s), selected branch, and selected milestone.
 - **Repository Context**: The association between a specific GitHub repository and its cached metadata. Key attributes: owner, repository name, last refresh timestamp, and TTL configuration.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of issues created via the chat agent include all required metadata fields (priority, size, estimate, start date, target date, at least one label, and a development branch) in the submitted GitHub API payload.
+- **SC-001**: 100% of issues created via the chat agent include all required metadata fields (priority, size, estimate, start date, target date, at least one label, assignee(s), and a development branch) in the submitted GitHub API payload.
 - **SC-002**: Users can create a fully metadata-populated issue in under 60 seconds from initial request to submission, including any preview review time.
 - **SC-003**: After the initial metadata fetch, subsequent issue creations within the TTL window complete without additional GitHub API calls for metadata, reducing perceived latency by at least 50%.
 - **SC-004**: When the GitHub API is unavailable, the system falls back to cached data and the user is notified within 5 seconds, allowing issue creation to proceed with previously cached values.
