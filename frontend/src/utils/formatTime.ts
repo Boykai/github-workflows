@@ -2,11 +2,13 @@
  * Format a Date as a human-readable "time ago" string.
  *
  * Returns:
+ * - `""` for invalid dates
  * - `"just now"` for < 60 s
  * - `"Xm ago"` for < 60 min
  * - locale time string otherwise
  */
 export function formatTimeAgo(date: Date): string {
+  if (isNaN(date.getTime())) return '';
   const now = new Date();
   const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
   if (diffSec < 60) return 'just now';
