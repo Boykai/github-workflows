@@ -169,6 +169,18 @@ class IssueMetadata(BaseModel):
         default_factory=lambda: ["ai-generated"],
         description="Suggested labels for the issue",
     )
+    assignees: list[str] = Field(
+        default_factory=list,
+        description="Assigned GitHub usernames",
+    )
+    milestone: str | None = Field(
+        default=None,
+        description="Milestone title (mapped to number at submission)",
+    )
+    branch: str | None = Field(
+        default=None,
+        description="Development/parent branch name",
+    )
 
 
 class IssueRecommendation(BaseModel):
@@ -219,6 +231,9 @@ class IssueRecommendation(BaseModel):
                     "start_date": "2026-02-03",
                     "target_date": "2026-02-04",
                     "labels": ["ai-generated", "feature", "export"],
+                    "assignees": [],
+                    "milestone": None,
+                    "branch": None,
                 },
                 "status": "pending",
                 "created_at": "2026-02-02T10:00:00Z",

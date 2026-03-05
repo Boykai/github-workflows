@@ -1,0 +1,190 @@
+# Issue Creation API Contract (Updated)
+# Feature: 018-issue-metadata-autogen
+# Documents the expanded issue creation payload with full metadata.
+
+openapi: "3.1.0"
+info:
+  title: Issue Creation API (Extended Metadata)
+  version: "2.0.0"
+  description: >
+    Updated issue creation flow that includes all AI-generated metadata fields
+    in the GitHub API payload. Extends the existing recommendation confirmation
+    endpoint.
+
+paths:
+  /api/v1/workflow/recommendations/{recommendation_id}/confirm:
+    post:
+      operationId: confirmRecommendation
+      summary: Confirm issue recommendation and create GitHub Issue
+      description: >
+        Confirms the AI-generated recommendation, optionally applying user
+        overrides to metadata fields, then creates the issue in GitHub with
+        full metadata (labels, milestone, assignees, branch reference).
+      parameters:
+        - name: recommendation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmationOverrides"
+      responses:
+        "200":
+          description: Issue created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowResult"
+        "400":
+          description: Invalid recommendation ID or already processed
+        "401":
+          description: Not authenticated
+        "422":
+          description: Metadata validation failed (invalid labels, branch, etc.)
+        "502":
+          description: GitHub API error during issue creation
+
+components:
+  schemas:
+    ConfirmationOverrides:
+      type: object
+      description: >
+        Optional user overrides for AI-generated metadata. Only provided
+        fields replace the AI defaults; omitted fields keep AI values.
+      properties:
+        priority:
+          type: string
+          enum: [P0, P1, P2, P3]
+          nullable: true
+        size:
+          type: string
+          enum: [XS, S, M, L, XL]
+          nullable: true
+        estimate_hours:
+          type: number
+          minimum: 0.5
+          maximum: 40
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        target_date:
+          type: string
+          format: date
+          nullable: true
+        labels:
+          type: array
+          items:
+            type: string
+          description: "Override label list (replaces AI selection entirely)"
+          nullable: true
+        assignees:
+          type: array
+          items:
+            type: string
+          description: "Override assignee list"
+          nullable: true
+        milestone:
+          type: string
+          description: "Override milestone title"
+          nullable: true
+        branch:
+          type: string
+          description: "Override development branch name"
+          nullable: true
+
+    WorkflowResult:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+        issue_id:
+          type: string
+          nullable: true
+        issue_number:
+          type: integer
+          nullable: true
+        issue_url:
+          type: string
+          format: uri
+          nullable: true
+        project_item_id:
+          type: string
+          nullable: true
+        current_status:
+          type: string
+          nullable: true
+        message:
+          type: string
+        metadata_applied:
+          type: object
+          description: "Summary of metadata fields that were successfully applied"
+          properties:
+            labels_set:
+              type: array
+              items:
+                type: string
+            milestone_set:
+              type: string
+              nullable: true
+            assignees_set:
+              type: array
+              items:
+                type: string
+            branch_referenced:
+              type: string
+              nullable: true
+            priority_label_mapped:
+              type: boolean
+            size_label_mapped:
+              type: boolean
+          nullable: true
+
+    IssueMetadata:
+      type: object
+      description: "Full metadata attached to an AI-generated issue recommendation"
+      properties:
+        priority:
+          type: string
+          enum: [P0, P1, P2, P3]
+          default: P2
+        size:
+          type: string
+          enum: [XS, S, M, L, XL]
+          default: M
+        estimate_hours:
+          type: number
+          default: 4.0
+          minimum: 0.5
+          maximum: 40
+        start_date:
+          type: string
+          format: date
+        target_date:
+          type: string
+          format: date
+        labels:
+          type: array
+          items:
+            type: string
+          default: ["ai-generated"]
+        assignees:
+          type: array
+          items:
+            type: string
+          default: []
+        milestone:
+          type: string
+          nullable: true
+          default: null
+        branch:
+          type: string
+          nullable: true
+          default: null
