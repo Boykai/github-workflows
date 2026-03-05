@@ -49,13 +49,13 @@ npm outdated  # should show no outdated packages
 cd backend && uvicorn src.main:app --host 0.0.0.0 --port 8000
 
 # In another terminal: send a chat message via the API
-curl -X POST http://localhost:8000/api/chat/messages \
+curl -X POST http://localhost:8000/api/v1/chat/messages \
   -H "Content-Type: application/json" \
   -d '{"content": "test message", "session_id": "test"}'
 
 # Restart the application (Ctrl+C, then restart)
 # Verify the message persists:
-curl http://localhost:8000/api/chat/messages?session_id=test
+curl http://localhost:8000/api/v1/chat/messages?session_id=test
 # Should return the previously sent message
 ```
 

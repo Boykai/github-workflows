@@ -57,7 +57,7 @@ from src.services.github_projects.graphql import (
     UPDATE_TEXT_FIELD_MUTATION,
     VERIFY_ITEM_ON_PROJECT_QUERY,
 )
-from src.utils import utcnow
+from src.utils import BoundedDict, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +92,7 @@ class GitHubProjectsService:
         self._min_request_interval: float = 0.5  # seconds (configurable)
         self._global_cooldown_until: float = 0.0
         self._cooldown_lock = asyncio.Lock()
-        self._inflight_graphql: dict[str, asyncio.Task[dict]] = {}
+        self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(maxlen=256)
         self._low_quota_threshold: int = 150
         self._coalesced_hit_count: int = 0
         self._cooldown_hit_count: int = 0

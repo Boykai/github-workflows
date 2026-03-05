@@ -134,6 +134,16 @@ async def _poll_loop(
     """Inner polling loop, separated so CancelledError is handled in the caller."""
 
     while _polling_state.is_running:
+        # Initialize result variables so the activity check after the
+        # try/except always has valid references (even after continue).
+        output_results: list = []
+        backlog_results: list = []
+        ready_results: list = []
+        results: list = []
+        review_results: list = []
+        in_review_results: list = []
+        recovery_results: list = []
+        skip_expensive = False
         try:
             _polling_state.last_poll_time = utcnow()
             _polling_state.poll_count += 1
@@ -377,10 +387,30 @@ async def _poll_loop(
             effective_interval = interval_seconds
 
         # ── Activity-based adaptive polling (FR-019) ──
-        # Import as mutable reference to the module-level counter
+        # Detect whether this cycle produced any results; if so, treat it
+        # as "active" and reset the idle counter back to baseline.
         import src.services.copilot_polling.state as _poll_state
 
-        _poll_state._consecutive_idle_polls += 1
+        had_activity = bool(
+            output_results
+            or backlog_results
+            or ready_results
+            or results
+            or review_results
+            or in_review_results
+            or (not skip_expensive and recovery_results)
+        )
+
+        if had_activity:
+            if _poll_state._consecutive_idle_polls:
+                logger.info(
+                    "Adaptive polling: activity detected, resetting idle counter from %d to 0",
+                    _poll_state._consecutive_idle_polls,
+                )
+            _poll_state._consecutive_idle_polls = 0
+        else:
+            _poll_state._consecutive_idle_polls += 1
+
         # Only apply adaptive backoff when rate-limit doubling is NOT already
         # active — avoid stacking both multipliers.
         if _poll_state._consecutive_idle_polls > 0 and effective_interval == interval_seconds:

@@ -47,7 +47,7 @@ router = APIRouter()
 
 # TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
 # using the chat_messages, chat_proposals, and chat_recommendations tables
-# created by migration 011_chat_persistence.sql. The migration file is ready
+# created by migration 012_chat_persistence.sql. The migration file is ready
 # and the tables will be created on next application startup. This refactoring
 # was deferred because it requires updating ~15 code paths in this 713-line file
 # with careful transaction management and error handling.

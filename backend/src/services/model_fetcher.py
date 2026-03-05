@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
 from src.services.completion_providers import CopilotClientPool, copilot_client_pool
+from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
 
@@ -250,7 +251,9 @@ class ModelFetcherService:
         self._backoff_until: dict[str, float] = {}  # cache_key → timestamp
         self._backoff_duration: dict[str, float] = {}  # cache_key → current backoff
         self._rate_limit_remaining: dict[str, int | None] = {}  # cache_key → remaining
-        self._inflight_fetches: dict[str, asyncio.Task[ModelsResponse]] = {}
+        self._inflight_fetches: BoundedDict[str, asyncio.Task[ModelsResponse]] = BoundedDict(
+            maxlen=64
+        )
         _ensure_registry()
 
     @staticmethod

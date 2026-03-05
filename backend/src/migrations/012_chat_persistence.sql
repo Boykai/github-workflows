@@ -1,4 +1,4 @@
--- Migration: 011_chat_persistence.sql
+-- Migration: 012_chat_persistence.sql
 -- Description: Create tables for persistent chat message, proposal, and recommendation storage.
 -- Previously these were stored in module-level in-memory dicts and lost on restart.
 

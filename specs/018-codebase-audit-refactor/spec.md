@@ -65,8 +65,8 @@ As an operator deploying this application, I want known anti-patterns (hardcoded
 2. **Given** the file-commit workflow accepts a "delete files" parameter that is silently ignored, **When** file deletion is implemented using the GraphQL API's supported deletion mechanism, **Then** callers can delete files in a commit and the operation completes successfully.
 3. **Given** in-memory chat stores (messages, proposals, recommendations) are lost on application restart, **When** they are migrated to SQLite persistence, **Then** chat data survives restarts and existing API endpoints return the same data shape as before.
 4. **Given** OAuth states remain in-memory, **When** a code comment is added documenting this limitation, **Then** developers and operators understand the trade-off.
-4. **Given** services are registered both as application-level state and as module-level globals, **When** module-level globals are removed in favor of `app.state`, **Then** all services are accessed via `app.state` and tests can cleanly override service instances by setting `app.state` values.
-5. **Given** some in-memory collections lack size bounds, **When** all in-memory caches are verified to use bounded collections, **Then** the application is protected from unbounded memory growth.
+5. **Given** services are registered both as application-level state and as module-level globals, **When** module-level globals are removed in favor of `app.state`, **Then** all services are accessed via `app.state` and tests can cleanly override service instances by setting `app.state` values.
+6. **Given** some in-memory collections lack size bounds, **When** all in-memory caches are verified to use bounded collections, **Then** the application is protected from unbounded memory growth.
 
 ---
 
