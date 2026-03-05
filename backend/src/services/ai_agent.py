@@ -149,6 +149,7 @@ class AIAgentService:
         project_name: str,
         session_id: str,
         github_token: str | None = None,
+        metadata_context: dict | None = None,
     ) -> IssueRecommendation:
         """
         Generate a structured issue recommendation from feature request (T011).
@@ -158,6 +159,8 @@ class AIAgentService:
             project_name: Name of the target project for context
             session_id: Current session ID
             github_token: GitHub OAuth token (required for Copilot provider)
+            metadata_context: Optional repo metadata (labels, branches, milestones,
+                collaborators) to inject into the AI prompt.
 
         Returns:
             IssueRecommendation with AI-generated content
@@ -165,7 +168,9 @@ class AIAgentService:
         Raises:
             ValueError: If AI response cannot be parsed
         """
-        prompt_messages = create_issue_generation_prompt(user_input, project_name)
+        prompt_messages = create_issue_generation_prompt(
+            user_input, project_name, metadata_context=metadata_context
+        )
 
         try:
             messages = [
@@ -178,7 +183,9 @@ class AIAgentService:
             )
             logger.debug("Issue recommendation response: %s", content[:500])
 
-            return self._parse_issue_recommendation_response(content, user_input, session_id)
+            return self._parse_issue_recommendation_response(
+                content, user_input, session_id, metadata_context=metadata_context
+            )
 
         except Exception as e:
             error_msg = str(e)
@@ -197,7 +204,11 @@ class AIAgentService:
                 raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
 
     def _parse_issue_recommendation_response(
-        self, content: str, original_input: str, session_id: str
+        self,
+        content: str,
+        original_input: str,
+        session_id: str,
+        metadata_context: dict | None = None,
     ) -> IssueRecommendation:
         """
         Parse AI response into IssueRecommendation model (T012).
@@ -206,6 +217,7 @@ class AIAgentService:
             content: Raw AI response
             original_input: User's original input
             session_id: Current session ID
+            metadata_context: Optional repo metadata for label validation
 
         Returns:
             IssueRecommendation instance
@@ -237,7 +249,9 @@ class AIAgentService:
         original_context = original_input
 
         # Parse metadata with defaults
-        metadata = self._parse_issue_metadata(data.get("metadata", {}))
+        metadata = self._parse_issue_metadata(
+            data.get("metadata", {}), metadata_context=metadata_context
+        )
 
         return IssueRecommendation(
             session_id=UUID(session_id),
@@ -252,12 +266,19 @@ class AIAgentService:
             status=RecommendationStatus.PENDING,
         )
 
-    def _parse_issue_metadata(self, metadata_data: dict) -> IssueMetadata:
+    def _parse_issue_metadata(
+        self,
+        metadata_data: dict,
+        metadata_context: dict | None = None,
+    ) -> IssueMetadata:
         """
         Parse metadata from AI response with safe defaults.
 
         Args:
             metadata_data: Raw metadata dict from AI response
+            metadata_context: Optional repo metadata with real label names.
+                When provided, labels are validated against the actual
+                repository label set instead of the hardcoded constants.
 
         Returns:
             IssueMetadata instance with validated values
@@ -304,19 +325,30 @@ class AIAgentService:
         if not target_date:
             target_date = self._calculate_target_date(today, size)
 
-        # Parse labels with default - validate against pre-defined labels
+        # Parse labels with default - validate against known labels
         labels = metadata_data.get("labels", [])
         if not isinstance(labels, list):
             labels = ["ai-generated"]
 
-        # Filter to only include valid pre-defined labels
+        # Build the set of valid labels.  When repo metadata is available
+        # (dynamic context), use the actual repo labels so that AI-selected
+        # repo-specific labels are preserved.  Fall back to the hardcoded
+        # constants list when no metadata context is provided.
         from src.constants import LABELS
+
+        valid_label_set: set[str] = set(LABELS)
+        if metadata_context:
+            repo_labels = metadata_context.get("labels", [])
+            for lb in repo_labels:
+                name = lb["name"] if isinstance(lb, dict) else lb
+                if isinstance(name, str):
+                    valid_label_set.add(name.lower())
 
         validated_labels = []
         for label in labels:
             if isinstance(label, str):
                 label_lower = label.lower()
-                if label_lower in LABELS:
+                if label_lower in valid_label_set:
                     validated_labels.append(label_lower)
                 else:
                     logger.debug("Skipping invalid label: %s", label)
@@ -346,6 +378,9 @@ class AIAgentService:
             start_date=start_date,
             target_date=target_date,
             labels=validated_labels,
+            assignees=self._parse_string_list(metadata_data.get("assignees")),
+            milestone=self._parse_optional_string(metadata_data.get("milestone")),
+            branch=self._parse_optional_string(metadata_data.get("branch")),
         )
 
     def _is_valid_date(self, date_str: str) -> bool:
@@ -372,6 +407,20 @@ class AIAgentService:
         days = days_map.get(size, 1)
         target = start + timedelta(days=days)
         return target.strftime("%Y-%m-%d")
+
+    @staticmethod
+    def _parse_string_list(value: Any) -> list[str]:
+        """Parse a value into a list of strings, returning empty list on failure."""
+        if isinstance(value, list):
+            return [str(v) for v in value if isinstance(v, str) and v.strip()]
+        return []
+
+    @staticmethod
+    def _parse_optional_string(value: Any) -> str | None:
+        """Parse a value into an optional string, returning None on failure."""
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
 
     # ──────────────────────────────────────────────────────────────────
     # Existing Task Generation Methods
