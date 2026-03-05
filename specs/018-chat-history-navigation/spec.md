@@ -73,7 +73,23 @@ As a chat user who has recalled a historical message, I want the text cursor to 
 
 ---
 
-### User Story 5 - Mobile/Touch-Friendly History Access (Priority: P3)
+### User Story 5 - Visual Feedback During History Navigation (Priority: P2)
+
+As a chat user navigating through my message history, I want a subtle visual indicator on the chat input field when I am in history-navigation mode, so that I can clearly distinguish between typing a new message and browsing recalled messages.
+
+**Why this priority**: Visual feedback prevents user confusion — without it, users may not realize they are browsing history rather than composing a new message, leading to accidental sends of old messages or unexpected input field content.
+
+**Independent Test**: Can be fully tested by pressing the up arrow to enter history navigation mode and verifying a visual indicator (e.g., subtle highlight or border change) appears on the input field, then pressing down past the most recent message to exit history mode and verifying the indicator disappears.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user presses the up arrow key and enters history-navigation mode, **When** a historical message is loaded into the input field, **Then** a subtle visual indicator (e.g., highlight, border change, or icon) is displayed on or near the input field.
+2. **Given** a user is in history-navigation mode and presses down arrow past the most recent message (exiting history mode), **When** the draft is restored, **Then** the visual indicator is removed.
+3. **Given** a user is in history-navigation mode and sends a recalled message, **When** the message is sent and the input field is cleared, **Then** the visual indicator is removed.
+
+---
+
+### User Story 6 - Mobile/Touch-Friendly History Access (Priority: P3)
 
 As a mobile or touch-device user, I want an alternative way to access my chat message history (such as a history button), so that I can recall past messages even without a physical keyboard with arrow keys.
 
@@ -109,10 +125,11 @@ As a mobile or touch-device user, I want an alternative way to access my chat me
 - **FR-006**: System SHOULD cap the stored history at a maximum of 100 most recent messages, discarding the oldest entries when the limit is exceeded.
 - **FR-007**: System MUST only intercept up/down arrow keys for history navigation when the chat input field is focused.
 - **FR-008**: System MUST NOT trigger history navigation via the up arrow key when the cursor is not on the first line of a multi-line input; default cursor movement must be preserved in that case.
-- **FR-009**: System SHOULD provide an accessible alternative to keyboard-based history navigation (e.g., a history button or touch-friendly control) for users on mobile or touch-only devices.
-- **FR-010**: System MUST treat each sent message as a new, separate history entry, even if the content is identical to a previously sent message.
-- **FR-011**: System MUST NOT modify existing history entries when the user edits a recalled message. The edited version is only added to history if it is sent.
-- **FR-012**: System MUST gracefully handle scenarios where client-side storage is unavailable or full by providing in-session history navigation without persistence.
+- **FR-009**: System SHOULD display a subtle visual indicator on the chat input field when the user is in history-navigation mode, and remove the indicator when the user exits history-navigation mode (by navigating past the most recent message or sending a message).
+- **FR-010**: System SHOULD provide an accessible alternative to keyboard-based history navigation (e.g., a history button or touch-friendly control) for users on mobile or touch-only devices.
+- **FR-011**: System MUST treat each sent message as a new, separate history entry, even if the content is identical to a previously sent message.
+- **FR-012**: System MUST NOT modify existing history entries when the user edits a recalled message. The edited version is only added to history if it is sent.
+- **FR-013**: System MUST gracefully handle scenarios where client-side storage is unavailable or full by providing in-session history navigation without persistence.
 
 ### Key Entities
 
