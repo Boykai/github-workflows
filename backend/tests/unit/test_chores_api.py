@@ -549,14 +549,25 @@ class TestEvaluateTriggers:
 
         mock_github_service.check_issue_closed = AsyncMock(return_value=False)
 
-        with patch("src.api.chores.resolve_repository", return_value=("owner", "repo")):
+        with (
+            patch("src.api.chores.resolve_repository", return_value=("owner", "repo")),
+            patch.object(
+                ChoresService,
+                "evaluate_triggers",
+                new_callable=AsyncMock,
+                return_value={"evaluated": 1, "triggered": 0, "skipped": 1, "results": []},
+            ) as mock_eval,
+        ):
             resp = await client.post(
                 "/api/v1/chores/evaluate-triggers",
                 json={"project_id": "PVT_1"},
             )
 
         assert resp.status_code == 200
-        # The service should only evaluate chores for PVT_1, not PVT_2
+        # Verify the service was called with project_id to filter chores
+        mock_eval.assert_called_once()
+        call_kwargs = mock_eval.call_args.kwargs
+        assert call_kwargs["project_id"] == "PVT_1"
 
     @pytest.mark.anyio
     async def test_evaluate_triggers_without_project_id(self, client, mock_db):
