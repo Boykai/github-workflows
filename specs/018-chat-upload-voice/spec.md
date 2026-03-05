@@ -112,7 +112,7 @@ As a mobile user, I want the file upload and voice input features to leverage na
 - **FR-005**: System MUST allow users to remove a queued file attachment before sending via a dismiss/close control on the file preview.
 - **FR-006**: System MUST enforce a maximum file size limit of 25 MB per file and display a clear inline error message if the limit is exceeded.
 - **FR-007**: System MUST support the following file types: images (JPG, PNG, GIF, WEBP), documents (PDF, DOCX, TXT). Unsupported file types MUST be rejected with an inline error message listing accepted formats.
-- **FR-008**: System MUST perform client-side validation of file size and type before initiating the upload to provide immediate feedback.
+- **FR-008**: System MUST validate file size and type immediately upon file selection and provide instant feedback to the user before any upload begins.
 - **FR-009**: System MUST display a microphone button in the chat input toolbar that, when activated, begins capturing audio and shows a real-time recording indicator (animated waveform or pulsing icon).
 - **FR-010**: System MUST transcribe recorded voice input into text and populate the chat input field upon recording completion, allowing the user to review and edit before sending.
 - **FR-011**: System MUST ensure both file upload and voice input controls are fully keyboard-navigable and compatible with screen readers, including appropriate ARIA labels, roles, and live regions for recording state changes.
