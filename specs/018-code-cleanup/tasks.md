@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/018-code-cleanup/`
 **Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅, quickstart.md ✅
 
-**Tests**: No new tests are required. The spec does not mandate writing new tests (Constitution Check IV). Existing CI checks (ruff, pyright, pytest, eslint, tsc, vitest, vite build) serve as the validation mechanism. Only genuinely stale tests are removed.
+**Tests**: No new tests are required — the spec explicitly does not mandate writing new tests. Existing CI checks (ruff, pyright, pytest, eslint, tsc, vitest, vite build) serve as the validation mechanism. Only genuinely stale tests are removed.
 
 **Organization**: Tasks are grouped by user story (5 stories from spec.md) to enable independent implementation. User stories map to cleanup categories: US1 = Dead Code Removal (P1), US2 = Backwards-Compatibility Shims (P1), US3 = Consolidate Duplicated Logic (P2), US4 = Delete Stale Tests (P2), US5 = General Hygiene (P3).
 
@@ -118,17 +118,18 @@
 ### Backend Consolidation
 
 - [ ] T042 [US3] Extract shared `TokenClientCache` utility from duplicated token caching logic in `backend/src/services/completion_providers.py:67-80` and `backend/src/services/model_fetcher.py:75-80` — create shared class in `backend/src/services/token_client_cache.py`, update both callers per FR-008
-- [ ] T043 [US3] Evaluate and consolidate chat response models in `backend/src/models/chat.py` (ChatMessagesResponse), `backend/src/models/chores.py` (ChoreChatResponse), and `backend/src/models/agents.py` (AgentChatResponse) — extract shared `BaseChatFlowResponse` model only if fields genuinely align per FR-011 and Constitution Principle V
-- [ ] T044 [US3] Audit and consolidate `is_admin_user()` in `backend/src/services/agent_creator.py` — check if equivalent exists in `backend/src/services/settings_store.py` or similar; consolidate into single shared function per FR-008
-- [ ] T045 [US3] Consolidate duplicated test mock patterns in `backend/tests/` — identify most-duplicated inline mock setups and migrate to shared helpers in `backend/tests/helpers/factories.py` and `backend/tests/helpers/mocks.py` per FR-009
+- [ ] T043 [US3] Evaluate chat response model alignment across `backend/src/models/chat.py` (ChatMessagesResponse), `backend/src/models/chores.py` (ChoreChatResponse), and `backend/src/models/agents.py` (AgentChatResponse) — compare fields and determine if shared base is justified per FR-011
+- [ ] T044 [US3] If T043 confirms alignment: extract shared `BaseChatFlowResponse` model from the three chat response models into `backend/src/models/chat.py` and update all callers — skip if fields differ meaningfully (duplication is preferable to wrong abstraction)
+- [ ] T045 [US3] Audit and consolidate `is_admin_user()` in `backend/src/services/agent_creator.py` — check if equivalent exists in `backend/src/services/settings_store.py` or similar; consolidate into single shared function per FR-008
+- [ ] T046 [US3] Consolidate duplicated test mock patterns in `backend/tests/` — identify most-duplicated inline mock setups and migrate to shared helpers in `backend/tests/helpers/factories.py` and `backend/tests/helpers/mocks.py` per FR-009
 
 ### Frontend Consolidation
 
-- [ ] T046 [US3] Evaluate and extract shared `GenericChatFlow` base component from `frontend/src/components/agents/AgentChatFlow.tsx` and `frontend/src/components/chores/ChoreChatFlow.tsx` — extract shared chat message state, rendering, and session management; keep resource-specific logic in wrapper components per FR-008
-- [ ] T047 [US3] Evaluate and create `createResourceHooks<T>()` factory from duplicated CRUD hook patterns in `frontend/src/hooks/useAgents.ts:15-63` and `frontend/src/hooks/useChores.ts:21-80+` — only consolidate if patterns are stable and abstraction is justified per FR-008 and Constitution Principle V
-- [ ] T048 [P] [US3] Audit and consolidate duplicated API client logic in `frontend/src/services/` — identify repeated fetch/error-handling patterns and extract shared utility functions per FR-010
-- [ ] T049 [P] [US3] Audit and consolidate overlapping TypeScript type definitions in `frontend/src/types/` — merge duplicated or overlapping type definitions into canonical types per FR-011
-- [ ] T050 [US3] Run full CI validation after all US3 consolidations: backend (ruff, pyright, pytest) and frontend (eslint, tsc, vitest, vite build)
+- [ ] T047 [US3] Evaluate and extract shared `GenericChatFlow` base component from `frontend/src/components/agents/AgentChatFlow.tsx` and `frontend/src/components/chores/ChoreChatFlow.tsx` — extract shared chat message state, rendering, and session management; keep resource-specific logic in wrapper components per FR-008
+- [ ] T048 [US3] Evaluate and create `createResourceHooks<T>()` factory from duplicated CRUD hook patterns in `frontend/src/hooks/useAgents.ts:15-63` and `frontend/src/hooks/useChores.ts:21-80+` — only consolidate if patterns are stable and abstraction is justified per FR-008 (duplication is preferable to wrong abstraction)
+- [ ] T049 [P] [US3] Audit and consolidate duplicated API client logic in `frontend/src/services/` — identify repeated fetch/error-handling patterns and extract shared utility functions per FR-010
+- [ ] T050 [P] [US3] Audit and consolidate overlapping TypeScript type definitions in `frontend/src/types/` — merge duplicated or overlapping type definitions into canonical types per FR-011
+- [ ] T051 [US3] Run full CI validation after all US3 consolidations: backend (ruff, pyright, pytest) and frontend (eslint, tsc, vitest, vite build)
 
 **Checkpoint**: All high-value duplication consolidated. CI passes. Each consolidation documented with rationale. Commit with `refactor: consolidate duplicated logic`.
 
@@ -142,18 +143,18 @@
 
 ### Backend Test Cleanup
 
-- [ ] T051 [US4] Run full backend test suite (`cd backend && pytest -v`) and identify any tests that fail due to testing nonexistent functionality
-- [ ] T052 [US4] Audit `backend/tests/unit/` for test cases targeting deleted or refactored functions/classes — cross-reference test targets with current `backend/src/` codebase; remove stale tests per FR-012
-- [ ] T053 [P] [US4] Audit `backend/tests/integration/` for test cases targeting deleted or refactored functionality — cross-reference test targets with current `backend/src/` codebase; remove stale tests per FR-012
-- [ ] T054 [US4] Audit `backend/tests/` for tests that mock internals so heavily they don't validate real behavior — identify tests where the majority of the test is mock setup rather than behavior validation per FR-013
-- [ ] T055 [P] [US4] Search for and remove test artifacts (leftover `.db` files, `MagicMock` files, temporary test output) at repository root and in `backend/` per FR-014
+- [ ] T052 [US4] Run full backend test suite (`cd backend && pytest -v`) and identify any tests that fail due to testing nonexistent functionality
+- [ ] T053 [US4] Audit `backend/tests/unit/` for test cases targeting deleted or refactored functions/classes — cross-reference test targets with current `backend/src/` codebase; remove stale tests per FR-012
+- [ ] T054 [P] [US4] Audit `backend/tests/integration/` for test cases targeting deleted or refactored functionality — cross-reference test targets with current `backend/src/` codebase; remove stale tests per FR-012
+- [ ] T055 [US4] Audit `backend/tests/` for tests that mock internals so heavily they don't validate real behavior — identify tests where the majority of the test is mock setup rather than behavior validation per FR-013
+- [ ] T056 [P] [US4] Search for and remove test artifacts (leftover `.db` files, `MagicMock` files, temporary test output) at repository root and in `backend/` per FR-014
 
 ### Frontend Test Cleanup
 
-- [ ] T056 [US4] Run full frontend test suite (`cd frontend && npx vitest run`) and identify any tests that fail due to testing nonexistent functionality
-- [ ] T057 [US4] Audit frontend test files in `frontend/src/` for test cases targeting deleted or refactored components/hooks — remove stale tests per FR-012
-- [ ] T058 [P] [US4] Audit `frontend/e2e/` for stale end-to-end tests targeting deleted features or workflows — remove stale tests per FR-012
-- [ ] T059 [US4] Run full CI validation after all US4 removals: backend (pytest) and frontend (vitest)
+- [ ] T057 [US4] Run full frontend test suite (`cd frontend && npx vitest run`) and identify any tests that fail due to testing nonexistent functionality
+- [ ] T058 [US4] Audit frontend test files in `frontend/src/` for test cases targeting deleted or refactored components/hooks — remove stale tests per FR-012
+- [ ] T059 [P] [US4] Audit `frontend/e2e/` for stale end-to-end tests targeting deleted features or workflows — remove stale tests per FR-012
+- [ ] T060 [US4] Run full CI validation after all US4 removals: backend (pytest) and frontend (vitest)
 
 **Checkpoint**: All stale tests removed. Full test suite passes. Meaningful coverage preserved for active code. Commit with `chore: remove stale and irrelevant tests`.
 
@@ -167,23 +168,23 @@
 
 ### Dependency Cleanup
 
-- [ ] T060 [US5] Verify and remove unused npm dependency `socket.io-client` from `frontend/package.json` — confirm no imports of `socket.io-client` exist in `frontend/src/` and it is not dynamically loaded per FR-017
-- [ ] T061 [P] [US5] Verify and remove unused npm dev dependency `jsdom` from `frontend/package.json` — confirm project uses `happy-dom` (configured in `frontend/src/test/setup.ts`) and `jsdom` is not referenced in vitest config per FR-017
-- [ ] T062 [US5] Run `cd frontend && npm install` after dependency removal to confirm `package-lock.json` updates and no resolution errors
-- [ ] T063 [US5] Audit `backend/pyproject.toml` for unused Python dependencies — cross-reference each dependency with imports in `backend/src/`; remove any confirmed unused per FR-017
+- [ ] T061 [US5] Verify and remove unused npm dependency `socket.io-client` from `frontend/package.json` — confirm no imports of `socket.io-client` exist in `frontend/src/` and it is not dynamically loaded per FR-017
+- [ ] T062 [P] [US5] Verify and remove unused npm dev dependency `jsdom` from `frontend/package.json` — confirm project uses `happy-dom` (configured in `frontend/src/test/setup.ts`) and `jsdom` is not referenced in vitest config per FR-017
+- [ ] T063 [US5] Run `cd frontend && npm install` after dependency removal to confirm `package-lock.json` updates and no resolution errors
+- [ ] T064 [US5] Audit `backend/pyproject.toml` for unused Python dependencies — cross-reference each dependency with imports in `backend/src/`; remove any confirmed unused per FR-017
 
 ### Configuration Cleanup
 
-- [ ] T064 [P] [US5] Remove unused environment variable `SESSION_EXPIRE_HOURS` from `.env.example` — confirmed not referenced in `backend/src/config.py` or any backend code per FR-018
-- [ ] T065 [P] [US5] Audit `docker-compose.yml` for unused services or environment variables — cross-reference with current application needs per FR-018
-- [ ] T066 [P] [US5] Audit `.env.example` for any additional unused environment variables — cross-reference each variable with `backend/src/config.py` and `backend/src/` per FR-018
+- [ ] T065 [P] [US5] Remove unused environment variable `SESSION_EXPIRE_HOURS` from `.env.example` — confirmed not referenced in `backend/src/config.py` or any backend code per FR-018
+- [ ] T066 [P] [US5] Audit `docker-compose.yml` for unused services or environment variables — cross-reference with current application needs per FR-018
+- [ ] T067 [P] [US5] Audit `.env.example` for any additional unused environment variables — cross-reference each variable with `backend/src/config.py` and `backend/src/` per FR-018
 
 ### Comment and Config Cleanup
 
-- [ ] T067 [US5] Review and selectively remove stale TODO/FIXME/HACK comments in `backend/src/` — only remove comments referencing completed work; keep `backend/src/api/projects.py:23` (future work) and `backend/src/services/signal_chat.py:155,159,165` (active security issue) per FR-016
-- [ ] T068 [P] [US5] Review and selectively remove stale TODO/FIXME/HACK comments in `frontend/src/` — only remove comments referencing completed work per FR-016
-- [ ] T069 [US5] Audit for orphaned migration files or configs referencing deleted features in `backend/src/migrations/` and project config files per FR-015
-- [ ] T070 [US5] Run full CI validation after all US5 changes: backend (ruff, pyright, pytest) and frontend (eslint, tsc, vitest, vite build) plus `npm install` and `pip install`
+- [ ] T068 [US5] Review and selectively remove stale TODO/FIXME/HACK comments in `backend/src/` — only remove comments referencing completed work; keep `backend/src/api/projects.py:23` (future work) and `backend/src/services/signal_chat.py:155,159,165` (active security issue) per FR-016
+- [ ] T069 [P] [US5] Review and selectively remove stale TODO/FIXME/HACK comments in `frontend/src/` — only remove comments referencing completed work per FR-016
+- [ ] T070 [US5] Audit for orphaned migration files or configs referencing deleted features in `backend/src/migrations/` and project config files per FR-015
+- [ ] T071 [US5] Run full CI validation after all US5 changes: backend (ruff, pyright, pytest) and frontend (eslint, tsc, vitest, vite build) plus `npm install` and `pip install`
 
 **Checkpoint**: All general hygiene items addressed. CI passes. Dependencies resolve cleanly. Commit with `chore: general hygiene cleanup`.
 
@@ -193,11 +194,11 @@
 
 **Purpose**: Final validation, documentation, and cross-story integration
 
-- [ ] T071 Run complete CI suite across entire repository — backend: `ruff check`, `ruff format --check`, `pyright`, `pytest`; frontend: `eslint`, `tsc --noEmit`, `vitest run`, `npm run build`
-- [ ] T072 Verify no public API contracts changed — diff all files in `backend/src/api/` and confirm no route paths, request/response shapes, or status codes were modified per FR-020
-- [ ] T073 Compile categorized PR description summary — organize every removal/consolidation by the 5 cleanup categories with brief rationale for each change per FR-023
-- [ ] T074 Measure and report total lines removed, functions consolidated, dependencies removed, and stale tests removed per SC-002, SC-004, SC-006
-- [ ] T075 Run quickstart.md validation checklist to confirm all items pass
+- [ ] T072 Run complete CI suite across entire repository — backend: `ruff check`, `ruff format --check`, `pyright`, `pytest`; frontend: `eslint`, `tsc --noEmit`, `vitest run`, `npm run build`
+- [ ] T073 Verify no public API contracts changed — diff all files in `backend/src/api/` and confirm no route paths, request/response shapes, or status codes were modified per FR-020
+- [ ] T074 Compile categorized PR description summary — organize every removal/consolidation by the 5 cleanup categories with brief rationale for each change per FR-023
+- [ ] T075 Measure and report total lines removed, functions consolidated, dependencies removed, and stale tests removed per SC-002, SC-004, SC-006
+- [ ] T076 Run quickstart.md validation checklist to confirm all items pass
 
 ---
 
@@ -235,9 +236,9 @@
 - **Phase 2**: T010, T011 can run in parallel with T009
 - **Phase 3 (US1)**: Backend tasks (T013–T025) and frontend tasks (T026–T032) can run in parallel
 - **Phase 4 (US2)**: T036 and T037 can run in parallel (different files)
-- **Phase 5 (US3)**: T048 and T049 can run in parallel; backend and frontend consolidation can be parallelized
-- **Phase 6 (US4)**: T053, T055, T058 can run in parallel
-- **Phase 7 (US5)**: T061, T064, T065, T066, T068 can all run in parallel
+- **Phase 5 (US3)**: T049 and T050 can run in parallel; backend and frontend consolidation can be parallelized
+- **Phase 6 (US4)**: T054, T056, T059 can run in parallel
+- **Phase 7 (US5)**: T062, T065, T066, T067, T069 can all run in parallel
 
 ---
 
@@ -315,5 +316,5 @@ Since this is a cleanup task executed by a single agent:
 - Conventional commits: `refactor:` for consolidation (US3), `chore:` for removal (US1, US2, US4, US5)
 - **Do not remove**: crypto polyfill in `frontend/src/test/setup.ts:11` (legitimate test environment polyfill per R1)
 - **Do not remove**: TODOs in `backend/src/api/projects.py:23` (future work) and `backend/src/services/signal_chat.py:155,159,165` (active security issue per R5)
-- **Caution**: Constitution Principle V — "Duplication is preferable to wrong abstraction" — applies to all US3 consolidation tasks
-- Total tasks: 75
+- **Caution**: Duplication is preferable to wrong abstraction — applies to all US3 consolidation tasks. Do not force abstractions that don't genuinely simplify maintenance.
+- Total tasks: 76
