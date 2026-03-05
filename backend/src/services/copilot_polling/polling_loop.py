@@ -138,6 +138,9 @@ async def _poll_loop(
             _polling_state.last_poll_time = utcnow()
             _polling_state.poll_count += 1
 
+            # Clear per-cycle cache so each iteration starts with fresh data.
+            _cp.github_projects_service.clear_cycle_cache()
+
             logger.debug(
                 "Polling for Copilot PR completions (poll #%d)",
                 _polling_state.poll_count,

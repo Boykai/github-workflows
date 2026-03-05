@@ -96,8 +96,34 @@ class GitHubProjectsService:
         self._low_quota_threshold: int = 150
         self._coalesced_hit_count: int = 0
         self._cooldown_hit_count: int = 0
+        self._cycle_cache_hit_count: int = 0
         self._metrics_log_interval_seconds: float = 300.0
         self._last_metrics_log_at: float = time.monotonic()
+        # Per-poll-cycle cache for read-only API responses.
+        # Cleared at the start of each polling iteration via clear_cycle_cache().
+        # Prevents redundant API calls when Step 0, Steps 1–3, and recovery
+        # all query the same issue/PR data within a single 60s cycle.
+        self._cycle_cache: dict[str, object] = {}
+
+    def clear_cycle_cache(self) -> None:
+        """Clear the per-poll-cycle cache.
+
+        Must be called at the start of each polling loop iteration so
+        that stale data from the previous cycle is never served.
+        """
+        if self._cycle_cache:
+            logger.debug(
+                "Clearing cycle cache (%d entries, %d hits this cycle)",
+                len(self._cycle_cache),
+                self._cycle_cache_hit_count,
+            )
+        self._cycle_cache.clear()
+        self._cycle_cache_hit_count = 0
+
+    def _invalidate_cycle_cache(self, *keys: str) -> None:
+        """Remove specific entries from the cycle cache after a write."""
+        for key in keys:
+            self._cycle_cache.pop(key, None)
 
     def _maybe_log_request_management_metrics(self) -> None:
         """Periodically emit lightweight request-management counters.
@@ -110,9 +136,11 @@ class GitHubProjectsService:
             return
 
         logger.info(
-            "request-management-metrics coalesced_hit_count=%d cooldown_hit_count=%d",
+            "request-management-metrics coalesced_hit_count=%d cooldown_hit_count=%d"
+            " cycle_cache_hit_count=%d",
             self._coalesced_hit_count,
             self._cooldown_hit_count,
+            self._cycle_cache_hit_count,
         )
         self._last_metrics_log_at = now
 
@@ -682,6 +710,12 @@ class GitHubProjectsService:
         Returns:
             List of Task objects
         """
+        cache_key = f"items:{project_id}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         all_tasks = []
         has_next_page = True
         after = None
@@ -738,6 +772,8 @@ class GitHubProjectsService:
             # Safety check to prevent infinite loops
             if not after:
                 break
+
+        self._cycle_cache[cache_key] = all_tasks
 
         logger.info("Fetched %d total tasks from project %s", len(all_tasks), project_id)
         return all_tasks
@@ -1530,6 +1566,7 @@ class GitHubProjectsService:
             )
             response.raise_for_status()
             logger.info("Updated body of issue #%d in %s/%s", issue_number, owner, repo)
+            self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
             return True
         except Exception as e:
             logger.error("Failed to update issue #%d body: %s", issue_number, e)
@@ -1600,6 +1637,7 @@ class GitHubProjectsService:
                 owner,
                 repo,
             )
+            self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
             return True
         except Exception as e:
             logger.warning("Failed to update issue #%d state: %s", issue_number, e)
@@ -1960,6 +1998,12 @@ class GitHubProjectsService:
         Returns:
             Dict with issue title, body, and comments list
         """
+        cache_key = f"issue:{owner}/{repo}/{issue_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         try:
             all_comments: list[dict] = []
             title = ""
@@ -2006,12 +2050,14 @@ class GitHubProjectsService:
                     break
                 cursor = page_info.get("endCursor")
 
-            return {
+            result = {
                 "title": title,
                 "body": body,
                 "comments": all_comments,
                 "user": {"login": author_login},
             }
+            self._cycle_cache[cache_key] = result
+            return result
         except Exception as e:
             logger.error("Failed to fetch issue #%d with comments: %s", issue_number, e)
             return {"title": "", "body": "", "comments": [], "user": {"login": ""}}
@@ -2270,6 +2316,7 @@ class GitHubProjectsService:
                 )
                 # Give GitHub a moment to propagate the unassignment
                 await asyncio.sleep(API_ACTION_DELAY_SECONDS)
+                self._invalidate_cycle_cache(f"assigned:{owner}/{repo}/{issue_number}")
                 return copilot_gone
             elif response.status_code == 404:
                 # Copilot was not assigned
@@ -2315,6 +2362,12 @@ class GitHubProjectsService:
         Returns:
             True if Copilot is currently assigned
         """
+        cache_key = f"assigned:{owner}/{repo}/{issue_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         try:
             url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
             headers = self._build_headers(access_token)
@@ -2329,12 +2382,15 @@ class GitHubProjectsService:
 
             issue_data = response.json()
             assignees = issue_data.get("assignees", [])
+            result = False
             for assignee in assignees:
                 login = assignee.get("login") or ""
                 if self.is_copilot_author(login):
-                    return True
+                    result = True
+                    break
 
-            return False
+            self._cycle_cache[cache_key] = result
+            return result
 
         except Exception as e:
             logger.warning("Error checking Copilot assignment for issue #%d: %s", issue_number, e)
@@ -2411,6 +2467,8 @@ class GitHubProjectsService:
         )
 
         if graphql_success:
+            if issue_number:
+                self._invalidate_cycle_cache(f"assigned:{owner}/{repo}/{issue_number}")
             return True
 
         # Fall back to REST API if GraphQL failed
@@ -2486,6 +2544,7 @@ class GitHubProjectsService:
                     custom_agent,
                     assignees,
                 )
+                self._invalidate_cycle_cache(f"assigned:{owner}/{repo}/{issue_number}")
                 return True
             else:
                 logger.error(
@@ -3297,6 +3356,12 @@ class GitHubProjectsService:
         Returns:
             List of PR details with id, number, title, state, isDraft, url, author
         """
+        cache_key = f"linked_prs:{owner}/{repo}/{issue_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         try:
             data = await self._graphql(
                 access_token,
@@ -3345,6 +3410,7 @@ class GitHubProjectsService:
                 issue_number,
                 [pr["number"] for pr in unique_prs],
             )
+            self._cycle_cache[cache_key] = unique_prs
             return unique_prs
 
         except Exception as e:
@@ -3370,6 +3436,12 @@ class GitHubProjectsService:
         Returns:
             PR details dict or None if not found
         """
+        cache_key = f"pr:{owner}/{repo}/{pr_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         try:
             data = await self._graphql(
                 access_token,
@@ -3395,7 +3467,7 @@ class GitHubProjectsService:
                 if status_rollup:
                     check_status = status_rollup.get("state")
 
-            return {
+            result = {
                 "id": pr.get("id"),
                 "number": pr.get("number"),
                 "title": pr.get("title"),
@@ -3412,6 +3484,8 @@ class GitHubProjectsService:
                 "last_commit": last_commit,
                 "check_status": check_status,  # SUCCESS, FAILURE, PENDING, etc.
             }
+            self._cycle_cache[cache_key] = result
+            return result
 
         except Exception as e:
             logger.error("Failed to get PR #%d: %s", pr_number, e)
@@ -3446,6 +3520,12 @@ class GitHubProjectsService:
                     pr.get("number"),
                     pr.get("url"),
                 )
+                # Invalidate cached PR details — draft status changed
+                pr_num = pr.get("number")
+                if pr_num:
+                    for key in list(self._cycle_cache):
+                        if key.startswith("pr:") and key.endswith(f"/{pr_num}"):
+                            del self._cycle_cache[key]
                 return True
             else:
                 logger.warning("PR may not have been marked ready: %s", pr)
@@ -3596,6 +3676,12 @@ class GitHubProjectsService:
                     result.get("mergedAt"),
                     result.get("mergeCommit", {}).get("oid", "")[:8],
                 )
+                # Invalidate cached PR details — state changed
+                merged_num = result.get("number") or pr_number
+                if merged_num:
+                    for key in list(self._cycle_cache):
+                        if key.startswith("pr:") and key.endswith(f"/{merged_num}"):
+                            del self._cycle_cache[key]
                 return {
                     "number": result.get("number"),
                     "state": result.get("state"),
@@ -3799,6 +3885,10 @@ class GitHubProjectsService:
                     owner,
                     repo,
                 )
+                self._invalidate_cycle_cache(
+                    f"linked_prs:{owner}/{repo}/{issue_number}",
+                    f"pr:{owner}/{repo}/{pr_number}",
+                )
                 return True
             else:
                 logger.warning(
@@ -3838,6 +3928,12 @@ class GitHubProjectsService:
         Returns:
             True if Copilot has submitted a review
         """
+        cache_key = f"reviewed:{owner}/{repo}/{pr_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         try:
             data = await self._graphql(
                 access_token,
@@ -3871,8 +3967,10 @@ class GitHubProjectsService:
                         state,
                         len(body),
                     )
+                    self._cycle_cache[cache_key] = True
                     return True
 
+            self._cycle_cache[cache_key] = False
             return False
 
         except Exception as e:
@@ -3898,13 +3996,21 @@ class GitHubProjectsService:
         Returns:
             List of timeline events
         """
+        cache_key = f"timeline:{owner}/{repo}/{issue_number}"
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+
         url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/timeline"
         headers = self._build_headers(access_token)
 
         try:
             response = await self._client.get(url, headers=headers)
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            self._cycle_cache[cache_key] = result
+            return result
         except httpx.HTTPError as e:
             logger.error(
                 "Failed to get timeline events for issue #%d: %s",
@@ -4440,6 +4546,7 @@ class GitHubProjectsService:
                     issue_number,
                     result.get("id"),
                 )
+                self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
                 return result
             else:
                 logger.error(
