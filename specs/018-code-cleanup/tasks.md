@@ -175,7 +175,7 @@
 
 ### Configuration Cleanup
 
-- [x] T065 [P] [US5] Remove unused environment variable `SESSION_EXPIRE_HOURS` from `.env.example` — confirmed not referenced in `backend/src/config.py` or any backend code per FR-018
+- [x] T065 [P] [US5] ~~Remove unused environment variable `SESSION_EXPIRE_HOURS` from `.env.example`~~ — **CORRECTED**: `SESSION_EXPIRE_HOURS` IS actively used by `backend/src/config.py:37` (as `session_expire_hours`) and referenced by `backend/src/services/session_store.py`. NOT removed.
 - [x] T066 [P] [US5] Audit `docker-compose.yml` for unused services or environment variables — cross-reference with current application needs per FR-018
 - [x] T067 [P] [US5] Audit `.env.example` for any additional unused environment variables — cross-reference each variable with `backend/src/config.py` and `backend/src/` per FR-018
 

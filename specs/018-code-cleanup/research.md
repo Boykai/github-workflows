@@ -98,7 +98,7 @@
 
 2. **Frontend unused dev dependency**: `jsdom@^27.4.0` is listed but the project uses `happy-dom` (configured in test/setup.ts). **Action**: Verify it's not referenced in vitest config, then remove.
 
-3. **Unused environment variable**: `SESSION_EXPIRE_HOURS` in `.env.example` is not referenced in `backend/src/config.py` or any backend code. **Action**: Remove from `.env.example`.
+3. **~~Unused environment variable~~**: `SESSION_EXPIRE_HOURS` in `.env.example` was initially identified as unused, but further review confirmed it IS actively used: `backend/src/config.py:37` reads it as `session_expire_hours` (Pydantic auto-maps env vars), and `backend/src/services/session_store.py` references this config value. **Action**: Keep — not unused.
 
 4. **TODO/FIXME comments**:
    - `backend/src/api/projects.py:23` — `# TODO: Also fetch org projects the user has access to` — May be future work, not completed work. **Action**: Keep unless confirmed as completed.
@@ -120,4 +120,4 @@ All research tasks resolved. No NEEDS CLARIFICATION items remain. Key findings:
 2. **Dead code**: The codebase is relatively clean — no major dead functions or commented-out code blocks found. Static analysis tools should be run for comprehensive coverage.
 3. **Duplication**: 6 consolidation targets identified — highest value are token client cache (backend), chat flow components (frontend), and CRUD hooks (frontend).
 4. **Stale tests**: No obviously stale tests detected. Full test suite run needed for definitive assessment.
-5. **Hygiene**: 2 unused npm dependencies (`socket.io-client`, `jsdom`), 1 unused env var (`SESSION_EXPIRE_HOURS`), 2 TODO clusters (1 future work, 1 active security issue — both should be kept).
+5. **Hygiene**: 2 unused npm dependencies (`socket.io-client`, `jsdom`), 2 TODO clusters (1 future work, 1 active security issue — both should be kept). Note: `SESSION_EXPIRE_HOURS` was initially identified as unused but is actually active (see R5 finding #3).

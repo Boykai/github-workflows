@@ -89,7 +89,7 @@ The cleanup follows the priority order from the spec. Each category can be execu
 ### Phase 5: General Hygiene (P3)
 
 1. Remove unused npm dependencies (`socket.io-client`, `jsdom`)
-2. Remove unused environment variables (`SESSION_EXPIRE_HOURS`)
+2. ~~Remove unused environment variables (`SESSION_EXPIRE_HOURS`)~~ — Corrected: `SESSION_EXPIRE_HOURS` IS actively used by `config.py` → `session_store.py`. Do NOT remove.
 3. Review and remove stale TODO/FIXME comments (only those referencing completed work)
 4. **Validate**: Run full CI checks and verify `npm install`/`pip install` still work
 
