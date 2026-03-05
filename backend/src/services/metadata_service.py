@@ -18,6 +18,17 @@ from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
+# Module-level shared L1 cache so all MetadataService instances share state
+_shared_l1_cache: InMemoryCache | None = None
+
+
+def _get_shared_l1_cache() -> InMemoryCache:
+    """Return (and lazily create) the module-level L1 cache singleton."""
+    global _shared_l1_cache
+    if _shared_l1_cache is None:
+        _shared_l1_cache = InMemoryCache()
+    return _shared_l1_cache
+
 
 class RepositoryMetadataContext(BaseModel):
     """Cached repository metadata used for AI prompt injection and validation."""
@@ -42,7 +53,7 @@ class MetadataService:
     """
 
     def __init__(self, l1_cache: InMemoryCache | None = None) -> None:
-        self._l1 = l1_cache or InMemoryCache()
+        self._l1 = l1_cache or _get_shared_l1_cache()
         self._settings = get_settings()
 
     # ──────────────────────────────────────────────────────────────────

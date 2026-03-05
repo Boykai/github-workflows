@@ -219,8 +219,8 @@ export function IssueRecommendationPreview({
               <div className="col-span-2 flex flex-col gap-1">
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Assignees</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {recommendation.metadata.assignees.map((assignee, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-[11px] font-medium">@{assignee}</span>
+                  {recommendation.metadata.assignees.map((assignee) => (
+                    <span key={assignee} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-[11px] font-medium">@{assignee}</span>
                   ))}
                 </div>
               </div>
