@@ -84,7 +84,7 @@ ALLOWED_MIME_TYPES: set[str] = {
     "text/plain",
 }
 
-MAX_FILE_SIZE = 26_214_400  # 25 MB in bytes
+MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MiB
 MAX_ATTACHMENTS_PER_MESSAGE = 10
 
 

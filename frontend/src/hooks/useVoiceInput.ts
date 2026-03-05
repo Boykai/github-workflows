@@ -113,10 +113,10 @@ export function useVoiceInput(): UseVoiceInputReturn {
     };
 
     recognition.onend = () => {
-      if (recordingState === 'recording' || recordingState === 'processing') {
-        setRecordingState('idle');
-        setInterimText('');
-      }
+      // Always transition to idle when recognition ends, unless an error
+      // already set the state (onerror fires before onend).
+      setRecordingState((prev) => (prev === 'error' ? prev : 'idle'));
+      setInterimText('');
       recognitionRef.current = null;
     };
 
@@ -127,7 +127,7 @@ export function useVoiceInput(): UseVoiceInputReturn {
       setError('Failed to start voice recording. Please try again.');
       setRecordingState('error');
     }
-  }, [recordingState]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     if (recognitionRef.current) {

@@ -7,7 +7,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { chatApi } from '@/services/api';
 import type { FileAttachmentResponse } from '@/types';
 
-const MAX_FILE_SIZE = 26_214_400; // 25 MB
+const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MiB
 const MAX_ATTACHMENTS = 10;
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
