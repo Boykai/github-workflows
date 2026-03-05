@@ -25,12 +25,12 @@
 
 **Purpose**: Establish a baseline by auditing key files and running existing tests to detect any pre-existing failures.
 
-- [ ] T001 Read and audit current backend dependencies in backend/pyproject.toml
-- [ ] T002 [P] Read and audit current frontend dependencies in frontend/package.json
-- [ ] T003 [P] Read key backend service files to understand current duplication patterns in backend/src/services/completion_providers.py, backend/src/services/model_fetcher.py, and backend/src/services/github_projects/service.py
-- [ ] T004 Run existing backend test suite (pytest) to establish a passing baseline
-- [ ] T005 [P] Run existing frontend test suite (npm test) and build (npm run build) to establish a passing baseline
-- [ ] T006 [P] Run ruff check and ruff format --check on backend/src/ to confirm lint baseline
+- [x] T001 Read and audit current backend dependencies in backend/pyproject.toml
+- [x] T002 [P] Read and audit current frontend dependencies in frontend/package.json
+- [x] T003 [P] Read key backend service files to understand current duplication patterns in backend/src/services/completion_providers.py, backend/src/services/model_fetcher.py, and backend/src/services/github_projects/service.py
+- [x] T004 Run existing backend test suite (pytest) to establish a passing baseline
+- [x] T005 [P] Run existing frontend test suite (npm test) and build (npm run build) to establish a passing baseline
+- [x] T006 [P] Run ruff check and ruff format --check on backend/src/ to confirm lint baseline
 
 **Checkpoint**: Baseline established — all existing tests pass, current state of code is understood.
 
@@ -56,20 +56,20 @@
 
 #### Backend Dependency Updates
 
-- [ ] T007 [US1] Remove `agent-framework-core>=1.0.0a1` from dependencies in backend/pyproject.toml
-- [ ] T008 [US1] Bump `github-copilot-sdk` from `>=0.1.0` to `>=0.1.30` in backend/pyproject.toml
-- [ ] T009 [P] [US1] Bump `openai` from `>=1.0.0` to `>=2.24.0` in backend/pyproject.toml
-- [ ] T010 [P] [US1] Bump `azure-ai-inference` from `>=1.0.0b1` to `>=1.0.0b9` in backend/pyproject.toml
-- [ ] T011 [US1] Install updated backend dependencies (`pip install -e ".[dev]"`) and verify no import breakage in backend/
-- [ ] T012 [US1] Run backend test suite (`pytest`) to verify no regressions after dependency updates
-- [ ] T013 [US1] Run ruff check on backend/src/ to verify no lint regressions from dependency changes
+- [x] T007 [US1] Remove `agent-framework-core>=1.0.0a1` from dependencies in backend/pyproject.toml
+- [x] T008 [US1] Bump `github-copilot-sdk` from `>=0.1.0` to `>=0.1.30` in backend/pyproject.toml
+- [x] T009 [P] [US1] Bump `openai` from `>=1.0.0` to `>=2.24.0` in backend/pyproject.toml
+- [x] T010 [P] [US1] Bump `azure-ai-inference` from `>=1.0.0b1` to `>=1.0.0b9` in backend/pyproject.toml
+- [x] T011 [US1] Install updated backend dependencies (`pip install -e ".[dev]"`) and verify no import breakage in backend/
+- [x] T012 [US1] Run backend test suite (`pytest`) to verify no regressions after dependency updates
+- [x] T013 [US1] Run ruff check on backend/src/ to verify no lint regressions from dependency changes
 
 #### Frontend Dependency Updates
 
-- [ ] T014 [P] [US1] Bump `@tanstack/react-query` from `^5.17.0` to `^5.90.7` in frontend/package.json
-- [ ] T015 [P] [US1] Bump `vite` from `^5.4.0` to `^7.3.1` and update `@vitejs/plugin-react` to a Vite 7–compatible version in frontend/package.json
-- [ ] T016 [US1] Install updated frontend dependencies (`npm install`) in frontend/
-- [ ] T017 [US1] Run frontend build (`npm run build`) and test suite (`npm test`) to verify no regressions
+- [x] T014 [P] [US1] Bump `@tanstack/react-query` from `^5.17.0` to `^5.90.7` in frontend/package.json
+- [x] T015 [P] [US1] Bump `vite` from `^5.4.0` to `^7.3.1` and update `@vitejs/plugin-react` to a Vite 7–compatible version in frontend/package.json
+- [x] T016 [US1] Install updated frontend dependencies (`npm install`) in frontend/
+- [x] T017 [US1] Run frontend build (`npm run build`) and test suite (`npm test`) to verify no regressions
 
 **Checkpoint**: All dependencies modernized. Backend and frontend tests pass. `agent-framework-core` removed. Application starts without import errors.
 
@@ -85,32 +85,32 @@
 
 #### 2A: Extract CopilotClientPool
 
-- [ ] T018 [US2] Add `CopilotClientPool` class (with `token_key`, `get_or_create`, `remove`, `clear` methods) in backend/src/services/completion_providers.py
-- [ ] T019 [US2] Refactor `CopilotCompletionProvider` to delegate client caching to the shared `CopilotClientPool` in backend/src/services/completion_providers.py
-- [ ] T020 [US2] Refactor `GitHubCopilotModelFetcher` to import and use the shared `CopilotClientPool` from `completion_providers` in backend/src/services/model_fetcher.py
-- [ ] T021 [US2] Remove duplicate `_token_key()` and `_get_or_create_client()` methods from `GitHubCopilotModelFetcher` in backend/src/services/model_fetcher.py
+- [x] T018 [US2] Add `CopilotClientPool` class (with `token_key`, `get_or_create`, `remove`, `clear` methods) in backend/src/services/completion_providers.py
+- [x] T019 [US2] Refactor `CopilotCompletionProvider` to delegate client caching to the shared `CopilotClientPool` in backend/src/services/completion_providers.py
+- [x] T020 [US2] Refactor `GitHubCopilotModelFetcher` to import and use the shared `CopilotClientPool` from `completion_providers` in backend/src/services/model_fetcher.py
+- [x] T021 [US2] Remove duplicate `_token_key()` and `_get_or_create_client()` methods from `GitHubCopilotModelFetcher` in backend/src/services/model_fetcher.py
 
 #### 2B: Introduce Fallback Helper
 
-- [ ] T022 [US2] Add `async _with_fallback(primary_fn, fallback_fn, context_msg)` method to `GitHubProjectsService` in backend/src/services/github_projects/service.py
-- [ ] T023 [US2] Refactor `assign_copilot_to_issue()` to use `_with_fallback` (GraphQL primary, REST fallback) in backend/src/services/github_projects/service.py
-- [ ] T024 [P] [US2] Refactor review request methods to use `_with_fallback` (REST primary, GraphQL fallback) in backend/src/services/github_projects/service.py
-- [ ] T025 [US2] Refactor `add_issue_to_project()` to use `_with_fallback` (GraphQL primary, REST fallback) in backend/src/services/github_projects/service.py
+- [x] T022 [US2] Add `async _with_fallback(primary_fn, fallback_fn, context_msg)` method to `GitHubProjectsService` in backend/src/services/github_projects/service.py
+- [x] T023 [US2] Refactor `assign_copilot_to_issue()` to use `_with_fallback` (GraphQL primary, REST fallback) in backend/src/services/github_projects/service.py
+- [x] T024 [P] [US2] Refactor review request methods to use `_with_fallback` (REST primary, GraphQL fallback) in backend/src/services/github_projects/service.py
+- [x] T025 [US2] Refactor `add_issue_to_project()` to use `_with_fallback` (GraphQL primary, REST fallback) in backend/src/services/github_projects/service.py
 
 #### 2C: Unify Retry Logic
 
-- [ ] T026 [US2] Enhance `_request_with_retry()` to handle secondary rate limits (403 with `X-RateLimit-Remaining: 0` and body-based detection) in backend/src/services/github_projects/service.py
-- [ ] T027 [US2] Remove inline retry-on-secondary-rate-limit logic from `_graphql()` method in backend/src/services/github_projects/service.py
+- [x] T026 [US2] Enhance `_request_with_retry()` to handle secondary rate limits (403 with `X-RateLimit-Remaining: 0` and body-based detection) in backend/src/services/github_projects/service.py
+- [x] T027 [US2] Remove inline retry-on-secondary-rate-limit logic from `_graphql()` method in backend/src/services/github_projects/service.py
 
 #### 2D: Consolidate Header Builder
 
-- [ ] T028 [US2] Enhance `_build_headers()` to accept optional `extra_headers: dict[str, str] | None` and `graphql_features: list[str] | None` parameters in backend/src/services/github_projects/service.py
-- [ ] T029 [US2] Remove `_build_graphql_headers()` if it exists and update all call sites to use the unified `_build_headers()` in backend/src/services/github_projects/service.py
+- [x] T028 [US2] Enhance `_build_headers()` to accept optional `extra_headers: dict[str, str] | None` and `graphql_features: list[str] | None` parameters in backend/src/services/github_projects/service.py
+- [x] T029 [US2] Remove `_build_graphql_headers()` if it exists and update all call sites to use the unified `_build_headers()` in backend/src/services/github_projects/service.py
 
 #### Verification
 
-- [ ] T030 [US2] Run backend test suite (`pytest`) to verify DRY consolidation introduces no regressions
-- [ ] T031 [US2] Update any affected backend tests to match refactored method signatures and behavior in backend/tests/
+- [x] T030 [US2] Run backend test suite (`pytest`) to verify DRY consolidation introduces no regressions
+- [x] T031 [US2] Update any affected backend tests to match refactored method signatures and behavior in backend/tests/
 
 **Checkpoint**: All DRY consolidation complete. Duplicate client caching eliminated. Fallback chains use shared helper. Retry logic unified. Header construction consolidated. All tests pass.
 
@@ -126,41 +126,41 @@
 
 #### 3A: Parameterize Hardcoded Model
 
-- [ ] T032 [US3] Add `$model: String!` variable to `ASSIGN_COPILOT_MUTATION` GraphQL string, replacing hardcoded `model: "claude-opus-4.6"` in backend/src/services/github_projects/graphql.py
-- [ ] T033 [US3] Pass `model` value from `AgentAssignmentConfig.model` (or a default constant) at the call site in `_assign_copilot_graphql()` in backend/src/services/github_projects/service.py
+- [x] T032 [US3] Add `$model: String!` variable to `ASSIGN_COPILOT_MUTATION` GraphQL string, replacing hardcoded `model: "claude-opus-4.6"` in backend/src/services/github_projects/graphql.py
+- [x] T033 [US3] Pass `model` value from `AgentAssignmentConfig.model` (or a default constant) at the call site in `_assign_copilot_graphql()` in backend/src/services/github_projects/service.py
 
 #### 3B: Document/Persist Chat State as MVP
 
-- [ ] T034 [P] [US3] Add explicit TODO comments documenting the intentional MVP in-memory approach for `_messages`, `_proposals`, and `_recommendations` dicts in backend/src/api/chat.py
-- [ ] T035 [P] [US3] Convert `_messages`, `_proposals`, and `_recommendations` from plain `dict` to `BoundedDict(maxlen=500)` in backend/src/api/chat.py
+- [x] T034 [P] [US3] Add explicit TODO comments documenting the intentional MVP in-memory approach for `_messages`, `_proposals`, and `_recommendations` dicts in backend/src/api/chat.py
+- [x] T035 [P] [US3] Convert `_messages`, `_proposals`, and `_recommendations` from plain `dict` to `BoundedDict(maxlen=500)` in backend/src/api/chat.py
 
 #### 3C: Implement File Deletion in Commit Workflow
 
-- [ ] T036 [P] [US3] Implement `delete_files` parameter using `fileChanges.deletions` in the GraphQL `createCommitOnBranch` mutation in backend/src/services/github_commit_workflow.py
+- [x] T036 [P] [US3] Implement `delete_files` parameter using `fileChanges.deletions` in the GraphQL `createCommitOnBranch` mutation in backend/src/services/github_commit_workflow.py
 
 #### 3D: Document OAuth State Bounds
 
-- [ ] T037 [P] [US3] Add code comment to `_oauth_states` documenting bounded capacity (max 1000 entries), loss-on-restart behavior, and optional SQLite migration path in backend/src/services/github_auth.py
+- [x] T037 [P] [US3] Add code comment to `_oauth_states` documenting bounded capacity (max 1000 entries), loss-on-restart behavior, and optional SQLite migration path in backend/src/services/github_auth.py
 
 #### 3E: Standardize Singleton Registration
 
-- [ ] T038 [US3] Ensure all service singletons are registered on `app.state` exclusively in backend/src/main.py
-- [ ] T039 [US3] Remove module-global fallback variables for service singletons in backend/src/dependencies.py
-- [ ] T040 [US3] Update any affected tests that relied on module-global fallbacks to use `app.state` overrides in backend/tests/
+- [x] T038 [US3] Ensure all service singletons are registered on `app.state` exclusively in backend/src/main.py
+- [x] T039 [US3] Remove module-global fallback variables for service singletons in backend/src/dependencies.py
+- [x] T040 [US3] Update any affected tests that relied on module-global fallbacks to use `app.state` overrides in backend/tests/
 
 #### 3F: Bound All In-Memory Caches
 
-- [ ] T041 [P] [US3] Convert `_recent_requests` from plain `dict` to `BoundedDict(maxlen=1000)` in backend/src/api/workflow.py
-- [ ] T042 [P] [US3] Convert `_conversations` from plain `dict` to `BoundedDict(maxlen=200)` in backend/src/services/chores/chat.py
-- [ ] T043 [P] [US3] Convert `_pipeline_states` to `BoundedDict(maxlen=500)`, `_issue_main_branches` to `BoundedDict(maxlen=1000)`, and `_issue_sub_issue_map` to `BoundedDict(maxlen=1000)` in backend/src/services/workflow_orchestrator/transitions.py
-- [ ] T044 [P] [US3] Convert `_workflow_configs` from plain `dict` to `BoundedDict(maxlen=100)` in backend/src/services/workflow_orchestrator/config.py
-- [ ] T045 [P] [US3] Convert `_chat_sessions` and `_chat_session_timestamps` to `BoundedDict(maxlen=200)` in backend/src/services/agents/service.py
-- [ ] T046 [P] [US3] Convert `_signal_pending` from plain `dict` to `BoundedDict(maxlen=500)` in backend/src/services/signal_chat.py
+- [x] T041 [P] [US3] Convert `_recent_requests` from plain `dict` to `BoundedDict(maxlen=1000)` in backend/src/api/workflow.py
+- [x] T042 [P] [US3] Convert `_conversations` from plain `dict` to `BoundedDict(maxlen=200)` in backend/src/services/chores/chat.py
+- [x] T043 [P] [US3] Convert `_pipeline_states` to `BoundedDict(maxlen=500)`, `_issue_main_branches` to `BoundedDict(maxlen=1000)`, and `_issue_sub_issue_map` to `BoundedDict(maxlen=1000)` in backend/src/services/workflow_orchestrator/transitions.py
+- [x] T044 [P] [US3] Convert `_workflow_configs` from plain `dict` to `BoundedDict(maxlen=100)` in backend/src/services/workflow_orchestrator/config.py
+- [x] T045 [P] [US3] Convert `_chat_sessions` and `_chat_session_timestamps` to `BoundedDict(maxlen=200)` in backend/src/services/agents/service.py
+- [x] T046 [P] [US3] Convert `_signal_pending` from plain `dict` to `BoundedDict(maxlen=500)` in backend/src/services/signal_chat.py
 
 #### Verification
 
-- [ ] T047 [US3] Run backend test suite (`pytest`) to verify anti-pattern fixes introduce no regressions
-- [ ] T048 [US3] Update any affected backend tests to match changes (BoundedDict imports, singleton access patterns, parameterized model) in backend/tests/
+- [x] T047 [US3] Run backend test suite (`pytest`) to verify anti-pattern fixes introduce no regressions
+- [x] T048 [US3] Update any affected backend tests to match changes (BoundedDict imports, singleton access patterns, parameterized model) in backend/tests/
 
 **Checkpoint**: All six anti-patterns resolved. Hardcoded model parameterized. Chat state documented as MVP with bounded caches. File deletion implemented. OAuth state documented. Singletons standardized. All caches bounded. All tests pass.
 
@@ -170,13 +170,13 @@
 
 **Purpose**: Final verification, cleanup, and summary across all user stories.
 
-- [ ] T049 Run full backend test suite (`pytest -v`) for final verification in backend/
-- [ ] T050 [P] Run full frontend test suite (`npm test`) and build (`npm run build`) for final verification in frontend/
-- [ ] T051 [P] Run ruff check and ruff format --check on all changed backend files in backend/src/
-- [ ] T052 [P] Run frontend type-check (`npm run type-check`) and lint verification in frontend/
-- [ ] T053 Verify application startup with smoke test: `python -c "from src.main import create_app; print('Import OK')"` in backend/
-- [ ] T054 Run quickstart.md validation checklist against all phases
-- [ ] T055 Produce concise summary of all changes made (dependency versions, DRY patterns consolidated, anti-patterns resolved)
+- [x] T049 Run full backend test suite (`pytest -v`) for final verification in backend/
+- [x] T050 [P] Run full frontend test suite (`npm test`) and build (`npm run build`) for final verification in frontend/
+- [x] T051 [P] Run ruff check and ruff format --check on all changed backend files in backend/src/
+- [x] T052 [P] Run frontend type-check (`npm run type-check`) and lint verification in frontend/
+- [x] T053 Verify application startup with smoke test: `python -c "from src.main import create_app; print('Import OK')"` in backend/
+- [x] T054 Run quickstart.md validation checklist against all phases
+- [x] T055 Produce concise summary of all changes made (dependency versions, DRY patterns consolidated, anti-patterns resolved)
 
 ---
 
