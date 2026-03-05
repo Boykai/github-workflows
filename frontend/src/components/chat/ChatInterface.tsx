@@ -53,6 +53,7 @@ export function ChatInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const historyPopoverRef = useRef<HTMLDivElement>(null);
+  const historyNavTriggered = useRef(false);
 
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
@@ -172,6 +173,7 @@ export function ChatInterface({
         const result = navigateUp(input);
         if (result !== null) {
           e.preventDefault();
+          historyNavTriggered.current = true;
           setInput(result);
         }
       }
@@ -186,6 +188,7 @@ export function ChatInterface({
         const result = navigateDown();
         if (result !== null) {
           e.preventDefault();
+          historyNavTriggered.current = true;
           setInput(result);
         }
       }
@@ -214,12 +217,13 @@ export function ChatInterface({
 
   // Position cursor at end when navigating history
   useEffect(() => {
-    if (isNavigating && inputRef.current) {
+    if (historyNavTriggered.current && inputRef.current) {
+      historyNavTriggered.current = false;
       const len = inputRef.current.value.length;
       inputRef.current.selectionStart = len;
       inputRef.current.selectionEnd = len;
     }
-  }, [isNavigating, input]);
+  }, [input]);
 
   // Dismiss history popover on click outside
   useEffect(() => {
@@ -363,36 +367,33 @@ export function ChatInterface({
               <History className="w-4 h-4" />
             </button>
           )}
-          {showHistoryPopover && (
+          {showHistoryPopover && chatHistory.length > 0 && (
             <div className="absolute bottom-full mb-2 right-0 w-64 max-h-60 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg z-20">
-              {chatHistory.length === 0 ? (
-                <p className="p-3 text-sm text-muted-foreground text-center">No message history yet</p>
-              ) : (
-                <ul className="py-1">
-                  {chatHistory.map((_, idx) => {
-                    const reverseIdx = chatHistory.length - 1 - idx;
-                    const msg = chatHistory[reverseIdx];
-                    return (
-                      <li key={reverseIdx}>
-                        <button
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
-                          onClick={() => {
-                            const result = selectFromHistory(reverseIdx, input);
-                            if (result !== null) {
-                              setInput(result);
-                            }
-                            setShowHistoryPopover(false);
-                            inputRef.current?.focus();
-                          }}
-                        >
-                          {msg}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              <ul className="py-1">
+                {chatHistory.map((_, idx) => {
+                  const reverseIdx = chatHistory.length - 1 - idx;
+                  const msg = chatHistory[reverseIdx];
+                  return (
+                    <li key={reverseIdx}>
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
+                        onClick={() => {
+                          const result = selectFromHistory(reverseIdx, input);
+                          if (result !== null) {
+                            historyNavTriggered.current = true;
+                            setInput(result);
+                          }
+                          setShowHistoryPopover(false);
+                          inputRef.current?.focus();
+                        }}
+                      >
+                        {msg}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
         </div>
