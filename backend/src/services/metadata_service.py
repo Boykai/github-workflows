@@ -252,7 +252,12 @@ class MetadataService:
         headers: dict,
         params: dict | None = None,
     ) -> list[dict]:
-        """Fetch all pages from a GitHub REST API list endpoint."""
+        """Fetch all pages from a GitHub REST API list endpoint.
+
+        Returns whatever results were fetched successfully. On API errors
+        (rate limit, network, etc.) the loop breaks and partial results
+        are returned — the caller handles the fallback logic.
+        """
         results: list[dict] = []
         page = 1
         per_page = 100

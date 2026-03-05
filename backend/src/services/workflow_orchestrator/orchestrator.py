@@ -538,14 +538,16 @@ class WorkflowOrchestrator:
             labels.insert(0, "ai-generated")
 
         # Map priority to label if not already present (e.g., "P1")
-        priority_label = recommendation.metadata.priority.value
-        if priority_label and priority_label not in labels:
-            labels.append(priority_label)
+        if recommendation.metadata.priority:
+            priority_label = recommendation.metadata.priority.value
+            if priority_label and priority_label not in labels:
+                labels.append(priority_label)
 
         # Map size to label if not already present (e.g., "size:M")
-        size_label = f"size:{recommendation.metadata.size.value}"
-        if size_label not in labels:
-            labels.append(size_label)
+        if recommendation.metadata.size:
+            size_label = f"size:{recommendation.metadata.size.value}"
+            if size_label not in labels:
+                labels.append(size_label)
 
         return labels
 
