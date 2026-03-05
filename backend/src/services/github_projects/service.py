@@ -7,7 +7,11 @@ import hashlib
 import json as json_mod
 import logging
 import re
+import time
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from email.utils import parsedate_to_datetime
+from typing import TypeVar
 
 import httpx
 import yaml
@@ -57,6 +61,8 @@ from src.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
+_T = TypeVar("_T")
+
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
@@ -79,6 +85,96 @@ class GitHubProjectsService:
         # Token is included so responses are never shared across users.
         self._etag_cache: dict[str, tuple[str, dict]] = {}
         self._ETAG_CACHE_MAX_SIZE: int = 256
+        # Inter-call throttling: minimum 500ms between consecutive GitHub API calls
+        # to stay well within the 5,000 req/hour rate limit.
+
+        self._last_request_time: float = 0.0
+        self._min_request_interval: float = 0.5  # seconds (configurable)
+        self._global_cooldown_until: float = 0.0
+        self._cooldown_lock = asyncio.Lock()
+        self._inflight_graphql: dict[str, asyncio.Task[dict]] = {}
+        self._low_quota_threshold: int = 150
+        self._coalesced_hit_count: int = 0
+        self._cooldown_hit_count: int = 0
+        self._metrics_log_interval_seconds: float = 300.0
+        self._last_metrics_log_at: float = time.monotonic()
+
+    def _maybe_log_request_management_metrics(self) -> None:
+        """Periodically emit lightweight request-management counters.
+
+        This is intentionally simple and dependency-free so the values can be
+        consumed from standard production logs.
+        """
+        now = time.monotonic()
+        if now - self._last_metrics_log_at < self._metrics_log_interval_seconds:
+            return
+
+        logger.info(
+            "request-management-metrics coalesced_hit_count=%d cooldown_hit_count=%d",
+            self._coalesced_hit_count,
+            self._cooldown_hit_count,
+        )
+        self._last_metrics_log_at = now
+
+    @staticmethod
+    def _parse_retry_after_seconds(retry_after: str | None) -> int | None:
+        """Parse Retry-After header value into seconds.
+
+        Supports either integer seconds or HTTP-date format.
+        """
+        if not retry_after:
+            return None
+        value = retry_after.strip()
+        if not value:
+            return None
+
+        try:
+            return max(int(value), 0)
+        except ValueError:
+            pass
+
+        try:
+            parsed = parsedate_to_datetime(value)
+            wait_seconds = int(parsed.timestamp() - utcnow().timestamp())
+            return max(wait_seconds, 0)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _is_secondary_limit(response: httpx.Response) -> bool:
+        """Return True for GitHub secondary rate-limit / abuse-detection responses."""
+        if response.status_code != 403:
+            return False
+
+        if response.headers.get("retry-after"):
+            return True
+
+        body_text = (response.text or "").lower()
+        return any(
+            marker in body_text
+            for marker in (
+                "secondary rate limit",
+                "abuse detection",
+                "temporarily blocked",
+            )
+        )
+
+    async def _apply_global_cooldown(self, wait_seconds: float) -> None:
+        """Extend shared cooldown window for all concurrent GitHub requests."""
+        if wait_seconds <= 0:
+            return
+        async with self._cooldown_lock:
+            new_until = time.monotonic() + wait_seconds
+            self._global_cooldown_until = max(self._global_cooldown_until, new_until)
+
+    async def _respect_global_cooldown(self) -> None:
+        """Sleep until shared cooldown expires, if one is active."""
+        wait = self._global_cooldown_until - time.monotonic()
+        if wait > 0:
+            self._cooldown_hit_count += 1
+            logger.info("Global GitHub API cooldown active for %.1fs", wait)
+            await asyncio.sleep(wait)
+            self._maybe_log_request_management_metrics()
 
     async def close(self):
         """Close HTTP client."""
@@ -99,6 +195,40 @@ class GitHubProjectsService:
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
+
+    async def _with_fallback(
+        self,
+        primary_fn: Callable[[], Awaitable[_T]],
+        fallback_fn: Callable[[], Awaitable[_T]],
+        context_msg: str,
+    ) -> tuple[_T, str]:
+        """Execute primary_fn, falling back to fallback_fn on failure.
+
+        Both strategies are logged. If both fail, raises with context from
+        both exceptions.
+
+        Returns:
+            Tuple of (result, strategy_used) where strategy_used is
+            "primary" or "fallback".
+        """
+        try:
+            result = await primary_fn()
+            return result, "primary"
+        except Exception as primary_err:
+            logger.warning(
+                "%s: primary strategy failed (%s), trying fallback",
+                context_msg,
+                primary_err,
+            )
+            try:
+                result = await fallback_fn()
+                logger.info("%s: fallback strategy succeeded", context_msg)
+                return result, "fallback"
+            except Exception as fallback_err:
+                raise RuntimeError(
+                    f"{context_msg}: both strategies failed. "
+                    f"Primary: {primary_err}; Fallback: {fallback_err}"
+                ) from fallback_err
 
     @staticmethod
     def is_copilot_author(login: str) -> bool:
@@ -205,6 +335,23 @@ class GitHubProjectsService:
         backoff = INITIAL_BACKOFF_SECONDS
 
         for attempt in range(max_attempts):
+            await self._respect_global_cooldown()
+
+            # Inter-call throttle: ensure ≥500ms between consecutive API calls
+            now = time.monotonic()
+            min_interval = self._min_request_interval
+            last_rl = self.get_last_rate_limit()
+            if isinstance(last_rl, dict):
+                remaining = last_rl.get("remaining")
+                if isinstance(remaining, int) and remaining <= self._low_quota_threshold:
+                    min_interval = max(min_interval, 1.0)
+
+            elapsed = now - self._last_request_time
+            if elapsed < min_interval and self._last_request_time > 0:
+                wait = min_interval - elapsed
+                logger.debug("Throttling: waiting %.0fms before next GitHub API call", wait * 1000)
+                await asyncio.sleep(wait)
+
             try:
                 upper = method.upper()
                 if upper == "GET":
@@ -218,16 +365,43 @@ class GitHubProjectsService:
                 else:
                     raise ValueError(f"Unsupported method: {method}")
 
+                self._last_request_time = time.monotonic()
+
                 # Check for rate limit
                 if response.status_code == 403:
                     remaining = response.headers.get("X-RateLimit-Remaining", "0")
                     if remaining == "0":
+                        retry_after_seconds = self._parse_retry_after_seconds(
+                            response.headers.get("retry-after")
+                        )
                         reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
-                        wait_seconds = max(reset_time - int(utcnow().timestamp()), backoff)
+                        wait_seconds = max(
+                            retry_after_seconds or 0,
+                            reset_time - int(utcnow().timestamp()),
+                            backoff,
+                        )
                         wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
+                        await self._apply_global_cooldown(wait_seconds)
 
                         logger.warning(
                             "Rate limited. Waiting %d seconds before retry %d/%d",
+                            wait_seconds,
+                            attempt + 1,
+                            MAX_RETRIES,
+                        )
+                        await asyncio.sleep(wait_seconds)
+                        backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
+                        continue
+
+                    if self._is_secondary_limit(response) and attempt < max_attempts - 1:
+                        wait_seconds = (
+                            self._parse_retry_after_seconds(response.headers.get("retry-after"))
+                            or backoff
+                        )
+                        wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
+                        await self._apply_global_cooldown(wait_seconds)
+                        logger.warning(
+                            "Secondary rate limit detected. Waiting %d seconds before retry %d/%d",
                             wait_seconds,
                             attempt + 1,
                             MAX_RETRIES,
@@ -253,14 +427,24 @@ class GitHubProjectsService:
                 # get_last_rate_limit() reflects the most recent state.
                 self._extract_rate_limit_headers(e.response)
                 if e.response.status_code in (429, 502, 503) and attempt < max_attempts - 1:
+                    # Respect retry-after header if present (FR-020)
+                    wait = backoff
+                    if e.response.status_code == 429:
+                        wait = (
+                            self._parse_retry_after_seconds(e.response.headers.get("retry-after"))
+                            or backoff
+                        )
+                        wait = min(wait, MAX_BACKOFF_SECONDS)
+                        await self._apply_global_cooldown(wait)
+
                     logger.warning(
                         "Request failed with %d. Retrying in %d seconds (%d/%d)",
                         e.response.status_code,
-                        backoff,
+                        wait,
                         attempt + 1,
                         MAX_RETRIES,
                     )
-                    await asyncio.sleep(backoff)
+                    await asyncio.sleep(wait)
                     backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
                 else:
                     raise
@@ -277,6 +461,7 @@ class GitHubProjectsService:
         query: str,
         variables: dict,
         extra_headers: dict | None = None,
+        graphql_features: list[str] | None = None,
     ) -> dict:
         """
         Execute GraphQL query against GitHub API.
@@ -291,6 +476,8 @@ class GitHubProjectsService:
             query: GraphQL query string
             variables: Query variables
             extra_headers: Optional extra headers (e.g., for Copilot assignment)
+            graphql_features: Optional list of GraphQL feature flags to include
+                in the ``GraphQL-Features`` header (joined by comma).
 
         Returns:
             GraphQL response data
@@ -298,12 +485,25 @@ class GitHubProjectsService:
         headers = self._build_headers(access_token)
         if extra_headers:
             headers.update(extra_headers)
+        if graphql_features:
+            headers["GraphQL-Features"] = ",".join(graphql_features)
 
         # Build a stable cache key scoped by token identity so responses
         # are never shared across different users/permissions.
         token_prefix = hashlib.sha256(access_token.encode()).hexdigest()[:16]
         cache_key = hashlib.sha256(
-            (token_prefix + query + json_mod.dumps(variables, sort_keys=True)).encode()
+            (
+                token_prefix
+                + query
+                + json_mod.dumps(
+                    {
+                        "variables": variables,
+                        "features": graphql_features or [],
+                        "extra_headers": extra_headers or {},
+                    },
+                    sort_keys=True,
+                )
+            ).encode()
         ).hexdigest()
 
         cached = self._etag_cache.get(cache_key)
@@ -311,36 +511,52 @@ class GitHubProjectsService:
             etag, _cached_data = cached
             headers["If-None-Match"] = etag
 
-        response = await self._request_with_retry(
-            "POST",
-            GITHUB_GRAPHQL_URL,
-            headers=headers,
-            json={"query": query, "variables": variables},
-        )
+        inflight = self._inflight_graphql.get(cache_key)
+        if inflight:
+            self._coalesced_hit_count += 1
+            logger.debug("GraphQL in-flight coalescing hit for key %s…", cache_key[:12])
+            self._maybe_log_request_management_metrics()
+            return await inflight
 
-        # 304 Not Modified — data hasn't changed, return cached result (free!)
-        if response.status_code == 304 and cached:
-            logger.debug("GraphQL ETag cache hit (304) for key %s…", cache_key[:12])
-            return cached[1]
+        async def _execute_graphql() -> dict:
+            response = await self._request_with_retry(
+                "POST",
+                GITHUB_GRAPHQL_URL,
+                headers=headers,
+                json={"query": query, "variables": variables},
+            )
 
-        result = response.json()
+            # 304 Not Modified — data hasn't changed, return cached result (free!)
+            if response.status_code == 304 and cached:
+                logger.debug("GraphQL ETag cache hit (304) for key %s…", cache_key[:12])
+                return cached[1]
 
-        if "errors" in result:
-            error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
-            raise ValueError(f"GraphQL error: {error_msg}")
+            result = response.json()
 
-        data = result.get("data", {})
+            if "errors" in result:
+                error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
+                raise ValueError(f"GraphQL error: {error_msg}")
 
-        # Store ETag for future conditional requests (bounded LRU eviction)
-        etag = response.headers.get("ETag")
-        if etag:
-            # Evict oldest entries when cache exceeds max size
-            while len(self._etag_cache) >= self._ETAG_CACHE_MAX_SIZE:
-                oldest_key = next(iter(self._etag_cache))
-                del self._etag_cache[oldest_key]
-            self._etag_cache[cache_key] = (etag, data)
+            data = result.get("data", {})
 
-        return data
+            # Store ETag for future conditional requests (bounded LRU eviction)
+            etag = response.headers.get("ETag")
+            if etag:
+                while len(self._etag_cache) >= self._ETAG_CACHE_MAX_SIZE:
+                    oldest_key = next(iter(self._etag_cache))
+                    del self._etag_cache[oldest_key]
+                self._etag_cache[cache_key] = (etag, data)
+
+            return data
+
+        task: asyncio.Task[dict] = asyncio.create_task(_execute_graphql())
+        self._inflight_graphql[cache_key] = task
+        try:
+            return await task
+        finally:
+            current = self._inflight_graphql.get(cache_key)
+            if current is task:
+                self._inflight_graphql.pop(cache_key, None)
 
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20
@@ -1680,9 +1896,10 @@ class GitHubProjectsService:
                 access_token,
                 GET_SUGGESTED_ACTORS_QUERY,
                 {"owner": owner, "name": repo},
-                extra_headers={
-                    "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
-                },
+                graphql_features=[
+                    "issues_copilot_assignment_api_support",
+                    "coding_agent_model_selection",
+                ],
             )
 
             repository = data.get("repository", {})
@@ -2125,6 +2342,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Assign GitHub Copilot to an issue using GraphQL API with agent assignment.
@@ -2181,6 +2399,7 @@ class GitHubProjectsService:
             base_ref,
             custom_agent,
             custom_instructions,
+            model=model,
         )
 
         if graphql_success:
@@ -2282,6 +2501,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Primary: Assign GitHub Copilot using GraphQL API.
@@ -2323,10 +2543,12 @@ class GitHubProjectsService:
                     "baseRef": base_ref,
                     "customInstructions": custom_instructions,
                     "customAgent": custom_agent,
+                    "model": model,
                 },
-                extra_headers={
-                    "GraphQL-Features": "issues_copilot_assignment_api_support,coding_agent_model_selection"
-                },
+                graphql_features=[
+                    "issues_copilot_assignment_api_support",
+                    "coding_agent_model_selection",
+                ],
             )
 
             assignees = (
@@ -3300,7 +3522,7 @@ class GitHubProjectsService:
                 access_token,
                 REQUEST_COPILOT_REVIEW_MUTATION,
                 {"pullRequestId": pr_node_id},
-                extra_headers={"GraphQL-Features": "copilot_code_review"},
+                graphql_features=["copilot_code_review"],
             )
 
             pr = data.get("requestReviews", {}).get("pullRequest", {})
@@ -4610,6 +4832,7 @@ class GitHubProjectsService:
         head_oid: str,
         files: list[dict],
         message: str,
+        deletions: list[str] | None = None,
     ) -> str | None:
         """Commit files to a branch without cloning.
 
@@ -4621,6 +4844,7 @@ class GitHubProjectsService:
             head_oid: Expected HEAD OID for optimistic concurrency.
             files: ``[{"path": "relative/path", "content": "text content"}]``
             message: Commit message headline.
+            deletions: Optional list of file paths to delete in this commit.
 
         Returns:
             Commit OID on success, ``None`` on failure.
@@ -4632,6 +4856,10 @@ class GitHubProjectsService:
             }
             for f in files
         ]
+
+        file_changes: dict = {"additions": additions}
+        if deletions:
+            file_changes["deletions"] = [{"path": p} for p in deletions]
 
         max_attempts = 3
         current_oid = head_oid
@@ -4645,7 +4873,7 @@ class GitHubProjectsService:
                         "branchName": branch_name,
                         "expectedHeadOid": current_oid,
                         "message": {"headline": message},
-                        "fileChanges": {"additions": additions},
+                        "fileChanges": file_changes,
                     },
                 )
                 commit = (data.get("createCommitOnBranch") or {}).get("commit") or {}
@@ -4828,5 +5056,9 @@ class GitHubProjectsService:
         return agents
 
 
+# TODO(018-codebase-audit-refactor): Module-level singleton should be removed
+# in favor of exclusive app.state registration. Deferred because 17+ files
+# import this directly in non-request contexts (background tasks, signal bridge,
+# orchestrator) where Request.app.state is not available.
 # Global service instance
 github_projects_service = GitHubProjectsService()

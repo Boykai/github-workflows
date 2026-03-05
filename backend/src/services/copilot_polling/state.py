@@ -18,7 +18,9 @@ class PollingState:
     poll_count: int = 0
     errors_count: int = 0
     last_error: str | None = None
-    processed_issues: dict[int, datetime] = field(default_factory=dict)
+    processed_issues: BoundedDict[int, datetime] = field(
+        default_factory=lambda: BoundedDict(maxlen=2000)
+    )
 
 
 # Global polling state
@@ -93,3 +95,10 @@ RATE_LIMIT_SLOW_THRESHOLD: int = 200
 # polling loop skips the most expensive steps (Step 0: agent output posting)
 # to avoid exhausting the budget on a single cycle.
 RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD: int = 100
+# ── Activity-based adaptive polling ──
+# Counter for consecutive polls with no state changes. When no activity is
+# detected (no PRs merged, no statuses advanced, no agent outputs posted),
+# the effective interval doubles each cycle up to MAX_POLL_INTERVAL_SECONDS.
+# Resets to 0 when any state change occurs.
+_consecutive_idle_polls: int = 0
+MAX_POLL_INTERVAL_SECONDS: int = 300  # 5 minutes cap

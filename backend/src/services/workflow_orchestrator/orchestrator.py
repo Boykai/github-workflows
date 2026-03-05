@@ -13,7 +13,7 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
-from src.utils import utcnow
+from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
@@ -29,9 +29,11 @@ from .transitions import (
     get_issue_main_branch,
     get_issue_sub_issues,
     get_pipeline_state,
+    release_agent_trigger,
     set_issue_main_branch,
     set_issue_sub_issues,
     set_pipeline_state,
+    should_skip_agent_trigger,
 )
 
 if TYPE_CHECKING:
@@ -44,7 +46,7 @@ logger = logging.getLogger(__name__)
 # is frozen in the issue body at creation time and never changes, so this
 # cache can persist for the lifetime of the process without a TTL.
 # Key: issue_number → list[AgentStep]
-_tracking_table_cache: dict[int, list] = {}
+_tracking_table_cache: BoundedDict[int, list] = BoundedDict(maxlen=200)
 
 
 def _polling_state_objects():
@@ -1383,6 +1385,22 @@ class WorkflowOrchestrator:
         pending_key = f"{ctx.issue_number}:{agent_name}"
         pending, recovery, grace_period = _polling_state_objects()
 
+        skip_trigger, age_seconds = should_skip_agent_trigger(
+            issue_number=ctx.issue_number,
+            status=status,
+            agent_name=agent_name,
+        )
+        if skip_trigger:
+            logger.warning(
+                "Skipping overlapped trigger for issue #%d status '%s' agent '%s' "
+                "(in-flight for %.1fs)",
+                ctx.issue_number,
+                status,
+                agent_name,
+                age_seconds,
+            )
+            return True
+
         existing_ts = pending.get(pending_key)
         if existing_ts is not None:
             age = (utcnow() - existing_ts).total_seconds()
@@ -1395,6 +1413,7 @@ class WorkflowOrchestrator:
                     age,
                     grace_period,
                 )
+                release_agent_trigger(ctx.issue_number, status, agent_name)
                 return True  # Treat as success — the original assignment is in flight
 
         # Pre-set recovery cooldown and pending flag BEFORE the assignment
@@ -1553,6 +1572,7 @@ class WorkflowOrchestrator:
             error_message=None if success else f"Failed to assign agent '{agent_name}'",
         )
 
+        release_agent_trigger(ctx.issue_number, status, agent_name)
         return success
 
     # ──────────────────────────────────────────────────────────────────

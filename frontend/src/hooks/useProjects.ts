@@ -5,7 +5,7 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, tasksApi } from '@/services/api';
-import { STALE_TIME_LONG, STALE_TIME_MEDIUM } from '@/constants';
+import { STALE_TIME_MEDIUM, STALE_TIME_PROJECTS } from '@/constants';
 import type { Project, Task } from '@/types';
 
 interface UseProjectsReturn {
@@ -32,7 +32,8 @@ export function useProjects(selectedProjectId?: string | null): UseProjectsRetur
   } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsApi.list(),
-    staleTime: STALE_TIME_LONG,
+    staleTime: STALE_TIME_PROJECTS,
+    retry: false,
   });
 
   // Fetch tasks for selected project

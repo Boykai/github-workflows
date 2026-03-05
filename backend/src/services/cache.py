@@ -58,6 +58,24 @@ class InMemoryCache:
         logger.debug("Cache hit: %s", key)
         return entry.value
 
+    def get_stale(self, key: str) -> Any | None:
+        """
+        Get cached value even when expired.
+
+        Useful as a degraded-mode fallback when an upstream dependency
+        (e.g. GitHub API) is temporarily unavailable or rate limited.
+
+        Args:
+            key: Cache key
+
+        Returns:
+            Cached value or None if not found
+        """
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+        return entry.value
+
     def set(
         self,
         key: str,

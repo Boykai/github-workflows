@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
-import { STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
+import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse } from '@/types';
 
 interface UseProjectBoardOptions {
@@ -53,7 +53,8 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
   } = useQuery({
     queryKey: ['board', 'projects'],
     queryFn: () => boardApi.listProjects(),
-    staleTime: STALE_TIME_LONG,
+    staleTime: STALE_TIME_PROJECTS,
+    retry: false,
   });
 
   // Fetch board data for selected project.

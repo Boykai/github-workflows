@@ -41,6 +41,8 @@ from .transitions import (
     _issue_main_branches,
     _issue_sub_issue_map,
     _pipeline_states,
+    clear_agent_trigger_buffer,
+    clear_all_agent_trigger_buffers,
     clear_issue_main_branch,
     clear_issue_sub_issues,
     get_all_pipeline_states,
@@ -51,6 +53,7 @@ from .transitions import (
     set_issue_main_branch,
     set_issue_sub_issues,
     set_pipeline_state,
+    should_skip_agent_trigger,
     update_issue_main_branch_sha,
 )
 
@@ -86,6 +89,9 @@ __all__ = [
     "set_issue_main_branch",
     "clear_issue_main_branch",
     "clear_issue_sub_issues",
+    "should_skip_agent_trigger",
+    "clear_agent_trigger_buffer",
+    "clear_all_agent_trigger_buffers",
     "update_issue_main_branch_sha",
     "_pipeline_states",
     "_issue_main_branches",

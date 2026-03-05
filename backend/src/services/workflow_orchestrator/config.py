@@ -10,7 +10,7 @@ from src.models.workflow import (
     WorkflowConfiguration,
     WorkflowTransition,
 )
-from src.utils import utcnow
+from src.utils import BoundedDict, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _transitions: list[WorkflowTransition] = []
 
 # In-memory storage for workflow configurations (per project)
-_workflow_configs: dict[str, WorkflowConfiguration] = {}
+_workflow_configs: BoundedDict[str, WorkflowConfiguration] = BoundedDict(maxlen=100)
 
 
 async def get_workflow_config(project_id: str) -> WorkflowConfiguration | None:

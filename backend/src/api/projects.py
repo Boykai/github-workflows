@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.auth import get_current_session, get_session_dep
 from src.constants import SESSION_COOKIE_NAME
-from src.exceptions import NotFoundError
+from src.exceptions import GitHubAPIError, NotFoundError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
@@ -46,20 +46,32 @@ async def list_projects(
     # Fetch from GitHub
     logger.info("Fetching projects for user %s", session.github_username)
 
-    # Get user's personal projects
-    user_projects = await github_projects_service.list_user_projects(
-        session.access_token, session.github_username
-    )
+    try:
+        # Get user's personal projects
+        user_projects = await github_projects_service.list_user_projects(
+            session.access_token, session.github_username
+        )
 
-    # TODO: Also fetch org projects the user has access to
-    # This requires listing orgs first, then querying each
+        # TODO: Also fetch org projects the user has access to
+        # This requires listing orgs first, then querying each
 
-    all_projects = user_projects
+        all_projects = user_projects
 
-    # Cache results
-    cache.set(cache_key, all_projects)
+        # Cache results
+        cache.set(cache_key, all_projects)
 
-    return ProjectListResponse(projects=all_projects)
+        return ProjectListResponse(projects=all_projects)
+    except Exception as e:
+        if not refresh:
+            stale = cache.get_stale(cache_key)
+            if stale:
+                logger.warning(
+                    "Serving stale cached projects for user %s due to GitHub error: %s",
+                    session.github_username,
+                    e,
+                )
+                return ProjectListResponse(projects=stale)
+        raise GitHubAPIError("Failed to fetch projects from GitHub") from e
 
 
 @router.get("/{project_id}", response_model=GitHubProject)

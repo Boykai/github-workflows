@@ -45,10 +45,16 @@ from src.utils import resolve_repository, utcnow
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# In-memory storage for chat messages and proposals (MVP)
+# TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
+# using the chat_messages, chat_proposals, and chat_recommendations tables
+# created by migration 011_chat_persistence.sql. The migration file is ready
+# and the tables will be created on next application startup. This refactoring
+# was deferred because it requires updating ~15 code paths in this 713-line file
+# with careful transaction management and error handling.
+# In-memory storage for chat messages and proposals (MVP — lost on restart)
 _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
-# In-memory storage for issue recommendations (T007)
+# In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
 
 

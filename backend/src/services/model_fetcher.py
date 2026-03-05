@@ -11,10 +11,10 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
-from typing import Any
 
 from src.config import get_settings
 from src.models.settings import ModelOption, ModelsResponse
+from src.services.completion_providers import CopilotClientPool, copilot_client_pool
 
 logger = logging.getLogger(__name__)
 
@@ -67,42 +67,59 @@ class ModelFetchProvider(ABC):
 class GitHubCopilotModelFetcher(ModelFetchProvider):
     """Fetches available models from the GitHub Copilot SDK.
 
-    Uses the Copilot SDK's ``CopilotClient.list_models()`` to retrieve
-    models, following the same client-caching pattern used by
-    ``CopilotCompletionProvider``.
+    Uses the shared CopilotClientPool to manage client instances,
+    eliminating duplication with CopilotCompletionProvider.
     """
 
-    def __init__(self) -> None:
-        self._clients: dict[str, Any] = {}  # keyed by token fingerprint
-
-    @staticmethod
-    def _token_key(token: str) -> str:
-        """Return a stable hash of the token for use as a cache key."""
-        return hashlib.sha256(token.encode()).hexdigest()[:16]
-
-    async def _get_or_create_client(self, github_token: str) -> Any:
-        """Get cached or create new CopilotClient for a given token."""
-        key = self._token_key(github_token)
-        if key not in self._clients:
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
-
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
-            await client.start()
-            self._clients[key] = client
-            logger.info(
-                "Created new CopilotClient for model fetching (total cached: %d)",
-                len(self._clients),
-            )
-        return self._clients[key]
+    def __init__(self, pool: CopilotClientPool | None = None) -> None:
+        self._pool = pool or copilot_client_pool
+        self._last_list_models_at: float = 0.0
+        self._min_list_models_interval: float = 2.0
+        self._lock = asyncio.Lock()
 
     async def fetch_models(self, token: str | None = None) -> list[ModelOption]:
         if not token:
             raise ValueError("GitHub OAuth token required for Copilot model fetching")
 
-        client = await self._get_or_create_client(token)
-        model_list = await client.list_models()
+        client = await self._pool.get_or_create(token)
+
+        async with self._lock:
+            elapsed = time.monotonic() - self._last_list_models_at
+            if self._last_list_models_at > 0 and elapsed < self._min_list_models_interval:
+                await asyncio.sleep(self._min_list_models_interval - elapsed)
+
+            try:
+                model_list = await client.list_models()
+                self._last_retry_after = None
+                self._last_rate_limit_remaining = None
+                self._last_rate_limit_reset = None
+            except Exception as e:
+                response = getattr(e, "response", None)
+                status_code = getattr(e, "status_code", None)
+                if status_code is None and response is not None:
+                    status_code = getattr(response, "status_code", None)
+
+                response_headers = getattr(response, "headers", {}) if response else {}
+                retry_after = response_headers.get("retry-after") if response_headers else None
+                remaining = (
+                    response_headers.get("x-ratelimit-remaining") if response_headers else None
+                )
+                reset = response_headers.get("x-ratelimit-reset") if response_headers else None
+
+                message = str(e).lower()
+                is_rate_limited = status_code == 429 or "rate limit" in message
+                if is_rate_limited:
+                    self._last_retry_after = retry_after
+                    self._last_rate_limit_remaining = remaining
+                    self._last_rate_limit_reset = reset
+                    raise ProviderRateLimitError(
+                        retry_after=retry_after,
+                        remaining=remaining,
+                        reset=reset,
+                    ) from e
+                raise
+            finally:
+                self._last_list_models_at = time.monotonic()
 
         models: list[ModelOption] = []
         for info in model_list:
@@ -233,6 +250,7 @@ class ModelFetcherService:
         self._backoff_until: dict[str, float] = {}  # cache_key → timestamp
         self._backoff_duration: dict[str, float] = {}  # cache_key → current backoff
         self._rate_limit_remaining: dict[str, int | None] = {}  # cache_key → remaining
+        self._inflight_fetches: dict[str, asyncio.Task[ModelsResponse]] = {}
         _ensure_registry()
 
     @staticmethod
@@ -309,66 +327,80 @@ class ModelFetcherService:
             )
 
         # Fresh fetch
-        try:
-            models = await fetcher.fetch_models(token)
-            now = datetime.now(UTC)
-            self._cache[cache_key] = CacheEntry(
-                models=models,
-                fetched_at=now,
-                ttl_seconds=self._ttl_seconds,
-            )
-            # Reset backoff on success
-            self._backoff_until.pop(cache_key, None)
-            self._backoff_duration.pop(cache_key, None)
+        inflight = self._inflight_fetches.get(cache_key)
+        if inflight and not force_refresh:
+            return await inflight
 
-            # Parse rate-limit info if available
-            if hasattr(fetcher, "_last_rate_limit_remaining"):
-                remaining = fetcher._last_rate_limit_remaining
-                if remaining is not None:
-                    try:
-                        self._rate_limit_remaining[cache_key] = int(remaining)
-                    except (ValueError, TypeError):
-                        pass
+        async def _fetch_and_cache() -> ModelsResponse:
+            try:
+                models = await fetcher.fetch_models(token)
+                now = datetime.now(UTC)
+                self._cache[cache_key] = CacheEntry(
+                    models=models,
+                    fetched_at=now,
+                    ttl_seconds=self._ttl_seconds,
+                )
+                # Reset backoff on success
+                self._backoff_until.pop(cache_key, None)
+                self._backoff_duration.pop(cache_key, None)
 
-            return ModelsResponse(
-                status="success",
-                models=models,
-                fetched_at=now.isoformat(),
-                cache_hit=False,
-                rate_limit_warning=self._is_rate_limit_warning(cache_key),
-            )
+                # Parse rate-limit info if available
+                if hasattr(fetcher, "_last_rate_limit_remaining"):
+                    remaining = fetcher._last_rate_limit_remaining
+                    if remaining is not None:
+                        try:
+                            self._rate_limit_remaining[cache_key] = int(remaining)
+                        except (ValueError, TypeError):
+                            pass
 
-        except ProviderRateLimitError as e:
-            self._apply_backoff(cache_key, e.retry_after)
-            if cached:
+                return ModelsResponse(
+                    status="success",
+                    models=models,
+                    fetched_at=now.isoformat(),
+                    cache_hit=False,
+                    rate_limit_warning=self._is_rate_limit_warning(cache_key),
+                )
+
+            except ProviderRateLimitError as e:
+                self._apply_backoff(cache_key, e.retry_after)
+                if cached:
+                    return ModelsResponse(
+                        status="rate_limited",
+                        models=cached.models,
+                        fetched_at=cached.fetched_at.isoformat(),
+                        cache_hit=True,
+                        rate_limit_warning=True,
+                        message="Rate limit reached. Using cached values.",
+                    )
                 return ModelsResponse(
                     status="rate_limited",
-                    models=cached.models,
-                    fetched_at=cached.fetched_at.isoformat(),
-                    cache_hit=True,
                     rate_limit_warning=True,
-                    message="Rate limit reached. Using cached values.",
+                    message="Rate limit reached. Please try again later.",
                 )
-            return ModelsResponse(
-                status="rate_limited",
-                rate_limit_warning=True,
-                message="Rate limit reached. Please try again later.",
-            )
 
-        except Exception as e:
-            logger.warning("Failed to fetch models from %s: %s", provider, e)
-            if cached:
+            except Exception as e:
+                logger.warning("Failed to fetch models from %s: %s", provider, e)
+                if cached:
+                    return ModelsResponse(
+                        status="error",
+                        models=cached.models,
+                        fetched_at=cached.fetched_at.isoformat(),
+                        cache_hit=True,
+                        message="Failed to fetch models. Using cached values.",
+                    )
                 return ModelsResponse(
                     status="error",
-                    models=cached.models,
-                    fetched_at=cached.fetched_at.isoformat(),
-                    cache_hit=True,
-                    message="Failed to fetch models. Using cached values.",
+                    message=f"Failed to fetch models from {provider}. Please try again.",
                 )
-            return ModelsResponse(
-                status="error",
-                message=f"Failed to fetch models from {provider}. Please try again.",
-            )
+
+        task: asyncio.Task[ModelsResponse] = asyncio.create_task(_fetch_and_cache())
+        self._inflight_fetches[cache_key] = task
+        try:
+            return await task
+        finally:
+            current = self._inflight_fetches.get(cache_key)
+            if current is task:
+                self._inflight_fetches.pop(cache_key, None)
 
     async def _background_refresh(self, provider: str, token: str | None, cache_key: str) -> None:
         """Refresh cache in background without blocking the caller."""

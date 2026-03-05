@@ -8,6 +8,7 @@ import src.services.copilot_polling as _cp
 from src.utils import utcnow
 
 from .state import (
+    MAX_POLL_INTERVAL_SECONDS,
     RATE_LIMIT_PAUSE_THRESHOLD,
     RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
     RATE_LIMIT_SLOW_THRESHOLD,
@@ -295,7 +296,7 @@ async def _poll_loop(
                     _polling_state.poll_count,
                     len(in_review_results),
                 )
-            else:
+            elif not skip_expensive:
                 recovery_results = await _cp.recover_stalled_issues(
                     access_token=access_token,
                     project_id=project_id,
@@ -371,6 +372,29 @@ async def _poll_loop(
             )
         else:
             effective_interval = interval_seconds
+
+        # ── Activity-based adaptive polling (FR-019) ──
+        # Import as mutable reference to the module-level counter
+        import src.services.copilot_polling.state as _poll_state
+
+        _poll_state._consecutive_idle_polls += 1
+        # Only apply adaptive backoff when rate-limit doubling is NOT already
+        # active — avoid stacking both multipliers.
+        if _poll_state._consecutive_idle_polls > 0 and effective_interval == interval_seconds:
+            max_doublings = 3  # 60 → 120 → 240 → 300 (capped)
+            idle_multiplier = 2 ** min(_poll_state._consecutive_idle_polls, max_doublings)
+            adaptive_interval = min(
+                interval_seconds * idle_multiplier,
+                MAX_POLL_INTERVAL_SECONDS,
+            )
+            if adaptive_interval > effective_interval:
+                logger.info(
+                    "Adaptive polling: %d consecutive idle polls, interval %ds → %ds",
+                    _poll_state._consecutive_idle_polls,
+                    effective_interval,
+                    adaptive_interval,
+                )
+                effective_interval = adaptive_interval
 
         await asyncio.sleep(effective_interval)
 

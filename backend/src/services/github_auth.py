@@ -26,8 +26,11 @@ from src.utils import BoundedDict
 
 logger = logging.getLogger(__name__)
 
-# OAuth state storage — bounded to prevent unbounded memory growth.
-# Expired entries are pruned on each new state generation.
+# OAuth state storage — intentionally in-memory for single-instance MVP.
+# Bounded to 1000 entries with TTL-based pruning to prevent unbounded growth.
+# Data is lost on application restart, which is acceptable because OAuth state
+# tokens are short-lived (10-minute TTL) and only needed during the active
+# OAuth flow. Users simply re-initiate the OAuth flow after a restart.
 _oauth_states: BoundedDict[str, datetime] = BoundedDict(maxlen=1000)
 
 _OAUTH_STATE_TTL = timedelta(minutes=10)

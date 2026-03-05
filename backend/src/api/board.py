@@ -9,9 +9,18 @@ from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError
-from src.models.board import BoardDataResponse, BoardProjectListResponse, RateLimitInfo
+from src.models.board import (
+    BoardDataResponse,
+    BoardProject,
+    BoardProjectListResponse,
+    RateLimitInfo,
+    StatusColor,
+    StatusField,
+    StatusOption,
+)
+from src.models.project import GitHubProject
 from src.models.user import UserSession
-from src.services.cache import cache, get_cache_key
+from src.services.cache import cache, get_cache_key, get_user_projects_cache_key
 from src.services.github_projects import github_projects_service
 
 
@@ -83,6 +92,51 @@ CACHE_PREFIX_BOARD_PROJECTS = "board_projects"
 CACHE_PREFIX_BOARD_DATA = "board_data"
 
 
+def _normalize_status_color(color: str | None) -> StatusColor:
+    if not color:
+        return StatusColor.GRAY
+    normalized = color.upper()
+    try:
+        return StatusColor(normalized)
+    except ValueError:
+        return StatusColor.GRAY
+
+
+def _to_board_projects(projects: list[GitHubProject]) -> list[BoardProject]:
+    board_projects: list[BoardProject] = []
+    for project in projects:
+        valid_columns = [c for c in project.status_columns if c.field_id and c.option_id]
+        if not valid_columns:
+            continue
+
+        field_id = valid_columns[0].field_id
+        options = [
+            StatusOption(
+                option_id=column.option_id,
+                name=column.name,
+                color=_normalize_status_color(column.color),
+                description=None,
+            )
+            for column in valid_columns
+            if column.field_id == field_id
+        ]
+        if not options:
+            continue
+
+        board_projects.append(
+            BoardProject(
+                project_id=project.project_id,
+                name=project.name,
+                description=project.description,
+                url=project.url,
+                owner_login=project.owner_login,
+                status_field=StatusField(field_id=field_id, options=options),
+            )
+        )
+
+    return board_projects
+
+
 def _get_rate_limit_info() -> RateLimitInfo | None:
     """Build RateLimitInfo from the last GitHub API response headers."""
     rl = github_projects_service.get_last_rate_limit()
@@ -106,12 +160,27 @@ async def list_board_projects(
 ) -> BoardProjectListResponse:
     """List available GitHub Projects with status field configuration for board display."""
     cache_key = get_cache_key(CACHE_PREFIX_BOARD_PROJECTS, session.github_user_id)
+    user_projects_cache_key = get_user_projects_cache_key(session.github_user_id)
 
     if not refresh:
         cached = cache.get(cache_key)
         if cached:
             logger.info("Returning cached board projects for user %s", session.github_username)
             return BoardProjectListResponse(projects=cached, rate_limit=_get_rate_limit_info())
+
+        cached_user_projects = cache.get(user_projects_cache_key)
+        if cached_user_projects:
+            board_projects = _to_board_projects(cached_user_projects)
+            if board_projects:
+                logger.info(
+                    "Reusing cached generic projects for board projects (user %s)",
+                    session.github_username,
+                )
+                cache.set(cache_key, board_projects)
+                return BoardProjectListResponse(
+                    projects=board_projects,
+                    rate_limit=_get_rate_limit_info(),
+                )
 
     logger.info("Fetching board projects for user %s", session.github_username)
 
@@ -128,6 +197,34 @@ async def list_board_projects(
             raise AuthenticationError(
                 "Your GitHub session has expired. Please log in again."
             ) from e
+
+        if not refresh:
+            stale_cached = cache.get_stale(cache_key)
+            if stale_cached:
+                logger.warning(
+                    "Serving stale cached board projects for user %s due to GitHub error: %s",
+                    session.github_username,
+                    e,
+                )
+                return BoardProjectListResponse(
+                    projects=stale_cached,
+                    rate_limit=_get_rate_limit_info(),
+                )
+
+            stale_user_projects = cache.get_stale(user_projects_cache_key)
+            if stale_user_projects:
+                stale_board_projects = _to_board_projects(stale_user_projects)
+                if stale_board_projects:
+                    logger.warning(
+                        "Serving stale transformed projects for user %s due to GitHub error: %s",
+                        session.github_username,
+                        e,
+                    )
+                    return BoardProjectListResponse(
+                        projects=stale_board_projects,
+                        rate_limit=_get_rate_limit_info(),
+                    )
+
         logger.error("Failed to fetch board projects: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch projects from GitHub",

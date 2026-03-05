@@ -32,14 +32,14 @@ from src.services.workflow_orchestrator import (
     set_pipeline_state,
     set_workflow_config,
 )
-from src.utils import resolve_repository, utcnow
+from src.utils import BoundedDict, resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/workflow", tags=["Workflow"])
 
 # In-memory duplicate detection (T029)
 # Maps hash of original_input to (timestamp, recommendation_id)
-_recent_requests: dict[str, tuple[datetime, str]] = {}
+_recent_requests: BoundedDict[str, tuple[datetime, str]] = BoundedDict(maxlen=1000)
 DUPLICATE_WINDOW_MINUTES = 5
 
 

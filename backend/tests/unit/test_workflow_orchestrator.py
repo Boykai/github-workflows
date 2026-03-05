@@ -47,12 +47,15 @@ class TestHandleReadyStatusWithAgentMappings:
             _pending_agent_assignments,
             _recovery_last_attempt,
         )
+        from src.services.workflow_orchestrator import clear_all_agent_trigger_buffers
 
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
         yield
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
 
     @pytest.fixture
     def mock_ai_service(self):
@@ -319,12 +322,15 @@ class TestAssignAgentForStatus:
             _pending_agent_assignments,
             _recovery_last_attempt,
         )
+        from src.services.workflow_orchestrator import clear_all_agent_trigger_buffers
 
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
         yield
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
 
     @pytest.fixture
     def mock_ai_service(self):
@@ -538,6 +544,27 @@ class TestAssignAgentForStatus:
         assert call_args.kwargs["custom_agent"] == "speckit.specify"
         # First agent uses repo main
         assert call_args.kwargs["base_ref"] == "main"
+
+    @pytest.mark.asyncio
+    async def test_assign_trigger_buffer_skips_rapid_duplicate_call(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
+        """Second rapid trigger for same issue/status/agent should be skipped."""
+        mock_github_service.get_issue_with_comments.return_value = {
+            "title": "Test",
+            "body": "Body",
+            "comments": [],
+        }
+        mock_github_service.format_issue_context_as_prompt.return_value = "Prompt"
+        mock_github_service.assign_copilot_to_issue.return_value = True
+        mock_github_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        first = await orchestrator.assign_agent_for_status(workflow_context, "Backlog", 0)
+        second = await orchestrator.assign_agent_for_status(workflow_context, "Backlog", 0)
+
+        assert first is True
+        assert second is True
+        mock_github_service.assign_copilot_to_issue.assert_awaited_once()
 
 
 class TestPipelineState:
