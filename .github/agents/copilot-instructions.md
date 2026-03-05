@@ -111,6 +111,8 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0 (017-agents-section)
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
+- Python 3.11+ (backend), TypeScript 5.x (frontend) + FastAPI ≥0.109.0, React 18.3.1, @tanstack/react-query 5.17.0, Tailwind CSS 3.4.19, lucide-react (icons), python-multipart ≥0.0.6 (already installed) (018-chat-upload-voice)
+- In-memory (current MVP pattern) with local filesystem for uploaded files; no external object store required at this stage (018-chat-upload-voice)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0
