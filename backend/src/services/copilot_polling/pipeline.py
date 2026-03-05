@@ -56,7 +56,62 @@ async def _get_or_reconstruct_pipeline(
         if expected_status is None or pipeline.status == expected_status:
             return pipeline
 
-    # Reconstruct from comments
+    # Before reconstructing with the caller's agents, check the tracking
+    # table in the issue body.  If an earlier pipeline status still has
+    # pending agents (e.g. "In Progress" agents unfinished but the board
+    # jumped to "In Review"), reconstruct for THAT status so the pending
+    # agents aren't silently skipped.
+    try:
+        issue_data = await _cp.github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        body = issue_data.get("body", "") if issue_data else ""
+        if body:
+            steps = _cp.parse_tracking_from_body(body)
+            if steps:
+                # Find the first agent that is ⏳ Pending or 🔄 Active
+                first_incomplete = next(
+                    (s for s in steps if "Pending" in s.state or "Active" in s.state),
+                    None,
+                )
+                if first_incomplete and first_incomplete.status.lower() != status.lower():
+                    # There are incomplete agents in an earlier status.
+                    # Reconstruct for THAT status so the pipeline resumes
+                    # from the correct point.
+                    earlier_status = first_incomplete.status
+                    earlier_agents = [
+                        s.agent_name for s in steps if s.status.lower() == earlier_status.lower()
+                    ]
+                    if earlier_agents:
+                        logger.info(
+                            "Tracking table for issue #%d shows incomplete "
+                            "agents in '%s' (first: %s) — reconstructing "
+                            "pipeline for that status instead of '%s'",
+                            issue_number,
+                            earlier_status,
+                            first_incomplete.agent_name,
+                            status,
+                        )
+                        return await _reconstruct_pipeline_state(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            issue_number=issue_number,
+                            project_id=project_id,
+                            status=earlier_status,
+                            agents=earlier_agents,
+                        )
+    except Exception as e:
+        logger.debug(
+            "Could not check tracking table for issue #%d during pipeline reconstruction: %s",
+            issue_number,
+            e,
+        )
+
+    # Default: reconstruct for the requested status
     return await _reconstruct_pipeline_state(
         access_token=access_token,
         owner=owner,
@@ -224,77 +279,48 @@ async def _process_pipeline_completion(
                 )
                 return None
 
-            # Check if current agent has started work (created a PR)
-            main_branch_info = _cp.get_issue_main_branch(task.issue_number)
-            if main_branch_info:
-                child_pr = await _cp._find_completed_child_pr(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    main_branch=main_branch_info["branch"],
-                    main_pr_number=main_branch_info["pr_number"],
-                    agent_name=current_agent,
-                    pipeline=pipeline,
-                )
-                # If no child PR exists (even incomplete), the agent was never assigned
-                if child_pr is None:
-                    # Check if there's even an incomplete child PR in progress
-                    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                    )
-                    # Count PRs that target the main branch (excluding the main PR itself)
-                    child_prs_for_current_agent = [
-                        pr
-                        for pr in (linked_prs or [])
-                        if int(pr.get("number", 0)) != main_branch_info["pr_number"]
-                        and _cp.github_projects_service.is_copilot_author(pr.get("author", ""))
-                    ]
-                    # If there are completed agents but the current agent's PR doesn't exist,
-                    # we need to trigger it. Count expected PRs vs actual child PRs.
-                    expected_child_prs = len(pipeline.completed_agents)
-                    actual_child_prs = len(child_prs_for_current_agent)
+            # At this point, all durable and in-memory indicators agree
+            # that the current agent was never assigned:
+            #   - No Done! marker exists (checked above)
+            #   - Tracking table shows ⏳ Pending, not 🔄 Active
+            #   - No in-memory pending assignment flag
+            #   - Grace period has elapsed
+            # Assign the agent now.  Dedup guards inside
+            # assign_agent_for_status prevent duplicate assignments
+            # even in edge cases.
+            logger.info(
+                "Agent '%s' was never assigned for issue #%d "
+                "(tracking=Pending, no pending flag, grace period elapsed) "
+                "— assigning now",
+                current_agent,
+                task.issue_number,
+            )
+            orchestrator = _cp.get_workflow_orchestrator()
+            ctx = _cp.WorkflowContext(
+                session_id="polling",
+                project_id=project_id,
+                access_token=access_token,
+                repository_owner=task_owner,
+                repository_name=task_repo,
+                issue_id=task.github_content_id,
+                issue_number=task.issue_number,
+                project_item_id=task.github_item_id,
+                current_state=_cp.WorkflowState.READY,
+            )
+            ctx.config = await _cp.get_workflow_config(project_id)
 
-                    if actual_child_prs < expected_child_prs + 1:
-                        # Current agent was never assigned - trigger it now
-                        logger.info(
-                            "Agent '%s' was never assigned for issue #%d (found %d child PRs, "
-                            "expected %d for %d completed agents) — assigning now",
-                            current_agent,
-                            task.issue_number,
-                            actual_child_prs,
-                            expected_child_prs + 1,
-                            len(pipeline.completed_agents),
-                        )
-                        orchestrator = _cp.get_workflow_orchestrator()
-                        ctx = _cp.WorkflowContext(
-                            session_id="polling",
-                            project_id=project_id,
-                            access_token=access_token,
-                            repository_owner=task_owner,
-                            repository_name=task_repo,
-                            issue_id=task.github_content_id,
-                            issue_number=task.issue_number,
-                            project_item_id=task.github_item_id,
-                            current_state=_cp.WorkflowState.READY,
-                        )
-                        ctx.config = await _cp.get_workflow_config(project_id)
-
-                        assigned = await orchestrator.assign_agent_for_status(
-                            ctx, from_status, agent_index=pipeline.current_agent_index
-                        )
-                        if assigned:
-                            _pending_agent_assignments[pending_key] = utcnow()
-                            return {
-                                "status": "success",
-                                "issue_number": task.issue_number,
-                                "action": "agent_assigned_after_reconstruction",
-                                "agent_name": current_agent,
-                                "from_status": from_status,
-                            }
+            assigned = await orchestrator.assign_agent_for_status(
+                ctx, from_status, agent_index=pipeline.current_agent_index
+            )
+            if assigned:
+                _pending_agent_assignments[pending_key] = utcnow()
+                return {
+                    "status": "success",
+                    "issue_number": task.issue_number,
+                    "action": "agent_assigned_after_reconstruction",
+                    "agent_name": current_agent,
+                    "from_status": from_status,
+                }
 
     return None
 
@@ -1050,7 +1076,22 @@ async def _advance_pipeline(
         pipeline.started_at = utcnow()
         _cp.set_pipeline_state(issue_number, pipeline)
 
-        logger.info("Assigning next agent '%s' to issue #%d", next_agent, issue_number)
+        # Use the pipeline's own status for agent lookup, not from_status.
+        # When the board status moves ahead of the pipeline (e.g., GitHub
+        # automation moves issue to "In Review" while "In Progress" agents
+        # are still running), from_status reflects the BOARD status.  Looking
+        # up agents for the board status would return the wrong agent list
+        # (e.g., ["human"] instead of ["judge", "linter"]), causing the
+        # pipeline to silently skip remaining agents.
+        agent_lookup_status = pipeline.status if pipeline.status else from_status
+
+        logger.info(
+            "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",
+            next_agent,
+            issue_number,
+            agent_lookup_status,
+            from_status,
+        )
 
         orchestrator = _cp.get_workflow_orchestrator()
         ctx = _cp.WorkflowContext(
@@ -1067,7 +1108,7 @@ async def _advance_pipeline(
         ctx.config = await _cp.get_workflow_config(project_id)
 
         success = await orchestrator.assign_agent_for_status(
-            ctx, from_status, agent_index=pipeline.current_agent_index
+            ctx, agent_lookup_status, agent_index=pipeline.current_agent_index
         )
 
         # Send agent_assigned WebSocket notification
@@ -1078,7 +1119,7 @@ async def _advance_pipeline(
                     "type": "agent_assigned",
                     "issue_number": issue_number,
                     "agent_name": next_agent,
-                    "status": from_status,
+                    "status": agent_lookup_status,
                     "next_agent": pipeline.next_agent,
                     "timestamp": utcnow().isoformat(),
                 },
@@ -1159,55 +1200,81 @@ async def _transition_after_pipeline_complete(
     _cp.remove_pipeline_state(issue_number)
 
     # When transitioning to "In Review", convert main PR from draft→ready
-    # and request Copilot code review on the main PR
+    # and request Copilot code review on the main PR.
+    # Uses comprehensive multi-strategy discovery (in-memory cache,
+    # parent issue links, sub-issue PR discovery, REST branch search,
+    # and auto-creation of PR from WIP branches) to find the main PR
+    # even when in-memory state is lost (e.g. after server restart).
     if to_status.lower() == "in review":
-        main_branch_info = _cp.get_issue_main_branch(issue_number)
-        if main_branch_info:
-            main_pr_number = main_branch_info["pr_number"]
-            main_pr_details = await _cp.github_projects_service.get_pull_request(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                pr_number=main_pr_number,
-            )
-            if main_pr_details:
-                main_pr_id = main_pr_details.get("id")
-                main_pr_is_draft = main_pr_details.get("is_draft", False)
+        from .helpers import _discover_main_pr_for_review
 
-                # Convert draft → ready
-                if main_pr_is_draft and main_pr_id:
+        discovered = await _discover_main_pr_for_review(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            parent_issue_number=issue_number,
+        )
+
+        if discovered:
+            main_pr_number = discovered["pr_number"]
+            main_pr_id = discovered.get("pr_id", "")
+            main_pr_is_draft = discovered.get("is_draft", False)
+
+            # If the GraphQL node ID is missing, fetch full PR details
+            if not main_pr_id and main_pr_number:
+                main_pr_details = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=main_pr_number,
+                )
+                if main_pr_details:
+                    main_pr_id = main_pr_details.get("id", "")
+                    main_pr_is_draft = main_pr_details.get("is_draft", False)
+
+            # Convert draft → ready
+            if main_pr_is_draft and main_pr_id:
+                logger.info(
+                    "Converting main PR #%d from draft to ready for review",
+                    main_pr_number,
+                )
+                mark_ready_success = await _cp.github_projects_service.mark_pr_ready_for_review(
+                    access_token=access_token,
+                    pr_node_id=str(main_pr_id),
+                )
+                if mark_ready_success:
+                    _system_marked_ready_prs.add(main_pr_number)
                     logger.info(
-                        "Converting main PR #%d from draft to ready for review",
+                        "Successfully converted main PR #%d from draft to ready",
                         main_pr_number,
                     )
-                    mark_ready_success = await _cp.github_projects_service.mark_pr_ready_for_review(
-                        access_token=access_token,
-                        pr_node_id=main_pr_id,
+                else:
+                    logger.warning(
+                        "Failed to convert main PR #%d from draft to ready",
+                        main_pr_number,
                     )
-                    if mark_ready_success:
-                        _system_marked_ready_prs.add(main_pr_number)
-                        logger.info(
-                            "Successfully converted main PR #%d from draft to ready",
-                            main_pr_number,
-                        )
-                    else:
-                        logger.warning(
-                            "Failed to convert main PR #%d from draft to ready",
-                            main_pr_number,
-                        )
 
-                # Request Copilot code review
-                if main_pr_id:
-                    review_requested = await _cp.github_projects_service.request_copilot_review(
-                        access_token=access_token,
-                        pr_node_id=str(main_pr_id),
-                        pr_number=main_pr_number,
+            # Request Copilot code review
+            if main_pr_id:
+                review_requested = await _cp.github_projects_service.request_copilot_review(
+                    access_token=access_token,
+                    pr_node_id=str(main_pr_id),
+                    pr_number=main_pr_number,
+                    owner=owner,
+                    repo=repo,
+                )
+                if review_requested:
+                    logger.info(
+                        "Copilot code review requested for main PR #%d",
+                        main_pr_number,
                     )
-                    if review_requested:
-                        logger.info(
-                            "Copilot code review requested for main PR #%d",
-                            main_pr_number,
-                        )
+        else:
+            logger.warning(
+                "No main PR found for issue #%d during In Review transition — "
+                "comprehensive discovery exhausted all strategies; "
+                "safety net will retry on next poll cycle",
+                issue_number,
+            )
 
     # Send status transition WebSocket notification
     await _cp.connection_manager.broadcast_to_project(
@@ -1345,6 +1412,138 @@ async def _transition_after_pipeline_complete(
         "to_status": effective_status,
         "next_agents": new_status_agents,
     }
+
+
+async def check_in_review_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Check all issues in "In Review" status for completed Copilot code reviews.
+
+    When the copilot-review agent completes (Copilot has submitted a code
+    review on the main PR), advance the pipeline — close the copilot-review
+    sub-issue and transition the issue to "Done".
+
+    Args:
+        access_token: GitHub access token
+        project_id: GitHub Project V2 node ID
+        owner: Repository owner
+        repo: Repository name
+        tasks: Pre-fetched project items (optional)
+
+    Returns:
+        List of results for each processed issue
+    """
+    results = []
+
+    try:
+        if tasks is None:
+            tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+
+        config = await _cp.get_workflow_config(project_id)
+        if not config:
+            logger.debug("No workflow config for project %s, skipping in-review check", project_id)
+            return results
+
+        status_in_review = config.status_in_review.lower()
+        in_review_tasks = [
+            task
+            for task in tasks
+            if task.status
+            and task.status.lower() == status_in_review
+            and task.issue_number is not None
+        ]
+
+        if not in_review_tasks:
+            return results
+
+        logger.debug(
+            "Found %d issues in '%s' status for review-completion check",
+            len(in_review_tasks),
+            config.status_in_review,
+        )
+
+        agents = _cp.get_agent_slugs(config, config.status_in_review)
+        if not agents:
+            return results
+
+        # The target status after In Review is "Done".
+        # WorkflowConfiguration does not have a status_done field;
+        # use the conventional name.
+        to_status = getattr(config, "status_done", None) or "Done"
+
+        for task in in_review_tasks:
+            task_owner = task.repository_owner or owner
+            task_repo = task.repository_name or repo
+            if not task_owner or not task_repo:
+                continue
+
+            effective_from_status = config.status_in_review
+            effective_to_status = to_status
+
+            # Guard: handle issues managed by a pipeline for a different
+            # status.  When copilot-review un-drafts the main PR, GitHub
+            # project automation may move the issue to "In Review" before
+            # the remaining "In Progress" agents (e.g. judge, linter)
+            # have run.  Detect this mismatch and use the PIPELINE's
+            # status so _advance_pipeline resolves the correct agents.
+            pipeline = _cp.get_pipeline_state(task.issue_number)
+            if pipeline and not pipeline.is_complete:
+                pipeline_status = pipeline.status.lower() if pipeline.status else ""
+                if pipeline_status and pipeline_status != status_in_review:
+                    original_status = pipeline.status
+                    next_status = _cp.get_next_status(config, original_status) if config else None
+                    if next_status:
+                        effective_from_status = original_status
+                        effective_to_status = next_status
+                    logger.info(
+                        "Issue #%d is in 'In Review' but pipeline tracks '%s' "
+                        "status (agent: %s, %d/%d done). Accepting board status — "
+                        "continuing pipeline with transition target: '%s' → '%s'.",
+                        task.issue_number,
+                        pipeline.status,
+                        pipeline.current_agent or "none",
+                        len(pipeline.completed_agents),
+                        len(pipeline.agents),
+                        effective_from_status,
+                        effective_to_status,
+                    )
+            else:
+                # No cached pipeline or it's complete — get or reconstruct
+                pipeline = await _get_or_reconstruct_pipeline(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    project_id=project_id,
+                    status=config.status_in_review,
+                    agents=agents,
+                )
+
+            # Process pipeline completion/advancement
+            result = await _process_pipeline_completion(
+                access_token=access_token,
+                project_id=project_id,
+                task=task,
+                owner=owner,
+                repo=repo,
+                pipeline=pipeline,
+                from_status=effective_from_status,
+                to_status=effective_to_status,
+            )
+            if result:
+                results.append(result)
+
+    except Exception as e:
+        logger.error("Error checking in-review issues: %s", e)
+        _polling_state.errors_count += 1
+        _polling_state.last_error = str(e)
+
+    return results
 
 
 async def check_in_progress_issues(
@@ -1712,6 +1911,8 @@ async def process_in_progress_issue(
                     access_token=access_token,
                     pr_node_id=pr_id,
                     pr_number=pr_number,
+                    owner=owner,
+                    repo=repo,
                 )
 
                 if review_requested:

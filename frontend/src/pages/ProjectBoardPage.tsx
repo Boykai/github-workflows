@@ -20,6 +20,7 @@ import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import type { BoardItem } from '@/types';
+import { ApiError } from '@/services/api';
 
 interface ProjectBoardPageProps {
   /** Currently selected project ID (shared with chat page) */
@@ -211,6 +212,11 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
+            {(() => {
+              if (!(projectsError instanceof ApiError)) return null;
+              const reason = projectsError.error.details?.reason;
+              return typeof reason === 'string' ? <p className="text-sm opacity-75">{reason}</p> : null;
+            })()}
           </div>
         </div>
       )}

@@ -1695,6 +1695,138 @@ class TestAssignAgentGuardClauses:
         assert result is True
 
 
+class TestCopilotReviewDefensiveUnassignment:
+    """Tests for the copilot-review handler's defensive Copilot SWE un-assignment.
+
+    If Copilot SWE is incorrectly assigned to the copilot-review sub-issue
+    (e.g., through GitHub platform auto-trigger), the handler should detect
+    and un-assign it to prevent the coding agent from erroring.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_state(self):
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+        from src.services.workflow_orchestrator import (
+            clear_issue_sub_issues,
+        )
+
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        _pipeline_states.clear()
+        yield
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        _pipeline_states.clear()
+        clear_issue_sub_issues(42)
+
+    @pytest.fixture
+    def mock_github(self):
+        svc = Mock()
+        svc.get_issue_with_comments = AsyncMock(
+            return_value={
+                "body": (
+                    "## 🤖 Agent Pipeline\n\n"
+                    "| # | Status | Agent | State |\n"
+                    "|---|--------|-------|-------|\n"
+                    "| 1 | In Progress | `copilot-review` | ⏳ Pending |\n"
+                ),
+                "comments": [],
+            }
+        )
+        svc.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
+        svc.unassign_copilot_from_issue = AsyncMock()
+        svc.update_issue_state = AsyncMock()
+        svc.update_issue_body = AsyncMock(return_value=True)
+        svc.update_sub_issue_project_status = AsyncMock()
+        svc.get_pull_request = AsyncMock(return_value=None)
+        svc.find_existing_pr_for_issue = AsyncMock(return_value=None)
+        svc.request_copilot_review = AsyncMock(return_value=False)
+        return svc
+
+    @pytest.fixture
+    def orch(self, mock_github):
+        return WorkflowOrchestrator(Mock(), mock_github)
+
+    @pytest.fixture
+    def ctx(self):
+        from src.services.workflow_orchestrator import (
+            set_issue_sub_issues,
+        )
+
+        # Pre-populate the global sub-issue store so the handler finds it
+        set_issue_sub_issues(
+            42,
+            {
+                "copilot-review": {
+                    "number": 145,
+                    "node_id": "I_SUB_145",
+                    "url": "",
+                },
+            },
+        )
+        return WorkflowContext(
+            session_id="s",
+            project_id="P1",
+            access_token="tok",
+            repository_owner="o",
+            repository_name="r",
+            issue_id="I_42",
+            issue_number=42,
+            project_item_id="ITEM_42",
+            config=WorkflowConfiguration(
+                project_id="P1",
+                repository_owner="o",
+                repository_name="r",
+                agent_mappings={"In Progress": ["copilot-review", "judge"]},
+            ),
+        )
+
+    @pytest.mark.asyncio
+    async def test_unassigns_copilot_swe_from_review_sub_issue(self, orch, ctx, mock_github):
+        """copilot-review handler should un-assign Copilot SWE if present."""
+        with patch(
+            "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.assign_agent_for_status(ctx, "In Progress", 0)
+
+        assert result is True
+        # Copilot SWE should have been detected and un-assigned
+        mock_github.is_copilot_assigned_to_issue.assert_any_call(
+            access_token="tok",
+            owner="o",
+            repo="r",
+            issue_number=145,
+        )
+        mock_github.unassign_copilot_from_issue.assert_called_once_with(
+            access_token="tok",
+            owner="o",
+            repo="r",
+            issue_number=145,
+        )
+        # Should NOT have called assign_copilot_to_issue (the SWE assignment)
+        mock_github.assign_copilot_to_issue.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_skips_unassign_when_copilot_swe_not_present(self, orch, ctx, mock_github):
+        """copilot-review handler should not un-assign when SWE is not present."""
+        mock_github.is_copilot_assigned_to_issue.return_value = False
+
+        with patch(
+            "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            result = await orch.assign_agent_for_status(ctx, "In Progress", 0)
+
+        assert result is True
+        mock_github.unassign_copilot_from_issue.assert_not_called()
+
+
 class TestUpdateAgentTrackingDonePath:
     """Tests for _update_agent_tracking_state - 'done' and 'active' paths."""
 

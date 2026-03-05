@@ -1034,10 +1034,35 @@ class TestRequestCopilotReview:
         return GitHubProjectsService()
 
     @pytest.mark.asyncio
-    async def test_request_copilot_review_success(self, service):
-        """Should successfully request Copilot review."""
+    async def test_request_copilot_review_success_rest(self, service):
+        """Should successfully request Copilot review via REST API."""
+        mock_response = MagicMock()
+        mock_response.status_code = 201
+        mock_response.text = "{}"
+
+        with patch.object(service, "_client") as mock_client:
+            mock_client.post = AsyncMock(return_value=mock_response)
+
+            result = await service.request_copilot_review(
+                access_token="test-token",
+                pr_node_id="PR_123",
+                pr_number=42,
+                owner="owner",
+                repo="repo",
+            )
+
+            assert result is True
+            # Verify REST API was called with the correct URL and payload
+            mock_client.post.assert_awaited_once()
+            call_args = mock_client.post.call_args
+            assert "/pulls/42/requested_reviewers" in call_args[0][0]
+            assert call_args[1]["json"] == {"reviewers": ["copilot-pull-request-reviewer[bot]"]}
+
+    @pytest.mark.asyncio
+    async def test_request_copilot_review_graphql_fallback(self, service):
+        """Should fall back to GraphQL when owner/repo are not provided."""
         mock_response = {
-            "requestReviewsByLogin": {
+            "requestReviews": {
                 "pullRequest": {
                     "id": "PR_123",
                     "number": 42,
@@ -1060,7 +1085,7 @@ class TestRequestCopilotReview:
     @pytest.mark.asyncio
     async def test_request_copilot_review_failure(self, service):
         """Should return False on failure."""
-        mock_response = {"requestReviewsByLogin": {"pullRequest": None}}
+        mock_response = {"requestReviews": {"pullRequest": None}}
 
         with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
             mock_graphql.return_value = mock_response
@@ -1083,14 +1108,18 @@ class TestHasCopilotReviewedPr:
 
     @pytest.mark.asyncio
     async def test_has_copilot_reviewed_true(self, service):
-        """Should return True when Copilot has reviewed."""
+        """Should return True when Copilot has reviewed with a non-empty body."""
         mock_response = {
             "repository": {
                 "pullRequest": {
                     "reviews": {
                         "nodes": [
-                            {"author": {"login": "human"}, "state": "APPROVED"},
-                            {"author": {"login": "copilot"}, "state": "COMMENTED"},
+                            {"author": {"login": "human"}, "state": "APPROVED", "body": "LGTM"},
+                            {
+                                "author": {"login": "copilot"},
+                                "state": "COMMENTED",
+                                "body": "## Pull request overview\n\nSome review text",
+                            },
                         ]
                     }
                 }
@@ -1108,6 +1137,64 @@ class TestHasCopilotReviewedPr:
             )
 
             assert result is True
+
+    @pytest.mark.asyncio
+    async def test_copilot_review_empty_body_returns_false(self, service):
+        """Should return False when Copilot review has an empty body (partial/ghost review)."""
+        mock_response = {
+            "repository": {
+                "pullRequest": {
+                    "reviews": {
+                        "nodes": [
+                            {"author": {"login": "copilot"}, "state": "COMMENTED", "body": ""},
+                        ]
+                    }
+                }
+            }
+        }
+
+        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
+            mock_graphql.return_value = mock_response
+
+            result = await service.has_copilot_reviewed_pr(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                pr_number=42,
+            )
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_copilot_pending_review_returns_false(self, service):
+        """Should return False when Copilot review is in PENDING state."""
+        mock_response = {
+            "repository": {
+                "pullRequest": {
+                    "reviews": {
+                        "nodes": [
+                            {
+                                "author": {"login": "copilot"},
+                                "state": "PENDING",
+                                "body": "## Review",
+                            },
+                        ]
+                    }
+                }
+            }
+        }
+
+        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
+            mock_graphql.return_value = mock_response
+
+            result = await service.has_copilot_reviewed_pr(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                pr_number=42,
+            )
+
+            assert result is False
 
     @pytest.mark.asyncio
     async def test_has_copilot_reviewed_false(self, service):

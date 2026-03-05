@@ -399,10 +399,13 @@ mutation($pullRequestId: ID!) {
 }
 """
 
-# GraphQL mutation to request Copilot code review on a PR
+# GraphQL mutation to request code review via botIds.
+# Used as a fallback when owner/repo are not available for the REST path.
+# NOTE: The REST API (POST /pulls/{pr}/requested_reviewers) is preferred
+# because it does not consume the GraphQL rate limit.
 REQUEST_COPILOT_REVIEW_MUTATION = """
 mutation($pullRequestId: ID!) {
-  requestReviewsByLogin(input: {pullRequestId: $pullRequestId, botLogins: ["copilot"]}) {
+  requestReviews(input: {pullRequestId: $pullRequestId, botLogins: ["copilot-pull-request-reviewer"]}) {
     pullRequest {
       id
       number

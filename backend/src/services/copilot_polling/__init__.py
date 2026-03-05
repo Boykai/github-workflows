@@ -73,6 +73,8 @@ from .completion import (  # noqa: F401
 from .helpers import (  # noqa: F401
     _check_agent_done_on_parent,
     _check_agent_done_on_sub_or_parent,
+    _check_copilot_review_done,
+    _discover_main_pr_for_review,
     _get_linked_prs_including_sub_issues,
     _get_sub_issue_number,
     _get_sub_issue_numbers_for_issue,
@@ -90,10 +92,13 @@ from .pipeline import (  # noqa: F401
     _transition_after_pipeline_complete,
     check_backlog_issues,
     check_in_progress_issues,
+    check_in_review_issues,
     check_ready_issues,
     process_in_progress_issue,
 )
 from .polling_loop import (  # noqa: F401
+    _check_rate_limit_budget,
+    _pause_if_rate_limited,
     _poll_loop,
     get_polling_status,
     poll_for_copilot_completion,
@@ -111,6 +116,9 @@ from .recovery import (  # noqa: F401
 from .state import (  # noqa: F401
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     POST_ACTION_DELAY_SECONDS,
+    RATE_LIMIT_PAUSE_THRESHOLD,
+    RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
+    RATE_LIMIT_SLOW_THRESHOLD,
     RECOVERY_COOLDOWN_SECONDS,
     PollingState,
     _claimed_child_prs,
@@ -146,7 +154,9 @@ __all__ = [
     "_get_linked_prs_including_sub_issues",
     "_link_prs_to_parent",
     "_check_agent_done_on_sub_or_parent",
+    "_check_copilot_review_done",
     "_check_agent_done_on_parent",
+    "_discover_main_pr_for_review",
     "_update_issue_tracking",
     "_get_tracking_state_from_issue",
     "_reconstruct_sub_issue_mappings",
@@ -169,6 +179,7 @@ __all__ = [
     "_advance_pipeline",
     "_transition_after_pipeline_complete",
     "check_in_progress_issues",
+    "check_in_review_issues",
     "process_in_progress_issue",
     # Agent output
     "post_agent_outputs_from_pr",

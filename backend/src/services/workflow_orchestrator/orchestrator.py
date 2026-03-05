@@ -12,7 +12,7 @@ from src.models.workflow import (
     WorkflowResult,
     WorkflowTransition,
 )
-from src.services.agent_tracking import append_tracking_to_body
+from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
 from src.utils import utcnow
 
 from .config import _transitions, get_workflow_config
@@ -686,6 +686,47 @@ class WorkflowOrchestrator:
             logger.info("No agents configured for status '%s'", status)
             return True  # No agents to assign is not an error
 
+        # ── Override with tracking table agents if available ─────────
+        # The tracking table is frozen in the issue body when the issue
+        # is created and records the full agent pipeline the user was
+        # promised.  If the DB config was later modified (agents removed
+        # or reordered), the tracking table preserves the original
+        # contract.  Use tracking table agents for this status when they
+        # contain agents the current config no longer includes.
+        if ctx.issue_number:
+            try:
+                issue_data = await self.github.get_issue_with_comments(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
+                body = issue_data.get("body", "") if issue_data else ""
+                if body:
+                    steps = parse_tracking_from_body(body)
+                    if steps:
+                        tracking_agents = [
+                            s.agent_name for s in steps if s.status.lower() == status.lower()
+                        ]
+                        config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
+                        if tracking_agents and tracking_agents != config_slugs:
+                            logger.info(
+                                "Overriding config agents %s with tracking "
+                                "table agents %s for status '%s' on issue #%d",
+                                config_slugs,
+                                tracking_agents,
+                                status,
+                                ctx.issue_number,
+                            )
+                            agents = tracking_agents
+            except Exception as e:
+                logger.warning(
+                    "Failed to fetch tracking table for issue #%d, "
+                    "falling back to config agents: %s",
+                    ctx.issue_number,
+                    e,
+                )
+
         if agent_index >= len(agents):
             logger.info(
                 "Agent index %d out of range for status '%s' (has %d agents)",
@@ -695,11 +736,12 @@ class WorkflowOrchestrator:
             )
             return True  # All agents already processed
 
-        agent_name = (
-            agents[agent_index].slug
-            if hasattr(agents[agent_index], "slug")
-            else str(agents[agent_index])
-        )
+        # Normalise to plain slug strings.  `agents` may be a mix of
+        # AgentAssignment objects (from config) or bare strings (from
+        # the tracking-table override above).
+        agent_slugs: list[str] = [getattr(a, "slug", None) or str(a) for a in agents]
+
+        agent_name = agent_slugs[agent_index]
         logger.info(
             "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
             agent_name,
@@ -1036,11 +1078,9 @@ class WorkflowOrchestrator:
                 issue_number=ctx.issue_number,
                 project_id=ctx.project_id,
                 status=status,
-                agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                agents=agent_slugs,
                 current_agent_index=agent_index,
-                completed_agents=[
-                    a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-                ],
+                completed_agents=agent_slugs[:agent_index],
                 started_at=utcnow(),
                 error=None,
                 agent_assigned_sha="",
@@ -1078,51 +1118,111 @@ class WorkflowOrchestrator:
                 ctx.issue_number,
             )
 
-            # Resolve the main PR for this issue (branch created by speckit.specify)
-            review_pr_number: int | None = None
-            review_pr_id: str | None = None
-
-            main_branch_info = get_issue_main_branch(ctx.issue_number)
-            if main_branch_info:
-                review_pr_number = int(main_branch_info["pr_number"])
-                logger.info(
-                    "Found main branch '%s' (PR #%d) for issue #%d via in-memory store",
-                    main_branch_info.get("branch", ""),
-                    review_pr_number,
-                    ctx.issue_number,
-                )
-            else:
-                # Fallback: scan linked PRs on the parent issue
+            # ── Defensive: un-assign Copilot SWE from the sub-issue ──
+            # If Copilot SWE was assigned to the copilot-review sub-issue
+            # through an external mechanism (GitHub platform auto-trigger,
+            # manual action), it would error because no copilot-review.agent.md
+            # exists.  Un-assign it so the error state is cleaned up and the
+            # sub-issue reflects the correct status.
+            if sub_issue_info and sub_issue_number != ctx.issue_number:
                 try:
-                    found_pr = await self.github.find_existing_pr_for_issue(
+                    swe_assigned = await self.github.is_copilot_assigned_to_issue(
                         access_token=ctx.access_token,
                         owner=ctx.repository_owner,
                         repo=ctx.repository_name,
-                        issue_number=ctx.issue_number,
+                        issue_number=sub_issue_number,
                     )
-                    if found_pr:
-                        review_pr_number = int(found_pr["number"])
-                        logger.info(
-                            "Found linked PR #%d for copilot-review on issue #%d via API",
-                            review_pr_number,
-                            ctx.issue_number,
+                    if swe_assigned:
+                        logger.warning(
+                            "copilot-review sub-issue #%d has Copilot SWE assigned "
+                            "(incorrect) — un-assigning to prevent coding agent errors",
+                            sub_issue_number,
                         )
-                except Exception as _find_err:
-                    logger.warning(
-                        "Failed to find PR for copilot-review on issue #%d: %s",
-                        ctx.issue_number,
-                        _find_err,
+                        await self.github.unassign_copilot_from_issue(
+                            access_token=ctx.access_token,
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            issue_number=sub_issue_number,
+                        )
+                except Exception as e:
+                    logger.debug(
+                        "Could not check/un-assign Copilot SWE from sub-issue #%d: %s",
+                        sub_issue_number,
+                        e,
                     )
 
-            if review_pr_number:
-                pr_details = await self.github.get_pull_request(
-                    access_token=ctx.access_token,
-                    owner=ctx.repository_owner,
-                    repo=ctx.repository_name,
-                    pr_number=review_pr_number,
+            # Resolve the main PR using comprehensive multi-strategy discovery:
+            # 1. In-memory cache, 2. Parent issue timeline/REST search,
+            # 3. Sub-issue PR discovery (reconstructs sub-issue mappings),
+            # 4. REST branch search for Copilot-authored PRs,
+            # 5. Create PR from branch if branch exists but no open PR.
+            # This replaces the previous 2-strategy inline lookup that missed
+            # PRs linked only to sub-issues (not the parent issue).
+            from ..copilot_polling.helpers import _discover_main_pr_for_review
+
+            discovered = await _discover_main_pr_for_review(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                parent_issue_number=ctx.issue_number,
+            )
+
+            review_pr_number: int | None = None
+            review_pr_id: str | None = None
+
+            if discovered:
+                review_pr_number = int(discovered["pr_number"]) if discovered["pr_number"] else None
+                review_pr_id = discovered.get("pr_id", "")
+                is_draft = discovered.get("is_draft", False)
+                logger.info(
+                    "Discovered main PR #%s (branch '%s', draft=%s) for "
+                    "copilot-review on issue #%d via comprehensive discovery",
+                    review_pr_number,
+                    discovered.get("head_ref", ""),
+                    is_draft,
+                    ctx.issue_number,
                 )
-                if pr_details:
-                    review_pr_id = pr_details.get("id")
+
+                # If the GraphQL node ID is missing, fetch full PR details
+                if not review_pr_id and review_pr_number:
+                    pr_details = await self.github.get_pull_request(
+                        access_token=ctx.access_token,
+                        owner=ctx.repository_owner,
+                        repo=ctx.repository_name,
+                        pr_number=review_pr_number,
+                    )
+                    if pr_details:
+                        review_pr_id = pr_details.get("id")
+                        is_draft = pr_details.get("is_draft", False)
+
+                # Convert draft → ready BEFORE requesting review.
+                # GitHub does not allow requesting reviews on draft PRs.
+                if is_draft and review_pr_id and review_pr_number:
+                    logger.info(
+                        "Main PR #%d is still draft — converting to ready for review "
+                        "before requesting Copilot code review",
+                        review_pr_number,
+                    )
+                    mark_ready_ok = await self.github.mark_pr_ready_for_review(
+                        access_token=ctx.access_token,
+                        pr_node_id=str(review_pr_id),
+                    )
+                    if mark_ready_ok:
+                        from ..copilot_polling.pipeline import (
+                            _system_marked_ready_prs,
+                        )
+
+                        _system_marked_ready_prs.add(review_pr_number)
+                        logger.info(
+                            "Successfully converted main PR #%d from draft to ready",
+                            review_pr_number,
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to convert main PR #%d from draft to ready — "
+                            "Copilot review request will likely fail",
+                            review_pr_number,
+                        )
 
             # Request the Copilot code review on the main PR
             review_requested = False
@@ -1131,6 +1231,8 @@ class WorkflowOrchestrator:
                     access_token=ctx.access_token,
                     pr_node_id=str(review_pr_id),
                     pr_number=review_pr_number,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
                 )
                 if review_requested:
                     logger.info(
@@ -1146,7 +1248,8 @@ class WorkflowOrchestrator:
                     )
             else:
                 logger.warning(
-                    "No main PR found for copilot-review on issue #%d — cannot request review",
+                    "No main PR found for copilot-review on issue #%d — "
+                    "comprehensive discovery exhausted all strategies",
                     ctx.issue_number,
                 )
 
@@ -1203,11 +1306,9 @@ class WorkflowOrchestrator:
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
                     status=status,
-                    agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+                    agents=agent_slugs,
                     current_agent_index=agent_index,
-                    completed_agents=[
-                        a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-                    ],
+                    completed_agents=agent_slugs[:agent_index],
                     started_at=utcnow(),
                     error=None,
                     agent_assigned_sha="",
@@ -1416,11 +1517,9 @@ class WorkflowOrchestrator:
             issue_number=ctx.issue_number,
             project_id=ctx.project_id,
             status=status,
-            agents=[a.slug if hasattr(a, "slug") else str(a) for a in agents],
+            agents=agent_slugs,
             current_agent_index=agent_index,
-            completed_agents=[
-                a.slug if hasattr(a, "slug") else str(a) for a in agents[:agent_index]
-            ],
+            completed_agents=agent_slugs[:agent_index],
             started_at=utcnow(),
             error=None if success else f"Failed to assign agent '{agent_name}'",
             agent_assigned_sha=assigned_sha,

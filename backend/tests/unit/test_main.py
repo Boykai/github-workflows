@@ -4,14 +4,16 @@ Covers:
 - create_app() → correct routers, CORS, exception handlers
 - lifespan startup/shutdown
 - _session_cleanup_loop background task
+- _auto_start_copilot_polling webhook token fallback
 """
 
 import asyncio
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from httpx import ASGITransport, AsyncClient
 
-from src.main import _session_cleanup_loop, create_app
+from src.main import _auto_start_copilot_polling, _session_cleanup_loop, create_app
 
 # ── create_app ──────────────────────────────────────────────────────────────
 
@@ -331,4 +333,303 @@ class TestShutdownPollingLogging:
             # The error must have been logged, not silently swallowed
             mock_logger.warning.assert_any_call(
                 "Error stopping Copilot polling during shutdown", exc_info=True
+            )
+
+
+# ── _auto_start_copilot_polling webhook token fallback ──────────────────────
+
+
+def _make_mock_db(session_rows=None, project_settings_rows=None):
+    """Build a mock async DB that handles both user_sessions and project_settings queries."""
+
+    async def _execute(sql, *args, **kwargs):
+        cursor = AsyncMock()
+        if "user_sessions" in sql:
+            cursor.fetchone = AsyncMock(return_value=session_rows)
+        elif "project_settings" in sql:
+            cursor.fetchall = AsyncMock(return_value=project_settings_rows or [])
+        else:
+            cursor.fetchone = AsyncMock(return_value=None)
+            cursor.fetchall = AsyncMock(return_value=[])
+        return cursor
+
+    db = AsyncMock()
+    db.execute = AsyncMock(side_effect=_execute)
+    return db
+
+
+class TestAutoStartWebhookFallback:
+    """Tests for the webhook-token fallback in _auto_start_copilot_polling."""
+
+    async def test_fallback_starts_polling_with_webhook_token(self):
+        """When no sessions exist but GITHUB_WEBHOOK_TOKEN and DEFAULT_REPOSITORY
+        are set, polling should start using stored project settings."""
+
+        wf_config = json.dumps(
+            {"repository_owner": "Boykai", "repository_name": "github-workflows"}
+        )
+        ps_rows = [{"project_id": "PVT_abc123", "workflow_config": wf_config}]
+        mock_db = _make_mock_db(session_rows=None, project_settings_rows=ps_rows)
+
+        mock_settings = MagicMock(
+            default_project_id=None,
+            github_webhook_token="ghp_test_token",
+            default_repo_owner="Boykai",
+            default_repo_name="github-workflows",
+        )
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch("src.main.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+
+            mock_start.assert_awaited_once_with(
+                access_token="ghp_test_token",
+                project_id="PVT_abc123",
+                owner="Boykai",
+                repo="github-workflows",
+                caller="webhook_token_fallback",
+            )
+
+    async def test_fallback_skipped_when_no_token(self):
+        """Without GITHUB_WEBHOOK_TOKEN, fallback should not attempt polling."""
+        mock_db = _make_mock_db(session_rows=None)
+        mock_settings = MagicMock(
+            default_project_id=None,
+            github_webhook_token=None,
+            default_repo_owner="Boykai",
+            default_repo_name="github-workflows",
+        )
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch("src.main.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+            mock_start.assert_not_awaited()
+
+    async def test_fallback_skipped_when_no_matching_project(self):
+        """When project_settings has no matching repo, polling should not start."""
+        wf_config = json.dumps({"repository_owner": "Other", "repository_name": "other-repo"})
+        ps_rows = [{"project_id": "PVT_other", "workflow_config": wf_config}]
+        mock_db = _make_mock_db(session_rows=None, project_settings_rows=ps_rows)
+
+        mock_settings = MagicMock(
+            default_project_id=None,
+            github_webhook_token="ghp_test_token",
+            default_repo_owner="Boykai",
+            default_repo_name="github-workflows",
+        )
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch("src.main.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+            mock_start.assert_not_awaited()
+
+    async def test_fallback_owner_only_match(self):
+        """When repo_name is empty but owner matches, use as fallback."""
+        wf_config = json.dumps({"repository_owner": "Boykai", "repository_name": ""})
+        ps_rows = [{"project_id": "PVT_owner_only", "workflow_config": wf_config}]
+        mock_db = _make_mock_db(session_rows=None, project_settings_rows=ps_rows)
+
+        mock_settings = MagicMock(
+            default_project_id=None,
+            github_webhook_token="ghp_test_token",
+            default_repo_owner="Boykai",
+            default_repo_name="github-workflows",
+        )
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch("src.main.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+
+            mock_start.assert_awaited_once_with(
+                access_token="ghp_test_token",
+                project_id="PVT_owner_only",
+                owner="Boykai",
+                repo="github-workflows",
+                caller="webhook_token_fallback",
+            )
+
+    async def test_session_strategy_preferred_over_fallback(self):
+        """When a valid session exists, it should be used instead of webhook token."""
+        mock_session = MagicMock(
+            access_token="ghp_session_token",
+            selected_project_id="PVT_session",
+        )
+
+        session_row = {"session_id": "sid123"}
+
+        async def _execute(sql, *args, **kwargs):
+            cursor = AsyncMock()
+            if "user_sessions" in sql:
+                cursor.fetchone = AsyncMock(return_value=session_row)
+            else:
+                cursor.fetchone = AsyncMock(return_value=None)
+                cursor.fetchall = AsyncMock(return_value=[])
+            return cursor
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=_execute)
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=mock_session,
+            ),
+            patch(
+                "src.utils.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("Boykai", "github-workflows"),
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+
+            mock_start.assert_awaited_once_with(
+                access_token="ghp_session_token",
+                project_id="PVT_session",
+                owner="Boykai",
+                repo="github-workflows",
+                caller="lifespan_auto_start",
+            )
+
+    async def test_fallback_used_when_session_resolve_fails(self):
+        """If session exists but resolve_repository fails, fall through to webhook fallback."""
+        mock_session = MagicMock(
+            access_token="ghp_bad_token",
+            selected_project_id="PVT_expired",
+        )
+        session_row = {"session_id": "sid_expired"}
+        wf_config = json.dumps(
+            {"repository_owner": "Boykai", "repository_name": "github-workflows"}
+        )
+        ps_rows = [{"project_id": "PVT_fallback", "workflow_config": wf_config}]
+
+        call_count = 0
+
+        async def _execute(sql, *args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            cursor = AsyncMock()
+            if "user_sessions" in sql:
+                cursor.fetchone = AsyncMock(return_value=session_row)
+            elif "project_settings" in sql:
+                cursor.fetchall = AsyncMock(return_value=ps_rows)
+            else:
+                cursor.fetchone = AsyncMock(return_value=None)
+                cursor.fetchall = AsyncMock(return_value=[])
+            return cursor
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=_execute)
+
+        mock_settings = MagicMock(
+            default_project_id=None,
+            github_webhook_token="ghp_webhook",
+            default_repo_owner="Boykai",
+            default_repo_name="github-workflows",
+        )
+
+        with (
+            patch(
+                "src.services.copilot_polling.get_polling_status",
+                return_value={"is_running": False},
+            ),
+            patch("src.services.database.get_db", return_value=mock_db),
+            patch("src.main.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.session_store.get_session",
+                new_callable=AsyncMock,
+                return_value=mock_session,
+            ),
+            patch(
+                "src.utils.resolve_repository",
+                new_callable=AsyncMock,
+                side_effect=Exception("token expired"),
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as mock_start,
+        ):
+            await _auto_start_copilot_polling()
+
+            # Should have used the webhook token fallback
+            mock_start.assert_awaited_once_with(
+                access_token="ghp_webhook",
+                project_id="PVT_fallback",
+                owner="Boykai",
+                repo="github-workflows",
+                caller="webhook_token_fallback",
             )

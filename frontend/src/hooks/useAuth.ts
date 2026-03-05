@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authApi, ApiError } from '@/services/api';
+import { authApi, ApiError, onAuthExpired } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
 import type { User } from '@/types';
 
@@ -92,6 +92,18 @@ export function useAuth(): UseAuthReturn {
       setError(queryError as Error);
     }
   }, [queryError]);
+
+  // Auto-logout: when any API call returns 401 (session/token expired),
+  // clear the cached user so the app shows the login screen immediately
+  // instead of leaving the user stuck on a broken board page.
+  useEffect(() => {
+    return onAuthExpired(() => {
+      queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.invalidateQueries({ queryKey: ['board'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['chat'] });
+    });
+  }, [queryClient]);
 
   // Consider loading done if we got a 401 (not authenticated) or if query completed
   const is401Error = queryError instanceof ApiError && queryError.status === 401;

@@ -1,6 +1,8 @@
 # GitHub Workflows Chat — Development Guidelines
 
-Last updated: 2026-03-01
+Last updated: 2026-03-04
+
+> **Important:** Always use search tools (e.g., Context7 MCP, Microsoft Docs MCP, or web search) to look up the most up-to-date documentation when working with any and all libraries, frameworks, and APIs. Never rely solely on training data — verify current syntax, options, and best practices from official sources before writing or modifying code.
 
 ## Tech Stack
 
