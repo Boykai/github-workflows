@@ -41,13 +41,17 @@ async def init_database() -> aiosqlite.Connection:
     db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
 
-    # Set pragmas (WAL mode, busy_timeout, foreign_keys)
-    await db.execute("PRAGMA journal_mode=WAL;")
-    await db.execute("PRAGMA busy_timeout=5000;")
-    await db.execute("PRAGMA foreign_keys=ON;")
+    try:
+        # Set pragmas (WAL mode, busy_timeout, foreign_keys)
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA busy_timeout=5000;")
+        await db.execute("PRAGMA foreign_keys=ON;")
 
-    # Run migrations
-    await _run_migrations(db)
+        # Run migrations
+        await _run_migrations(db)
+    except Exception:
+        await db.close()
+        raise
 
     _connection = db
     logger.info("Database initialized at %s", db_path)

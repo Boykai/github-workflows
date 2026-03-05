@@ -193,3 +193,30 @@ class TestInitDatabase:
                 import src.services.database as dbmod
 
                 dbmod._connection = None
+
+    async def test_closes_connection_on_migration_failure(self, tmp_path, mock_settings):
+        """Bug fix: init_database must close the connection if migrations fail.
+
+        Previously, if _run_migrations() raised an exception, the opened
+        database connection was leaked because the code did not wrap the
+        pragma/migration block in try/except/finally. The connection was
+        never assigned to _connection, so close_database() could not clean
+        it up either.
+        """
+        db_path = str(tmp_path / "leak_test.db")
+        mock_settings.database_path = db_path
+
+        with (
+            patch("src.services.database.get_settings", return_value=mock_settings),
+            patch(
+                "src.services.database._run_migrations",
+                side_effect=RuntimeError("migration boom"),
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="migration boom"):
+                await init_database()
+
+        # After the failure, _connection should still be None (not leaked)
+        import src.services.database as dbmod
+
+        assert dbmod._connection is None

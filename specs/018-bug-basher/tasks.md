@@ -25,13 +25,13 @@
 
 **Purpose**: Establish baseline, validate existing test suite, and prepare tracking infrastructure
 
-- [ ] T001 Run full backend test suite via `cd backend && python -m pytest` to establish baseline pass/fail state
-- [ ] T002 [P] Run backend linting via `cd backend && ruff check src/ tests/` and formatting via `ruff format --check src/ tests/` to establish baseline
+- [x] T001 Run full backend test suite via `cd backend && python -m pytest` to establish baseline pass/fail state
+- [x] T002 [P] Run backend linting via `cd backend && ruff check src/ tests/` and formatting via `ruff format --check src/ tests/` to establish baseline
 - [ ] T003 [P] Run backend type checking via `cd backend && pyright` to establish baseline
-- [ ] T004 [P] Run frontend linting via `cd frontend && npx eslint src/` to establish baseline
-- [ ] T005 [P] Run frontend type checking via `cd frontend && npx tsc --noEmit` to establish baseline
-- [ ] T006 [P] Run frontend test suite via `cd frontend && npx vitest run` to establish baseline
-- [ ] T007 Create bug tracking summary table template at the end of the final commit message for structured output per FR-010
+- [x] T004 [P] Run frontend linting via `cd frontend && npx eslint src/` to establish baseline
+- [x] T005 [P] Run frontend type checking via `cd frontend && npx tsc --noEmit` to establish baseline
+- [x] T006 [P] Run frontend test suite via `cd frontend && npx vitest run` to establish baseline
+- [x] T007 Create bug tracking summary table template at the end of the final commit message for structured output per FR-010
 
 ---
 
@@ -41,11 +41,11 @@
 
 **⚠️ CRITICAL**: Inventory and baseline must be complete before audit work begins.
 
-- [ ] T008 Inventory all backend source files in backend/src/ (86 Python files across api/, models/, services/, middleware/, prompts/, and root modules)
-- [ ] T009 [P] Inventory all backend test files in backend/tests/ (59 test files across unit/, integration/, helpers/)
-- [ ] T010 [P] Inventory all frontend source files in frontend/src/ (120+ TypeScript files across components/, hooks/, services/, types/, lib/, utils/)
-- [ ] T011 [P] Inventory all configuration files (.env.example, docker-compose.yml, backend/pyproject.toml, frontend/package.json, frontend/vitest.config.ts, frontend/eslint.config.js, .pre-commit-config.yaml)
-- [ ] T012 [P] Inventory all script files in scripts/ (setup-hooks.sh, pre-commit)
+- [x] T008 Inventory all backend source files in backend/src/ (86 Python files across api/, models/, services/, middleware/, prompts/, and root modules)
+- [x] T009 [P] Inventory all backend test files in backend/tests/ (59 test files across unit/, integration/, helpers/)
+- [x] T010 [P] Inventory all frontend source files in frontend/src/ (120+ TypeScript files across components/, hooks/, services/, types/, lib/, utils/)
+- [x] T011 [P] Inventory all configuration files (.env.example, docker-compose.yml, backend/pyproject.toml, frontend/package.json, frontend/vitest.config.ts, frontend/eslint.config.js, .pre-commit-config.yaml)
+- [x] T012 [P] Inventory all script files in scripts/ (setup-hooks.sh, pre-commit)
 
 **Checkpoint**: All baselines established and file inventories complete — audit work can now begin
 
@@ -63,8 +63,8 @@
 - [ ] T014 [P] [US1] Audit auth API endpoint in backend/src/api/auth.py for improper authentication flows, missing validation, and insecure redirects
 - [ ] T015 [P] [US1] Audit session management in backend/src/services/session_store.py for session fixation, insecure storage, and missing expiry
 - [ ] T016 [P] [US1] Audit encryption service in backend/src/services/encryption.py for weak algorithms, hardcoded keys, and improper IV handling
-- [ ] T017 [P] [US1] Audit configuration in backend/src/config.py for exposed secrets, insecure defaults (debug mode, permissive CORS), and missing validation
-- [ ] T018 [P] [US1] Audit environment template in .env.example for accidentally committed real secrets or tokens
+- [x] T017 [P] [US1] Audit configuration in backend/src/config.py for exposed secrets, insecure defaults (debug mode, permissive CORS), and missing validation
+- [x] T018 [P] [US1] Audit environment template in .env.example for accidentally committed real secrets or tokens
 
 ### Backend Input Validation & Injection
 
@@ -86,7 +86,7 @@
 - [ ] T031 [P] [US1] Audit AI agent service in backend/src/services/ai_agent.py for prompt injection, unsafe prompt construction, and API key exposure
 - [ ] T032 [P] [US1] Audit completion providers in backend/src/services/completion_providers.py for API key handling and insecure provider configuration
 - [ ] T033 [P] [US1] Audit cache service in backend/src/services/cache.py for cache poisoning, sensitive data in cache, and missing invalidation
-- [ ] T034 [P] [US1] Audit WebSocket service in backend/src/services/websocket.py for missing authentication on WebSocket connections and message injection
+- [x] T034 [P] [US1] Audit WebSocket service in backend/src/services/websocket.py for missing authentication on WebSocket connections and message injection
 - [ ] T035 [P] [US1] Audit Copilot polling pipeline in backend/src/services/copilot_polling/ (5 files) for token exposure, insecure polling, and missing auth
 - [ ] T036 [P] [US1] Audit workflow orchestrator in backend/src/services/workflow_orchestrator/ (4 files) for unsafe workflow execution and privilege escalation
 - [ ] T037 [P] [US1] Audit GitHub Projects integration in backend/src/services/github_projects/ (3 files) for GraphQL injection and token mishandling
@@ -102,9 +102,9 @@
 
 ### Config & Infrastructure Security
 
-- [ ] T044 [P] [US1] Audit docker-compose.yml for exposed ports, missing network isolation, insecure volume mounts, and hardcoded credentials
+- [x] T044 [P] [US1] Audit docker-compose.yml for exposed ports, missing network isolation, insecure volume mounts, and hardcoded credentials
 - [ ] T045 [P] [US1] Audit .pre-commit-config.yaml and scripts/pre-commit for insecure hook execution and missing security checks
-- [ ] T046 [US1] Add regression tests for all security fixes in backend/tests/unit/ and co-located frontend test files per FR-004
+- [x] T046 [US1] Add regression tests for all security fixes in backend/tests/unit/ and co-located frontend test files per FR-004
 
 **Checkpoint**: All security vulnerabilities identified and either fixed with regression tests or flagged with `# TODO(bug-bash):` comments
 
@@ -125,7 +125,7 @@
 
 ### Backend Service Runtime Errors
 
-- [ ] T051 [P] [US2] Audit database service in backend/src/services/database.py for connection leaks, unhandled query errors, and missing context managers
+- [x] T051 [P] [US2] Audit database service in backend/src/services/database.py for connection leaks, unhandled query errors, and missing context managers
 - [ ] T052 [P] [US2] Audit AI agent service in backend/src/services/ai_agent.py for unhandled API call failures, timeout errors, and missing retry logic
 - [ ] T053 [P] [US2] Audit completion providers in backend/src/services/completion_providers.py for unhandled provider errors and missing fallback handling
 - [ ] T054 [P] [US2] Audit cache service in backend/src/services/cache.py for unhandled cache errors and missing null checks on cache reads
@@ -162,7 +162,7 @@
 
 ### Regression Tests for Runtime Fixes
 
-- [ ] T076 [US2] Add regression tests for all runtime error fixes in backend/tests/unit/ and co-located frontend test files per FR-004
+- [x] T076 [US2] Add regression tests for all runtime error fixes in backend/tests/unit/ and co-located frontend test files per FR-004
 
 **Checkpoint**: All runtime errors identified and either fixed with regression tests or flagged with `# TODO(bug-bash):` comments
 
@@ -176,9 +176,9 @@
 
 ### Backend Service Logic
 
-- [ ] T077 [P] [US3] Audit state management logic in backend/src/services/workflow_orchestrator/ for incorrect state transitions and broken workflow sequencing
+- [x] T077 [P] [US3] Audit state management logic in backend/src/services/workflow_orchestrator/ for incorrect state transitions and broken workflow sequencing
 - [ ] T078 [P] [US3] Audit Copilot polling pipeline logic in backend/src/services/copilot_polling/ for incorrect polling intervals, wrong status checks, and missed event handling
-- [ ] T079 [P] [US3] Audit chores scheduler logic in backend/src/services/chores/ for incorrect scheduling, missed triggers, and wrong time calculations
+- [x] T079 [P] [US3] Audit chores scheduler logic in backend/src/services/chores/ for incorrect scheduling, missed triggers, and wrong time calculations
 - [ ] T080 [P] [US3] Audit agent services in backend/src/services/agents/ and backend/src/services/agent_tracking.py for incorrect agent state management
 - [ ] T081 [P] [US3] Audit AI agent service in backend/src/services/ai_agent.py for incorrect prompt construction, wrong API call parameters, and broken response parsing
 - [ ] T082 [P] [US3] Audit cache service in backend/src/services/cache.py for incorrect TTL handling, wrong cache key construction, and stale data serving
@@ -274,8 +274,8 @@
 
 ### Backend Silent Failures
 
-- [ ] T119 [P] [US5] Audit backend/src/services/ for silent failures: caught exceptions with no logging, bare except clauses, and swallowed errors
-- [ ] T120 [P] [US5] Audit backend/src/api/ for silent failures: empty error responses, missing error logging, and incorrect error status codes
+- [x] T119 [P] [US5] Audit backend/src/services/ for silent failures: caught exceptions with no logging, bare except clauses, and swallowed errors
+- [x] T120 [P] [US5] Audit backend/src/api/ for silent failures: empty error responses, missing error logging, and incorrect error status codes
 
 ### Frontend Dead Code & Unused Imports
 
@@ -309,16 +309,16 @@
 
 **Purpose**: Final validation, cross-file regression checks, and summary generation
 
-- [ ] T130 Run full backend test suite via `cd backend && python -m pytest` to verify all fixes pass per FR-007
-- [ ] T131 [P] Run backend linting via `cd backend && ruff check src/ tests/` and formatting via `ruff format --check src/ tests/` per FR-008
+- [x] T130 Run full backend test suite via `cd backend && python -m pytest` to verify all fixes pass per FR-007
+- [x] T131 [P] Run backend linting via `cd backend && ruff check src/ tests/` and formatting via `ruff format --check src/ tests/` per FR-008
 - [ ] T132 [P] Run backend type checking via `cd backend && pyright` per FR-008
-- [ ] T133 [P] Run frontend test suite via `cd frontend && npx vitest run` to verify all fixes pass per FR-007
-- [ ] T134 [P] Run frontend linting via `cd frontend && npx eslint src/` per FR-008
-- [ ] T135 [P] Run frontend type checking via `cd frontend && npx tsc --noEmit` per FR-008
-- [ ] T136 Verify no fixes changed the project's public API surface per FR-011
-- [ ] T137 Verify no new dependencies were added per FR-012
-- [ ] T138 Generate final bug summary table per FR-010 with columns: #, File, Line(s), Category, Description, Status (✅ Fixed or ⚠️ Flagged)
-- [ ] T139 Write clear commit messages for each fix explaining: what the bug was, why it is a bug, and how the fix resolves it per FR-005
+- [x] T133 [P] Run frontend test suite via `cd frontend && npx vitest run` to verify all fixes pass per FR-007
+- [x] T134 [P] Run frontend linting via `cd frontend && npx eslint src/` per FR-008
+- [x] T135 [P] Run frontend type checking via `cd frontend && npx tsc --noEmit` per FR-008
+- [x] T136 Verify no fixes changed the project's public API surface per FR-011
+- [x] T137 Verify no new dependencies were added per FR-012
+- [x] T138 Generate final bug summary table per FR-010 with columns: #, File, Line(s), Category, Description, Status (✅ Fixed or ⚠️ Flagged)
+- [x] T139 Write clear commit messages for each fix explaining: what the bug was, why it is a bug, and how the fix resolves it per FR-005
 
 ---
 

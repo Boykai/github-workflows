@@ -61,7 +61,7 @@ class ConnectionManager:
             project_id: GitHub Project ID
             message: Message to broadcast (will be JSON encoded)
         """
-        connections = self._connections.get(project_id, set())
+        connections = list(self._connections.get(project_id, set()))
         if not connections:
             logger.debug("No connections to broadcast to for project %s", project_id)
             return
