@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # Cache
     cache_ttl_seconds: int = 300
 
+    # Metadata cache TTL (labels, branches, milestones, collaborators)
+    metadata_cache_ttl_seconds: int = 3600
+
     # Default repository for issue creation (owner/repo format)
     default_repository: str | None = None
 

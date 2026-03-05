@@ -117,13 +117,20 @@ Respond with JSON:
 """
 
 
-def create_issue_generation_prompt(user_input: str, project_name: str) -> list[dict]:
+def create_issue_generation_prompt(
+    user_input: str,
+    project_name: str,
+    metadata_context: dict | None = None,
+) -> list[dict]:
     """
     Create prompt messages for issue recommendation generation.
 
     Args:
         user_input: User's feature request description
         project_name: Name of the target GitHub project for context
+        metadata_context: Optional dict with repo metadata (labels, branches,
+            milestones, collaborators) to inject into the prompt so the AI
+            selects from real repository values.
 
     Returns:
         List of message dicts with role and content
@@ -134,13 +141,56 @@ def create_issue_generation_prompt(user_input: str, project_name: str) -> list[d
     # Default target is tomorrow for typical features
     default_target = (today + timedelta(days=1)).strftime("%Y-%m-%d")
 
+    # Build dynamic metadata context section
+    metadata_section = ""
+    if metadata_context:
+        parts: list[str] = []
+
+        repo_labels = metadata_context.get("labels", [])
+        if repo_labels:
+            label_names = [lb["name"] if isinstance(lb, dict) else lb for lb in repo_labels]
+            parts.append(
+                "AVAILABLE LABELS (from repository — select from this list ONLY):\n"
+                + ", ".join(f'"{n}"' for n in label_names)
+            )
+
+        repo_branches = metadata_context.get("branches", [])
+        if repo_branches:
+            branch_names = [br["name"] if isinstance(br, dict) else br for br in repo_branches]
+            parts.append(
+                "AVAILABLE BRANCHES (for development/parent branch selection):\n"
+                + ", ".join(f'"{n}"' for n in branch_names)
+            )
+
+        repo_milestones = metadata_context.get("milestones", [])
+        if repo_milestones:
+            ms_titles = [ms["title"] if isinstance(ms, dict) else ms for ms in repo_milestones]
+            parts.append(
+                "AVAILABLE MILESTONES:\n" + ", ".join(f'"{t}"' for t in ms_titles)
+            )
+
+        repo_collaborators = metadata_context.get("collaborators", [])
+        if repo_collaborators:
+            collab_logins = [co["login"] if isinstance(co, dict) else co for co in repo_collaborators]
+            parts.append(
+                "ASSIGNEE CANDIDATES:\n" + ", ".join(f'"{c}"' for c in collab_logins)
+            )
+
+        if parts:
+            metadata_section = "\n\n" + "\n\n".join(parts) + "\n"
+
+    # Build extended metadata instructions when context is available
+    extra_metadata_fields = ""
+    if metadata_context:
+        extra_metadata_fields = """, assignees (array of GitHub usernames from ASSIGNEE CANDIDATES), milestone (string matching an AVAILABLE MILESTONE title, or null), branch (string matching an AVAILABLE BRANCH name, or null)"""
+
     user_message = f"""Generate a structured GitHub issue for the following feature request.
 
 Project Context: {project_name}
 Today's Date: {start_date}
 Suggested Start Date: {start_date}
 Suggested Target Date: {default_target} (adjust based on size - XS/S: same day, M: +1 day, L: +2-3 days, XL: +4-5 days)
-
+{metadata_section}
 Feature Request (PRESERVE ALL DETAILS BELOW - every word matters):
 ---
 {user_input}
@@ -153,7 +203,7 @@ CRITICAL: Your output MUST:
 4. The final issue should contain MORE detail than the user provided, not less
 5. Do NOT echo back the user's raw input — it is stored separately. Focus on analysis and structured output.
 
-Respond with a raw JSON object (NO markdown code fences) containing title, user_story, ui_ux_description, functional_requirements, technical_notes, and metadata (with priority, size, estimate_hours, labels). Keep values concise."""
+Respond with a raw JSON object (NO markdown code fences) containing title, user_story, ui_ux_description, functional_requirements, technical_notes, and metadata (with priority, size, estimate_hours, labels{extra_metadata_fields}). Keep values concise."""
 
     return [
         {"role": "system", "content": ISSUE_GENERATION_SYSTEM_PROMPT},

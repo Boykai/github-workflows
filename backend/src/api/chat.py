@@ -231,11 +231,24 @@ async def send_message(
     if is_feature_request:
         # Generate issue recommendation (T015, T016)
         try:
+            # Fetch repo metadata for dynamic prompt injection
+            metadata_context: dict | None = None
+            try:
+                owner, repo = await _resolve_repository(session)
+                from src.services.metadata_service import MetadataService
+
+                metadata_svc = MetadataService()
+                ctx = await metadata_svc.get_or_fetch(session.access_token, owner, repo)
+                metadata_context = ctx.model_dump()
+            except Exception as md_err:
+                logger.warning("Metadata fetch for prompt injection failed: %s", md_err)
+
             recommendation = await ai_service.generate_issue_recommendation(
                 user_input=request.content,
                 project_name=project_name,
                 session_id=str(session.session_id),
                 github_token=session.access_token,
+                metadata_context=metadata_context,
             )
 
             # Store recommendation (T016)
