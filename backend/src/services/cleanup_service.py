@@ -83,11 +83,8 @@ async def check_user_permission(
     Returns (has_permission, permission_error_message).
     """
     try:
-        headers = github_service._build_headers(access_token)
-        response = await github_service._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}/collaborators/{username}/permission",
-            headers=headers,
-        )
+        github = github_service._get_client(access_token)
+        response = await github.arequest("GET", f"/repos/{owner}/{repo}/collaborators/{username}/permission")
         if response.status_code == 200:
             data = response.json()
             permission = data.get("permission", "none")
@@ -113,13 +110,10 @@ async def fetch_all_branches(
     branches = []
     page = 1
     per_page = 100
-    headers = github_service._build_headers(access_token)
+    github = github_service._get_client(access_token)
 
     while True:
-        response = await github_service._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}/branches?per_page={per_page}&page={page}",
-            headers=headers,
-        )
+        response = await github.arequest("GET", f"/repos/{owner}/{repo}/branches?per_page={per_page}&page={page}")
         if response.status_code != 200:
             logger.error(
                 "Failed to fetch branches page %d: HTTP %d",
@@ -155,13 +149,13 @@ async def fetch_open_prs(
     prs = []
     page = 1
     per_page = 100
-    headers = github_service._build_headers(access_token)
+    github = github_service._get_client(access_token)
 
     while True:
-        response = await github_service._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}/pulls"
+        response = await github.arequest(
+            "GET",
+            f"/repos/{owner}/{repo}/pulls"
             f"?state=open&per_page={per_page}&page={page}",
-            headers=headers,
         )
         if response.status_code != 200:
             logger.error(
@@ -270,16 +264,16 @@ async def fetch_app_created_open_issues(
     are de-duplicated in case they carry multiple app-created labels.
     """
     issues: list[dict] = []
-    headers = github_service._build_headers(access_token)
+    github = github_service._get_client(access_token)
 
     for label in sorted(APP_CREATED_LABELS):
         page = 1
         per_page = 100
         while True:
-            response = await github_service._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/issues"
+            response = await github.arequest(
+                "GET",
+                f"/repos/{owner}/{repo}/issues"
                 f"?state=open&labels={label}&per_page={per_page}&page={page}",
-                headers=headers,
             )
             if response.status_code != 200:
                 logger.error(
@@ -608,18 +602,13 @@ async def execute_cleanup(
 
     # Close PRs sequentially using the shared retry helper for
     # consistent rate-limit / transient-error handling (429, 503).
-    headers = github_service._build_headers(access_token)
+    github = github_service._get_client(access_token)
     for pr_number in request.prs_to_close:
         try:
-            response = await github_service._request_with_retry(
+            response = await github.arequest(
                 "PATCH",
-                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
+                f"/repos/{owner}/{repo}/pulls/{pr_number}",
                 json={"state": "closed"},
-                headers=headers,
-                # PR closure is NOT idempotent — closing an already-closed
-                # PR is fine, but we should not blindly retry on unknown
-                # errors for a state-changing mutation.
-                idempotent=False,
             )
             if response.status_code == 200:
                 results.append(
@@ -657,12 +646,10 @@ async def execute_cleanup(
     issues_closed = 0
     for issue_number in request.issues_to_close:
         try:
-            response = await github_service._request_with_retry(
+            response = await github.arequest(
                 "PATCH",
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+                f"/repos/{owner}/{repo}/issues/{issue_number}",
                 json={"state": "closed", "state_reason": "not_planned"},
-                headers=headers,
-                idempotent=False,
             )
             if response.status_code == 200:
                 results.append(

@@ -231,17 +231,22 @@ class TestGitHubAuthServiceTokenExchange:
 
         service = GitHubAuthService()
 
+        # Mock the GitHub context manager and REST call
+        mock_parsed_data = MagicMock()
+        mock_parsed_data.id = 12345678
+        mock_parsed_data.login = "testuser"
+        mock_parsed_data.avatar_url = "https://avatars.githubusercontent.com/u/12345678"
+
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "id": 12345678,
-            "login": "testuser",
-            "avatar_url": "https://avatars.githubusercontent.com/u/12345678",
-        }
-        mock_response.raise_for_status = MagicMock()
+        mock_response.parsed_data = mock_parsed_data
 
-        service._client.get = AsyncMock(return_value=mock_response)
+        mock_github = AsyncMock()
+        mock_github.rest.users.async_get_authenticated = AsyncMock(return_value=mock_response)
+        mock_github.__aenter__ = AsyncMock(return_value=mock_github)
+        mock_github.__aexit__ = AsyncMock(return_value=False)
 
-        result = await service.get_github_user("test_access_token")
+        with patch("src.services.github_auth.GitHub", return_value=mock_github):
+            result = await service.get_github_user("test_access_token")
 
         assert result["login"] == "testuser"
         assert result["id"] == 12345678
@@ -259,7 +264,7 @@ class TestGitHubAuthServiceTokenExchange:
 
         service = GitHubAuthService()
 
-        # Mock token exchange
+        # Mock token exchange (still uses httpx _client)
         token_response = MagicMock()
         token_response.json.return_value = {
             "access_token": "gho_test_token",
@@ -268,23 +273,24 @@ class TestGitHubAuthServiceTokenExchange:
         }
         token_response.raise_for_status = MagicMock()
 
-        # Mock user info
-        user_response = MagicMock()
-        user_response.json.return_value = {
-            "id": 12345678,
-            "login": "testuser",
-            "avatar_url": "https://avatars.githubusercontent.com/u/12345678",
-        }
-        user_response.raise_for_status = MagicMock()
-
         service._client.post = AsyncMock(return_value=token_response)
-        service._client.get = AsyncMock(return_value=user_response)
 
-        with patch(
-            "src.services.github_auth.store_save_session",
+        # Mock get_github_user (now uses githubkit)
+        with patch.object(
+            service,
+            "get_github_user",
             new_callable=AsyncMock,
+            return_value={
+                "id": 12345678,
+                "login": "testuser",
+                "avatar_url": "https://avatars.githubusercontent.com/u/12345678",
+            },
         ):
-            session = await service.create_session("test_code")
+            with patch(
+                "src.services.github_auth.store_save_session",
+                new_callable=AsyncMock,
+            ):
+                session = await service.create_session("test_code")
 
         assert session.github_user_id == "12345678"
         assert session.github_username == "testuser"
@@ -412,16 +418,18 @@ class TestGitHubAuthServiceTokenExchange:
         mock_settings.return_value = MagicMock()
         service = GitHubAuthService()
 
-        user_response = MagicMock()
-        user_response.json.return_value = {
-            "id": 99999,
-            "login": "patuser",
-            "avatar_url": "https://example.com/avatar.png",
-        }
-        user_response.raise_for_status = MagicMock()
-        service._client.get = AsyncMock(return_value=user_response)
-
-        session = await service.create_session_from_token("ghp_pat_token")
+        # Mock get_github_user (now uses githubkit)
+        with patch.object(
+            service,
+            "get_github_user",
+            new_callable=AsyncMock,
+            return_value={
+                "id": 99999,
+                "login": "patuser",
+                "avatar_url": "https://example.com/avatar.png",
+            },
+        ):
+            session = await service.create_session_from_token("ghp_pat_token")
 
         assert session.github_user_id == "99999"
         assert session.github_username == "patuser"

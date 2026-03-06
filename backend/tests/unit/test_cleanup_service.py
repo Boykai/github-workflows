@@ -52,7 +52,7 @@ def _make_github_service(
 ) -> AsyncMock:
     """Build an AsyncMock of GitHubProjectsService with configurable responses."""
     service = AsyncMock()
-    service._build_headers = MagicMock(return_value={"Authorization": "Bearer test"})
+    service._get_client = MagicMock(return_value=MagicMock())
 
     # Default permission: admin access
     if permission_response is None:
@@ -101,8 +101,9 @@ def _make_github_service(
             return issues_response
         raise ValueError(f"Unexpected GET URL: {url}")
 
-    service._client = AsyncMock()
-    service._client.get = AsyncMock(side_effect=mock_get)
+    mock_github = MagicMock()
+    mock_github.arequest = AsyncMock(side_effect=mock_get)
+    service._get_client = MagicMock(return_value=mock_github)
     service._graphql = AsyncMock(return_value=graphql_response)
     service.delete_branch = AsyncMock(return_value=True)
 

@@ -125,8 +125,7 @@ class GitHubAuthService:
         Returns:
             GitHub user data
         """
-        github = GitHub(TokenAuthStrategy(access_token))
-        try:
+        async with GitHub(TokenAuthStrategy(access_token)) as github:
             response = await github.rest.users.async_get_authenticated()
             # Convert Pydantic model to dict for backward compatibility
             data = response.parsed_data
@@ -135,8 +134,6 @@ class GitHubAuthService:
                 "login": data.login,
                 "avatar_url": getattr(data, "avatar_url", None),
             }
-        finally:
-            await github.aclose()
 
     async def create_session(self, code: str) -> UserSession:
         """
