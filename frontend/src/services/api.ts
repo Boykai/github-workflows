@@ -448,7 +448,7 @@ export const signalApi = {
   /**
    * Initiate Signal QR code linking flow.
    */
-  initiateLink(deviceName = 'Agent Projects'): Promise<SignalLinkResponse> {
+  initiateLink(deviceName = 'Solune'): Promise<SignalLinkResponse> {
     return request<SignalLinkResponse>('/signal/connection/link', {
       method: 'POST',
       body: JSON.stringify({ device_name: deviceName }),

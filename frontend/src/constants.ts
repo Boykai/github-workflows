@@ -56,3 +56,28 @@ export const TOAST_ERROR_MS = 3_000;
 
 /** Highlight animation duration for recently-updated items (2 seconds). */
 export const HIGHLIGHT_DURATION_MS = 2_000;
+
+// ============ Solune Navigation ============
+
+import { LayoutDashboard, Kanban, GitBranch, Bot, ListChecks, Settings } from 'lucide-react';
+import type { NavRoute } from '@/types';
+
+/** Sidebar navigation routes with Lucide icons. */
+export const NAV_ROUTES: NavRoute[] = [
+  { path: '/', label: 'App', icon: LayoutDashboard },
+  { path: '/projects', label: 'Projects', icon: Kanban },
+  { path: '/pipeline', label: 'Agents Pipeline', icon: GitBranch },
+  { path: '/agents', label: 'Agents', icon: Bot },
+  { path: '/chores', label: 'Chores', icon: ListChecks },
+  { path: '/settings', label: 'Settings', icon: Settings },
+];
+
+// ============ Priority Colors ============
+
+/** Priority badge color mapping for IssueCard and other priority displays. */
+export const PRIORITY_COLORS: Record<string, { bg: string; text: string; label: string }> = {
+  P0: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400', label: 'Critical' },
+  P1: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', label: 'High' },
+  P2: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', label: 'Medium' },
+  P3: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', label: 'Low' },
+};

@@ -1,47 +1,22 @@
 /**
  * Main application component.
+ * Uses React Router for page-based navigation.
  */
 
-import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { useAuth } from '@/hooks/useAuth';
-import { useProjects } from '@/hooks/useProjects';
-import { useAppTheme } from '@/hooks/useAppTheme';
-import { useUserSettings, useSignalBanners, useDismissBanner } from '@/hooks/useSettings';
-import { LoginButton } from '@/components/auth/LoginButton';
-import { ProjectBoardPage } from '@/pages/ProjectBoardPage';
-import { SettingsPage } from '@/pages/SettingsPage';
 import { ApiError } from '@/services/api';
-import { Button } from '@/components/ui/button';
-
-/** Dismissible Signal conflict banner bar (FR-015). */
-function SignalBannerBar() {
-  const { banners } = useSignalBanners();
-  const { dismissBanner, isPending } = useDismissBanner();
-
-  if (banners.length === 0) return null;
-
-  return (
-    <div className="w-full border-b border-accent bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground">
-      {banners.map((b) => (
-        <div key={b.id} className="flex items-center gap-2 px-4 py-2 text-sm">
-          <span className="text-lg">⚠️</span>
-          <span className="flex-1">{b.message}</span>
-          <button
-            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-accent/50 text-xs font-medium text-accent-foreground hover:bg-accent/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-accent/40 dark:text-accent-foreground dark:hover:bg-accent/30"
-            onClick={() => dismissBanner(b.id)}
-            disabled={isPending}
-            type="button"
-            aria-label="Dismiss Signal banner"
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
+import { AuthGate } from '@/layout/AuthGate';
+import { AppLayout } from '@/layout/AppLayout';
+import { AppPage } from '@/pages/AppPage';
+import { ProjectsPage } from '@/pages/ProjectsPage';
+import { AgentsPipelinePage } from '@/pages/AgentsPipelinePage';
+import { AgentsPage } from '@/pages/AgentsPage';
+import { ChoresPage } from '@/pages/ChoresPage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { LoginPage } from '@/pages/LoginPage';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -62,143 +37,26 @@ const queryClient = new QueryClient({
   },
 });
 
-function AppContent() {
-  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
-  const { settings: userSettings } = useUserSettings();
-
-  // Derive initial view from URL hash so refresh stays on the current page.
-  const getViewFromHash = (): 'chat' | 'board' | 'settings' => {
-    const hash = window.location.hash.replace('#', '');
-    if (hash === 'board' || hash === 'settings') return hash;
-    return 'chat';
-  };
-
-  const [activeView, setActiveView] = useState<'chat' | 'board' | 'settings'>(getViewFromHash);
-
-  // Keep URL hash in sync when view changes
-  const changeView = (view: 'chat' | 'board' | 'settings') => {
-    setActiveView(view);
-    window.location.hash = view === 'chat' ? '' : view;
-  };
-
-  // Handle browser back/forward
-  useEffect(() => {
-    const onHashChange = () => setActiveView(getViewFromHash());
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
-
-  // Apply default_view from user settings only when no hash is present (FR-014)
-  useEffect(() => {
-    if (!window.location.hash && userSettings?.display?.default_view) {
-      changeView(userSettings.display.default_view);
-    }
-  }, [userSettings?.display?.default_view]);
-  const {
-    projects,
-    selectedProject,
-    selectProject,
-  } = useProjects(user?.selected_project_id);
-
-  if (authLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4 text-center">
-        <h1 className="text-4xl font-display font-bold tracking-tight">Agent Projects</h1>
-        <p className="text-muted-foreground mb-4">Manage your GitHub Projects with natural language</p>
-        <LoginButton />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between px-6 py-3 bg-background border-b-2 border-accent">
-        <div className="flex items-center gap-6">
-          <h1 className="text-lg font-display font-semibold tracking-tight">Agent Projects</h1>
-          <nav className="flex gap-1">
-            <Button
-              variant={activeView === 'chat' ? 'default' : 'ghost'}
-              size="sm"
-              className="transition-all duration-150"
-              onClick={() => changeView('chat')}
-            >
-              Home
-            </Button>
-            <Button
-              variant={activeView === 'board' ? 'default' : 'ghost'}
-              size="sm"
-              className="transition-all duration-150"
-              onClick={() => changeView('board')}
-            >
-              Project Board
-            </Button>
-            <Button
-              variant={activeView === 'settings' ? 'default' : 'ghost'}
-              size="sm"
-              className="transition-all duration-150"
-              onClick={() => changeView('settings')}
-            >
-              Settings
-            </Button>
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkMode ? '☀️' : '🌙'}
-          </Button>
-          <LoginButton />
-        </div>
-      </header>
-      <SignalBannerBar />
-      <main className="flex flex-1 overflow-hidden">
-        {activeView === 'settings' ? (
-          <SettingsPage
-            projects={projects.map((p) => ({ project_id: p.project_id, name: p.name }))}
-            selectedProjectId={selectedProject?.project_id}
-          />
-        ) : activeView === 'board' ? (
-          <ProjectBoardPage
-            selectedProjectId={selectedProject?.project_id}
-            onProjectSelect={selectProject}
-          />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
-            <h2 className="text-4xl font-bold tracking-tight">Create Your App Here</h2>
-            <Button 
-              size="lg"
-              onClick={() => changeView('board')}
-            >
-              Get Started
-            </Button>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <QueryErrorResetBoundary>
         {({ reset }) => (
           <ErrorBoundary onReset={reset}>
-            <AppContent />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route element={<AuthGate><AppLayout /></AuthGate>}>
+                  <Route index element={<AppPage />} />
+                  <Route path="projects" element={<ProjectsPage />} />
+                  <Route path="pipeline" element={<AgentsPipelinePage />} />
+                  <Route path="agents" element={<AgentsPage />} />
+                  <Route path="chores" element={<ChoresPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Route>
+              </Routes>
+            </BrowserRouter>
           </ErrorBoundary>
         )}
       </QueryErrorResetBoundary>

@@ -1,9 +1,11 @@
 /**
  * IssueCard component - displays a board item as a card with metadata badges.
+ * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
  */
 
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
+import { PRIORITY_COLORS } from '@/constants';
 
 interface IssueCardProps {
   item: BoardItem;
@@ -42,10 +44,19 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
 
 export function IssueCard({ item, onClick }: IssueCardProps) {
   const subIssues = item.sub_issues ?? [];
+  const priorityName = item.priority?.name ?? '';
+  const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
+
+  // Truncate body to ~80 chars for description snippet
+  const snippet = item.body
+    ? item.body.length > 80
+      ? item.body.slice(0, 80).trimEnd() + '…'
+      : item.body
+    : null;
 
   return (
     <div
-      className="flex flex-col gap-2 p-3 bg-card rounded-md border border-border shadow-sm cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className="flex flex-col gap-2 p-3 bg-card rounded-lg border border-border shadow-sm cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -72,6 +83,11 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       {/* Title */}
       <div className="text-sm font-medium leading-snug text-foreground">{item.title}</div>
 
+      {/* Description snippet */}
+      {snippet && (
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{snippet}</p>
+      )}
+
       {/* Sub-Issues */}
       {subIssues.length > 0 && (
         <div className="flex flex-col gap-1.5 mt-1">
@@ -93,8 +109,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       <div className="flex flex-wrap gap-1.5 mt-1">
         {item.priority && (
           <span
-            className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground"
-            style={item.priority.color ? { borderColor: statusColorToCSS(item.priority.color) } : undefined}
+            className={`px-2 py-0.5 text-xs font-medium rounded-full ${priorityConfig.bg} ${priorityConfig.text}`}
           >
             {item.priority.name}
           </span>
@@ -116,21 +131,28 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
 
       {/* Footer: Assignees + Linked PRs */}
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-        {/* Assignees */}
-        <div className="flex items-center -space-x-1.5">
-          {item.assignees.length > 0 ? (
-            item.assignees.map((assignee) => (
-              <img
-                key={assignee.login}
-                className="w-6 h-6 rounded-full border-2 border-card"
-                src={assignee.avatar_url}
-                alt={assignee.login}
-                title={assignee.login}
-                width={24}
-                height={24}
-              />
-            ))
-          ) : null}
+        {/* Assignees with names */}
+        <div className="flex items-center gap-2">
+          {item.assignees.length > 0 && (
+            <div className="flex items-center -space-x-1.5">
+              {item.assignees.map((assignee) => (
+                <img
+                  key={assignee.login}
+                  className="w-6 h-6 rounded-full border-2 border-card"
+                  src={assignee.avatar_url}
+                  alt={assignee.login}
+                  title={assignee.login}
+                  width={24}
+                  height={24}
+                />
+              ))}
+            </div>
+          )}
+          {item.assignees.length > 0 && item.assignees.length <= 2 && (
+            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+              {item.assignees.map((a) => a.login).join(', ')}
+            </span>
+          )}
         </div>
 
         {/* Linked PRs */}

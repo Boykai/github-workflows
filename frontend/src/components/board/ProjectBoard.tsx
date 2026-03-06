@@ -21,6 +21,13 @@ export function ProjectBoard({ boardData, onCardClick }: ProjectBoardProps) {
             onCardClick={onCardClick}
           />
         ))}
+        <button
+          className="flex items-center justify-center gap-2 w-[320px] shrink-0 h-12 rounded-lg border-2 border-dashed border-border text-muted-foreground/60 hover:border-primary/40 hover:text-muted-foreground transition-colors text-sm font-medium"
+          title="Coming soon"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3v10M3 8h10" /></svg>
+          Add column
+        </button>
       </div>
     </div>
   );

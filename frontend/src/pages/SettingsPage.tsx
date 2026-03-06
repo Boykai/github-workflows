@@ -79,7 +79,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     <div className="flex flex-col h-full p-8 overflow-y-auto max-w-4xl mx-auto w-full">
       <div className="mb-8">
         <h2 className="text-3xl font-bold tracking-tight mb-2">Settings</h2>
-        <p className="text-muted-foreground">Configure your preferences for Agent Projects.</p>
+        <p className="text-muted-foreground">Configure your preferences for Solune.</p>
       </div>
 
       <div className="flex flex-col gap-8">

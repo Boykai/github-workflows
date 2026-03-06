@@ -30,7 +30,7 @@ describe('Card', () => {
     const card = container.firstChild as HTMLElement;
     expect(card.className).toContain('rounded-lg');
     expect(card.className).toContain('border');
-    expect(card.className).toContain('shadow-warm-sm');
+    expect(card.className).toContain('shadow-sm');
   });
 
   it('renders CardTitle as h3 heading', () => {

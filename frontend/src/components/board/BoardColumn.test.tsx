@@ -69,7 +69,7 @@ describe('BoardColumn', () => {
     const column = createColumn({ items: [item], item_count: 1 });
     render(<BoardColumn column={column} onCardClick={onCardClick} />);
 
-    await userEvent.setup().click(screen.getByRole('button'));
+    await userEvent.setup().click(screen.getByText('Clickable Issue'));
     expect(onCardClick).toHaveBeenCalledWith(item);
   });
 });
