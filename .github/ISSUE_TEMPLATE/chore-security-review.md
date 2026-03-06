@@ -1,157 +1,136 @@
-# Recurring Security Review Process
-
-## Overview
-
-A structured, repeatable cadence for auditing security, vulnerability exposure, and privacy posture across the full stack (backend, frontend, infrastructure, third-party integrations).
-
+---
+name: Security Review
+about: Recurring chore — Security Review
+title: '[CHORE] Security Review'
+labels: chore
+assignees: ''
 ---
 
-## Cadence
+Plan: Security, Privacy & Vulnerability Audit
+3 Critical · 8 High · 9 Medium · 2 Low — across OWASP Top 10. Findings describe the vulnerable pattern/behavior, not tied to specific function or line numbers.
 
-| Review Type       | Frequency     | Trigger                                      |
-|-------------------|---------------|----------------------------------------------|
-| Automated Scan    | Every PR      | CI pipeline                                  |
-| Quick Spot Check  | Weekly        | Dev team rotation                            |
-| Full Security Review | Monthly    | Scheduled sprint item                        |
-| Deep Audit        | Quarterly     | Planned milestone + external tooling         |
-| Incident Postmortem | On demand  | After any security incident or near-miss     |
+Phase 1 — Critical (Fix Immediately)
+1. Session token passed in URL — OWASP A02 (Critical)
+The OAuth flow redirects the browser to the frontend with ?session_token=... in the URL. Tokens in URLs are recorded in browser history, server/proxy/CDN access logs, and HTTP Referer headers.
 
----
+Correct behavior: Backend sets an HttpOnly; SameSite=Strict; Secure cookie directly on the OAuth callback response and redirects with no credentials in the URL. Frontend must never read credentials from URL params.
+Files: auth.py, useAuth.ts
+2. At-rest encryption not enforced — OWASP A02 (Critical)
+ENCRYPTION_KEY is optional; when absent the app logs a warning and stores OAuth tokens in plaintext SQLite.
 
-## Phase 1 — Automated Checks (Every PR / CI)
+Correct behavior: On startup in non-debug mode, the application must refuse to start if ENCRYPTION_KEY is not set. Also apply the same mandatory rule to GITHUB_WEBHOOK_SECRET.
+Files: config.py, encryption.py
+3. Frontend container runs as root — OWASP A05 (Critical)
+The frontend Dockerfile has no USER directive; nginx runs as uid=0. The backend already runs non-root.
 
-Run on every pull request via CI. Fail the build on critical findings.
+Correct behavior: All containers must run as a dedicated non-root system user.
+Files: Dockerfile
+Phase 2 — High (This Week)
+4. Project resources not scoped to authenticated user — OWASP A01 (High)
+Endpoints that accept a project_id (task creation, WebSocket subscription, project settings, workflow operations) do not verify the authenticated user owns that project. Any authenticated user can target any project by guessing its ID.
 
-- [ ] **Dependency vulnerability scan** — `pip-audit` (backend), `npm audit --audit-level=high` (frontend)
-- [ ] **Static analysis / SAST** — `bandit -r backend/src` for Python, `eslint` with security plugin for TypeScript
-- [ ] **Secret detection** — `gitleaks detect` or `truffleHog` to catch credentials committed to source
-- [ ] **Docker image scan** — `trivy image` on both `backend` and `frontend` images
-- [ ] **License compliance** — flag new dependencies with restrictive or unknown licenses
+Correct behavior: Every endpoint accepting a project identifier must verify the session has access to that project before performing any action. Centralize this check as a shared dependency.
+Files: tasks.py, projects.py, settings.py, workflow.py
+5. Timing attack on Signal webhook — OWASP A07 (High)
+Signal webhook secret comparison uses standard string equality (!=), which leaks timing information. The GitHub webhook already uses hmac.compare_digest correctly.
 
----
+Correct behavior: All secret/token comparisons throughout the codebase must use constant-time comparison.
+Files: signal.py
+6. Missing HTTP security headers in nginx — OWASP A05 (High)
+Only basic headers are set. Missing: Content-Security-Policy, Strict-Transport-Security, Referrer-Policy, Permissions-Policy. The present X-XSS-Protection is deprecated in modern browsers.
 
-## Phase 2 — Weekly Spot Check (Dev Rotation, ~1 hour)
+Correct behavior: Add all five headers; remove X-XSS-Protection; set server_tokens off to hide nginx version.
+Files: nginx.conf
+7. Dev endpoint accepts GitHub PAT in URL — OWASP A02 (High)
+The dev login endpoint receives a GitHub Personal Access Token as a URL query parameter.
 
-Assign to a rotating team member each week.
+Correct behavior: All credential inputs, even dev-only, must arrive in the POST request body (JSON), never in the URL.
+Files: auth.py
+8. OAuth requests overly broad repo scope — OWASP A01 (High)
+The app requests the repo scope, which grants full read/write access to all private repositories. Only project management access is needed.
 
-### Authentication & Session Security
-- [ ] Confirm OAuth tokens are **not** passed via URL query params
-- [ ] Confirm session cookies use `HttpOnly; SameSite=Strict; Secure` flags
-- [ ] Verify no credentials appear in application or access logs
+Correct behavior: Request minimum necessary scopes. Test that all write operations work with narrower scopes before removing repo.
+Files: github_auth.py
+9. Session secret key has no minimum entropy check — OWASP A07 (High)
+SESSION_SECRET_KEY is accepted at any length with no validation.
 
-### Configuration Drift
-- [ ] Confirm `DEBUG=false` in all deployed environments
-- [ ] Confirm `ENCRYPTION_KEY` and `GITHUB_WEBHOOK_SECRET` are set and meet entropy requirements
-- [ ] Verify `SESSION_SECRET_KEY` is ≥ 64 characters
-- [ ] Check that API docs (`/docs`, `/redoc`) are not publicly accessible
+Correct behavior: Startup must reject keys shorter than 64 characters.
+Files: config.py
+10. Docker services bound to all network interfaces — OWASP A05 (High)
+Backend and frontend ports are bound to 0.0.0.0, exposing them on all interfaces.
 
-### Access Control
-- [ ] Spot-check 2–3 project-scoped endpoints — confirm they reject cross-user project IDs
-- [ ] Review any newly added endpoints for missing auth dependencies
+Correct behavior: Development: bind to 127.0.0.1 only. Production: expose only via a reverse proxy, not directly via container ports.
+Files: docker-compose.yml
+Phase 3 — Medium (Next Sprint)
+11. No rate limiting on expensive/sensitive endpoints — OWASP A04 (Medium)
+Chat, agent invocation, workflow, and OAuth callback endpoints have no per-user or per-IP rate limits. A single user can exhaust shared AI/GitHub quotas.
 
----
+Correct behavior: Per-user limits on write/AI endpoints; per-IP limit on OAuth callback. slowapi (FastAPI-compatible) is the recommended library.
+Files: chat.py, agents.py, workflow.py, auth.py
+12. Cookie Secure flag not enforced in production — OWASP A02 (Medium)
+cookie_secure defaults to False and relies on indirect URL-prefix detection to enable it — fragile and silently misconfigures.
 
-## Phase 3 — Monthly Full Security Review (~half day)
+Correct behavior: Startup in non-debug mode must fail if cookies are not configured as Secure.
+Files: config.py
+13. Debug mode bypasses webhook signature verification — OWASP A05 (Medium)
+When DEBUG=true and no webhook secret is set, signature verification is skipped. If debug mode is accidentally on in production, unauthenticated callers can trigger workflows.
 
-### OWASP Top 10 Checklist
+Correct behavior: Webhook verification must never be conditional on debug mode. Developers use a locally configured test secret.
+Files: webhooks.py
+14. API docs exposed when debug is enabled — OWASP A05 (Medium)
+Swagger/ReDoc availability is gated on DEBUG, not a dedicated toggle. If debug is on in production, full API schema is public.
 
-| # | Category | Checks |
-|---|----------|--------|
-| A01 | Broken Access Control | All resource endpoints verify ownership; no IDOR paths exist |
-| A02 | Cryptographic Failures | Encryption at rest enforced; no plaintext token storage; TLS enforced |
-| A03 | Injection | All DB queries use parameterized statements; no `eval` or shell injection paths |
-| A04 | Insecure Design | Rate limits active on chat, auth, agent, and workflow endpoints |
-| A05 | Security Misconfiguration | HTTP security headers present (CSP, HSTS, Referrer-Policy, Permissions-Policy); nginx `server_tokens off`; no root containers |
-| A06 | Vulnerable Components | All deps at latest patch; no known CVEs in `pip-audit` / `npm audit` output |
-| A07 | Auth Failures | Constant-time comparison on all secrets/tokens; session management reviewed |
-| A08 | Data Integrity | Webhook signatures verified unconditionally; no skip-in-debug paths |
-| A09 | Logging & Monitoring | Sensitive data absent from logs; auth failures and anomalies are logged |
-| A10 | SSRF | Any outbound HTTP calls (GitHub API, Signal) use allowlists; no user-controlled URLs |
+Correct behavior: Gate on a separate ENABLE_DOCS environment variable, independent of DEBUG.
+Files: main.py
+15. SQLite database directory is world-readable — OWASP A02 (Medium)
+Database directory is created with default 0755 permissions; any process on the container can read the DB file.
 
-### Privacy Review
-- [ ] Confirm only minimum necessary GitHub OAuth scopes are requested
-- [ ] Audit what user data is stored — confirm it matches stated data model
-- [ ] Verify database file and directory permissions are `0600` / `0700`
-- [ ] Review data retention — confirm no stale tokens or orphaned user records accumulate
-- [ ] Check that no PII is included in error responses returned to clients
+Correct behavior: Create directory with 0700, database file with 0600. Only the application user needs access.
+Files: database.py
+16. CORS origins configuration not validated — OWASP A05 (Medium)
+The comma-separated CORS origins env var is parsed with no URL format validation. Typos silently pass.
 
-### Infrastructure Review
-- [ ] Confirm Docker services are **not** bound to `0.0.0.0` (use `127.0.0.1` or proxy-only)
-- [ ] Confirm all containers run as non-root users
-- [ ] Review `docker-compose.yml` for hardcoded secrets or unsafe volume mounts
-- [ ] Verify nginx config has all required security headers and hides version info
-- [ ] Check base image versions — update if newer patch images are available
+Correct behavior: Config startup validates each origin is a well-formed URL with scheme and hostname. Fail on any malformed value.
+Files: config.py
+17. Data volume mounted inside application directory — OWASP A05 (Medium)
+The SQLite volume is mounted at data, commingling runtime data with application code.
 
-### Third-Party Integration Review
-- [ ] Review GitHub App / OAuth permissions — confirm least-privilege scopes still apply
-- [ ] Review Signal integration webhook secret handling — confirm constant-time comparison
-- [ ] Audit any new third-party libraries added since last review
+Correct behavior: Mount data volumes outside the application root (e.g., /var/lib/ghchat/data).
+Files: docker-compose.yml
+18. Chat history stored unencrypted and indefinitely in localStorage — Privacy / OWASP A02 (Medium)
+Full message content is persisted to localStorage with no expiration, survives logout, and is readable by any XSS.
 
----
+Correct behavior: Store only lightweight references (message IDs) locally with a TTL. Load content from backend on demand. Clear all local data on logout.
+Files: useChatHistory.ts
+19. GraphQL error messages expose internal details — OWASP A09 (Medium)
+Raw error messages from the GitHub GraphQL API are surfaced as internal exceptions without sanitization, potentially leaking query structure or token scope details.
 
-## Phase 4 — Quarterly Deep Audit (~1–2 days)
+Correct behavior: Log full error internally; raise only a generic sanitized message toward the API response.
+Files: service.py
+Phase 4 — Low (Backlog)
+20. GitHub Actions workflow has broad issues: write permission — Supply Chain (Low)
 
-### External Tooling
-- [ ] Run **OWASP ZAP** or **Burp Suite** (passive + active scan) against staging environment
-- [ ] Run **`semgrep`** with `p/security-audit` and `p/owasp-top-ten` rulesets
-- [ ] Run **`sqlmap`** (non-destructive, read-only mode) against parameterized endpoints in staging
-- [ ] Run **`trivy fs .`** for full filesystem vulnerability scan
-- [ ] Review GitHub Security Advisories and Dependabot alerts
+Correct behavior: Scope to minimum permission needed; add a justification comment.
+Files: branch-issue-link.yml
+21. Avatar URLs rendered without domain validation — OWASP A03 (Low)
+External avatar URLs from the GitHub API are used in <img src> without validating protocol or hostname.
 
-### Architecture Review
-- [ ] Re-evaluate threat model — have new features introduced new trust boundaries?
-- [ ] Review WebSocket endpoint security — auth enforced at connection and message level?
-- [ ] Confirm AI agent pipeline does not expose prompt injection vectors to end users
-- [ ] Review caching layer — confirm no sensitive data is cached without TTL or user scoping
-
-### Penetration Testing
-- [ ] Attempt IDOR on project, task, and workflow endpoints with a second test user
-- [ ] Attempt session fixation / replay on OAuth callback flow
-- [ ] Attempt webhook replay attacks with stale/forged signatures
-- [ ] Test rate limits — confirm they block after threshold
-
----
-
-## Phase 5 — Remediation & Tracking
-
-### Severity SLA
-
-| Severity | Remediation Target |
-|----------|--------------------|
-| Critical | Patch within 24 hours; hotfix deployed same day |
-| High     | Patch within 1 week; included in next release |
-| Medium   | Patch within current sprint (≤2 weeks) |
-| Low      | Backlog; addressed within next quarter |
-
-### Process
-1. File a GitHub Issue using the `chore: security review` template for every finding
-2. Label with `security` + severity (`critical` / `high` / `medium` / `low`)
-3. Assign to the on-call dev; set milestone matching the SLA date
-4. After fix, verify in staging before closing the issue
-5. Add a regression test where applicable (unit or integration)
-6. Document in a `SECURITY_CHANGELOG.md` entry for audit trail
-
----
-
-## Roles & Responsibilities
-
-| Role | Responsibility |
-|------|---------------|
-| Dev (rotation) | Weekly spot check; triage new findings |
-| PR author | Resolve all CI security gate failures before merge |
-| Tech lead | Monthly review sign-off; quarterly deep audit coordination |
-| All contributors | Never commit secrets; follow secure coding checklist in PR template |
-
----
-
-## Tooling Reference
-
-| Tool | Purpose | Run Command |
-|------|---------|-------------|
-| `pip-audit` | Python CVE scan | `pip-audit -r backend/pyproject.toml` |
-| `bandit` | Python SAST | `bandit -r backend/src -ll` |
-| `npm audit` | JS CVE scan | `npm audit --audit-level=high` |
-| `trivy` | Container + FS scan | `trivy image <name>` / `trivy fs .` |
-| `gitleaks` | Secret detection | `gitleaks detect --source .` |
-| `semgrep` | Multi-language SAST | `semgrep --config p/owasp-top-ten .` |
-| OWASP ZAP | DAST (dynamic scan) | Via staging environment |
+Correct behavior: Validate URLs use https: and originate from a known GitHub avatar domain. Fall back to a placeholder on validation failure.
+Files: IssueCard.tsx
+Verification (Behavior-Based)
+#	Check
+1	After login, no credentials appear in browser URL bar, history, or access logs
+2	Backend refuses to start in non-debug mode without ENCRYPTION_KEY set
+3	docker exec into frontend container — id must return non-root UID
+4	Authenticated request with unowned project_id returns 403, not success
+5	WebSocket connection to an unowned project ID is rejected before any data is sent
+6	All webhook secret comparisons use constant-time function (code review)
+7	curl -I frontend returns Content-Security-Policy, Strict-Transport-Security, Referrer-Policy; no nginx version in Server: header
+8	After rate limit threshold, expensive endpoints return 429 Too Many Requests
+9	After logout, localStorage contains no message content (browser devtools)
+10	DB directory permissions are 0700; file permissions are 0600
+Key Decisions
+OAuth scope removal (step 8): May break write operations. Test in staging; users must re-authorize after scope change.
+Encryption enforcement (step 2): Breaking change for deployments without a key. Migration path for existing plaintext rows must be included in the same change.
+Rate limiting: Per-user limits preferred over per-IP to avoid penalizing shared NAT/VPN users.
+Out of scope: GitHub API security, MCP server internals, network-layer infrastructure.
