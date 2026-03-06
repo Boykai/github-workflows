@@ -40,15 +40,16 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
 
   const tileStyle: React.CSSProperties = {
     ...(sortableProps?.style ?? {}),
-    opacity: sortableProps?.isDragging ? 0.5 : 1,
+    opacity: sortableProps?.isDragging ? 0.3 : 1,
   };
 
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-accent/50 bg-accent/5' : 'border-border'} ${sortableProps?.isDragging ? 'shadow-md z-10 scale-[1.02]' : ''}`}
+      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-accent/50 bg-accent/5' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
+      aria-roledescription="sortable agent"
     >
       <div className="flex items-center gap-2 p-2">
         {/* Drag handle */}

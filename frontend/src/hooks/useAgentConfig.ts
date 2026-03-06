@@ -25,6 +25,8 @@ interface UseAgentConfigReturn {
   removeAgent: (status: string, agentInstanceId: string) => void;
   /** Reorder agents within a column */
   reorderAgents: (status: string, newOrder: AgentAssignment[]) => void;
+  /** Move an agent from one column to another */
+  moveAgentToColumn: (sourceStatus: string, targetStatus: string, agentId: string, targetIndex?: number) => void;
   /** Apply a preset configuration */
   applyPreset: (mappings: Record<string, AgentAssignment[]>) => void;
   /** Save changes to server */
@@ -177,6 +179,40 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     });
   }, []);
 
+  const moveAgentToColumn = useCallback(
+    (sourceStatus: string, targetStatus: string, agentId: string, targetIndex?: number) => {
+      setLocalMappings((prev) => {
+        // Case-insensitive key lookup for source
+        const lowerSource = sourceStatus.toLowerCase();
+        const sourceKey =
+          Object.keys(prev).find((k) => k.toLowerCase() === lowerSource) ?? sourceStatus;
+        const sourceAgents = prev[sourceKey] ?? [];
+
+        const agentIndex = sourceAgents.findIndex((a) => a.id === agentId);
+        if (agentIndex === -1) return prev; // No-op if not found
+
+        const agent = sourceAgents[agentIndex];
+        const newSource = [...sourceAgents];
+        newSource.splice(agentIndex, 1);
+
+        // Case-insensitive key lookup for target
+        const lowerTarget = targetStatus.toLowerCase();
+        const targetKey =
+          Object.keys(prev).find((k) => k.toLowerCase() === lowerTarget) ?? targetStatus;
+        const targetAgents = [...(prev[targetKey] ?? [])];
+
+        // Clamp target index
+        const insertAt =
+          targetIndex !== undefined ? Math.min(Math.max(0, targetIndex), targetAgents.length) : targetAgents.length;
+        targetAgents.splice(insertAt, 0, agent);
+
+        const updated = { ...prev, [sourceKey]: newSource, [targetKey]: targetAgents };
+        return updated;
+      });
+    },
+    []
+  );
+
   const applyPreset = useCallback((mappings: Record<string, AgentAssignment[]>) => {
     setLocalMappings((prev) => {
       // Merge preset into existing statuses, keeping any status not in preset as empty
@@ -222,6 +258,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     addAgent,
     removeAgent,
     reorderAgents,
+    moveAgentToColumn,
     applyPreset,
     save,
     discard,
