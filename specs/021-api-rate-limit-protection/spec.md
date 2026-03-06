@@ -10,7 +10,7 @@
 - The application currently makes individual requests per issue, resulting in high request volume for projects with up to 50 issues.
 - GitHub's standard rate limit is 5,000 requests per hour for authenticated users.
 - The application already has a polling mechanism for syncing issue data; this feature optimizes it rather than replacing it.
-- Conditional requests (using ETags) that return 304 Not Modified do not count against GitHub's primary rate limit.
+- Conditional requests (using ETags) still consume rate-limit quota (including 304 Not Modified responses), but they reduce data transfer and help keep cached data fresh; they must be budgeted within the request limit.
 - The safety threshold for rate limit headroom defaults to 10% of the total limit (e.g., 500 requests remaining out of 5,000).
 - Background tasks include label syncs, metadata refreshes, and similar non-user-initiated operations.
 - The existing in-memory bounded data structures in the codebase will be leveraged for cache storage.
@@ -45,7 +45,7 @@ As a developer, I want the app to minimize redundant requests by caching previou
 **Acceptance Scenarios**:
 
 1. **Given** issue data was fetched within the cache validity window, **When** the same data is requested again, **Then** the system serves it from cache without making a new outbound request.
-2. **Given** cached data exists but may be stale, **When** the system re-fetches, **Then** it uses conditional request headers so that unchanged data does not consume rate-limit budget.
+2. **Given** cached data exists but may be stale, **When** the system re-fetches, **Then** it uses conditional request headers so that unchanged data can be validated with minimal payload and latency, reducing the need for full data fetches even if the conditional request itself counts toward the rate-limit budget.
 3. **Given** a project with 50 issues, **When** the app fetches issue data for the full project, **Then** it retrieves all issues in a single batched request rather than 50 individual requests.
 4. **Given** two parts of the app simultaneously need the same issue data, **When** both request it within the same cycle, **Then** only one outbound request is made and the result is shared.
 
@@ -118,7 +118,7 @@ As a developer, I want user-initiated actions (like opening an issue or triggeri
 - **FR-003**: System MUST gracefully handle HTTP 429 (Too Many Requests) responses by waiting until the rate-limit reset window and retrying, without surfacing errors to the user.
 - **FR-004**: System MUST gracefully handle HTTP 403 responses caused by rate-limit exhaustion identically to HTTP 429 responses.
 - **FR-005**: System MUST cache issue data in memory and serve cached results for repeated requests within the cache validity window.
-- **FR-006**: System MUST use conditional request headers (ETags or Last-Modified) when re-fetching cached data so that unchanged responses do not consume rate-limit budget.
+- **FR-006**: System MUST use conditional request headers (ETags or Last-Modified) when re-fetching cached data to minimize data transfer and avoid redundant full responses; conditional revalidation requests still count toward the rate-limit budget and must be included in budget tracking.
 - **FR-007**: System MUST batch issue data retrieval so that all issues in a project (up to 50) are fetched in a single request rather than individual requests per issue.
 - **FR-008**: System MUST implement adaptive polling with a default interval of 30–60 seconds during idle periods, shortening temporarily after user-triggered actions.
 - **FR-009**: System MUST extend or pause polling intervals when the remaining rate-limit budget is below the safety threshold.
@@ -142,7 +142,7 @@ As a developer, I want user-initiated actions (like opening an issue or triggeri
 
 - **SC-001**: The application completes a full sync of a 50-issue project without triggering any rate-limit errors (HTTP 429 or 403) during a standard one-hour session.
 - **SC-002**: A full 50-issue project sync uses no more than 5 outbound requests (down from up to 50+ individual requests), representing at least a 90% reduction in request volume.
-- **SC-003**: Consecutive sync cycles for unchanged data produce zero requests that count against the rate limit (all return 304 Not Modified or are served from cache).
+- **SC-003**: Consecutive sync cycles for unchanged data produce no more than 2 requests per cycle that count against the rate limit, with all other resources validated via cache (e.g., 304 Not Modified responses or local cache hits) to minimize payload and call volume.
 - **SC-004**: When the rate-limit budget is artificially constrained to 10% remaining, user-initiated actions complete successfully while background tasks are deferred.
 - **SC-005**: The rate-limit usage indicator accurately reflects the current budget within 5 seconds of any outbound request.
 - **SC-006**: A warning banner appears within 2 seconds when the remaining budget crosses below 20%.

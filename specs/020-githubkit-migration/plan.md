@@ -1,104 +1,76 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Simplify GitHub Service with githubkit
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `020-githubkit-migration` | **Date**: 2026-03-05 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/020-githubkit-migration/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace 6,600 LOC of hand-rolled GitHub API infrastructure (httpx + manual retry/cache/throttle/OAuth) with githubkit v0.14.6, a modern async Python GitHub SDK. The SDK provides built-in retry, HTTP caching, throttling, typed REST methods, and OAuth flow — eliminating ~1,500-2,000 LOC while preserving all 85 business-logic methods and domain-specific optimizations (cycle cache, inflight coalescing, Projects V2 GraphQL queries).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11+ (pyproject.toml targets 3.11, pyright targets 3.12)
+**Primary Dependencies**: FastAPI, githubkit (new, replacing httpx), github-copilot-sdk, aiosqlite, pydantic 2.x
+**Storage**: SQLite with WAL mode (aiosqlite) — sessions, settings, migrations
+**Testing**: pytest + pytest-asyncio + pytest-cov
+**Target Platform**: Linux server (Docker container)
+**Project Type**: Web application (FastAPI backend + React frontend) — this feature is backend-only
+**Performance Goals**: Match current retry/throttle behavior; ≥500ms inter-call spacing via SDK throttler
+**Constraints**: No user-visible behavior changes; all existing tests must pass with only mock-target updates
+**Scale/Scope**: 4 backend files affected (~6,600 LOC total), 20+ REST call sites, 31 GraphQL queries/mutations, ~15 test files with httpx mocks
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | spec.md complete with 5 prioritized user stories, acceptance scenarios, clarifications |
+| II. Template-Driven Workflow | ✅ PASS | Following canonical plan template |
+| III. Agent-Orchestrated Execution | ✅ PASS | Following specify → plan → tasks → implement pipeline |
+| IV. Test Optionality | ✅ PASS | Tests not explicitly requested; existing tests updated for mock-target changes only |
+| V. Simplicity and DRY | ✅ PASS | Core goal is simplification — replacing custom infrastructure with SDK eliminates duplication |
+
+**Gate result**: PASS — no violations. Proceeding to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/020-githubkit-migration/
+├── plan.md              # This file
+├── spec.md              # Feature specification (complete)
+├── research.md          # Phase 0: SDK research findings
+├── data-model.md        # Phase 1: Entity mapping (client factory, exception types)
+├── quickstart.md        # Phase 1: Migration quickstart guide
+├── contracts/           # Phase 1: API contracts (internal service interface)
+│   └── api-contracts.md
+├── checklists/
+│   └── requirements.md  # Quality checklist (complete)
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
 │   ├── services/
-│   └── api/
+│   │   ├── github_projects/
+│   │   │   ├── __init__.py        # GitHubClientFactory (new), singleton
+│   │   │   ├── service.py         # GitHubProjectsService (refactored, ~3,500 LOC target)
+│   │   │   └── graphql.py         # GraphQL queries/mutations (cleanup only)
+│   │   ├── github_auth.py         # OAuth flow (simplified via SDK)
+│   │   └── github_commit_workflow.py  # Commit pipeline (updated imports)
+│   ├── dependencies.py            # Service initialization (updated)
+│   └── ...
 └── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    └── unit/                      # Mock-target updates for githubkit
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application layout. This feature modifies only the backend `services/` layer. No new directories needed — the client factory goes in the existing `__init__.py`. No frontend changes.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations to justify. The migration simplifies the codebase.
