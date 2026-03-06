@@ -113,6 +113,8 @@ npx playwright test             # E2E tests
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
 - Python 3.11+ (backend), TypeScript ~5.8 (frontend) + FastAPI, httpx, github-copilot-sdk, openai, azure-ai-inference, aiosqlite (backend); React 18, Vite 5, @tanstack/react-query 5, vitest 4 (frontend) (018-codebase-audit-refactor)
 - SQLite with WAL mode, 11 existing migrations (adding 012 for chat persistence) (018-codebase-audit-refactor)
+- Python 3.11+ (pyproject.toml targets 3.11, pyright configured for 3.12) + FastAPI >=0.109.0, githubkit >=0.14.0,<0.15.0 (new), httpx >=0.26.0 (retained for non-GitHub services), Pydantic >=2.5.0, aiosqlite >=0.20.0, tenacity >=8.2.0 (019-githubkit-migration)
+- SQLite via aiosqlite (sessions, settings, metadata cache — no schema changes needed) (019-githubkit-migration)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0
