@@ -142,6 +142,7 @@ Agent pipeline mappings are configurable through the Settings UI or `PUT /api/v1
 ```
 
 Settings are stored per-user in SQLite with a 3-tier fallback:
+
 1. User-specific row
 2. Canonical `__workflow__` row
 3. Any-user fallback with automatic backfill

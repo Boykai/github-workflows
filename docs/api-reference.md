@@ -54,6 +54,7 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 ### `#agent` Command
 
 Send `#agent <description> #<status-name>` via chat or Signal to create a custom GitHub agent:
+
 - Fuzzy status column matching (`#in-review`, `#InReview`, `#IN_REVIEW`)
 - AI-generated preview with natural language edit loop
 - 8-step pipeline: save config → create column → create issue → create branch → commit files → open PR → move to In Review → update pipeline mappings

@@ -23,7 +23,7 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-Open **http://localhost:5173**.
+Open **<http://localhost:5173>**.
 
 ### GitHub Codespaces
 

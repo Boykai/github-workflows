@@ -16,6 +16,7 @@ The Spec Kit pipeline assigns multiple Copilot agents to work on an issue sequen
 Embed a markdown tracking table directly in the GitHub Issue body (under `## 🤖 Agent Pipeline`). The table records each agent, its status column, and its state (Pending / Active / Done). Sub-issues are created upfront for every agent; each is titled `[agent-name] Parent Title`.
 
 On restart, the system reconstructs pipeline state from:
+
 - The tracking table in the issue body.
 - `Done!` markers in issue comments.
 - Sub-issue title prefixes and their open/closed state.

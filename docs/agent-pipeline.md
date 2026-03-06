@@ -158,6 +158,7 @@ issue, converting draft PRs and requesting reviews as needed.
 ## Pipeline Reconstruction
 
 On server restart, the system reconstructs state from:
+
 - The durable tracking table in issue bodies
 - `Done!` markers from issue comments
 - Sub-issue mappings from `[agent-name]` title prefixes

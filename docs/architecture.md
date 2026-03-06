@@ -130,6 +130,7 @@ Set via `AI_PROVIDER` env var (`copilot` or `azure_openai`).
 ### nginx Reverse Proxy
 
 The frontend nginx config (`nginx.conf`):
+
 - Proxies `/api/` to `backend:8000` with WebSocket upgrade support
 - Serves static assets with 1-year cache (`/assets/`)
 - SPA fallback: all non-file routes serve `index.html`

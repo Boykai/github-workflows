@@ -29,6 +29,7 @@ cp .env.example .env
 ```
 
 Edit `.env` — minimum required:
+
 - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` ([GitHub OAuth App](https://github.com/settings/developers))
 - `SESSION_SECRET_KEY` — generate with `openssl rand -hex 32`
 
@@ -98,7 +99,7 @@ docker compose up --build -d
 
 ### 5. Access
 
-Open **http://localhost:5173**. Verify containers are running:
+Open **<http://localhost:5173>**. Verify containers are running:
 
 ```bash
 docker ps
@@ -133,9 +134,9 @@ npm run dev
 
 | URL | Service |
 |-----|---------|
-| http://localhost:5173 | Frontend |
-| http://localhost:8000 | Backend API |
-| http://localhost:8000/api/docs | API docs (when `DEBUG=true`) |
+| <http://localhost:5173> | Frontend |
+| <http://localhost:8000> | Backend API |
+| <http://localhost:8000/api/docs> | API docs (when `DEBUG=true`) |
 
 ---
 
@@ -158,6 +159,7 @@ GITHUB_WEBHOOK_SECRET=your_secret
 ### 2. Create Personal Access Token (Classic)
 
 Go to [GitHub Tokens](https://github.com/settings/tokens) → **Generate new token (classic)**:
+
 - ✅ `repo` — Full control of private repositories
 - ✅ `project` — Full control of projects
 - ✅ `read:org` — If using organization projects
