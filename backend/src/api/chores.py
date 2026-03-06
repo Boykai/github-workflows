@@ -13,6 +13,7 @@ from src.models.chores import (
     ChoreChatMessage,
     ChoreChatResponse,
     ChoreCreate,
+    ChoreTemplate,
     ChoreTriggerResult,
     ChoreUpdate,
     EvaluateChoreTriggersRequest,
@@ -35,6 +36,68 @@ router = APIRouter()
 def _get_service() -> ChoresService:
     """Instantiate ChoresService with the current DB connection."""
     return ChoresService(get_db())
+
+
+# ── Templates (from repo) ──
+
+
+@router.get("/{project_id}/templates", response_model=list[ChoreTemplate])
+async def list_templates(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[ChoreTemplate]:
+    """List available chore templates from .github/ISSUE_TEMPLATE/ in the repo."""
+    import re as _re
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception:
+        logger.warning(
+            "Failed to resolve repository for project %s when listing chore templates",
+            project_id,
+            exc_info=True,
+        )
+        return []
+
+    entries = await github_projects_service.get_directory_contents(
+        session.access_token, owner, repo, ".github/ISSUE_TEMPLATE"
+    )
+    chore_files = [
+        e
+        for e in entries
+        if e.get("name", "").startswith("chore-") and e.get("name", "").endswith(".md")
+    ]
+
+    templates: list[ChoreTemplate] = []
+    for entry in chore_files:
+        file_data = await github_projects_service.get_file_content(
+            session.access_token, owner, repo, entry["path"]
+        )
+        if not file_data:
+            continue
+        raw = file_data["content"]
+
+        # Parse YAML front matter
+        tpl_name = entry["name"].replace("chore-", "").replace(".md", "").replace("-", " ").title()
+        about = ""
+        fm_match = _re.match(r"^---\n(.*?)\n---", raw, _re.DOTALL)
+        if fm_match:
+            for line in fm_match.group(1).splitlines():
+                if line.startswith("name:"):
+                    tpl_name = line.split(":", 1)[1].strip().strip("'\"")
+                elif line.startswith("about:"):
+                    about = line.split(":", 1)[1].strip().strip("'\"")
+
+        templates.append(
+            ChoreTemplate(
+                name=tpl_name,
+                about=about,
+                path=entry["path"],
+                content=raw,
+            )
+        )
+
+    return templates
 
 
 # ── List ──

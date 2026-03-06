@@ -10,6 +10,7 @@ import { STALE_TIME_LONG } from '@/constants';
 import type {
   Chore,
   ChoreCreate,
+  ChoreTemplate,
   ChoreUpdate,
   ChoreTriggerResult,
   ChoreChatMessage,
@@ -21,6 +22,7 @@ import type {
 export const choreKeys = {
   all: ['chores'] as const,
   list: (projectId: string) => [...choreKeys.all, 'list', projectId] as const,
+  templates: (projectId: string) => [...choreKeys.all, 'templates', projectId] as const,
 };
 
 // ── List Hook ──
@@ -29,6 +31,17 @@ export function useChoresList(projectId: string | null | undefined) {
   return useQuery<Chore[]>({
     queryKey: choreKeys.list(projectId ?? ''),
     queryFn: () => choresApi.list(projectId!),
+    staleTime: STALE_TIME_LONG,
+    enabled: !!projectId,
+  });
+}
+
+// ── Templates Hook ──
+
+export function useChoreTemplates(projectId: string | null | undefined) {
+  return useQuery<ChoreTemplate[]>({
+    queryKey: choreKeys.templates(projectId ?? ''),
+    queryFn: () => choresApi.listTemplates(projectId!),
     staleTime: STALE_TIME_LONG,
     enabled: !!projectId,
   });

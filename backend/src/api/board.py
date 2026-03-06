@@ -20,7 +20,12 @@ from src.models.board import (
 )
 from src.models.project import GitHubProject
 from src.models.user import UserSession
-from src.services.cache import cache, get_cache_key, get_user_projects_cache_key
+from src.services.cache import (
+    cache,
+    get_cache_key,
+    get_sub_issues_cache_key,
+    get_user_projects_cache_key,
+)
 from src.services.github_projects import github_projects_service
 
 
@@ -295,7 +300,18 @@ async def get_board_data(
         ) from e
 
     board_data.rate_limit = _get_rate_limit_info()
-    # Cache board data — 120 seconds balances freshness with API savings.
+
+    # On manual refresh, also clear sub-issue caches for this board's items
+    if refresh and hasattr(board_data, "columns"):
+        for col in board_data.columns:
+            for item in col.items:
+                if item.number is not None and item.repository:
+                    si_key = get_sub_issues_cache_key(
+                        item.repository.owner, item.repository.name, item.number
+                    )
+                    cache.delete(si_key)
+
+    # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses this cache entirely.
-    cache.set(cache_key, board_data, ttl_seconds=120)
+    cache.set(cache_key, board_data, ttl_seconds=300)
     return board_data

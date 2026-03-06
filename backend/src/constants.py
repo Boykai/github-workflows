@@ -22,6 +22,7 @@ DEFAULT_STATUS_COLUMNS = [StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNa
 # Cache key prefixes
 CACHE_PREFIX_PROJECTS = "projects:user"
 CACHE_PREFIX_PROJECT_ITEMS = "project:items"
+CACHE_PREFIX_SUB_ISSUES = "sub_issues"
 
 # Session cookie name
 SESSION_COOKIE_NAME = "session_id"

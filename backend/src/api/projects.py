@@ -1,6 +1,8 @@
 """Projects API endpoints."""
 
 import asyncio
+import hashlib
+import json
 import logging
 from collections.abc import AsyncGenerator
 from typing import Annotated
@@ -256,6 +258,7 @@ async def websocket_subscribe(
         # 300 s); this interval only controls how often we check/send.
         last_refresh = asyncio.get_running_loop().time()
         refresh_interval = 30.0  # Check for updates every 30 seconds
+        last_sent_hash: str | None = None
 
         while True:
             try:
@@ -273,15 +276,28 @@ async def websocket_subscribe(
                     # Refresh and send updated tasks
                     tasks = await send_tasks()
                     if tasks is not None:
-                        await websocket.send_json(
-                            {
-                                "type": "refresh",
-                                "project_id": project_id,
-                                "tasks": [task.model_dump(mode="json") for task in tasks],
-                                "count": len(tasks),
-                            }
-                        )
-                        logger.debug("Refreshed %d tasks for project %s", len(tasks), project_id)
+                        tasks_payload = [task.model_dump(mode="json") for task in tasks]
+                        current_hash = hashlib.sha256(
+                            json.dumps(tasks_payload, sort_keys=True).encode()
+                        ).hexdigest()
+
+                        if current_hash != last_sent_hash:
+                            await websocket.send_json(
+                                {
+                                    "type": "refresh",
+                                    "project_id": project_id,
+                                    "tasks": tasks_payload,
+                                    "count": len(tasks),
+                                }
+                            )
+                            last_sent_hash = current_hash
+                            logger.debug(
+                                "Refreshed %d tasks for project %s", len(tasks), project_id
+                            )
+                        else:
+                            logger.debug(
+                                "Skipping refresh for project %s — data unchanged", project_id
+                            )
                     last_refresh = current_time
 
     except WebSocketDisconnect:

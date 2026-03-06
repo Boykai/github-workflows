@@ -117,6 +117,8 @@ npx playwright test             # E2E tests
 - N/A (frontend-only changes) (019-western-theme-refresh)
 - Python 3.12 (pyright targets 3.12, Dockerfile uses 3.12-slim) + FastAPI, githubkit (replaced httpx), github-copilot-sdk, aiosqlite, pydantic 2.x (020-githubkit-migration)
 - SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (020-githubkit-migration)
+- Python 3.11+ (backend), TypeScript 5.8 (frontend) + FastAPI 0.109+, TanStack React Query 5.17, native WebSocket (asyncio) (022-api-rate-limit-protection)
+- SQLite (aiosqlite) for persistence, in-memory `InMemoryCache` with TTL for API response caching (022-api-rate-limit-protection)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0

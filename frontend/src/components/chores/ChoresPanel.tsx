@@ -6,10 +6,11 @@
  */
 
 import { useState } from 'react';
-import { useChoresList } from '@/hooks/useChores';
+import { useChoresList, useChoreTemplates } from '@/hooks/useChores';
 import { ChoreCard } from './ChoreCard';
 import { AddChoreModal } from './AddChoreModal';
 import { CleanUpButton } from '@/components/board/CleanUpButton';
+import type { ChoreTemplate } from '@/types';
 
 interface ChoresPanelProps {
   projectId: string;
@@ -19,7 +20,24 @@ interface ChoresPanelProps {
 
 export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
   const { data: chores, isLoading, error } = useChoresList(projectId);
+  const { data: repoTemplates } = useChoreTemplates(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [preselectedTemplate, setPreselectedTemplate] = useState<ChoreTemplate | null>(null);
+
+  const handleTemplateClick = (template: ChoreTemplate) => {
+    setPreselectedTemplate(template);
+    setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setPreselectedTemplate(null);
+  };
+
+  // Filter templates that don't already have a matching created chore
+  const uncreatedTemplates = repoTemplates?.filter(
+    (tpl) => !chores?.some((c) => c.name === tpl.name)
+  );
 
   return (
     <div className="flex flex-col gap-3 w-72 shrink-0">
@@ -63,7 +81,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && chores && chores.length === 0 && (
+      {!isLoading && !error && chores && chores.length === 0 && (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
         <div className="flex flex-col items-center gap-2 p-6 rounded-md border-2 border-dashed border-border bg-muted/10 text-center">
           <span className="text-2xl">📋</span>
           <p className="text-sm text-muted-foreground">No chores yet</p>
@@ -82,11 +100,37 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
         </div>
       )}
 
+      {/* Available repo templates */}
+      {uncreatedTemplates && uncreatedTemplates.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Available from repo
+          </span>
+          {uncreatedTemplates.map((tpl) => (
+            <button
+              key={tpl.path}
+              onClick={() => handleTemplateClick(tpl)}
+              className="flex items-start gap-2 p-2.5 rounded-md border border-dashed border-border bg-muted/10 hover:bg-accent hover:border-primary/40 transition-colors text-left"
+              title={tpl.about || tpl.name}
+            >
+              <span className="text-sm shrink-0">📋</span>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-xs font-medium text-foreground truncate">{tpl.name}</span>
+                {tpl.about && (
+                  <span className="text-xs text-muted-foreground line-clamp-2">{tpl.about}</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Add Chore Modal */}
       <AddChoreModal
         projectId={projectId}
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={handleCloseModal}
+        initialTemplate={preselectedTemplate}
       />
     </div>
   );

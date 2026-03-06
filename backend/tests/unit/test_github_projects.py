@@ -3629,6 +3629,14 @@ class TestCreateSubIssue:
 class TestGetSubIssues:
     """Tests for get_sub_issues."""
 
+    @pytest.fixture(autouse=True)
+    def _clear_sub_issues_cache(self):
+        from src.services.cache import cache
+
+        cache.clear()
+        yield
+        cache.clear()
+
     @pytest.fixture
     def service(self):
         return GitHubProjectsService()

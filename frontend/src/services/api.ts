@@ -43,6 +43,7 @@ import type {
   CleanupHistoryResponse,
   Chore,
   ChoreCreate,
+  ChoreTemplate,
   ChoreUpdate,
   ChoreTriggerResult,
   ChoreChatMessage,
@@ -575,6 +576,13 @@ export const choresApi = {
    */
   list(projectId: string): Promise<Chore[]> {
     return request<Chore[]>(`/chores/${projectId}`);
+  },
+
+  /**
+   * List available chore templates from the repo's .github/ISSUE_TEMPLATE/.
+   */
+  listTemplates(projectId: string): Promise<ChoreTemplate[]> {
+    return request<ChoreTemplate[]>(`/chores/${projectId}/templates`);
   },
 
   /**
