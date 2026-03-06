@@ -144,7 +144,7 @@ class TestDevLoginGating:
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
                 resp = await ac.post(
                     "/api/v1/auth/dev-login",
-                    params={"github_token": "ghp_test"},
+                    json={"github_token": "ghp_test"},
                 )
 
         assert resp.status_code == 404, f"Expected 404, got {resp.status_code}: {resp.json()}"
@@ -155,7 +155,7 @@ class TestDevLoginGating:
         mock_github_auth_service.create_session_from_token.return_value = mock_session
         resp = await client.post(
             "/api/v1/auth/dev-login",
-            params={"github_token": "ghp_test"},
+            json={"github_token": "ghp_test"},
         )
         assert resp.status_code == 200
         assert resp.json()["github_username"] == mock_session.github_username
@@ -167,10 +167,17 @@ class TestDevLoginGating:
 def _prod_like_settings(*, debug: bool):
     from src.config import Settings
 
-    return Settings(
-        github_client_id="test-client-id",
-        github_client_secret="test-client-secret",
-        session_secret_key="test-session-secret-key-that-is-long-enough",
-        debug=debug,
-        _env_file=None,
-    )
+    kwargs: dict = {
+        "github_client_id": "test-client-id",
+        "github_client_secret": "test-client-secret",
+        "session_secret_key": "a" * 64,
+        "debug": debug,
+        "_env_file": None,
+    }
+    if not debug:
+        kwargs.update(
+            encryption_key="sdGVj_fRew3oi2qQBVv9Rb3yE06w65yHzcdkARVd0es=",
+            github_webhook_secret="test-webhook-secret",
+            cookie_secure=True,
+        )
+    return Settings(**kwargs)

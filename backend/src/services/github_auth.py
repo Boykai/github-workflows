@@ -67,7 +67,7 @@ class GitHubAuthService:
         params = {
             "client_id": self.settings.github_client_id,
             "redirect_uri": self.settings.github_redirect_uri,
-            "scope": "read:user read:org project repo",
+            "scope": "read:user read:org project",
             "state": state,
         }
 

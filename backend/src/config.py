@@ -2,7 +2,9 @@
 
 import logging
 from functools import lru_cache
+from urllib.parse import urlparse
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -74,7 +76,7 @@ class Settings(BaseSettings):
     encryption_key: str | None = None
 
     # Database
-    database_path: str = "/app/data/settings.db"
+    database_path: str = "/var/lib/ghchat/data/settings.db"
 
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"
@@ -87,6 +89,50 @@ class Settings(BaseSettings):
 
     # Session cleanup interval in seconds
     session_cleanup_interval: int = 3600
+
+    # API docs — decoupled from DEBUG so docs can be disabled even when debug is on
+    enable_docs: bool = False
+
+    @model_validator(mode="after")
+    def _validate_production_security(self) -> "Settings":
+        """Enforce mandatory security settings in non-debug (production) mode."""
+        if self.debug:
+            return self
+
+        errors: list[str] = []
+
+        if not self.encryption_key:
+            errors.append(
+                "ENCRYPTION_KEY is required in production. "
+                'Generate one with: python -c "from cryptography.fernet import Fernet; '
+                'print(Fernet.generate_key().decode())"'
+            )
+
+        if not self.github_webhook_secret:
+            errors.append("GITHUB_WEBHOOK_SECRET is required in production.")
+
+        if len(self.session_secret_key) < 64:
+            errors.append("SESSION_SECRET_KEY must be at least 64 characters in production.")
+
+        if not self.effective_cookie_secure:
+            errors.append(
+                "Cookies must be Secure in production. "
+                "Set COOKIE_SECURE=true or use an HTTPS FRONTEND_URL."
+            )
+
+        # Validate CORS origins format
+        for origin in self.cors_origins_list:
+            parsed = urlparse(origin)
+            if not parsed.scheme or not parsed.hostname:
+                errors.append(
+                    f"Malformed CORS origin: '{origin}'. "
+                    "Each origin must have a scheme and hostname (e.g. https://example.com)."
+                )
+
+        if errors:
+            raise ValueError("Production security validation failed:\n- " + "\n- ".join(errors))
+
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:

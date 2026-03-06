@@ -64,6 +64,49 @@ def _get_session_dep():
     return get_session_dep
 
 
+async def require_project_access(
+    project_id: str,
+    request: Request,
+    session=Depends(_get_session_dep()),  # noqa: B008
+) -> UserSession:
+    """Verify the authenticated user has access to *project_id*.
+
+    Lists the user's accessible GitHub projects and checks that
+    *project_id* is among them.  Returns 403 Forbidden if the user
+    does not own the project.
+    """
+    from src.services.cache import cache, get_user_projects_cache_key
+    from src.services.github_projects import github_projects_service
+
+    # Check cached project list first
+    cache_key = get_user_projects_cache_key(session.github_user_id)
+    cached_projects = cache.get(cache_key)
+
+    if cached_projects is None:
+        try:
+            cached_projects = await github_projects_service.list_user_projects(
+                session.access_token, session.github_username
+            )
+            cache.set(cache_key, cached_projects)
+        except Exception:
+            logger.warning(
+                "Could not verify project access for user %s on project %s — "
+                "allowing access (GitHub API unavailable)",
+                session.github_user_id,
+                project_id,
+            )
+            return session
+
+    for project in cached_projects:
+        if project.project_id == project_id:
+            return session
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not have access to this project",
+    )
+
+
 async def require_admin(
     request: Request,
     session=Depends(_get_session_dep()),  # noqa: B008

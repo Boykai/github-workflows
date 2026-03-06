@@ -1,10 +1,24 @@
 /**
  * Custom hook for chat message history navigation.
  * Provides shell-like up/down arrow key navigation through previously sent messages.
- * Persists history across sessions via localStorage.
+ *
+ * **Privacy**: Only lightweight references (message IDs with timestamps)
+ * are persisted to localStorage — never full message content.
+ * All local data is cleared on logout via {@link clearChatStorage}.
  */
 
 import { useState, useRef, useCallback } from 'react';
+
+/** A lightweight reference stored in localStorage (no message content). */
+interface MessageRef {
+  /** Unique message identifier */
+  id: string;
+  /** ISO-8601 timestamp when the message was recorded */
+  ts: string;
+}
+
+/** Time-to-live for stored references (24 hours in milliseconds). */
+const STORAGE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface UseChatHistoryOptions {
   /** localStorage key for persistence. Default: 'chat-message-history' */
@@ -30,13 +44,26 @@ export interface UseChatHistoryReturn {
   selectFromHistory: (index: number, currentInput: string) => string | null;
 }
 
-function loadHistory(storageKey: string): string[] {
+/**
+ * Load lightweight message refs from localStorage, pruning expired entries.
+ * Returns the IDs only — actual content must be fetched from the backend.
+ */
+function loadRefs(storageKey: string): MessageRef[] {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed.filter((item): item is string => typeof item === 'string');
+        const now = Date.now();
+        // Filter out expired entries and validate shape
+        return parsed.filter(
+          (item): item is MessageRef =>
+            item != null &&
+            typeof item === 'object' &&
+            typeof item.id === 'string' &&
+            typeof item.ts === 'string' &&
+            now - new Date(item.ts).getTime() < STORAGE_TTL_MS,
+        );
       }
     }
   } catch {
@@ -45,21 +72,37 @@ function loadHistory(storageKey: string): string[] {
   return [];
 }
 
-function saveHistory(storageKey: string, history: string[]): void {
+function saveRefs(storageKey: string, refs: MessageRef[]): void {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(history));
+    localStorage.setItem(storageKey, JSON.stringify(refs));
   } catch {
     // Silently fail — in-session history still works
   }
+}
+
+/** Clear all chat-related data from localStorage.  Call on logout. */
+export function clearChatStorage(): void {
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith('chat-message-history')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach((k) => localStorage.removeItem(k));
 }
 
 export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryReturn {
   const storageKey = options?.storageKey ?? 'chat-message-history';
   const maxHistory = options?.maxHistory ?? 100;
 
-  const [history, setHistory] = useState<string[]>(() => loadHistory(storageKey));
+  // In-memory history stores full messages for the current session only
+  const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const draftBuffer = useRef<string>('');
+
+  // Load refs (IDs only) on mount — kept for pruning/TTL bookkeeping
+  const refsRef = useRef<MessageRef[]>(loadRefs(storageKey));
 
   const isNavigating = historyIndex >= 0;
 
@@ -71,9 +114,18 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
         while (next.length > maxHistory) {
           next.shift();
         }
-        saveHistory(storageKey, next);
         return next;
       });
+
+      // Persist lightweight reference (ID + timestamp) — no content
+      const ref: MessageRef = { id: crypto.randomUUID(), ts: new Date().toISOString() };
+      const refs = [...refsRef.current, ref];
+      while (refs.length > maxHistory) {
+        refs.shift();
+      }
+      refsRef.current = refs;
+      saveRefs(storageKey, refs);
+
       setHistoryIndex(-1);
     },
     [storageKey, maxHistory],

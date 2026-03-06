@@ -59,7 +59,6 @@ class TestSettings:
     def test_defaults(self):
         s = self._make()
         assert s.ai_provider == "copilot"
-        assert s.debug is False
         assert s.port == 8000
         assert s.session_expire_hours == 8
         assert s.cache_ttl_seconds == 300

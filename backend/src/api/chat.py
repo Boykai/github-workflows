@@ -5,7 +5,7 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
@@ -27,6 +27,7 @@ from src.models.recommendation import (
 )
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration
+from src.rate_limit import limiter
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import (
     cache,
@@ -130,8 +131,10 @@ async def clear_messages(
 
 
 @router.post("/messages", response_model=ChatMessage)
+@limiter.limit("30/minute")
 async def send_message(
-    request: ChatMessageRequest,
+    request: Request,
+    chat_request: ChatMessageRequest,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> ChatMessage:
     """Send a chat message and get AI response."""
@@ -158,7 +161,7 @@ async def send_message(
     user_message = ChatMessage(
         session_id=session.session_id,
         sender_type=SenderType.USER,
-        content=request.content,
+        content=chat_request.content,
     )
     add_message(session.session_id, user_message)
 
@@ -188,7 +191,7 @@ async def send_message(
     from src.services.database import get_db
 
     session_key = str(session.session_id)
-    is_agent_command = request.content.strip().lower().startswith("#agent")
+    is_agent_command = chat_request.content.strip().lower().startswith("#agent")
     active_agent_session = get_active_session(session_key)
 
     if is_agent_command or active_agent_session:
@@ -196,7 +199,7 @@ async def send_message(
             db = get_db()
             owner, repo = await _resolve_repository(session)
             agent_response_text = await handle_agent_command(
-                message=request.content,
+                message=chat_request.content,
                 session_key=session_key,
                 project_id=selected_project_id,
                 owner=owner,
@@ -228,7 +231,7 @@ async def send_message(
 
     try:
         is_feature_request = await ai_service.detect_feature_request_intent(
-            request.content, github_token=session.access_token
+            chat_request.content, github_token=session.access_token
         )
     except Exception as e:
         logger.warning("Feature request detection failed: %s", e)
@@ -250,7 +253,7 @@ async def send_message(
                 logger.warning("Metadata fetch for prompt injection failed: %s", md_err)
 
             recommendation = await ai_service.generate_issue_recommendation(
-                user_input=request.content,
+                user_input=chat_request.content,
                 project_name=project_name,
                 session_id=str(session.session_id),
                 github_token=session.access_token,
@@ -326,7 +329,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     # PRIORITY 2: Check if this is a status change request
     # ──────────────────────────────────────────────────────────────────
     status_change = await ai_service.parse_status_change_request(
-        user_input=request.content,
+        user_input=chat_request.content,
         available_tasks=[t.title for t in current_tasks],
         available_statuses=(project_columns or DEFAULT_STATUS_COLUMNS),
         github_token=session.access_token,
@@ -359,7 +362,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             # Create a status change proposal
             proposal = AITaskProposal(
                 session_id=session.session_id,
-                original_input=request.content,
+                original_input=chat_request.content,
                 proposed_title=target_task.title,
                 proposed_description=f"Move from '{target_task.status}' to '{target_status}'",
             )
@@ -400,7 +403,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     # Not a status change - generate task from description
     try:
         generated = await ai_service.generate_task_from_description(
-            user_input=request.content,
+            user_input=chat_request.content,
             project_name=project_name,
             github_token=session.access_token,
         )
@@ -408,7 +411,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         # Create proposal
         proposal = AITaskProposal(
             session_id=session.session_id,
-            original_input=request.content,
+            original_input=chat_request.content,
             proposed_title=generated.title,
             proposed_description=generated.description,
         )
@@ -449,7 +452,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 @router.post("/proposals/{proposal_id}/confirm", response_model=AITaskProposal)
 async def confirm_proposal(
     proposal_id: str,
-    request: ProposalConfirmRequest | None,
+    confirm_request: ProposalConfirmRequest | None,
     session: Annotated[UserSession, Depends(get_session_dep)],
     github_projects_service=Depends(get_github_service),  # noqa: B008
     connection_manager=Depends(get_connection_manager),  # noqa: B008
@@ -471,12 +474,12 @@ async def confirm_proposal(
         raise ValidationError(f"Proposal already {proposal.status.value}")
 
     # Apply edits if provided
-    if request:
-        if request.edited_title:
-            proposal.edited_title = request.edited_title
+    if confirm_request:
+        if confirm_request.edited_title:
+            proposal.edited_title = confirm_request.edited_title
             proposal.status = ProposalStatus.EDITED
-        if request.edited_description:
-            proposal.edited_description = request.edited_description
+        if confirm_request.edited_description:
+            proposal.edited_description = confirm_request.edited_description
             if proposal.status != ProposalStatus.EDITED:
                 proposal.status = ProposalStatus.EDITED
 

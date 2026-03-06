@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.auth import get_session_dep
 from src.models.agents import (
@@ -18,6 +18,7 @@ from src.models.agents import (
     AgentUpdate,
 )
 from src.models.user import UserSession
+from src.rate_limit import limiter
 from src.services.agents.service import AgentsService
 from src.services.database import get_db
 from src.utils import resolve_repository
@@ -177,7 +178,9 @@ async def delete_agent(
 
 
 @router.post("/{project_id}/chat", response_model=AgentChatResponse)
+@limiter.limit("30/minute")
 async def agent_chat(
+    request: Request,
     project_id: str,
     body: AgentChatMessage,
     session: Annotated[UserSession, Depends(get_session_dep)],

@@ -35,10 +35,11 @@ class TestCreateApp:
         assert resp.status_code in (404, 200)
 
     async def test_health_check_or_docs_disabled_in_prod(self):
-        """When debug=False, docs should be disabled."""
+        """When enable_docs=False, docs should be disabled."""
         with patch("src.main.get_settings") as mock_s:
             mock_s.return_value = MagicMock(
                 debug=False,
+                enable_docs=False,
                 cors_origins_list=["*"],
                 host="0.0.0.0",
                 port=8000,
