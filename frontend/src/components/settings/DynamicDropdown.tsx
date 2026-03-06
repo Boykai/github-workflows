@@ -137,7 +137,7 @@ export function DynamicDropdown({
           {label}
         </label>
         <div
-          className="flex items-center gap-2 p-3 rounded-md border border-[currentColor] border-opacity-50 bg-accent/10 dark:bg-accent/20 text-sm text-accent-foreground"
+          className="flex items-center gap-2 p-3 rounded-md border border-accent/50 bg-accent/10 dark:bg-accent/20 text-sm text-accent-foreground"
           role="status"
         >
           <span className="shrink-0">⚠️</span>

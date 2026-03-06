@@ -1,5 +1,6 @@
 """GitHub Projects V2 GraphQL service."""
 
+import asyncio
 import hashlib
 import logging
 
@@ -18,20 +19,26 @@ class GitHubClientFactory:
     def __init__(self, max_pool_size: int = 50) -> None:
         self._pool: BoundedDict[str, GitHub] = BoundedDict(maxlen=max_pool_size)
         self._auto_retry = RetryChainDecision(RETRY_RATE_LIMIT, RETRY_SERVER_ERROR)
+        self._lock = asyncio.Lock()
 
-    def get_client(self, access_token: str) -> GitHub:
+    async def get_client(self, access_token: str) -> GitHub:
         """Return a pooled or newly created client for the given token."""
         key = hashlib.sha256(access_token.encode()).hexdigest()[:16]
         client = self._pool.get(key)
-        if client is None:
-            client = GitHub(
-                TokenAuthStrategy(access_token),
-                auto_retry=self._auto_retry,
-                http_cache=True,
-                throttler=LocalThrottler(100),
-                timeout=30.0,
-            )
-            self._pool[key] = client
+        if client is not None:
+            return client
+        async with self._lock:
+            # Double-check after acquiring lock
+            client = self._pool.get(key)
+            if client is None:
+                client = GitHub(
+                    TokenAuthStrategy(access_token),
+                    auto_retry=self._auto_retry,
+                    http_cache=True,
+                    throttler=LocalThrottler(100),
+                    timeout=30.0,
+                )
+                self._pool[key] = client
         return client
 
     async def close_all(self) -> None:

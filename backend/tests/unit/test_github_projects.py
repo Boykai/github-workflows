@@ -28,7 +28,7 @@ class TestGraphQLMethod:
         mock_client.async_graphql = AsyncMock(return_value={"user": {"id": "123", "name": "Test"}})
 
         with patch.object(service, "_client_factory") as mock_factory:
-            mock_factory.get_client.return_value = mock_client
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             result = await service._graphql(
                 access_token="test-token",
@@ -50,7 +50,7 @@ class TestGraphQLMethod:
         mock_client.arequest = AsyncMock(return_value=mock_response)
 
         with patch.object(service, "_client_factory") as mock_factory:
-            mock_factory.get_client.return_value = mock_client
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             await service._graphql(
                 access_token="test-token",
@@ -74,7 +74,7 @@ class TestGraphQLMethod:
         mock_client.arequest = AsyncMock(return_value=mock_response)
 
         with patch.object(service, "_client_factory") as mock_factory:
-            mock_factory.get_client.return_value = mock_client
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             with pytest.raises(ValueError) as exc_info:
                 await service._graphql(

@@ -122,7 +122,7 @@ class GitHubProjectsService:
         Routes through githubkit for automatic retry, throttling, and auth.
         Returns parsed JSON or raw text for non-JSON responses.
         """
-        client = self._client_factory.get_client(access_token)
+        client = await self._client_factory.get_client(access_token)
         kwargs: dict = {}
         if json is not None:
             kwargs["json"] = json
@@ -166,7 +166,7 @@ class GitHubProjectsService:
 
         Used when callers need to check status_code or headers directly.
         """
-        client = self._client_factory.get_client(access_token)
+        client = await self._client_factory.get_client(access_token)
         kwargs: dict = {}
         if json is not None:
             kwargs["json"] = json
@@ -308,7 +308,11 @@ class GitHubProjectsService:
                 token_prefix
                 + query
                 + json_mod.dumps(
-                    {"variables": variables, "features": graphql_features or []},
+                    {
+                        "variables": variables,
+                        "features": graphql_features or [],
+                        "extra_headers": sorted((extra_headers or {}).items()),
+                    },
                     sort_keys=True,
                 )
             ).encode()
@@ -322,7 +326,7 @@ class GitHubProjectsService:
             return await inflight
 
         async def _execute_graphql() -> dict:
-            client = self._client_factory.get_client(access_token)
+            client = await self._client_factory.get_client(access_token)
 
             if graphql_features or extra_headers:
                 # Custom headers required — use arequest() for full control

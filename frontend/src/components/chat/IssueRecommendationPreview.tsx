@@ -177,7 +177,7 @@ export function IssueRecommendationPreview({
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
-              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? ' font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-500 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-500' : 'text-muted-foreground'}`}>
+              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-500 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-500' : 'text-muted-foreground'}`}>
                 {recommendation.metadata.priority || 'P2'}
               </span>
             </div>
