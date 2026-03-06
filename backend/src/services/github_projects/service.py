@@ -9,7 +9,7 @@ import logging
 import re
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, ClassVar, TypeVar, cast
 
 import yaml
 from githubkit.exception import RequestFailed
@@ -435,15 +435,15 @@ class GitHubProjectsService:
             status_columns = []
             status_field = node.get("field")
             if status_field:
-                for option in status_field.get("options", []):
-                    status_columns.append(
-                        StatusColumn(
-                            field_id=status_field["id"],
-                            name=option["name"],
-                            option_id=option["id"],
-                            color=option.get("color"),
-                        )
+                status_columns = [
+                    StatusColumn(
+                        field_id=status_field["id"],
+                        name=option["name"],
+                        option_id=option["id"],
+                        color=option.get("color"),
                     )
+                    for option in status_field.get("options", [])
+                ]
 
             # Default status columns if none found
             if not status_columns:
@@ -590,16 +590,15 @@ class GitHubProjectsService:
             if not status_field_data:
                 continue  # Skip projects without a Status field
 
-            options = []
-            for opt in status_field_data.get("options", []):
-                options.append(
-                    StatusOption(
-                        option_id=opt["id"],
-                        name=opt["name"],
-                        color=opt.get("color", "GRAY"),
-                        description=opt.get("description"),
-                    )
+            options = [
+                StatusOption(
+                    option_id=opt["id"],
+                    name=opt["name"],
+                    color=opt.get("color", "GRAY"),
+                    description=opt.get("description"),
                 )
+                for opt in status_field_data.get("options", [])
+            ]
 
             projects.append(
                 BoardProject(
@@ -745,15 +744,14 @@ class GitHubProjectsService:
                     content_type = ContentType.DRAFT_ISSUE
 
                 # Parse assignees
-                assignees = []
-                for assignee_node in content.get("assignees", {}).get("nodes", []):
-                    if assignee_node:
-                        assignees.append(
-                            Assignee(
-                                login=assignee_node["login"],
-                                avatar_url=assignee_node.get("avatarUrl", ""),
-                            )
-                        )
+                assignees = [
+                    Assignee(
+                        login=assignee_node["login"],
+                        avatar_url=assignee_node.get("avatarUrl", ""),
+                    )
+                    for assignee_node in content.get("assignees", {}).get("nodes", [])
+                    if assignee_node
+                ]
 
                 # Parse repository
                 repo_data = content.get("repository")
@@ -1077,15 +1075,14 @@ class GitHubProjectsService:
                         estimate_val = float(num)
 
             # Parse assignees
-            assignees = []
-            for a in issue.get("assignees", {}).get("nodes", []):
-                if a:
-                    assignees.append(
-                        Assignee(
-                            login=a["login"],
-                            avatar_url=a.get("avatarUrl", ""),
-                        )
-                    )
+            assignees = [
+                Assignee(
+                    login=a["login"],
+                    avatar_url=a.get("avatarUrl", ""),
+                )
+                for a in issue.get("assignees", {}).get("nodes", [])
+                if a
+            ]
 
             # Parse repository
             repo_data = issue.get("repository")
@@ -3133,7 +3130,7 @@ class GitHubProjectsService:
             for item in timeline_items:
                 # Check ConnectedEvent
                 pr = item.get("subject") if "subject" in item else item.get("source")
-                if pr and pr.get("__typename") == "PullRequest" or (pr and "number" in pr):
+                if (pr and pr.get("__typename") == "PullRequest") or (pr and "number" in pr):
                     prs.append(
                         {
                             "id": pr.get("id"),
@@ -3919,9 +3916,7 @@ class GitHubProjectsService:
                             try:
                                 from datetime import datetime as _dt
 
-                                event_time = _dt.fromisoformat(
-                                    created_at_str.replace("Z", "+00:00")
-                                )
+                                event_time = _dt.fromisoformat(created_at_str)
                                 cutoff = (
                                     pipeline_started_at.replace(tzinfo=event_time.tzinfo)
                                     if pipeline_started_at.tzinfo is None
@@ -4047,16 +4042,16 @@ class GitHubProjectsService:
                 # but spec says completion is via label or closed state
 
         # Also check for tasks currently in "In Progress" that might have completed PRs
-        for task in current_tasks:
-            if task.status and task.status.lower() == in_progress_status.lower():
-                workflow_triggers.append(
-                    {
-                        "trigger": "in_progress_check",
-                        "task_id": task.github_item_id,
-                        "title": task.title,
-                        "issue_id": task.github_issue_id,
-                    }
-                )
+        workflow_triggers.extend(
+            {
+                "trigger": "in_progress_check",
+                "task_id": task.github_item_id,
+                "title": task.title,
+                "issue_id": task.github_issue_id,
+            }
+            for task in current_tasks
+            if task.status and task.status.lower() == in_progress_status.lower()
+        )
 
         return {
             "changes": changes,
@@ -4540,7 +4535,7 @@ class GitHubProjectsService:
     # ──────────────────────────────────────────────────────────────────
 
     # Built-in agents that are always available
-    BUILTIN_AGENTS: list[AvailableAgent] = [
+    BUILTIN_AGENTS: ClassVar[list[AvailableAgent]] = [
         AvailableAgent(
             slug="copilot",
             display_name="GitHub Copilot",

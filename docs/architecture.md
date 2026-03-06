@@ -9,8 +9,8 @@ Agent Projects is a full-stack web application with a React frontend, a FastAPI 
 ```text
 ┌───────────────────────────┐     ┌──────────────────────────────────┐     ┌──────────────────┐
 │        Frontend            │────▶│            Backend                │────▶│    GitHub API     │
-│  React 18 + Vite 5         │◀────│            FastAPI                │◀────│  GraphQL + REST   │
-│  TypeScript ~5.4            │ WS  │                                  │     │                  │
+│  React 19 + Vite 7          │◀────│            FastAPI                │◀────│  GraphQL + REST   │
+│  TypeScript 5.9              │ WS  │                                  │     │                  │
 │  TanStack Query v5          │     │  ┌──────────────────────────┐    │     │  ┌────────────┐  │
 │  dnd-kit (drag-drop)        │     │  │ Workflow Orchestrator     │    │     │  │ Projects   │  │
 │  ErrorBoundary              │     │  │ (4 sub-modules)          │    │     │  │ V2 API     │  │
@@ -56,12 +56,12 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 ## Frontend Architecture
 
-- **Framework**: React 18 with TypeScript ~5.4, built by Vite 5
+- **Framework**: React 19 with TypeScript 5.9, built by Vite 7
 - **State Management**: TanStack Query v5 for server state; local `useState` for UI state
-- **Real-Time**: `socket.io-client` WebSocket connection for live board updates
+- **Real-Time**: Native `WebSocket` connection for live board updates (with polling fallback)
 - **Routing**: Hash-based view switching (`#board`, `#settings`, `#chat`)
 - **Drag-and-Drop**: `@dnd-kit` for agent configuration reordering
-- **Styling**: Tailwind CSS with dark/light theme support (`ThemeProvider`)
+- **Styling**: Tailwind CSS 4 (CSS-first config) with dark/light theme support (`ThemeProvider`)
 - **Error Handling**: Global `ErrorBoundary` (React class component + TanStack `QueryErrorResetBoundary`)
 
 ### Key Frontend Modules
@@ -73,7 +73,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage` |
 | `components/settings/` | `AIPreferences`, `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, `ProjectSettings`, `GlobalSettings`, `SignalConnection`, `McpSettings` |
 | `components/common/` | `ErrorBoundary` |
-| `hooks/` | `useAuth`, `useChat`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings` |
+| `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata` |
 | `pages/` | `ProjectBoardPage`, `SettingsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
 

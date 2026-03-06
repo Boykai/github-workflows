@@ -66,7 +66,7 @@ def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
 
     # Check for duplicate
     if input_hash in _recent_requests:
-        existing_ts, existing_id = _recent_requests[input_hash]
+        _existing_ts, existing_id = _recent_requests[input_hash]
         if existing_id != recommendation_id:
             logger.warning(
                 "Duplicate request detected: %s (existing: %s)",
@@ -470,18 +470,19 @@ async def list_agents(
     if not session.selected_project_id:
         raise NotFoundError("No project selected")
 
-    # Resolve owner/repo
+    # Resolve owner/repo using the same 3-step fallback as the Agents panel
     resolved_owner = owner
     resolved_repo = repo
 
     if not resolved_owner or not resolved_repo:
-        config = await get_workflow_config(session.selected_project_id)
-        if config:
-            resolved_owner = resolved_owner or config.repository_owner
-            resolved_repo = resolved_repo or config.repository_name
-
-    if not resolved_owner or not resolved_repo:
-        resolved_owner, resolved_repo = _get_repository_info(session)
+        try:
+            fallback_owner, fallback_repo = await resolve_repository(
+                session.access_token, session.selected_project_id
+            )
+            resolved_owner = resolved_owner or fallback_owner
+            resolved_repo = resolved_repo or fallback_repo
+        except ValidationError:
+            logger.debug("Could not resolve repository for agent discovery")
 
     agents = await github_projects_service.list_available_agents(
         owner=resolved_owner or "",

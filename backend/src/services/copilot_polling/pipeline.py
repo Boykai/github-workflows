@@ -728,9 +728,7 @@ async def _reconstruct_pipeline_state(
     reconstructed_started_at: datetime | None = None
     if last_done_timestamp:
         try:
-            reconstructed_started_at = datetime.fromisoformat(
-                last_done_timestamp.replace("Z", "+00:00")
-            )
+            reconstructed_started_at = datetime.fromisoformat(last_done_timestamp)
         except (ValueError, TypeError):
             pass
     if reconstructed_started_at is None:
@@ -747,9 +745,7 @@ async def _reconstruct_pipeline_state(
                         latest_any_done_ts = ts
         if latest_any_done_ts:
             try:
-                reconstructed_started_at = datetime.fromisoformat(
-                    latest_any_done_ts.replace("Z", "+00:00")
-                )
+                reconstructed_started_at = datetime.fromisoformat(latest_any_done_ts)
                 logger.debug(
                     "Using cross-status Done! timestamp %s as started_at "
                     "for issue #%d (no Done! markers for current status agents)",
@@ -764,9 +760,7 @@ async def _reconstruct_pipeline_state(
         issue_created_at = (issue_data or {}).get("created_at", "")
         if issue_created_at:
             try:
-                reconstructed_started_at = datetime.fromisoformat(
-                    issue_created_at.replace("Z", "+00:00")
-                )
+                reconstructed_started_at = datetime.fromisoformat(issue_created_at)
             except (ValueError, TypeError):
                 pass
     # Final fallback — use utcnow() (worst case, same as before)
@@ -1104,7 +1098,7 @@ async def _advance_pipeline(
         # up agents for the board status would return the wrong agent list
         # (e.g., ["human"] instead of ["judge", "linter"]), causing the
         # pipeline to silently skip remaining agents.
-        agent_lookup_status = pipeline.status if pipeline.status else from_status
+        agent_lookup_status = pipeline.status or from_status
 
         logger.info(
             "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",

@@ -7,6 +7,7 @@ the admin check (is_admin_user), and top-level handle_agent_command routing.
 
 from __future__ import annotations
 
+from typing import ClassVar
 from unittest.mock import AsyncMock, patch
 
 import aiosqlite
@@ -90,7 +91,7 @@ class TestParseCommand:
 class TestFuzzyMatchStatus:
     """Tests for status column fuzzy matching."""
 
-    COLUMNS = ["Todo", "In Progress", "In Review", "Code Review", "Done"]
+    COLUMNS: ClassVar[list[str]] = ["Todo", "In Progress", "In Review", "Code Review", "Done"]
 
     def test_exact_match(self):
         resolved, ambiguous, matches = fuzzy_match_status("Done", self.COLUMNS)
@@ -100,12 +101,12 @@ class TestFuzzyMatchStatus:
 
     def test_normalized_exact_match(self):
         """in-review normalises to the same as 'In Review'."""
-        resolved, ambiguous, matches = fuzzy_match_status("in-review", self.COLUMNS)
+        resolved, ambiguous, _matches = fuzzy_match_status("in-review", self.COLUMNS)
         assert resolved == "In Review"
         assert ambiguous is False
 
     def test_case_insensitive_match(self):
-        resolved, ambiguous, matches = fuzzy_match_status("TODO", self.COLUMNS)
+        resolved, ambiguous, _matches = fuzzy_match_status("TODO", self.COLUMNS)
         assert resolved == "Todo"
         assert ambiguous is False
 
@@ -118,7 +119,7 @@ class TestFuzzyMatchStatus:
 
     def test_unique_contains_match(self):
         """'progress' uniquely matches 'In Progress'."""
-        resolved, ambiguous, matches = fuzzy_match_status("progress", self.COLUMNS)
+        resolved, ambiguous, _matches = fuzzy_match_status("progress", self.COLUMNS)
         assert resolved == "In Progress"
         assert ambiguous is False
 
@@ -135,7 +136,7 @@ class TestFuzzyMatchStatus:
         assert matches == []
 
     def test_empty_input(self):
-        resolved, ambiguous, matches = fuzzy_match_status("", self.COLUMNS)
+        _resolved, ambiguous, _matches = fuzzy_match_status("", self.COLUMNS)
         # Empty string matches everything via contains — expect ambiguous
         assert ambiguous is True
 

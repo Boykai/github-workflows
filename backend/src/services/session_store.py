@@ -20,7 +20,7 @@ _encryption_service: EncryptionService | None = None
 
 def _get_encryption_service() -> EncryptionService:
     """Return the module-level EncryptionService, creating it on first call."""
-    global _encryption_service  # noqa: PLW0603
+    global _encryption_service
     if _encryption_service is None:
         settings = get_settings()
         _encryption_service = EncryptionService(settings.encryption_key)
@@ -156,10 +156,7 @@ async def get_sessions_by_user(db: aiosqlite.Connection, github_user_id: str) ->
     )
     rows = await cursor.fetchall()
 
-    sessions = []
-    for row in rows:
-        sessions.append(_row_to_session(row))
-    return sessions
+    return [_row_to_session(row) for row in rows]
 
 
 async def purge_expired_sessions(db: aiosqlite.Connection) -> int:

@@ -224,7 +224,7 @@ class TestUpdateAgentState:
         new_body = update_agent_state(SAMPLE_BODY, "speckit.implement", STATE_ACTIVE)
         steps = parse_tracking_from_body(new_body)
         assert steps is not None
-        impl_step = [s for s in steps if s.agent_name == "speckit.implement"][0]
+        impl_step = next(s for s in steps if s.agent_name == "speckit.implement")
         assert STATE_ACTIVE in impl_step.state
 
     def test_unknown_agent_returns_unchanged(self):
@@ -240,13 +240,13 @@ class TestUpdateAgentState:
         get_current_agent_from_tracking(new_body)
         # There might be two active now (plan was already active); just check implement
         steps = parse_tracking_from_body(new_body)
-        impl = [s for s in steps if s.agent_name == "speckit.implement"][0]
+        impl = next(s for s in steps if s.agent_name == "speckit.implement")
         assert STATE_ACTIVE in impl.state
 
     def test_mark_agent_done_helper(self):
         new_body = mark_agent_done(SAMPLE_BODY, "speckit.plan")
         steps = parse_tracking_from_body(new_body)
-        plan = [s for s in steps if s.agent_name == "speckit.plan"][0]
+        plan = next(s for s in steps if s.agent_name == "speckit.plan")
         assert STATE_DONE in plan.state
 
 

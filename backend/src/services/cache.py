@@ -2,7 +2,7 @@
 
 import logging
 from datetime import timedelta
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from src.config import get_settings
 from src.utils import utcnow
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-class CacheEntry(Generic[T]):
+class CacheEntry[T]:
     """Cache entry with expiration and optional ETag support."""
 
     def __init__(

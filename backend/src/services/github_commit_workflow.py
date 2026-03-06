@@ -121,7 +121,7 @@ async def commit_files_workflow(
             repo=repo,
             branch_name=branch_name,
             head_oid=repo_info["head_oid"],
-            files=files if files else [],
+            files=files or [],
             message=commit_message,
             deletions=delete_files,
         )

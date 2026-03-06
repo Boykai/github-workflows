@@ -2154,7 +2154,7 @@ class TestReconstructPipelineState:
         assert result.completed_agents == []
         assert result.current_agent == "speckit.plan"
         # started_at must be the prior-status Done! timestamp, not issue creation
-        expected_ts = datetime.fromisoformat(prior_done_ts.replace("Z", "+00:00"))
+        expected_ts = datetime.fromisoformat(prior_done_ts)
         assert result.started_at == expected_ts, (
             f"started_at should be {expected_ts} (prior Done! timestamp) "
             f"but was {result.started_at}"

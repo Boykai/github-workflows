@@ -200,10 +200,9 @@ def fuzzy_match_status(
     normalized_input = _normalize_status(raw_status)
 
     # Pass 1: exact normalized match
-    exact_matches: list[str] = []
-    for col in columns:
-        if _normalize_status(col) == normalized_input:
-            exact_matches.append(col)
+    exact_matches: list[str] = [
+        col for col in columns if _normalize_status(col) == normalized_input
+    ]
 
     if len(exact_matches) == 1:
         return exact_matches[0], False, exact_matches
@@ -211,10 +210,9 @@ def fuzzy_match_status(
         return None, True, exact_matches
 
     # Pass 2: contains match (input is a substring of the normalized column)
-    contains_matches: list[str] = []
-    for col in columns:
-        if normalized_input in _normalize_status(col):
-            contains_matches.append(col)
+    contains_matches: list[str] = [
+        col for col in columns if normalized_input in _normalize_status(col)
+    ]
 
     if len(contains_matches) == 1:
         return contains_matches[0], False, contains_matches

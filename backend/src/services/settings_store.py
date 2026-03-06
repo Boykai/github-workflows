@@ -26,54 +26,46 @@ from src.utils import utcnow
 logger = logging.getLogger(__name__)
 
 
-# ── Generic Upsert Helper ──
+USER_PREFERENCE_COLUMNS = (
+    "ai_provider",
+    "ai_model",
+    "ai_temperature",
+    "theme",
+    "default_view",
+    "sidebar_collapsed",
+    "default_repository",
+    "default_assignee",
+    "copilot_polling_interval",
+    "notify_task_status_change",
+    "notify_agent_completion",
+    "notify_new_recommendation",
+    "notify_chat_mention",
+)
+
+GLOBAL_SETTINGS_COLUMNS = (*USER_PREFERENCE_COLUMNS, "allowed_models")
+
+PROJECT_SETTINGS_COLUMNS = (
+    "board_display_config",
+    "agent_pipeline_mappings",
+)
 
 
-async def _upsert_row(
-    db: aiosqlite.Connection,
-    table: str,
-    pk_columns: dict[str, str],
-    updates: dict,
-) -> None:
-    """Insert or update a row in *table*.
+def _validate_update_keys(updates: dict[str, Any], allowed_columns: tuple[str, ...]) -> None:
+    """Reject unexpected update keys before binding values into SQL."""
+    unknown_columns = sorted(set(updates) - set(allowed_columns))
+    if unknown_columns:
+        msg = f"Unsupported settings columns: {', '.join(unknown_columns)}"
+        raise ValueError(msg)
 
-    Args:
-        db: Database connection.
-        table: Target table name.
-        pk_columns: ``{column_name: value}`` dict identifying the row (used in
-            WHERE clause and, for inserts, merged into the data).
-        updates: ``{column_name: value}`` dict of non-PK columns to set.
-    """
-    now = utcnow().isoformat()
 
-    # Check if row exists
-    where = " AND ".join(f"{col} = ?" for col in pk_columns)
-    cursor = await db.execute(
-        f"SELECT 1 FROM {table} WHERE {where}",  # noqa: S608
-        list(pk_columns.values()),
-    )
-    existing = await cursor.fetchone()
-
-    if existing is None:
-        # INSERT — merge PK columns into the data
-        all_data = {**pk_columns, **updates, "updated_at": now}
-        cols = ", ".join(all_data.keys())
-        placeholders = ", ".join("?" for _ in all_data)
-        await db.execute(
-            f"INSERT INTO {table} ({cols}) VALUES ({placeholders})",  # noqa: S608
-            list(all_data.values()),
-        )
-    else:
-        # UPDATE — copy to avoid mutating the caller's dict
-        update_cols = {**updates, "updated_at": now}
-        set_clause = ", ".join(f"{col} = ?" for col in update_cols)
-        values = list(update_cols.values()) + list(pk_columns.values())
-        await db.execute(
-            f"UPDATE {table} SET {set_clause} WHERE {where}",  # noqa: S608
-            values,
-        )
-
-    await db.commit()
+def _presence_flag_values(
+    updates: dict[str, Any],
+    allowed_columns: tuple[str, ...],
+) -> tuple[list[Any], list[int]]:
+    """Return ordered column values plus presence flags for static partial updates."""
+    values = [updates.get(column_name) for column_name in allowed_columns]
+    flags = [int(column_name in updates) for column_name in allowed_columns]
+    return values, flags
 
 
 # ── Global Settings ──
@@ -112,16 +104,33 @@ async def update_global_settings(
     if not updates:
         return await get_global_settings(db)
 
-    now = utcnow().isoformat()
-    updates["updated_at"] = now
+    _validate_update_keys(updates, GLOBAL_SETTINGS_COLUMNS)
 
-    set_clause = ", ".join(f"{col} = ?" for col in updates)
-    values = list(updates.values())
+    now = utcnow().isoformat()
+    values, flags = _presence_flag_values(updates, GLOBAL_SETTINGS_COLUMNS)
 
     logger.debug("Updating global settings: %s", list(updates.keys()))
     await db.execute(
-        f"UPDATE global_settings SET {set_clause} WHERE id = 1",  # noqa: S608
-        values,
+        """
+        UPDATE global_settings
+        SET ai_provider = CASE WHEN ? THEN ? ELSE ai_provider END,
+            ai_model = CASE WHEN ? THEN ? ELSE ai_model END,
+            ai_temperature = CASE WHEN ? THEN ? ELSE ai_temperature END,
+            theme = CASE WHEN ? THEN ? ELSE theme END,
+            default_view = CASE WHEN ? THEN ? ELSE default_view END,
+            sidebar_collapsed = CASE WHEN ? THEN ? ELSE sidebar_collapsed END,
+            default_repository = CASE WHEN ? THEN ? ELSE default_repository END,
+            default_assignee = CASE WHEN ? THEN ? ELSE default_assignee END,
+            copilot_polling_interval = CASE WHEN ? THEN ? ELSE copilot_polling_interval END,
+            notify_task_status_change = CASE WHEN ? THEN ? ELSE notify_task_status_change END,
+            notify_agent_completion = CASE WHEN ? THEN ? ELSE notify_agent_completion END,
+            notify_new_recommendation = CASE WHEN ? THEN ? ELSE notify_new_recommendation END,
+            notify_chat_mention = CASE WHEN ? THEN ? ELSE notify_chat_mention END,
+            allowed_models = CASE WHEN ? THEN ? ELSE allowed_models END,
+            updated_at = ?
+        WHERE id = 1
+        """,
+        [item for pair in zip(flags, values, strict=False) for item in pair] + [now],
     )
     await db.commit()
 
@@ -157,13 +166,53 @@ async def upsert_user_preferences(
         github_user_id: GitHub user ID (primary key)
         updates: Flat dict of column_name → value pairs to upsert
     """
+    if not updates:
+        return
+
+    _validate_update_keys(updates, USER_PREFERENCE_COLUMNS)
+
+    now = utcnow().isoformat()
+    values, flags = _presence_flag_values(updates, USER_PREFERENCE_COLUMNS)
+
     logger.debug("Upserting user preferences for %s", github_user_id)
-    await _upsert_row(
-        db,
-        table="user_preferences",
-        pk_columns={"github_user_id": github_user_id},
-        updates=updates,
+    await db.execute(
+        """
+        INSERT INTO user_preferences (
+            github_user_id,
+            ai_provider,
+            ai_model,
+            ai_temperature,
+            theme,
+            default_view,
+            sidebar_collapsed,
+            default_repository,
+            default_assignee,
+            copilot_polling_interval,
+            notify_task_status_change,
+            notify_agent_completion,
+            notify_new_recommendation,
+            notify_chat_mention,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(github_user_id) DO UPDATE SET
+            ai_provider = CASE WHEN ? THEN excluded.ai_provider ELSE user_preferences.ai_provider END,
+            ai_model = CASE WHEN ? THEN excluded.ai_model ELSE user_preferences.ai_model END,
+            ai_temperature = CASE WHEN ? THEN excluded.ai_temperature ELSE user_preferences.ai_temperature END,
+            theme = CASE WHEN ? THEN excluded.theme ELSE user_preferences.theme END,
+            default_view = CASE WHEN ? THEN excluded.default_view ELSE user_preferences.default_view END,
+            sidebar_collapsed = CASE WHEN ? THEN excluded.sidebar_collapsed ELSE user_preferences.sidebar_collapsed END,
+            default_repository = CASE WHEN ? THEN excluded.default_repository ELSE user_preferences.default_repository END,
+            default_assignee = CASE WHEN ? THEN excluded.default_assignee ELSE user_preferences.default_assignee END,
+            copilot_polling_interval = CASE WHEN ? THEN excluded.copilot_polling_interval ELSE user_preferences.copilot_polling_interval END,
+            notify_task_status_change = CASE WHEN ? THEN excluded.notify_task_status_change ELSE user_preferences.notify_task_status_change END,
+            notify_agent_completion = CASE WHEN ? THEN excluded.notify_agent_completion ELSE user_preferences.notify_agent_completion END,
+            notify_new_recommendation = CASE WHEN ? THEN excluded.notify_new_recommendation ELSE user_preferences.notify_new_recommendation END,
+            notify_chat_mention = CASE WHEN ? THEN excluded.notify_chat_mention ELSE user_preferences.notify_chat_mention END,
+            updated_at = excluded.updated_at
+        """,
+        [github_user_id, *values, now, *flags],
     )
+    await db.commit()
 
 
 # ── Project Settings ──
@@ -198,13 +247,38 @@ async def upsert_project_settings(
         project_id: GitHub Project ID
         updates: Dict with board_display_config and/or agent_pipeline_mappings (JSON strings)
     """
+    if not updates:
+        return
+
+    _validate_update_keys(updates, PROJECT_SETTINGS_COLUMNS)
+
+    now = utcnow().isoformat()
+    values, flags = _presence_flag_values(updates, PROJECT_SETTINGS_COLUMNS)
+
     logger.debug("Upserting project settings for user=%s project=%s", github_user_id, project_id)
-    await _upsert_row(
-        db,
-        table="project_settings",
-        pk_columns={"github_user_id": github_user_id, "project_id": project_id},
-        updates=updates,
+    await db.execute(
+        """
+        INSERT INTO project_settings (
+            github_user_id,
+            project_id,
+            board_display_config,
+            agent_pipeline_mappings,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(github_user_id, project_id) DO UPDATE SET
+            board_display_config = CASE
+                WHEN ? THEN excluded.board_display_config
+                ELSE project_settings.board_display_config
+            END,
+            agent_pipeline_mappings = CASE
+                WHEN ? THEN excluded.agent_pipeline_mappings
+                ELSE project_settings.agent_pipeline_mappings
+            END,
+            updated_at = excluded.updated_at
+        """,
+        [github_user_id, project_id, *values, now, *flags],
     )
+    await db.commit()
 
 
 # ── Merge Logic ──

@@ -67,6 +67,12 @@ class TestEvaluateTimeTrigger:
         chore = _make_chore(schedule_value=7, last_triggered_at=exact)
         assert evaluate_time_trigger(chore) is True
 
+    def test_z_suffix_timestamps_are_supported(self):
+        """UTC timestamps stored with a trailing Z should parse on Python 3.12+."""
+        past = (datetime.now(UTC) - timedelta(days=8)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        chore = _make_chore(schedule_value=7, last_triggered_at=past)
+        assert evaluate_time_trigger(chore) is True
+
     def test_non_time_schedule_returns_false(self):
         """Count-based schedule returns False from time evaluator."""
         chore = _make_chore(schedule_type="count", schedule_value=5)

@@ -18,25 +18,25 @@ This provides a fallback mechanism in addition to webhooks.
 # as _cp`` for late-bound access to these.
 # ──────────────────────────────────────────────────────────────────────────────
 
-import asyncio  # noqa: F401  — needed for mock.patch("...asyncio.sleep")
+import asyncio
 
-from src.constants import (  # noqa: F401
+from src.constants import (
     AGENT_OUTPUT_FILES,
     cache_key_agent_output,
     cache_key_issue_pr,
     cache_key_review_requested,
 )
-from src.models.workflow import WorkflowConfiguration  # noqa: F401
-from src.services.agent_tracking import (  # noqa: F401
+from src.models.workflow import WorkflowConfiguration
+from src.services.agent_tracking import (
     get_current_agent_from_tracking,
     get_next_pending_agent,
     mark_agent_active,
     mark_agent_done,
     parse_tracking_from_body,
 )
-from src.services.github_projects import github_projects_service  # noqa: F401
-from src.services.websocket import connection_manager  # noqa: F401
-from src.services.workflow_orchestrator import (  # noqa: F401
+from src.services.github_projects import github_projects_service
+from src.services.websocket import connection_manager
+from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -57,10 +57,10 @@ from src.services.workflow_orchestrator import (  # noqa: F401
     update_issue_main_branch_sha,
 )
 
-from .agent_output import (  # noqa: F401
+from .agent_output import (
     post_agent_outputs_from_pr,
 )
-from .completion import (  # noqa: F401
+from .completion import (
     _check_child_pr_completion,
     _check_main_pr_completion,
     _filter_events_after,
@@ -70,7 +70,7 @@ from .completion import (  # noqa: F401
     check_issue_for_copilot_completion,
     ensure_copilot_review_requested,
 )
-from .helpers import (  # noqa: F401
+from .helpers import (
     _check_agent_done_on_parent,
     _check_agent_done_on_sub_or_parent,
     _check_copilot_review_done,
@@ -84,7 +84,7 @@ from .helpers import (  # noqa: F401
     _update_issue_tracking,
     is_sub_issue,
 )
-from .pipeline import (  # noqa: F401
+from .pipeline import (
     _advance_pipeline,
     _get_or_reconstruct_pipeline,
     _process_pipeline_completion,
@@ -104,7 +104,7 @@ from .polling_loop import (  # noqa: F401
     poll_for_copilot_completion,
     stop_polling,
 )
-from .recovery import (  # noqa: F401
+from .recovery import (
     recover_stalled_issues,
 )
 
@@ -136,94 +136,94 @@ from .state import (  # noqa: F401
 # ──────────────────────────────────────────────────────────────────────────────
 
 __all__ = [
-    # State
-    "PollingState",
+    "AGENT_OUTPUT_FILES",
     "ASSIGNMENT_GRACE_PERIOD_SECONDS",
     "RECOVERY_COOLDOWN_SECONDS",
-    "_polling_state",
-    "_polling_task",
-    "_processed_issue_prs",
-    "_posted_agent_outputs",
+    "PipelineState",
+    # State
+    "PollingState",
+    "WorkflowConfiguration",
+    "WorkflowContext",
+    "WorkflowState",
+    "_advance_pipeline",
+    "_check_agent_done_on_parent",
+    "_check_agent_done_on_sub_or_parent",
+    "_check_child_pr_completion",
+    "_check_copilot_review_done",
+    "_check_main_pr_completion",
     "_claimed_child_prs",
-    "_pending_agent_assignments",
-    "_system_marked_ready_prs",
-    "_recovery_last_attempt",
+    "_discover_main_pr_for_review",
+    "_filter_events_after",
+    "_find_completed_child_pr",
+    "_get_linked_prs_including_sub_issues",
+    # Pipeline
+    "_get_or_reconstruct_pipeline",
     # Helpers
     "_get_sub_issue_number",
     "_get_sub_issue_numbers_for_issue",
-    "_get_linked_prs_including_sub_issues",
-    "_link_prs_to_parent",
-    "_check_agent_done_on_sub_or_parent",
-    "_check_copilot_review_done",
-    "_check_agent_done_on_parent",
-    "_discover_main_pr_for_review",
-    "_update_issue_tracking",
     "_get_tracking_state_from_issue",
-    "_reconstruct_sub_issue_mappings",
-    "is_sub_issue",
+    "_link_prs_to_parent",
     # Completion / review
     "_merge_child_pr_if_applicable",
-    "_find_completed_child_pr",
-    "_check_child_pr_completion",
-    "_check_main_pr_completion",
-    "_filter_events_after",
-    "check_in_review_issues_for_copilot_review",
-    "ensure_copilot_review_requested",
-    "check_issue_for_copilot_completion",
-    # Pipeline
-    "_get_or_reconstruct_pipeline",
-    "_process_pipeline_completion",
-    "check_backlog_issues",
-    "check_ready_issues",
-    "_reconstruct_pipeline_state",
-    "_advance_pipeline",
-    "_transition_after_pipeline_complete",
-    "check_in_progress_issues",
-    "check_in_review_issues",
-    "process_in_progress_issue",
-    # Agent output
-    "post_agent_outputs_from_pr",
-    # Recovery
-    "recover_stalled_issues",
-    # Polling loop
-    "poll_for_copilot_completion",
+    "_pending_agent_assignments",
     "_poll_loop",
-    "stop_polling",
-    "get_polling_status",
-    # Re-exported external dependencies (for mock.patch compatibility)
-    "github_projects_service",
-    "connection_manager",
-    "get_workflow_config",
-    "set_workflow_config",
-    "get_pipeline_state",
-    "set_pipeline_state",
-    "remove_pipeline_state",
-    "get_issue_main_branch",
-    "set_issue_main_branch",
-    "update_issue_main_branch_sha",
-    "get_issue_sub_issues",
-    "set_issue_sub_issues",
-    "get_workflow_orchestrator",
-    "get_agent_slugs",
-    "find_next_actionable_status",
-    "get_next_status",
-    "get_status_order",
-    "PipelineState",
-    "WorkflowContext",
-    "WorkflowState",
-    "WorkflowConfiguration",
-    "mark_agent_active",
-    "mark_agent_done",
-    "parse_tracking_from_body",
-    "get_current_agent_from_tracking",
-    "get_next_pending_agent",
-    "AGENT_OUTPUT_FILES",
+    "_polling_state",
+    "_polling_task",
+    "_posted_agent_outputs",
+    "_process_pipeline_completion",
+    "_processed_issue_prs",
+    "_reconstruct_pipeline_state",
+    "_reconstruct_sub_issue_mappings",
+    "_recovery_last_attempt",
+    "_system_marked_ready_prs",
+    "_transition_after_pipeline_complete",
+    "_update_issue_tracking",
+    "asyncio",
     "cache_key_agent_output",
     "cache_key_issue_pr",
     "cache_key_review_requested",
-    "asyncio",
+    "check_backlog_issues",
+    "check_in_progress_issues",
+    "check_in_review_issues",
+    "check_in_review_issues_for_copilot_review",
+    "check_issue_for_copilot_completion",
+    "check_ready_issues",
+    "connection_manager",
+    "ensure_copilot_review_requested",
     # Convenience
     "ensure_polling_started",
+    "find_next_actionable_status",
+    "get_agent_slugs",
+    "get_current_agent_from_tracking",
+    "get_issue_main_branch",
+    "get_issue_sub_issues",
+    "get_next_pending_agent",
+    "get_next_status",
+    "get_pipeline_state",
+    "get_polling_status",
+    "get_status_order",
+    "get_workflow_config",
+    "get_workflow_orchestrator",
+    # Re-exported external dependencies (for mock.patch compatibility)
+    "github_projects_service",
+    "is_sub_issue",
+    "mark_agent_active",
+    "mark_agent_done",
+    "parse_tracking_from_body",
+    # Polling loop
+    "poll_for_copilot_completion",
+    # Agent output
+    "post_agent_outputs_from_pr",
+    "process_in_progress_issue",
+    # Recovery
+    "recover_stalled_issues",
+    "remove_pipeline_state",
+    "set_issue_main_branch",
+    "set_issue_sub_issues",
+    "set_pipeline_state",
+    "set_workflow_config",
+    "stop_polling",
+    "update_issue_main_branch_sha",
 ]
 
 
@@ -262,7 +262,7 @@ async def ensure_polling_started(
     Returns:
         ``True`` if polling was started, ``False`` if it was already running.
     """
-    global _polling_task  # noqa: PLW0603
+    global _polling_task
 
     try:
         status = get_polling_status()

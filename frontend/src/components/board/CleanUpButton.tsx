@@ -56,7 +56,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
         <button
           onClick={handleClick}
           disabled={state === 'loading' || state === 'executing'}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board"
         >
           {state === 'loading' && (

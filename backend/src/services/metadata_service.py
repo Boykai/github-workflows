@@ -381,15 +381,21 @@ class MetadataService:
         )
 
         # Insert new entries
-        rows: list[tuple[str, str, str, str]] = []
-        for label in ctx.labels:
-            rows.append((ctx.repo_key, "label", json.dumps(label), ctx.fetched_at))
-        for branch in ctx.branches:
-            rows.append((ctx.repo_key, "branch", json.dumps(branch), ctx.fetched_at))
-        for milestone in ctx.milestones:
-            rows.append((ctx.repo_key, "milestone", json.dumps(milestone), ctx.fetched_at))
-        for collab in ctx.collaborators:
-            rows.append((ctx.repo_key, "collaborator", json.dumps(collab), ctx.fetched_at))
+        rows: list[tuple[str, str, str, str]] = [
+            *((ctx.repo_key, "label", json.dumps(label), ctx.fetched_at) for label in ctx.labels),
+            *(
+                (ctx.repo_key, "branch", json.dumps(branch), ctx.fetched_at)
+                for branch in ctx.branches
+            ),
+            *(
+                (ctx.repo_key, "milestone", json.dumps(milestone), ctx.fetched_at)
+                for milestone in ctx.milestones
+            ),
+            *(
+                (ctx.repo_key, "collaborator", json.dumps(collab), ctx.fetched_at)
+                for collab in ctx.collaborators
+            ),
+        ]
 
         if rows:
             await db.executemany(

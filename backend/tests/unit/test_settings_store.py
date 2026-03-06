@@ -18,6 +18,7 @@ from src.services.settings_store import (
     get_effective_project_settings,
     get_effective_user_settings,
     get_global_settings,
+    get_user_preferences_row,
     update_global_settings,
     upsert_project_settings,
     upsert_user_preferences,
@@ -68,6 +69,10 @@ class TestUpdateGlobalSettings:
         assert result.display.theme.value == "dark"
         assert result.ai.temperature == 0.5
 
+    async def test_rejects_unknown_columns(self, seeded_db):
+        with pytest.raises(ValueError, match="Unsupported settings columns"):
+            await update_global_settings(seeded_db, {"drop_table": "nope"})
+
 
 # =============================================================================
 # User preferences
@@ -85,6 +90,15 @@ class TestUpsertUserPreferences:
         await upsert_user_preferences(seeded_db, "user1", {"theme": "light"})
         eff = await get_effective_user_settings(seeded_db, "user1")
         assert eff.display.theme.value == "light"
+
+    async def test_explicit_none_clears_nullable_fields(self, seeded_db):
+        await upsert_user_preferences(seeded_db, "user1", {"default_repository": "owner/repo"})
+        await upsert_user_preferences(seeded_db, "user1", {"default_repository": None})
+        row = await get_user_preferences_row(seeded_db, "user1")
+        eff = await get_effective_user_settings(seeded_db, "user1")
+        assert row is not None
+        assert row["default_repository"] is None
+        assert eff.workflow.default_repository == "Boykai/github-workflows"
 
 
 class TestGetEffectiveUserSettings:
@@ -125,6 +139,14 @@ class TestUpsertProjectSettings:
         )
         eff = await get_effective_project_settings(seeded_db, "u1", "proj1")
         assert eff.project.board_display_config is not None
+
+    async def test_explicit_none_clears_project_fields(self, seeded_db):
+        await upsert_project_settings(
+            seeded_db, "u1", "proj1", {"board_display_config": '{"show_labels": true}'}
+        )
+        await upsert_project_settings(seeded_db, "u1", "proj1", {"board_display_config": None})
+        eff = await get_effective_project_settings(seeded_db, "u1", "proj1")
+        assert eff.project.board_display_config is None
 
 
 class TestGetEffectiveProjectSettings:

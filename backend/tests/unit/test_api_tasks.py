@@ -160,7 +160,7 @@ class TestResolveRepository:
                 return_value=config,
             ),
         ):
-            owner, repo = await resolve_repository("token", "PVT_1")
+            owner, _repo = await resolve_repository("token", "PVT_1")
         assert owner == "cfg_owner"
 
     async def test_resolve_from_default_settings(self):
@@ -185,7 +185,7 @@ class TestResolveRepository:
             ),
             patch("src.config.get_settings", return_value=settings),
         ):
-            owner, repo = await resolve_repository("token", "PVT_1")
+            owner, _repo = await resolve_repository("token", "PVT_1")
         assert owner == "def_owner"
 
     async def test_resolve_raises_when_nothing_found(self):

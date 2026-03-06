@@ -328,7 +328,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
     status_change = await ai_service.parse_status_change_request(
         user_input=request.content,
         available_tasks=[t.title for t in current_tasks],
-        available_statuses=(project_columns if project_columns else DEFAULT_STATUS_COLUMNS),
+        available_statuses=(project_columns or DEFAULT_STATUS_COLUMNS),
         github_token=session.access_token,
     )
 

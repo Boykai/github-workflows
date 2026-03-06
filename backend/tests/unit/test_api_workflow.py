@@ -175,7 +175,7 @@ class TestListAgents:
         mock_session.selected_project_id = TEST_PROJECT_ID
         mock_github_service.list_available_agents.return_value = []
         with patch(
-            f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
+            f"{WF}.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")
         ):
             resp = await client.get("/api/v1/workflow/agents")
         assert resp.status_code == 200
@@ -520,7 +520,7 @@ class TestGetRepositoryInfo:
         mock_project = MagicMock(project_id="proj-other", url="")
         with patch(f"{WF}.cache") as mock_cache:
             mock_cache.get.return_value = [mock_project]
-            owner, repo = _get_repository_info(session)
+            owner, _repo = _get_repository_info(session)
         assert owner == "me"
 
 

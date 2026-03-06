@@ -43,43 +43,43 @@ from src.models.workflow import (
 )
 
 __all__ = [
-    # agent
-    "AgentAssignment",
-    "AgentAssignmentInput",
-    "AgentSource",
-    "AvailableAgent",
-    "AvailableAgentsResponse",
-    # agent_creator
-    "AgentCreationState",
-    "AgentPreview",
-    "CreationStep",
-    "PipelineStepResult",
-    # chat
-    "ActionType",
-    "ChatMessage",
-    "ChatMessageRequest",
-    "ChatMessagesResponse",
-    "SenderType",
-    # project
-    "GitHubProject",
-    "StatusColumn",
     # recommendation
     "AVAILABLE_LABELS",
     "AITaskProposal",
+    # chat
+    "ActionType",
+    # agent
+    "AgentAssignment",
+    "AgentAssignmentInput",
+    # agent_creator
+    "AgentCreationState",
+    "AgentPreview",
+    "AgentSource",
+    "AvailableAgent",
+    "AvailableAgentsResponse",
+    "ChatMessage",
+    "ChatMessageRequest",
+    "ChatMessagesResponse",
+    "CreationStep",
+    # project
+    "GitHubProject",
     "IssueLabel",
     "IssueMetadata",
     "IssuePriority",
     "IssueRecommendation",
     "IssueSize",
+    "PipelineStepResult",
     "ProposalConfirmRequest",
     "ProposalStatus",
     "RecommendationStatus",
+    "SenderType",
+    "StatusColumn",
     # task
     "Task",
-    # user
-    "UserSession",
     # workflow
     "TriggeredBy",
+    # user
+    "UserSession",
     "WorkflowConfiguration",
     "WorkflowResult",
     "WorkflowTransition",

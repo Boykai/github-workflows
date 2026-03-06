@@ -51,7 +51,7 @@ class GitHubClientFactory:
         self._pool.clear()
 
 
-from src.services.github_projects.service import (  # noqa: E402, F401
+from src.services.github_projects.service import (  # noqa: E402
     GitHubProjectsService,
     github_projects_service,
 )

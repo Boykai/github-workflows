@@ -249,7 +249,7 @@ async def _session_cleanup_loop() -> None:
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan handler.
 
     The entire startup sequence is wrapped in ``try / finally`` so that
