@@ -7,7 +7,7 @@ This guide walks through every supported way to run Agent Projects locally: GitH
 - [Fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
 - [Create a GitHub Project (Kanban)](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) with columns: **Backlog**, **Ready**, **In Progress**, **In Review**, **Done**
 - [GitHub Copilot subscription](https://github.com/features/copilot) (required for agent pipeline and default AI provider)
-- Docker and Docker Compose (recommended), OR Node.js 20+ and Python 3.12+
+- Docker and Docker Compose (recommended), OR Node.js 22+ and Python 3.13+
 - GitHub OAuth App credentials
 
 ## Quick Start: GitHub Codespaces (Easiest)
@@ -20,7 +20,7 @@ Click **Code** → **Codespaces** → **Create codespace on main**, or use:
 
 ### 2. Wait for Setup
 
-The dev container automatically installs Python 3.12, Node.js 20, backend virtual environment, all dependencies, and Playwright browsers.
+The dev container automatically installs Python 3.12, Node.js 20 (see `.devcontainer/devcontainer.json` for exact versions), backend virtual environment, all dependencies, and Playwright browsers.
 
 ### 3. Configure Environment
 

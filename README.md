@@ -35,8 +35,8 @@ See [Setup Guide](docs/setup.md) for full instructions including local developme
 
 | Component | Stack |
 |-----------|-------|
-| **Frontend** | React 18, TypeScript ~5.4, Vite 5, TanStack Query v5, Tailwind CSS |
-| **Backend** | Python 3.12, FastAPI, Pydantic v2, aiosqlite (SQLite WAL), githubkit |
+| **Frontend** | React 19, TypeScript 5.9, Vite 7, TanStack Query v5, Tailwind CSS 4 |
+| **Backend** | Python 3.13, FastAPI, Pydantic v2, aiosqlite (SQLite WAL), githubkit |
 | **Signal Sidecar** | `signal-cli-rest-api` (Docker) |
 | **AI Providers** | GitHub Copilot SDK (default, OAuth) or Azure OpenAI (optional, API key) |
 | **Infrastructure** | Docker Compose (3 services), nginx reverse proxy, SQLite with auto-migrations |
@@ -68,6 +68,7 @@ See [Agent Pipeline](docs/agent-pipeline.md) for the full flow, sub-issue lifecy
 | [Testing](docs/testing.md) | Backend (pytest), frontend (Vitest, Playwright), code quality |
 | [Project Structure](docs/project-structure.md) | Complete file/directory tree with descriptions |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
+| [Custom Agents](docs/custom-agents-best-practices.md) | Best practices for creating custom GitHub agents |
 
 ## Running Tests
 

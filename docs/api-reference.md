@@ -70,6 +70,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/chores/{project_id}/templates` | List available chore templates from `.github/ISSUE_TEMPLATE/` |
 | GET | `/chores/{project_id}` | List all chores for a project |
 | POST | `/chores/{project_id}` | Create a new chore (generates template, commits via PR, creates tracking issue) |
 | PATCH | `/chores/{project_id}/{chore_id}` | Update a chore (schedule, status) |
@@ -96,6 +97,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | PUT | `/settings/global` | Update global settings |
 | GET | `/settings/project/{project_id}` | Get effective project settings |
 | PUT | `/settings/project/{project_id}` | Update project-specific settings |
+| GET | `/settings/models/{provider}` | Fetch available models for a provider |
 
 ## Workflow & Pipeline
 

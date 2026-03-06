@@ -135,6 +135,7 @@ Test files are co-located with components:
 - `hooks/useAuth.test.tsx`
 - `hooks/useBoardRefresh.test.tsx`
 - `hooks/useChat.test.tsx`
+- `hooks/useChatHistory.test.ts`
 - `hooks/useCommands.test.tsx`
 - `hooks/useProjectBoard.test.tsx`
 - `hooks/useProjects.test.tsx`
