@@ -84,8 +84,8 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
           disabled={updateMutation.isPending}
           className={`shrink-0 px-1.5 py-0.5 text-xs font-medium rounded-full cursor-pointer transition-colors ${
             chore.status === 'active'
-              ? 'bg-green-500/15 text-green-700 dark:text-green-400 hover:bg-green-500/25'
-              : 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/25'
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+              : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 hover:bg-accent/20 dark:hover:bg-accent/30'
           } disabled:opacity-50`}
           title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
         >

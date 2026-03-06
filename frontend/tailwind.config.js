@@ -17,7 +17,14 @@ module.exports = {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        display: ['Rye', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'warm-sm': '0 1px 2px 0 rgba(59,45,31,0.08)',
+        'warm': '0 1px 3px 0 rgba(59,45,31,0.12), 0 1px 2px -1px rgba(59,45,31,0.12)',
+        'warm-md': '0 4px 6px -1px rgba(59,45,31,0.12), 0 2px 4px -2px rgba(59,45,31,0.12)',
+        'warm-lg': '0 10px 15px -3px rgba(59,45,31,0.12), 0 4px 6px -4px rgba(59,45,31,0.12)',
       },
       colors: {
         border: "hsl(var(--border))",

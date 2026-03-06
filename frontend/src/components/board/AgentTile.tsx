@@ -46,7 +46,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-amber-500/50 bg-amber-500/5' : 'border-border'} ${sortableProps?.isDragging ? 'shadow-md z-10 scale-[1.02]' : ''}`}
+      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-accent/50 bg-accent/5' : 'border-border'} ${sortableProps?.isDragging ? 'shadow-md z-10 scale-[1.02]' : ''}`}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
     >
@@ -76,7 +76,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
 
         {/* Warning badge (T032) */}
         {isWarning && (
-          <span className="text-amber-500 text-xs font-bold px-1" title="Agent not found in available agents">
+          <span className="text-accent-foreground text-xs font-bold px-1" title="Agent not found in available agents">
             ⚠
           </span>
         )}

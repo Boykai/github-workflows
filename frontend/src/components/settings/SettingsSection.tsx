@@ -83,7 +83,7 @@ export function SettingsSection({
                 {saving ? 'Saving...' : 'Save'}
               </button>
               {saveStatus === 'success' && (
-                <span className="text-sm font-medium text-green-500">Saved!</span>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Saved!</span>
               )}
               {saveStatus === 'error' && (
                 <span className="text-sm font-medium text-destructive">Failed to save</span>

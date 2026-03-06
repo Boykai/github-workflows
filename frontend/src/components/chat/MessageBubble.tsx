@@ -23,7 +23,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       )}
       <div className="flex flex-col gap-1">
         {isSystem ? (
-          <div className="text-sm text-green-500 py-2">{message.content}</div>
+          <div className="text-sm text-accent py-2">{message.content}</div>
         ) : (
           <div className={`px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
             {message.content}

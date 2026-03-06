@@ -15,15 +15,15 @@ interface AgentCardProps {
 const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = {
   active: {
     label: 'Active',
-    className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    className: 'bg-green-100/80 text-green-800 dark:bg-green-900/40 dark:text-green-400',
   },
   pending_pr: {
     label: 'Pending PR',
-    className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    className: 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground',
   },
   pending_deletion: {
     label: 'Pending Deletion',
-    className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    className: 'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground',
   },
 };
 
@@ -99,7 +99,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
 
       {/* Delete success feedback */}
       {deleteMutation.isSuccess && deleteMutation.data && (
-        <div className="text-[10px] text-green-600 dark:text-green-400">
+        <div className="text-[10px] text-green-700 dark:text-green-400">
           ✓ Deletion PR #{deleteMutation.data.pr_number} opened
         </div>
       )}

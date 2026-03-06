@@ -85,11 +85,11 @@ describe('MessageBubble', () => {
     expect(bubble).toBeInTheDocument();
   });
 
-  it('applies system message styling (text-green-500)', () => {
+  it('applies system message styling (text-accent)', () => {
     const { container } = render(
       <MessageBubble message={createMessage({ sender_type: 'system' })} />
     );
-    const systemEl = container.querySelector('.text-green-500');
+    const systemEl = container.querySelector('.text-accent');
     expect(systemEl).toBeInTheDocument();
   });
 });

@@ -3,9 +3,9 @@
 import logging
 from typing import Annotated
 
-import httpx
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
+from githubkit.exception import RequestFailed
 
 from src.api.auth import get_session_dep
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError
@@ -33,7 +33,7 @@ def _is_github_auth_error(exc: Exception) -> bool:
     A 403 with ``X-RateLimit-Remaining: 0`` is a primary rate-limit response,
     NOT an auth error — those are handled separately by the retry logic.
     """
-    if isinstance(exc, httpx.HTTPStatusError):
+    if isinstance(exc, RequestFailed):
         response = exc.response
         code = response.status_code
         if code == 401:
@@ -69,7 +69,7 @@ def _classify_github_error(exc: Exception) -> str:
     Never exposes raw internal strings (URLs, hostnames, stack traces).
     """
     msg = str(exc).lower()
-    if isinstance(exc, httpx.HTTPStatusError):
+    if isinstance(exc, RequestFailed):
         code = exc.response.status_code
         if code == 429:
             return "GitHub API rate limit exceeded"

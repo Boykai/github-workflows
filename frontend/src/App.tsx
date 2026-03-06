@@ -23,13 +23,13 @@ function SignalBannerBar() {
   if (banners.length === 0) return null;
 
   return (
-    <div className="w-full border-b border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-100">
+    <div className="w-full border-b border-accent bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground">
       {banners.map((b) => (
         <div key={b.id} className="flex items-center gap-2 px-4 py-2 text-sm">
           <span className="text-lg">⚠️</span>
           <span className="flex-1">{b.message}</span>
           <button
-            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-amber-300 text-xs font-medium text-amber-700 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-600 dark:text-amber-100 dark:hover:bg-amber-800"
+            className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-accent/50 text-xs font-medium text-accent-foreground hover:bg-accent/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-accent/40 dark:text-accent-foreground dark:hover:bg-accent/30"
             onClick={() => dismissBanner(b.id)}
             disabled={isPending}
             type="button"
@@ -113,7 +113,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 text-center">
-        <h1 className="text-4xl font-bold tracking-tight">Agent Projects</h1>
+        <h1 className="text-4xl font-display font-bold tracking-tight">Agent Projects</h1>
         <p className="text-muted-foreground mb-4">Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
@@ -122,13 +122,14 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between px-6 py-3 bg-background border-b border-border">
+      <header className="flex items-center justify-between px-6 py-3 bg-background border-b-2 border-accent">
         <div className="flex items-center gap-6">
-          <h1 className="text-lg font-semibold tracking-tight">Agent Projects</h1>
+          <h1 className="text-lg font-display font-semibold tracking-tight">Agent Projects</h1>
           <nav className="flex gap-1">
             <Button
               variant={activeView === 'chat' ? 'default' : 'ghost'}
               size="sm"
+              className="transition-all duration-150"
               onClick={() => changeView('chat')}
             >
               Home
@@ -136,6 +137,7 @@ function AppContent() {
             <Button
               variant={activeView === 'board' ? 'default' : 'ghost'}
               size="sm"
+              className="transition-all duration-150"
               onClick={() => changeView('board')}
             >
               Project Board
@@ -143,6 +145,7 @@ function AppContent() {
             <Button
               variant={activeView === 'settings' ? 'default' : 'ghost'}
               size="sm"
+              className="transition-all duration-150"
               onClick={() => changeView('settings')}
             >
               Settings

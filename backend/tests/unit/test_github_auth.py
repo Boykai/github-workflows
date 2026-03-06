@@ -216,12 +216,15 @@ class TestGitHubAuthServiceTokenExchange:
         }
         mock_response.raise_for_status = MagicMock()
 
-        service._client.post = AsyncMock(return_value=mock_response)
+        with patch("src.services.github_auth.GitHub") as MockGitHub:
+            mock_gh = AsyncMock()
+            mock_gh.arequest = AsyncMock(return_value=mock_response)
+            MockGitHub.return_value = mock_gh
 
-        result = await service.exchange_code_for_token("test_code")
+            result = await service.exchange_code_for_token("test_code")
 
-        assert result["access_token"] == "gho_test_token"
-        service._client.post.assert_called_once()
+            assert result["access_token"] == "gho_test_token"
+            mock_gh.arequest.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.services.github_auth.get_settings")
@@ -231,20 +234,23 @@ class TestGitHubAuthServiceTokenExchange:
 
         service = GitHubAuthService()
 
-        mock_response = MagicMock()
-        mock_response.json.return_value = {
+        user_dict = {
             "id": 12345678,
             "login": "testuser",
             "avatar_url": "https://avatars.githubusercontent.com/u/12345678",
         }
-        mock_response.raise_for_status = MagicMock()
+        mock_response = MagicMock()
+        mock_response.parsed_data.model_dump.return_value = user_dict
 
-        service._client.get = AsyncMock(return_value=mock_response)
+        with patch("src.services.github_auth.GitHub") as MockGitHub:
+            mock_gh = MagicMock()
+            mock_gh.rest.users.async_get_authenticated = AsyncMock(return_value=mock_response)
+            MockGitHub.return_value = mock_gh
 
-        result = await service.get_github_user("test_access_token")
+            result = await service.get_github_user("test_access_token")
 
-        assert result["login"] == "testuser"
-        assert result["id"] == 12345678
+            assert result["login"] == "testuser"
+            assert result["id"] == 12345678
 
     @pytest.mark.asyncio
     @patch("src.services.github_auth.get_db", return_value=MagicMock())
@@ -277,8 +283,8 @@ class TestGitHubAuthServiceTokenExchange:
         }
         user_response.raise_for_status = MagicMock()
 
-        service._client.post = AsyncMock(return_value=token_response)
-        service._client.get = AsyncMock(return_value=user_response)
+        service.exchange_code_for_token = AsyncMock(return_value=token_response.json.return_value)
+        service.get_github_user = AsyncMock(return_value=user_response.json.return_value)
 
         with patch(
             "src.services.github_auth.store_save_session",
@@ -293,13 +299,11 @@ class TestGitHubAuthServiceTokenExchange:
 
     @pytest.mark.asyncio
     @patch("src.services.github_auth.get_settings")
-    async def test_close_closes_http_client(self, mock_settings):
-        """Should close the underlying HTTP client."""
+    async def test_close_is_noop(self, mock_settings):
+        """Close should be a no-op (SDK manages connections)."""
         mock_settings.return_value = MagicMock()
         service = GitHubAuthService()
-        service._client = AsyncMock()
-        await service.close()
-        service._client.aclose.assert_awaited_once()
+        await service.close()  # Should not raise
 
     @pytest.mark.asyncio
     @patch("src.services.github_auth.get_settings")
@@ -318,7 +322,7 @@ class TestGitHubAuthServiceTokenExchange:
             "error_description": "The code has expired",
         }
         error_response.raise_for_status = MagicMock()
-        service._client.post = AsyncMock(return_value=error_response)
+        service.exchange_code_for_token = AsyncMock(return_value=error_response.json.return_value)
 
         with pytest.raises(ValueError, match="OAuth error.*The code has expired"):
             await service.create_session("expired_code")
@@ -349,9 +353,12 @@ class TestGitHubAuthServiceTokenExchange:
             "expires_in": 7200,
         }
         mock_resp.raise_for_status = MagicMock()
-        service._client.post = AsyncMock(return_value=mock_resp)
+        with patch("src.services.github_auth.GitHub") as MockGitHub:
+            mock_gh = AsyncMock()
+            mock_gh.arequest = AsyncMock(return_value=mock_resp)
+            MockGitHub.return_value = mock_gh
 
-        result = await service.refresh_token(session)
+            result = await service.refresh_token(session)
 
         assert result.access_token == "new_token"
         assert result.refresh_token == "new_refresh"
@@ -398,10 +405,13 @@ class TestGitHubAuthServiceTokenExchange:
             "error_description": "Token has been revoked",
         }
         mock_resp.raise_for_status = MagicMock()
-        service._client.post = AsyncMock(return_value=mock_resp)
+        with patch("src.services.github_auth.GitHub") as MockGitHub:
+            mock_gh = AsyncMock()
+            mock_gh.arequest = AsyncMock(return_value=mock_resp)
+            MockGitHub.return_value = mock_gh
 
-        with pytest.raises(ValueError, match="Token refresh error.*Token has been revoked"):
-            await service.refresh_token(session)
+            with pytest.raises(ValueError, match="Token refresh error.*Token has been revoked"):
+                await service.refresh_token(session)
 
     @pytest.mark.asyncio
     @patch("src.services.github_auth.store_save_session", new_callable=AsyncMock)
@@ -419,7 +429,7 @@ class TestGitHubAuthServiceTokenExchange:
             "avatar_url": "https://example.com/avatar.png",
         }
         user_response.raise_for_status = MagicMock()
-        service._client.get = AsyncMock(return_value=user_response)
+        service.get_github_user = AsyncMock(return_value=user_response.json.return_value)
 
         session = await service.create_session_from_token("ghp_pat_token")
 

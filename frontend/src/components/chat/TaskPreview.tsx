@@ -31,7 +31,7 @@ export function TaskPreview({ proposal, onConfirm, onReject }: TaskPreviewProps)
         <button onClick={onReject} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-muted text-muted-foreground border border-border hover:bg-border">
           Cancel
         </button>
-        <button onClick={onConfirm} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-green-500 text-white border-none hover:bg-green-600">
+        <button onClick={onConfirm} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90">
           Create Task
         </button>
       </div>

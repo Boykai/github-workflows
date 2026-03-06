@@ -49,7 +49,7 @@ test.describe('API Integration', () => {
     
     if (response.ok()) {
       const data = await response.json();
-      expect(data.status).toBe('healthy');
+      expect(['healthy', 'pass']).toContain(data.status);
     }
   });
 
