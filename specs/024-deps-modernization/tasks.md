@@ -61,7 +61,7 @@
 
 ## Phase 4: User Story 2 — Frontend Dependency & Runtime Upgrade (Priority: P1)
 
-**Goal**: Update all frontend JS/TS dependencies to latest stable versions, remove unused deps, upgrade to React 19, Vite 7, Tailwind v4, ESLint 10
+**Goal**: Update all frontend JS/TS dependencies to latest stable versions, remove unused deps, upgrade to React 19, Vite 7, Tailwind v4, ESLint 9
 
 **Independent Test**: `cd frontend && rm -rf node_modules && npm install && npm run type-check && npm run lint && npm run test && npm run build`
 
@@ -106,7 +106,7 @@
 - [X] T038 [US3] Run frontend type check to verify: `cd frontend && npm run type-check`
 - [X] T039 [US3] Run frontend build to verify: `cd frontend && npm run build`
 
-**Checkpoint**: All frontend code patterns modernized. forwardRef removed, Tailwind v4 CSS-first, ESLint 10 clean. Build/test/lint all pass.
+**Checkpoint**: All frontend code patterns modernized. forwardRef removed, Tailwind v4 CSS-first, ESLint 9 clean. Build/test/lint all pass.
 
 ---
 
@@ -227,7 +227,7 @@ Task: T033 — Remove forwardRef from frontend/src/components/ui/card.tsx
 1. Baseline verification → Pre-upgrade state confirmed
 2. US1 (Backend deps) → `pytest` passes with all new versions
 3. US2 (Frontend deps) → `npm run build` passes with React 19, Vite 7, Tailwind v4
-4. US3 (Frontend patterns) → forwardRef removed, CSS-first Tailwind, ESLint 10 clean
+4. US3 (Frontend patterns) → forwardRef removed, CSS-first Tailwind, ESLint 9 clean
 5. US4 (Backend patterns) → Expanded ruff rules, zero violations
 6. US5 (Docker) → Full stack builds and runs in containers
 7. Each story adds confidence without breaking previous stories

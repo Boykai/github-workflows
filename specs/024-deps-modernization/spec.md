@@ -31,9 +31,9 @@ This includes upgrading FastAPI, Uvicorn, Pydantic, httpx, tenacity, websockets,
 
 As a developer, I want all frontend JavaScript/TypeScript dependencies updated to their latest stable versions and the Node.js runtime upgraded to 22 LTS so that the frontend benefits from security patches, performance improvements, and modern toolchain features.
 
-This includes upgrading React 18 to 19, Vite 5 to 6, Tailwind CSS 3 to 4, TypeScript, ESLint, Vitest, Playwright, TanStack Query, dnd-kit, lucide-react, and all dev tooling. Unused dependencies (socket.io-client) are removed. The Dockerfile base image moves from Node 20 to Node 22.
+This includes upgrading React 18 to 19, Vite 5 to 7, Tailwind CSS 3 to 4, TypeScript, ESLint, Vitest, Playwright, TanStack Query, dnd-kit, lucide-react, and all dev tooling. Unused dependencies (socket.io-client) are removed. The Dockerfile base image moves from Node 20 to Node 22.
 
-**Why this priority**: The frontend directly affects user experience. React 19, Tailwind v4, and Vite 6 represent the current generation of the frontend toolchain. Staying current prevents accumulation of migration debt. Removing socket.io-client (unused — native WebSocket is used) reduces bundle size.
+**Why this priority**: The frontend directly affects user experience. React 19, Tailwind v4, and Vite 7 represent the current generation of the frontend toolchain. Staying current prevents accumulation of migration debt. Removing socket.io-client (unused — native WebSocket is used) reduces bundle size.
 
 **Independent Test**: Can be fully tested by running `npm install`, `npm run type-check`, `npm run lint`, `npm run test`, and `npm run build` — all must succeed. The Docker image must build and serve the app via nginx.
 
@@ -42,7 +42,7 @@ This includes upgrading React 18 to 19, Vite 5 to 6, Tailwind CSS 3 to 4, TypeSc
 1. **Given** the updated package.json, **When** `npm install` is run in a clean node_modules, **Then** all packages install without peer dependency conflicts.
 2. **Given** the React 19 upgrade, **When** the application renders in a browser, **Then** all existing UI components display and function identically to their pre-upgrade behavior.
 3. **Given** the Tailwind v4 migration, **When** the application loads, **Then** all styles (light mode, dark mode, custom theme colors, animations) render correctly with no visual regressions.
-4. **Given** the Vite 6 upgrade, **When** `npm run build` is executed, **Then** the production build completes successfully with source maps and outputs to the dist/ directory.
+4. **Given** the Vite 7 upgrade, **When** `npm run build` is executed, **Then** the production build completes successfully with source maps and outputs to the dist/ directory.
 5. **Given** the updated dependencies, **When** `npm run test` is executed, **Then** all existing unit tests pass.
 6. **Given** the dependency list, **When** audited for unused packages, **Then** socket.io-client is no longer present since the codebase uses native WebSocket.
 
@@ -117,7 +117,7 @@ As a developer, I want the Docker Compose stack to build and run successfully wi
 - **FR-005**: The pytest-asyncio configuration MUST be compatible with version 0.25+ (including `asyncio_default_fixture_loop_scope` if required).
 - **FR-006**: The pyright configuration MUST target Python 3.13.
 - **FR-007**: The frontend Dockerfile MUST use Node 22-alpine as its builder base image.
-- **FR-008**: The frontend package.json MUST specify React 19, Vite 6, Tailwind CSS 4, and all other dependencies at their latest stable versions as of March 2026.
+- **FR-008**: The frontend package.json MUST specify React 19, Vite 7, Tailwind CSS 4, and all other dependencies at their latest stable versions as of March 2026.
 - **FR-009**: The unused `socket.io-client` dependency MUST be removed from package.json.
 - **FR-010**: The Tailwind CSS configuration MUST be migrated from JavaScript config files (`tailwind.config.js`, `postcss.config.js`) to CSS-first configuration using `@import "tailwindcss"` and `@theme` blocks in `index.css`.
 - **FR-011**: The `autoprefixer` and `tailwindcss-animate` dev dependencies MUST be removed (functionality is built into Tailwind v4).
@@ -141,7 +141,7 @@ As a developer, I want the Docker Compose stack to build and run successfully wi
 - Upgrading runtime environments (Python 3.12→3.13, Node 20→22)
 - Migrating Tailwind CSS v3 to v4 (CSS-first configuration)
 - Upgrading React 18 to 19 (removing forwardRef boilerplate)
-- Upgrading Vite 5 to 6
+- Upgrading Vite 5 to 7
 - Removing unused dependencies (python-jose, socket.io-client)
 - Expanding ruff lint rules and applying auto-fixes
 - Updating Dockerfiles and verifying Docker Compose builds

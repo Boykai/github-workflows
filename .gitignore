@@ -37,6 +37,10 @@ frontend/dist/
 *.log
 *.tsbuildinfo
 
+# Vite config compiled artifacts (vite.config.ts is the source of truth)
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
 # Environment
 .env
 .env.local
