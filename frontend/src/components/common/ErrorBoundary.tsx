@@ -44,7 +44,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div role="alert" style={{ padding: '2rem', textAlign: 'center' }}>
           <h2>Something went wrong</h2>
-          <pre style={{ color: '#b00', whiteSpace: 'pre-wrap', marginBottom: '1rem' }}>
+          <pre className="text-destructive whitespace-pre-wrap mb-4">
             {this.state.error?.message}
           </pre>
           <button type="button" onClick={this.handleReset}>

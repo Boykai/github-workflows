@@ -76,11 +76,15 @@
   h1, h2, h3 {
     font-family: theme('fontFamily.display');
   }
-  /* Ensure native select/option elements respect the current theme */
-  select {
+  /* Ensure native form elements respect the current theme */
+  select,
+  input,
+  textarea {
     color-scheme: light;
   }
-  .dark select {
+  .dark select,
+  .dark input,
+  .dark textarea {
     color-scheme: dark;
   }
   select option {
