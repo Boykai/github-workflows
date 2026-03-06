@@ -49,11 +49,13 @@ github-workflows/
 │   │   │   ├── settings.py       #   User, global, project settings
 │   │   │   ├── signal.py         #   Signal connection, preferences, banners
 │   │   │   ├── tasks.py          #   Task CRUD
+│   │   │   ├── agents.py         #   Agent CRUD and configuration
+│   │   │   ├── metadata.py       #   Repository metadata (labels, branches, milestones)
 │   │   │   ├── webhooks.py       #   GitHub webhook handler
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–010, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (001–012, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
@@ -63,6 +65,7 @@ github-workflows/
 │   │   │   ├── cleanup.py        #   Cleanup models
 │   │   │   ├── mcp.py            #   MCP configuration models
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
+│   │   │   ├── agents.py         #   AgentConfig list/CRUD models
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
 │   │   │   ├── settings.py       #   User preferences, global/project settings
 │   │   │   ├── signal.py         #   Signal connection, message, banner models
@@ -74,7 +77,8 @@ github-workflows/
 │   │   │   └── task_generation.py   # Task generation prompts
 │   │   └── services/             # Business logic layer
 │   │       ├── github_projects/
-│   │       │   ├── service.py    #   GitHubProjectsService (shared httpx.AsyncClient)
+│   │       │   ├── __init__.py    #   GitHubClientFactory (pooled githubkit SDK clients)
+│   │       │   ├── service.py    #   GitHubProjectsService (REST + GraphQL via githubkit)
 │   │       │   └── graphql.py    #   GraphQL queries and mutations
 │   │       ├── copilot_polling/
 │   │       │   ├── state.py      #   Module-level mutable state
@@ -95,6 +99,8 @@ github-workflows/
 │   │       │   ├── scheduler.py  #   Schedule management
 │   │       │   ├── service.py    #   ChoresService
 │   │       │   └── template_builder.py  # Template generation
+│   │       ├── agents/
+│   │       │   └── service.py    #   Agent configuration service
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
@@ -104,7 +110,9 @@ github-workflows/
 │   │       ├── database.py       #   aiosqlite connection, WAL mode, migrations
 │   │       ├── encryption.py     #   Fernet encryption for tokens at rest
 │   │       ├── github_auth.py    #   OAuth token exchange
+│   │       ├── github_commit_workflow.py  # Git commit workflow helpers
 │   │       ├── mcp_store.py      #   MCP configuration persistence
+│   │       ├── metadata_service.py  # Repository metadata caching service
 │   │       ├── model_fetcher.py  #   AI model metadata fetching
 │   │       ├── session_store.py  #   Session CRUD (async SQLite)
 │   │       ├── settings_store.py #   Settings persistence (async SQLite)

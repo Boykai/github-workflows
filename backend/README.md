@@ -67,8 +67,8 @@ src/
 │
 ├── services/                  # Business logic layer
 │   ├── github_projects/       # GitHub API package (decomposed from monolithic file)
-│   │   ├── __init__.py        #   Re-exports GitHubProjectsService, github_projects_service
-│   │   ├── service.py         #   Main service class, shared httpx.AsyncClient, retry logic
+│   │   ├── __init__.py        #   GitHubClientFactory (pooled githubkit SDK clients) + re-exports
+│   │   ├── service.py         #   Main service class, REST and GraphQL via githubkit SDK
 │   │   └── graphql.py         #   GraphQL query/mutation strings
 │   │
 │   ├── copilot_polling/       # Background polling package (decomposed, 7 sub-modules)
@@ -225,9 +225,9 @@ Pluggable AI completion layer used by `ai_agent.py` for issue generation:
 Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claude Opus 4.6** as the default model for Copilot agents.
 
 #### `service.py` — GitHubProjectsService class
-- Shared `httpx.AsyncClient` with connection pooling
-- `_request_with_retry(idempotent=True)` — Generic retry wrapper for transient failures
-- `_graphql()` — GraphQL request routing through retry logic
+- Pooled `githubkit` SDK clients via `GitHubClientFactory` with built-in retry, throttling, and HTTP cache
+- `_rest()` / `_rest_response()` — SDK-routed REST helpers with automatic auth and rate-limit tracking
+- `_graphql()` — GraphQL request routing through SDK client
 - **GraphQL**: `list_projects`, `get_project_details`, `get_project_items`, `update_item_status`, `assign_copilot_to_issue` (GraphQL-first with REST fallback, model: `claude-opus-4.6`), `merge_pull_request` (squash merge child PRs), `mark_pr_ready_for_review`, `request_copilot_review`
 - **REST**: `create_issue`, `add_issue_to_project`, `create_issue_comment`, `update_issue_body`, `get_pr_changed_files`, `get_file_content_from_ref`, `update_pr`, `request_review`, `delete_branch`, `close_issue`
 - **Sub-Issues**: `create_sub_issue()`, `list_sub_issues()` (for mapping reconstruction)
@@ -268,7 +268,7 @@ The test suite covers:
 - **Integration**: Custom agent assignment flow
 - **E2E**: Full API endpoint testing
 
-Total: **926+ tests** across 27 test files (25 unit + 1 integration + 1 E2E).
+Total: **1,450+ tests** across 50 test files (47 unit + 1 integration + 1 E2E + 1 conftest).
 
 ## Environment
 
