@@ -18,6 +18,8 @@ def evaluate_time_trigger(chore: Chore) -> bool:
         return False
 
     base_iso = chore.last_triggered_at or chore.created_at
+    if base_iso.endswith("Z"):
+        base_iso = f"{base_iso[:-1]}+00:00"
     base = datetime.fromisoformat(base_iso)
     now = datetime.now(UTC)
 
