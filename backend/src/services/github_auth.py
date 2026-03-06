@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 import httpx
+from githubkit import GitHub, TokenAuthStrategy
 
 from src.config import get_settings
 from src.models.user import UserSession
@@ -37,7 +38,6 @@ _OAUTH_STATE_TTL = timedelta(minutes=10)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
 GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_USER_API_URL = "https://api.github.com/user"
 
 
 class GitHubAuthService:
@@ -45,6 +45,7 @@ class GitHubAuthService:
 
     def __init__(self):
         self.settings = get_settings()
+        # httpx client retained for OAuth token exchange (non-API endpoints)
         self._client = httpx.AsyncClient(timeout=30.0)
 
     async def close(self):
@@ -124,16 +125,18 @@ class GitHubAuthService:
         Returns:
             GitHub user data
         """
-        response = await self._client.get(
-            GITHUB_USER_API_URL,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
-        response.raise_for_status()
-        return response.json()
+        github = GitHub(TokenAuthStrategy(access_token))
+        try:
+            response = await github.rest.users.async_get_authenticated()
+            # Convert Pydantic model to dict for backward compatibility
+            data = response.parsed_data
+            return {
+                "id": data.id,
+                "login": data.login,
+                "avatar_url": getattr(data, "avatar_url", None),
+            }
+        finally:
+            await github.aclose()
 
     async def create_session(self, code: str) -> UserSession:
         """

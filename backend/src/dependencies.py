@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     import aiosqlite
 
     from src.models.user import UserSession
-    from src.services.github_projects import GitHubProjectsService
+    from src.services.github_projects import GitHubClientFactory, GitHubProjectsService
     from src.services.websocket import ConnectionManager
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,16 @@ def get_github_service(request: Request) -> GitHubProjectsService:
     from src.services.github_projects import github_projects_service
 
     return github_projects_service
+
+
+def get_client_factory(request: Request) -> GitHubClientFactory:
+    """Return the singleton :class:`GitHubClientFactory`."""
+    factory = getattr(request.app.state, "client_factory", None)
+    if factory is not None:
+        return factory
+    from src.services.github_projects.client_factory import GitHubClientFactory
+
+    return GitHubClientFactory()
 
 
 def get_connection_manager(request: Request) -> ConnectionManager:

@@ -1,12 +1,5 @@
 """GraphQL queries, mutations, and fragments for GitHub Projects V2 API."""
 
-GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
-
-# T057: Rate limit configuration
-MAX_RETRIES = 3
-INITIAL_BACKOFF_SECONDS = 1
-MAX_BACKOFF_SECONDS = 30
-
 
 # GraphQL fragments for reusable field selections
 PROJECT_FIELDS_FRAGMENT = """

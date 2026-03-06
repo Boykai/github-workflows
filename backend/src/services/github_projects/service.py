@@ -1,8 +1,9 @@
 """GitHub Projects V2 GraphQL service."""
 
+from __future__ import annotations
+
 import asyncio
 import base64
-import contextvars
 import hashlib
 import json as json_mod
 import logging
@@ -10,10 +11,8 @@ import re
 import time
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from email.utils import parsedate_to_datetime
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
-import httpx
 import yaml
 
 from src.models.agent import AgentSource, AvailableAgent
@@ -41,13 +40,9 @@ from src.services.github_projects.graphql import (
     GET_PULL_REQUEST_QUERY,
     GET_REPOSITORY_INFO_QUERY,
     GET_SUGGESTED_ACTORS_QUERY,
-    GITHUB_GRAPHQL_URL,
-    INITIAL_BACKOFF_SECONDS,
     LIST_ORG_PROJECTS_QUERY,
     LIST_USER_PROJECTS_QUERY,
     MARK_PR_READY_FOR_REVIEW_MUTATION,
-    MAX_BACKOFF_SECONDS,
-    MAX_RETRIES,
     MERGE_PULL_REQUEST_MUTATION,
     REQUEST_COPILOT_REVIEW_MUTATION,
     UPDATE_DATE_FIELD_MUTATION,
@@ -59,6 +54,11 @@ from src.services.github_projects.graphql import (
 )
 from src.utils import BoundedDict, utcnow
 
+if TYPE_CHECKING:
+    from githubkit import GitHub
+
+    from src.services.github_projects.client_factory import GitHubClientFactory
+
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
@@ -66,34 +66,18 @@ _T = TypeVar("_T")
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
-# Request-scoped storage for rate limit info.  Each FastAPI async handler
-# runs in its own contextvars context, so this isolates rate limit data
-# per-request and prevents concurrent requests from overwriting each other.
-_request_rate_limit: contextvars.ContextVar[dict[str, int] | None] = contextvars.ContextVar(
-    "_request_rate_limit", default=None
-)
-
 
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
-    def __init__(self):
-        self._client = httpx.AsyncClient(timeout=30.0)
-        self._last_rate_limit: dict[str, int] | None = None
-        # ETag cache for conditional GraphQL requests.
-        # Key: hash of (token, query, sorted variables) → (etag, parsed data)
-        # Token is included so responses are never shared across users.
-        self._etag_cache: dict[str, tuple[str, dict]] = {}
-        self._ETAG_CACHE_MAX_SIZE: int = 256
-        # Inter-call throttling: minimum 500ms between consecutive GitHub API calls
-        # to stay well within the 5,000 req/hour rate limit.
+    def __init__(self, client_factory: GitHubClientFactory | None = None):
+        if client_factory is not None:
+            self._client_factory = client_factory
+        else:
+            from src.services.github_projects.client_factory import GitHubClientFactory
 
-        self._last_request_time: float = 0.0
-        self._min_request_interval: float = 0.5  # seconds (configurable)
-        self._global_cooldown_until: float = 0.0
-        self._cooldown_lock = asyncio.Lock()
+            self._client_factory = GitHubClientFactory()
         self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(maxlen=256)
-        self._low_quota_threshold: int = 150
         self._coalesced_hit_count: int = 0
         self._cooldown_hit_count: int = 0
         self._cycle_cache_hit_count: int = 0
@@ -104,6 +88,10 @@ class GitHubProjectsService:
         # Prevents redundant API calls when Step 0, Steps 1–3, and recovery
         # all query the same issue/PR data within a single 60s cycle.
         self._cycle_cache: dict[str, object] = {}
+
+    def _get_client(self, access_token: str) -> GitHub:
+        """Get a GitHub SDK client for the given access token."""
+        return self._client_factory.get_client(access_token)
 
     def clear_cycle_cache(self) -> None:
         """Clear the per-poll-cycle cache.
@@ -136,93 +124,40 @@ class GitHubProjectsService:
             return
 
         logger.info(
-            "request-management-metrics coalesced_hit_count=%d cooldown_hit_count=%d"
+            "request-management-metrics coalesced_hit_count=%d"
             " cycle_cache_hit_count=%d",
             self._coalesced_hit_count,
-            self._cooldown_hit_count,
             self._cycle_cache_hit_count,
         )
         self._last_metrics_log_at = now
 
-    @staticmethod
-    def _parse_retry_after_seconds(retry_after: str | None) -> int | None:
-        """Parse Retry-After header value into seconds.
-
-        Supports either integer seconds or HTTP-date format.
-        """
-        if not retry_after:
-            return None
-        value = retry_after.strip()
-        if not value:
-            return None
-
-        try:
-            return max(int(value), 0)
-        except ValueError:
-            pass
-
-        try:
-            parsed = parsedate_to_datetime(value)
-            wait_seconds = int(parsed.timestamp() - utcnow().timestamp())
-            return max(wait_seconds, 0)
-        except Exception:
-            return None
-
-    @staticmethod
-    def _is_secondary_limit(response: httpx.Response) -> bool:
-        """Return True for GitHub secondary rate-limit / abuse-detection responses."""
-        if response.status_code != 403:
-            return False
-
-        if response.headers.get("retry-after"):
-            return True
-
-        body_text = (response.text or "").lower()
-        return any(
-            marker in body_text
-            for marker in (
-                "secondary rate limit",
-                "abuse detection",
-                "temporarily blocked",
-            )
-        )
-
-    async def _apply_global_cooldown(self, wait_seconds: float) -> None:
-        """Extend shared cooldown window for all concurrent GitHub requests."""
-        if wait_seconds <= 0:
-            return
-        async with self._cooldown_lock:
-            new_until = time.monotonic() + wait_seconds
-            self._global_cooldown_until = max(self._global_cooldown_until, new_until)
-
-    async def _respect_global_cooldown(self) -> None:
-        """Sleep until shared cooldown expires, if one is active."""
-        wait = self._global_cooldown_until - time.monotonic()
-        if wait > 0:
-            self._cooldown_hit_count += 1
-            logger.info("Global GitHub API cooldown active for %.1fs", wait)
-            await asyncio.sleep(wait)
-            self._maybe_log_request_management_metrics()
-
     async def close(self):
-        """Close HTTP client."""
-        await self._client.aclose()
+        """Close all pooled GitHub SDK clients."""
+        await self._client_factory.close()
 
-    async def http_get(self, url: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
-        """Public HTTP GET — for call sites that need raw GitHub REST access.
+    def get_last_rate_limit(self) -> dict[str, int] | None:
+        """Return the most recent rate limit info.
 
-        Use ``_build_headers(token)`` to construct ``headers``.
+        Returns a dict with keys ``limit``, ``remaining``, ``reset_at``,
+        ``used`` — or ``None`` if no API calls have been made yet.
+        Delegates to the :class:`GitHubClientFactory` rate limit adapter.
         """
-        return await self._client.get(url, headers=headers)
-
-    @staticmethod
-    def _build_headers(access_token: str) -> dict[str, str]:
-        """Build standard REST API headers for GitHub."""
+        rl = self._client_factory.get_rate_limit()
+        if rl is None:
+            return None
         return {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
+            "limit": rl.limit,
+            "remaining": rl.remaining,
+            "reset_at": rl.reset_at,
+            "used": rl.used,
         }
+
+    def clear_last_rate_limit(self) -> None:
+        """Clear the cached rate limit state.
+
+        Called by the polling loop when stale rate-limit data is detected.
+        """
+        self._client_factory.clear_rate_limit()
 
     async def _with_fallback(
         self,
@@ -278,211 +213,6 @@ class GitHubProjectsService:
         normalised = (login or "").lower().removesuffix("[bot]")
         return normalised == "copilot-swe-agent"
 
-    def _extract_rate_limit_headers(self, response: httpx.Response) -> None:
-        """Extract and store rate limit headers from a GitHub API response.
-
-        Writes to the request-scoped ``_request_rate_limit`` context var so
-        concurrent requests (different users/tokens) cannot overwrite each
-        other's data.  Also keeps the instance-level ``_last_rate_limit`` as a
-        fallback for call sites outside an async request context.
-        """
-        try:
-            limit = response.headers.get("X-RateLimit-Limit")
-            remaining = response.headers.get("X-RateLimit-Remaining")
-            reset_at = response.headers.get("X-RateLimit-Reset")
-            if limit is not None and remaining is not None and reset_at is not None:
-                limit_int = int(limit)
-                remaining_int = int(remaining)
-                reset_int = int(reset_at)
-                info: dict[str, int] = {
-                    "limit": limit_int,
-                    "remaining": remaining_int,
-                    "reset_at": reset_int,
-                    "used": limit_int - remaining_int,
-                }
-                # Request-scoped (preferred — isolated per async handler)
-                _request_rate_limit.set(info)
-                # Instance-level fallback
-                self._last_rate_limit = info
-        except (ValueError, TypeError):
-            pass
-
-    def get_last_rate_limit(self) -> dict[str, int] | None:
-        """Return the most recent rate limit info for the current request.
-
-        Prefers the request-scoped context var (safe under concurrency),
-        falling back to the instance-level value for callers outside an
-        async request context.
-        """
-        return _request_rate_limit.get() or self._last_rate_limit
-
-    def clear_last_rate_limit(self) -> None:
-        """Clear both the request-scoped contextvar and instance-level rate-limit caches.
-
-        Called by the polling loop when stale rate-limit data is detected
-        (e.g. the reset window has already passed but the cached remaining
-        count is still zero).  Both caches must be cleared because
-        ``get_last_rate_limit`` prefers the contextvar — clearing only
-        the instance attribute would leave stale data in the contextvar,
-        causing the polling loop to re-read it and enter an infinite
-        pause/sleep cycle.
-        """
-        _request_rate_limit.set(None)
-        self._last_rate_limit = None
-
-    # ──────────────────────────────────────────────────────────────────
-    # T057: Rate limit handling with exponential backoff
-    # ──────────────────────────────────────────────────────────────────
-    async def _request_with_retry(
-        self,
-        method: str,
-        url: str,
-        headers: dict,
-        json: dict | None = None,
-        *,
-        idempotent: bool = True,
-    ) -> httpx.Response:
-        """
-        Make HTTP request with exponential backoff on rate limits.
-
-        Args:
-            method: HTTP method (GET, POST, PATCH, PUT, etc.)
-            url: Request URL
-            headers: Request headers
-            json: Optional JSON body
-            idempotent: If False, fail fast without retry (for non-idempotent
-                mutations like issue creation or PR merge).
-
-        Returns:
-            Response object
-
-        Raises:
-            httpx.HTTPStatusError: If request fails after retries
-        """
-        max_attempts = (MAX_RETRIES + 1) if idempotent else 1
-        backoff = INITIAL_BACKOFF_SECONDS
-
-        for attempt in range(max_attempts):
-            await self._respect_global_cooldown()
-
-            # Inter-call throttle: ensure ≥500ms between consecutive API calls
-            now = time.monotonic()
-            min_interval = self._min_request_interval
-            last_rl = self.get_last_rate_limit()
-            if isinstance(last_rl, dict):
-                remaining = last_rl.get("remaining")
-                if isinstance(remaining, int) and remaining <= self._low_quota_threshold:
-                    min_interval = max(min_interval, 1.0)
-
-            elapsed = now - self._last_request_time
-            if elapsed < min_interval and self._last_request_time > 0:
-                wait = min_interval - elapsed
-                logger.debug("Throttling: waiting %.0fms before next GitHub API call", wait * 1000)
-                await asyncio.sleep(wait)
-
-            try:
-                upper = method.upper()
-                if upper == "GET":
-                    response = await self._client.get(url, headers=headers)
-                elif upper == "POST":
-                    response = await self._client.post(url, json=json, headers=headers)
-                elif upper == "PATCH":
-                    response = await self._client.patch(url, json=json, headers=headers)
-                elif upper == "PUT":
-                    response = await self._client.put(url, json=json, headers=headers)
-                else:
-                    raise ValueError(f"Unsupported method: {method}")
-
-                self._last_request_time = time.monotonic()
-
-                # Check for rate limit
-                if response.status_code == 403:
-                    remaining = response.headers.get("X-RateLimit-Remaining", "0")
-                    if remaining == "0":
-                        retry_after_seconds = self._parse_retry_after_seconds(
-                            response.headers.get("retry-after")
-                        )
-                        reset_time = int(response.headers.get("X-RateLimit-Reset", "0"))
-                        wait_seconds = max(
-                            retry_after_seconds or 0,
-                            reset_time - int(utcnow().timestamp()),
-                            backoff,
-                        )
-                        wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
-                        await self._apply_global_cooldown(wait_seconds)
-
-                        logger.warning(
-                            "Rate limited. Waiting %d seconds before retry %d/%d",
-                            wait_seconds,
-                            attempt + 1,
-                            MAX_RETRIES,
-                        )
-                        await asyncio.sleep(wait_seconds)
-                        backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
-                        continue
-
-                    if self._is_secondary_limit(response) and attempt < max_attempts - 1:
-                        wait_seconds = (
-                            self._parse_retry_after_seconds(response.headers.get("retry-after"))
-                            or backoff
-                        )
-                        wait_seconds = min(wait_seconds, MAX_BACKOFF_SECONDS)
-                        await self._apply_global_cooldown(wait_seconds)
-                        logger.warning(
-                            "Secondary rate limit detected. Waiting %d seconds before retry %d/%d",
-                            wait_seconds,
-                            attempt + 1,
-                            MAX_RETRIES,
-                        )
-                        await asyncio.sleep(wait_seconds)
-                        backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
-                        continue
-
-                # Always extract rate limit headers — even from error responses
-                # (e.g. 403/429) — so downstream callers have accurate quota info.
-                self._extract_rate_limit_headers(response)
-
-                # 304 Not Modified is expected for conditional (ETag) requests;
-                # return it without raising so callers can serve cached data.
-                if response.status_code == 304:
-                    return response
-
-                response.raise_for_status()
-                return response
-
-            except httpx.HTTPStatusError as e:
-                # Capture rate limit headers from error responses so
-                # get_last_rate_limit() reflects the most recent state.
-                self._extract_rate_limit_headers(e.response)
-                if e.response.status_code in (429, 502, 503) and attempt < max_attempts - 1:
-                    # Respect retry-after header if present (FR-020)
-                    wait = backoff
-                    if e.response.status_code == 429:
-                        wait = (
-                            self._parse_retry_after_seconds(e.response.headers.get("retry-after"))
-                            or backoff
-                        )
-                        wait = min(wait, MAX_BACKOFF_SECONDS)
-                        await self._apply_global_cooldown(wait)
-
-                    logger.warning(
-                        "Request failed with %d. Retrying in %d seconds (%d/%d)",
-                        e.response.status_code,
-                        wait,
-                        attempt + 1,
-                        MAX_RETRIES,
-                    )
-                    await asyncio.sleep(wait)
-                    backoff = min(backoff * 2, MAX_BACKOFF_SECONDS)
-                else:
-                    raise
-
-        raise httpx.HTTPStatusError(
-            "Max retries exceeded",
-            request=httpx.Request("GET", ""),  # type: ignore[arg-type]
-            response=httpx.Response(500),
-        )
-
     async def _graphql(
         self,
         access_token: str,
@@ -491,13 +221,10 @@ class GitHubProjectsService:
         extra_headers: dict | None = None,
         graphql_features: list[str] | None = None,
     ) -> dict:
-        """
-        Execute GraphQL query against GitHub API.
+        """Execute GraphQL query against GitHub API via githubkit.
 
-        Routes through _request_with_retry for consistent retry/backoff handling.
-        Supports ETag-based conditional requests: if the data hasn't changed
-        since the last identical request, GitHub returns 304 Not Modified which
-        does NOT count against the rate limit.
+        githubkit handles retry, rate limiting, and HTTP caching (ETag)
+        internally.  In-flight coalescing is preserved as app-layer logic.
 
         Args:
             access_token: GitHub OAuth access token
@@ -510,12 +237,6 @@ class GitHubProjectsService:
         Returns:
             GraphQL response data
         """
-        headers = self._build_headers(access_token)
-        if extra_headers:
-            headers.update(extra_headers)
-        if graphql_features:
-            headers["GraphQL-Features"] = ",".join(graphql_features)
-
         # Build a stable cache key scoped by token identity so responses
         # are never shared across different users/permissions.
         token_prefix = hashlib.sha256(access_token.encode()).hexdigest()[:16]
@@ -534,11 +255,6 @@ class GitHubProjectsService:
             ).encode()
         ).hexdigest()
 
-        cached = self._etag_cache.get(cache_key)
-        if cached:
-            etag, _cached_data = cached
-            headers["If-None-Match"] = etag
-
         inflight = self._inflight_graphql.get(cache_key)
         if inflight:
             self._coalesced_hit_count += 1
@@ -547,35 +263,34 @@ class GitHubProjectsService:
             return await inflight
 
         async def _execute_graphql() -> dict:
-            response = await self._request_with_retry(
-                "POST",
-                GITHUB_GRAPHQL_URL,
-                headers=headers,
-                json={"query": query, "variables": variables},
-            )
+            github = self._get_client(access_token)
 
-            # 304 Not Modified — data hasn't changed, return cached result (free!)
-            if response.status_code == 304 and cached:
-                logger.debug("GraphQL ETag cache hit (304) for key %s…", cache_key[:12])
-                return cached[1]
+            # Build optional extra headers for the request
+            hdrs: dict[str, str] = {}
+            if extra_headers:
+                hdrs.update(extra_headers)
+            if graphql_features:
+                hdrs["GraphQL-Features"] = ",".join(graphql_features)
 
-            result = response.json()
+            # githubkit's async_graphql raises on GraphQL errors and returns
+            # the "data" dict directly.  We pass headers via arequest for
+            # custom header support.
+            if hdrs:
+                resp = await github.arequest(
+                    "POST",
+                    "/graphql",
+                    json={"query": query, "variables": variables},
+                    headers=hdrs,
+                )
+                result = resp.json()
+                if "errors" in result:
+                    error_msg = "; ".join(
+                        e.get("message", str(e)) for e in result["errors"]
+                    )
+                    raise ValueError(f"GraphQL error: {error_msg}")
+                return result.get("data", {})
 
-            if "errors" in result:
-                error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
-                raise ValueError(f"GraphQL error: {error_msg}")
-
-            data = result.get("data", {})
-
-            # Store ETag for future conditional requests (bounded LRU eviction)
-            etag = response.headers.get("ETag")
-            if etag:
-                while len(self._etag_cache) >= self._ETAG_CACHE_MAX_SIZE:
-                    oldest_key = next(iter(self._etag_cache))
-                    del self._etag_cache[oldest_key]
-                self._etag_cache[cache_key] = (etag, data)
-
-            return data
+            return await github.async_graphql(query, variables)
 
         task: asyncio.Task[dict] = asyncio.create_task(_execute_graphql())
         self._inflight_graphql[cache_key] = task
@@ -1513,8 +1228,8 @@ class GitHubProjectsService:
         Returns:
             Dict with issue details: id, node_id, number, html_url
         """
-        url = f"https://api.github.com/repos/{owner}/{repo}/issues"
-        headers = self._build_headers(access_token)
+        url = f"/repos/{owner}/{repo}/issues"
+        github = self._get_client(access_token)
         payload: dict = {
             "title": title,
             "body": body,
@@ -1525,13 +1240,7 @@ class GitHubProjectsService:
         if assignees:
             payload["assignees"] = assignees
 
-        response = await self._request_with_retry(
-            method="POST",
-            url=url,
-            headers=headers,
-            json=payload,
-            idempotent=True,
-        )
+        response = await github.arequest("POST", url, json=payload)
         issue = response.json()
 
         logger.info("Created issue #%d in %s/%s", issue["number"], owner, repo)
@@ -1559,11 +1268,8 @@ class GitHubProjectsService:
             True if update succeeded
         """
         try:
-            response = await self._client.patch(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
-                json={"body": body},
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("PATCH", f"/repos/{owner}/{repo}/issues/{issue_number}", json={"body": body})
             response.raise_for_status()
             logger.info("Updated body of issue #%d in %s/%s", issue_number, owner, repo)
             self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
@@ -1599,7 +1305,7 @@ class GitHubProjectsService:
         Returns:
             True if update succeeded
         """
-        headers = self._build_headers(access_token)
+        github = self._get_client(access_token)
 
         try:
             # Update state
@@ -1607,27 +1313,27 @@ class GitHubProjectsService:
             if state_reason:
                 payload["state_reason"] = state_reason
 
-            response = await self._client.patch(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
+            response = await github.arequest(
+                "PATCH",
+                f"/repos/{owner}/{repo}/issues/{issue_number}",
                 json=payload,
-                headers=headers,
             )
             response.raise_for_status()
 
             # Add labels
             if labels_add:
-                await self._client.post(
-                    f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels",
+                await github.arequest(
+                    "POST",
+                    f"/repos/{owner}/{repo}/issues/{issue_number}/labels",
                     json={"labels": labels_add},
-                    headers=headers,
                 )
 
             # Remove labels
             if labels_remove:
                 for label in labels_remove:
-                    await self._client.delete(
-                        f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/labels/{label}",
-                        headers=headers,
+                    await github.arequest(
+                        "DELETE",
+                        f"/repos/{owner}/{repo}/issues/{issue_number}/labels/{label}",
                     )
 
             logger.info(
@@ -1837,24 +1543,14 @@ class GitHubProjectsService:
 
             # Build REST API URL based on owner type
             if owner_type == "Organization":
-                url = f"https://api.github.com/orgs/{owner_login}/projectsV2/{project_number}/items"
+                url = f"/orgs/{owner_login}/projectsV2/{project_number}/items"
             else:
                 url = (
-                    f"https://api.github.com/users/{owner_login}/projectsV2/{project_number}/items"
+                    f"/users/{owner_login}/projectsV2/{project_number}/items"
                 )
 
-            headers = {
-                "Accept": "application/vnd.github+json",
-                "Authorization": f"Bearer {access_token}",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
-
-            response = await self._request_with_retry(
-                method="POST",
-                url=url,
-                headers=headers,
-                json={"type": "Issue", "id": issue_database_id},
-                idempotent=True,
+            response = await github.arequest(
+                "POST", url, json={"type": "Issue", "id": issue_database_id},
             )
 
             if response.status_code in (200, 201):
@@ -1901,11 +1597,8 @@ class GitHubProjectsService:
         Returns:
             True if assignment succeeded
         """
-        response = await self._client.patch(
-            f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}",
-            json={"assignees": assignees},
-            headers=self._build_headers(access_token),
-        )
+        github = self._get_client(access_token)
+        response = await github.arequest("PATCH", f"/repos/{owner}/{repo}/issues/{issue_number}", json={"assignees": assignees})
 
         success = response.status_code == 200
         if success:
@@ -2241,26 +1934,26 @@ class GitHubProjectsService:
             True if the issue state is 'closed'
         """
         try:
-            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-            headers = self._build_headers(access_token)
+            url = f"/repos/{owner}/{repo}/issues/{issue_number}"
+            github = self._get_client(access_token)
             # Use _request_with_retry for consistent rate-limit / transient-
             # error handling.  This endpoint runs in the polling loop and
             # should be as resilient as other GitHub API calls.
-            response = await self._request_with_retry("GET", url, headers=headers)
+            response = await github.arequest("GET", url)
             return response.json().get("state", "") == "closed"
-        except httpx.HTTPStatusError as e:
+        except Exception as e:
             # 404 / 410 means the issue was deleted — treat as closed so
             # the chore's open-instance slot is freed up.
-            if e.response.status_code in (404, 410):
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status in (404, 410):
                 logger.info(
                     "Issue #%d returned %d — treating as closed (deleted)",
                     issue_number,
-                    e.response.status_code,
+                    status,
                 )
                 return True
             logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False
-        except Exception as e:
             logger.warning("Error checking issue #%d state: %s", issue_number, e)
             return False
 
@@ -2290,17 +1983,15 @@ class GitHubProjectsService:
             import asyncio
             import json as json_mod
 
-            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees"
-            headers = {**self._build_headers(access_token), "Content-Type": "application/json"}
+            url = f"/repos/{owner}/{repo}/issues/{issue_number}/assignees"
+            github = self._get_client(access_token)
 
             # Use REST API to remove Copilot assignee
             # The assignee login for Copilot is "copilot-swe-agent[bot]"
-            # httpx's delete() doesn't support json= param, so use request()
-            response = await self._client.request(
+            response = await github.arequest(
                 "DELETE",
                 url,
-                content=json_mod.dumps({"assignees": ["copilot-swe-agent[bot]"]}),
-                headers=headers,
+                json={"assignees": ["copilot-swe-agent[bot]"]},
             )
 
             if response.status_code == 200:
@@ -2369,9 +2060,9 @@ class GitHubProjectsService:
             return cached  # type: ignore[return-value]
 
         try:
-            url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-            headers = self._build_headers(access_token)
-            response = await self._client.get(url, headers=headers)
+            url = f"/repos/{owner}/{repo}/issues/{issue_number}"
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", url)
             if response.status_code != 200:
                 logger.warning(
                     "Failed to check assignees for issue #%d: status %d",
@@ -2529,11 +2220,8 @@ class GitHubProjectsService:
                 custom_agent,
             )
 
-            response = await self._client.post(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/assignees",
-                json=payload,
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("POST", f"/repos/{owner}/{repo}/issues/{issue_number}/assignees", json=payload)
 
             if response.status_code in (200, 201):
                 result = response.json()
@@ -2660,10 +2348,8 @@ class GitHubProjectsService:
         Returns:
             True if user can be assigned
         """
-        response = await self._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}/assignees/{username}",
-            headers=self._build_headers(access_token),
-        )
+        github = self._get_client(access_token)
+        response = await github.arequest("GET", f"/repos/{owner}/{repo}/assignees/{username}")
 
         # 204 means user can be assigned
         return response.status_code == 204
@@ -2685,10 +2371,8 @@ class GitHubProjectsService:
         Returns:
             Owner username
         """
-        response = await self._client.get(
-            f"https://api.github.com/repos/{owner}/{repo}",
-            headers=self._build_headers(access_token),
-        )
+        github = self._get_client(access_token)
+        response = await github.arequest("GET", f"/repos/{owner}/{repo}")
         response.raise_for_status()
         repo_data = response.json()
 
@@ -3119,16 +2803,8 @@ class GitHubProjectsService:
             List of PR dicts with number, state, is_draft, url, author, title
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/pulls",
-                params={
-                    "state": "open",
-                    "per_page": 30,
-                    "sort": "created",
-                    "direction": "desc",
-                },
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/pulls")
 
             if response.status_code != 200:
                 logger.warning(
@@ -3569,14 +3245,14 @@ class GitHubProjectsService:
         if pr_number and owner and repo:
             try:
                 url = (
-                    f"https://api.github.com/repos/{owner}/{repo}"
+                    f"/repos/{owner}/{repo}"
                     f"/pulls/{pr_number}/requested_reviewers"
                 )
-                headers = self._build_headers(access_token)
-                response = await self._client.post(
+                github = self._get_client(access_token)
+                response = await github.arequest(
+                    "POST",
                     url,
                     json={"reviewers": ["copilot-pull-request-reviewer[bot]"]},
-                    headers=headers,
                 )
 
                 if response.status_code in (200, 201):
@@ -3726,10 +3402,8 @@ class GitHubProjectsService:
         """
         try:
             # Use REST API to delete the branch reference
-            response = await self._client.delete(
-                f"https://api.github.com/repos/{owner}/{repo}/git/refs/heads/{branch_name}",
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("DELETE", f"/repos/{owner}/{repo}/git/refs/heads/{branch_name}")
 
             if response.status_code == 204:
                 logger.info(
@@ -3785,11 +3459,8 @@ class GitHubProjectsService:
             True if the base branch was updated successfully
         """
         try:
-            response = await self._client.patch(
-                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
-                json={"base": base},
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("PATCH", f"/repos/{owner}/{repo}/pulls/{pr_number}", json={"base": base})
 
             if response.status_code == 200:
                 logger.info(
@@ -3870,11 +3541,8 @@ class GitHubProjectsService:
 
             updated_body = f"{closing_ref}\n\n{current_body}" if current_body else closing_ref
 
-            response = await self._client.patch(
-                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}",
-                json={"body": updated_body},
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("PATCH", f"/repos/{owner}/{repo}/pulls/{pr_number}", json={"body": updated_body})
 
             if response.status_code == 200:
                 logger.info(
@@ -4002,16 +3670,16 @@ class GitHubProjectsService:
             self._cycle_cache_hit_count += 1
             return cached  # type: ignore[return-value]
 
-        url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/timeline"
-        headers = self._build_headers(access_token)
+        url = f"/repos/{owner}/{repo}/issues/{issue_number}/timeline"
+        github = self._get_client(access_token)
 
         try:
-            response = await self._client.get(url, headers=headers)
+            response = await github.arequest("GET", url)
             response.raise_for_status()
             result = response.json()
             self._cycle_cache[cache_key] = result
             return result
-        except httpx.HTTPError as e:
+        except Exception as e:
             logger.error(
                 "Failed to get timeline events for issue #%d: %s",
                 issue_number,
@@ -4359,13 +4027,10 @@ class GitHubProjectsService:
         # Route through _request_with_retry so transient 502/503 errors are
         # retried automatically — prevents orphaned sub-issues.
         try:
-            attach_url = f"https://api.github.com/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues"
-            await self._request_with_retry(
-                method="POST",
-                url=attach_url,
-                headers=self._build_headers(access_token),
-                json={"sub_issue_id": sub_issue["id"]},
-                idempotent=True,
+            attach_url = f"/repos/{owner}/{repo}/issues/{parent_issue_number}/sub_issues"
+            github = self._get_client(access_token)
+            response = await github.arequest(
+                "POST", attach_url, json={"sub_issue_id": sub_issue["id"]},
             )
             logger.info(
                 "Attached sub-issue #%d to parent issue #%d",
@@ -4402,11 +4067,8 @@ class GitHubProjectsService:
             List of sub-issue dicts with id, node_id, number, title, state, html_url, assignees, etc.
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/sub_issues",
-                headers=self._build_headers(access_token),
-                params={"per_page": 50},
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/issues/{issue_number}/sub_issues")
 
             if response.status_code == 200:
                 sub_issues = response.json()
@@ -4533,11 +4195,8 @@ class GitHubProjectsService:
             Dict with comment details if successful, None otherwise
         """
         try:
-            response = await self._client.post(
-                f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments",
-                json={"body": body},
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("POST", f"/repos/{owner}/{repo}/issues/{issue_number}/comments", json={"body": body})
 
             if response.status_code in (200, 201):
                 result = response.json()
@@ -4581,11 +4240,8 @@ class GitHubProjectsService:
             List of dicts with filename, status, additions, deletions, etc.
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files",
-                headers=self._build_headers(access_token),
-                params={"per_page": 100},
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/pulls/{pr_number}/files")
 
             if response.status_code == 200:
                 files = response.json()
@@ -4620,10 +4276,8 @@ class GitHubProjectsService:
         For files, ``content`` is NOT included (use ``get_file_content`` separately).
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
-                headers=self._build_headers(access_token),
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/contents/{path}")
             if response.status_code == 200:
                 data = response.json()
                 if isinstance(data, list):
@@ -4646,13 +4300,8 @@ class GitHubProjectsService:
         Returns a dict with ``content`` (decoded text) and ``name``, or None.
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
-                headers={
-                    **self._build_headers(access_token),
-                    "Accept": "application/vnd.github.raw+json",
-                },
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/contents/{path}")
             if response.status_code == 200:
                 return {"content": response.text, "name": path.split("/")[-1]}
             return None
@@ -4682,14 +4331,8 @@ class GitHubProjectsService:
             File content as a string, or None if not found
         """
         try:
-            response = await self._client.get(
-                f"https://api.github.com/repos/{owner}/{repo}/contents/{path}",
-                headers={
-                    **self._build_headers(access_token),
-                    "Accept": "application/vnd.github.raw+json",
-                },
-                params={"ref": ref},
-            )
+            github = self._get_client(access_token)
+            response = await github.arequest("GET", f"/repos/{owner}/{repo}/contents/{path}")
 
             if response.status_code == 200:
                 return response.text
@@ -5101,18 +4744,15 @@ class GitHubProjectsService:
         if not owner or not repo:
             return agents
 
-        headers = self._build_headers(access_token)
+        github = self._get_client(access_token)
 
         # List .github/agents/ directory via Contents API
         try:
-            response = await self._request_with_retry(
-                "GET",
-                f"https://api.github.com/repos/{owner}/{repo}/contents/.github/agents",
-                headers=headers,
-            )
+            response = await github.arequest("GET", url)
             contents = response.json()
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 404:
+        except Exception as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status == 404:
                 logger.debug("No .github/agents/ directory in %s/%s", owner, repo)
                 return agents
             logger.warning(
@@ -5144,7 +4784,7 @@ class GitHubProjectsService:
             # Fetch raw content and parse YAML frontmatter
             if download_url:
                 try:
-                    raw_resp = await self._request_with_retry("GET", download_url, headers=headers)
+                    raw_resp = await github.arequest("GET", download_url)
                     raw_content = raw_resp.text
                     fm_match = self._FRONTMATTER_RE.match(raw_content)
                     if fm_match:
@@ -5155,7 +4795,7 @@ class GitHubProjectsService:
                                 description = fm.get("description")
                         except yaml.YAMLError:
                             logger.debug("Invalid YAML frontmatter in %s", file_info["name"])
-                except httpx.HTTPStatusError:
+                except Exception:
                     logger.debug("Could not fetch content for %s", file_info["name"])
 
             agents.append(
