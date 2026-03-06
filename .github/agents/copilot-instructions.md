@@ -4,71 +4,85 @@ Last updated: 2026-03-04
 
 > **Important:** Always use search tools (e.g., Context7 MCP, Microsoft Docs MCP, or web search) to look up the most up-to-date documentation when working with any and all libraries, frameworks, and APIs. Never rely solely on training data — verify current syntax, options, and best practices from official sources before writing or modifying code.
 
-## Tech Stack
+# GitHub Workflows Chat — Development Guidelines
 
-### Backend (Python)
-- **Runtime**: Python ≥3.11 (Docker image: 3.12-slim)
-- **Framework**: FastAPI ≥0.109, Uvicorn ≥0.27
-- **Data validation**: Pydantic ≥2.5, pydantic-settings ≥2.1
-- **HTTP client**: githubkit ≥0.14 (pooled SDK clients with built-in retry, throttling, HTTP cache)
-- **Database**: SQLite via aiosqlite ≥0.20 (WAL mode, migration-managed schema, file-backed at `/app/data/settings.db`)
-- **AI / Agents**: github-copilot-sdk ≥0.1, agent-framework-core ≥1.0.0a1, openai ≥1.0, azure-ai-inference ≥1.0.0b1
-- **Auth**: python-jose[cryptography] ≥3.3 (JWT)
-- **Utilities**: tenacity ≥8.2 (retries), websockets ≥12.0, python-multipart ≥0.0.6, pyyaml ≥6.0.1
-- **Linting**: ruff ≥0.9 (target py311, line-length 100)
-- **Type checking**: pyright ≥1.1.400 (targets Python 3.12, basic mode)
-- **Testing**: pytest ≥7.4, pytest-asyncio ≥0.23 (auto mode), pytest-cov ≥4.1
+Last updated: 2026-03-06
 
-### Frontend (TypeScript)
-- **Runtime**: Node 20 (Docker: node:20-alpine build → nginx:alpine production)
-- **Language**: TypeScript ~5.4 (target ES2022)
-- **Framework**: React ^18.3, React DOM ^18.3
-- **Build**: Vite ^5.4
-- **Server state**: @tanstack/react-query ^5.17
-- **Styling**: Tailwind CSS ^3.4, Shadcn UI (Radix UI primitives), class-variance-authority, clsx, tailwind-merge, lucide-react (icons)
-- **Drag & drop**: @dnd-kit/core ^6.3, @dnd-kit/sortable ^10.0, @dnd-kit/modifiers ^9.0
-- **Real-time**: socket.io-client ^4.7
-- **Linting**: ESLint ^9 (flat config, typescript-eslint, react-hooks), Prettier ^3.2
-- **Testing**: Vitest ^4.0 (happy-dom), @testing-library/react ^16.3, Playwright ^1.58 (E2E, Chromium)
+> Always verify third-party library, framework, and API usage against current official documentation before making code changes. Use live docs or official references rather than relying on older syntax or assumptions.
+
+## Current Stack
+
+### Backend
+- Runtime floor: Python `>=3.12` in `backend/pyproject.toml`
+- Primary dev/runtime target: Python 3.13 (`ruff` target `py313`, `pyright` target `3.13`, Docker image `python:3.13-slim`)
+- Framework: FastAPI `>=0.135.0`, Uvicorn `>=0.41.0`
+- GitHub integration: `githubkit>=0.14.6`
+- Validation/config: `pydantic>=2.12.0`, `pydantic-settings>=2.13.0`
+- Storage: SQLite via `aiosqlite>=0.22.0`
+- AI providers: `github-copilot-sdk>=0.1.30`, `openai>=2.26.0`, `azure-ai-inference>=1.0.0b9`
+- Security/session crypto: `cryptography>=44.0.0`
+- Messaging/retries: `tenacity>=9.1.0`, `websockets>=16.0`, `python-multipart>=0.0.22`, `pyyaml>=6.0.3`
+- Lint/type/test: `ruff>=0.15.0`, `pyright>=1.1.408`, `pytest>=9.0.0`, `pytest-asyncio>=1.3.0`, `pytest-cov>=7.0.0`
+
+### Frontend
+- Runtime/build target: Node 22 for Docker and local bare-metal guidance
+- Framework: React 19.2, React DOM 19.2
+- Build tooling: Vite 7.3 with a single source of truth in `frontend/vite.config.ts`
+- Language: TypeScript 5.9
+- State/data fetching: `@tanstack/react-query` 5.90
+- Styling: Tailwind CSS 4.2 via `@tailwindcss/vite`
+- UI utilities: Radix Slot, class-variance-authority, clsx, tailwind-merge, lucide-react
+- Drag and drop: `@dnd-kit/core` 6.3, `@dnd-kit/modifiers` 9.0, `@dnd-kit/sortable` 10.0, `@dnd-kit/utilities` 3.2
+- Lint/test: ESLint 9.39, Prettier 3.8, Vitest 4.0, Playwright 1.58, `happy-dom` is the active Vitest environment
 
 ### Infrastructure
-- **Containers**: Docker Compose — 3 services on `ghchat-network` bridge
-  - `backend` (port 8000) — FastAPI app, `ghchat-data` volume for SQLite
-  - `frontend` (port 5173 → nginx :80) — static SPA
-  - `signal-api` (port 8080 internal) — `bbernhard/signal-cli-rest-api:latest`, JSON-RPC mode
-- **CI**: GitHub Actions — backend (ruff, pyright, pytest) + frontend (eslint, tsc, vitest, vite build) + Docker image build verification
-- **CI actions**: pinned to SHA with explicit `permissions: contents: read`
+- `docker-compose.yml` defines 3 services:
+  - `backend` on port 8000
+  - `frontend` on port 5173, served by nginx on container port 80
+  - `signal-api` (`bbernhard/signal-cli-rest-api`) on internal port 8080
+- Backend health check: `http://localhost:8000/api/v1/health`
+- Frontend health check: `http://localhost/health` inside the container
 
-## Project Structure
+## Architecture Notes
 
-```
+- Auth is GitHub OAuth based and uses secure HTTP-only session cookies. There is no `python-jose`/JWT layer in the backend anymore.
+- Real-time updates use native WebSocket support, with Server-Sent Events fallback in the projects API. Do not reintroduce `socket.io-client` patterns.
+- Settings and session persistence are SQLite-backed. Migrations live under `backend/src/migrations/` and run on startup.
+- Tailwind is already migrated to the v4 CSS-first model. Keep theme/config in `frontend/src/index.css`; `tailwind.config.js` and `postcss.config.js` are intentionally removed.
+- GitHub project and agent pipeline logic lives primarily under `backend/src/services/github_projects/`, `backend/src/services/copilot_polling/`, and `backend/src/services/workflow_orchestrator/`.
+- Repository resolution should use the shared `resolve_repository()` flow rather than reintroducing ad hoc owner/repo fallback logic.
+- When using `AsyncGenerator` from `collections.abc`, include both type parameters for Python 3.12 compatibility, e.g. `AsyncGenerator[str, None]`.
+
+## Repo Layout
+
+```text
 backend/
   src/
-    api/              # FastAPI route handlers
-    middleware/        # Request/response middleware
-    migrations/       # SQL migration files (001–012)
-    models/           # Pydantic models (board, chat, settings, task, user, agent_creator, etc.)
-    prompts/          # AI prompt templates
-    services/         # Business logic
-      copilot_polling/ # Background polling loop for Copilot agent pipeline
-      github_projects/ # GitHub GraphQL API client
-      workflow_orchestrator/ # Agent pipeline config, state, transitions
-      agent_creator.py # #agent command: guided custom agent creation flow
+    api/                  FastAPI route handlers
+    middleware/           request/response middleware
+    migrations/           SQL schema migrations
+    models/               Pydantic models
+    prompts/              AI prompt templates
+    services/             application/business logic
+      chores/
+      copilot_polling/
+      github_projects/
+      workflow_orchestrator/
   tests/
-    unit/             # pytest unit tests
-    integration/      # pytest integration tests
-    helpers/          # Shared factories and mocks
+    unit/
+    integration/
+    helpers/
 
 frontend/
   src/
-    components/       # React components (auth, board, chat, common, settings, ui)
-    hooks/            # Custom React hooks (useAuth, useChat, useProjectBoard, useWorkflow, etc.)
-    lib/              # Shared utilities
-    pages/            # Route pages
-    services/         # API client functions
-    types/            # TypeScript type definitions
-    utils/            # Helper functions
-  e2e/                # Playwright E2E tests
+    components/
+    hooks/
+    lib/
+    pages/
+    services/
+    types/
+    utils/
+  e2e/
 ```
 
 ## Commands
@@ -76,53 +90,33 @@ frontend/
 ```bash
 # Backend
 cd backend && source .venv/bin/activate
-ruff check src/ tests/          # lint
-ruff format src/ tests/         # format
-pyright src/                    # type check
-pytest tests/unit/ -q           # unit tests
-pytest tests/ --cov=src         # all tests with coverage
+ruff check src/ tests/
+ruff format src/ tests/
+pyright src/
+pytest tests/unit/ -q
+pytest tests/ --cov=src
 
 # Frontend
 cd frontend
-npm run lint                    # eslint
-npm run type-check              # tsc --noEmit
-npm test                        # vitest
-npm run build                   # production build
-npx playwright test             # E2E tests
+npm run lint
+npm run type-check
+npm run test
+npm run build
+npx playwright test
 ```
 
-## Code Style
+## Conventions
 
-- **Python**: Follow ruff defaults — double quotes, 100 char lines, isort with `known-first-party = ["src"]`
-- **TypeScript**: Strict mode, ESNext modules, path alias `@/` → `src/`
-- **Tests**: Arrange-Act-Assert pattern. Backend factories in `tests/helpers/factories.py`, mocks in `tests/helpers/mocks.py`. Frontend test setup in `src/test/setup.ts`
-- **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
+- Python formatting/linting is Ruff-driven with 100-character lines and `known-first-party = ["src"]`.
+- TypeScript uses strict typing and the `@/` alias mapped to `frontend/src`.
+- Keep commits in conventional-commit style: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
+- Prefer focused fixes over broad refactors unless the task explicitly calls for architectural work.
+- Do not reintroduce deleted compatibility files like `frontend/vite.config.js`, `frontend/tailwind.config.js`, or `frontend/postcss.config.js`.
 
-## Key Architecture Notes
+## Validation Expectations
 
-- Database migrations run automatically on startup (sequential SQL files in `src/migrations/`)
-- SQLite uses WAL mode, busy_timeout=5000ms, foreign_keys=ON
-- Copilot polling loop runs as a background task, scanning project board items every N seconds
-- Sub-issues use title convention `[agent-name] Parent Title` and are filtered from the polling loop
-- Agent pipeline state tracks per-issue progress through configurable status→agent mappings
-- Session auth uses secure HTTP-only cookies set via a shared helper
-
-
-## Active Technologies
-- Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0 (017-agents-section)
-- SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
-- Python 3.12 (backend), TypeScript ~5.8 (frontend) + FastAPI, githubkit, github-copilot-sdk, openai, azure-ai-inference, aiosqlite (backend); React 18, Vite 5, @tanstack/react-query 5, vitest 4 (frontend) (018-codebase-audit-refactor)
-- SQLite with WAL mode, 11 existing migrations (adding 012 for chat persistence) (018-codebase-audit-refactor)
-- TypeScript 5.8.0, React 18.3.1, Vite 5.4.0 + Tailwind CSS 3.4.19, shadcn/ui (cssVariables: true, baseColor: slate), class-variance-authority, lucide-react 0.575.0, Radix UI (019-western-theme-refresh)
-- N/A (frontend-only changes) (019-western-theme-refresh)
-- Python 3.12 (pyright targets 3.12, Dockerfile uses 3.12-slim) + FastAPI, githubkit (replaced httpx), github-copilot-sdk, aiosqlite, pydantic 2.x (020-githubkit-migration)
-- SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (020-githubkit-migration)
-- Python 3.12 (backend), TypeScript 5.8 (frontend) + FastAPI 0.109+, TanStack React Query 5.17, native WebSocket (asyncio) (022-api-rate-limit-protection)
-- SQLite (aiosqlite) for persistence, in-memory `InMemoryCache` with TTL for API response caching (022-api-rate-limit-protection)
+- Backend changes should normally be validated with Ruff, Pyright, and relevant pytest coverage.
+- Frontend changes should normally be validated with ESLint, `tsc --noEmit`, Vitest, and Vite build.
+- Pre-commit runs backend formatting/lint/type checks.
+- Pre-push runs the full backend/frontend test gates; a known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs, so confirm isolated behavior before changing unrelated code.
 - Python 3.12 (pyproject.toml targets ≥3.11, pyright configured for 3.12) + TypeScript ~5.8 + FastAPI ≥0.109.0, githubkit ≥0.14.0, httpx ≥0.26.0, pydantic ≥2.5.0, React 18.3, @tanstack/react-query 5.17, Vite 5.4 (023-codebase-review-refactor)
-- SQLite with WAL mode (aiosqlite ≥0.20.0) — sessions, settings, migrations (023-codebase-review-refactor)
-- Python 3.12→3.13 (backend), TypeScript 5.8→5.9 (frontend), Node 20→22 + FastAPI, React, Vite, Tailwind CSS, TanStack Query, Pydantic (024-deps-modernization)
-- SQLite via aiosqlite (no schema changes) (024-deps-modernization)
-
-## Recent Changes
-- 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0
