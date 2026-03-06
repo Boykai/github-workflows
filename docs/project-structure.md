@@ -1,6 +1,6 @@
 # Project Structure
 
-```
+```text
 github-workflows/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
 │   ├── devcontainer.json         #   Python 3.12, Node 20, Docker-in-Docker

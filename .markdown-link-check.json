@@ -1,0 +1,18 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^https://codespaces\\.new/"
+    },
+    {
+      "pattern": "^https://github\\.com/codespaces/badge\\.svg"
+    },
+    {
+      "pattern": "^https?://localhost"
+    }
+  ],
+  "aliveStatusCodes": [200, 206],
+  "retryOn429": true,
+  "retryCount": 2,
+  "fallbackRetryDelay": "30s",
+  "timeout": "20s"
+}

@@ -6,7 +6,7 @@ The Spec Kit agent pipeline automates the journey from a feature idea to a code 
 
 ## Pipeline Flow
 
-```
+```text
 User describes feature     →   AI generates Issue (Copilot SDK or Azure OpenAI)
 User clicks Confirm        →   GitHub Issue + sub-issues created, added to Project
                                Status: 📋 Backlog
@@ -73,7 +73,7 @@ Label lifecycle: created with `ai-generated` + `sub-issue` → `in-progress` add
 
 ## Hierarchical PR Branching
 
-```
+```text
 main (repo default)
   └── feature/issue-42-my-feature        ← speckit.specify creates this (= main branch)
        ├── copilot/issue-42-plan         ← speckit.plan branches from main branch
@@ -158,6 +158,7 @@ issue, converting draft PRs and requesting reviews as needed.
 ## Pipeline Reconstruction
 
 On server restart, the system reconstructs state from:
+
 - The durable tracking table in issue bodies
 - `Done!` markers from issue comments
 - Sub-issue mappings from `[agent-name]` title prefixes

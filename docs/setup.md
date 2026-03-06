@@ -1,5 +1,7 @@
 # Setup Guide
 
+This guide walks through every supported way to run Agent Projects locally: GitHub Codespaces (easiest), Docker Compose (recommended), and bare-metal without Docker. Follow the steps in order for your chosen path.
+
 ## Prerequisites
 
 - [Fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
@@ -27,14 +29,16 @@ cp .env.example .env
 ```
 
 Edit `.env` — minimum required:
+
 - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` ([GitHub OAuth App](https://github.com/settings/developers))
 - `SESSION_SECRET_KEY` — generate with `openssl rand -hex 32`
 
 ### 4. Update OAuth Callback URL
 
 Update your GitHub OAuth App's **Authorization callback URL** to match Codespaces:
-```
-https://YOUR-CODESPACE-NAME-8000.app.github.dev/api/v1/auth/github/callback
+
+```text
+https://YOUR-CODESPACE-NAME-5173.app.github.dev/api/v1/auth/github/callback
 ```
 
 The `post-start.sh` script prints the exact URL on startup.
@@ -69,6 +73,7 @@ cp .env.example .env
    - **Authorization callback URL**: `http://localhost:5173/api/v1/auth/github/callback`
 3. Copy **Client ID** and generate a **Client Secret**
 4. Add to `.env`:
+
    ```env
    GITHUB_CLIENT_ID=your_client_id
    GITHUB_CLIENT_SECRET=your_client_secret
@@ -81,6 +86,7 @@ openssl rand -hex 32
 ```
 
 Add to `.env`:
+
 ```env
 SESSION_SECRET_KEY=your_generated_key
 ```
@@ -93,7 +99,7 @@ docker compose up --build -d
 
 ### 5. Access
 
-Open **http://localhost:5173**. Verify containers are running:
+Open **<http://localhost:5173>**. Verify containers are running:
 
 ```bash
 docker ps
@@ -128,9 +134,9 @@ npm run dev
 
 | URL | Service |
 |-----|---------|
-| http://localhost:5173 | Frontend |
-| http://localhost:8000 | Backend API |
-| http://localhost:8000/api/docs | API docs (when `DEBUG=true`) |
+| <http://localhost:5173> | Frontend |
+| <http://localhost:8000> | Backend API |
+| <http://localhost:8000/api/docs> | API docs (when `DEBUG=true`) |
 
 ---
 
@@ -145,6 +151,7 @@ openssl rand -hex 32
 ```
 
 Add to `.env`:
+
 ```env
 GITHUB_WEBHOOK_SECRET=your_secret
 ```
@@ -152,6 +159,7 @@ GITHUB_WEBHOOK_SECRET=your_secret
 ### 2. Create Personal Access Token (Classic)
 
 Go to [GitHub Tokens](https://github.com/settings/tokens) → **Generate new token (classic)**:
+
 - ✅ `repo` — Full control of private repositories
 - ✅ `project` — Full control of projects
 - ✅ `read:org` — If using organization projects
@@ -159,6 +167,7 @@ Go to [GitHub Tokens](https://github.com/settings/tokens) → **Generate new tok
 > **Important**: Use **Tokens (classic)**, not Fine-grained tokens. The `project` scope is only available in classic tokens.
 
 Add to `.env`:
+
 ```env
 GITHUB_WEBHOOK_TOKEN=ghp_your_token_here
 ```

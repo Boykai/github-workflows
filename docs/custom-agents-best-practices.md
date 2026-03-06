@@ -26,7 +26,7 @@ that defines the agent's behavior, expertise, and constraints.
 
 ### `.prompt.md` — Prompt Routing
 
-````
+````markdown
 ```prompt
 ---
 agent: my-agent-name

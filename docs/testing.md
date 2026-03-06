@@ -29,7 +29,7 @@ pytest tests/ -k "test_pipeline_advancement" -v
 
 ### Test Structure
 
-```
+```text
 backend/tests/
 ├── conftest.py              # Shared fixtures (db, sessions, mocks)
 ├── helpers/                 # Test helper utilities
@@ -88,6 +88,7 @@ backend/tests/
 ### Configuration
 
 Backend tests use `pyproject.toml`:
+
 - `pytest-asyncio` for async test support
 - `pytest-cov` for coverage reporting
 - Test fixtures in `conftest.py` provide mock databases, sessions, and services
@@ -110,6 +111,7 @@ npm run test:coverage
 ```
 
 Test files are co-located with components:
+
 - `components/auth/LoginButton.test.tsx`
 - `components/board/AgentSaveBar.test.tsx`
 - `components/board/BoardColumn.test.tsx`
@@ -162,6 +164,7 @@ npm run test:e2e:report
 ```
 
 E2E specs:
+
 - `e2e/auth.spec.ts`
 - `e2e/board-navigation.spec.ts`
 - `e2e/chat-interaction.spec.ts`

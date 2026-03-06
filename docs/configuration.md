@@ -1,5 +1,7 @@
 # Configuration
 
+This document is the authoritative reference for every environment variable the backend reads. Copy `.env.example` to `.env` and set the values described here before starting the application.
+
 All configuration is managed through environment variables. Copy `.env.example` to `.env` and customize.
 
 ## Environment Variables
@@ -49,6 +51,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DEFAULT_REPOSITORY` | — | Default repo for issue creation (`owner/repo`) |
+| `DEFAULT_PROJECT_ID` | — | Default GitHub Project V2 node ID for polling (e.g. `PVT_kwHOAIsXss4BOJmo`). Used as a direct project fallback when no `project_settings` row exists. |
 | `DEFAULT_ASSIGNEE` | `""` | Default assignee for In Progress issues |
 
 ### Server
@@ -79,12 +82,22 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 |----------|---------|-------------|
 | `SIGNAL_API_URL` | `http://signal-api:8080` | URL of signal-cli-rest-api sidecar |
 | `SIGNAL_PHONE_NUMBER` | — | Dedicated Signal phone number (E.164 format) |
+| `SIGNAL_WEBHOOK_SECRET` | — | Secret for verifying inbound Signal webhook payloads |
+
+### Security
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENCRYPTION_KEY` | — | Fernet key for encrypting OAuth tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. If unset, tokens are stored unencrypted. |
+| `COOKIE_SECURE` | `false` | Set `true` in production (HTTPS) to add the `Secure` flag to session cookies. Auto-enabled when `FRONTEND_URL` starts with `https://`. |
+| `COOKIE_MAX_AGE` | `28800` | Session cookie max-age in seconds (default: 8 hours) |
 
 ### Cache
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CACHE_TTL_SECONDS` | `300` | In-memory cache TTL in seconds |
+| `METADATA_CACHE_TTL_SECONDS` | `3600` | TTL for cached GitHub metadata (labels, branches, milestones, collaborators) |
 
 ### Frontend (Vite)
 
@@ -92,7 +105,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 |----------|---------|-------------|
 | `VITE_API_BASE_URL` | `/api/v1` | API base URL for frontend |
 
-## Database
+## Database Schema
 
 SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `012`). Migrations are tracked by a `schema_version` table.
 
@@ -129,6 +142,7 @@ Agent pipeline mappings are configurable through the Settings UI or `PUT /api/v1
 ```
 
 Settings are stored per-user in SQLite with a 3-tier fallback:
+
 1. User-specific row
 2. Canonical `__workflow__` row
 3. Any-user fallback with automatic backfill
