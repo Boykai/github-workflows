@@ -151,7 +151,7 @@ As the system processing concurrent requests for multiple users, I need GitHub c
 
 ### Assumptions
 
-- The SDK (version ≥0.14.0, <0.15.0) provides stable, production-ready support for async operations, GraphQL with raw query strings, built-in retry/rate-limit handling, HTTP caching via ETag, throttling, and OAuth strategies
+- The SDK (version ≥0.14.0) provides stable, production-ready support for async operations, GraphQL with raw query strings, built-in retry/rate-limit handling, HTTP caching via ETag, throttling, and OAuth strategies. The initial integration should pin to a narrow version range (e.g., <0.15.0) to avoid unexpected breaking changes until the migration is validated, then relax the constraint
 - The SDK uses the same underlying HTTP transport as the current implementation, so there is no dependency regression
 - Preview APIs (sub-issues, Copilot assignment) may not have typed methods in the SDK, requiring use of generic request methods
 - The existing BoundedDict utility in the codebase can be reused for the client connection pool
