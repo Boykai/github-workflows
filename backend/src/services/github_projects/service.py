@@ -4152,6 +4152,13 @@ class GitHubProjectsService:
         Returns:
             List of sub-issue dicts with id, node_id, number, title, state, html_url, assignees, etc.
         """
+        from src.services.cache import cache, get_sub_issues_cache_key
+
+        cache_key = get_sub_issues_cache_key(owner, repo, issue_number)
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         try:
             response = await self._rest_response(
                 access_token,
@@ -4167,6 +4174,7 @@ class GitHubProjectsService:
                     len(sub_issues),
                     issue_number,
                 )
+                cache.set(cache_key, sub_issues, ttl_seconds=600)
                 return sub_issues
             else:
                 logger.debug(

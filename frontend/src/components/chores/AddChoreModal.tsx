@@ -6,13 +6,15 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useCreateChore } from '@/hooks/useChores';
+import { useCreateChore, useChoreTemplates } from '@/hooks/useChores';
 import { ChoreChatFlow } from './ChoreChatFlow';
+import type { ChoreTemplate } from '@/types';
 
 interface AddChoreModalProps {
   projectId: string;
   isOpen: boolean;
   onClose: () => void;
+  initialTemplate?: ChoreTemplate | null;
 }
 
 /**
@@ -42,7 +44,7 @@ function isSparseInput(text: string): boolean {
   return false;
 }
 
-export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps) {
+export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: AddChoreModalProps) {
   const [name, setName] = useState('');
   const [templateContent, setTemplateContent] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,20 @@ export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps
   const [sparseContent, setSparseContent] = useState('');
 
   const createMutation = useCreateChore(projectId);
+  const { data: repoTemplates } = useChoreTemplates(isOpen ? projectId : null);
+
+  const handleSelectTemplate = (template: ChoreTemplate) => {
+    setName(template.name);
+    setTemplateContent(template.content);
+  };
+
+  // Apply initialTemplate when modal opens with one pre-selected
+  useEffect(() => {
+    if (isOpen && initialTemplate) {
+      setName(initialTemplate.name);
+      setTemplateContent(initialTemplate.content);
+    }
+  }, [isOpen, initialTemplate]);
 
   // Close modal and reset all state on Escape key (document-level listener)
   useEffect(() => {
@@ -193,6 +209,31 @@ export function AddChoreModal({ projectId, isOpen, onClose }: AddChoreModalProps
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-4">
+          {/* Template picker */}
+          {repoTemplates && repoTemplates.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-foreground">
+                Start from a template
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {repoTemplates.map((tpl) => (
+                  <button
+                    key={tpl.path}
+                    type="button"
+                    onClick={() => handleSelectTemplate(tpl)}
+                    className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-input bg-muted/30 hover:bg-accent hover:border-primary/40 transition-colors text-left"
+                    title={tpl.about || tpl.name}
+                  >
+                    📋 {tpl.name}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Or create a custom chore below
+              </p>
+            </div>
+          )}
+
           {/* Name */}
           <div className="flex flex-col gap-1.5">
             <label htmlFor="chore-name" className="text-sm font-medium text-foreground">

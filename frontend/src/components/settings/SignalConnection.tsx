@@ -70,7 +70,7 @@ function QRCodeDisplay({ base64, expiresIn }: { base64: string; expiresIn: numbe
         <br />
         <span className="text-xs italic">Signal → Settings → Linked Devices → + (plus button)</span>
       </p>
-      <div className="rounded-lg border border-border bg-white p-3 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-3 shadow-sm">
         <img
           src={`data:image/png;base64,${base64}`}
           alt="Signal QR code for device linking"

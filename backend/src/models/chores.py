@@ -92,6 +92,18 @@ class EvaluateChoreTriggersRequest(BaseModel):
     project_id: str | None = None
 
 
+# ── Template Models ──
+
+
+class ChoreTemplate(BaseModel):
+    """A chore template discovered from .github/ISSUE_TEMPLATE/."""
+
+    name: str
+    about: str
+    path: str
+    content: str
+
+
 # ── Chat Models ──
 
 

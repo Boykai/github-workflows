@@ -43,9 +43,8 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
 
         // Handle initial data with all tasks
         if (data.type === 'initial_data' || data.type === 'refresh') {
-          // Force refresh to get the updated data
+          // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
           onRefreshTriggeredRef.current?.();
           return;
@@ -53,9 +52,8 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
 
         // Handle real-time updates
         if (data.type === 'task_update' || data.type === 'task_created' || data.type === 'status_changed') {
-          // Invalidate tasks query to refetch
+          // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
           setLastUpdate(new Date());
           onRefreshTriggeredRef.current?.();
         }

@@ -187,7 +187,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
                     aiEnhance ? 'translate-x-4' : 'translate-x-0'
                   }`}
                 />

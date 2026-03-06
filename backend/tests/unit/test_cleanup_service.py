@@ -52,7 +52,6 @@ def _make_github_service(
 ) -> AsyncMock:
     """Build an AsyncMock of GitHubProjectsService with configurable responses."""
     service = AsyncMock()
-    service._build_headers = MagicMock(return_value={"Authorization": "Bearer test"})
 
     # Default permission: admin access
     if permission_response is None:
@@ -89,20 +88,19 @@ def _make_github_service(
             }
         }
 
-    # Route GET requests based on URL content
-    async def mock_get(url, headers=None):
-        if "/collaborators/" in url:
+    # Route _rest_response calls based on path content
+    async def mock_rest_response(access_token, method, path, **kwargs):
+        if "/collaborators/" in path:
             return permission_response
-        if "/branches" in url:
+        if "/branches" in path:
             return branches_response
-        if "/pulls" in url:
+        if "/pulls" in path:
             return prs_response
-        if "/issues" in url:
+        if "/issues" in path:
             return issues_response
-        raise ValueError(f"Unexpected GET URL: {url}")
+        raise ValueError(f"Unexpected _rest_response path: {method} {path}")
 
-    service._client = AsyncMock()
-    service._client.get = AsyncMock(side_effect=mock_get)
+    service._rest_response = AsyncMock(side_effect=mock_rest_response)
     service._graphql = AsyncMock(return_value=graphql_response)
     service.delete_branch = AsyncMock(return_value=True)
 
@@ -321,11 +319,11 @@ class TestFailureAccounting:
         """A PR that fails to close should be in errors, not preserved count."""
         service = _make_github_service()
 
-        # PR closure: mock _request_with_retry to return non-200
+        # PR closure: mock _rest_response to return non-200
         error_response = MagicMock()
         error_response.status_code = 422
         error_response.text = "Unprocessable Entity"
-        service._request_with_retry = AsyncMock(return_value=error_response)
+        service._rest_response = AsyncMock(return_value=error_response)
 
         request = CleanupExecuteRequest(
             owner="test",
@@ -660,7 +658,7 @@ class TestOrphanedIssues:
         close_response = MagicMock()
         close_response.status_code = 200
         close_response.json.return_value = {"number": 100, "state": "closed"}
-        service._request_with_retry = AsyncMock(return_value=close_response)
+        service._rest_response = AsyncMock(return_value=close_response)
 
         db = AsyncMock()
         db.execute = AsyncMock()
@@ -691,7 +689,7 @@ class TestOrphanedIssues:
         fail_response = MagicMock()
         fail_response.status_code = 404
         fail_response.text = "Not Found"
-        service._request_with_retry = AsyncMock(return_value=fail_response)
+        service._rest_response = AsyncMock(return_value=fail_response)
 
         db = AsyncMock()
         db.execute = AsyncMock()

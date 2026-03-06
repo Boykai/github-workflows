@@ -352,7 +352,7 @@ export function ChatInterface({
           disabled={isSending}
           rows={2}
           className={cn(
-            'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors focus:border-primary disabled:bg-muted',
+            'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors bg-background text-foreground placeholder:text-muted-foreground focus:border-primary disabled:bg-muted',
             isNavigating && 'border-l-4 border-l-primary bg-primary/5',
           )}
         />

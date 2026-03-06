@@ -189,3 +189,10 @@ def get_project_items_cache_key(project_id: str) -> str:
     from src.constants import CACHE_PREFIX_PROJECT_ITEMS
 
     return get_cache_key(CACHE_PREFIX_PROJECT_ITEMS, project_id)
+
+
+def get_sub_issues_cache_key(owner: str, repo: str, issue_number: int) -> str:
+    """Get cache key for sub-issues of a specific issue."""
+    from src.constants import CACHE_PREFIX_SUB_ISSUES
+
+    return f"{CACHE_PREFIX_SUB_ISSUES}:{owner}/{repo}#{issue_number}"

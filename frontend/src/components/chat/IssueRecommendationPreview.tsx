@@ -177,7 +177,7 @@ export function IssueRecommendationPreview({
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
-              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-500 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-500' : 'text-muted-foreground'}`}>
+              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
                 {recommendation.metadata.priority || 'P2'}
               </span>
             </div>
@@ -210,7 +210,7 @@ export function IssueRecommendationPreview({
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Labels</span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.labels.map((label, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-full text-[11px] font-medium">{label}</span>
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-medium">{label}</span>
                   ))}
                 </div>
               </div>
@@ -220,7 +220,7 @@ export function IssueRecommendationPreview({
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Assignees</span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.assignees.map((assignee, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-500 rounded-full text-[11px] font-medium">@{assignee}</span>
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium">@{assignee}</span>
                   ))}
                 </div>
               </div>
@@ -236,7 +236,7 @@ export function IssueRecommendationPreview({
             {recommendation.metadata.branch && (
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Branch</span>
-                <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-500 rounded text-[11px] font-mono w-fit">
+                <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[11px] font-mono w-fit">
                   {recommendation.metadata.branch}
                 </span>
               </div>

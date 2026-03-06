@@ -763,6 +763,13 @@ export interface ChoreCreate {
   template_content: string;
 }
 
+export interface ChoreTemplate {
+  name: string;
+  about: string;
+  path: string;
+  content: string;
+}
+
 export interface ChoreUpdate {
   schedule_type?: ScheduleType | null;
   schedule_value?: number | null;
