@@ -120,3 +120,10 @@ npx playwright test
 - Pre-commit runs backend formatting/lint/type checks.
 - Pre-push runs the full backend/frontend test gates; a known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs, so confirm isolated behavior before changing unrelated code.
 - Python 3.12 (pyproject.toml targets ≥3.11, pyright configured for 3.12) + TypeScript ~5.8 + FastAPI ≥0.109.0, githubkit ≥0.14.0, httpx ≥0.26.0, pydantic ≥2.5.0, React 18.3, @tanstack/react-query 5.17, Vite 5.4 (023-codebase-review-refactor)
+
+## Active Technologies
+- Python 3.13 (backend), TypeScript ~5.9 (frontend), Node 22 + FastAPI, React 19, Vite 7, Tailwind CSS 4, TanStack Query, Pydantic 2.x, githubkit, aiosqlite (025-bug-basher)
+- SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (025-bug-basher)
+
+## Recent Changes
+- 025-bug-basher: Added Python 3.13 (backend), TypeScript ~5.9 (frontend), Node 22 + FastAPI, React 19, Vite 7, Tailwind CSS 4, TanStack Query, Pydantic 2.x, githubkit, aiosqlite
