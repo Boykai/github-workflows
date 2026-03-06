@@ -43,7 +43,7 @@ See [Setup Guide](docs/setup.md) for full instructions including local developme
 
 ## Agent Pipeline
 
-```
+```text
 📋 Backlog → speckit.specify → spec.md
 📝 Ready   → speckit.plan   → plan.md, research.md, data-model.md
              speckit.tasks   → tasks.md

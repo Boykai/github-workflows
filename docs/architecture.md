@@ -1,10 +1,12 @@
 # Architecture
 
+This document describes the system design of Agent Projects: how the services are composed, how data flows between them, and how the key backend modules are structured. Read this before making cross-service changes or onboarding to the codebase.
+
 ## Overview
 
 Agent Projects is a full-stack web application with a React frontend, a FastAPI backend, and a Signal messaging sidecar. All three services are orchestrated with Docker Compose behind a shared bridge network.
 
-```
+```text
 ┌───────────────────────────┐     ┌──────────────────────────────────┐     ┌──────────────────┐
 │        Frontend            │────▶│            Backend                │────▶│    GitHub API     │
 │  React 18 + Vite 5         │◀────│            FastAPI                │◀────│  GraphQL + REST   │
@@ -78,7 +80,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 ## Backend Architecture
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
-- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (10 numbered SQL migrations)
+- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (12 numbered SQL migrations)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
 - **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware
 - **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`
@@ -87,13 +89,14 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 | Directory | Purpose |
 |-----------|---------|
-| `api/` | Route handlers: `auth`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
+| `api/` | Route handlers: `auth`, `agents`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `metadata`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
 | `models/` | Pydantic v2 models: `agent`, `agent_creator`, `agents`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
 | `services/` | Business logic (see below) |
 | `services/github_projects/` | `GitHubProjectsService` + `graphql.py` + `GitHubClientFactory` — pooled `githubkit` SDK clients for GitHub API |
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
+| `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) |
 | `migrations/` | SQL migration files `001` through `012` |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |

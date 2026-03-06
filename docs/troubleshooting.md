@@ -5,8 +5,10 @@
 **OAuth callback fails / Login doesn't work:**
 - Verify you created a **GitHub OAuth App** (not a GitHub App)
 - Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correctly set
-- Verify callback URL matches exactly: `http://localhost:5173/api/v1/auth/github/callback`
-- Check that `FRONTEND_URL` is set to `http://localhost:5173`
+- Verify the callback URL in your OAuth App matches your setup:
+  - **Docker**: `http://localhost:5173/api/v1/auth/github/callback`
+  - **Local dev (no Docker)**: `http://localhost:8000/api/v1/auth/github/callback`
+- Check that `FRONTEND_URL` is set to `http://localhost:5173` (Docker) or `http://localhost:8000` (local dev)
 - Restart containers after updating `.env`: `docker compose down && docker compose up -d`
 
 **"401 Unauthorized" after GitHub login:**
@@ -109,6 +111,7 @@
 - App tracks remaining calls; wait for reset if limits are hit
 
 **Port already in use:**
+
 ```bash
 lsof -ti:8000 | xargs kill -9   # Backend
 lsof -ti:5173 | xargs kill -9   # Frontend

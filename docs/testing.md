@@ -29,7 +29,7 @@ pytest tests/ -k "test_pipeline_advancement" -v
 
 ### Test Structure
 
-```
+```text
 backend/tests/
 ├── conftest.py              # Shared fixtures (db, sessions, mocks)
 ├── helpers/                 # Test helper utilities

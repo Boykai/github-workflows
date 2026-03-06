@@ -84,6 +84,34 @@ jobs:
       - name: Build
         run: npm run build
 
+  # Documentation linting — markdownlint + link verification
+  docs:
+    name: Docs Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint-cli and markdown-link-check
+        run: npm install -g markdownlint-cli markdown-link-check
+
+      - name: Lint markdown formatting
+        run: markdownlint "docs/**/*.md" "README.md" ".github/PULL_REQUEST_TEMPLATE.md" --config .markdownlint.json
+
+      - name: Check internal links
+        run: |
+          find docs -name "*.md" -print0 | xargs -0 -I {} \
+            markdown-link-check {} \
+              --config .markdown-link-check.json \
+              --quiet
+
   # Docker build verification
   docker:
     name: Docker Build

@@ -1,6 +1,10 @@
 # API Reference
 
+This document lists every HTTP, WebSocket, and SSE endpoint exposed by the backend. Use it to understand which paths exist, what authentication they require, and what they do.
+
 All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `DEBUG=true`.
+
+Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, and `/auth/github/callback` endpoints are unauthenticated.
 
 ## Health
 
@@ -124,6 +128,37 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | PUT | `/signal/preferences` | Update notification preferences |
 | GET | `/signal/banners` | Get active conflict banners |
 | POST | `/signal/banners/{id}/dismiss` | Dismiss a conflict banner |
+
+## Agents
+
+Manage custom GitHub Agent configurations stored per-project.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/agents/{project_id}` | List all agents for a project (merged from SQLite + GitHub repo) |
+| POST | `/agents/{project_id}` | Create a new agent configuration |
+| PATCH | `/agents/{project_id}/{agent_id}` | Update an existing agent configuration |
+| DELETE | `/agents/{project_id}/{agent_id}` | Delete an agent configuration |
+| POST | `/agents/{project_id}/chat` | Conversational refinement of an agent definition |
+
+## MCP
+
+Manage Model Context Protocol server configurations (stored per-user, under the `/settings` prefix).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/settings/mcps` | List all MCP configurations for the authenticated user |
+| POST | `/settings/mcps` | Add a new MCP configuration |
+| DELETE | `/settings/mcps/{mcp_id}` | Remove an MCP configuration (owner only) |
+
+## Metadata
+
+Read and refresh cached GitHub repository metadata (labels, branches, milestones, collaborators).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/metadata/{owner}/{repo}` | Get cached repository metadata context |
+| POST | `/metadata/{owner}/{repo}/refresh` | Force-refresh metadata cache for a repository |
 
 ## Webhooks
 
