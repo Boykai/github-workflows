@@ -18,6 +18,7 @@ from src.models.workflow import (
     WorkflowResult,
     WorkflowTransition,
 )
+from src.rate_limit import limiter
 from src.services.cache import cache, get_user_projects_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -33,7 +34,6 @@ from src.services.workflow_orchestrator import (
     set_workflow_config,
 )
 from src.utils import BoundedDict, resolve_repository, utcnow
-from src.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/workflow", tags=["Workflow"])

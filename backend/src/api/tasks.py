@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
-from src.dependencies import require_project_access
 from src.exceptions import ValidationError
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession

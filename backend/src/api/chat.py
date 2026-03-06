@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
-from src.rate_limit import limiter
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.models.chat import (
@@ -28,6 +27,7 @@ from src.models.recommendation import (
 )
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration
+from src.rate_limit import limiter
 from src.services.ai_agent import get_ai_agent_service
 from src.services.cache import (
     cache,

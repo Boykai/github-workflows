@@ -112,9 +112,7 @@ class Settings(BaseSettings):
             errors.append("GITHUB_WEBHOOK_SECRET is required in production.")
 
         if len(self.session_secret_key) < 64:
-            errors.append(
-                "SESSION_SECRET_KEY must be at least 64 characters in production."
-            )
+            errors.append("SESSION_SECRET_KEY must be at least 64 characters in production.")
 
         if not self.effective_cookie_secure:
             errors.append(
@@ -132,9 +130,7 @@ class Settings(BaseSettings):
                 )
 
         if errors:
-            raise ValueError(
-                "Production security validation failed:\n- " + "\n- ".join(errors)
-            )
+            raise ValueError("Production security validation failed:\n- " + "\n- ".join(errors))
 
         return self
 

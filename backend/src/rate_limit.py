@@ -7,7 +7,6 @@ falling back to remote IP for unauthenticated requests.
 from __future__ import annotations
 
 from fastapi import Request
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 

@@ -447,20 +447,32 @@ class TestGithubWebhookEndpoint:
             )
         assert resp.status_code == 401
 
-    async def test_webhook_ignores_unhandled_event(self, client):
+    async def test_webhook_ignores_unhandled_event(self, client, webhook_secret):
+        import json as _json
+
+        payload = _json.dumps({"action": "ping"}).encode()
+        sig = self._sign(payload, webhook_secret)
         with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             resp = await client.post(
                 "/api/v1/webhooks/github",
-                json={"action": "ping"},
-                headers={"X-GitHub-Event": "ping"},
+                content=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-GitHub-Event": "ping",
+                    "X-Hub-Signature-256": sig,
+                },
             )
         assert resp.status_code == 200
         assert resp.json()["status"] == "ignored"
 
-    async def test_webhook_deduplication(self, client):
+    async def test_webhook_deduplication(self, client, webhook_secret):
+        import json as _json
+
+        payload = _json.dumps({"action": "ping"}).encode()
+        sig = self._sign(payload, webhook_secret)
         with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             # Clear processed IDs for test isolation
             from src.api.webhooks import _processed_delivery_ids
 
@@ -468,40 +480,53 @@ class TestGithubWebhookEndpoint:
 
             resp1 = await client.post(
                 "/api/v1/webhooks/github",
-                json={"action": "ping"},
+                content=payload,
                 headers={
+                    "Content-Type": "application/json",
                     "X-GitHub-Event": "ping",
                     "X-GitHub-Delivery": "dedup-test-id",
+                    "X-Hub-Signature-256": sig,
                 },
             )
             resp2 = await client.post(
                 "/api/v1/webhooks/github",
-                json={"action": "ping"},
+                content=payload,
                 headers={
+                    "Content-Type": "application/json",
                     "X-GitHub-Event": "ping",
                     "X-GitHub-Delivery": "dedup-test-id",
+                    "X-Hub-Signature-256": sig,
                 },
             )
         assert resp1.status_code == 200
         assert resp2.json()["status"] == "duplicate"
         _processed_delivery_ids.discard("dedup-test-id")
 
-    async def test_webhook_pull_request_routing(self, client):
+    async def test_webhook_pull_request_routing(self, client, webhook_secret):
         """Pull request events are routed to handle_pull_request_event."""
+        import json as _json
+
+        payload_dict = {
+            "action": "synchronize",
+            "pull_request": {
+                "number": 99,
+                "user": {"login": "someone"},
+                "draft": False,
+            },
+            "repository": {"owner": {"login": "o"}, "name": "r"},
+        }
+        payload = _json.dumps(payload_dict).encode()
+        sig = self._sign(payload, webhook_secret)
         with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             resp = await client.post(
                 "/api/v1/webhooks/github",
-                json={
-                    "action": "synchronize",
-                    "pull_request": {
-                        "number": 99,
-                        "user": {"login": "someone"},
-                        "draft": False,
-                    },
-                    "repository": {"owner": {"login": "o"}, "name": "r"},
+                content=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-GitHub-Event": "pull_request",
+                    "X-Hub-Signature-256": sig,
                 },
-                headers={"X-GitHub-Event": "pull_request"},
             )
         assert resp.status_code == 200
         assert resp.json()["event"] == "pull_request"
@@ -607,19 +632,28 @@ class TestWebhookResponseSanitization:
     async def test_unhandled_event_does_not_echo_event_type(self, client):
         """The 'ignored' response for unhandled events must not reflect the
         X-GitHub-Event header value, as it is user-controlled input."""
+        import json as _json
+
         from src.api.webhooks import _processed_delivery_ids
+
+        webhook_secret = "test-sanitization-secret"
+        payload = _json.dumps({"action": "test"}).encode()
+        sig = "sha256=" + hmac.new(
+            webhook_secret.encode(), payload, hashlib.sha256
+        ).hexdigest()
 
         with patch("src.api.webhooks.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(
-                github_webhook_secret=None,
-                debug=True,
+                github_webhook_secret=webhook_secret,
             )
             resp = await client.post(
                 "/api/v1/webhooks/github",
-                json={"action": "test"},
+                content=payload,
                 headers={
+                    "Content-Type": "application/json",
                     "X-GitHub-Event": "<script>alert(1)</script>",
                     "X-GitHub-Delivery": "unique-delivery-sanitize-test",
+                    "X-Hub-Signature-256": sig,
                 },
             )
 

@@ -20,6 +20,9 @@ os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_PATH", ":memory:")
+# Production validators are bypassed in debug mode. Tests default to debug=True
+# so that module-level Settings() instantiation doesn't fail.
+os.environ.setdefault("DEBUG", "true")
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
