@@ -36,7 +36,7 @@ See [Setup Guide](docs/setup.md) for full instructions including local developme
 | Component | Stack |
 |-----------|-------|
 | **Frontend** | React 18, TypeScript ~5.4, Vite 5, TanStack Query v5, Tailwind CSS |
-| **Backend** | Python 3.11+, FastAPI, Pydantic v2, aiosqlite (SQLite WAL), httpx |
+| **Backend** | Python 3.12, FastAPI, Pydantic v2, aiosqlite (SQLite WAL), githubkit |
 | **Signal Sidecar** | `signal-cli-rest-api` (Docker) |
 | **AI Providers** | GitHub Copilot SDK (default, OAuth) or Azure OpenAI (optional, API key) |
 | **Infrastructure** | Docker Compose (3 services), nginx reverse proxy, SQLite with auto-migrations |

@@ -61,9 +61,9 @@ export function IssueRecommendationPreview({
   // Show success result
   if (result?.success) {
     return (
-      <div className="bg-green-500/10 border border-green-500 rounded-lg p-4 mt-3 max-w-[600px]">
+      <div className="bg-green-100/80 border border-green-200 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400 rounded-lg p-4 mt-3 max-w-[600px]">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl text-green-500">✓</span>
+          <span className="text-xl">✓</span>
           <h4 className="m-0 font-semibold">Issue Created Successfully</h4>
         </div>
         <div className="text-sm">
@@ -89,9 +89,9 @@ export function IssueRecommendationPreview({
   // Show partial success: issue created but workflow had errors (e.g., agent assignment failed)
   if (result && !result.success && result.issue_number) {
     return (
-      <div className="bg-amber-500/10 border border-amber-500 rounded-lg p-4 mt-3 max-w-[600px]">
+      <div className="bg-accent/10 border border-accent/50 text-accent-foreground rounded-lg p-4 mt-3 max-w-[600px]">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl text-amber-500">⚠</span>
+          <span className="text-xl">⚠</span>
           <h4 className="m-0 font-semibold">Issue Created with Warnings</h4>
         </div>
         <div className="text-sm">
@@ -108,7 +108,7 @@ export function IssueRecommendationPreview({
               View on GitHub →
             </a>
           )}
-          {error && <div className="bg-red-500/10 text-red-500 p-2 rounded-md text-sm mt-3">{error}</div>}
+          {error && <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">{error}</div>}
           <p className="mt-2 text-sm text-muted-foreground italic">
             The issue was created but the agent pipeline encountered an error.
             The system will automatically retry, or you can check the pipeline status.
@@ -121,9 +121,9 @@ export function IssueRecommendationPreview({
   // Show rejected state
   if (recommendation.status === 'rejected') {
     return (
-      <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 mt-3 max-w-[600px] opacity-70">
+      <div className="bg-destructive/10 text-destructive border border-destructive rounded-lg p-4 mt-3 max-w-[600px] opacity-70">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl text-red-500">✗</span>
+          <span className="text-xl ">✗</span>
           <h4 className="m-0 font-semibold">Recommendation Rejected</h4>
         </div>
         <p className="text-muted-foreground line-through m-0">{recommendation.proposed_title}</p>
@@ -177,7 +177,7 @@ export function IssueRecommendationPreview({
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
-              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-red-500 font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-500 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-500' : 'text-muted-foreground'}`}>
+              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-500 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-500' : 'text-muted-foreground'}`}>
                 {recommendation.metadata.priority || 'P2'}
               </span>
             </div>
@@ -245,18 +245,18 @@ export function IssueRecommendationPreview({
         </div>
       )}
 
-      {error && <div className="bg-red-500/10 text-red-500 p-2 rounded-md text-sm mt-3">{error}</div>}
+      {error && <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">{error}</div>}
 
       <div className="flex gap-3 mt-4 pt-3 border-t border-border">
         <button
-          className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-green-500 text-white border-none hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleConfirm}
           disabled={isLoading || recommendation.status !== 'pending'}
         >
           {isLoading ? 'Creating...' : '✓ Confirm & Create Issue'}
         </button>
         <button
-          className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-transparent text-red-500 border border-red-500 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-transparent text-destructive border border-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleReject}
           disabled={isLoading || recommendation.status !== 'pending'}
         >

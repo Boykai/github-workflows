@@ -8,7 +8,8 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 from uuid import UUID
 
-import httpx
+from githubkit import GitHub, TokenAuthStrategy
+from githubkit.retry import RETRY_RATE_LIMIT, RETRY_SERVER_ERROR, RetryChainDecision
 
 from src.config import get_settings
 from src.models.user import UserSession
@@ -45,11 +46,10 @@ class GitHubAuthService:
 
     def __init__(self):
         self.settings = get_settings()
-        self._client = httpx.AsyncClient(timeout=30.0)
 
     async def close(self):
-        """Close HTTP client."""
-        await self._client.aclose()
+        """No-op — SDK manages its own connections."""
+        pass
 
     def generate_oauth_url(self) -> tuple[str, str]:
         """
@@ -101,7 +101,11 @@ class GitHubAuthService:
         Returns:
             Token response containing access_token, refresh_token, expires_in
         """
-        response = await self._client.post(
+        response = await GitHub(
+            TokenAuthStrategy("placeholder"),
+            auto_retry=RetryChainDecision(RETRY_RATE_LIMIT, RETRY_SERVER_ERROR),
+        ).arequest(
+            "POST",
             GITHUB_TOKEN_URL,
             data={
                 "client_id": self.settings.github_client_id,
@@ -111,7 +115,6 @@ class GitHubAuthService:
             },
             headers={"Accept": "application/json"},
         )
-        response.raise_for_status()
         return response.json()
 
     async def get_github_user(self, access_token: str) -> dict:
@@ -124,16 +127,12 @@ class GitHubAuthService:
         Returns:
             GitHub user data
         """
-        response = await self._client.get(
-            GITHUB_USER_API_URL,
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+        github = GitHub(
+            TokenAuthStrategy(access_token),
+            auto_retry=RetryChainDecision(RETRY_RATE_LIMIT, RETRY_SERVER_ERROR),
         )
-        response.raise_for_status()
-        return response.json()
+        resp = await github.rest.users.async_get_authenticated()
+        return resp.parsed_data.model_dump()
 
     async def create_session(self, code: str) -> UserSession:
         """
@@ -195,7 +194,11 @@ class GitHubAuthService:
         if not session.refresh_token:
             raise ValueError("No refresh token available")
 
-        response = await self._client.post(
+        response = await GitHub(
+            TokenAuthStrategy("placeholder"),
+            auto_retry=RetryChainDecision(RETRY_RATE_LIMIT, RETRY_SERVER_ERROR),
+        ).arequest(
+            "POST",
             GITHUB_TOKEN_URL,
             data={
                 "client_id": self.settings.github_client_id,
@@ -205,7 +208,6 @@ class GitHubAuthService:
             },
             headers={"Accept": "application/json"},
         )
-        response.raise_for_status()
         token_data = response.json()
 
         if "error" in token_data:

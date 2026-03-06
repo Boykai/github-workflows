@@ -407,12 +407,10 @@ async def update_issue_status_for_copilot_pr(
     try:
         # Try to find the project for this repository
         # First, list user's projects to find the matching one
-        projects_response = await github_projects_service.http_get(
-            "https://api.github.com/user",
-            headers={
-                "Authorization": f"Bearer {settings.github_webhook_token}",
-                "Accept": "application/vnd.github+json",
-            },
+        projects_response = await github_projects_service.rest_request(
+            settings.github_webhook_token,
+            "GET",
+            "/user",
         )
 
         if projects_response.status_code != 200:

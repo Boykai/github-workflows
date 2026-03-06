@@ -10,7 +10,7 @@ Last updated: 2026-03-04
 - **Runtime**: Python ≥3.11 (Docker image: 3.12-slim)
 - **Framework**: FastAPI ≥0.109, Uvicorn ≥0.27
 - **Data validation**: Pydantic ≥2.5, pydantic-settings ≥2.1
-- **HTTP client**: httpx ≥0.26
+- **HTTP client**: githubkit ≥0.14 (pooled SDK clients with built-in retry, throttling, HTTP cache)
 - **Database**: SQLite via aiosqlite ≥0.20 (WAL mode, migration-managed schema, file-backed at `/app/data/settings.db`)
 - **AI / Agents**: github-copilot-sdk ≥0.1, agent-framework-core ≥1.0.0a1, openai ≥1.0, azure-ai-inference ≥1.0.0b1
 - **Auth**: python-jose[cryptography] ≥3.3 (JWT)
@@ -46,7 +46,7 @@ backend/
   src/
     api/              # FastAPI route handlers
     middleware/        # Request/response middleware
-    migrations/       # SQL migration files (001–010)
+    migrations/       # SQL migration files (001–012)
     models/           # Pydantic models (board, chat, settings, task, user, agent_creator, etc.)
     prompts/          # AI prompt templates
     services/         # Business logic
@@ -111,8 +111,12 @@ npx playwright test             # E2E tests
 ## Active Technologies
 - Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0 (017-agents-section)
 - SQLite via aiosqlite (`agent_configs` table exists), GitHub repo files via GraphQL API (017-agents-section)
-- Python 3.11+ (backend), TypeScript ~5.8 (frontend) + FastAPI, httpx, github-copilot-sdk, openai, azure-ai-inference, aiosqlite (backend); React 18, Vite 5, @tanstack/react-query 5, vitest 4 (frontend) (018-codebase-audit-refactor)
+- Python 3.12 (backend), TypeScript ~5.8 (frontend) + FastAPI, githubkit, github-copilot-sdk, openai, azure-ai-inference, aiosqlite (backend); React 18, Vite 5, @tanstack/react-query 5, vitest 4 (frontend) (018-codebase-audit-refactor)
 - SQLite with WAL mode, 11 existing migrations (adding 012 for chat persistence) (018-codebase-audit-refactor)
+- TypeScript 5.8.0, React 18.3.1, Vite 5.4.0 + Tailwind CSS 3.4.19, shadcn/ui (cssVariables: true, baseColor: slate), class-variance-authority, lucide-react 0.575.0, Radix UI (019-western-theme-refresh)
+- N/A (frontend-only changes) (019-western-theme-refresh)
+- Python 3.12 (pyright targets 3.12, Dockerfile uses 3.12-slim) + FastAPI, githubkit (replaced httpx), github-copilot-sdk, aiosqlite, pydantic 2.x (020-githubkit-migration)
+- SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (020-githubkit-migration)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0

@@ -76,10 +76,10 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
                   </span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                     op.status === 'completed'
-                      ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                      ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : op.status === 'failed'
                         ? 'bg-destructive/20 text-destructive'
-                        : 'bg-yellow-500/20 text-yellow-600'
+                        : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
                   }`}>
                     {op.status}
                   </span>

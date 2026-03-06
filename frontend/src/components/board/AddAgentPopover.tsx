@@ -197,7 +197,7 @@ export function AddAgentPopover({
                 >
                   <div className="flex items-center justify-between w-full">
                     <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-500/10 text-blue-500' : agent.source === 'repository' ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                       {agent.source}
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export function AddAgentPopover({
                   )}
                   <div className="text-[10px] font-mono text-muted-foreground/70 truncate">{agent.slug}</div>
                   {isDuplicate && (
-                    <span className="absolute top-2 right-2 text-[10px] bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded">already assigned</span>
+                    <span className="absolute top-2 right-2 text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded">already assigned</span>
                   )}
                 </button>
               );

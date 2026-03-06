@@ -114,7 +114,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
       {/* Page Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold tracking-tight">Project Board</h2>
+          <h2 className="text-2xl font-display font-bold tracking-tight">Project Board</h2>
 
           {/* Project Selector */}
           <select
@@ -170,7 +170,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {/* Rate limit warning banner */}
       {refreshError?.type === 'rate_limit' && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
           <span className="text-lg">⏳</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit reached</strong>
@@ -185,7 +185,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {/* Low rate limit preemptive warning */}
       {isRateLimitLow && !refreshError && rateLimitInfo && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>

@@ -90,16 +90,16 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
 
         {/* Summary counts */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="p-3 rounded bg-green-500/10 text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.branches_deleted}</div>
+          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
+            <div className="text-2xl font-bold text-green-800 dark:text-green-400">{result.branches_deleted}</div>
             <div className="text-xs text-muted-foreground">Branches Deleted</div>
           </div>
-          <div className="p-3 rounded bg-green-500/10 text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.prs_closed}</div>
+          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
+            <div className="text-2xl font-bold text-green-800 dark:text-green-400">{result.prs_closed}</div>
             <div className="text-xs text-muted-foreground">PRs Closed</div>
           </div>
-          <div className="p-3 rounded bg-green-500/10 text-center">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{result.issues_closed ?? 0}</div>
+          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
+            <div className="text-2xl font-bold text-green-800 dark:text-green-400">{result.issues_closed ?? 0}</div>
             <div className="text-xs text-muted-foreground">Issues Closed</div>
           </div>
         </div>
@@ -110,8 +110,8 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <h3 className="text-sm font-medium mb-1">Deleted Branches</h3>
             <ul className="space-y-1 text-sm">
               {successfulBranches.map((item) => (
-                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/10">
-                  <span className="text-green-600 dark:text-green-400">✓</span>
+                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                  <span className="text-green-800 dark:text-green-400">✓</span>
                   <span className="font-mono text-xs">{item.identifier}</span>
                 </li>
               ))}
@@ -124,8 +124,8 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <h3 className="text-sm font-medium mb-1">Closed Pull Requests</h3>
             <ul className="space-y-1 text-sm">
               {successfulPRs.map((item) => (
-                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/10">
-                  <span className="text-green-600 dark:text-green-400">✓</span>
+                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                  <span className="text-green-800 dark:text-green-400">✓</span>
                   <span>#{item.identifier}</span>
                 </li>
               ))}
@@ -138,8 +138,8 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <h3 className="text-sm font-medium mb-1">Closed Orphaned Issues</h3>
             <ul className="space-y-1 text-sm">
               {successfulIssues.map((item) => (
-                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-500/10">
-                  <span className="text-green-600 dark:text-green-400">✓</span>
+                <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                  <span className="text-green-800 dark:text-green-400">✓</span>
                   <span>#{item.identifier}</span>
                 </li>
               ))}

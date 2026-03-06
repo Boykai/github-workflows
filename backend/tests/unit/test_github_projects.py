@@ -24,13 +24,11 @@ class TestGraphQLMethod:
     @pytest.mark.asyncio
     async def test_graphql_success(self, service):
         """Should return data on successful GraphQL response."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {"data": {"user": {"id": "123", "name": "Test"}}}
+        mock_client = AsyncMock()
+        mock_client.async_graphql = AsyncMock(return_value={"user": {"id": "123", "name": "Test"}})
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        with patch.object(service, "_client_factory") as mock_factory:
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             result = await service._graphql(
                 access_token="test-token",
@@ -39,18 +37,20 @@ class TestGraphQLMethod:
             )
 
             assert result == {"user": {"id": "123", "name": "Test"}}
-            mock_client.post.assert_called_once()
+            mock_client.async_graphql.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_graphql_with_extra_headers(self, service):
         """Should include extra headers when provided."""
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {"data": {"result": "ok"}}
+        mock_response.headers = {}
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client = AsyncMock()
+        mock_client.arequest = AsyncMock(return_value=mock_response)
+
+        with patch.object(service, "_client_factory") as mock_factory:
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             await service._graphql(
                 access_token="test-token",
@@ -59,26 +59,29 @@ class TestGraphQLMethod:
                 extra_headers={"GraphQL-Features": "copilot_support"},
             )
 
-            call_args = mock_client.post.call_args
-            headers = call_args.kwargs["headers"]
-            assert headers["GraphQL-Features"] == "copilot_support"
+            call_args = mock_client.arequest.call_args
+            headers = call_args.kwargs.get("headers", {})
+            assert headers.get("GraphQL-Features") == "copilot_support"
 
     @pytest.mark.asyncio
     async def test_graphql_raises_on_errors(self, service):
-        """Should raise ValueError when GraphQL returns errors."""
+        """Should raise ValueError when GraphQL returns errors (custom headers path)."""
         mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {"errors": [{"message": "Field not found"}]}
+        mock_response.headers = {}
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client = AsyncMock()
+        mock_client.arequest = AsyncMock(return_value=mock_response)
+
+        with patch.object(service, "_client_factory") as mock_factory:
+            mock_factory.get_client = AsyncMock(return_value=mock_client)
 
             with pytest.raises(ValueError) as exc_info:
                 await service._graphql(
                     access_token="test-token",
                     query="query { invalid }",
                     variables={},
+                    extra_headers={"X-Test": "true"},
                 )
 
             assert "GraphQL error" in str(exc_info.value)
@@ -564,10 +567,7 @@ class TestCreateIssue:
     @pytest.mark.asyncio
     async def test_create_issue_success(self, service):
         """Should create issue via REST API."""
-        mock_response = Mock()
-        mock_response.status_code = 201
-        mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {
+        mock_issue = {
             "id": 123,
             "node_id": "I_123",
             "number": 42,
@@ -575,8 +575,8 @@ class TestCreateIssue:
             "title": "Test Issue",
         }
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.return_value = mock_issue
 
             result = await service.create_issue(
                 access_token="test-token",
@@ -590,7 +590,7 @@ class TestCreateIssue:
             assert result["number"] == 42
             assert result["node_id"] == "I_123"
 
-            call_args = mock_client.post.call_args
+            call_args = mock_rest.call_args
             assert call_args.kwargs["json"]["title"] == "Test Issue"
             assert call_args.kwargs["json"]["labels"] == ["bug", "enhancement"]
 
@@ -634,20 +634,19 @@ class TestAssignIssue:
         mock_response = Mock()
         mock_response.status_code = 200
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.patch = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
-            result = await service.assign_issue(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_number=42,
-                assignees=["user1", "user2"],
-            )
+        result = await service.assign_issue(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            assignees=["user1", "user2"],
+        )
 
-            assert result is True
-            call_args = mock_client.patch.call_args
-            assert call_args.kwargs["json"]["assignees"] == ["user1", "user2"]
+        assert result is True
+        call_args = service._rest_response.call_args
+        assert call_args.kwargs["json"]["assignees"] == ["user1", "user2"]
 
     @pytest.mark.asyncio
     async def test_assign_issue_failure(self, service):
@@ -656,18 +655,17 @@ class TestAssignIssue:
         mock_response.status_code = 422
         mock_response.text = "Validation failed"
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.patch = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
-            result = await service.assign_issue(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                issue_number=42,
-                assignees=["invalid-user"],
-            )
+        result = await service.assign_issue(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            assignees=["invalid-user"],
+        )
 
-            assert result is False
+        assert result is False
 
 
 class TestValidateAssignee:
@@ -684,17 +682,16 @@ class TestValidateAssignee:
         mock_response = Mock()
         mock_response.status_code = 204
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
-            result = await service.validate_assignee(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                username="validuser",
-            )
+        result = await service.validate_assignee(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            username="validuser",
+        )
 
-            assert result is True
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_validate_assignee_invalid(self, service):
@@ -702,17 +699,16 @@ class TestValidateAssignee:
         mock_response = Mock()
         mock_response.status_code = 404
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
-            result = await service.validate_assignee(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-                username="invaliduser",
-            )
+        result = await service.validate_assignee(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+            username="invaliduser",
+        )
 
-            assert result is False
+        assert result is False
 
 
 # =============================================================================
@@ -731,21 +727,15 @@ class TestGetRepositoryOwner:
     @pytest.mark.asyncio
     async def test_get_repository_owner_success(self, service):
         """Should return repository owner login."""
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.raise_for_status = Mock()
-        mock_response.json.return_value = {"owner": {"login": "repo-owner"}}
+        service._rest = AsyncMock(return_value={"owner": {"login": "repo-owner"}})
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.get = AsyncMock(return_value=mock_response)
+        owner = await service.get_repository_owner(
+            access_token="test-token",
+            owner="owner",
+            repo="repo",
+        )
 
-            owner = await service.get_repository_owner(
-                access_token="test-token",
-                owner="owner",
-                repo="repo",
-            )
-
-            assert owner == "repo-owner"
+        assert owner == "repo-owner"
 
 
 class TestGetProjectRepository:
@@ -1040,23 +1030,23 @@ class TestRequestCopilotReview:
         mock_response.status_code = 201
         mock_response.text = "{}"
 
-        with patch.object(service, "_client") as mock_client:
-            mock_client.post = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
-            result = await service.request_copilot_review(
-                access_token="test-token",
-                pr_node_id="PR_123",
-                pr_number=42,
-                owner="owner",
-                repo="repo",
-            )
+        result = await service.request_copilot_review(
+            access_token="test-token",
+            pr_node_id="PR_123",
+            pr_number=42,
+            owner="owner",
+            repo="repo",
+        )
 
-            assert result is True
-            # Verify REST API was called with the correct URL and payload
-            mock_client.post.assert_awaited_once()
-            call_args = mock_client.post.call_args
-            assert "/pulls/42/requested_reviewers" in call_args[0][0]
-            assert call_args[1]["json"] == {"reviewers": ["copilot-pull-request-reviewer[bot]"]}
+        assert result is True
+        # Verify REST API was called with the correct URL and payload
+        service._rest_response.assert_awaited_once()
+        call_args = service._rest_response.call_args
+        # positional args: (access_token, method, path)
+        assert "/pulls/42/requested_reviewers" in call_args[0][2]
+        assert call_args[1]["json"] == {"reviewers": ["copilot-pull-request-reviewer[bot]"]}
 
     @pytest.mark.asyncio
     async def test_request_copilot_review_graphql_fallback(self, service):
@@ -1875,27 +1865,25 @@ class TestAssignCopilotToIssue:
         ) as mock_graphql:
             mock_graphql.return_value = False
 
-            with patch.object(service, "_client") as mock_client:
-                mock_client.post = AsyncMock(return_value=mock_response)
+            service._rest_response = AsyncMock(return_value=mock_response)
+            service._rest = AsyncMock(return_value={"assignees": []})
+            service.unassign_copilot_from_issue = AsyncMock(return_value=True)
 
-                result = await service.assign_copilot_to_issue(
-                    access_token="test-token",
-                    owner="owner",
-                    repo="repo",
-                    issue_node_id="I_123",
-                    issue_number=42,
-                    custom_agent="speckit.specify",
-                )
+            result = await service.assign_copilot_to_issue(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_node_id="I_123",
+                issue_number=42,
+                custom_agent="speckit.specify",
+            )
 
-                assert result is True
-                mock_graphql.assert_called_once()
-                mock_client.post.assert_called_once()
-                call_args = mock_client.post.call_args
-                assert call_args.kwargs["json"]["assignees"] == ["copilot-swe-agent[bot]"]
-                assert (
-                    call_args.kwargs["json"]["agent_assignment"]["custom_agent"]
-                    == "speckit.specify"
-                )
+            assert result is True
+            mock_graphql.assert_called_once()
+            service._rest_response.assert_called_once()
+            call_args = service._rest_response.call_args
+            assert call_args.kwargs["json"]["assignees"] == ["copilot-swe-agent[bot]"]
+            assert call_args.kwargs["json"]["agent_assignment"]["custom_agent"] == "speckit.specify"
 
     @pytest.mark.asyncio
     async def test_assign_copilot_rest_fallback_with_custom_instructions(self, service):
@@ -1909,26 +1897,25 @@ class TestAssignCopilotToIssue:
         ) as mock_graphql:
             mock_graphql.return_value = False
 
-            with patch.object(service, "_client") as mock_client:
-                mock_client.post = AsyncMock(return_value=mock_response)
+            service._rest_response = AsyncMock(return_value=mock_response)
 
-                await service.assign_copilot_to_issue(
-                    access_token="test-token",
-                    owner="owner",
-                    repo="repo",
-                    issue_node_id="I_123",
-                    issue_number=1,
-                    custom_agent="speckit.specify",
-                    custom_instructions="## Issue Title\nTest\n\n## Description\nContent",
-                )
+            await service.assign_copilot_to_issue(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_node_id="I_123",
+                issue_number=1,
+                custom_agent="speckit.specify",
+                custom_instructions="## Issue Title\nTest\n\n## Description\nContent",
+            )
 
-                call_args = mock_client.post.call_args
-                payload = call_args.kwargs["json"]
-                assert (
-                    payload["agent_assignment"]["custom_instructions"]
-                    == "## Issue Title\nTest\n\n## Description\nContent"
-                )
-                assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
+            call_args = service._rest_response.call_args
+            payload = call_args.kwargs["json"]
+            assert (
+                payload["agent_assignment"]["custom_instructions"]
+                == "## Issue Title\nTest\n\n## Description\nContent"
+            )
+            assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
 
     @pytest.mark.asyncio
     async def test_assign_copilot_no_issue_number_no_rest_fallback(self, service):
@@ -2893,8 +2880,7 @@ class TestCreateIssueComment:
             "html_url": "https://github.com/owner/repo/issues/1#issuecomment-123",
         }
 
-        service._client = AsyncMock()
-        service._client.post = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.create_issue_comment(
             access_token="test-token",
@@ -2907,7 +2893,7 @@ class TestCreateIssueComment:
         assert result is not None
         assert result["id"] == 123
         assert result["body"] == "Hello world"
-        service._client.post.assert_called_once()
+        service._rest_response.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_issue_comment_failure(self, service):
@@ -2916,8 +2902,7 @@ class TestCreateIssueComment:
         mock_response.status_code = 422
         mock_response.text = "Validation failed"
 
-        service._client = AsyncMock()
-        service._client.post = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.create_issue_comment(
             access_token="test-token",
@@ -2947,8 +2932,7 @@ class TestGetPrChangedFiles:
             {"filename": "README.md", "status": "modified", "additions": 2},
         ]
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.get_pr_changed_files(
             access_token="test-token",
@@ -2967,8 +2951,7 @@ class TestGetPrChangedFiles:
         mock_response.status_code = 404
         mock_response.text = "Not found"
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.get_pr_changed_files(
             access_token="test-token",
@@ -2994,8 +2977,7 @@ class TestGetFileContentFromRef:
         mock_response.status_code = 200
         mock_response.text = "# Spec\n\nThis is the spec content."
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.get_file_content_from_ref(
             access_token="test-token",
@@ -3014,8 +2996,7 @@ class TestGetFileContentFromRef:
         mock_response.status_code = 404
         mock_response.text = "Not found"
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service.get_file_content_from_ref(
             access_token="test-token",
@@ -3063,8 +3044,7 @@ class TestSearchOpenPrsForIssueRest:
             },
         ]
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service._search_open_prs_for_issue_rest(
             access_token="token", owner="o", repo="r", issue_number=42
@@ -3092,8 +3072,7 @@ class TestSearchOpenPrsForIssueRest:
             },
         ]
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service._search_open_prs_for_issue_rest(
             access_token="token", owner="o", repo="r", issue_number=42
@@ -3121,8 +3100,7 @@ class TestSearchOpenPrsForIssueRest:
             },
         ]
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service._search_open_prs_for_issue_rest(
             access_token="token", owner="o", repo="r", issue_number=42
@@ -3138,8 +3116,7 @@ class TestSearchOpenPrsForIssueRest:
         mock_response.status_code = 403
         mock_response.json.return_value = {"message": "Forbidden"}
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service._search_open_prs_for_issue_rest(
             access_token="token", owner="o", repo="r", issue_number=42
@@ -3165,8 +3142,7 @@ class TestSearchOpenPrsForIssueRest:
             },
         ]
 
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=mock_response)
+        service._rest_response = AsyncMock(return_value=mock_response)
 
         result = await service._search_open_prs_for_issue_rest(
             access_token="token", owner="o", repo="r", issue_number=42
@@ -3226,17 +3202,13 @@ class TestUpdateIssueBody:
 
     @pytest.mark.asyncio
     async def test_success(self, service):
-        resp = Mock(status_code=200)
-        resp.raise_for_status = Mock()
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(return_value=resp)
+        service._rest = AsyncMock(return_value={})
         result = await service.update_issue_body("tok", "o", "r", 1, "new body")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_failure(self, service):
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(side_effect=Exception("error"))
+        service._rest = AsyncMock(side_effect=Exception("error"))
         result = await service.update_issue_body("tok", "o", "r", 1, "body")
         assert result is False
 
@@ -3250,10 +3222,7 @@ class TestUpdateIssueState:
 
     @pytest.mark.asyncio
     async def test_close_with_reason(self, service):
-        resp = Mock(status_code=200)
-        resp.raise_for_status = Mock()
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(return_value=resp)
+        service._rest = AsyncMock(return_value={})
         result = await service.update_issue_state(
             "tok", "o", "r", 1, "closed", state_reason="completed"
         )
@@ -3261,12 +3230,7 @@ class TestUpdateIssueState:
 
     @pytest.mark.asyncio
     async def test_with_labels(self, service):
-        resp = Mock(status_code=200)
-        resp.raise_for_status = Mock()
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(return_value=resp)
-        service._client.post = AsyncMock(return_value=Mock(status_code=200))
-        service._client.delete = AsyncMock(return_value=Mock(status_code=200))
+        service._rest = AsyncMock(return_value={})
         result = await service.update_issue_state(
             "tok",
             "o",
@@ -3277,13 +3241,12 @@ class TestUpdateIssueState:
             labels_remove=["wontfix"],
         )
         assert result is True
-        service._client.post.assert_awaited_once()
-        service._client.delete.assert_awaited_once()
+        # _rest called 3 times: state update + add labels + remove label
+        assert service._rest.await_count == 3
 
     @pytest.mark.asyncio
     async def test_failure(self, service):
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(side_effect=Exception("api error"))
+        service._rest = AsyncMock(side_effect=Exception("api error"))
         result = await service.update_issue_state("tok", "o", "r", 1, "closed")
         assert result is False
 
@@ -3339,29 +3302,25 @@ class TestDeleteBranch:
 
     @pytest.mark.asyncio
     async def test_success_204(self, service):
-        service._client = AsyncMock()
-        service._client.delete = AsyncMock(return_value=Mock(status_code=204))
+        service._rest_response = AsyncMock(return_value=Mock(status_code=204))
         result = await service.delete_branch("tok", "o", "r", "feature/x")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_already_deleted_422(self, service):
-        service._client = AsyncMock()
-        service._client.delete = AsyncMock(return_value=Mock(status_code=422))
+        service._rest_response = AsyncMock(return_value=Mock(status_code=422))
         result = await service.delete_branch("tok", "o", "r", "feature/x")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_other_status(self, service):
-        service._client = AsyncMock()
-        service._client.delete = AsyncMock(return_value=Mock(status_code=500, text="error"))
+        service._rest_response = AsyncMock(return_value=Mock(status_code=500, text="error"))
         result = await service.delete_branch("tok", "o", "r", "feature/x")
         assert result is False
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        service._client = AsyncMock()
-        service._client.delete = AsyncMock(side_effect=Exception("network error"))
+        service._rest_response = AsyncMock(side_effect=Exception("network error"))
         result = await service.delete_branch("tok", "o", "r", "feature/x")
         assert result is False
 
@@ -3546,15 +3505,13 @@ class TestUpdatePrBase:
 
     @pytest.mark.asyncio
     async def test_success(self, service):
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(return_value=Mock(status_code=200))
+        service._rest_response = AsyncMock(return_value=Mock(status_code=200))
         result = await service.update_pr_base("tok", "o", "r", 5, "main-branch")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_failure(self, service):
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(
+        service._rest_response = AsyncMock(
             return_value=Mock(status_code=422, text="Validation failed")
         )
         result = await service.update_pr_base("tok", "o", "r", 5, "main-branch")
@@ -3562,8 +3519,7 @@ class TestUpdatePrBase:
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        service._client = AsyncMock()
-        service._client.patch = AsyncMock(side_effect=Exception("error"))
+        service._rest_response = AsyncMock(side_effect=Exception("error"))
         result = await service.update_pr_base("tok", "o", "r", 5, "main")
         assert result is False
 
@@ -3634,9 +3590,9 @@ class TestCreateSubIssue:
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
             with patch.object(
                 service,
-                "_request_with_retry",
+                "_rest",
                 new_callable=AsyncMock,
-                return_value=Mock(status_code=201),
+                return_value={},
             ):
                 result = await service.create_sub_issue(
                     "tok", "o", "r", 42, "Sub title", "Sub body"
@@ -3649,7 +3605,7 @@ class TestCreateSubIssue:
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
             with patch.object(
                 service,
-                "_request_with_retry",
+                "_rest",
                 new_callable=AsyncMock,
                 side_effect=Exception("502 Bad Gateway"),
             ):
@@ -3662,7 +3618,7 @@ class TestCreateSubIssue:
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
             with patch.object(
                 service,
-                "_request_with_retry",
+                "_rest",
                 new_callable=AsyncMock,
                 side_effect=Exception("network"),
             ):
@@ -3682,22 +3638,19 @@ class TestGetSubIssues:
         items = [{"id": 1, "number": 10, "title": "Sub 1"}]
         resp = Mock(status_code=200)
         resp.json.return_value = items
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=resp)
+        service._rest_response = AsyncMock(return_value=resp)
         result = await service.get_sub_issues("tok", "o", "r", 42)
         assert result == items
 
     @pytest.mark.asyncio
     async def test_not_found(self, service):
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=Mock(status_code=404))
+        service._rest_response = AsyncMock(return_value=Mock(status_code=404))
         result = await service.get_sub_issues("tok", "o", "r", 42)
         assert result == []
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(side_effect=Exception("err"))
+        service._rest_response = AsyncMock(side_effect=Exception("err"))
         result = await service.get_sub_issues("tok", "o", "r", 42)
         assert result == []
 
@@ -3714,8 +3667,7 @@ class TestLinkPullRequestToIssue:
         with patch.object(
             service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "PR body"}
         ):
-            service._client = AsyncMock()
-            service._client.patch = AsyncMock(return_value=Mock(status_code=200))
+            service._rest_response = AsyncMock(return_value=Mock(status_code=200))
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
         assert result is True
 
@@ -3735,8 +3687,7 @@ class TestLinkPullRequestToIssue:
         with patch.object(
             service, "get_pull_request", new_callable=AsyncMock, return_value={"body": "text"}
         ):
-            service._client = AsyncMock()
-            service._client.patch = AsyncMock(return_value=Mock(status_code=422, text="err"))
+            service._rest_response = AsyncMock(return_value=Mock(status_code=422, text="err"))
             result = await service.link_pull_request_to_issue("tok", "o", "r", 5, 42)
         assert result is False
 
@@ -3758,33 +3709,25 @@ class TestIsCopilotAssignedToIssue:
 
     @pytest.mark.asyncio
     async def test_copilot_assigned(self, service):
-        resp = Mock(status_code=200)
-        resp.json.return_value = {"assignees": [{"login": "copilot-swe-agent"}]}
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=resp)
+        service._rest = AsyncMock(return_value={"assignees": [{"login": "copilot-swe-agent"}]})
         result = await service.is_copilot_assigned_to_issue("tok", "o", "r", 1)
         assert result is True
 
     @pytest.mark.asyncio
     async def test_not_assigned(self, service):
-        resp = Mock(status_code=200)
-        resp.json.return_value = {"assignees": [{"login": "developer"}]}
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=resp)
+        service._rest = AsyncMock(return_value={"assignees": [{"login": "developer"}]})
         result = await service.is_copilot_assigned_to_issue("tok", "o", "r", 1)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_error_assumes_assigned(self, service):
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(return_value=Mock(status_code=500))
+        service._rest = AsyncMock(side_effect=Exception("err"))
         result = await service.is_copilot_assigned_to_issue("tok", "o", "r", 1)
         assert result is True
 
     @pytest.mark.asyncio
     async def test_exception_assumes_assigned(self, service):
-        service._client = AsyncMock()
-        service._client.get = AsyncMock(side_effect=Exception("err"))
+        service._rest = AsyncMock(side_effect=Exception("err"))
         result = await service.is_copilot_assigned_to_issue("tok", "o", "r", 1)
         assert result is True
 
@@ -3890,148 +3833,39 @@ class TestGetPrTimelineEvents:
     @pytest.mark.asyncio
     async def test_success(self, service):
         events = [{"event": "assigned"}, {"event": "labeled"}]
-        resp = Mock(status_code=200)
-        resp.json.return_value = events
-        resp.raise_for_status = Mock()
-
-        service._client.get = AsyncMock(return_value=resp)
+        service._rest = AsyncMock(return_value=events)
         result = await service.get_pr_timeline_events("tok", "o", "r", 5)
         assert result == events
 
     @pytest.mark.asyncio
     async def test_exception(self, service):
-        import httpx as _httpx
-
-        service._client.get = AsyncMock(side_effect=_httpx.HTTPError("err"))
+        service._rest = AsyncMock(side_effect=Exception("err"))
         result = await service.get_pr_timeline_events("tok", "o", "r", 5)
         assert result == []
 
 
-class TestRequestWithRetry502:
-    """Tests for _request_with_retry handling 502 Bad Gateway."""
-
-    @pytest.fixture
-    def service(self):
-        return GitHubProjectsService()
-
-    @pytest.mark.asyncio
-    async def test_retries_on_502_then_succeeds(self, service):
-        """502 Bad Gateway should be retried and succeed on a subsequent attempt."""
-        import httpx as _httpx
-
-        ok_resp = Mock(status_code=200, headers={})
-        ok_resp.raise_for_status = Mock()
-
-        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
-        err_resp.raise_for_status = Mock(
-            side_effect=_httpx.HTTPStatusError(
-                "502",
-                request=_httpx.Request("POST", "http://example.com"),
-                response=err_resp,
-            )
-        )
-
-        # First call returns 502, second call succeeds
-        service._client.post = AsyncMock(side_effect=[err_resp, ok_resp])
-
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await service._request_with_retry(
-                method="POST",
-                url="http://example.com",
-                headers={},
-                json={"test": True},
-                idempotent=True,
-            )
-
-        assert result == ok_resp
-        assert service._client.post.call_count == 2
-
-    @pytest.mark.asyncio
-    async def test_502_not_retried_when_not_idempotent(self, service):
-        """Non-idempotent requests should NOT retry on 502."""
-        import httpx as _httpx
-
-        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
-        err_resp.raise_for_status = Mock(
-            side_effect=_httpx.HTTPStatusError(
-                "502",
-                request=_httpx.Request("POST", "http://example.com"),
-                response=err_resp,
-            )
-        )
-
-        service._client.post = AsyncMock(return_value=err_resp)
-
-        with pytest.raises(_httpx.HTTPStatusError):
-            await service._request_with_retry(
-                method="POST",
-                url="http://example.com",
-                headers={},
-                json={"test": True},
-                idempotent=False,
-            )
-
-        assert service._client.post.call_count == 1
-
-    @pytest.mark.asyncio
-    async def test_502_exhausts_retries(self, service):
-        """When all retry attempts get 502, the error should be raised."""
-        import httpx as _httpx
-
-        err_resp = Mock(status_code=502, headers={}, text="Bad Gateway")
-        err_resp.raise_for_status = Mock(
-            side_effect=_httpx.HTTPStatusError(
-                "502",
-                request=_httpx.Request("POST", "http://example.com"),
-                response=err_resp,
-            )
-        )
-
-        # All 4 attempts (1 initial + 3 retries) return 502
-        service._client.post = AsyncMock(return_value=err_resp)
-
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            with pytest.raises(_httpx.HTTPStatusError):
-                await service._request_with_retry(
-                    method="POST",
-                    url="http://example.com",
-                    headers={},
-                    json={"test": True},
-                    idempotent=True,
-                )
-
-        # 1 initial + MAX_RETRIES (3) = 4 attempts
-        assert service._client.post.call_count == 4
-
-
 class TestCreateSubIssueAttachmentRetry:
-    """Tests for create_sub_issue using _request_with_retry for attachment."""
+    """Tests for create_sub_issue using _rest for attachment."""
 
     @pytest.fixture
     def service(self):
         return GitHubProjectsService()
 
     @pytest.mark.asyncio
-    async def test_attachment_uses_request_with_retry(self, service):
-        """Verify that sub-issue attachment routes through _request_with_retry."""
+    async def test_attachment_uses_rest(self, service):
+        """Verify that sub-issue attachment routes through _rest."""
         sub_issue = {"id": 100, "number": 50, "node_id": "I_50", "html_url": "..."}
 
         with patch.object(service, "create_issue", new_callable=AsyncMock, return_value=sub_issue):
             with patch.object(
                 service,
-                "_request_with_retry",
+                "_rest",
                 new_callable=AsyncMock,
-                return_value=Mock(status_code=201),
-            ) as mock_retry:
+                return_value={},
+            ) as mock_rest:
                 await service.create_sub_issue("tok", "o", "r", 42, "Sub", "Body")
 
-        mock_retry.assert_called_once()
-        call_kwargs = mock_retry.call_args
-        assert call_kwargs.kwargs.get("method") == "POST" or call_kwargs[1].get("method") == "POST"
-        # Verify the URL points to the sub-issues attachment endpoint
-        url_arg = call_kwargs.kwargs.get("url") or call_kwargs[1].get("url", "")
-        assert "/issues/42/sub_issues" in url_arg
-        # Verify idempotent=True so the attachment is retried on transient errors
-        assert (
-            call_kwargs.kwargs.get("idempotent") is True or call_kwargs[1].get("idempotent") is True
-        )
+        mock_rest.assert_called_once()
+        call_args = mock_rest.call_args
+        # Verify the path points to the sub-issues attachment endpoint
+        assert "/issues/42/sub_issues" in call_args[0][2]
