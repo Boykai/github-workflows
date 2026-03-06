@@ -259,6 +259,19 @@ async def get_board_data(
                 return cached.model_copy(update={"rate_limit": _get_rate_limit_info()})
             return cached
 
+    # On manual refresh, clear sub-issue caches BEFORE fetching board data so
+    # that get_board_data() → get_sub_issues() doesn't serve stale cached entries.
+    if refresh:
+        old_cached = cache.get(cache_key)
+        if isinstance(old_cached, BoardDataResponse) and hasattr(old_cached, "columns"):
+            for col in old_cached.columns:
+                for item in col.items:
+                    if item.number is not None and item.repository:
+                        si_key = get_sub_issues_cache_key(
+                            item.repository.owner, item.repository.name, item.number
+                        )
+                        cache.delete(si_key)
+
     logger.info("Fetching board data for project %s", project_id)
 
     try:
@@ -300,16 +313,6 @@ async def get_board_data(
         ) from e
 
     board_data.rate_limit = _get_rate_limit_info()
-
-    # On manual refresh, also clear sub-issue caches for this board's items
-    if refresh and hasattr(board_data, "columns"):
-        for col in board_data.columns:
-            for item in col.items:
-                if item.number is not None and item.repository:
-                    si_key = get_sub_issues_cache_key(
-                        item.repository.owner, item.repository.name, item.number
-                    )
-                    cache.delete(si_key)
 
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses this cache entirely.

@@ -5,7 +5,9 @@
 
 ## Overview
 
-This feature introduces no new API endpoints. All changes are internal behavioral modifications to existing endpoints and WebSocket handlers. This document defines the behavioral contracts that must be preserved.
+This feature's rate-limit-reduction changes introduce no new API endpoints. All rate-limit changes are internal behavioral modifications to existing endpoints and WebSocket handlers.
+
+> **Note**: The branch also adds `GET /chores/{project_id}/templates` (chore templates), which is a separate enhancement bundled in the same PR — not part of the rate-limit contracts below.
 
 ## Contract 1: WebSocket Refresh Message Contract
 

@@ -6,10 +6,12 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs) *(see note below)*
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
+
+> **Note**: The spec intentionally references implementation concepts (WebSocket, SHA-256, TTL, TanStack Query) because the feature is an internal optimization — rate-limit changes cannot be described meaningfully without referencing the technical layers being optimized.
 
 ## Requirement Completeness
 
@@ -27,7 +29,7 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification *(see Content Quality note)*
 
 ## Notes
 

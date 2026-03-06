@@ -43,7 +43,7 @@ specs/022-api-rate-limit-protection/
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output
 ├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output (internal contracts, no new API endpoints)
+├── contracts/           # Phase 1 output (internal behavioral contracts)
 └── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
