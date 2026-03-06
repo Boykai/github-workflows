@@ -121,8 +121,8 @@ As a user on a touch device or relying on keyboard navigation, I want to be able
 - **FR-002**: Column definitions in the Agent Pipeline MUST derive from the Project Board Status configuration so that changes to the Project Board automatically propagate.
 - **FR-003**: Users MUST be able to drag an agent title card horizontally from one column to another to change the agent's status.
 - **FR-004**: Users MUST be able to drag an agent title card vertically within a column to change its row position (priority ordering).
-- **FR-005**: The system MUST persist both status changes (column moves) and ordering changes (row moves) immediately after a successful drop.
-- **FR-006**: The system MUST revert the card to its original position if the update fails, and display an error notification to the user.
+- **FR-005**: The system MUST apply status changes (column moves) and ordering changes (row moves) to local state immediately after a successful drop, and present a Save/Discard bar so the user can persist or revert all pending changes as a batch.
+- **FR-006**: If a batch save fails, the system MUST display an error notification to the user and keep the local changes intact so the user can retry or discard.
 - **FR-007**: The system MUST provide visual feedback during drag operations, including a preview of the dragged card, highlighted drop zones, insertion indicators, and a placeholder at the original position.
 - **FR-008**: The system MUST support combined drag operations where a card is moved to a different column and placed at a specific row position within that column in a single gesture.
 - **FR-009**: The system MUST support keyboard-based card movement as an accessible alternative to mouse-based drag-and-drop.
@@ -142,7 +142,7 @@ As a user on a touch device or relying on keyboard navigation, I want to be able
 - **SC-001**: 100% of Project Board Status columns appear in the Agent Pipeline with matching names and order, verified by visual comparison.
 - **SC-002**: Users can move an agent card from one column to another via drag-and-drop in under 2 seconds (from grab to successful drop).
 - **SC-003**: Users can reorder agent cards within a column via drag-and-drop in under 2 seconds (from grab to successful drop).
-- **SC-004**: Failed drag-and-drop operations revert the card to its original position within 1 second, with a visible error notification displayed to the user.
+- **SC-004**: Failed batch saves display a visible error notification within 1 second, and the user can retry or discard pending changes.
 - **SC-005**: 90% of users can successfully move an agent card to a target column on their first attempt without needing instructions.
 - **SC-006**: Drag-and-drop operations complete correctly on touch devices and via keyboard navigation, covering all three input methods (mouse, touch, keyboard).
 - **SC-007**: The Agent Pipeline renders correctly with zero layout shifts when columns are added, removed, or renamed in the Project Board.

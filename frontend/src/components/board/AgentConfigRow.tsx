@@ -172,16 +172,23 @@ export function AgentConfigRow({
   const handleDragCancel = useCallback(() => {
     setActiveAgent(null);
     if (snapshotRef.current) {
-      // Restore the pre-drag state by discarding and re-applying snapshot
-      // We directly set via reorderAgents-like approach, but simpler to use applyPreset-style
-      // Instead, we'll use the discard pattern: restore each column from snapshot
       const snapshot = snapshotRef.current;
+      const snapshotStatuses = new Set(Object.keys(snapshot));
+
+      // Clear any statuses introduced during drag that are not in the snapshot
+      for (const status of Object.keys(localMappings)) {
+        if (!snapshotStatuses.has(status)) {
+          reorderAgents(status, []);
+        }
+      }
+
+      // Restore each column from the snapshot
       for (const [status, agents] of Object.entries(snapshot)) {
         reorderAgents(status, agents);
       }
       snapshotRef.current = null;
     }
-  }, [reorderAgents]);
+  }, [localMappings, reorderAgents]);
 
   // Loading skeleton (T030)
   if (!isLoaded) {
