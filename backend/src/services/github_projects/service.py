@@ -344,7 +344,8 @@ class GitHubProjectsService:
                 result = response.json()
                 if "errors" in result:
                     error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
-                    raise ValueError(f"GraphQL error: {error_msg}")
+                    logger.error("GraphQL errors: %s", error_msg)
+                    raise ValueError("GitHub API request failed")
                 data = result.get("data", {})
             else:
                 # Standard GraphQL — SDK handles auth, retry, cache, errors

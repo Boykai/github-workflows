@@ -6,10 +6,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
 from src.models.user import UserResponse, UserSession
+from src.rate_limit import _ip_key, limiter
 from src.services.github_auth import github_auth_service
 
 logger = logging.getLogger(__name__)
@@ -101,7 +103,9 @@ async def initiate_github_oauth() -> RedirectResponse:
 
 
 @router.get("/github/callback")
+@limiter.limit("10/minute", key_func=_ip_key)
 async def github_callback(
+    request: Request,
     code: Annotated[str, Query(description="Authorization code from GitHub")],
     state: Annotated[str, Query(description="OAuth state parameter")],
     response: Response,
@@ -165,6 +169,10 @@ async def set_session_cookie(
 
     Called by frontend after OAuth callback to set cookie via proxy.
     This ensures the cookie is associated with the frontend's origin.
+
+    .. deprecated::
+        This endpoint is retained only for backwards compatibility.
+        The OAuth callback now sets the cookie directly on the redirect response.
     """
     session = await github_auth_service.get_session(session_token)
     if not session:
@@ -202,15 +210,22 @@ async def logout(
     return {"message": "Logged out successfully"}
 
 
+class DevLoginRequest(BaseModel):
+    """Request body for development login."""
+
+    github_token: str
+
+
 @router.post("/dev-login")
 async def dev_login(
+    body: DevLoginRequest,
     response: Response,
-    github_token: str = Query(..., description="GitHub Personal Access Token"),
 ) -> UserResponse:
     """
     Development-only endpoint to login with a GitHub Personal Access Token.
 
     This bypasses OAuth and is only for testing/development purposes.
+    The token must be provided in the JSON request body, never in a URL.
     """
     from src.config import get_settings
 
@@ -223,7 +238,7 @@ async def dev_login(
         )
 
     try:
-        session = await github_auth_service.create_session_from_token(github_token)
+        session = await github_auth_service.create_session_from_token(body.github_token)
 
         # Set the session cookie
         _set_session_cookie(response, str(session.session_id))

@@ -53,10 +53,14 @@ class EncryptionService:
     def encrypt(self, plaintext: str) -> str:
         """Encrypt *plaintext* → Fernet token string (URL-safe base64).
 
-        In passthrough mode returns *plaintext* unchanged.
+        Raises :class:`RuntimeError` when encryption is unavailable
+        (no key configured).  Callers must never store plaintext tokens.
         """
         if self._fernet is None:
-            return plaintext
+            raise RuntimeError(
+                "EncryptionService has no key configured — "
+                "refusing to store plaintext. Set ENCRYPTION_KEY."
+            )
         return self._fernet.encrypt(plaintext.encode()).decode()
 
     def decrypt(self, ciphertext: str) -> str:

@@ -140,6 +140,9 @@ export const authApi = {
   /**
    * Exchange session token for cookie.
    * Called after OAuth callback to set cookie via the proxy.
+   *
+   * @deprecated The OAuth callback now sets the cookie directly.
+   * Retained only for backwards compatibility.
    */
   setSessionFromToken(sessionToken: string): Promise<User> {
     return request<User>(`/auth/session?session_token=${sessionToken}`, {

@@ -5,6 +5,27 @@
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 
+/** Known GitHub avatar host domains. */
+const ALLOWED_AVATAR_HOSTS = new Set([
+  'avatars.githubusercontent.com',
+  'github.com',
+]);
+
+/** Validate that an avatar URL uses HTTPS and originates from a known GitHub domain. */
+function isValidAvatarUrl(url: string | undefined | null): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ALLOWED_AVATAR_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** Placeholder SVG data URI for invalid/missing avatar URLs. */
+const AVATAR_PLACEHOLDER =
+  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23888%22%3E%3Ccircle cx=%2212%22 cy=%228%22 r=%224%22/%3E%3Cpath d=%22M4 20c0-4 4-7 8-7s8 3 8 7%22/%3E%3C/svg%3E';
+
 interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
@@ -123,11 +144,12 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
               <img
                 key={assignee.login}
                 className="w-6 h-6 rounded-full border-2 border-card"
-                src={assignee.avatar_url}
+                src={isValidAvatarUrl(assignee.avatar_url) ? assignee.avatar_url : AVATAR_PLACEHOLDER}
                 alt={assignee.login}
                 title={assignee.login}
                 width={24}
                 height={24}
+                referrerPolicy="no-referrer"
               />
             ))
           ) : null}

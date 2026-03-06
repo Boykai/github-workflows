@@ -24,6 +24,8 @@ dependencies = [
     # Signal messaging integration
     "tenacity>=9.1.0",
     "websockets>=16.0",
+    # Rate limiting for sensitive endpoints
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]
