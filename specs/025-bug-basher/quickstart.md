@@ -21,9 +21,11 @@ ruff format --check src/     # Should be zero violations
 # 3. Type check baseline
 pyright src/                 # Should be zero errors
 
-# 4. Test baseline (run in batches to avoid timeout)
-ls tests/unit/*.py | head -24 | xargs pytest -x
-ls tests/unit/*.py | tail -27 | xargs pytest -x
+# 4. Test baseline (run in two batches to avoid timeout — split at midpoint)
+UNIT_FILES=(tests/unit/*.py)
+HALF=$(( ${#UNIT_FILES[@]} / 2 ))
+pytest "${UNIT_FILES[@]:0:$HALF}" -x
+pytest "${UNIT_FILES[@]:$HALF}" -x
 pytest tests/integration/ -x
 
 # Record: total tests passing, any skipped, any xfail
@@ -90,9 +92,11 @@ ruff format --check src/
 # 2. Type check — zero errors
 pyright src/
 
-# 3. Full test suite — all pass (batch to avoid timeout)
-ls tests/unit/*.py | head -24 | xargs pytest
-ls tests/unit/*.py | tail -27 | xargs pytest
+# 3. Full test suite — all pass (split at midpoint to avoid timeout)
+UNIT_FILES=(tests/unit/*.py)
+HALF=$(( ${#UNIT_FILES[@]} / 2 ))
+pytest "${UNIT_FILES[@]:0:$HALF}"
+pytest "${UNIT_FILES[@]:$HALF}"
 pytest tests/integration/
 
 # 4. Verify regression test count
