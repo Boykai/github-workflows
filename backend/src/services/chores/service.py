@@ -13,6 +13,35 @@ from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdat
 
 logger = logging.getLogger(__name__)
 
+# Allowlist of valid column names for dynamic SQL SET clauses.
+# Keeps f-string column interpolation safe even if callers change.
+_CHORE_COLUMNS = frozenset(
+    {
+        "name",
+        "template_path",
+        "template_content",
+        "schedule_type",
+        "schedule_value",
+        "status",
+        "last_triggered_at",
+        "last_triggered_count",
+        "current_issue_number",
+        "current_issue_node_id",
+        "pr_number",
+        "pr_url",
+        "tracking_issue_number",
+        "created_at",
+        "updated_at",
+    }
+)
+
+
+def _validate_column_names(columns: dict) -> None:
+    """Reject unknown column names before they reach SQL construction."""
+    unknown = set(columns) - _CHORE_COLUMNS
+    if unknown:
+        raise ValueError(f"Invalid chore column names: {', '.join(sorted(unknown))}")
+
 
 def _strip_front_matter(text: str) -> str:
     """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
@@ -130,6 +159,7 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        _validate_column_names(updates)
         set_clause = ", ".join(f"{col} = ?" for col in updates)
         values = [*list(updates.values()), chore_id]
 
@@ -251,6 +281,7 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         kwargs["updated_at"] = now
 
+        _validate_column_names(kwargs)
         set_clause = ", ".join(f"{col} = ?" for col in kwargs)
         values = [*list(kwargs.values()), chore_id]
 

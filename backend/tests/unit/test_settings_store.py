@@ -92,6 +92,8 @@ class TestUpsertUserPreferences:
         assert eff.display.theme.value == "light"
 
     async def test_explicit_none_clears_nullable_fields(self, seeded_db):
+        # Set a known global default so fallback is testable
+        await update_global_settings(seeded_db, {"default_repository": "Boykai/github-workflows"})
         await upsert_user_preferences(seeded_db, "user1", {"default_repository": "owner/repo"})
         await upsert_user_preferences(seeded_db, "user1", {"default_repository": None})
         row = await get_user_preferences_row(seeded_db, "user1")
