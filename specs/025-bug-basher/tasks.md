@@ -23,9 +23,9 @@
 
 **Purpose**: Establish a passing baseline for both backend and frontend before any changes
 
-- [ ] T001 Install backend dependencies and record baseline lint/type-check/test pass counts in backend/
-- [ ] T002 Install frontend dependencies and record baseline lint/type-check/test pass counts in frontend/
-- [ ] T003 [P] Run grep-based pattern scans for all five bug categories across the full codebase and compile prioritized audit target list
+- [x] T001 Install backend dependencies and record baseline lint/type-check/test pass counts in backend/
+- [x] T002 Install frontend dependencies and record baseline lint/type-check/test pass counts in frontend/
+- [x] T003 [P] Run grep-based pattern scans for all five bug categories across the full codebase and compile prioritized audit target list
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No file-level audit work can begin until this phase is complete
 
-- [ ] T004 Scan backend/src/ for security anti-patterns: hardcoded secrets, eval/exec, raw SQL, missing auth Depends(), wildcard CORS, pickle/yaml unsafe loads, secrets in logs
-- [ ] T005 [P] Scan frontend/src/ for security anti-patterns: dangerouslySetInnerHTML, localStorage token storage, unvalidated URL params, missing rel="noopener noreferrer" on external links
-- [ ] T006 [P] Scan backend/src/ for runtime error anti-patterns: bare except, missing await on coroutines, file/DB handles without context managers, dict[] on user data, asyncio.create_task without error handling
-- [ ] T007 [P] Scan backend/tests/ for test quality anti-patterns: MagicMock used as path/URL/config, assert mock_obj (always truthy), assert True, test functions with no assertions, pytest.raises(Exception) too broad
-- [ ] T008 [P] Scan full codebase for code quality anti-patterns: dead code, bare except pass, duplicated logic blocks, hardcoded timeouts/URLs/retry counts
+- [x] T004 Scan backend/src/ for security anti-patterns: hardcoded secrets, eval/exec, raw SQL, missing auth Depends(), wildcard CORS, pickle/yaml unsafe loads, secrets in logs
+- [x] T005 [P] Scan frontend/src/ for security anti-patterns: dangerouslySetInnerHTML, localStorage token storage, unvalidated URL params, missing rel="noopener noreferrer" on external links
+- [x] T006 [P] Scan backend/src/ for runtime error anti-patterns: bare except, missing await on coroutines, file/DB handles without context managers, dict[] on user data, asyncio.create_task without error handling
+- [x] T007 [P] Scan backend/tests/ for test quality anti-patterns: MagicMock used as path/URL/config, assert mock_obj (always truthy), assert True, test functions with no assertions, pytest.raises(Exception) too broad
+- [x] T008 [P] Scan full codebase for code quality anti-patterns: dead code, bare except pass, duplicated logic blocks, hardcoded timeouts/URLs/retry counts
 
 **Checkpoint**: All scan results compiled — file-level audit can now begin per category priority
 
@@ -53,22 +53,22 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Audit and fix backend/src/config.py for hardcoded secrets, insecure defaults, missing environment variable validation
-- [ ] T010 [P] [US1] Audit and fix backend/src/api/auth.py for OAuth flow vulnerabilities, token handling, input validation on redirect URI
-- [ ] T011 [P] [US1] Audit and fix backend/src/services/github_auth.py for authentication bypasses, token leakage, improper credential handling
-- [ ] T012 [P] [US1] Audit and fix backend/src/services/encryption.py for cryptographic issues, key management, insecure algorithms
-- [ ] T013 [P] [US1] Audit and fix backend/src/api/webhooks.py for missing webhook signature verification, payload validation
-- [ ] T014 [P] [US1] Audit and fix backend/src/middleware/request_id.py and backend/src/middleware/error_handler.py for information leakage in error responses
-- [ ] T015 [P] [US1] Audit and fix backend/src/prompts/system.py and backend/src/prompts/templates.py for prompt injection risks
-- [ ] T016 [P] [US1] Audit and fix remaining backend/src/api/ endpoints (agents.py, board.py, chat.py, chores.py, cleanup.py, health.py, mcp.py, metadata.py, projects.py, settings.py, signal.py, tasks.py, workflow.py) for missing auth checks, input validation
-- [ ] T017 [P] [US1] Audit and fix backend/src/logging_utils.py for sensitive data exposure in log output
-- [ ] T018 [P] [US1] Audit and fix frontend/src/services/api.ts for auth header injection, credential exposure, error response leaks
-- [ ] T019 [P] [US1] Audit and fix frontend/src/hooks/useAuth.ts and frontend/src/components/auth/ for token storage security, XSS vectors
-- [ ] T020 [P] [US1] Audit and fix remaining frontend/src/components/ for dangerouslySetInnerHTML usage, unvalidated URL handling, missing rel attributes on external links
-- [ ] T021 [P] [US1] Add regression tests for all backend security fixes in backend/tests/unit/ and backend/tests/integration/
-- [ ] T022 [P] [US1] Add regression tests for all frontend security fixes in frontend/src/**/*.test.tsx colocated test files
-- [ ] T023 [US1] Validate US1: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
-- [ ] T024 [US1] Validate US1: run frontend eslint + tsc --noEmit + vitest in frontend/
+- [x] T009 [P] [US1] Audit and fix backend/src/config.py for hardcoded secrets, insecure defaults, missing environment variable validation
+- [x] T010 [P] [US1] Audit and fix backend/src/api/auth.py for OAuth flow vulnerabilities, token handling, input validation on redirect URI
+- [x] T011 [P] [US1] Audit and fix backend/src/services/github_auth.py for authentication bypasses, token leakage, improper credential handling
+- [x] T012 [P] [US1] Audit and fix backend/src/services/encryption.py for cryptographic issues, key management, insecure algorithms
+- [x] T013 [P] [US1] Audit and fix backend/src/api/webhooks.py for missing webhook signature verification, payload validation
+- [x] T014 [P] [US1] Audit and fix backend/src/middleware/request_id.py and backend/src/middleware/error_handler.py for information leakage in error responses
+- [x] T015 [P] [US1] Audit and fix backend/src/prompts/system.py and backend/src/prompts/templates.py for prompt injection risks
+- [x] T016 [P] [US1] Audit and fix remaining backend/src/api/ endpoints (agents.py, board.py, chat.py, chores.py, cleanup.py, health.py, mcp.py, metadata.py, projects.py, settings.py, signal.py, tasks.py, workflow.py) for missing auth checks, input validation
+- [x] T017 [P] [US1] Audit and fix backend/src/logging_utils.py for sensitive data exposure in log output
+- [x] T018 [P] [US1] Audit and fix frontend/src/services/api.ts for auth header injection, credential exposure, error response leaks
+- [x] T019 [P] [US1] Audit and fix frontend/src/hooks/useAuth.ts and frontend/src/components/auth/ for token storage security, XSS vectors
+- [x] T020 [P] [US1] Audit and fix remaining frontend/src/components/ for dangerouslySetInnerHTML usage, unvalidated URL handling, missing rel attributes on external links
+- [x] T021 [P] [US1] Add regression tests for all backend security fixes in backend/tests/unit/ and backend/tests/integration/
+- [x] T022 [P] [US1] Add regression tests for all frontend security fixes in frontend/src/**/*.test.tsx colocated test files
+- [x] T023 [US1] Validate US1: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
+- [x] T024 [US1] Validate US1: run frontend eslint + tsc --noEmit + vitest in frontend/
 
 **Checkpoint**: All security vulnerabilities fixed or flagged. Run full test suite — User Story 1 is independently testable.
 
@@ -82,21 +82,21 @@
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Audit and fix backend/src/services/database.py for connection leaks, missing context managers, unclosed cursors
-- [ ] T026 [P] [US2] Audit and fix backend/src/services/signal_bridge.py for WebSocket connection leaks, unhandled disconnection errors
-- [ ] T027 [P] [US2] Audit and fix backend/src/services/signal_delivery.py for retry logic failures, unhandled HTTP errors, resource leaks
-- [ ] T028 [P] [US2] Audit and fix backend/src/services/copilot_polling/ (all 8 files) for async errors, race conditions, missing awaits, fire-and-forget tasks without error handling
-- [ ] T029 [P] [US2] Audit and fix backend/src/services/github_projects/ (service.py and related) for null refs on API responses, unhandled GitHub API errors
-- [ ] T030 [P] [US2] Audit and fix backend/src/dependencies.py for initialization safety, missing null checks on service singletons
-- [ ] T031 [P] [US2] Audit and fix backend/src/main.py for startup/shutdown safety, unclosed resources on shutdown
-- [ ] T032 [P] [US2] Audit and fix remaining backend/src/services/ (ai_agent.py, cache.py, cleanup_service.py, completion_providers.py, metadata_service.py, model_fetcher.py, mcp_store.py, session_store.py, settings_store.py, signal_chat.py, websocket.py, github_commit_workflow.py) for unhandled exceptions, missing imports, type errors
-- [ ] T033 [P] [US2] Audit and fix backend/src/utils.py for BoundedDict/BoundedSet edge cases, thread safety
-- [ ] T034 [P] [US2] Audit and fix frontend/src/hooks/ for unhandled promise rejections, missing error boundaries, stale closure bugs
-- [ ] T035 [P] [US2] Audit and fix frontend/src/components/ for unhandled null/undefined references, missing loading/error states
-- [ ] T036 [P] [US2] Add regression tests for all backend runtime error fixes in backend/tests/unit/ and backend/tests/integration/
-- [ ] T037 [P] [US2] Add regression tests for all frontend runtime error fixes in frontend/src/**/*.test.tsx colocated test files
-- [ ] T038 [US2] Validate US2: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
-- [ ] T039 [US2] Validate US2: run frontend eslint + tsc --noEmit + vitest in frontend/
+- [x] T025 [US2] Audit and fix backend/src/services/database.py for connection leaks, missing context managers, unclosed cursors
+- [x] T026 [P] [US2] Audit and fix backend/src/services/signal_bridge.py for WebSocket connection leaks, unhandled disconnection errors
+- [x] T027 [P] [US2] Audit and fix backend/src/services/signal_delivery.py for retry logic failures, unhandled HTTP errors, resource leaks
+- [x] T028 [P] [US2] Audit and fix backend/src/services/copilot_polling/ (all 8 files) for async errors, race conditions, missing awaits, fire-and-forget tasks without error handling
+- [x] T029 [P] [US2] Audit and fix backend/src/services/github_projects/ (service.py and related) for null refs on API responses, unhandled GitHub API errors
+- [x] T030 [P] [US2] Audit and fix backend/src/dependencies.py for initialization safety, missing null checks on service singletons
+- [x] T031 [P] [US2] Audit and fix backend/src/main.py for startup/shutdown safety, unclosed resources on shutdown
+- [x] T032 [P] [US2] Audit and fix remaining backend/src/services/ (ai_agent.py, cache.py, cleanup_service.py, completion_providers.py, metadata_service.py, model_fetcher.py, mcp_store.py, session_store.py, settings_store.py, signal_chat.py, websocket.py, github_commit_workflow.py) for unhandled exceptions, missing imports, type errors
+- [x] T033 [P] [US2] Audit and fix backend/src/utils.py for BoundedDict/BoundedSet edge cases, thread safety
+- [x] T034 [P] [US2] Audit and fix frontend/src/hooks/ for unhandled promise rejections, missing error boundaries, stale closure bugs
+- [x] T035 [P] [US2] Audit and fix frontend/src/components/ for unhandled null/undefined references, missing loading/error states
+- [x] T036 [P] [US2] Add regression tests for all backend runtime error fixes in backend/tests/unit/ and backend/tests/integration/
+- [x] T037 [P] [US2] Add regression tests for all frontend runtime error fixes in frontend/src/**/*.test.tsx colocated test files
+- [x] T038 [US2] Validate US2: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
+- [x] T039 [US2] Validate US2: run frontend eslint + tsc --noEmit + vitest in frontend/
 
 **Checkpoint**: All runtime errors fixed or flagged. Run full test suite — User Story 2 is independently testable.
 
@@ -110,20 +110,20 @@
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Audit and fix backend/src/services/workflow_orchestrator/ for state transition errors, invalid guard conditions, missing transitions
-- [ ] T041 [P] [US3] Audit and fix backend/src/services/chores/ for scheduling logic errors, timing edge cases, missed triggers
-- [ ] T042 [P] [US3] Audit and fix backend/src/services/cache.py for cache invalidation logic, TTL calculation errors, stale data
-- [ ] T043 [P] [US3] Audit and fix backend/src/api/ for incorrect response codes, off-by-one in pagination, wrong HTTP methods
-- [ ] T044 [P] [US3] Audit and fix backend/src/models/ for validation logic errors, missing constraints, incorrect type coercion
-- [ ] T045 [P] [US3] Audit and fix backend/src/services/agents/ for agent lifecycle logic, incorrect state management
-- [ ] T046 [P] [US3] Audit and fix frontend/src/hooks/useProjectBoard.ts for board state management bugs, incorrect drag-drop ordering
-- [ ] T047 [P] [US3] Audit and fix frontend/src/components/board/ for drag-and-drop logic errors, incorrect item positioning
-- [ ] T048 [P] [US3] Audit and fix remaining frontend/src/components/ and frontend/src/hooks/ for control flow errors, incorrect return values, state inconsistencies
-- [ ] T049 [P] [US3] Audit and fix frontend/src/lib/ and frontend/src/utils/ for utility function edge cases, incorrect calculations
-- [ ] T050 [P] [US3] Add regression tests for all backend logic bug fixes in backend/tests/unit/
-- [ ] T051 [P] [US3] Add regression tests for all frontend logic bug fixes in frontend/src/**/*.test.tsx colocated test files
-- [ ] T052 [US3] Validate US3: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
-- [ ] T053 [US3] Validate US3: run frontend eslint + tsc --noEmit + vitest in frontend/
+- [x] T040 [US3] Audit and fix backend/src/services/workflow_orchestrator/ for state transition errors, invalid guard conditions, missing transitions
+- [x] T041 [P] [US3] Audit and fix backend/src/services/chores/ for scheduling logic errors, timing edge cases, missed triggers
+- [x] T042 [P] [US3] Audit and fix backend/src/services/cache.py for cache invalidation logic, TTL calculation errors, stale data
+- [x] T043 [P] [US3] Audit and fix backend/src/api/ for incorrect response codes, off-by-one in pagination, wrong HTTP methods
+- [x] T044 [P] [US3] Audit and fix backend/src/models/ for validation logic errors, missing constraints, incorrect type coercion
+- [x] T045 [P] [US3] Audit and fix backend/src/services/agents/ for agent lifecycle logic, incorrect state management
+- [x] T046 [P] [US3] Audit and fix frontend/src/hooks/useProjectBoard.ts for board state management bugs, incorrect drag-drop ordering
+- [x] T047 [P] [US3] Audit and fix frontend/src/components/board/ for drag-and-drop logic errors, incorrect item positioning
+- [x] T048 [P] [US3] Audit and fix remaining frontend/src/components/ and frontend/src/hooks/ for control flow errors, incorrect return values, state inconsistencies
+- [x] T049 [P] [US3] Audit and fix frontend/src/lib/ and frontend/src/utils/ for utility function edge cases, incorrect calculations
+- [x] T050 [P] [US3] Add regression tests for all backend logic bug fixes in backend/tests/unit/
+- [x] T051 [P] [US3] Add regression tests for all frontend logic bug fixes in frontend/src/**/*.test.tsx colocated test files
+- [x] T052 [US3] Validate US3: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
+- [x] T053 [US3] Validate US3: run frontend eslint + tsc --noEmit + vitest in frontend/
 
 **Checkpoint**: All logic bugs fixed or flagged. Run full test suite — User Story 3 is independently testable.
 
@@ -137,17 +137,17 @@
 
 ### Implementation for User Story 4
 
-- [ ] T054 [US4] Audit and fix backend/tests/conftest.py for mock leaks across test boundaries, incorrect fixture scoping, shared mutable state
-- [ ] T055 [P] [US4] Audit and fix backend/tests/unit/test_copilot_polling.py for MagicMock leaks into production paths, meaningless assertions, tests passing for wrong reasons
-- [ ] T056 [P] [US4] Audit and fix backend/tests/unit/test_github_projects.py for MagicMock leaks into production paths, meaningless assertions, tests passing for wrong reasons
-- [ ] T057 [P] [US4] Scan and fix all backend/tests/unit/ files for MagicMock objects used as file paths, database URLs, or config values that reach production code
-- [ ] T058 [P] [US4] Scan and fix all backend/tests/unit/ files for meaningless assertions: assert mock_obj (always truthy), assert True, assert result is not None on MagicMock
-- [ ] T059 [P] [US4] Identify and add tests for untested critical backend code paths: error handlers, auth checks, data validation, edge cases in backend/tests/unit/
-- [ ] T060 [P] [US4] Audit and fix backend/tests/helpers/ for factory/mock correctness, ensure helpers produce realistic test data
-- [ ] T061 [P] [US4] Audit and fix frontend test files (src/**/*.test.tsx, src/**/*.test.ts) for mock quality, missing assertions, untested error states
-- [ ] T062 [P] [US4] Audit and fix frontend/e2e/ tests for flaky selectors, missing assertions, race conditions
-- [ ] T063 [US4] Validate US4: run full backend test suite (batched) — all tests pass with meaningful assertions in backend/
-- [ ] T064 [US4] Validate US4: run full frontend test suite — all tests pass in frontend/
+- [x] T054 [US4] Audit and fix backend/tests/conftest.py for mock leaks across test boundaries, incorrect fixture scoping, shared mutable state
+- [x] T055 [P] [US4] Audit and fix backend/tests/unit/test_copilot_polling.py for MagicMock leaks into production paths, meaningless assertions, tests passing for wrong reasons
+- [x] T056 [P] [US4] Audit and fix backend/tests/unit/test_github_projects.py for MagicMock leaks into production paths, meaningless assertions, tests passing for wrong reasons
+- [x] T057 [P] [US4] Scan and fix all backend/tests/unit/ files for MagicMock objects used as file paths, database URLs, or config values that reach production code
+- [x] T058 [P] [US4] Scan and fix all backend/tests/unit/ files for meaningless assertions: assert mock_obj (always truthy), assert True, assert result is not None on MagicMock
+- [x] T059 [P] [US4] Identify and add tests for untested critical backend code paths: error handlers, auth checks, data validation, edge cases in backend/tests/unit/
+- [x] T060 [P] [US4] Audit and fix backend/tests/helpers/ for factory/mock correctness, ensure helpers produce realistic test data
+- [x] T061 [P] [US4] Audit and fix frontend test files (src/**/*.test.tsx, src/**/*.test.ts) for mock quality, missing assertions, untested error states
+- [x] T062 [P] [US4] Audit and fix frontend/e2e/ tests for flaky selectors, missing assertions, race conditions
+- [x] T063 [US4] Validate US4: run full backend test suite (batched) — all tests pass with meaningful assertions in backend/
+- [x] T064 [US4] Validate US4: run full frontend test suite — all tests pass in frontend/
 
 **Checkpoint**: All test quality issues fixed. Mock leaks eliminated, meaningless assertions replaced, critical paths tested.
 
@@ -161,17 +161,17 @@
 
 ### Implementation for User Story 5
 
-- [ ] T065 [US5] Scan and remove dead code in backend/src/ — verify zero references via grep/ruff before removal, flag dynamic dispatch cases as TODO(bug-bash)
-- [ ] T066 [P] [US5] Fix silent exception handlers in backend/src/ — replace bare except:pass and except Exception:pass with logging or re-raise
-- [ ] T067 [P] [US5] Extract frequently used hardcoded values (timeouts, retry counts, URL patterns) to backend/src/config.py or backend/src/constants.py with sensible defaults
-- [ ] T068 [P] [US5] Identify and consolidate duplicated logic (10+ lines) across backend/src/ into shared utilities in backend/src/utils.py
-- [ ] T069 [P] [US5] Scan and remove dead code in frontend/src/ — verify zero references via grep/eslint before removal
-- [ ] T070 [P] [US5] Fix silent error handlers in frontend/src/ — add logging, user-facing error messages, or re-throw
-- [ ] T071 [P] [US5] Extract frequently used hardcoded values in frontend/src/ to configuration constants
-- [ ] T072 [P] [US5] Add regression tests for code quality fixes that change behavior (silent failures now surfacing) in backend/tests/unit/
-- [ ] T073 [P] [US5] Add regression tests for code quality fixes that change behavior in frontend/src/**/*.test.tsx colocated test files
-- [ ] T074 [US5] Validate US5: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
-- [ ] T075 [US5] Validate US5: run frontend eslint + tsc --noEmit + vitest + npm run build in frontend/
+- [x] T065 [US5] Scan and remove dead code in backend/src/ — verify zero references via grep/ruff before removal, flag dynamic dispatch cases as TODO(bug-bash)
+- [x] T066 [P] [US5] Fix silent exception handlers in backend/src/ — replace bare except:pass and except Exception:pass with logging or re-raise
+- [x] T067 [P] [US5] Extract frequently used hardcoded values (timeouts, retry counts, URL patterns) to backend/src/config.py or backend/src/constants.py with sensible defaults
+- [x] T068 [P] [US5] Identify and consolidate duplicated logic (10+ lines) across backend/src/ into shared utilities in backend/src/utils.py
+- [x] T069 [P] [US5] Scan and remove dead code in frontend/src/ — verify zero references via grep/eslint before removal
+- [x] T070 [P] [US5] Fix silent error handlers in frontend/src/ — add logging, user-facing error messages, or re-throw
+- [x] T071 [P] [US5] Extract frequently used hardcoded values in frontend/src/ to configuration constants
+- [x] T072 [P] [US5] Add regression tests for code quality fixes that change behavior (silent failures now surfacing) in backend/tests/unit/
+- [x] T073 [P] [US5] Add regression tests for code quality fixes that change behavior in frontend/src/**/*.test.tsx colocated test files
+- [x] T074 [US5] Validate US5: run backend ruff check + ruff format --check + pyright + pytest (batched) in backend/
+- [x] T075 [US5] Validate US5: run frontend eslint + tsc --noEmit + vitest + npm run build in frontend/
 
 **Checkpoint**: All code quality issues fixed or flagged. Codebase is clean, maintainable, free of dead code and silent failures.
 
@@ -181,14 +181,14 @@
 
 **Purpose**: Final validation, summary compilation, and cross-story verification
 
-- [ ] T076 Compile final summary table per output contract format in specs/025-bug-basher/contracts/output-contracts.md — all findings listed with #, File, Line(s), Category, Description, Status
-- [ ] T077 Verify every TODO(bug-bash) comment in source has a corresponding ⚠️ Flagged (TODO) entry in summary table
-- [ ] T078 Verify every ✅ Fixed entry in summary table has at least one regression test (1:1 ratio per SC-002)
-- [ ] T079 Run final full backend validation: ruff check + ruff format --check + pyright + pytest full suite (batched) in backend/
-- [ ] T080 Run final full frontend validation: eslint + tsc --noEmit + vitest + npm run build in frontend/
-- [ ] T081 Cross-check: compare test pass counts against Phase 1 baseline — verify zero previously passing tests broken (SC-003)
-- [ ] T082 Verify commit messages follow commit message contract format: fix(<category>): <description> with What/Why/How/Affects/Tests
-- [ ] T083 Final review: ensure no architecture changes, no public API changes, no new dependencies, each fix minimal and focused (FR-024, FR-025, FR-026)
+- [x] T076 Compile final summary table per output contract format in specs/025-bug-basher/contracts/output-contracts.md — all findings listed with #, File, Line(s), Category, Description, Status
+- [x] T077 Verify every TODO(bug-bash) comment in source has a corresponding ⚠️ Flagged (TODO) entry in summary table
+- [x] T078 Verify every ✅ Fixed entry in summary table has at least one regression test (1:1 ratio per SC-002)
+- [x] T079 Run final full backend validation: ruff check + ruff format --check + pyright + pytest full suite (batched) in backend/
+- [x] T080 Run final full frontend validation: eslint + tsc --noEmit + vitest + npm run build in frontend/
+- [x] T081 Cross-check: compare test pass counts against Phase 1 baseline — verify zero previously passing tests broken (SC-003)
+- [x] T082 Verify commit messages follow commit message contract format: fix(<category>): <description> with What/Why/How/Affects/Tests
+- [x] T083 Final review: ensure no architecture changes, no public API changes, no new dependencies, each fix minimal and focused (FR-024, FR-025, FR-026)
 
 ---
 

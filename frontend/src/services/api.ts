@@ -142,7 +142,7 @@ export const authApi = {
    * Called after OAuth callback to set cookie via the proxy.
    */
   setSessionFromToken(sessionToken: string): Promise<User> {
-    return request<User>(`/auth/session?session_token=${sessionToken}`, {
+    return request<User>(`/auth/session?session_token=${encodeURIComponent(sessionToken)}`, {
       method: 'POST',
     });
   },

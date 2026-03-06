@@ -110,7 +110,9 @@ class MetadataService:
                 ctx.is_stale = True
                 return ctx
         except Exception:
-            pass
+            logger.warning(
+                "Failed to read stale metadata from SQLite for %s", repo_key, exc_info=True
+            )
 
         # Last resort: hardcoded constants
         return self._fallback_context(repo_key)
