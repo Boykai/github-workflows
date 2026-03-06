@@ -100,12 +100,12 @@ jobs:
           node-version: "20"
 
       - name: Install markdownlint-cli and markdown-link-check
-        run: npm install -g markdownlint-cli markdown-link-check
+        run: npm install -g markdownlint-cli@0.48.0 markdown-link-check@3.14.2
 
       - name: Lint markdown formatting
         run: markdownlint "docs/**/*.md" "README.md" ".github/PULL_REQUEST_TEMPLATE.md" --config .markdownlint.json
 
-      - name: Check internal links
+      - name: Check documentation links
         run: |
           find docs -name "*.md" -print0 | xargs -0 -I {} \
             markdown-link-check {} \

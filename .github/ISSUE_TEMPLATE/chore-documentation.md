@@ -1,3 +1,11 @@
+---
+name: Documentation Sweep
+about: Recurring chore — Documentation Staleness Sweep
+title: '[CHORE] Documentation Sweep'
+labels: chore
+assignees: ''
+---
+
 # Recurring Documentation Update Process
 
 ## Overview
@@ -22,7 +30,7 @@ A structured cadence for keeping all project documentation accurate, complete, a
 
 The PR author is responsible. Reviewers must not approve if these are unmet.
 
-- [ ] Any new endpoint added to `routes/` has a corresponding entry in `docs/api-reference.md`
+- [ ] Any new endpoint added to `api/` has a corresponding entry in `docs/api-reference.md`
 - [ ] Any new environment variable added to `config.py` is documented in `docs/configuration.md`
 - [ ] Any change to startup behavior, Docker setup, or prerequisites is reflected in `docs/setup.md`
 - [ ] Any new agent, workflow module, or AI provider change is reflected in `docs/agent-pipeline.md`
@@ -41,7 +49,7 @@ The PR author is responsible. Reviewers must not approve if these are unmet.
 A quick pass to catch docs that have drifted from the codebase.
 
 ### API Reference (`docs/api-reference.md`)
-- [ ] Scan `backend/src/routes/` — confirm every route file has matching API table entries
+- [ ] Scan `backend/src/api/` — confirm every route file has matching API table entries
 - [ ] Confirm all path prefixes, methods, and path params are still accurate
 - [ ] Flag any endpoints removed or deprecated but still listed
 

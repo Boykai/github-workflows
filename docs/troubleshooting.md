@@ -7,8 +7,8 @@
 - Ensure `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are correctly set
 - Verify the callback URL in your OAuth App matches your setup:
   - **Docker**: `http://localhost:5173/api/v1/auth/github/callback`
-  - **Local dev (no Docker)**: `http://localhost:8000/api/v1/auth/github/callback`
-- Check that `FRONTEND_URL` is set to `http://localhost:5173` (Docker) or `http://localhost:8000` (local dev)
+  - **Local dev (no Docker)**: `http://localhost:5173/api/v1/auth/github/callback`
+- Check that `FRONTEND_URL` is set to `http://localhost:5173`
 - Restart containers after updating `.env`: `docker compose down && docker compose up -d`
 
 **"401 Unauthorized" after GitHub login:**

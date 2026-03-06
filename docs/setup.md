@@ -37,7 +37,7 @@ Edit `.env` — minimum required:
 Update your GitHub OAuth App's **Authorization callback URL** to match Codespaces:
 
 ```text
-https://YOUR-CODESPACE-NAME-8000.app.github.dev/api/v1/auth/github/callback
+https://YOUR-CODESPACE-NAME-5173.app.github.dev/api/v1/auth/github/callback
 ```
 
 The `post-start.sh` script prints the exact URL on startup.

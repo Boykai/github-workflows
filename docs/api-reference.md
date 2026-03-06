@@ -4,7 +4,7 @@ This document lists every HTTP, WebSocket, and SSE endpoint exposed by the backe
 
 All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `DEBUG=true`.
 
-Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, and `/auth/github/callback` endpoints are unauthenticated.
+Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/auth/session` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
 
 ## Health
 
