@@ -245,7 +245,7 @@ async def _merge_child_pr_if_applicable(
                     "main_branch": main_branch,
                     "agent": completed_agent,
                     "merge_commit": merge_result.get("merge_commit"),
-                    "branch_deleted": child_branch if child_branch else None,
+                    "branch_deleted": child_branch or None,
                 }
             else:
                 logger.warning(
@@ -994,9 +994,7 @@ async def _check_main_pr_completion(
                     committed_date_str = last_commit.get("committed_date", "")
                     if committed_date_str:
                         try:
-                            commit_time = datetime.fromisoformat(
-                                committed_date_str.replace("Z", "+00:00")
-                            )
+                            commit_time = datetime.fromisoformat(committed_date_str)
                             cutoff = (
                                 pipeline_started_at.replace(tzinfo=commit_time.tzinfo)
                                 if pipeline_started_at.tzinfo is None
@@ -1089,7 +1087,7 @@ def _filter_events_after(events: list[dict[str, Any]], cutoff: datetime) -> list
             continue
         try:
             # GitHub timestamps are ISO 8601 UTC (e.g., "2025-01-15T17:19:47Z")
-            event_time = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+            event_time = datetime.fromisoformat(created_at_str)
             # Make cutoff timezone-aware if needed
             cutoff_aware = (
                 cutoff.replace(tzinfo=event_time.tzinfo) if cutoff.tzinfo is None else cutoff

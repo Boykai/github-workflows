@@ -52,9 +52,9 @@ class AvailableAgentsResponse(BaseModel):
 
 
 __all__ = [
-    "AgentSource",
     "AgentAssignment",
     "AgentAssignmentInput",
+    "AgentSource",
     "AvailableAgent",
     "AvailableAgentsResponse",
 ]

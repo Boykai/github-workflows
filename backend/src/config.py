@@ -98,7 +98,7 @@ class Settings(BaseSettings):
         """Get default repository owner."""
         if self.default_repository and "/" in self.default_repository:
             owner = self.default_repository.split("/")[0]
-            return owner if owner else None
+            return owner or None
         return None
 
     @property
@@ -106,7 +106,7 @@ class Settings(BaseSettings):
         """Get default repository name."""
         if self.default_repository and "/" in self.default_repository:
             name = self.default_repository.split("/")[1]
-            return name if name else None
+            return name or None
         return None
 
     @property

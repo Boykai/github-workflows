@@ -122,9 +122,7 @@ async def post_agent_outputs_from_pr(
                         recon_started: datetime | None = None
                         if last_done_ts:
                             try:
-                                recon_started = datetime.fromisoformat(
-                                    last_done_ts.replace("Z", "+00:00")
-                                )
+                                recon_started = datetime.fromisoformat(last_done_ts)
                             except (ValueError, TypeError):
                                 pass
                         if recon_started is None:
@@ -144,9 +142,7 @@ async def post_agent_outputs_from_pr(
                                             latest_any_done_ts = ts
                             if latest_any_done_ts:
                                 try:
-                                    recon_started = datetime.fromisoformat(
-                                        latest_any_done_ts.replace("Z", "+00:00")
-                                    )
+                                    recon_started = datetime.fromisoformat(latest_any_done_ts)
                                 except (ValueError, TypeError):
                                     pass
 

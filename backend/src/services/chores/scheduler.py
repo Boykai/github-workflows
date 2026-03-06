@@ -18,7 +18,7 @@ def evaluate_time_trigger(chore: Chore) -> bool:
         return False
 
     base_iso = chore.last_triggered_at or chore.created_at
-    base = datetime.fromisoformat(base_iso.replace("Z", "+00:00"))
+    base = datetime.fromisoformat(base_iso)
     now = datetime.now(UTC)
 
     elapsed_days = (now - base).total_seconds() / 86_400

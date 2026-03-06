@@ -1,6 +1,47 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Rye', 'Georgia', serif;
+  --font-sans: 'Inter', 'system-ui', sans-serif;
+  --shadow-warm-sm: 0 1px 2px 0 rgba(59,45,31,0.08);
+  --shadow-warm: 0 1px 3px 0 rgba(59,45,31,0.12), 0 1px 2px -1px rgba(59,45,31,0.12);
+  --shadow-warm-md: 0 4px 6px -1px rgba(59,45,31,0.12), 0 2px 4px -2px rgba(59,45,31,0.12);
+  --shadow-warm-lg: 0 10px 15px -3px rgba(59,45,31,0.12), 0 4px 6px -4px rgba(59,45,31,0.12);
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+}
 
 @layer base {
   :root {
@@ -74,7 +115,7 @@
     @apply bg-background text-foreground;
   }
   h1, h2, h3 {
-    font-family: theme('fontFamily.display');
+    font-family: var(--font-display);
   }
   /* Ensure native form elements respect the current theme */
   select,

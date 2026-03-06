@@ -119,6 +119,10 @@ npx playwright test             # E2E tests
 - SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (020-githubkit-migration)
 - Python 3.12 (backend), TypeScript 5.8 (frontend) + FastAPI 0.109+, TanStack React Query 5.17, native WebSocket (asyncio) (022-api-rate-limit-protection)
 - SQLite (aiosqlite) for persistence, in-memory `InMemoryCache` with TTL for API response caching (022-api-rate-limit-protection)
+- Python 3.12 (pyproject.toml targets ≥3.11, pyright configured for 3.12) + TypeScript ~5.8 + FastAPI ≥0.109.0, githubkit ≥0.14.0, httpx ≥0.26.0, pydantic ≥2.5.0, React 18.3, @tanstack/react-query 5.17, Vite 5.4 (023-codebase-review-refactor)
+- SQLite with WAL mode (aiosqlite ≥0.20.0) — sessions, settings, migrations (023-codebase-review-refactor)
+- Python 3.12→3.13 (backend), TypeScript 5.8→5.9 (frontend), Node 20→22 + FastAPI, React, Vite, Tailwind CSS, TanStack Query, Pydantic (024-deps-modernization)
+- SQLite via aiosqlite (no schema changes) (024-deps-modernization)
 
 ## Recent Changes
 - 017-agents-section: Added Python ≥3.11 (backend), TypeScript ~5.4 (frontend) + FastAPI ≥0.109, React 18.3, TanStack Query 5, Tailwind CSS 3.4, aiosqlite ≥0.20, PyYAML ≥6.0

@@ -64,10 +64,11 @@ def _extract_issue_numbers_from_text(text: str) -> list[int]:
     """Extract referenced issue numbers from PR body text."""
     if not text:
         return []
-    numbers = []
-    for pattern in PR_BODY_ISSUE_PATTERNS:
-        for match in pattern.finditer(text):
-            numbers.append(int(match.group(1)))
+    numbers = [
+        int(match.group(1))
+        for pattern in PR_BODY_ISSUE_PATTERNS
+        for match in pattern.finditer(text)
+    ]
     return list(set(numbers))
 
 
@@ -299,9 +300,7 @@ async def fetch_app_created_open_issues(
                 break
 
             # REST /issues also returns PRs — filter them out
-            for issue in page_issues:
-                if "pull_request" not in issue:
-                    issues.append(issue)
+            issues.extend(issue for issue in page_issues if "pull_request" not in issue)
 
             if len(page_issues) < per_page:
                 break

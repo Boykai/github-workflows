@@ -66,7 +66,7 @@ def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
 
     # Check for duplicate
     if input_hash in _recent_requests:
-        existing_ts, existing_id = _recent_requests[input_hash]
+        _existing_ts, existing_id = _recent_requests[input_hash]
         if existing_id != recommendation_id:
             logger.warning(
                 "Duplicate request detected: %s (existing: %s)",

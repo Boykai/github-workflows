@@ -126,8 +126,9 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
         "| # | Status | Agent | State |",
         "|---|--------|-------|-------|",
     ]
-    for step in steps:
-        lines.append(f"| {step.index} | {step.status} | `{step.agent_name}` | {step.state} |")
+    lines.extend(
+        f"| {step.index} | {step.status} | `{step.agent_name}` | {step.state} |" for step in steps
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -175,7 +176,7 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
         state = row_match.group(4).strip()
         steps.append(AgentStep(index=idx, status=status, agent_name=agent_name, state=state))
 
-    return steps if steps else None
+    return steps or None
 
 
 def get_current_agent_from_tracking(body: str) -> AgentStep | None:

@@ -520,7 +520,7 @@ class TestGetRepositoryInfo:
         mock_project = MagicMock(project_id="proj-other", url="")
         with patch(f"{WF}.cache") as mock_cache:
             mock_cache.get.return_value = [mock_project]
-            owner, repo = _get_repository_info(session)
+            owner, _repo = _get_repository_info(session)
         assert owner == "me"
 
 

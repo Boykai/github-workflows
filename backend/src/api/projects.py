@@ -320,7 +320,7 @@ async def sse_subscribe(
     Uses polling internally with 10-second intervals.
     """
 
-    async def event_generator() -> AsyncGenerator[str, None]:
+    async def event_generator() -> AsyncGenerator[str]:
         """Generate SSE events by polling for changes."""
         # Get initial state
         cache_key = get_project_items_cache_key(project_id)

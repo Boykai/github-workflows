@@ -1,7 +1,6 @@
 """SQLite database connection, initialization, and migration runner."""
 
 import logging
-import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -31,9 +30,9 @@ async def init_database() -> aiosqlite.Connection:
     db_path = settings.database_path
 
     # Ensure directory exists (if a directory component is present)
-    dir_path = os.path.dirname(db_path)
-    if dir_path:
-        os.makedirs(dir_path, exist_ok=True)
+    db_dir = Path(db_path).parent
+    if str(db_dir) != ".":
+        db_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Initializing database at %s", db_path)
 

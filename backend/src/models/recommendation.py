@@ -244,14 +244,14 @@ class IssueRecommendation(BaseModel):
 
 
 __all__ = [
+    "AVAILABLE_LABELS",
+    "AITaskProposal",
+    "IssueLabel",
+    "IssueMetadata",
+    "IssuePriority",
+    "IssueRecommendation",
+    "IssueSize",
+    "ProposalConfirmRequest",
     "ProposalStatus",
     "RecommendationStatus",
-    "AITaskProposal",
-    "ProposalConfirmRequest",
-    "IssuePriority",
-    "IssueSize",
-    "IssueLabel",
-    "AVAILABLE_LABELS",
-    "IssueMetadata",
-    "IssueRecommendation",
 ]

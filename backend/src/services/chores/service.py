@@ -131,10 +131,10 @@ class ChoresService:
         updates["updated_at"] = now
 
         set_clause = ", ".join(f"{col} = ?" for col in updates)
-        values = list(updates.values()) + [chore_id]
+        values = [*list(updates.values()), chore_id]
 
         await self._db.execute(
-            f"UPDATE chores SET {set_clause} WHERE id = ?",  # noqa: S608
+            f"UPDATE chores SET {set_clause} WHERE id = ?",
             values,
         )
         await self._db.commit()
@@ -252,10 +252,10 @@ class ChoresService:
         kwargs["updated_at"] = now
 
         set_clause = ", ".join(f"{col} = ?" for col in kwargs)
-        values = list(kwargs.values()) + [chore_id]
+        values = [*list(kwargs.values()), chore_id]
 
         await self._db.execute(
-            f"UPDATE chores SET {set_clause} WHERE id = ?",  # noqa: S608
+            f"UPDATE chores SET {set_clause} WHERE id = ?",
             values,
         )
         await self._db.commit()

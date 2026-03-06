@@ -5,14 +5,14 @@ from __future__ import annotations
 from collections import OrderedDict
 from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
-from typing import Generic, TypeVar, overload
+from typing import TypeVar, overload
 
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
 
 
-class BoundedSet(Generic[T]):
+class BoundedSet[T]:
     """Set with a maximum capacity that evicts oldest entries (FIFO).
 
     Backed by an ``OrderedDict`` to maintain insertion order. When the
@@ -60,7 +60,7 @@ class BoundedSet(Generic[T]):
         return f"BoundedSet(maxlen={self._maxlen}, size={len(self._data)})"
 
 
-class BoundedDict(Generic[K, V]):
+class BoundedDict[K, V]:
     """Dict with a maximum capacity that evicts oldest entries (FIFO).
 
     Backed by an ``OrderedDict`` to maintain insertion order.

@@ -49,7 +49,7 @@ async def _upsert_row(
     # Check if row exists
     where = " AND ".join(f"{col} = ?" for col in pk_columns)
     cursor = await db.execute(
-        f"SELECT 1 FROM {table} WHERE {where}",  # noqa: S608
+        f"SELECT 1 FROM {table} WHERE {where}",
         list(pk_columns.values()),
     )
     existing = await cursor.fetchone()
@@ -60,7 +60,7 @@ async def _upsert_row(
         cols = ", ".join(all_data.keys())
         placeholders = ", ".join("?" for _ in all_data)
         await db.execute(
-            f"INSERT INTO {table} ({cols}) VALUES ({placeholders})",  # noqa: S608
+            f"INSERT INTO {table} ({cols}) VALUES ({placeholders})",
             list(all_data.values()),
         )
     else:
@@ -69,7 +69,7 @@ async def _upsert_row(
         set_clause = ", ".join(f"{col} = ?" for col in update_cols)
         values = list(update_cols.values()) + list(pk_columns.values())
         await db.execute(
-            f"UPDATE {table} SET {set_clause} WHERE {where}",  # noqa: S608
+            f"UPDATE {table} SET {set_clause} WHERE {where}",
             values,
         )
 
@@ -120,7 +120,7 @@ async def update_global_settings(
 
     logger.debug("Updating global settings: %s", list(updates.keys()))
     await db.execute(
-        f"UPDATE global_settings SET {set_clause} WHERE id = 1",  # noqa: S608
+        f"UPDATE global_settings SET {set_clause} WHERE id = 1",
         values,
     )
     await db.commit()

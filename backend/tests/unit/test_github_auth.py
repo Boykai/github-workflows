@@ -324,7 +324,7 @@ class TestGitHubAuthServiceTokenExchange:
         error_response.raise_for_status = MagicMock()
         service.exchange_code_for_token = AsyncMock(return_value=error_response.json.return_value)
 
-        with pytest.raises(ValueError, match="OAuth error.*The code has expired"):
+        with pytest.raises(ValueError, match=r"OAuth error.*The code has expired"):
             await service.create_session("expired_code")
 
     @pytest.mark.asyncio
@@ -410,7 +410,7 @@ class TestGitHubAuthServiceTokenExchange:
             mock_gh.arequest = AsyncMock(return_value=mock_resp)
             MockGitHub.return_value = mock_gh
 
-            with pytest.raises(ValueError, match="Token refresh error.*Token has been revoked"):
+            with pytest.raises(ValueError, match=r"Token refresh error.*Token has been revoked"):
                 await service.refresh_token(session)
 
     @pytest.mark.asyncio

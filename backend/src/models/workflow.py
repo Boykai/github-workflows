@@ -81,6 +81,6 @@ class WorkflowResult(BaseModel):
 __all__ = [
     "TriggeredBy",
     "WorkflowConfiguration",
-    "WorkflowTransition",
     "WorkflowResult",
+    "WorkflowTransition",
 ]
