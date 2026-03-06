@@ -38,7 +38,7 @@
 - [ ] T003 Create `RateLimitState` frozen dataclass in `backend/src/models/rate_limit.py` with fields: limit (int), remaining (int), reset_at (int), used (int), resource (str, default "core") per data-model.md
 - [ ] T004 [P] Create `GitHubClientFactory` class with `BoundedDict` client pool (max 50) in `backend/src/services/github_projects/client_factory.py` per contracts/client-factory.md — includes `get_client(token)`, `get_rate_limit()`, `clear_rate_limit()`, `close()` methods
 - [ ] T005 Export `GitHubClientFactory` from `backend/src/services/github_projects/__init__.py`
-- [ ] T006 Register `GitHubClientFactory` on `app.state` and update service initialization in `backend/src/dependencies.py`
+- [ ] T006 Register `GitHubClientFactory` on `app.state` in `backend/src/dependencies.py` and update `GitHubProjectsService` initialization to pass factory — follow existing `Depends()` getter pattern
 
 **Checkpoint**: Foundation ready — `GitHubClientFactory` creates authenticated clients, bounded pool works, `RateLimitState` model exists. User story implementation can now begin.
 
@@ -55,7 +55,7 @@
 - [ ] T007 [US1] Update `GitHubProjectsService.__init__()` to accept `GitHubClientFactory` as a dependency in `backend/src/services/github_projects/service.py`
 - [ ] T008 [US1] Add `_get_github_client(access_token: str) -> GitHub` helper method to `GitHubProjectsService` that delegates to `self._client_factory.get_client()` in `backend/src/services/github_projects/service.py`
 - [ ] T009 [US1] Update `GitHubProjectsService.close()` to delegate client cleanup to factory in `backend/src/services/github_projects/service.py`
-- [ ] T010 [P] [US1] Update test fixtures and service construction in `backend/tests/unit/` to pass `GitHubClientFactory` (or mock) to `GitHubProjectsService`
+- [ ] T010 [P] [US1] Update test fixtures and service construction to pass `GitHubClientFactory` (or mock) to `GitHubProjectsService` in `backend/tests/unit/test_github_projects.py`, `backend/tests/unit/test_copilot_polling.py`, `backend/tests/unit/test_api_projects.py`, `backend/tests/unit/test_api_workflow.py`, and `backend/tests/unit/test_issue_creation_retry.py`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. All existing tests pass with the new factory wired in. No behavior changes.
 
@@ -80,7 +80,7 @@
 - [ ] T019 [US2] Replace internal REST fallback methods (`_add_issue_to_project_rest`, `_assign_copilot_rest`) with `github.arequest("POST", ...)` in `backend/src/services/github_projects/service.py`
 - [ ] T020 [US2] Replace `http_get()` public method with `github.arequest("GET", ...)` delegation in `backend/src/services/github_projects/service.py`
 - [ ] T021 [P] [US2] Update `github_commit_workflow.py` to use new service API signatures in `backend/src/services/github_commit_workflow.py`
-- [ ] T022 [US2] Update test mocks for all REST-migrated methods (mock githubkit client methods instead of raw httpx) in `backend/tests/unit/`
+- [ ] T022 [US2] Update test mocks for all REST-migrated methods (T011–T020) — replace raw httpx mocks with githubkit client mocks in `backend/tests/unit/test_github_projects.py` (4,037 LOC, primary target), `backend/tests/unit/test_issue_creation_retry.py`, and `backend/tests/unit/test_completion_false_positive.py`
 
 **Checkpoint**: At this point, all REST call sites use githubkit. Manual URL construction, header building, and response parsing are eliminated from REST paths. All tests pass.
 
@@ -98,7 +98,7 @@
 - [ ] T024 [US3] Remove manual ETag cache fields (`_etag_cache`, `_ETAG_CACHE_MAX_SIZE`) and related logic from `__init__()` in `backend/src/services/github_projects/service.py` — ETag caching now handled by githubkit's `http_cache=True`
 - [ ] T025 [US3] Verify and preserve in-flight coalescing (`_inflight_graphql` BoundedDict) and cycle cache as untouched app-layer logic in `backend/src/services/github_projects/service.py`
 - [ ] T026 [US3] Consolidate all GraphQL→REST fallback chains (`add_issue_to_project`, `assign_copilot_to_issue`, `find_existing_pr_for_issue`) to uniformly use `_with_fallback()` helper in `backend/src/services/github_projects/service.py` per research R-010
-- [ ] T027 [US3] Update test mocks for GraphQL-migrated execution path in `backend/tests/unit/`
+- [ ] T027 [US3] Update test mocks for GraphQL-migrated execution path — replace `_graphql()` mocks with `github.async_graphql()` mocks in `backend/tests/unit/test_github_projects.py` and `backend/tests/unit/test_copilot_polling.py`
 
 **Checkpoint**: GraphQL layer uses githubkit. ETag caching handled by SDK. App-layer logic (cycle cache, coalescing, cooldown) unchanged. All tests pass.
 
@@ -134,7 +134,7 @@
 - [ ] T034 [P] [US4] Replace `refresh_token()` with githubkit token refresh strategy in `backend/src/services/github_auth.py`
 - [ ] T035 [US4] Remove `self._client = httpx.AsyncClient(...)` from `GitHubAuthService.__init__()` and update `close()` to no-op in `backend/src/services/github_auth.py`
 - [ ] T036 [P] [US4] Update `create_session_from_token()` to use factory `get_client()` for user info in `backend/src/services/github_auth.py`
-- [ ] T037 [US4] Update test mocks for OAuth-migrated methods in `backend/tests/unit/`
+- [ ] T037 [US4] Update test mocks for OAuth-migrated methods — replace httpx client mocks with githubkit mocks in `backend/tests/unit/test_github_auth.py` (431 LOC), `backend/tests/unit/test_api_auth.py`, and `backend/tests/unit/test_auth_security.py`
 
 **Checkpoint**: OAuth authentication uses githubkit. All session management preserved. github_auth.py reduced to ~270 LOC. All tests pass.
 
@@ -173,8 +173,8 @@
 - [ ] T051 Run `pyright src/` type checking and verify no new type errors (SC-002)
 - [ ] T052 Run `ruff check src/` and `ruff format --check src/` for clean lint (SC-008)
 - [ ] T053 Verify `grep -r "import httpx" backend/src/services/github_projects/` returns zero hits (FR-016, SC-004)
-- [ ] T054 Measure and verify net LOC reduction of 1,500–2,000 lines across all affected files (SC-001)
-- [ ] T055 Run quickstart.md verification commands from `specs/019-githubkit-migration/quickstart.md`
+- [ ] T054 Measure net LOC reduction across all affected files using `wc -l` on `backend/src/services/github_projects/service.py`, `graphql.py`, `github_auth.py`, `client_factory.py`, `rate_limit.py` — verify 1,500–2,000 line net reduction (SC-001)
+- [ ] T055 Run quickstart.md verification commands (install check, typed method check, rate limit check, LOC comparison) from `specs/019-githubkit-migration/quickstart.md` — verify `Verification Commands` section passes
 
 ---
 
