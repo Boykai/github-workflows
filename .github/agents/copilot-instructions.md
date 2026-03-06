@@ -119,7 +119,7 @@ npx playwright test             # E2E tests
 - SQLite with WAL mode (aiosqlite) — sessions, settings, migrations (020-githubkit-migration)
 - Python 3.12 (backend), TypeScript 5.8 (frontend) + FastAPI 0.109+, TanStack React Query 5.17, native WebSocket (asyncio) (022-api-rate-limit-protection)
 - SQLite (aiosqlite) for persistence, in-memory `InMemoryCache` with TTL for API response caching (022-api-rate-limit-protection)
-- TypeScript ~5.8 (frontend), Python 3.11+ (backend) + React 18, @dnd-kit/core ^6.3.1, @dnd-kit/sortable ^10.0.0, @dnd-kit/modifiers ^9.0.0, @dnd-kit/utilities ^3.2.2, TanStack Query v5, Tailwind CSS (023-pipeline-dragdrop)
+- TypeScript ~5.8 (frontend), Python 3.12 (backend) + React 18, @dnd-kit/core ^6.3.1, @dnd-kit/sortable ^10.0.0, @dnd-kit/modifiers ^9.0.0, @dnd-kit/utilities ^3.2.2, TanStack Query v5, Tailwind CSS (023-pipeline-dragdrop)
 - SQLite with WAL mode (aiosqlite) — workflow config stored via `set_workflow_config` (023-pipeline-dragdrop)
 
 ## Recent Changes

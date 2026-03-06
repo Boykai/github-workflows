@@ -192,13 +192,25 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
         if (agentIndex === -1) return prev; // No-op if not found
 
         const agent = sourceAgents[agentIndex];
-        const newSource = [...sourceAgents];
-        newSource.splice(agentIndex, 1);
 
         // Case-insensitive key lookup for target
         const lowerTarget = targetStatus.toLowerCase();
         const targetKey =
           Object.keys(prev).find((k) => k.toLowerCase() === lowerTarget) ?? targetStatus;
+
+        // Guard against same-column moves to avoid duplicating the agent
+        if (sourceKey === targetKey) {
+          const working = [...sourceAgents];
+          working.splice(agentIndex, 1);
+          const insertAt =
+            targetIndex !== undefined ? Math.min(Math.max(0, targetIndex), working.length) : working.length;
+          working.splice(insertAt, 0, agent);
+          return { ...prev, [sourceKey]: working };
+        }
+
+        const newSource = [...sourceAgents];
+        newSource.splice(agentIndex, 1);
+
         const targetAgents = [...(prev[targetKey] ?? [])];
 
         // Clamp target index
@@ -206,8 +218,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
           targetIndex !== undefined ? Math.min(Math.max(0, targetIndex), targetAgents.length) : targetAgents.length;
         targetAgents.splice(insertAt, 0, agent);
 
-        const updated = { ...prev, [sourceKey]: newSource, [targetKey]: targetAgents };
-        return updated;
+        return { ...prev, [sourceKey]: newSource, [targetKey]: targetAgents };
       });
     },
     []
