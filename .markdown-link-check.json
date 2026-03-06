@@ -5,6 +5,9 @@
     },
     {
       "pattern": "^https://github\\.com/codespaces/badge\\.svg"
+    },
+    {
+      "pattern": "^https?://localhost"
     }
   ],
   "aliveStatusCodes": [200, 206],
