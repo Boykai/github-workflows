@@ -2,11 +2,30 @@
  * AgentConfigRow component - collapsible container that renders one AgentColumnCell
  * per status column, aligned with the board columns below.
  * Includes AgentSaveBar for save/discard workflow.
+ * Wraps all columns in a single DndContext for cross-column drag-and-drop.
  */
 
-import { useState } from 'react';
-import type { BoardColumn, AvailableAgent } from '@/types';
+import { useState, useCallback, useRef } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensors,
+  useSensor,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import type { BoardColumn, AvailableAgent, AgentAssignment } from '@/types';
 import { AgentColumnCell } from './AgentColumnCell';
+import { AgentDragOverlay } from './AgentDragOverlay';
 import { AgentSaveBar } from './AgentSaveBar';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 
@@ -18,6 +37,19 @@ interface AgentConfigRowProps {
   renderAddButton?: (status: string) => React.ReactNode;
 }
 
+/** Find which column an agent ID belongs to */
+function findColumnForAgent(
+  mappings: Record<string, AgentAssignment[]>,
+  agentId: string
+): string | null {
+  for (const [status, agents] of Object.entries(mappings)) {
+    if (agents.some((a) => a.id === agentId)) {
+      return status;
+    }
+  }
+  return null;
+}
+
 export function AgentConfigRow({
   columns,
   agentConfig,
@@ -26,6 +58,8 @@ export function AgentConfigRow({
   renderAddButton,
 }: AgentConfigRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [activeAgent, setActiveAgent] = useState<AgentAssignment | null>(null);
+  const snapshotRef = useRef<Record<string, AgentAssignment[]> | null>(null);
 
   const {
     localMappings,
@@ -33,12 +67,128 @@ export function AgentConfigRow({
     isColumnDirty,
     removeAgent,
     reorderAgents,
+    moveAgentToColumn,
     save,
     discard,
     isSaving,
     saveError,
     isLoaded,
   } = agentConfig;
+
+  // Sensors: PointerSensor (mouse), TouchSensor (mobile), KeyboardSensor (a11y)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // Save snapshot on drag start for cancel-revert
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const agentId = String(event.active.id);
+      snapshotRef.current = structuredClone(localMappings);
+
+      // Find the active agent across all columns
+      for (const agents of Object.values(localMappings)) {
+        const found = agents.find((a) => a.id === agentId);
+        if (found) {
+          setActiveAgent(found);
+          return;
+        }
+      }
+    },
+    [localMappings]
+  );
+
+  // Live preview: move agent between columns as cursor crosses boundaries
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      if (!over) return;
+
+      const activeId = String(active.id);
+      const overId = String(over.id);
+
+      // Determine the source column
+      const sourceColumn = findColumnForAgent(localMappings, activeId);
+      if (!sourceColumn) return;
+
+      // Determine the target column: either the over item's column, or the droppable column ID
+      let targetColumn: string | null = null;
+      let targetIndex: number | undefined;
+
+      // Check if over is a column (droppable) or an agent (sortable item)
+      const overColumn = findColumnForAgent(localMappings, overId);
+      if (overColumn) {
+        // Hovering over another agent — target is that agent's column
+        targetColumn = overColumn;
+        const targetAgents = localMappings[targetColumn] ?? [];
+        targetIndex = targetAgents.findIndex((a) => a.id === overId);
+      } else {
+        // Hovering over an empty column droppable zone
+        targetColumn = overId;
+        targetIndex = undefined; // Append
+      }
+
+      if (!targetColumn || sourceColumn === targetColumn) return;
+
+      moveAgentToColumn(sourceColumn, targetColumn, activeId, targetIndex);
+    },
+    [localMappings, moveAgentToColumn]
+  );
+
+  // Finalize drop: handle same-column reorder or cross-column is already done via handleDragOver
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveAgent(null);
+      snapshotRef.current = null;
+
+      if (!over || active.id === over.id) return;
+
+      const activeId = String(active.id);
+      const overId = String(over.id);
+
+      // Find which column the active agent is in now
+      const activeColumn = findColumnForAgent(localMappings, activeId);
+      const overColumn = findColumnForAgent(localMappings, overId);
+
+      if (activeColumn && overColumn && activeColumn === overColumn) {
+        // Same-column reorder
+        const agents = localMappings[activeColumn] ?? [];
+        const oldIndex = agents.findIndex((a) => a.id === activeId);
+        const newIndex = agents.findIndex((a) => a.id === overId);
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const newOrder = arrayMove(agents, oldIndex, newIndex);
+          reorderAgents(activeColumn, newOrder);
+        }
+      }
+      // Cross-column moves are already handled by handleDragOver
+    },
+    [localMappings, reorderAgents]
+  );
+
+  // Revert to snapshot on cancel
+  const handleDragCancel = useCallback(() => {
+    setActiveAgent(null);
+    if (snapshotRef.current) {
+      const snapshot = snapshotRef.current;
+      const snapshotStatuses = new Set(Object.keys(snapshot));
+
+      // Clear any statuses introduced during drag that are not in the snapshot
+      for (const status of Object.keys(localMappings)) {
+        if (!snapshotStatuses.has(status)) {
+          reorderAgents(status, []);
+        }
+      }
+
+      // Restore each column from the snapshot
+      for (const [status, agents] of Object.entries(snapshot)) {
+        reorderAgents(status, agents);
+      }
+      snapshotRef.current = null;
+    }
+  }, [localMappings, reorderAgents]);
 
   // Loading skeleton (T030)
   if (!isLoaded) {
@@ -79,25 +229,41 @@ export function AgentConfigRow({
       {/* Collapsible body */}
       {isExpanded && (
         <div className="p-2 bg-muted/10">
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {columns.map((col) => {
-              const status = col.status.name;
-              const agents = localMappings[status] ?? [];
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <div className="flex gap-4 overflow-x-auto pb-2">
+              {columns.map((col) => {
+                const status = col.status.name;
+                const agents = localMappings[status] ?? [];
 
-              return (
-                <AgentColumnCell
-                  key={col.status.option_id}
-                  status={status}
-                  agents={agents}
-                  isModified={isColumnDirty(status)}
-                  onRemoveAgent={removeAgent}
-                  onReorderAgents={reorderAgents}
-                  renderAddButton={renderAddButton?.(status)}
-                  availableAgents={availableAgents}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <AgentColumnCell
+                    key={col.status.option_id}
+                    status={status}
+                    agents={agents}
+                    isModified={isColumnDirty(status)}
+                    onRemoveAgent={removeAgent}
+                    onReorderAgents={reorderAgents}
+                    renderAddButton={renderAddButton?.(status)}
+                    availableAgents={availableAgents}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Floating drag overlay */}
+            <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+              {activeAgent ? (
+                <AgentDragOverlay agent={activeAgent} availableAgents={availableAgents} />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
       )}
 

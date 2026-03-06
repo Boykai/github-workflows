@@ -1,27 +1,17 @@
 /**
  * AgentColumnCell component - renders a vertical stack of AgentTile components
  * for one status column, plus an "Add Agent" button.
- * Supports drag-and-drop reordering via @dnd-kit (T022).
+ * Registers as a droppable zone for cross-column drag-and-drop.
+ * Retains SortableContext for within-column ordering.
  */
 
 import { useCallback } from 'react';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensors,
-  useSensor,
-  type DragEndEvent,
-} from '@dnd-kit/core';
+import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
-  arrayMove,
-  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { AgentTile } from './AgentTile';
@@ -82,29 +72,12 @@ export function AgentColumnCell({
   agents,
   isModified,
   onRemoveAgent,
-  onReorderAgents,
+  onReorderAgents: _onReorderAgents,
   renderAddButton,
   availableAgents,
 }: AgentColumnCellProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = agents.findIndex((a) => a.id === active.id);
-      const newIndex = agents.findIndex((a) => a.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newOrder = arrayMove(agents, oldIndex, newIndex);
-      onReorderAgents(status, newOrder);
-    },
-    [agents, status, onReorderAgents]
-  );
+  // Register as a droppable zone for cross-column DnD
+  const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const handleRemove = useCallback(
     (agentInstanceId: string) => {
@@ -115,27 +88,28 @@ export function AgentColumnCell({
 
   const agentCount = agents.length;
 
+  // Drop zone highlighting: ring + background when item is dragged over this column
+  const dropHighlight = isOver ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : '';
+
   return (
-    <div className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'}`}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-        modifiers={[restrictToVerticalAxis]}
-      >
-        <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col gap-2 min-h-[2px]">
-            {agents.map((agent) => (
-              <SortableAgentTile
-                key={agent.id}
-                agent={agent}
-                onRemove={handleRemove}
-                availableAgents={availableAgents}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+    <div
+      ref={setNodeRef}
+      role="group"
+      aria-label={`${status} column, ${agentCount} agents`}
+      className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
+    >
+      <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+        <div className="flex flex-col gap-2 min-h-[2px]">
+          {agents.map((agent) => (
+            <SortableAgentTile
+              key={agent.id}
+              agent={agent}
+              onRemove={handleRemove}
+              availableAgents={availableAgents}
+            />
+          ))}
+        </div>
+      </SortableContext>
 
       {/* Add agent button placeholder / slot */}
       {renderAddButton}
