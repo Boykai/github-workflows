@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
 import type { AgentConfig } from '@/services/api';
 
@@ -182,14 +183,16 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
                 role="switch"
                 aria-checked={aiEnhance}
                 onClick={() => setAiEnhance(!aiEnhance)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  aiEnhance ? 'bg-primary' : 'bg-muted'
-                }`}
+                className={cn(
+                  'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                  aiEnhance ? 'bg-primary' : 'bg-muted',
+                )}
               >
                 <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
-                    aiEnhance ? 'translate-x-4' : 'translate-x-0'
-                  }`}
+                  className={cn(
+                    'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform',
+                    aiEnhance ? 'translate-x-4' : 'translate-x-0',
+                  )}
                 />
               </button>
               <span className="text-xs text-muted-foreground">

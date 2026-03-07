@@ -4,6 +4,8 @@
  */
 
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS } from '@/constants';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
@@ -131,12 +133,12 @@ export function ProjectsPage() {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {selectedProjectId && (
             <span className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${
-                syncStatus === 'connected' ? 'bg-green-500' :
-                syncStatus === 'polling' ? 'bg-yellow-500' :
-                syncStatus === 'connecting' ? 'bg-blue-500' :
-                'bg-red-500'
-              }`} />
+              <span className={cn('w-2 h-2 rounded-full',
+                syncStatus === 'connected' ? STATUS_COLORS.success.dot :
+                syncStatus === 'polling' ? STATUS_COLORS.warning.dot :
+                syncStatus === 'connecting' ? STATUS_COLORS.info.dot :
+                STATUS_COLORS.error.dot,
+              )} />
               {syncStatus === 'connected' && 'Live'}
               {syncStatus === 'polling' && 'Polling'}
               {syncStatus === 'connecting' && 'Connecting...'}

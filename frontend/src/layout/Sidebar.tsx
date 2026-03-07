@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { NAV_ROUTES } from '@/constants';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
@@ -33,9 +34,10 @@ export function Sidebar({
   const navigate = useNavigate();
   return (
     <aside
-      className={`celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-60'
-      }`}
+      className={cn(
+        'celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300',
+        isCollapsed ? 'w-16' : 'w-60',
+      )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.16),transparent_70%)]" />
       <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20" />
@@ -73,11 +75,13 @@ export function Sidebar({
             to={route.path}
             end={route.path === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
+              cn(
+                'flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all',
                 isActive
                   ? 'bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20'
-                  : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
-              } ${isCollapsed ? 'justify-center' : ''}`
+                  : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground',
+                isCollapsed && 'justify-center',
+              )
             }
             title={isCollapsed ? route.label : undefined}
           >
@@ -120,9 +124,10 @@ export function Sidebar({
         {!isCollapsed && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
-          className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/45 ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/45',
+            isCollapsed && 'justify-center',
+          )}
           title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">

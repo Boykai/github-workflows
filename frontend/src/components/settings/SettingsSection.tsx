@@ -6,6 +6,8 @@
  */
 
 import { useState, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS } from '@/constants';
 import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
 
 interface SettingsSectionProps {
@@ -58,7 +60,7 @@ export function SettingsSection({
         onClick={() => setCollapsed((c) => !c)}
         type="button"
       >
-        <span className={`text-xs text-muted-foreground mt-1.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}>
+        <span className={cn('text-xs text-muted-foreground mt-1.5 transition-transform duration-200', collapsed && '-rotate-90')}>
           ▼
         </span>
         <div className="flex flex-col gap-1">
@@ -83,7 +85,7 @@ export function SettingsSection({
                 {saving ? 'Saving...' : 'Save'}
               </button>
               {saveStatus === 'success' && (
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">Saved!</span>
+                <span className={cn('text-sm font-medium', STATUS_COLORS.success.text)}>Saved!</span>
               )}
               {saveStatus === 'error' && (
                 <span className="text-sm font-medium text-destructive">Failed to save</span>

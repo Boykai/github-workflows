@@ -6,6 +6,7 @@
  */
 
 import { useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -88,15 +89,16 @@ export function AgentColumnCell({
 
   const agentCount = agents.length;
 
-  // Drop zone highlighting: ring + background when item is dragged over this column
-  const dropHighlight = isOver ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : '';
-
   return (
     <div
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
+      className={cn(
+        'flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors',
+        isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50',
+        isOver && 'border-primary bg-primary/10 ring-2 ring-primary/30',
+      )}
     >
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 min-h-[2px]">

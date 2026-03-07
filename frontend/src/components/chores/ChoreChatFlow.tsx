@@ -7,6 +7,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { useChoreChat } from '@/hooks/useChores';
 
 interface ChoreChatFlowProps {
@@ -137,11 +138,12 @@ export function ChoreChatFlow({
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`text-xs p-2 rounded-md max-w-[85%] ${
+            className={cn(
+              'text-xs p-2 rounded-md max-w-[85%]',
               msg.role === 'user'
                 ? 'self-end bg-primary/10 text-foreground'
-                : 'self-start bg-muted text-foreground'
-            }`}
+                : 'self-start bg-muted text-foreground',
+            )}
           >
             <p className="whitespace-pre-wrap">{msg.content}</p>
           </div>
