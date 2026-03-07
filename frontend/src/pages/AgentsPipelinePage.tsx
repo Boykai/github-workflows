@@ -1,17 +1,23 @@
 /**
- * AgentsPipelinePage — Pipeline visualization + agent config + activity feed.
- * Composes useProjectBoard columns with agent configuration and workflow events.
+ * AgentsPipelinePage — Pipeline visualization + pipeline CRUD + agent config + activity feed.
+ * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
+import { usePipelineConfig } from '@/hooks/usePipelineConfig';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { statusColorToCSS } from '@/components/board/colorUtils';
+import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
+import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
+import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
+import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -22,8 +28,82 @@ export function AgentsPipelinePage() {
   const agentConfig = useAgentConfig(projectId);
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(projectId);
   const { config: workflowConfig } = useWorkflow();
+  const pipelineConfig = usePipelineConfig(projectId);
 
   const columns = boardData?.columns ?? [];
+
+  // Unsaved changes dialog state
+  const [unsavedDialog, setUnsavedDialog] = useState<{
+    isOpen: boolean;
+    pendingAction: (() => void) | null;
+    description: string;
+  }>({ isOpen: false, pendingAction: null, description: '' });
+
+  // Browser navigation guard
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (pipelineConfig.isDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [pipelineConfig.isDirty]);
+
+  // Handle selecting a saved workflow with unsaved changes check
+  const handleWorkflowSelect = useCallback(
+    (pipelineId: string) => {
+      if (pipelineConfig.isDirty) {
+        setUnsavedDialog({
+          isOpen: true,
+          pendingAction: () => pipelineConfig.loadPipeline(pipelineId),
+          description: 'Loading a different workflow will discard your changes',
+        });
+      } else {
+        pipelineConfig.loadPipeline(pipelineId);
+      }
+    },
+    [pipelineConfig],
+  );
+
+  // Handle new pipeline with unsaved changes check
+  const handleNewPipeline = useCallback(() => {
+    if (pipelineConfig.isDirty) {
+      setUnsavedDialog({
+        isOpen: true,
+        pendingAction: () => pipelineConfig.newPipeline(),
+        description: 'Creating a new pipeline will discard your changes',
+      });
+    } else {
+      pipelineConfig.newPipeline();
+    }
+  }, [pipelineConfig]);
+
+  // Handle delete with confirmation
+  const handleDelete = useCallback(() => {
+    if (window.confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
+      pipelineConfig.deletePipeline();
+    }
+  }, [pipelineConfig]);
+
+  // Unsaved dialog handlers
+  const handleUnsavedSave = useCallback(async () => {
+    await pipelineConfig.savePipeline();
+    const action = unsavedDialog.pendingAction;
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+    action?.();
+  }, [pipelineConfig, unsavedDialog.pendingAction]);
+
+  const handleUnsavedDiscard = useCallback(() => {
+    pipelineConfig.discardChanges();
+    const action = unsavedDialog.pendingAction;
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+    action?.();
+  }, [pipelineConfig, unsavedDialog.pendingAction]);
+
+  const handleUnsavedCancel = useCallback(() => {
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+  }, []);
 
   return (
     <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-auto">
@@ -36,13 +116,15 @@ export function AgentsPipelinePage() {
             Configure how agents process items across board columns
           </p>
         </div>
-        {workflowConfig && (
-          <span className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-[0.16em] ${
-            workflowConfig.enabled ? 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100/90 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
-          }`}>
-            {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {workflowConfig && (
+            <span className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-[0.16em] ${
+              workflowConfig.enabled ? 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100/90 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
+            }`}>
+              {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* No project selected */}
@@ -63,6 +145,59 @@ export function AgentsPipelinePage() {
 
       {projectId && !boardLoading && boardData && (
         <>
+          {/* Pipeline Toolbar */}
+          <PipelineToolbar
+            boardState={pipelineConfig.boardState}
+            isDirty={pipelineConfig.isDirty}
+            isSaving={pipelineConfig.isSaving}
+            onNewPipeline={handleNewPipeline}
+            onSave={pipelineConfig.savePipeline}
+            onDelete={handleDelete}
+            onDiscard={pipelineConfig.discardChanges}
+          />
+
+          {/* Pipeline Board */}
+          {pipelineConfig.boardState !== 'empty' && pipelineConfig.pipeline && (
+            <PipelineBoard
+              stages={pipelineConfig.pipeline.stages}
+              availableAgents={availableAgents}
+              isEditMode={pipelineConfig.boardState === 'editing'}
+              pipelineName={pipelineConfig.pipeline.name}
+              pipelineDescription={pipelineConfig.pipeline.description}
+              onStagesChange={pipelineConfig.reorderStages}
+              onNameChange={pipelineConfig.setPipelineName}
+              onDescriptionChange={pipelineConfig.setPipelineDescription}
+              onAddStage={() => pipelineConfig.addStage()}
+              onRemoveStage={pipelineConfig.removeStage}
+              onAddAgent={(stageId, slug) => {
+                const agent = availableAgents.find((a) => a.slug === slug);
+                if (agent) pipelineConfig.addAgentToStage(stageId, agent);
+              }}
+              onRemoveAgent={pipelineConfig.removeAgentFromStage}
+              onUpdateAgent={pipelineConfig.updateAgentInStage}
+              onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
+            />
+          )}
+
+          {/* Empty board state */}
+          {pipelineConfig.boardState === 'empty' && (
+            <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 p-8 text-center">
+              <div className="text-3xl mb-1">🚀</div>
+              <h3 className="text-sm font-semibold text-foreground">Create your first pipeline</h3>
+              <p className="text-xs text-muted-foreground max-w-md">
+                Build custom agent workflows by creating a pipeline with stages and agents.
+                Click "New Pipeline" above to get started.
+              </p>
+            </div>
+          )}
+
+          {/* Save error display */}
+          {pipelineConfig.saveError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+              {pipelineConfig.saveError}
+            </div>
+          )}
+
           {/* Agent Config Row — drag-and-drop assignment */}
           <AgentConfigRow
             columns={columns}
@@ -122,6 +257,14 @@ export function AgentsPipelinePage() {
             </div>
           </div>
 
+          {/* Saved Workflows List */}
+          <SavedWorkflowsList
+            pipelines={pipelineConfig.pipelines?.pipelines ?? []}
+            activePipelineId={pipelineConfig.editingPipelineId}
+            isLoading={pipelineConfig.pipelinesLoading}
+            onSelect={handleWorkflowSelect}
+          />
+
           {/* Activity Feed placeholder */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
@@ -133,6 +276,15 @@ export function AgentsPipelinePage() {
           </div>
         </>
       )}
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        isOpen={unsavedDialog.isOpen}
+        onSave={handleUnsavedSave}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
+        actionDescription={unsavedDialog.description}
+      />
     </div>
   );
 }

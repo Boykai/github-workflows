@@ -50,6 +50,11 @@ import type {
   ChoreChatResponse,
   EvaluateChoreTriggersResponse,
   RepositoryMetadata,
+  PipelineConfig,
+  PipelineConfigCreate,
+  PipelineConfigUpdate,
+  PipelineConfigListResponse,
+  AIModel,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -749,5 +754,49 @@ export const agentsApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+};
+
+// ============ Pipelines API ============
+
+export const pipelinesApi = {
+  list(projectId: string, sort?: string, order?: string): Promise<PipelineConfigListResponse> {
+    const params = new URLSearchParams();
+    if (sort) params.set('sort', sort);
+    if (order) params.set('order', order);
+    const qs = params.toString();
+    return request<PipelineConfigListResponse>(`/pipelines/${projectId}${qs ? `?${qs}` : ''}`);
+  },
+
+  get(projectId: string, pipelineId: string): Promise<PipelineConfig> {
+    return request<PipelineConfig>(`/pipelines/${projectId}/${pipelineId}`);
+  },
+
+  create(projectId: string, data: PipelineConfigCreate): Promise<PipelineConfig> {
+    return request<PipelineConfig>(`/pipelines/${projectId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update(projectId: string, pipelineId: string, data: PipelineConfigUpdate): Promise<PipelineConfig> {
+    return request<PipelineConfig>(`/pipelines/${projectId}/${pipelineId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete(projectId: string, pipelineId: string): Promise<{ success: boolean; deleted_id: string }> {
+    return request<{ success: boolean; deleted_id: string }>(`/pipelines/${projectId}/${pipelineId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============ Models API ============
+
+export const modelsApi = {
+  list(_projectId: string): Promise<AIModel[]> {
+    return request<AIModel[]>(`/pipelines/models/available`);
   },
 };
