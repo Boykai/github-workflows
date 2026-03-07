@@ -199,14 +199,14 @@ export function AgentConfigRow({
   // Loading skeleton (T030)
   if (!isLoaded) {
     return (
-      <div className="flex flex-col bg-card border-b border-border">
-        <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/30">
+      <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60">
+        <div className="flex items-center gap-2 p-2 border-b border-border/40 bg-muted/20 rounded-t-[1.2rem]">
           <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
         </div>
-        <div className="p-2 bg-muted/10">
+        <div className="p-2">
           <div className="flex gap-4 overflow-x-auto pb-2">
             {columns.map((col) => (
-              <div key={col.status.option_id} className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border border-border/50 animate-pulse">
+              <div key={col.status.option_id} className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 rounded-[1.2rem] border border-border/60 animate-pulse">
                 <div className="h-10 bg-muted rounded-md w-full" />
               </div>
             ))}
@@ -217,9 +217,9 @@ export function AgentConfigRow({
   }
 
   return (
-    <div className="flex flex-col bg-card border-b border-border relative">
+    <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60 relative">
       {/* Header with toggle and presets */}
-      <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/30">
+      <div className="flex items-center gap-2 p-2 border-b border-border/40 bg-muted/20 rounded-t-[1.2rem]">
         <button
           className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -234,7 +234,7 @@ export function AgentConfigRow({
 
       {/* Collapsible body */}
       {isExpanded && (
-        <div className="bg-muted/10 py-2">
+        <div className="py-2">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -244,7 +244,7 @@ export function AgentConfigRow({
             onDragCancel={handleDragCancel}
           >
            <div className="overflow-x-auto">
-            <div className="grid min-w-full items-start gap-3 pb-2" style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))` }}>
+            <div className="grid min-w-full items-start gap-3 pb-2 px-2" style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))` }}>
               {columns.map((col) => {
                 const status = col.status.name;
                 const agents = localMappings[status] ?? [];

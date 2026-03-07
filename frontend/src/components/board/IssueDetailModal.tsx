@@ -1,8 +1,11 @@
 /**
  * IssueDetailModal component - displays expanded issue details in a modal overlay.
+ * Renders issue descriptions as Markdown using react-markdown with GFM support.
  */
 
 import { useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 
@@ -146,11 +149,15 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           </div>
         )}
 
-        {/* Body / Description */}
+        {/* Body / Description — rendered as Markdown */}
         {item.body && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Description</h3>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-4 rounded-md border border-border">{item.body}</div>
+            <div className="prose prose-sm dark:prose-invert max-w-none overflow-y-auto max-h-[50vh] bg-muted/30 p-4 rounded-md border border-border">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {item.body}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 

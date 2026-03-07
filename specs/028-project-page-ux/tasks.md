@@ -25,9 +25,9 @@
 
 **Purpose**: Install new dependencies, scaffold new utility files, and prepare shared infrastructure
 
-- [ ] T001 Install `react-markdown` and `remark-gfm` npm dependencies in `frontend/package.json`
-- [ ] T002 [P] Create `frontend/src/utils/formatAgentName.ts` with the pure utility function implementing slug-to-display-name formatting per contract C1 (dot-split, empty-segment filter, title-case, "speckit" → "Spec Kit" compound handling, join with " - ", displayName precedence)
-- [ ] T003 [P] Create `frontend/src/tests/utils/formatAgentName.test.ts` with unit tests covering all contract C1 examples: "linter" → "Linter", "speckit.tasks" → "Spec Kit - Tasks", "speckit.implement" → "Spec Kit - Implement", "agent.v2.runner" → "Agent - V2 - Runner", "speckit..tasks" → "Spec Kit - Tasks", "" → "", displayName precedence, "LINTER" → "Linter", empty displayName fallback
+- [x] T001 Install `react-markdown` and `remark-gfm` npm dependencies in `frontend/package.json`
+- [x] T002 [P] Create `frontend/src/utils/formatAgentName.ts` with the pure utility function implementing slug-to-display-name formatting per contract C1 (dot-split, empty-segment filter, title-case, "speckit" → "Spec Kit" compound handling, join with " - ", displayName precedence)
+- [x] T003 [P] Create `frontend/src/tests/utils/formatAgentName.test.ts` with unit tests covering all contract C1 examples: "linter" → "Linter", "speckit.tasks" → "Spec Kit - Tasks", "speckit.implement" → "Spec Kit - Implement", "agent.v2.runner" → "Agent - V2 - Runner", "speckit..tasks" → "Spec Kit - Tasks", "" → "", displayName precedence, "LINTER" → "Linter", empty displayName fallback
 
 ---
 
@@ -37,8 +37,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Extend `AvailableAgent` interface in `frontend/src/types/index.ts` to add `default_model_name?: string | null` and `tools_count?: number | null` fields per data-model.md
-- [ ] T005 Update the frontend agent data mapping in `frontend/src/hooks/useAgentConfig.ts` (or the hook/service that fetches agents) to populate `default_model_name` from `agent.default_model_name` and `tools_count` from `agent.tools?.length` when mapping backend `Agent` responses to `AvailableAgent` per contract A2
+- [x] T004 Extend `AvailableAgent` interface in `frontend/src/types/index.ts` to add `default_model_name?: string | null` and `tools_count?: number | null` fields per data-model.md
+- [x] T005 Update the frontend agent data mapping in `frontend/src/hooks/useAgentConfig.ts` (or the hook/service that fetches agents) to populate `default_model_name` from `agent.default_model_name` and `tools_count` from `agent.tools?.length` when mapping backend `Agent` responses to `AvailableAgent` per contract A2
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -52,13 +52,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Audit `frontend/src/components/board/AgentConfigRow.tsx` DnD sensor configuration — verify PointerSensor (distance: 5), TouchSensor (delay: 250, tolerance: 5), and KeyboardSensor are correctly configured per research R1 and R10
-- [ ] T007 [US1] Fix DragOverlay pointer offset in `frontend/src/components/board/AgentConfigRow.tsx` — compute pointer offset as `{x: clientX - rect.left, y: clientY - rect.top}` from `activatorEvent` in `handleDragStart` and apply to DragOverlay positioning per research R2
-- [ ] T008 [US1] Replace `CSS.Transform.toString(transform)` with `CSS.Translate.toString(transform)` in `frontend/src/components/board/AgentColumnCell.tsx` sortable items to avoid scale/rotation interference causing teleport per research R1
-- [ ] T009 [US1] Audit and remove any conflicting custom `transform` or `translate` CSS on agent tiles in `frontend/src/components/board/AgentTile.tsx` and `frontend/src/components/board/AgentColumnCell.tsx` that may cause coordinate-space mismatch
-- [ ] T010 [US1] Configure DragOverlay `dropAnimation` correctly in `frontend/src/components/board/AgentConfigRow.tsx` to ensure smooth drop without visual glitches
-- [ ] T011 [US1] Add visual drop target indicator to `frontend/src/components/board/AgentColumnCell.tsx` — apply `border-primary/40 bg-primary/5` on valid drag-over state, `transition-colors duration-150` for smooth transitions per contract C7
-- [ ] T012 [US1] Verify issue card drag/drop in kanban columns works smoothly — audit `frontend/src/components/board/ProjectBoard.tsx` and `frontend/src/components/board/BoardColumn.tsx` for similar offset/transform issues and fix if present
+- [x] T006 [US1] Audit `frontend/src/components/board/AgentConfigRow.tsx` DnD sensor configuration — verify PointerSensor (distance: 5), TouchSensor (delay: 250, tolerance: 5), and KeyboardSensor are correctly configured per research R1 and R10
+- [x] T007 [US1] Fix DragOverlay pointer offset in `frontend/src/components/board/AgentConfigRow.tsx` — compute pointer offset as `{x: clientX - rect.left, y: clientY - rect.top}` from `activatorEvent` in `handleDragStart` and apply to DragOverlay positioning per research R2
+- [x] T008 [US1] Replace `CSS.Transform.toString(transform)` with `CSS.Translate.toString(transform)` in `frontend/src/components/board/AgentColumnCell.tsx` sortable items to avoid scale/rotation interference causing teleport per research R1
+- [x] T009 [US1] Audit and remove any conflicting custom `transform` or `translate` CSS on agent tiles in `frontend/src/components/board/AgentTile.tsx` and `frontend/src/components/board/AgentColumnCell.tsx` that may cause coordinate-space mismatch
+- [x] T010 [US1] Configure DragOverlay `dropAnimation` correctly in `frontend/src/components/board/AgentConfigRow.tsx` to ensure smooth drop without visual glitches
+- [x] T011 [US1] Add visual drop target indicator to `frontend/src/components/board/AgentColumnCell.tsx` — apply `border-primary/40 bg-primary/5` on valid drag-over state, `transition-colors duration-150` for smooth transitions per contract C7
+- [x] T012 [US1] Verify issue card drag/drop in kanban columns works smoothly — audit `frontend/src/components/board/ProjectBoard.tsx` and `frontend/src/components/board/BoardColumn.tsx` for similar offset/transform issues and fix if present
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — drag/drop works without teleportation
 
@@ -72,12 +72,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Restyle `frontend/src/components/board/AgentConfigRow.tsx` container to use `celestial-panel rounded-[1.2rem] border border-border/60` and grid `gap-3` to match PipelineBoard.tsx visual weight per research R3 and contract C3
-- [ ] T014 [P] [US2] Restyle `frontend/src/components/board/AgentColumnCell.tsx` cells to use `border border-border/60 rounded-[1.2rem] p-2` with lighter background and reduced visual weight per contract C3
-- [ ] T015 [US2] Convert `frontend/src/components/board/ProjectBoard.tsx` from flex layout with `w-[320px]` fixed-width columns to CSS grid using `gridTemplateColumns: repeat(N, minmax(14rem, 1fr))` per contract C5 and research R8
-- [ ] T016 [US2] Remove the `+ Add column` button and its associated logic from `frontend/src/components/board/ProjectBoard.tsx` per contract C5 and FR-009
-- [ ] T017 [P] [US2] Update `frontend/src/components/board/BoardColumn.tsx` to remove fixed `w-[320px]` width and use dynamic grid-child sizing per contract C5
-- [ ] T018 [US2] Wrap the Agent Pipeline section and kanban board in a shared unified layout container in `frontend/src/pages/ProjectsPage.tsx` so both sections reference the same grid column count and template per research R8 and contract C3/C5
+- [x] T013 [US2] Restyle `frontend/src/components/board/AgentConfigRow.tsx` container to use `celestial-panel rounded-[1.2rem] border border-border/60` and grid `gap-3` to match PipelineBoard.tsx visual weight per research R3 and contract C3
+- [x] T014 [P] [US2] Restyle `frontend/src/components/board/AgentColumnCell.tsx` cells to use `border border-border/60 rounded-[1.2rem] p-2` with lighter background and reduced visual weight per contract C3
+- [x] T015 [US2] Convert `frontend/src/components/board/ProjectBoard.tsx` from flex layout with `w-[320px]` fixed-width columns to CSS grid using `gridTemplateColumns: repeat(N, minmax(14rem, 1fr))` per contract C5 and research R8
+- [x] T016 [US2] Remove the `+ Add column` button and its associated logic from `frontend/src/components/board/ProjectBoard.tsx` per contract C5 and FR-009
+- [x] T017 [P] [US2] Update `frontend/src/components/board/BoardColumn.tsx` to remove fixed `w-[320px]` width and use dynamic grid-child sizing per contract C5
+- [x] T018 [US2] Wrap the Agent Pipeline section and kanban board in a shared unified layout container in `frontend/src/pages/ProjectsPage.tsx` so both sections reference the same grid column count and template per research R8 and contract C3/C5
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — pipeline is restyled and aligned with kanban
 
@@ -91,11 +91,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Integrate `formatAgentName` utility into `frontend/src/components/board/AgentTile.tsx` — replace raw slug/display_name rendering with `formatAgentName(agent.slug, agent.display_name)` per contract C2
-- [ ] T020 [US3] Add model name and tool count metadata display to `frontend/src/components/board/AgentTile.tsx` — look up matching `AvailableAgent` by slug from `availableAgents` prop, display model as secondary text (e.g., "GPT-4o"), tool count as "N tools", join with " · " separator per contract C2
-- [ ] T021 [US3] Handle metadata edge cases in `frontend/src/components/board/AgentTile.tsx` — omit secondary metadata line when neither model name nor tools count is available, omit individual fields when null/0 per contract C2
-- [ ] T022 [P] [US3] Update `frontend/src/components/board/AgentDragOverlay.tsx` to use `formatAgentName` for the dragged tile's display name per contract C1
-- [ ] T023 [US3] Pass `availableAgents` prop down to `AgentTile` in `frontend/src/components/board/AgentColumnCell.tsx` to enable metadata lookup per data-model.md component prop changes
+- [x] T019 [US3] Integrate `formatAgentName` utility into `frontend/src/components/board/AgentTile.tsx` — replace raw slug/display_name rendering with `formatAgentName(agent.slug, agent.display_name)` per contract C2
+- [x] T020 [US3] Add model name and tool count metadata display to `frontend/src/components/board/AgentTile.tsx` — look up matching `AvailableAgent` by slug from `availableAgents` prop, display model as secondary text (e.g., "GPT-4o"), tool count as "N tools", join with " · " separator per contract C2
+- [x] T021 [US3] Handle metadata edge cases in `frontend/src/components/board/AgentTile.tsx` — omit secondary metadata line when neither model name nor tools count is available, omit individual fields when null/0 per contract C2
+- [x] T022 [P] [US3] Update `frontend/src/components/board/AgentDragOverlay.tsx` to use `formatAgentName` for the dragged tile's display name per contract C1
+- [x] T023 [US3] Pass `availableAgents` prop down to `AgentTile` in `frontend/src/components/board/AgentColumnCell.tsx` to enable metadata lookup per data-model.md component prop changes
 
 **Checkpoint**: At this point, User Story 3 should be fully functional — agent tiles display formatted names and metadata
 
@@ -109,10 +109,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Extend `frontend/src/components/board/AgentPresetSelector.tsx` to fetch saved pipeline configurations from `GET /api/pipelines/{project_id}` and display them alongside built-in presets in the dropdown per contract C6 and API contract A3
-- [ ] T025 [US4] Implement `pipelineConfigToMappings()` conversion function in `frontend/src/components/board/AgentPresetSelector.tsx` (or a shared utility) to map `PipelineConfig.stages[].agents[]` to `Record<string, AgentAssignment[]>` per column per contract C6 and API contract A3
-- [ ] T026 [US4] Add `localStorage` persistence for selected pipeline config ID in `frontend/src/hooks/useAgentConfig.ts` using key `pipeline-config:{project_id}` — read on mount to restore selection, write on change per API contract A4
-- [ ] T027 [US4] Wire the selected pipeline configuration into the issue creation flow in `frontend/src/hooks/useAgentConfig.ts` so newly created GitHub Issues within the project inherit the active pipeline configuration per FR-006 and contract A4
+- [x] T024 [US4] Extend `frontend/src/components/board/AgentPresetSelector.tsx` to fetch saved pipeline configurations from `GET /api/pipelines/{project_id}` and display them alongside built-in presets in the dropdown per contract C6 and API contract A3
+- [x] T025 [US4] Implement `pipelineConfigToMappings()` conversion function in `frontend/src/components/board/AgentPresetSelector.tsx` (or a shared utility) to map `PipelineConfig.stages[].agents[]` to `Record<string, AgentAssignment[]>` per column per contract C6 and API contract A3
+- [x] T026 [US4] Add `localStorage` persistence for selected pipeline config ID in `frontend/src/hooks/useAgentConfig.ts` using key `pipeline-config:{project_id}` — read on mount to restore selection, write on change per API contract A4
+- [x] T027 [US4] Wire the selected pipeline configuration into the issue creation flow in `frontend/src/hooks/useAgentConfig.ts` so newly created GitHub Issues within the project inherit the active pipeline configuration per FR-006 and contract A4
 
 **Checkpoint**: At this point, User Story 4 should be fully functional — saved configs selectable and applied to new issues
 
@@ -126,9 +126,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T028 [US5] Replace raw text rendering of `item.body` in `frontend/src/components/board/IssueDetailModal.tsx` with `<ReactMarkdown remarkPlugins={[remarkGfm]}>{item.body}</ReactMarkdown>` per contract C4
-- [ ] T029 [US5] Style the Markdown content container in `frontend/src/components/board/IssueDetailModal.tsx` with `prose prose-sm dark:prose-invert max-w-none` Tailwind typography classes, `bg-muted/30 p-4 rounded-md border border-border`, and `overflow-y-auto max-h-[50vh]` for overflow handling per contract C4
-- [ ] T030 [US5] Handle empty/null body gracefully in `frontend/src/components/board/IssueDetailModal.tsx` — conditionally render the description section only when `item.body` is truthy per contract C4
+- [x] T028 [US5] Replace raw text rendering of `item.body` in `frontend/src/components/board/IssueDetailModal.tsx` with `<ReactMarkdown remarkPlugins={[remarkGfm]}>{item.body}</ReactMarkdown>` per contract C4
+- [x] T029 [US5] Style the Markdown content container in `frontend/src/components/board/IssueDetailModal.tsx` with `prose prose-sm dark:prose-invert max-w-none` Tailwind typography classes, `bg-muted/30 p-4 rounded-md border border-border`, and `overflow-y-auto max-h-[50vh]` for overflow handling per contract C4
+- [x] T030 [US5] Handle empty/null body gracefully in `frontend/src/components/board/IssueDetailModal.tsx` — conditionally render the description section only when `item.body` is truthy per contract C4
 
 **Checkpoint**: At this point, User Story 5 should be fully functional — Markdown renders correctly in issue detail view
 
@@ -142,9 +142,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T031 [US6] In `backend/src/services/github_projects/service.py`, during board data assembly, collect all sub-issue item IDs into a `set[str]` by iterating all parent items' `sub_issues` lists per API contract A1
-- [ ] T032 [US6] In `backend/src/services/github_projects/service.py`, when building columns with "Done", "Closed", or "Completed" status names, filter out items whose `item_id` is in the collected sub-issue ID set per API contract A1
-- [ ] T033 [US6] Update `item_count` on filtered Done/Closed columns in `backend/src/services/github_projects/service.py` to reflect the post-filter count per API contract A1
+- [x] T031 [US6] In `backend/src/services/github_projects/service.py`, during board data assembly, collect all sub-issue item IDs into a `set[str]` by iterating all parent items' `sub_issues` lists per API contract A1
+- [x] T032 [US6] In `backend/src/services/github_projects/service.py`, when building columns with "Done", "Closed", or "Completed" status names, filter out items whose `item_id` is in the collected sub-issue ID set per API contract A1
+- [x] T033 [US6] Update `item_count` on filtered Done/Closed columns in `backend/src/services/github_projects/service.py` to reflect the post-filter count per API contract A1
 - [ ] T034 [P] [US6] Create `backend/tests/unit/test_board_filter.py` with unit tests verifying: parent issues appear in Done column, sub-issues are excluded from Done column, item_count is correct after filtering, column with only sub-issues renders as empty
 
 **Checkpoint**: At this point, User Story 6 should be fully functional — Done column shows only parent issues
@@ -159,7 +159,7 @@
 
 ### Implementation for User Story 7
 
-- [ ] T035 [US7] Remove the "+ Add column" button element and any associated click handler or state from `frontend/src/components/board/ProjectBoard.tsx` per FR-009
+- [x] T035 [US7] Remove the "+ Add column" button element and any associated click handler or state from `frontend/src/components/board/ProjectBoard.tsx` per FR-009
 
 > Note: If T016 (Phase 4, US2) already removed this button as part of the layout conversion, this task validates the removal and cleans up any remaining references.
 
@@ -171,13 +171,13 @@
 
 **Purpose**: Final validation, cleanup, and cross-cutting improvements that affect multiple user stories
 
-- [ ] T036 [P] Verify `formatAgentName` unit tests pass by running `cd frontend && npx vitest run src/tests/utils/formatAgentName.test.ts`
+- [x] T036 [P] Verify `formatAgentName` unit tests pass by running `cd frontend && npx vitest run src/tests/utils/formatAgentName.test.ts`
 - [ ] T037 [P] Verify backend sub-issue filter tests pass by running `cd backend && pytest tests/unit/test_board_filter.py -x -v`
-- [ ] T038 [P] Run frontend lint and type check: `cd frontend && npx eslint src/ && npx tsc --noEmit`
+- [x] T038 [P] Run frontend lint and type check: `cd frontend && npx eslint src/ && npx tsc --noEmit`
 - [ ] T039 [P] Run backend lint and type check: `cd backend && ruff check src/ && pyright src/`
-- [ ] T040 Run frontend build to verify no compilation errors: `cd frontend && npm run build`
+- [x] T040 Run frontend build to verify no compilation errors: `cd frontend && npm run build`
 - [ ] T041 Run `quickstart.md` manual verification checklist — validate all 9 sections (drag/drop, restyling, metadata, config selector, Markdown rendering, Done filter, Add Column removal, unified layout, drop targets)
-- [ ] T042 Code cleanup — remove any dead code, unused imports, or temporary debugging artifacts introduced during implementation
+- [x] T042 Code cleanup — remove any dead code, unused imports, or temporary debugging artifacts introduced during implementation
 
 ---
 
