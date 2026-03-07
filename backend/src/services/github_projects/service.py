@@ -960,6 +960,30 @@ class GitHubProjectsService:
                 )
             )
 
+        # ── Sub-issue filtering for Done/Closed columns ──
+        # Collect all sub-issue IDs across all parent items so we can
+        # exclude them from "Done"/"Closed"/"Completed" columns (FR-007).
+        all_sub_issue_ids: set[str] = set()
+        for board_item in all_items:
+            for si in board_item.sub_issues:
+                if si.id:
+                    all_sub_issue_ids.add(si.id)
+
+        if all_sub_issue_ids:
+            done_names = {"done", "closed", "completed"}
+            for col in columns:
+                if col.status.name.lower() in done_names:
+                    original_count = len(col.items)
+                    col.items = [
+                        it for it in col.items
+                        if it.content_id not in all_sub_issue_ids
+                    ]
+                    if len(col.items) != original_count:
+                        col.item_count = len(col.items)
+                        col.estimate_total = sum(
+                            it.estimate or 0.0 for it in col.items
+                        )
+
         logger.info(
             "Board data for project %s: %d items across %d columns",
             project_id,

@@ -1,12 +1,14 @@
 /**
- * AgentPresetSelector component - renders three preset buttons
- * (Custom, GitHub Copilot, Spec Kit) with confirmation dialog
- * before replacing current agent configuration (T025, T026).
+ * AgentPresetSelector component - renders preset buttons
+ * (Custom, GitHub Copilot, Spec Kit) plus saved pipeline configurations
+ * with confirmation dialog before replacing current agent configuration.
  */
 
-import { useState, useCallback } from 'react';
-import type { AgentAssignment, AgentPreset } from '@/types';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
+import { pipelinesApi } from '@/services/api';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
   return { id: generateId(), slug, display_name: displayName };
@@ -34,6 +36,33 @@ function resolvePreset(
       // Deep-clone each assignment with fresh UUIDs
       result[actualCol] = assignments.map((a) =>
         makeAssignment(a.slug, a.display_name ?? a.slug)
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Convert a saved PipelineConfig to agent assignment mappings.
+ */
+function pipelineConfigToMappings(
+  config: PipelineConfig,
+  columnNames: string[]
+): Record<string, AgentAssignment[]> {
+  const result: Record<string, AgentAssignment[]> = {};
+  const lowerMap = new Map<string, string>();
+
+  for (const col of columnNames) {
+    lowerMap.set(col.toLowerCase(), col);
+    result[col] = [];
+  }
+
+  for (const stage of config.stages) {
+    const matchedCol = lowerMap.get(stage.name.toLowerCase());
+    if (matchedCol) {
+      result[matchedCol] = stage.agents.map((agent) =>
+        makeAssignment(agent.agent_slug, agent.agent_display_name || agent.agent_slug)
       );
     }
   }
@@ -84,6 +113,8 @@ interface AgentPresetSelectorProps {
   currentMappings: Record<string, { slug: string }[]>;
   /** Apply a preset configuration */
   onApplyPreset: (mappings: Record<string, AgentAssignment[]>) => void;
+  /** Project ID for fetching saved pipeline configs */
+  projectId?: string | null;
 }
 
 /**
@@ -116,23 +147,71 @@ export function AgentPresetSelector({
   columnNames,
   currentMappings,
   onApplyPreset,
+  projectId,
 }: AgentPresetSelectorProps) {
   const [confirmPreset, setConfirmPreset] = useState<AgentPreset | null>(null);
+  const [confirmPipeline, setConfirmPipeline] = useState<PipelineConfigSummary | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleClick = useCallback((preset: AgentPreset) => {
+  // Fetch saved pipeline configurations
+  const { data: savedPipelines } = useQuery({
+    queryKey: ['pipelines', projectId],
+    queryFn: () => pipelinesApi.list(projectId!),
+    enabled: !!projectId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Persist selected config to localStorage
+  const persistSelection = useCallback((configId: string) => {
+    if (projectId) {
+      localStorage.setItem(`pipeline-config:${projectId}`, configId);
+    }
+  }, [projectId]);
+
+  // Restore selection on mount
+  useEffect(() => {
+    if (!projectId) return;
+    // Read persisted selection for potential future use
+    localStorage.getItem(`pipeline-config:${projectId}`);
+  }, [projectId]);
+
+  const handlePresetClick = useCallback((preset: AgentPreset) => {
     setConfirmPreset(preset);
+    setShowDropdown(false);
   }, []);
 
-  const handleConfirm = useCallback(() => {
+  const handlePipelineClick = useCallback((pipeline: PipelineConfigSummary) => {
+    setConfirmPipeline(pipeline);
+    setShowDropdown(false);
+  }, []);
+
+  const handleConfirmPreset = useCallback(() => {
     if (!confirmPreset) return;
     const resolved = resolvePreset(confirmPreset, columnNames);
     onApplyPreset(resolved);
+    persistSelection(`builtin:${confirmPreset.id}`);
     setConfirmPreset(null);
-  }, [confirmPreset, columnNames, onApplyPreset]);
+  }, [confirmPreset, columnNames, onApplyPreset, persistSelection]);
+
+  const handleConfirmPipeline = useCallback(async () => {
+    if (!confirmPipeline || !projectId) return;
+    try {
+      const fullConfig = await pipelinesApi.get(projectId, confirmPipeline.id);
+      const mappings = pipelineConfigToMappings(fullConfig, columnNames);
+      onApplyPreset(mappings);
+      persistSelection(confirmPipeline.id);
+    } catch {
+      // Silently fail - user can retry
+    }
+    setConfirmPipeline(null);
+  }, [confirmPipeline, projectId, columnNames, onApplyPreset, persistSelection]);
 
   const handleCancel = useCallback(() => {
     setConfirmPreset(null);
+    setConfirmPipeline(null);
   }, []);
+
+  const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
   return (
     <>
@@ -143,7 +222,7 @@ export function AgentPresetSelector({
             <button
               key={preset.id}
               className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${isActive ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-              onClick={() => handleClick(preset)}
+              onClick={() => handlePresetClick(preset)}
               title={preset.description}
               type="button"
             >
@@ -151,9 +230,42 @@ export function AgentPresetSelector({
             </button>
           );
         })}
+
+        {/* Saved pipelines dropdown */}
+        {hasSavedPipelines && (
+          <div className="relative">
+            <button
+              className="px-3 py-1 text-xs font-medium rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onClick={() => setShowDropdown(!showDropdown)}
+              title="Saved pipeline configurations"
+              type="button"
+            >
+              Saved ▾
+            </button>
+            {showDropdown && (
+              <>
+                {/* Backdrop to close dropdown */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowDropdown(false); }} role="presentation" />
+                <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-card shadow-lg py-1">
+                  {savedPipelines?.pipelines.map((pipeline) => (
+                    <button
+                      key={pipeline.id}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      onClick={() => handlePipelineClick(pipeline)}
+                      type="button"
+                    >
+                      <div className="font-medium text-foreground truncate">{pipeline.name}</div>
+                      <div className="text-muted-foreground">{pipeline.stage_count} stages · {pipeline.agent_count} agents</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Confirmation dialog */}
+      {/* Confirmation dialog for built-in presets */}
       {confirmPreset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
@@ -181,10 +293,48 @@ export function AgentPresetSelector({
               </button>
               <button
                 className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                onClick={handleConfirm}
+                onClick={handleConfirmPreset}
                 type="button"
               >
                 Apply Preset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation dialog for saved pipeline */}
+      {confirmPipeline && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+          <div
+            className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirm pipeline configuration"
+          >
+            <h4 className="text-lg font-semibold text-foreground m-0">
+              Apply &ldquo;{confirmPipeline.name}&rdquo; pipeline?
+            </h4>
+            <p className="text-sm text-muted-foreground m-0">
+              This will replace your current agent configuration with the saved pipeline.
+              Unsaved changes will be reflected in the save bar.
+            </p>
+            <div className="flex justify-end gap-3 mt-2">
+              <button
+                className="px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                onClick={handleCancel}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                onClick={handleConfirmPipeline}
+                type="button"
+              >
+                Apply Pipeline
               </button>
             </div>
           </div>

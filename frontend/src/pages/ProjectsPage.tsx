@@ -332,6 +332,7 @@ export function ProjectsPage() {
                 columnNames={sortedBoardData.columns.map((c) => c.status.name)}
                 currentMappings={agentConfig.localMappings}
                 onApplyPreset={agentConfig.applyPreset}
+                projectId={selectedProjectId}
               />
             }
             renderAddButton={(status: string) => (
