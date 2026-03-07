@@ -3,7 +3,7 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
@@ -75,7 +75,7 @@ export function ProjectsPage() {
   const agentConfig = useAgentConfig(selectedProjectId);
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
 
-  const handleProjectSwitch = (projectId: string) => {
+  const handleProjectSwitch = useCallback((projectId: string) => {
     if (agentConfig.isDirty) {
       const confirmed = window.confirm(
         'You have unsaved agent configuration changes. Discard and switch projects?'
@@ -84,64 +84,93 @@ export function ProjectsPage() {
       agentConfig.discard();
     }
     selectBoardProject(projectId);
-  };
+  }, [agentConfig, selectBoardProject]);
 
-  const handleCardClick = (item: BoardItem) => setSelectedItem(item);
-  const handleCloseModal = () => setSelectedItem(null);
+  const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
+  const handleCloseModal = useCallback(() => setSelectedItem(null), []);
 
   // Derive board data with optional sorting
-  const sortedBoardData = boardData && sortField
-    ? {
-        ...boardData,
-        columns: boardData.columns.map((col) => ({
-          ...col,
-          items: [...col.items].sort((a, b) => {
-            if (sortField === 'priority') {
-              const order: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
-              return (order[a.priority?.name ?? 'P2'] ?? 2) - (order[b.priority?.name ?? 'P2'] ?? 2);
-            }
-            if (sortField === 'title') return a.title.localeCompare(b.title);
-            return 0;
-          }),
-        })),
-      }
-    : boardData;
+  const sortedBoardData = useMemo(() => {
+    if (!boardData || !sortField) return boardData;
+    return {
+      ...boardData,
+      columns: boardData.columns.map((col) => ({
+        ...col,
+        items: [...col.items].sort((a, b) => {
+          if (sortField === 'priority') {
+            const order: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+            return (order[a.priority?.name ?? 'P2'] ?? 2) - (order[b.priority?.name ?? 'P2'] ?? 2);
+          }
+          if (sortField === 'title') return a.title.localeCompare(b.title);
+          return 0;
+        }),
+      })),
+    };
+  }, [boardData, sortField]);
 
   // Calculate progress
-  const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-  const doneItems = boardData?.columns
-    .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
-    .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-  const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
-  const projectsRateLimitError = isRateLimitApiError(projectsError);
-  const boardRateLimitError = isRateLimitApiError(boardError);
-  const refreshRateLimitError = refreshError?.type === 'rate_limit';
-  const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
-  const boardRateLimitDetails = extractRateLimitInfo(boardError);
-  const effectiveRateLimitInfo = rateLimitInfo
-    ?? projectsRateLimitInfo
-    ?? refreshError?.rateLimitInfo
-    ?? boardRateLimitDetails
-    ?? projectsRateLimitDetails;
-  const hasActiveRateLimitError = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-  const showRateLimitBar = Boolean(effectiveRateLimitInfo) || hasActiveRateLimitError;
-  const rateLimitUsagePercent = getRateLimitUsagePercent(
-    effectiveRateLimitInfo?.limit,
-    effectiveRateLimitInfo?.remaining,
-  ) || (hasActiveRateLimitError ? 100 : 0);
-  const rateLimitLabel = effectiveRateLimitInfo
-    ? `${effectiveRateLimitInfo.remaining}/${effectiveRateLimitInfo.limit} remaining`
-    : hasActiveRateLimitError
-      ? 'Limit reached'
-      : null;
-  const rateLimitTooltip = effectiveRateLimitInfo
-    ? `GitHub API usage: ${effectiveRateLimitInfo.used}/${effectiveRateLimitInfo.limit} used. Resets ${formatTimeUntil(new Date(effectiveRateLimitInfo.reset_at * 1000))}.`
-    : hasActiveRateLimitError
-      ? 'GitHub API rate limit reached. Retry after the reset window.'
-      : null;
-  const rateLimitRetryAfter = refreshError?.retryAfter
-    ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
-  const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+  const { totalItems, progressPercent } = useMemo(() => {
+    const total = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+    const done = boardData?.columns
+      .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
+      .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+    return { totalItems: total, progressPercent: percent };
+  }, [boardData]);
+
+  // Derive rate limit display state
+  const {
+    hasActiveRateLimitError,
+    showRateLimitBar,
+    rateLimitUsagePercent,
+    rateLimitLabel,
+    rateLimitTooltip,
+    rateLimitRetryAfter,
+    showRateLimitBanner,
+    projectsRateLimitError,
+    boardRateLimitError,
+  } = useMemo(() => {
+    const projectsRateLimitError = isRateLimitApiError(projectsError);
+    const boardRateLimitError = isRateLimitApiError(boardError);
+    const refreshRateLimitError = refreshError?.type === 'rate_limit';
+    const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
+    const boardRateLimitDetails = extractRateLimitInfo(boardError);
+    const effective = rateLimitInfo
+      ?? projectsRateLimitInfo
+      ?? refreshError?.rateLimitInfo
+      ?? boardRateLimitDetails
+      ?? projectsRateLimitDetails;
+    const hasActive = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+    const showBar = Boolean(effective) || hasActive;
+    const usagePercent = getRateLimitUsagePercent(
+      effective?.limit,
+      effective?.remaining,
+    ) || (hasActive ? 100 : 0);
+    const label = effective
+      ? `${effective.remaining}/${effective.limit} remaining`
+      : hasActive
+        ? 'Limit reached'
+        : null;
+    const tooltip = effective
+      ? `GitHub API usage: ${effective.used}/${effective.limit} used. Resets ${formatTimeUntil(new Date(effective.reset_at * 1000))}.`
+      : hasActive
+        ? 'GitHub API rate limit reached. Retry after the reset window.'
+        : null;
+    const retryAfter = refreshError?.retryAfter
+      ?? (effective ? new Date(effective.reset_at * 1000) : undefined);
+    const showBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+    return {
+      hasActiveRateLimitError: hasActive,
+      showRateLimitBar: showBar,
+      rateLimitUsagePercent: usagePercent,
+      rateLimitLabel: label,
+      rateLimitTooltip: tooltip,
+      rateLimitRetryAfter: retryAfter,
+      showRateLimitBanner: showBanner,
+      projectsRateLimitError,
+      boardRateLimitError,
+    };
+  }, [rateLimitInfo, projectsRateLimitInfo, refreshError, projectsError, boardError]);
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
