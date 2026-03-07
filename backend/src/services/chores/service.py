@@ -130,6 +130,11 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        # Convert booleans to SQLite integers
+        for key, val in list(updates.items()):
+            if isinstance(val, bool):
+                updates[key] = 1 if val else 0
+
         set_clause = ", ".join(f"{col} = ?" for col in updates)
         values = [*list(updates.values()), chore_id]
 
@@ -248,11 +253,17 @@ class ChoresService:
         """Update arbitrary fields on a chore by keyword arguments.
 
         Used internally to set PR/tracking-issue metadata after creation.
+        Converts Python bools to SQLite integers (0/1) automatically.
         """
         if not kwargs:
             return
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         kwargs["updated_at"] = now
+
+        # Convert booleans to SQLite integers
+        for key, val in kwargs.items():
+            if isinstance(val, bool):
+                kwargs[key] = 1 if val else 0
 
         set_clause = ", ".join(f"{col} = ?" for col in kwargs)
         values = [*list(kwargs.values()), chore_id]
@@ -638,6 +649,11 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        # Convert booleans to SQLite integers
+        for key, val in list(updates.items()):
+            if isinstance(val, bool):
+                updates[key] = 1 if val else 0
+
         set_clause = ", ".join(f"{col} = ?" for col in updates)
         values = [*list(updates.values()), chore_id]
 
@@ -737,7 +753,7 @@ class ChoresService:
             pr_url=result.get("pr_url"),
             tracking_issue_number=result.get("tracking_issue_number"),
             template_content=template_content,
-            ai_enhance_enabled=1 if body.ai_enhance_enabled else 0,
+            ai_enhance_enabled=body.ai_enhance_enabled,
             agent_pipeline_id=body.agent_pipeline_id,
         )
 

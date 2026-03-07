@@ -197,10 +197,11 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
             </Button>
             <Button
               size="sm"
-              onClick={() => {
-                Object.keys(editState).forEach(id => {
-                  if (editState[id]?.isDirty) handleEditSave(id);
-                });
+              onClick={async () => {
+                const dirtyIds = Object.keys(editState).filter(id => editState[id]?.isDirty);
+                for (const id of dirtyIds) {
+                  await handleEditSave(id);
+                }
               }}
               disabled={inlineUpdateMutation.isPending}
             >
