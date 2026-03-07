@@ -1,18 +1,21 @@
 /**
  * ProjectBoard component - horizontal columns container for the Kanban board.
  * Uses CSS grid matching AgentConfigRow for aligned columns.
+ * Supports optional grouping within columns via getGroups callback.
  */
 
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';
+import type { BoardGroup } from '@/hooks/useBoardControls';
 import { BoardColumn } from './BoardColumn';
 
 interface ProjectBoardProps {
   boardData: BoardDataResponse;
   onCardClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
+  getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
 }
 
-export function ProjectBoard({ boardData, onCardClick, availableAgents }: ProjectBoardProps) {
+export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroups }: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
 
   return (
@@ -27,6 +30,7 @@ export function ProjectBoard({ boardData, onCardClick, availableAgents }: Projec
             column={column}
             onCardClick={onCardClick}
             availableAgents={availableAgents}
+            getGroups={getGroups}
           />
         ))}
       </div>
