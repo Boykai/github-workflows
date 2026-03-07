@@ -5,9 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { Lock, Plus, Trash2 } from 'lucide-react';
 import { AgentNode } from './AgentNode';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
@@ -21,6 +19,7 @@ interface StageCardProps {
   onAddAgent: (agentSlug: string) => void;
   onRemoveAgent: (agentNodeId: string) => void;
   onUpdateAgent: (agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
+  onCloneAgent?: (agentNodeId: string) => void;
 }
 
 export function StageCard({
@@ -32,6 +31,7 @@ export function StageCard({
   onAddAgent,
   onRemoveAgent,
   onUpdateAgent,
+  onCloneAgent,
 }: StageCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
@@ -40,21 +40,6 @@ export function StageCard({
   const [toolModalAgent, setToolModalAgent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
-
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: stage.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -111,22 +96,13 @@ export function StageCard({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/80 p-3 backdrop-blur-sm transition-shadow ${
-        isDragging ? 'shadow-lg ring-2 ring-primary/30' : 'shadow-sm'
-      }`}
+      className="flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/80 p-3 backdrop-blur-sm shadow-sm"
     >
-      {/* Header: drag handle + name + remove */}
+      {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        <span title="Stage position is locked">
+          <Lock className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+        </span>
 
         {isEditing ? (
           <input
@@ -171,6 +147,7 @@ export function StageCard({
             }
             onRemove={() => onRemoveAgent(agent.id)}
             onToolsClick={() => setToolModalAgent(agent.id)}
+            onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
           />
         ))}
       </div>

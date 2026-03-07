@@ -10,7 +10,6 @@ from datetime import UTC, datetime
 import aiosqlite
 
 from src.models.pipeline import (
-    AIModel,
     PipelineConfig,
     PipelineConfigCreate,
     PipelineConfigListResponse,
@@ -27,57 +26,7 @@ _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 # Column allowlist for dynamic SET clauses
 _PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
 
-# Static list of available AI models
-_AVAILABLE_MODELS: list[AIModel] = [
-    AIModel(
-        id="gpt-4o",
-        name="GPT-4o",
-        provider="OpenAI",
-        context_window_size=128_000,
-        cost_tier="premium",
-        capability_category="general",
-    ),
-    AIModel(
-        id="gpt-4o-mini",
-        name="GPT-4o Mini",
-        provider="OpenAI",
-        context_window_size=128_000,
-        cost_tier="economy",
-        capability_category="general",
-    ),
-    AIModel(
-        id="claude-sonnet-4",
-        name="Claude Sonnet 4",
-        provider="Anthropic",
-        context_window_size=200_000,
-        cost_tier="premium",
-        capability_category="coding",
-    ),
-    AIModel(
-        id="claude-haiku-3.5",
-        name="Claude 3.5 Haiku",
-        provider="Anthropic",
-        context_window_size=200_000,
-        cost_tier="economy",
-        capability_category="general",
-    ),
-    AIModel(
-        id="gemini-2.5-pro",
-        name="Gemini 2.5 Pro",
-        provider="Google",
-        context_window_size=1_000_000,
-        cost_tier="premium",
-        capability_category="general",
-    ),
-    AIModel(
-        id="gemini-2.5-flash",
-        name="Gemini 2.5 Flash",
-        provider="Google",
-        context_window_size=1_000_000,
-        cost_tier="standard",
-        capability_category="general",
-    ),
-]
+
 
 # Preset pipeline definitions
 _PRESET_DEFINITIONS = [
@@ -507,9 +456,4 @@ class PipelineService:
 
         return ProjectPipelineAssignment(project_id=project_id, pipeline_id=pipeline_id)
 
-    # ── Models ────────────────────────────────────────────────────────
 
-    @staticmethod
-    def list_models() -> list[AIModel]:
-        """Return the static list of available AI models."""
-        return list(_AVAILABLE_MODELS)

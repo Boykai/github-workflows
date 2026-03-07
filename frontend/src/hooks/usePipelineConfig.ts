@@ -72,7 +72,6 @@ interface UsePipelineConfigReturn {
   // Board mutations
   setPipelineName: (name: string) => void;
   setPipelineDescription: (description: string) => void;
-  addStage: (name?: string) => void;
   removeStage: (stageId: string) => void;
   updateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   reorderStages: (newOrder: PipelineStage[]) => void;
@@ -84,6 +83,7 @@ interface UsePipelineConfigReturn {
     updates: Partial<PipelineAgentNode>,
   ) => void;
   updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
+  cloneAgentInStage: (stageId: string, agentNodeId: string) => void;
 }
 
 // ── Hook ──
@@ -380,14 +380,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     setPipeline((prev) => (prev ? { ...prev, description } : null));
   }, []);
 
-  const addStage = useCallback((name?: string) => {
-    setPipeline((prev) => {
-      if (!prev) return null;
-      const newStage = buildStage(name ?? `Stage ${prev.stages.length + 1}`, prev.stages.length);
-      return { ...prev, stages: [...prev.stages, newStage] };
-    });
-  }, [buildStage]);
-
   const removeStage = useCallback((stageId: string) => {
     setPipeline((prev) => {
       if (!prev) return null;
@@ -496,6 +488,28 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     [],
   );
 
+  const cloneAgentInStage = useCallback(
+    (stageId: string, agentNodeId: string) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const sourceAgent = s.agents.find((a) => a.id === agentNodeId);
+            if (!sourceAgent) return s;
+            const cloned: PipelineAgentNode = {
+              ...structuredClone(sourceAgent),
+              id: generateId(),
+            };
+            return { ...s, agents: [...s.agents, cloned] };
+          }),
+        };
+      });
+    },
+    [],
+  );
+
   return {
     boardState,
     pipeline,
@@ -521,7 +535,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     discardChanges,
     setPipelineName,
     setPipelineDescription,
-    addStage,
     removeStage,
     updateStage,
     reorderStages,
@@ -529,5 +542,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     removeAgentFromStage,
     updateAgentInStage,
     updateAgentTools,
+    cloneAgentInStage,
   };
 }
