@@ -97,9 +97,7 @@ class ToolsService:
 
     # ── CRUD ──
 
-    async def list_tools(
-        self, project_id: str, github_user_id: str
-    ) -> McpToolConfigListResponse:
+    async def list_tools(self, project_id: str, github_user_id: str) -> McpToolConfigListResponse:
         """List all MCP tools for a project owned by the user."""
         cursor = await self.db.execute(
             "SELECT id, github_user_id, project_id, name, description, endpoint_url, "
@@ -197,9 +195,7 @@ class ToolsService:
         )
         row = await cursor.fetchone()
         if row and row["cnt"] >= MAX_TOOLS_PER_PROJECT:
-            raise ValueError(
-                f"Maximum of {MAX_TOOLS_PER_PROJECT} MCP tools per project reached"
-            )
+            raise ValueError(f"Maximum of {MAX_TOOLS_PER_PROJECT} MCP tools per project reached")
 
         now = utcnow().isoformat()
         tool_id = str(uuid.uuid4())
@@ -282,9 +278,7 @@ class ToolsService:
         # Check affected agents
         affected = await self.get_agents_using_tool(tool_id)
         if affected and not confirm:
-            return ToolDeleteResult(
-                success=False, deleted_id=None, affected_agents=affected
-            )
+            return ToolDeleteResult(success=False, deleted_id=None, affected_agents=affected)
 
         # Remove from GitHub
         try:
@@ -293,9 +287,7 @@ class ToolsService:
             logger.exception("Failed to remove tool %s from GitHub", tool_id)
 
         # Delete associations
-        await self.db.execute(
-            "DELETE FROM agent_tool_associations WHERE tool_id = ?", (tool_id,)
-        )
+        await self.db.execute("DELETE FROM agent_tool_associations WHERE tool_id = ?", (tool_id,))
         # Delete tool
         await self.db.execute(
             "DELETE FROM mcp_configurations WHERE id = ? AND github_user_id = ?",
@@ -479,8 +471,7 @@ class ToolsService:
         """Get MCP tools assigned to an agent, scoped by project ownership."""
         # Verify agent belongs to this project and user
         cursor = await self.db.execute(
-            "SELECT id FROM agent_configs "
-            "WHERE id = ? AND project_id = ? AND created_by = ?",
+            "SELECT id FROM agent_configs WHERE id = ? AND project_id = ? AND created_by = ?",
             (agent_id, project_id, github_user_id),
         )
         if not await cursor.fetchone():
@@ -495,9 +486,7 @@ class ToolsService:
         )
         rows = await cursor.fetchall()
         tools = [
-            AgentToolInfo(
-                id=row["id"], name=row["name"], description=row["description"]
-            )
+            AgentToolInfo(id=row["id"], name=row["name"], description=row["description"])
             for row in rows
         ]
         return AgentToolsResponse(tools=tools)
@@ -508,8 +497,7 @@ class ToolsService:
         """Set the MCP tools for an agent (replace all)."""
         # Verify agent belongs to this project and user
         cursor = await self.db.execute(
-            "SELECT id FROM agent_configs "
-            "WHERE id = ? AND project_id = ? AND created_by = ?",
+            "SELECT id FROM agent_configs WHERE id = ? AND project_id = ? AND created_by = ?",
             (agent_id, project_id, github_user_id),
         )
         if not await cursor.fetchone():
@@ -531,9 +519,7 @@ class ToolsService:
 
         # Replace associations
         now = utcnow().isoformat()
-        await self.db.execute(
-            "DELETE FROM agent_tool_associations WHERE agent_id = ?", (agent_id,)
-        )
+        await self.db.execute("DELETE FROM agent_tool_associations WHERE agent_id = ?", (agent_id,))
         for tid in tool_ids:
             await self.db.execute(
                 "INSERT OR IGNORE INTO agent_tool_associations (agent_id, tool_id, assigned_at) "
