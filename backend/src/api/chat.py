@@ -62,10 +62,12 @@ ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES
 
 class FileUploadResponse(BaseModel):
     """Response from file upload endpoint."""
+
     filename: str
     file_url: str
     file_size: int
     content_type: str
+
 
 # TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
 # using the chat_messages, chat_proposals, and chat_recommendations tables
@@ -212,7 +214,9 @@ async def send_message(
     from src.services.database import get_db
 
     session_key = str(session.session_id)
-    is_agent_command = chat_request.content.strip().lower().startswith("/agent") or chat_request.content.strip().lower().startswith("#agent")
+    is_agent_command = chat_request.content.strip().lower().startswith(
+        "/agent"
+    ) or chat_request.content.strip().lower().startswith("#agent")
     active_agent_session = get_active_session(session_key)
 
     if is_agent_command or active_agent_session:
