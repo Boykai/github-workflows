@@ -42,6 +42,7 @@ interface ChatPopupProps {
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
   onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
+  onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
@@ -57,6 +58,7 @@ export function ChatPopup({
   pendingRecommendations,
   isSending,
   onSendMessage,
+  onRetryMessage,
   onConfirmProposal,
   onConfirmStatusChange,
   onConfirmRecommendation,
@@ -154,6 +156,7 @@ export function ChatPopup({
           pendingRecommendations={pendingRecommendations}
           isSending={isSending}
           onSendMessage={onSendMessage}
+          onRetryMessage={onRetryMessage}
           onConfirmProposal={onConfirmProposal}
           onConfirmStatusChange={onConfirmStatusChange}
           onConfirmRecommendation={onConfirmRecommendation}

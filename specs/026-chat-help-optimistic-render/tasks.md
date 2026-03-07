@@ -23,7 +23,7 @@
 
 **Purpose**: No new project initialization needed — this feature modifies only existing files in an established codebase. Setup phase ensures the shared type foundation is in place.
 
-- [ ] T001 Add `MessageStatus` type export (`'pending' | 'sent' | 'failed'`) and optional `status?: MessageStatus` field to `ChatMessage` interface in `frontend/src/types/index.ts`
+- [X] T001 Add `MessageStatus` type export (`'pending' | 'sent' | 'failed'`) and optional `status?: MessageStatus` field to `ChatMessage` interface in `frontend/src/types/index.ts`
 
 ---
 
@@ -33,8 +33,8 @@
 
 **⚠️ CRITICAL**: No user story UI work can begin until this phase is complete.
 
-- [ ] T002 Add `retryMessage` function stub (no-op returning `Promise<void>`) to the `useChat` hook return object in `frontend/src/hooks/useChat.ts`
-- [ ] T003 Refactor `sendMessage` in `frontend/src/hooks/useChat.ts` to separate command path from regular message path with explicit early return after command dispatch, ensuring no shared mutable state between the two paths
+- [X] T002 Add `retryMessage` function stub (no-op returning `Promise<void>`) to the `useChat` hook return object in `frontend/src/hooks/useChat.ts`
+- [X] T003 Refactor `sendMessage` in `frontend/src/hooks/useChat.ts` to separate command path from regular message path with explicit early return after command dispatch, ensuring no shared mutable state between the two paths
 
 **Checkpoint**: Foundation ready — type changes and hook structure support all user stories.
 
@@ -48,9 +48,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Audit command dispatch path in `sendMessage()` in `frontend/src/hooks/useChat.ts` — ensure `isCommand(content)` is evaluated fresh on each call using only the `content` parameter, with no reference to stored state or previous options
-- [ ] T005 [US1] Add defensive clearing of any reply-to context or pending-command references after command execution completes in `sendMessage()` in `frontend/src/hooks/useChat.ts` — reset `localMessages` command entries to prevent re-injection
-- [ ] T006 [US1] Verify `doSubmit()` in `frontend/src/components/chat/ChatInterface.tsx` calls `setInput('')` and `resetNavigation()` unconditionally after dispatch, and that the `isCommand` flag from `options` is not stored in any component state or ref
+- [X] T004 [US1] Audit command dispatch path in `sendMessage()` in `frontend/src/hooks/useChat.ts` — ensure `isCommand(content)` is evaluated fresh on each call using only the `content` parameter, with no reference to stored state or previous options
+- [X] T005 [US1] Add defensive clearing of any reply-to context or pending-command references after command execution completes in `sendMessage()` in `frontend/src/hooks/useChat.ts` — reset `localMessages` command entries to prevent re-injection
+- [X] T006 [US1] Verify `doSubmit()` in `frontend/src/components/chat/ChatInterface.tsx` calls `setInput('')` and `resetNavigation()` unconditionally after dispatch, and that the `isCommand` flag from `options` is not stored in any component state or ref
 
 **Checkpoint**: After Phase 3, sending `#help` followed by a normal message dispatches only the normal message. The auto-repeat bug is fixed.
 
@@ -64,11 +64,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Generate a unique temporary ID (e.g., `crypto.randomUUID()` or `Date.now()` prefix) for each optimistic message in `sendMessage()` in `frontend/src/hooks/useChat.ts`
-- [ ] T008 [US2] Append an optimistic `ChatMessage` with `status: 'pending'` and the temp ID to `localMessages` state immediately before calling `sendMutation.mutateAsync()` in `frontend/src/hooks/useChat.ts`
-- [ ] T009 [US2] Implement server success reconciliation in `sendMessage()` in `frontend/src/hooks/useChat.ts` — on `sendMutation` success, remove the optimistic message from `localMessages` by filtering out the temp ID, then call `queryClient.invalidateQueries()` to refetch server-confirmed messages
-- [ ] T010 [US2] Ensure the merged messages array in `useChat.ts` returns `[...serverMessages, ...localMessages]` so optimistic messages appear at the end of the conversation thread in `frontend/src/hooks/useChat.ts`
-- [ ] T011 [US2] Verify auto-scroll to bottom triggers after optimistic message is appended by checking `scrollToBottom()` behavior in `frontend/src/components/chat/ChatInterface.tsx`
+- [X] T007 [US2] Generate a unique temporary ID (e.g., `crypto.randomUUID()` or `Date.now()` prefix) for each optimistic message in `sendMessage()` in `frontend/src/hooks/useChat.ts`
+- [X] T008 [US2] Append an optimistic `ChatMessage` with `status: 'pending'` and the temp ID to `localMessages` state immediately before calling `sendMutation.mutateAsync()` in `frontend/src/hooks/useChat.ts`
+- [X] T009 [US2] Implement server success reconciliation in `sendMessage()` in `frontend/src/hooks/useChat.ts` — on `sendMutation` success, remove the optimistic message from `localMessages` by filtering out the temp ID, then call `queryClient.invalidateQueries()` to refetch server-confirmed messages
+- [X] T010 [US2] Ensure the merged messages array in `useChat.ts` returns `[...serverMessages, ...localMessages]` so optimistic messages appear at the end of the conversation thread in `frontend/src/hooks/useChat.ts`
+- [X] T011 [US2] Verify auto-scroll to bottom triggers after optimistic message is appended by checking `scrollToBottom()` behavior in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: After Phase 4, user messages appear instantly in the thread upon send. Server-confirmed messages seamlessly replace optimistic ones without duplication.
 
@@ -82,9 +82,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Verify the existing thinking indicator (three animated bounce dots) in `frontend/src/components/chat/ChatInterface.tsx` renders when `isSending === true` and is positioned after the optimistic user message in the message list
-- [ ] T013 [US3] Ensure the thinking indicator occupies the same vertical space as a typical agent response bubble so replacement causes no layout shift, adjusting CSS in `frontend/src/components/chat/ChatInterface.tsx` if needed
-- [ ] T014 [US3] Confirm the thinking indicator continues to animate for the full duration of agent processing (no timeout cutoff) by verifying it is purely tied to `isSending` state in `frontend/src/components/chat/ChatInterface.tsx`
+- [X] T012 [US3] Verify the existing thinking indicator (three animated bounce dots) in `frontend/src/components/chat/ChatInterface.tsx` renders when `isSending === true` and is positioned after the optimistic user message in the message list
+- [X] T013 [US3] Ensure the thinking indicator occupies the same vertical space as a typical agent response bubble so replacement causes no layout shift, adjusting CSS in `frontend/src/components/chat/ChatInterface.tsx` if needed
+- [X] T014 [US3] Confirm the thinking indicator continues to animate for the full duration of agent processing (no timeout cutoff) by verifying it is purely tied to `isSending` state in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: After Phase 5, the full send flow is: user message appears instantly → thinking indicator shows → agent response replaces indicator — all without layout shift.
 
@@ -98,12 +98,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Implement error handling in `sendMessage()` in `frontend/src/hooks/useChat.ts` — on `sendMutation` failure, find the optimistic message in `localMessages` by temp ID and update its `status` from `'pending'` to `'failed'`
-- [ ] T016 [US4] Implement `retryMessage(messageId: string)` function in `frontend/src/hooks/useChat.ts` — find the failed message in `localMessages`, reset its `status` to `'pending'`, and re-execute `sendMutation.mutateAsync()` with the original content
-- [ ] T017 [P] [US4] Add `onRetry?: () => void` prop to `MessageBubbleProps` interface and render failed message styling (red/destructive border accent, error icon, "Failed to send" text, retry button) when `message.status === 'failed'` in `frontend/src/components/chat/MessageBubble.tsx`
-- [ ] T018 [US4] Add `onRetryMessage: (messageId: string) => void` prop to `ChatInterfaceProps` and pass `onRetry={() => onRetryMessage(message.message_id)}` to `MessageBubble` for each message in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T019 [US4] Add `onRetryMessage: (messageId: string) => void` prop to `ChatPopupProps` and pass it through to `ChatInterface` in `frontend/src/components/chat/ChatPopup.tsx`
-- [ ] T020 [US4] Wire `retryMessage` from `useChat` hook to `onRetryMessage` prop on the `<ChatPopup>` instance in `frontend/src/layout/AppLayout.tsx`
+- [X] T015 [US4] Implement error handling in `sendMessage()` in `frontend/src/hooks/useChat.ts` — on `sendMutation` failure, find the optimistic message in `localMessages` by temp ID and update its `status` from `'pending'` to `'failed'`
+- [X] T016 [US4] Implement `retryMessage(messageId: string)` function in `frontend/src/hooks/useChat.ts` — find the failed message in `localMessages`, reset its `status` to `'pending'`, and re-execute `sendMutation.mutateAsync()` with the original content
+- [X] T017 [P] [US4] Add `onRetry?: () => void` prop to `MessageBubbleProps` interface and render failed message styling (red/destructive border accent, error icon, "Failed to send" text, retry button) when `message.status === 'failed'` in `frontend/src/components/chat/MessageBubble.tsx`
+- [X] T018 [US4] Add `onRetryMessage: (messageId: string) => void` prop to `ChatInterfaceProps` and pass `onRetry={() => onRetryMessage(message.message_id)}` to `MessageBubble` for each message in `frontend/src/components/chat/ChatInterface.tsx`
+- [X] T019 [US4] Add `onRetryMessage: (messageId: string) => void` prop to `ChatPopupProps` and pass it through to `ChatInterface` in `frontend/src/components/chat/ChatPopup.tsx`
+- [X] T020 [US4] Wire `retryMessage` from `useChat` hook to `onRetryMessage` prop on the `<ChatPopup>` instance in `frontend/src/layout/AppLayout.tsx`
 
 **Checkpoint**: After Phase 6, failed messages show error styling with a retry button. Clicking retry resends the message. Failed messages don't block subsequent sends.
 
@@ -117,11 +117,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T021 [P] [US5] Add regression test: send `#help` command followed by a normal message — assert the normal message payload contains no command references and `isCommand` is not re-triggered in `frontend/src/hooks/useChat.test.tsx`
-- [ ] T022 [P] [US5] Add regression test: send multiple different commands in sequence (`#help`, then `#status`) — assert each command is dispatched independently with no cross-contamination in `frontend/src/hooks/useChat.test.tsx`
-- [ ] T023 [P] [US5] Add regression test: verify input field state, reply context, and message queue are fully cleared after command dispatch by checking `localMessages` contains only expected entries in `frontend/src/hooks/useChat.test.tsx`
-- [ ] T024 [P] [US5] Add test for optimistic message rendering: call `sendMessage()` with a regular message and assert the message appears in the returned `messages` array with `status: 'pending'` before the mutation resolves in `frontend/src/hooks/useChat.test.tsx`
-- [ ] T025 [P] [US5] Add test for failed message retry: simulate a `sendMutation` failure, assert the optimistic message has `status: 'failed'`, call `retryMessage()`, and assert status resets to `'pending'` in `frontend/src/hooks/useChat.test.tsx`
+- [X] T021 [P] [US5] Add regression test: send `#help` command followed by a normal message — assert the normal message payload contains no command references and `isCommand` is not re-triggered in `frontend/src/hooks/useChat.test.tsx`
+- [X] T022 [P] [US5] Add regression test: send multiple different commands in sequence (`#help`, then `#status`) — assert each command is dispatched independently with no cross-contamination in `frontend/src/hooks/useChat.test.tsx`
+- [X] T023 [P] [US5] Add regression test: verify input field state, reply context, and message queue are fully cleared after command dispatch by checking `localMessages` contains only expected entries in `frontend/src/hooks/useChat.test.tsx`
+- [X] T024 [P] [US5] Add test for optimistic message rendering: call `sendMessage()` with a regular message and assert the message appears in the returned `messages` array with `status: 'pending'` before the mutation resolves in `frontend/src/hooks/useChat.test.tsx`
+- [X] T025 [P] [US5] Add test for failed message retry: simulate a `sendMutation` failure, assert the optimistic message has `status: 'failed'`, call `retryMessage()`, and assert status resets to `'pending'` in `frontend/src/hooks/useChat.test.tsx`
 
 **Checkpoint**: All regression tests pass. Command state isolation and optimistic rendering are validated by automated tests.
 
@@ -131,9 +131,9 @@
 
 **Purpose**: Validation, type-checking, linting, and end-to-end verification across all user stories.
 
-- [ ] T026 [P] Run TypeScript type-check with `npx tsc --noEmit` in `frontend/` and fix any type errors
-- [ ] T027 [P] Run linter with `npx eslint src/` in `frontend/` and fix any lint violations
-- [ ] T028 Run full frontend test suite with `npx vitest run` in `frontend/` and verify all tests pass (existing + new)
+- [X] T026 [P] Run TypeScript type-check with `npx tsc --noEmit` in `frontend/` and fix any type errors
+- [X] T027 [P] Run linter with `npx eslint src/` in `frontend/` and fix any lint violations
+- [X] T028 Run full frontend test suite with `npx vitest run` in `frontend/` and verify all tests pass (existing + new)
 - [ ] T029 Perform manual quickstart.md validation: execute all three verification scenarios (bug fix, optimistic rendering, failed message handling) per `specs/026-chat-help-optimistic-render/quickstart.md`
 
 ---
