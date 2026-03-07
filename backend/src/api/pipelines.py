@@ -28,6 +28,19 @@ def _get_service() -> PipelineService:
     return PipelineService(get_db())
 
 
+# ── List Models ──
+# NOTE: This static-path route MUST be defined before any /{project_id}
+# routes, otherwise Starlette would match "models" as a project_id value.
+
+
+@router.get("/models/available", response_model=list[AIModel])
+async def list_models(
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[AIModel]:
+    """List available AI models for agent assignment."""
+    return PipelineService.list_models()
+
+
 # ── List Pipelines ──
 
 
@@ -114,14 +127,3 @@ async def delete_pipeline(
     if not deleted:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     return {"success": True, "deleted_id": pipeline_id}
-
-
-# ── List Models ──
-
-
-@router.get("/models/available", response_model=list[AIModel])
-async def list_models(
-    session: Annotated[UserSession, Depends(get_session_dep)],
-) -> list[AIModel]:
-    """List available AI models for agent assignment."""
-    return PipelineService.list_models()
