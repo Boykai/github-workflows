@@ -3,8 +3,8 @@
  * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
  */
 
-import { memo } from 'react';
-import type { BoardItem, SubIssue } from '@/types';
+import { memo, useState } from 'react';
+import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
 
@@ -33,6 +33,7 @@ function validateAvatarUrl(url: string | undefined | null): string {
 interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
+  availableAgents?: AvailableAgent[];
 }
 
 function SubIssueStateIcon({ state }: { state: string }) {
@@ -42,10 +43,15 @@ function SubIssueStateIcon({ state }: { state: string }) {
   return <span className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-green-500" title="Open">○</span>;
 }
 
-function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
+function SubIssueRow({ subIssue, availableAgents }: { subIssue: SubIssue; availableAgents?: AvailableAgent[] }) {
   const agentLabel = subIssue.assigned_agent
     ? subIssue.assigned_agent.replace('speckit.', '')
     : null;
+
+  const agentMeta = subIssue.assigned_agent
+    ? availableAgents?.find((a) => a.slug.toLowerCase() === subIssue.assigned_agent!.toLowerCase())
+    : undefined;
+  const modelName = agentMeta?.default_model_name;
 
   return (
     <a
@@ -60,13 +66,31 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
       {agentLabel && (
         <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">{agentLabel}</span>
       )}
+      {modelName && (
+        <span className="text-[10px] text-muted-foreground truncate">{modelName}</span>
+      )}
       <span className="text-muted-foreground ml-auto">#{subIssue.number}</span>
     </a>
   );
 }
 
-export const IssueCard = memo(function IssueCard({ item, onClick }: IssueCardProps) {
+/**
+ * Compute WCAG relative luminance from a hex color string.
+ * Returns true if text should be black (light background), false if white (dark background).
+ */
+function isLightColor(hex: string): boolean {
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  return L > 0.179;
+}
+
+export const IssueCard = memo(function IssueCard({ item, onClick, availableAgents }: IssueCardProps) {
+  const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
   const subIssues = item.sub_issues ?? [];
+  const labels = item.labels ?? [];
   const priorityName = item.priority?.name ?? '';
   const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
 
@@ -111,20 +135,49 @@ export const IssueCard = memo(function IssueCard({ item, onClick }: IssueCardPro
         <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{snippet}</p>
       )}
 
-      {/* Sub-Issues */}
+      {/* Labels */}
+      {labels.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {labels.map((label) => (
+            <span
+              key={label.id}
+              className="rounded-full px-2 py-0.5 text-[10px] font-medium truncate max-w-[120px]"
+              style={{
+                backgroundColor: `#${label.color}`,
+                color: isLightColor(label.color) ? '#000' : '#fff',
+              }}
+              title={label.name}
+            >
+              {label.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Sub-Issues (collapsible) */}
       {subIssues.length > 0 && (
         <div className="flex flex-col gap-1.5 mt-1">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <button
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSubIssuesExpanded(!isSubIssuesExpanded);
+            }}
+            type="button"
+          >
+            <span className="text-[10px]">{isSubIssuesExpanded ? '▼' : '▶'}</span>
             <SubIssuesIcon />
             <span>
-              {subIssues.filter((s) => s.state === 'closed').length}/{subIssues.length} sub-issues
+              {subIssues.filter((s) => s.state === 'closed').length}/{subIssues.length} sub-issue{subIssues.length !== 1 ? 's' : ''}
             </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            {subIssues.map((si) => (
-              <SubIssueRow key={si.id} subIssue={si} />
-            ))}
-          </div>
+          </button>
+          {isSubIssuesExpanded && (
+            <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+              {subIssues.map((si) => (
+                <SubIssueRow key={si.id} subIssue={si} availableAgents={availableAgents} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

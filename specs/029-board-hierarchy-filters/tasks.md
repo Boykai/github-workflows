@@ -29,8 +29,8 @@
 
 **Purpose**: Add new backend models, frontend types, and shared data fields needed by multiple user stories.
 
-- [ ] T001 Add `Label` Pydantic model (`id: str`, `name: str`, `color: str`) and new fields (`labels: list[Label] = []`, `created_at: str | None = None`, `updated_at: str | None = None`, `milestone: str | None = None`) to `BoardItem` in backend/src/models/board.py
-- [ ] T002 [P] Add `BoardLabel` interface (`id: string`, `name: string`, `color: string`) and new fields (`labels: BoardLabel[]`, `created_at?: string`, `updated_at?: string`, `milestone?: string`) to the `BoardItem` interface in frontend/src/types/index.ts
+- [x] T001 Add `Label` Pydantic model (`id: str`, `name: str`, `color: str`) and new fields (`labels: list[Label] = []`, `created_at: str | None = None`, `updated_at: str | None = None`, `milestone: str | None = None`) to `BoardItem` in backend/src/models/board.py
+- [x] T002 [P] Add `BoardLabel` interface (`id: string`, `name: string`, `color: string`) and new fields (`labels: BoardLabel[]`, `created_at?: string`, `updated_at?: string`, `milestone?: string`) to the `BoardItem` interface in frontend/src/types/index.ts
 
 **Checkpoint**: All shared types and models are in place. Ready for foundational backend changes.
 
@@ -42,10 +42,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete — all UI changes depend on the backend providing labels, timestamps, milestone, and parent-only data.
 
-- [ ] T003 Extend `BOARD_GET_PROJECT_ITEMS_QUERY` `... on Issue` fragment with `createdAt`, `updatedAt`, `milestone { title }`, and `labels(first: 20) { nodes { id name color } }` in backend/src/services/github_projects/graphql.py
-- [ ] T004 Parse `labels`, `createdAt`, `updatedAt`, and `milestone` from the GraphQL response in the item processing loop — construct `Label` objects from `labels.nodes`, extract `createdAt`/`updatedAt` as strings, extract `milestone.title` as string — and assign to `BoardItem` in backend/src/services/github_projects/service.py
-- [ ] T005 Update sub-issue filtering to exclude sub-issue `content_id`s from ALL columns instead of only Done/Closed/Completed columns (`_DONE_STATUS_NAMES`) — the current code only filters sub-issues from done columns (lines ~970-990), but FR-001 requires sub-issues to be excluded from every column so only parent issues appear as top-level cards — remove the `if col.status.name.lower() in _DONE_STATUS_NAMES` guard so the filter applies unconditionally in backend/src/services/github_projects/service.py
-- [ ] T006 Recalculate `item_count` and `estimate_total` per column after the expanded sub-issue filtering so column header counts reflect the parent-only item set in backend/src/services/github_projects/service.py
+- [x] T003 Extend `BOARD_GET_PROJECT_ITEMS_QUERY` `... on Issue` fragment with `createdAt`, `updatedAt`, `milestone { title }`, and `labels(first: 20) { nodes { id name color } }` in backend/src/services/github_projects/graphql.py
+- [x] T004 Parse `labels`, `createdAt`, `updatedAt`, and `milestone` from the GraphQL response in the item processing loop — construct `Label` objects from `labels.nodes`, extract `createdAt`/`updatedAt` as strings, extract `milestone.title` as string — and assign to `BoardItem` in backend/src/services/github_projects/service.py
+- [x] T005 Update sub-issue filtering to exclude sub-issue `content_id`s from ALL columns instead of only Done/Closed/Completed columns (`_DONE_STATUS_NAMES`) — the current code only filters sub-issues from done columns (lines ~970-990), but FR-001 requires sub-issues to be excluded from every column so only parent issues appear as top-level cards — remove the `if col.status.name.lower() in _DONE_STATUS_NAMES` guard so the filter applies unconditionally in backend/src/services/github_projects/service.py
+- [x] T006 Recalculate `item_count` and `estimate_total` per column after the expanded sub-issue filtering so column header counts reflect the parent-only item set in backend/src/services/github_projects/service.py
 
 **Checkpoint**: Backend returns parent-only board items with labels, timestamps, and milestone fields populated. Sub-issues no longer appear as standalone cards in any column.
 
@@ -59,10 +59,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add `availableAgents?: AvailableAgent[]` prop to `IssueCard` interface and thread the prop from `ProjectsPage` → `ProjectBoard` → `BoardColumn` → `IssueCard` in frontend/src/pages/ProjectsPage.tsx, frontend/src/components/board/ProjectBoard.tsx, frontend/src/components/board/BoardColumn.tsx, and frontend/src/components/board/IssueCard.tsx
-- [ ] T008 [US1] Add collapsible sub-issue toggle to `IssueCard` with `useState<boolean>(false)` — render a clickable row with chevron icon (`▶` collapsed / `▼` expanded) and count badge (`"{n} sub-issue{n !== 1 ? 's' : ''}"`) — hide entire toggle row when `item.sub_issues.length === 0` in frontend/src/components/board/IssueCard.tsx
-- [ ] T009 [US1] Render expanded sub-issue tiles inside the collapsible section — each tile shows state icon (`○` open / `✓` closed), title, agent name (formatted from `assigned_agent` slug, "Unassigned" if absent), and model name (resolved via `availableAgents.find(a => a.slug === subIssue.assigned_agent)?.default_model_name`, `"—"` if absent) in frontend/src/components/board/IssueCard.tsx
-- [ ] T010 [US1] Add `max-h-60 overflow-y-auto` to the expanded sub-issue panel container so large sub-issue lists (50+) scroll internally without growing the parent card excessively in frontend/src/components/board/IssueCard.tsx
+- [x] T007 [US1] Add `availableAgents?: AvailableAgent[]` prop to `IssueCard` interface and thread the prop from `ProjectsPage` → `ProjectBoard` → `BoardColumn` → `IssueCard` in frontend/src/pages/ProjectsPage.tsx, frontend/src/components/board/ProjectBoard.tsx, frontend/src/components/board/BoardColumn.tsx, and frontend/src/components/board/IssueCard.tsx
+- [x] T008 [US1] Add collapsible sub-issue toggle to `IssueCard` with `useState<boolean>(false)` — render a clickable row with chevron icon (`▶` collapsed / `▼` expanded) and count badge (`"{n} sub-issue{n !== 1 ? 's' : ''}"`) — hide entire toggle row when `item.sub_issues.length === 0` in frontend/src/components/board/IssueCard.tsx
+- [x] T009 [US1] Render expanded sub-issue tiles inside the collapsible section — each tile shows state icon (`○` open / `✓` closed), title, agent name (formatted from `assigned_agent` slug, "Unassigned" if absent), and model name (resolved via `availableAgents.find(a => a.slug === subIssue.assigned_agent)?.default_model_name`, `"—"` if absent) in frontend/src/components/board/IssueCard.tsx
+- [x] T010 [US1] Add `max-h-60 overflow-y-auto` to the expanded sub-issue panel container so large sub-issue lists (50+) scroll internally without growing the parent card excessively in frontend/src/components/board/IssueCard.tsx
 
 **Checkpoint**: Parent-only board view is functional. Sub-issues are nested within parent cards in a collapsible panel with agent and model metadata. Collapsed by default.
 
@@ -76,8 +76,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] Render `item.labels` as colored label chips below the card description and above assignees — use `background: #{label.color}` with contrast-computed text color (white on dark backgrounds, black on light — use WCAG relative luminance formula: `L = 0.2126*R + 0.7152*G + 0.0722*B`, threshold `L > 0.179` → black text, else white text) in frontend/src/components/board/IssueCard.tsx
-- [ ] T012 [US2] Add `max-w-[120px] truncate` with `title={label.name}` hover tooltip for long label names, and `flex flex-wrap gap-1` on the label container for multi-line wrapping — hide the label section entirely when `item.labels.length === 0` in frontend/src/components/board/IssueCard.tsx
+- [x] T011 [P] [US2] Render `item.labels` as colored label chips below the card description and above assignees — use `background: #{label.color}` with contrast-computed text color (white on dark backgrounds, black on light — use WCAG relative luminance formula: `L = 0.2126*R + 0.7152*G + 0.0722*B`, threshold `L > 0.179` → black text, else white text) in frontend/src/components/board/IssueCard.tsx
+- [x] T012 [US2] Add `max-w-[120px] truncate` with `title={label.name}` hover tooltip for long label names, and `flex flex-wrap gap-1` on the label container for multi-line wrapping — hide the label section entirely when `item.labels.length === 0` in frontend/src/components/board/IssueCard.tsx
 
 **Checkpoint**: Label chips display correctly on parent cards with proper colors, truncation, and wrapping. Cards with no labels show no empty placeholder.
 
@@ -91,8 +91,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Ensure `BoardColumn` card list container has constrained height — set column container to `flex flex-col h-full` with header as `flex-shrink-0` and card list as `flex-1 overflow-y-auto` in frontend/src/components/board/BoardColumn.tsx
-- [ ] T014 [P] [US3] Ensure `ProjectBoard` outer grid/flex container constrains column heights — apply `h-full` (or `max-h-[calc(100vh-<header-offset>)]`) and `overflow-y-hidden` on the board wrapper so individual columns activate their `overflow-y-auto` in frontend/src/components/board/ProjectBoard.tsx
+- [x] T013 [US3] Ensure `BoardColumn` card list container has constrained height — set column container to `flex flex-col h-full` with header as `flex-shrink-0` and card list as `flex-1 overflow-y-auto` in frontend/src/components/board/BoardColumn.tsx
+- [x] T014 [P] [US3] Ensure `ProjectBoard` outer grid/flex container constrains column heights — apply `h-full` (or `max-h-[calc(100vh-<header-offset>)]`) and `overflow-y-hidden` on the board wrapper so individual columns activate their `overflow-y-auto` in frontend/src/components/board/ProjectBoard.tsx
 
 **Checkpoint**: Columns scroll independently. Scrolling one column does not affect others or trigger page-level scroll. No scrollbars on columns with few items.
 
@@ -106,8 +106,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Fix `AgentTile` metadata lookup to use case-insensitive slug comparison — change `availableAgents?.find((a) => a.slug === agent.slug)` to `availableAgents?.find((a) => a.slug.toLowerCase() === agent.slug.toLowerCase())` in frontend/src/components/board/AgentTile.tsx
-- [ ] T016 [US4] Audit `metaParts` array construction — ensure `metadata?.default_model_name` and `metadata?.tools_count` are correctly appended when present, that `tools_count` of `0` renders as `"0 tools"` or is gracefully omitted, and that the warning badge (`⚠`) only appears when metadata is truly unavailable in frontend/src/components/board/AgentTile.tsx
+- [x] T015 [US4] Fix `AgentTile` metadata lookup to use case-insensitive slug comparison — change `availableAgents?.find((a) => a.slug === agent.slug)` to `availableAgents?.find((a) => a.slug.toLowerCase() === agent.slug.toLowerCase())` in frontend/src/components/board/AgentTile.tsx
+- [x] T016 [US4] Audit `metaParts` array construction — ensure `metadata?.default_model_name` and `metadata?.tools_count` are correctly appended when present, that `tools_count` of `0` renders as `"0 tools"` or is gracefully omitted, and that the warning badge (`⚠`) only appears when metadata is truly unavailable in frontend/src/components/board/AgentTile.tsx
 
 **Checkpoint**: All agent tiles in the Agent Pipeline display correct model names and tool counts. No missing metadata for agents that are in the available agents list.
 
@@ -121,8 +121,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] Add `activePipelineName` derived state via `useMemo` — look up `selectedPipelineId` (from localStorage) in the `savedPipelines` list fetched via `pipelinesApi.list()`, return `pipeline.name` when matched and configuration is not dirty, return `null` otherwise in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T018 [US5] Update header label rendering to display `activePipelineName` when non-null, falling back to `matchedPreset.label` (e.g., "Custom") when null — ensuring the label reverts to "Custom" on dirty state or deselection in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T017 [US5] Add `activePipelineName` derived state via `useMemo` — look up `selectedPipelineId` (from localStorage) in the `savedPipelines` list fetched via `pipelinesApi.list()`, return `pipeline.name` when matched and configuration is not dirty, return `null` otherwise in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T018 [US5] Update header label rendering to display `activePipelineName` when non-null, falling back to `matchedPreset.label` (e.g., "Custom") when null — ensuring the label reverts to "Custom" on dirty state or deselection in frontend/src/components/board/AgentPresetSelector.tsx
 
 **Checkpoint**: Pipeline header label dynamically reflects the saved configuration name. Reverts to "Custom" on deselection or manual changes. Persists across page refresh.
 
@@ -136,10 +136,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T019 [US6] Create `useBoardControls` hook in frontend/src/hooks/useBoardControls.ts — define `BoardFilterState`, `BoardSortState`, `BoardGroupState`, and `BoardControlsState` interfaces per data-model.md; manage state with `useState`; persist to `localStorage` keyed by `board-controls-{projectId}`; restore state on mount; derive `availableLabels`, `availableAssignees`, and `availableMilestones` from raw board data using `useMemo`; export `controls`, `setFilters`, `setSort`, `setGroup`, `clearAll`, `hasActiveControls`, and available option arrays
-- [ ] T020 [US6] Implement filter transform in `useBoardControls` using `useMemo` — for each column, filter items where: `labels` array intersection (if `filters.labels.length > 0`), `assignees` array intersection (if `filters.assignees.length > 0`), `milestone` inclusion (if `filters.milestones.length > 0`) — apply AND logic across criteria; empty filter arrays mean no restriction for that field in frontend/src/hooks/useBoardControls.ts
-- [ ] T021 [P] [US6] Create `BoardToolbar` component in frontend/src/components/board/BoardToolbar.tsx — render Filter button with dropdown panel containing checkbox lists for labels, assignees, and milestones (populated from `availableLabels`, `availableAssignees`, `availableMilestones` props); include "Clear All" button; only one panel open at a time (local `activePanel` state); accept `controls`, `onControlsChange`, and available option arrays as props per contracts/components.md C5
-- [ ] T022 [US6] Integrate `useBoardControls` and `BoardToolbar` into `ProjectsPage` — call `useBoardControls(projectId, boardData)`, render `BoardToolbar` above `ProjectBoard`, pass `transformedData` (output of hook) to `ProjectBoard` instead of raw `boardData` in frontend/src/pages/ProjectsPage.tsx
+- [x] T019 [US6] Create `useBoardControls` hook in frontend/src/hooks/useBoardControls.ts — define `BoardFilterState`, `BoardSortState`, `BoardGroupState`, and `BoardControlsState` interfaces per data-model.md; manage state with `useState`; persist to `localStorage` keyed by `board-controls-{projectId}`; restore state on mount; derive `availableLabels`, `availableAssignees`, and `availableMilestones` from raw board data using `useMemo`; export `controls`, `setFilters`, `setSort`, `setGroup`, `clearAll`, `hasActiveControls`, and available option arrays
+- [x] T020 [US6] Implement filter transform in `useBoardControls` using `useMemo` — for each column, filter items where: `labels` array intersection (if `filters.labels.length > 0`), `assignees` array intersection (if `filters.assignees.length > 0`), `milestone` inclusion (if `filters.milestones.length > 0`) — apply AND logic across criteria; empty filter arrays mean no restriction for that field in frontend/src/hooks/useBoardControls.ts
+- [x] T021 [P] [US6] Create `BoardToolbar` component in frontend/src/components/board/BoardToolbar.tsx — render Filter button with dropdown panel containing checkbox lists for labels, assignees, and milestones (populated from `availableLabels`, `availableAssignees`, `availableMilestones` props); include "Clear All" button; only one panel open at a time (local `activePanel` state); accept `controls`, `onControlsChange`, and available option arrays as props per contracts/components.md C5
+- [x] T022 [US6] Integrate `useBoardControls` and `BoardToolbar` into `ProjectsPage` — call `useBoardControls(projectId, boardData)`, render `BoardToolbar` above `ProjectBoard`, pass `transformedData` (output of hook) to `ProjectBoard` instead of raw `boardData` in frontend/src/pages/ProjectsPage.tsx
 
 **Checkpoint**: Filter controls are functional. Selecting label/assignee/milestone filters narrows the board view. Clearing filters restores full view. State persists in localStorage.
 
@@ -153,8 +153,8 @@
 
 ### Implementation for User Story 7
 
-- [ ] T023 [US7] Implement sort transform in `useBoardControls` using `useMemo` — after filter, sort items within each column by: `created_at` (ISO string comparison), `updated_at` (ISO string comparison), `priority` (numeric mapping: P0=0, P1=1, P2=2, P3=3, null=99), or `title` (localeCompare); apply `asc`/`desc` direction; null sort field = no reorder in frontend/src/hooks/useBoardControls.ts
-- [ ] T024 [US7] Add Sort panel to `BoardToolbar` — render radio options for sort field (Created, Updated, Priority, Title) with ascending/descending toggle per option; include "Clear Sort" button; show Sort panel when sort button clicked (mutually exclusive with filter/group panels) in frontend/src/components/board/BoardToolbar.tsx
+- [x] T023 [US7] Implement sort transform in `useBoardControls` using `useMemo` — after filter, sort items within each column by: `created_at` (ISO string comparison), `updated_at` (ISO string comparison), `priority` (numeric mapping: P0=0, P1=1, P2=2, P3=3, null=99), or `title` (localeCompare); apply `asc`/`desc` direction; null sort field = no reorder in frontend/src/hooks/useBoardControls.ts
+- [x] T024 [US7] Add Sort panel to `BoardToolbar` — render radio options for sort field (Created, Updated, Priority, Title) with ascending/descending toggle per option; include "Clear Sort" button; show Sort panel when sort button clicked (mutually exclusive with filter/group panels) in frontend/src/components/board/BoardToolbar.tsx
 
 **Checkpoint**: Sort controls are functional. Cards reorder within columns based on selected field and direction. Clearing sort restores default order.
 
@@ -168,9 +168,9 @@
 
 ### Implementation for User Story 8
 
-- [ ] T025 [US8] Implement group-by transform in `useBoardControls` — after filter and sort, group items within each column by first label name (`"No Label"` fallback), first assignee login (`"Unassigned"` fallback), or milestone (`"No Milestone"` fallback); export grouped structure alongside flat transformed data; omit empty groups from output in frontend/src/hooks/useBoardControls.ts
-- [ ] T026 [US8] Add Group By panel to `BoardToolbar` — render radio options for group field (Label, Assignee, Milestone) plus "Remove Grouping" button; show Group By panel when group button clicked (mutually exclusive with filter/sort panels) in frontend/src/components/board/BoardToolbar.tsx
-- [ ] T027 [US8] Update `BoardColumn` and `ProjectBoard` to render group headers within each column when grouping is active — headers styled as `text-xs font-semibold uppercase text-gray-400 tracking-wide border-b border-gray-700 pb-1 mb-2 mt-3` (first group: `mt-0`); hide headers for empty groups; items sorted within each group per active sort in frontend/src/components/board/ProjectBoard.tsx and frontend/src/components/board/BoardColumn.tsx
+- [x] T025 [US8] Implement group-by transform in `useBoardControls` — after filter and sort, group items within each column by first label name (`"No Label"` fallback), first assignee login (`"Unassigned"` fallback), or milestone (`"No Milestone"` fallback); export grouped structure alongside flat transformed data; omit empty groups from output in frontend/src/hooks/useBoardControls.ts
+- [x] T026 [US8] Add Group By panel to `BoardToolbar` — render radio options for group field (Label, Assignee, Milestone) plus "Remove Grouping" button; show Group By panel when group button clicked (mutually exclusive with filter/sort panels) in frontend/src/components/board/BoardToolbar.tsx
+- [x] T027 [US8] Update `BoardColumn` and `ProjectBoard` to render group headers within each column when grouping is active — headers styled as `text-xs font-semibold uppercase text-gray-400 tracking-wide border-b border-gray-700 pb-1 mb-2 mt-3` (first group: `mt-0`); hide headers for empty groups; items sorted within each group per active sort in frontend/src/components/board/ProjectBoard.tsx and frontend/src/components/board/BoardColumn.tsx
 
 **Checkpoint**: Group-by controls are functional. Cards organize into named groups within columns. Removing grouping restores default layout. Groups + filters + sort compose correctly.
 
@@ -180,9 +180,9 @@
 
 **Purpose**: Visual polish, edge case handling, and validation across all user stories.
 
-- [ ] T028 [P] Add active state indicators (colored dot badge and accent background) on Filter, Sort, and Group By toolbar buttons when any non-default configuration is active — use `hasActiveControls` and per-control checks from `useBoardControls` per FR-013 in frontend/src/components/board/BoardToolbar.tsx
-- [ ] T029 [P] Add empty state message ("No issues match the current filters") when filtering results in zero parent issues across all columns — render centered message in `ProjectBoard` when `transformedData` columns all have zero items and filters are active in frontend/src/components/board/ProjectBoard.tsx
-- [ ] T030 Run quickstart.md manual verification checklist (sections 1–11) to validate all features against acceptance scenarios
+- [x] T028 [P] Add active state indicators (colored dot badge and accent background) on Filter, Sort, and Group By toolbar buttons when any non-default configuration is active — use `hasActiveControls` and per-control checks from `useBoardControls` per FR-013 in frontend/src/components/board/BoardToolbar.tsx
+- [x] T029 [P] Add empty state message ("No issues match the current filters") when filtering results in zero parent issues across all columns — render centered message in `ProjectBoard` when `transformedData` columns all have zero items and filters are active in frontend/src/components/board/ProjectBoard.tsx
+- [x] T030 Run quickstart.md manual verification checklist (sections 1–11) to validate all features against acceptance scenarios
 
 ---
 

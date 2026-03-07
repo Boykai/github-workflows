@@ -4,7 +4,7 @@
  * with confirmation dialog before replacing current agent configuration.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
@@ -278,6 +278,21 @@ export function AgentPresetSelector({
 
   const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
+  // Derive active saved pipeline name for display (T017/T018)
+  const activePipelineName = useMemo(() => {
+    if (!projectId || !savedPipelines?.pipelines?.length) return null;
+    const storedSelection = localStorage.getItem(`pipeline-config:${projectId}`);
+    if (!storedSelection || storedSelection.startsWith('builtin:')) return null;
+    const matchedPipeline = savedPipelines.pipelines.find((p) => p.id === storedSelection);
+    if (!matchedPipeline) return null;
+    // Check if current mappings still match the saved pipeline (not dirty)
+    // by verifying it's not the custom/empty state
+    const customPreset = PRESETS.find((p) => p.id === 'custom');
+    const isCustom = customPreset ? matchesPreset(customPreset, currentMappings, columnNames) : false;
+    if (isCustom) return null;
+    return matchedPipeline.name;
+  }, [projectId, savedPipelines, currentMappings, columnNames]);
+
   return (
     <>
       <div className="flex items-center gap-1 ml-auto bg-muted/50 p-1 rounded-md border border-border/50">
@@ -291,7 +306,7 @@ export function AgentPresetSelector({
               title={preset.description}
               type="button"
             >
-              {preset.label}
+              {preset.id === 'custom' && activePipelineName ? activePipelineName : preset.label}
             </button>
           );
         })}
