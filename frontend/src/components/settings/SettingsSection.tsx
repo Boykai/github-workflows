@@ -6,7 +6,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
-import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
+import { TOAST_SUCCESS_MS, TOAST_ERROR_MS, STATUS_COLORS } from '@/constants';
 import { cn } from '@/lib/utils';
 
 interface SettingsSectionProps {
@@ -87,7 +87,7 @@ export function SettingsSection({
                 {saving ? 'Saving...' : 'Save'}
               </button>
               {saveStatus === 'success' && (
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                <span className={cn('text-sm font-medium', STATUS_COLORS.success.text)}>
                   Saved!
                 </span>
               )}

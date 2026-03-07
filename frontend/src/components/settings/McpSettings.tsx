@@ -10,7 +10,7 @@ import { useState, useCallback } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useMcpSettings } from '@/hooks/useMcpSettings';
 import { authApi, ApiError } from '@/services/api';
-import { TOAST_SUCCESS_MS } from '@/constants';
+import { TOAST_SUCCESS_MS, STATUS_COLORS } from '@/constants';
 import type { McpConfiguration } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -29,8 +29,8 @@ function isValidUrl(url: string): boolean {
 
 function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
-      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium', STATUS_COLORS.success.bg, STATUS_COLORS.success.text)}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_COLORS.success.dot)} />
       Active
     </span>
   ) : (
@@ -409,8 +409,8 @@ export function McpSettings() {
     >
       {/* Success Message */}
       {successMessage && (
-        <div className="rounded-md border border-green-500/30 bg-green-500/10 p-3">
-          <p className="text-sm text-green-700 dark:text-green-400">{successMessage}</p>
+        <div className={cn('rounded-md border p-3', STATUS_COLORS.success.border, STATUS_COLORS.success.bg)}>
+          <p className={cn('text-sm', STATUS_COLORS.success.text)}>{successMessage}</p>
         </div>
       )}
 

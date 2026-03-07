@@ -5,7 +5,7 @@
 
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
-import { PRIORITY_COLORS } from '@/constants';
+import { PRIORITY_COLORS, STATUS_COLORS } from '@/constants';
 import { cn } from '@/lib/utils';
 
 interface IssueCardProps {
@@ -26,7 +26,7 @@ function SubIssueStateIcon({ state }: { state: string }) {
   }
   return (
     <span
-      className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-green-500"
+      className={cn('flex items-center justify-center w-3.5 h-3.5 text-[10px]', STATUS_COLORS.success.text)}
       title="Open"
     >
       ○
