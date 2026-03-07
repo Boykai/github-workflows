@@ -3,14 +3,18 @@
  */
 
 import type { ChatMessage } from '@/types';
+import { AlertCircle, RotateCcw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onRetry?: () => void;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
   const isUser = message.sender_type === 'user';
   const isSystem = message.sender_type === 'system';
+  const isFailed = message.status === 'failed';
 
   return (
     <div className={`flex gap-3 max-w-[80%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}>
@@ -25,16 +29,39 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {isSystem ? (
           <div className="text-sm text-muted-foreground py-2">{message.content}</div>
         ) : (
-          <div className={`px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+          <div className={cn(
+            'px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
+            isFailed && 'bg-primary text-primary-foreground border-2 border-destructive',
+            !isFailed && isUser && 'bg-primary text-primary-foreground',
+            !isUser && !isFailed && 'bg-muted text-foreground',
+          )}>
             {message.content}
           </div>
         )}
-        <time className={`text-[11px] text-muted-foreground px-1 ${isUser ? 'text-right' : ''}`}>
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </time>
+        {isFailed && (
+          <div className="flex items-center gap-2 px-1">
+            <AlertCircle className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-xs text-destructive">Failed to send</span>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Retry
+              </button>
+            )}
+          </div>
+        )}
+        {!isFailed && (
+          <time className={`text-[11px] text-muted-foreground px-1 ${isUser ? 'text-right' : ''}`}>
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </time>
+        )}
       </div>
     </div>
   );

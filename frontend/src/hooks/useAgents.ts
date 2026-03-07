@@ -6,22 +6,33 @@ import {
   type AgentCreateResult,
   type AgentUpdate,
   type AgentDeleteResult,
+  type AgentPendingCleanupResult,
   type AgentChatMessage,
   type AgentChatResponse,
   type ApiError,
 } from '@/services/api';
-import { STALE_TIME_LONG } from '@/constants';
+import { STALE_TIME_PROJECTS } from '@/constants';
 
 export const agentKeys = {
   all: ['agents'] as const,
   list: (projectId: string) => [...agentKeys.all, 'list', projectId] as const,
+  pending: (projectId: string) => [...agentKeys.all, 'pending', projectId] as const,
 };
 
 export function useAgentsList(projectId: string | null | undefined) {
   return useQuery<AgentConfig[]>({
     queryKey: agentKeys.list(projectId ?? ''),
     queryFn: () => agentsApi.list(projectId!),
-    staleTime: STALE_TIME_LONG,
+    staleTime: STALE_TIME_PROJECTS,
+    enabled: !!projectId,
+  });
+}
+
+export function usePendingAgentsList(projectId: string | null | undefined) {
+  return useQuery<AgentConfig[]>({
+    queryKey: agentKeys.pending(projectId ?? ''),
+    queryFn: () => agentsApi.pending(projectId!),
+    staleTime: STALE_TIME_PROJECTS,
     enabled: !!projectId,
   });
 }
@@ -31,7 +42,7 @@ export function useCreateAgent(projectId: string | null | undefined) {
   return useMutation<AgentCreateResult, ApiError, AgentCreate>({
     mutationFn: (data) => agentsApi.create(projectId!, data),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
     },
   });
 }
@@ -41,7 +52,7 @@ export function useUpdateAgent(projectId: string | null | undefined) {
   return useMutation<AgentCreateResult, ApiError, { agentId: string; data: AgentUpdate }>({
     mutationFn: ({ agentId, data }) => agentsApi.update(projectId!, agentId, data),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
     },
   });
 }
@@ -51,7 +62,19 @@ export function useDeleteAgent(projectId: string | null | undefined) {
   return useMutation<AgentDeleteResult, ApiError, string>({
     mutationFn: (agentId) => agentsApi.delete(projectId!, agentId),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+    },
+  });
+}
+
+export function useClearPendingAgents(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<AgentPendingCleanupResult, ApiError>({
+    mutationFn: () => agentsApi.clearPending(projectId!),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      }
     },
   });
 }

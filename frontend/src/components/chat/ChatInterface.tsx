@@ -23,6 +23,7 @@ interface ChatInterfaceProps {
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
   onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
+  onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
   onConfirmRecommendation: (recommendationId: string) => Promise<WorkflowResult>;
@@ -38,6 +39,7 @@ export function ChatInterface({
   pendingRecommendations,
   isSending,
   onSendMessage,
+  onRetryMessage,
   onConfirmProposal,
   onConfirmStatusChange,
   onConfirmRecommendation,
@@ -288,7 +290,10 @@ export function ChatInterface({
 
             return (
               <div key={message.message_id} className="flex flex-col gap-2">
-                <MessageBubble message={message} />
+                <MessageBubble
+                  message={message}
+                  onRetry={message.status === 'failed' ? () => onRetryMessage(message.message_id) : undefined}
+                />
                 
                 {proposal && message.action_type === 'task_create' && (
                   <TaskPreview

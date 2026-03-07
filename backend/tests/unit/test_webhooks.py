@@ -13,6 +13,7 @@ from src.api.webhooks import (
     update_issue_status_for_copilot_pr,
     verify_webhook_signature,
 )
+from src.services.cache import cache, get_repo_agents_cache_key
 
 
 class TestWebhookSignatureVerification:
@@ -173,6 +174,31 @@ class TestPullRequestEventHandling:
 
         assert result["status"] == "ignored"
         assert result["reason"] == "not_copilot_ready_event"
+
+    @pytest.mark.asyncio
+    async def test_invalidates_repo_agent_cache_on_merged_pr(self):
+        cache_key = get_repo_agents_cache_key("test-owner", "test-repo")
+        cache.set(cache_key, [{"name": "cached"}], ttl_seconds=60)
+
+        payload = {
+            "action": "closed",
+            "pull_request": {
+                "number": 9,
+                "user": {"login": "regular-user"},
+                "draft": False,
+                "merged": True,
+            },
+            "repository": {
+                "owner": {"login": "test-owner"},
+                "name": "test-repo",
+            },
+        }
+
+        result = await handle_pull_request_event(payload)
+
+        assert result["status"] == "processed"
+        assert result["cache_invalidated"] is True
+        assert cache.get(cache_key) is None
 
     @pytest.mark.asyncio
     @patch("src.api.webhooks.get_settings")

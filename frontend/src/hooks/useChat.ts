@@ -19,6 +19,7 @@ interface UseChatReturn {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   sendMessage: (content: string, options?: { isCommand?: boolean }) => Promise<void>;
+  retryMessage: (messageId: string) => Promise<void>;
   confirmProposal: (proposalId: string, edits?: ProposalConfirmRequest) => Promise<void>;
   confirmStatusChange: (proposalId: string) => Promise<void>;
   rejectProposal: (proposalId: string) => Promise<void>;
@@ -165,11 +166,12 @@ export function useChat(): UseChatReturn {
 
   const sendMessage = useCallback(
     async (content: string, options?: { isCommand?: boolean }) => {
-      // Check if this is a command — intercept before sending to AI
-      if (options?.isCommand || isCommand(content)) {
-        // Execute command to determine how to handle it.
-        // Passthrough commands (e.g. #agent) are forwarded to the backend
-        // rather than being handled locally.
+      // Evaluate command status fresh from the content parameter only —
+      // no stored state or previous options are referenced.
+      const isCmd = options?.isCommand || isCommand(content);
+
+      // ── Command path (early return) ──────────────────────────────────
+      if (isCmd) {
         try {
           const result = await executeCommand(content);
 
@@ -187,8 +189,6 @@ export function useChat(): UseChatReturn {
             content,
             timestamp: new Date().toISOString(),
           };
-          setLocalMessages((prev) => [...prev, userMsg]);
-
           const systemMsg: ChatMessage = {
             message_id: generateId(),
             session_id: 'local',
@@ -196,7 +196,7 @@ export function useChat(): UseChatReturn {
             content: result.message,
             timestamp: new Date().toISOString(),
           };
-          setLocalMessages((prev) => [...prev, systemMsg]);
+          setLocalMessages((prev) => [...prev, userMsg, systemMsg]);
         } catch (error) {
           // Surface the failure as a system message so the user sees it
           const errorMessage =
@@ -211,8 +211,6 @@ export function useChat(): UseChatReturn {
             content,
             timestamp: new Date().toISOString(),
           };
-          setLocalMessages((prev) => [...prev, userMsg]);
-
           const systemErrorMsg: ChatMessage = {
             message_id: generateId(),
             session_id: 'local',
@@ -220,14 +218,59 @@ export function useChat(): UseChatReturn {
             content: errorMessage,
             timestamp: new Date().toISOString(),
           };
-          setLocalMessages((prev) => [...prev, systemErrorMsg]);
+          setLocalMessages((prev) => [...prev, userMsg, systemErrorMsg]);
         }
+        // Command fully consumed — early return prevents any state leakage
         return;
       }
 
-      await sendMutation.mutateAsync({ content });
+      // ── Regular message path (optimistic rendering) ──────────────────
+      const tempId = generateId();
+      const optimisticMsg: ChatMessage = {
+        message_id: tempId,
+        session_id: 'local',
+        sender_type: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+      };
+      setLocalMessages((prev) => [...prev, optimisticMsg]);
+
+      try {
+        await sendMutation.mutateAsync({ content });
+        // On success, remove the optimistic message — server data will
+        // replace it after invalidateQueries fires in the mutation's onSuccess.
+        setLocalMessages((prev) => prev.filter((m) => m.message_id !== tempId));
+      } catch {
+        // Mark the optimistic message as failed so the UI can show retry
+        setLocalMessages((prev) =>
+          prev.map((m) => (m.message_id === tempId ? { ...m, status: 'failed' as const } : m))
+        );
+      }
     },
     [sendMutation, isCommand, executeCommand]
+  );
+
+  const retryMessage = useCallback(
+    async (messageId: string) => {
+      const failedMsg = localMessages.find((m) => m.message_id === messageId && m.status === 'failed');
+      if (!failedMsg) return;
+
+      // Reset to pending
+      setLocalMessages((prev) =>
+        prev.map((m) => (m.message_id === messageId ? { ...m, status: 'pending' as const } : m))
+      );
+
+      try {
+        await sendMutation.mutateAsync({ content: failedMsg.content });
+        setLocalMessages((prev) => prev.filter((m) => m.message_id !== messageId));
+      } catch {
+        setLocalMessages((prev) =>
+          prev.map((m) => (m.message_id === messageId ? { ...m, status: 'failed' as const } : m))
+        );
+      }
+    },
+    [localMessages, sendMutation]
   );
 
   const confirmProposal = useCallback(
@@ -283,6 +326,7 @@ export function useChat(): UseChatReturn {
     pendingStatusChanges,
     pendingRecommendations,
     sendMessage,
+    retryMessage,
     confirmProposal,
     confirmStatusChange,
     rejectProposal,

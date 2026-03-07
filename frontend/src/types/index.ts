@@ -107,6 +107,8 @@ export type ActionData =
   | ProjectSelectActionData
   | IssueCreateActionData;
 
+export type MessageStatus = 'pending' | 'sent' | 'failed';
+
 export interface ChatMessage {
   message_id: string;
   session_id: string;
@@ -115,6 +117,7 @@ export interface ChatMessage {
   action_type?: ActionType;
   action_data?: ActionData;
   timestamp: string;
+  status?: MessageStatus;
 }
 
 export interface ChatMessageRequest {

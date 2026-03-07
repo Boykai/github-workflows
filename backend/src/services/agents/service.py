@@ -1,7 +1,8 @@
 """Agents section service — CRUD for Custom GitHub Agent configurations.
 
-Lists agents by merging SQLite (local/pending) and GitHub repository
-(``.github/agents/*.agent.md``) sources, deduplicated by slug.
+Available agents are sourced from the GitHub repository default branch under
+``.github/agents/*.agent.md``. SQLite stores only local workflow metadata for
+unmerged PRs and deletion bookkeeping.
 """
 
 from __future__ import annotations
@@ -22,12 +23,14 @@ from src.models.agents import (
     AgentCreate,
     AgentCreateResult,
     AgentDeleteResult,
+    AgentPendingCleanupResult,
     AgentPreviewResponse,
     AgentSource,
     AgentStatus,
     AgentUpdate,
 )
 from src.services.agent_creator import generate_config_files, generate_issue_body
+from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_commit_workflow import commit_files_workflow
 from src.services.github_projects import github_projects_service
 from src.utils import utcnow
@@ -71,46 +74,78 @@ class AgentsService:
         repo: str,
         access_token: str,
     ) -> list[Agent]:
-        """Merge agents from SQLite + GitHub repo, deduplicating by slug."""
-        # 1. Fetch from SQLite
-        local_agents = await self._list_local_agents(project_id)
+        """List agents from the repo default branch, with a long-lived cache."""
+        cache_key = get_repo_agents_cache_key(owner, repo)
 
-        # 2. Fetch from repo
-        repo_agents = await self._list_repo_agents(
+        cached_agents = cache.get(cache_key)
+        if isinstance(cached_agents, list):
+            await self._cleanup_resolved_pending_agents(
+                project_id=project_id,
+                repo_agents=cached_agents,
+            )
+            return sorted(cached_agents, key=lambda a: a.name.lower())
+
+        repo_agents, repo_available = await self._list_repo_agents(
             owner=owner,
             repo=repo,
             access_token=access_token,
         )
 
-        # 3. Merge by slug — repo takes precedence for content
-        merged: dict[str, Agent] = {}
+        if repo_available:
+            cache.set(cache_key, repo_agents, ttl_seconds=900)
+            await self._cleanup_resolved_pending_agents(
+                project_id=project_id,
+                repo_agents=repo_agents,
+            )
+            return sorted(repo_agents, key=lambda a: a.name.lower())
 
-        for agent in local_agents:
-            merged[agent.slug] = agent
+        stale_agents = cache.get_stale(cache_key)
+        if isinstance(stale_agents, list):
+            return sorted(stale_agents, key=lambda a: a.name.lower())
 
-        for agent in repo_agents:
-            if agent.slug in merged:
-                # Both exist — merge: repo content + local metadata
-                local = merged[agent.slug]
-                merged[agent.slug] = Agent(
-                    id=local.id,
-                    name=agent.name,
-                    slug=agent.slug,
-                    description=agent.description,
-                    system_prompt=agent.system_prompt,
-                    status=AgentStatus.ACTIVE,
-                    tools=agent.tools,
-                    status_column=local.status_column,
-                    github_issue_number=local.github_issue_number,
-                    github_pr_number=local.github_pr_number,
-                    branch_name=local.branch_name,
-                    source=AgentSource.BOTH,
-                    created_at=local.created_at,
-                )
-            else:
-                merged[agent.slug] = agent
+        return []
 
-        return sorted(merged.values(), key=lambda a: a.name.lower())
+    async def list_pending_agents(
+        self,
+        *,
+        project_id: str,
+        owner: str,
+        repo: str,
+        access_token: str,
+    ) -> list[Agent]:
+        """List local agent PR work that has not yet been reconciled with main."""
+        repo_agents = await self.list_agents(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+        )
+        await self._cleanup_resolved_pending_agents(
+            project_id=project_id,
+            repo_agents=repo_agents,
+        )
+
+        local_agents = await self._list_local_agents(project_id)
+        pending_agents = [agent for agent in local_agents if agent.status != AgentStatus.ACTIVE]
+        return sorted(
+            pending_agents,
+            key=lambda agent: (agent.created_at or "", agent.name.lower()),
+            reverse=True,
+        )
+
+    async def purge_pending_agents(self, *, project_id: str) -> AgentPendingCleanupResult:
+        """Delete all non-active local agent workflow rows for a project."""
+        local_agents = await self._list_local_agents(project_id)
+        deleted_ids = [agent.id for agent in local_agents if agent.status != AgentStatus.ACTIVE]
+
+        if deleted_ids:
+            await self._db.executemany(
+                "DELETE FROM agent_configs WHERE id = ?",
+                [(agent_id,) for agent_id in deleted_ids],
+            )
+            await self._db.commit()
+
+        return AgentPendingCleanupResult(deleted_count=len(deleted_ids))
 
     async def _list_local_agents(self, project_id: str) -> list[Agent]:
         """Query agents from SQLite ``agent_configs`` table."""
@@ -132,6 +167,8 @@ class AgentsService:
             except (json.JSONDecodeError, TypeError):
                 pass
 
+            status = self._coerce_agent_status(r.get("lifecycle_status"))
+
             agents.append(
                 Agent(
                     id=r["id"],
@@ -139,7 +176,7 @@ class AgentsService:
                     slug=r["slug"],
                     description=r["description"],
                     system_prompt=r.get("system_prompt", ""),
-                    status=AgentStatus.PENDING_PR,
+                    status=status,
                     tools=tools,
                     status_column=r.get("status_column") or None,
                     github_issue_number=r.get("github_issue_number"),
@@ -157,7 +194,7 @@ class AgentsService:
         owner: str,
         repo: str,
         access_token: str,
-    ) -> list[Agent]:
+    ) -> tuple[list[Agent], bool]:
         """Read ``.github/agents/*.agent.md`` from the GitHub repo."""
         try:
             tree_entries = await github_projects_service.get_directory_contents(
@@ -168,7 +205,7 @@ class AgentsService:
             )
         except Exception:
             logger.debug("Could not read .github/agents/ from %s/%s", owner, repo)
-            return []
+            return [], False
 
         agents: list[Agent] = []
         for entry in tree_entries:
@@ -233,7 +270,7 @@ class AgentsService:
                 )
             )
 
-        return agents
+        return agents, True
 
     # ── Create ────────────────────────────────────────────────────────────
 
@@ -442,18 +479,20 @@ class AgentsService:
         access_token: str,
         github_user_id: str,
     ) -> AgentDeleteResult:
-        """Delete agent — open PR to remove files, remove from SQLite."""
+        """Delete agent — open PR to remove repo files and mark pending deletion."""
         # Resolve the agent
-        agent = await self._resolve_agent(project_id, agent_id)
+        agent = await self._resolve_listed_agent(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+            agent_id=agent_id,
+        )
         if not agent:
             raise LookupError(f"Agent '{agent_id}' not found")
 
-        # Repo-only agents cannot be deleted via the API
-        if agent.id.startswith("repo:") and agent.source == AgentSource.REPO:
-            raise ValueError(
-                "Repo-only agents cannot be deleted through the API. "
-                "Remove the .agent.md file directly from the repository."
-            )
+        if agent.status == AgentStatus.PENDING_DELETION:
+            raise ValueError(f"Agent '{agent.name}' is already pending deletion")
 
         slug = agent.slug
         branch_name = f"agent/delete-{slug}"
@@ -504,10 +543,16 @@ class AgentsService:
         if not result.success:
             raise RuntimeError(f"Agent deletion pipeline failed: {'; '.join(result.errors)}")
 
-        # Remove from SQLite
-        if not agent.id.startswith("repo:"):
-            await self._db.execute("DELETE FROM agent_configs WHERE id = ?", (agent.id,))
-            await self._db.commit()
+        await self._mark_agent_pending_deletion(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            github_user_id=github_user_id,
+            agent=agent,
+            pr_number=result.pr_number,
+            issue_number=result.issue_number,
+            branch_name=branch_name,
+        )
 
         return AgentDeleteResult(
             success=True,
@@ -539,6 +584,11 @@ class AgentsService:
             raise ValueError(
                 "Repo-only agents cannot be updated through the API. "
                 "Edit the .agent.md file directly in the repository."
+            )
+
+        if agent.status == AgentStatus.PENDING_DELETION:
+            raise ValueError(
+                "Agents pending deletion cannot be updated until the deletion PR is resolved."
             )
 
         # Apply updates
@@ -1057,13 +1107,15 @@ class AgentsService:
         except (json.JSONDecodeError, TypeError):
             pass
 
+        status = self._coerce_agent_status(r.get("lifecycle_status"))
+
         return Agent(
             id=r["id"],
             name=r["name"],
             slug=r["slug"],
             description=r["description"],
             system_prompt=r.get("system_prompt", ""),
-            status=AgentStatus.PENDING_PR,
+            status=status,
             tools=tools,
             status_column=r.get("status_column") or None,
             github_issue_number=r.get("github_issue_number"),
@@ -1072,3 +1124,135 @@ class AgentsService:
             source=AgentSource.LOCAL,
             created_at=r.get("created_at"),
         )
+
+    def _coerce_agent_status(self, raw_status: str | None) -> AgentStatus:
+        """Parse persisted lifecycle state, falling back to pending PR."""
+        if not raw_status:
+            return AgentStatus.PENDING_PR
+
+        try:
+            return AgentStatus(raw_status)
+        except ValueError:
+            logger.warning(
+                "Unknown agent lifecycle status '%s'; defaulting to pending_pr", raw_status
+            )
+            return AgentStatus.PENDING_PR
+
+    async def _cleanup_resolved_pending_agents(
+        self,
+        *,
+        project_id: str,
+        repo_agents: list[Agent],
+    ) -> None:
+        """Remove local pending rows once main reflects the intended repo state."""
+        local_agents = await self._list_local_agents(project_id=project_id)
+        repo_slugs = {agent.slug for agent in repo_agents}
+        deleted_ids: list[str] = []
+
+        for agent in local_agents:
+            if agent.status == AgentStatus.PENDING_PR and agent.slug in repo_slugs:
+                deleted_ids.append(agent.id)
+            elif agent.status == AgentStatus.PENDING_DELETION and agent.slug not in repo_slugs:
+                deleted_ids.append(agent.id)
+
+        if deleted_ids:
+            await self._db.executemany(
+                "DELETE FROM agent_configs WHERE id = ?",
+                [(agent_id,) for agent_id in deleted_ids],
+            )
+            await self._db.commit()
+
+    async def _resolve_listed_agent(
+        self,
+        *,
+        project_id: str,
+        owner: str,
+        repo: str,
+        access_token: str,
+        agent_id: str,
+    ) -> Agent | None:
+        """Resolve an agent from the merged visible list by id or slug."""
+        local_agent = await self._resolve_agent(project_id, agent_id)
+        if local_agent:
+            return local_agent
+
+        visible_agents = await self.list_agents(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+        )
+        for agent in visible_agents:
+            if agent.id == agent_id or agent.slug == agent_id:
+                return agent
+
+        return None
+
+    async def _mark_agent_pending_deletion(
+        self,
+        *,
+        project_id: str,
+        owner: str,
+        repo: str,
+        github_user_id: str,
+        agent: Agent,
+        pr_number: int | None,
+        issue_number: int | None,
+        branch_name: str,
+    ) -> None:
+        """Persist deletion state so repo-backed agents do not reappear after delete."""
+        existing_local_agent = await self._resolve_agent(project_id, agent.slug)
+        tools_json = json.dumps(agent.tools)
+        now = utcnow().isoformat()
+
+        if existing_local_agent and not existing_local_agent.id.startswith("repo:"):
+            await self._db.execute(
+                """UPDATE agent_configs
+                   SET name = ?, description = ?, system_prompt = ?, status_column = ?,
+                       tools = ?, owner = ?, repo = ?, created_by = ?, github_issue_number = ?,
+                       github_pr_number = ?, branch_name = ?, lifecycle_status = ?
+                   WHERE id = ?""",
+                (
+                    agent.name,
+                    agent.description,
+                    agent.system_prompt,
+                    agent.status_column or "",
+                    tools_json,
+                    owner,
+                    repo,
+                    github_user_id,
+                    issue_number,
+                    pr_number,
+                    branch_name,
+                    AgentStatus.PENDING_DELETION.value,
+                    existing_local_agent.id,
+                ),
+            )
+        else:
+            await self._db.execute(
+                """INSERT INTO agent_configs
+                   (id, name, slug, description, system_prompt, status_column,
+                    tools, project_id, owner, repo, created_by,
+                    github_issue_number, github_pr_number, branch_name, created_at, lifecycle_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    str(uuid.uuid4()),
+                    agent.name,
+                    agent.slug,
+                    agent.description,
+                    agent.system_prompt,
+                    agent.status_column or "",
+                    tools_json,
+                    project_id,
+                    owner,
+                    repo,
+                    github_user_id,
+                    issue_number,
+                    pr_number,
+                    branch_name,
+                    now,
+                    AgentStatus.PENDING_DELETION.value,
+                ),
+            )
+
+        await self._db.commit()

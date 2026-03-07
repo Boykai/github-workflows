@@ -59,7 +59,7 @@
     --popover: 36 44% 95%;
     --popover-foreground: 252 22% 15%;
 
-    --primary: 43 78% 58%;
+    --primary: 41 92% 42%;
     --primary-foreground: 248 27% 12%;
 
     --secondary: 28 30% 87%;
@@ -76,12 +76,12 @@
 
     --border: 34 22% 76%;
     --input: 34 26% 90%;
-    --ring: 43 78% 58%;
+    --ring: 41 92% 42%;
 
     --panel: 34 44% 94%;
     --panel-foreground: 252 22% 15%;
     --glow: 44 100% 85%;
-    --gold: 42 78% 56%;
+    --gold: 43 92% 46%;
     --night: 250 27% 17%;
 
     --radius: 1rem;
@@ -102,7 +102,7 @@
     --popover: 248 22% 9%;
     --popover-foreground: 38 45% 89%;
 
-    --primary: 43 74% 57%;
+    --primary: 43 88% 64%;
     --primary-foreground: 252 30% 8%;
 
     --secondary: 248 16% 18%;
@@ -119,12 +119,12 @@
 
     --border: 252 17% 24%;
     --input: 249 18% 15%;
-    --ring: 43 74% 57%;
+    --ring: 43 88% 64%;
 
     --panel: 249 19% 11%;
     --panel-foreground: 38 45% 89%;
     --glow: 44 88% 67%;
-    --gold: 42 74% 55%;
+    --gold: 43 90% 62%;
     --night: 253 30% 5%;
 
     --priority-p0: 0 72% 51%;
@@ -190,8 +190,66 @@
       linear-gradient(180deg, hsl(var(--background)) 0%, color-mix(in srgb, hsl(var(--background)) 92%, black) 100%);
   }
 
+  .section-aurora {
+    background:
+      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.16), transparent 18%),
+      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.12), transparent 20%),
+      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.1), transparent 28%),
+      linear-gradient(180deg, hsl(var(--panel)) 0%, color-mix(in srgb, hsl(var(--panel)) 86%, black) 100%);
+  }
+
+  .ritual-stage {
+    position: relative;
+    border: 1px solid hsl(var(--border) / 0.72);
+    background:
+      radial-gradient(circle at 12% 18%, hsl(var(--glow) / 0.1), transparent 16%),
+      radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.08), transparent 18%),
+      linear-gradient(180deg, hsl(var(--background) / 0.26) 0%, hsl(var(--background) / 0.18) 100%);
+    backdrop-filter: blur(14px);
+  }
+
+  .ritual-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12);
+  }
+
+  .moonwell {
+    background:
+      radial-gradient(circle at 50% 0%, hsl(var(--glow) / 0.12), transparent 55%),
+      linear-gradient(180deg, hsl(var(--background) / 0.6) 0%, hsl(var(--background) / 0.38) 100%);
+    backdrop-filter: blur(10px);
+  }
+
+  .constellation-grid {
+    position: relative;
+  }
+
+  .constellation-grid::before {
+    content: '';
+    position: absolute;
+    inset: -0.5rem 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.15) 16%, hsl(var(--border) / 0.28) 50%, transparent 100%);
+  }
+
   .golden-ring {
     box-shadow: 0 0 0 1px hsl(var(--gold) / 0.28), 0 24px 60px hsl(var(--night) / 0.28);
+  }
+
+  .orbit-divider {
+    position: relative;
+  }
+
+  .orbit-divider::after {
+    content: '';
+    position: absolute;
+    inset: auto 1rem 0.85rem 1rem;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.18) 18%, hsl(var(--border) / 0.4) 50%, transparent 100%);
   }
 
   .celestial-orbit {
