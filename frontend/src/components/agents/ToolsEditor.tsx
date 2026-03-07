@@ -56,7 +56,7 @@ export function ToolsEditor({ tools, onToolsChange, error, projectId }: ToolsEdi
         <ul className="flex flex-col gap-1">
           {tools.map((tool, index) => (
             <li
-              key={`${tool}-${index}`}
+              key={tool}
               className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1.5"
             >
               <span className="flex-1 truncate text-sm">{tool}</span>
