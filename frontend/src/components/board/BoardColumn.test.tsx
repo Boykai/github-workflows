@@ -27,6 +27,7 @@ function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
     assignees: [],
     linked_prs: [],
     sub_issues: [],
+    labels: [],
     ...overrides,
   };
 }
