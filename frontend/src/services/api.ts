@@ -55,12 +55,15 @@ import type {
   PipelineConfigUpdate,
   PipelineConfigListResponse,
   AIModel,
+  PresetSeedResult,
+  ProjectPipelineAssignment,
   McpToolConfig,
   McpToolConfigCreate,
   McpToolConfigListResponse,
   McpToolSyncResult,
   ToolChip,
   ToolDeleteResult,
+  FileUploadResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -314,6 +317,28 @@ export const chatApi = {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
     });
+  },
+
+  /**
+   * Upload a file for attachment to a future GitHub Issue.
+   */
+  async uploadFile(file: File): Promise<FileUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/chat/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new ApiError(response.status, { error: errorData.error || 'Upload failed' });
+    }
+
+    return response.json();
   },
 };
 
@@ -834,6 +859,10 @@ export const pipelinesApi = {
     return request<PipelineConfig>(`/pipelines/${projectId}/${pipelineId}`);
   },
 
+  listModels(): Promise<AIModel[]> {
+    return request<AIModel[]>('/pipelines/models/available');
+  },
+
   create(projectId: string, data: PipelineConfigCreate): Promise<PipelineConfig> {
     return request<PipelineConfig>(`/pipelines/${projectId}`, {
       method: 'POST',
@@ -851,6 +880,23 @@ export const pipelinesApi = {
   delete(projectId: string, pipelineId: string): Promise<{ success: boolean; deleted_id: string }> {
     return request<{ success: boolean; deleted_id: string }>(`/pipelines/${projectId}/${pipelineId}`, {
       method: 'DELETE',
+    });
+  },
+
+  seedPresets(projectId: string): Promise<PresetSeedResult> {
+    return request<PresetSeedResult>(`/pipelines/${projectId}/seed-presets`, {
+      method: 'POST',
+    });
+  },
+
+  getAssignment(projectId: string): Promise<ProjectPipelineAssignment> {
+    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`);
+  },
+
+  setAssignment(projectId: string, pipelineId: string): Promise<ProjectPipelineAssignment> {
+    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
+      method: 'PUT',
+      body: JSON.stringify({ pipeline_id: pipelineId }),
     });
   },
 };

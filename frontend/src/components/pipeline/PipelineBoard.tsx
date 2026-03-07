@@ -1,6 +1,7 @@
 /**
  * PipelineBoard — main board canvas rendering pipeline stages.
  * Supports drag-and-drop stage reordering via @dnd-kit.
+ * Includes pipeline-level model dropdown and inline validation.
  */
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
@@ -8,17 +9,24 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { Plus, Layers } from 'lucide-react';
 import { StageCard } from './StageCard';
-import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
+import { PipelineModelDropdown } from './PipelineModelDropdown';
+import type { PipelineStage, PipelineAgentNode, AvailableAgent, AIModel, PipelineModelOverride, PipelineValidationErrors } from '@/types';
 import type { DragEndEvent } from '@dnd-kit/core';
 
 interface PipelineBoardProps {
   columnCount: number;
   stages: PipelineStage[];
   availableAgents: AvailableAgent[];
+  availableModels: AIModel[];
   isEditMode: boolean;
   pipelineName: string;
+  projectId: string;
+  modelOverride: PipelineModelOverride;
+  validationErrors: PipelineValidationErrors;
   onStagesChange: (stages: PipelineStage[]) => void;
   onNameChange: (name: string) => void;
+  onModelOverrideChange: (override: PipelineModelOverride) => void;
+  onClearValidationError: (field: string) => void;
   onAddStage: () => void;
   onRemoveStage: (stageId: string) => void;
   onAddAgent: (stageId: string, agentSlug: string) => void;
@@ -31,10 +39,16 @@ export function PipelineBoard({
   columnCount,
   stages,
   availableAgents,
+  availableModels,
   isEditMode,
   pipelineName,
+  projectId,
+  modelOverride,
+  validationErrors,
   onStagesChange,
   onNameChange,
+  onModelOverrideChange,
+  onClearValidationError,
   onAddStage,
   onRemoveStage,
   onAddAgent,
@@ -66,10 +80,14 @@ export function PipelineBoard({
 
   const handleNameConfirm = useCallback(() => {
     const trimmed = editNameValue.trim();
-    if (trimmed) onNameChange(trimmed);
-    else setEditNameValue(pipelineName);
+    if (trimmed) {
+      onNameChange(trimmed);
+      onClearValidationError('name');
+    } else {
+      setEditNameValue(pipelineName);
+    }
     setIsEditingName(false);
-  }, [editNameValue, pipelineName, onNameChange]);
+  }, [editNameValue, pipelineName, onNameChange, onClearValidationError]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -94,20 +112,22 @@ export function PipelineBoard({
           </div>
         )}
 
-        {/* Pipeline name */}
+        {/* Pipeline name with validation */}
         <div>
           {isEditingName ? (
             <input
               ref={nameInputRef}
               type="text"
               value={editNameValue}
-              onChange={(e) => setEditNameValue(e.target.value)}
+              onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
               onBlur={handleNameConfirm}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNameConfirm();
                 if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
               }}
-              className="rounded-lg border border-primary/30 bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none"
+              className={`rounded-lg border bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none ${
+                validationErrors.name ? 'border-red-500' : 'border-primary/30'
+              }`}
               placeholder="Pipeline name"
               maxLength={100}
             />
@@ -115,13 +135,25 @@ export function PipelineBoard({
             <button
               type="button"
               onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
-              className="text-lg font-semibold text-foreground hover:text-primary transition-colors"
+              className={`text-lg font-semibold transition-colors ${
+                validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
+              }`}
               title="Click to rename"
             >
               {pipelineName || 'Untitled Pipeline'}
             </button>
           )}
+          {validationErrors.name && (
+            <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
+          )}
         </div>
+
+        {/* Pipeline-level model dropdown */}
+        <PipelineModelDropdown
+          models={availableModels}
+          currentOverride={modelOverride}
+          onModelChange={onModelOverrideChange}
+        />
 
         {/* Empty board CTA */}
         <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 p-8 text-center">
@@ -152,20 +184,22 @@ export function PipelineBoard({
         </div>
       )}
 
-      {/* Pipeline name */}
+      {/* Pipeline name with validation */}
       <div>
         {isEditingName ? (
           <input
             ref={nameInputRef}
             type="text"
             value={editNameValue}
-            onChange={(e) => setEditNameValue(e.target.value)}
+            onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
             onBlur={handleNameConfirm}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNameConfirm();
               if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
             }}
-            className="rounded-lg border border-primary/30 bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none"
+            className={`rounded-lg border bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none ${
+              validationErrors.name ? 'border-red-500' : 'border-primary/30'
+            }`}
             placeholder="Pipeline name"
             maxLength={100}
           />
@@ -173,13 +207,25 @@ export function PipelineBoard({
           <button
             type="button"
             onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
-            className="text-lg font-semibold text-foreground hover:text-primary transition-colors"
+            className={`text-lg font-semibold transition-colors ${
+              validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
+            }`}
             title="Click to rename"
           >
             {pipelineName || 'Untitled Pipeline'}
           </button>
         )}
+        {validationErrors.name && (
+          <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
+        )}
       </div>
+
+      {/* Pipeline-level model dropdown */}
+      <PipelineModelDropdown
+        models={availableModels}
+        currentOverride={modelOverride}
+        onModelChange={onModelOverrideChange}
+      />
 
       {/* Stage cards with drag-and-drop */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -191,6 +237,7 @@ export function PipelineBoard({
                 key={stage.id}
                 stage={stage}
                 availableAgents={availableAgents}
+                projectId={projectId}
                 onUpdate={(updated) => onUpdateStage(stage.id, updated)}
                 onRemove={() => onRemoveStage(stage.id)}
                 onAddAgent={(slug) => onAddAgent(stage.id, slug)}

@@ -489,25 +489,45 @@ async def list_agents(
         except ValidationError:
             logger.debug("Could not resolve repository for agent discovery")
 
+    agents_service = AgentsService(get_db())
+
     agents = await github_projects_service.list_available_agents(
         owner=resolved_owner or "",
         repo=resolved_repo or "",
         access_token=session.access_token,
     )
 
+    tools_counts: dict[str, int] = {}
+
     if resolved_owner and resolved_repo:
-        model_prefs = await AgentsService(get_db()).get_model_preferences(
-            session.selected_project_id
-        )
+        try:
+            discovered_agents = await agents_service.list_agents(
+                project_id=session.selected_project_id,
+                owner=resolved_owner,
+                repo=resolved_repo,
+                access_token=session.access_token,
+            )
+            tools_counts = {
+                discovered_agent.slug: len(discovered_agent.tools)
+                for discovered_agent in discovered_agents
+            }
+        except Exception:
+            logger.debug("Could not resolve tool counts for workflow agents")
+
+    if resolved_owner and resolved_repo:
+        model_prefs = await agents_service.get_model_preferences(session.selected_project_id)
         agents = [
             available_agent.model_copy(
                 update={
                     "default_model_id": model_prefs[available_agent.slug][0],
                     "default_model_name": model_prefs[available_agent.slug][1],
+                    "tools_count": tools_counts.get(available_agent.slug),
                 }
             )
             if available_agent.slug in model_prefs
-            else available_agent
+            else available_agent.model_copy(
+                update={"tools_count": tools_counts.get(available_agent.slug)}
+            )
             for available_agent in agents
         ]
 

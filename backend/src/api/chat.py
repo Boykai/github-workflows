@@ -2,10 +2,14 @@
 
 import asyncio
 import logging
+import tempfile
+from pathlib import Path
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from src.api.auth import get_session_dep
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
@@ -45,6 +49,25 @@ from src.utils import resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# ── File upload validation constants ─────────────────────────────────────
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_FILES_PER_MESSAGE = 5
+ALLOWED_IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+ALLOWED_DOC_TYPES = {".pdf", ".txt", ".md", ".csv", ".json", ".yaml", ".yml"}
+ALLOWED_ARCHIVE_TYPES = {".zip"}
+BLOCKED_TYPES = {".exe", ".sh", ".bat", ".cmd", ".js", ".py", ".rb"}
+ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES
+
+
+class FileUploadResponse(BaseModel):
+    """Response from file upload endpoint."""
+
+    filename: str
+    file_url: str
+    file_size: int
+    content_type: str
+
 
 # TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
 # using the chat_messages, chat_proposals, and chat_recommendations tables
@@ -191,7 +214,9 @@ async def send_message(
     from src.services.database import get_db
 
     session_key = str(session.session_id)
-    is_agent_command = chat_request.content.strip().lower().startswith("#agent")
+    is_agent_command = chat_request.content.strip().lower().startswith(
+        "/agent"
+    ) or chat_request.content.strip().lower().startswith("#agent")
     active_agent_session = get_active_session(session_key)
 
     if is_agent_command or active_agent_session:
@@ -301,6 +326,8 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "functional_requirements": recommendation.functional_requirements,
                     "technical_notes": recommendation.technical_notes,
                     "status": RecommendationStatus.PENDING.value,
+                    "ai_enhance": chat_request.ai_enhance,
+                    "file_urls": chat_request.file_urls,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -734,3 +761,75 @@ async def cancel_proposal(
     add_message(session.session_id, cancel_message)
 
     return {"message": "Proposal cancelled"}
+
+
+@router.post("/upload", response_model=FileUploadResponse)
+async def upload_file(
+    file: UploadFile = File(...),  # noqa: B008
+    session: UserSession = Depends(get_session_dep),  # noqa: B008
+) -> FileUploadResponse | JSONResponse:
+    """Upload a file for attachment to a future GitHub Issue.
+
+    Validates file size and type, then stores the file temporarily.
+    The returned URL can be embedded in issue bodies.
+    """
+    if not file.filename:
+        return JSONResponse(
+            status_code=400,
+            content={"filename": "", "error": "No file provided", "error_code": "no_file"},
+        )
+
+    # Validate file type
+    ext = Path(file.filename).suffix.lower()
+    if ext in BLOCKED_TYPES:
+        return JSONResponse(
+            status_code=415,
+            content={
+                "filename": file.filename,
+                "error": f"File type {ext} is not supported",
+                "error_code": "unsupported_type",
+            },
+        )
+    if ext not in ALLOWED_TYPES:
+        return JSONResponse(
+            status_code=415,
+            content={
+                "filename": file.filename,
+                "error": f"File type {ext} is not supported",
+                "error_code": "unsupported_type",
+            },
+        )
+
+    # Read file content and validate size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE_BYTES:
+        return JSONResponse(
+            status_code=413,
+            content={
+                "filename": file.filename,
+                "error": "File exceeds the 10 MB size limit",
+                "error_code": "file_too_large",
+            },
+        )
+
+    # For now, store files in a temporary upload directory and serve via a local URL.
+    # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
+    upload_id = str(uuid4())[:8]
+    safe_filename = f"{upload_id}-{file.filename}"
+
+    # Store in a temporary directory
+    upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / safe_filename
+
+    file_path.write_bytes(content)
+
+    # Generate a file URL — in production this would be a GitHub CDN URL
+    file_url = f"/api/v1/chat/uploads/{safe_filename}"
+
+    return FileUploadResponse(
+        filename=file.filename,
+        file_url=file_url,
+        file_size=len(content),
+        content_type=file.content_type or "application/octet-stream",
+    )

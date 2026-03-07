@@ -462,6 +462,9 @@ query($owner: String!, $name: String!, $number: Int!) {
             ... on User {
               login
             }
+            ... on Bot {
+              login
+            }
           }
         }
       }
@@ -473,6 +476,7 @@ query($owner: String!, $name: String!, $number: Int!) {
           state
           body
           createdAt
+          submittedAt
         }
       }
       changedFiles

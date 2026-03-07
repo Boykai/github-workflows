@@ -122,6 +122,69 @@ export interface ChatMessage {
 
 export interface ChatMessageRequest {
   content: string;
+  ai_enhance?: boolean;
+  file_urls?: string[];
+}
+
+// ============ Chat Enhancement Types ============
+
+/** State of a file pending upload or already uploaded */
+export interface FileAttachment {
+  id: string;
+  file: File;
+  filename: string;
+  fileSize: number;
+  contentType: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'error';
+  progress: number;
+  fileUrl: string | null;
+  error: string | null;
+}
+
+/** Voice input recording state */
+export interface VoiceInputState {
+  isSupported: boolean;
+  isRecording: boolean;
+  isProcessing: boolean;
+  interimTranscript: string;
+  finalTranscript: string;
+  error: string | null;
+}
+
+/** AI Enhance toggle state */
+export interface ChatPreferences {
+  aiEnhance: boolean;
+}
+
+/** File upload validation constants */
+export const FILE_VALIDATION = {
+  maxFileSize: 10 * 1024 * 1024, // 10 MB
+  maxFilesPerMessage: 5,
+  allowedImageTypes: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
+  allowedDocTypes: ['.pdf', '.txt', '.md', '.csv', '.json', '.yaml', '.yml'],
+  allowedArchiveTypes: ['.zip'],
+  blockedTypes: ['.exe', '.sh', '.bat', '.cmd', '.js', '.py', '.rb'],
+} as const;
+
+export const ALLOWED_TYPES = [
+  ...FILE_VALIDATION.allowedImageTypes,
+  ...FILE_VALIDATION.allowedDocTypes,
+  ...FILE_VALIDATION.allowedArchiveTypes,
+];
+
+/** File upload response from backend */
+export interface FileUploadResponse {
+  filename: string;
+  file_url: string;
+  file_size: number;
+  content_type: string;
+}
+
+/** File upload error response from backend */
+export interface FileUploadError {
+  filename: string;
+  error: string;
+  error_code: string;
 }
 
 export interface ChatMessagesResponse {
@@ -251,6 +314,7 @@ export interface AvailableAgent {
   avatar_url?: string | null;
   default_model_id?: string;
   default_model_name?: string;
+  tools_count?: number | null;
   source: AgentSource;
 }
 
@@ -852,6 +916,8 @@ export interface PipelineAgentNode {
   agent_display_name: string;
   model_id: string;
   model_name: string;
+  tool_ids: string[];
+  tool_count: number;
   config: Record<string, unknown>;
 }
 
@@ -868,6 +934,8 @@ export interface PipelineConfig {
   name: string;
   description: string;
   stages: PipelineStage[];
+  is_preset: boolean;
+  preset_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -878,6 +946,10 @@ export interface PipelineConfigSummary {
   description: string;
   stage_count: number;
   agent_count: number;
+  total_tool_count: number;
+  is_preset: boolean;
+  preset_id: string;
+  stages: PipelineStage[];
   updated_at: string;
 }
 
@@ -913,6 +985,44 @@ export interface ModelGroup {
 }
 
 export type PipelineBoardState = 'empty' | 'creating' | 'editing';
+
+export interface PipelineModelOverride {
+  mode: 'auto' | 'specific' | 'mixed';
+  modelId: string;
+  modelName: string;
+}
+
+export interface PipelineValidationErrors {
+  name?: string;
+  stages?: string;
+  [key: string]: string | undefined;
+}
+
+export interface ProjectPipelineAssignment {
+  project_id: string;
+  pipeline_id: string;
+}
+
+export interface PresetPipelineDefinition {
+  presetId: string;
+  name: string;
+  description: string;
+  stages: PipelineStage[];
+}
+
+export interface FlowGraphNode {
+  id: string;
+  label: string;
+  agentCount: number;
+  x: number;
+  y: number;
+}
+
+export interface PresetSeedResult {
+  seeded: string[];
+  skipped: string[];
+  total: number;
+}
 
 // ============ MCP Tools Types (027-mcp-tools-page) ============
 

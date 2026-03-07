@@ -36,7 +36,7 @@ describe('themeHandler', () => {
     expect(result.success).toBe(false);
     expect(result.clearInput).toBe(false);
     expect(result.message).toContain('Missing value');
-    expect(result.message).toContain('#theme');
+    expect(result.message).toContain('/theme');
   });
 
   it('accepts all valid values: light, dark, system', () => {

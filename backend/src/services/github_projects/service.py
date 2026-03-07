@@ -64,6 +64,9 @@ _T = TypeVar("_T")
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Status names considered "Done"/"Closed" for sub-issue filtering (FR-007).
+_DONE_STATUS_NAMES: frozenset[str] = frozenset({"done", "closed", "completed"})
+
 # Request-scoped storage for rate limit info.  Each FastAPI async handler
 # runs in its own contextvars context, so this isolates rate limit data
 # per-request and prevents concurrent requests from overwriting each other.
@@ -261,6 +264,12 @@ class GitHubProjectsService:
         """
         normalised = (login or "").lower().removesuffix("[bot]")
         return normalised == "copilot-swe-agent"
+
+    @staticmethod
+    def is_copilot_reviewer_bot(login: str) -> bool:
+        """Check if a login belongs to the Copilot pull-request reviewer bot."""
+        normalised = (login or "").lower().removesuffix("[bot]")
+        return normalised == "copilot-pull-request-reviewer"
 
     def get_last_rate_limit(self) -> dict[str, int] | None:
         """Return the most recent rate limit info for the current request.
@@ -959,6 +968,24 @@ class GitHubProjectsService:
                     estimate_total=estimate_total,
                 )
             )
+
+        # ── Sub-issue filtering for Done/Closed columns ──
+        # Collect all sub-issue IDs across all parent items so we can
+        # exclude them from "Done"/"Closed"/"Completed" columns (FR-007).
+        all_sub_issue_ids: set[str] = set()
+        for board_item in all_items:
+            for si in board_item.sub_issues:
+                if si.id:
+                    all_sub_issue_ids.add(si.id)
+
+        if all_sub_issue_ids:
+            for col in columns:
+                if col.status.name.lower() in _DONE_STATUS_NAMES:
+                    original_count = len(col.items)
+                    col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
+                    if len(col.items) != original_count:
+                        col.item_count = len(col.items)
+                        col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
 
         logger.info(
             "Board data for project %s: %d items across %d columns",
@@ -3661,6 +3688,67 @@ class GitHubProjectsService:
             return cached  # type: ignore[return-value]
 
         try:
+            requested = await self._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers",
+            )
+            requested_users = requested.get("users", []) if isinstance(requested, dict) else []
+            copilot_still_requested = any(
+                isinstance(user, dict) and self.is_copilot_reviewer_bot(user.get("login", ""))
+                for user in requested_users
+            )
+            if copilot_still_requested:
+                logger.debug(
+                    "Copilot reviewer is still requested on PR #%d; review not complete yet",
+                    pr_number,
+                )
+                self._cycle_cache[cache_key] = False
+                return False
+
+            reviews_result = await self._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+                params={"per_page": 100},
+            )
+            reviews = reviews_result if isinstance(reviews_result, list) else []
+
+            for review in reviews:
+                user = review.get("user", {}) if isinstance(review, dict) else {}
+                state = (
+                    (review.get("state", "") if isinstance(review, dict) else "") or ""
+                ).upper()
+                body = (review.get("body", "") if isinstance(review, dict) else "") or ""
+                submitted_at = review.get("submitted_at") if isinstance(review, dict) else None
+                if (
+                    user
+                    and self.is_copilot_reviewer_bot(user.get("login", ""))
+                    and state != "PENDING"
+                    and submitted_at
+                    and body.strip()
+                ):
+                    logger.info(
+                        "Found submitted Copilot review on PR #%d via REST "
+                        "(state: %s, submitted_at: %s, body_len: %d)",
+                        pr_number,
+                        state,
+                        submitted_at,
+                        len(body),
+                    )
+                    self._cycle_cache[cache_key] = True
+                    return True
+
+            self._cycle_cache[cache_key] = False
+            return False
+        except Exception as e:
+            logger.warning(
+                "REST Copilot review status check failed for PR #%d; falling back to GraphQL: %s",
+                pr_number,
+                e,
+            )
+
+        try:
             data = await self._graphql(
                 access_token,
                 GET_PULL_REQUEST_QUERY,
@@ -3671,26 +3759,46 @@ class GitHubProjectsService:
             if not pr:
                 return False
 
+            review_requests = pr.get("reviewRequests", {}).get("nodes", [])
+            if any(
+                self.is_copilot_reviewer_bot(
+                    (node.get("requestedReviewer", {}) if isinstance(node, dict) else {}).get(
+                        "login", ""
+                    )
+                )
+                for node in review_requests
+            ):
+                logger.debug(
+                    "Copilot reviewer is still requested on PR #%d per GraphQL; review not complete yet",
+                    pr_number,
+                )
+                self._cycle_cache[cache_key] = False
+                return False
+
             reviews = pr.get("reviews", {}).get("nodes", [])
 
-            # Check if any review was submitted by copilot.
-            # Require a non-empty body to guard against transient API states
-            # where a review object appears before Copilot has finished
-            # generating its feedback.
+            # Check if any submitted review was posted by the dedicated
+            # Copilot pull-request reviewer bot. Require a submission
+            # timestamp and a non-empty body to guard against transient
+            # placeholder review objects.
             for review in reviews:
                 author = review.get("author", {})
                 state = review.get("state", "")
                 body = review.get("body", "")
+                submitted_at = review.get("submittedAt")
                 if (
                     author
-                    and self.is_copilot_author(author.get("login", ""))
+                    and self.is_copilot_reviewer_bot(author.get("login", ""))
                     and state != "PENDING"
+                    and submitted_at
                     and body.strip()
                 ):
                     logger.info(
-                        "Found existing Copilot review on PR #%d (state: %s, body_len: %d)",
+                        "Found submitted Copilot review on PR #%d via GraphQL "
+                        "(state: %s, submitted_at: %s, body_len: %d)",
                         pr_number,
                         state,
+                        submitted_at,
                         len(body),
                     )
                     self._cycle_cache[cache_key] = True
