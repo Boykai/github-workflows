@@ -51,18 +51,18 @@ export function ProjectSelector({
   return (
     <div
       ref={ref}
-      className="absolute bottom-full left-0 right-0 mb-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50"
+      className="celestial-panel absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
     >
-      <div className="px-3 py-2 border-b border-border">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projects</p>
+      <div className="border-b border-border/70 px-3 py-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Projects</p>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center p-4">
+        <div className="flex items-center justify-center p-5">
           <div className="w-5 h-5 border-2 border-border border-t-primary rounded-full animate-spin" />
         </div>
       ) : projects.length === 0 ? (
-        <div className="p-4 text-center">
+        <div className="p-5 text-center">
           <p className="text-sm text-muted-foreground">No projects available</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Connect a GitHub project to get started</p>
         </div>
@@ -75,11 +75,11 @@ export function ProjectSelector({
                 onSelectProject(project.project_id);
                 onClose();
               }}
-              className={`flex items-center gap-3 w-full px-3 py-2 text-sm text-left hover:bg-muted transition-colors ${
-                project.project_id === selectedProjectId ? 'bg-primary/5 text-primary' : 'text-foreground'
+              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/45 ${
+                project.project_id === selectedProjectId ? 'bg-primary/10 text-primary' : 'text-foreground'
               }`}
             >
-              <span className="w-6 h-6 rounded-md bg-primary/20 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                 {project.name.charAt(0).toUpperCase()}
               </span>
               <div className="flex flex-col min-w-0">

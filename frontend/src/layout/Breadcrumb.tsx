@@ -24,19 +24,19 @@ export function Breadcrumb() {
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm">
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
       {segments.map((segment, i) => (
         <span key={segment.path} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
+          {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-primary/60" />}
           {i < segments.length - 1 ? (
             <Link
               to={segment.path}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="transition-colors hover:text-primary"
             >
               {segment.label}
             </Link>
           ) : (
-            <span className="text-foreground font-medium">{segment.label}</span>
+            <span className="font-medium tracking-wide text-foreground">{segment.label}</span>
           )}
         </span>
       ))}

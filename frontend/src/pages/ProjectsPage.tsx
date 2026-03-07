@@ -101,15 +101,18 @@ export function ProjectsPage() {
   const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
   return (
-    <div className="flex flex-col h-full p-6 gap-4 overflow-hidden">
+    <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
       {/* Page Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Celestial Board</p>
+            <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Projects</h2>
+          </div>
 
           {/* Project Selector */}
           <select
-            className="flex h-9 w-[250px] items-center justify-between rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-[280px] items-center justify-between rounded-full border border-input bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             value={selectedProjectId ?? ''}
             onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
             disabled={projectsLoading}
@@ -158,10 +161,10 @@ export function ProjectsPage() {
 
       {/* Project info header (when a project is selected and has data) */}
       {selectedProjectId && boardData && (
-        <div className="flex items-center justify-between shrink-0 px-1">
+        <div className="celestial-panel flex items-center justify-between shrink-0 rounded-[1.25rem] border border-border/70 px-5 py-4">
           <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold">{boardData.project.name}</h3>
-            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-secondary text-secondary-foreground">
+            <h3 className="text-xl font-display font-medium tracking-[0.04em]">{boardData.project.name}</h3>
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-secondary-foreground">
               {boardData.project.owner_login}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -170,9 +173,9 @@ export function ProjectsPage() {
           </div>
           {/* Progress bar */}
           <div className="flex items-center gap-2">
-            <div className="w-32 h-2 rounded-full bg-muted overflow-hidden">
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-muted/80">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-primary shadow-sm transition-all duration-300"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -186,7 +189,7 @@ export function ProjectsPage() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted transition-colors"
+            className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
           >
             <Filter className="w-3.5 h-3.5" />
             Filter
@@ -194,14 +197,14 @@ export function ProjectsPage() {
           <div className="relative">
             <button
               onClick={() => setSortField(sortField ? null : 'priority')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-muted transition-colors"
+              className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
               Sort{sortField ? `: ${sortField}` : ''}
             </button>
           </div>
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border text-muted-foreground cursor-default"
+            className="cursor-default flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"
             title="Coming soon"
           >
             <Columns3 className="w-3.5 h-3.5" />
@@ -212,7 +215,7 @@ export function ProjectsPage() {
 
       {/* Rate limit / error banners */}
       {refreshError?.type === 'rate_limit' && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
           <span className="text-lg">⏳</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit reached</strong>
@@ -222,7 +225,7 @@ export function ProjectsPage() {
       )}
 
       {isRateLimitLow && !refreshError && rateLimitInfo && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>
@@ -232,7 +235,7 @@ export function ProjectsPage() {
       )}
 
       {refreshError && refreshError.type !== 'rate_limit' && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
@@ -242,7 +245,7 @@ export function ProjectsPage() {
       )}
 
       {projectsError && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
@@ -257,7 +260,7 @@ export function ProjectsPage() {
       )}
 
       {boardError && !boardLoading && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
@@ -274,7 +277,7 @@ export function ProjectsPage() {
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
           <div className="text-4xl mb-2">📋</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>
@@ -316,7 +319,7 @@ export function ProjectsPage() {
 
           <div className="flex flex-1 gap-6 overflow-hidden">
             {sortedBoardData.columns.every((col) => col.items.length === 0) ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+              <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
                 <div className="text-4xl mb-2">📭</div>
                 <h3 className="text-xl font-semibold">No items yet</h3>
                 <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>

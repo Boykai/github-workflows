@@ -83,7 +83,14 @@ export function AppLayout() {
   } = useWorkflow();
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-0 opacity-80">
+        <div className="celestial-orbit left-[18%] top-[-28%] h-[30rem] w-[30rem]" />
+        <div className="celestial-orbit bottom-[-22%] right-[-6%] h-[24rem] w-[24rem] border-primary/20" />
+        <div className="absolute left-[22%] top-10 h-3 w-3 rounded-full bg-primary/45 blur-[1px]" />
+        <div className="absolute bottom-20 right-[18%] h-2.5 w-2.5 rounded-full bg-primary/55" />
+      </div>
+
       <Sidebar
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
@@ -97,7 +104,7 @@ export function AppLayout() {
         projectsLoading={projectsLoading}
         onSelectProject={selectProject}
       />
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
@@ -107,7 +114,7 @@ export function AppLayout() {
           onMarkAllRead={markAllRead}
         />
         <SignalBannerBar />
-        <main className="flex-1 overflow-auto">
+        <main className="relative flex-1 overflow-auto px-2 pb-2">
           <Outlet />
         </main>
       </div>

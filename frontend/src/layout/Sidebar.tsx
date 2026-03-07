@@ -33,20 +33,32 @@ export function Sidebar({
   const navigate = useNavigate();
   return (
     <aside
-      className={`flex flex-col h-full bg-card border-r border-border transition-all duration-200 shrink-0 ${
+      className={`celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.16),transparent_70%)]" />
+      <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20" />
+
       {/* Brand */}
-      <div className="flex items-center justify-between px-4 py-4 border-b border-border">
+      <div className="relative flex items-center justify-between border-b border-border/70 px-4 py-4">
         {!isCollapsed && (
-          <span className="text-lg font-display font-bold tracking-tight text-primary">
-            Solune
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="celestial-sigil flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-lg text-primary golden-ring">
+              <span className="relative z-10">☾</span>
+            </span>
+            <div>
+              <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
+                Solune
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Sun & Moon</span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">Guided project orbit</span>
+            </div>
+          </div>
         )}
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+          className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-accent/70 hover:text-foreground"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
@@ -54,17 +66,17 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-1 px-2 py-3 flex-1">
+      <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
         {NAV_ROUTES.map((route) => (
           <NavLink
             key={route.path}
             to={route.path}
             end={route.path === '/'}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-primary/10 text-primary border-l-3 border-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
               } ${isCollapsed ? 'justify-center' : ''}`
             }
             title={isCollapsed ? route.label : undefined}
@@ -77,7 +89,7 @@ export function Sidebar({
         {/* Recent Interactions section */}
         {!isCollapsed && (
           <div className="mt-6">
-            <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">
               Recent Interactions
             </p>
             {recentInteractions.length > 0 ? (
@@ -85,7 +97,7 @@ export function Sidebar({
                 {recentInteractions.slice(0, 8).map((item) => (
                   <button
                     key={item.item_id}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors text-left w-full"
+                    className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
                     title={item.title}
                     onClick={() => navigate('/projects')}
                   >
@@ -104,21 +116,27 @@ export function Sidebar({
       </nav>
 
       {/* Project Selector (bottom) */}
-      <div className="border-t border-border px-2 py-3 relative">
+      <div className="relative border-t border-border/70 px-2 py-3">
+        {!isCollapsed && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
-          className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
+          className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/45 ${
             isCollapsed ? 'justify-center' : ''
           }`}
           title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}
         >
-          <span className="w-5 h-5 rounded-md bg-primary/20 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
             {selectedProject ? selectedProject.name.charAt(0).toUpperCase() : '?'}
           </span>
           {!isCollapsed && (
-            <span className="truncate text-foreground">
-              {selectedProject ? selectedProject.name : 'Select project'}
-            </span>
+            <div className="min-w-0 text-left">
+              <span className="block truncate text-sm text-foreground">
+                {selectedProject ? selectedProject.name : 'Select project'}
+              </span>
+              <span className="block truncate text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+                {selectedProject ? selectedProject.owner_login : 'Moonboard'}
+              </span>
+            </div>
           )}
         </button>
         {!isCollapsed && (

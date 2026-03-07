@@ -5,7 +5,11 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 
-export function LoginButton() {
+interface LoginButtonProps {
+  authenticatedDisplay?: 'full' | 'action-only';
+}
+
+export function LoginButton({ authenticatedDisplay = 'full' }: LoginButtonProps) {
   const { isAuthenticated, isLoading, user, login, logout } = useAuth();
 
   if (isLoading) {
@@ -17,6 +21,14 @@ export function LoginButton() {
   }
 
   if (isAuthenticated && user) {
+    if (authenticatedDisplay === 'action-only') {
+      return (
+        <Button onClick={logout} variant="outline" size="sm">
+          Logout
+        </Button>
+      );
+    }
+
     return (
       <div className="flex items-center gap-3">
         {user.github_avatar_url && (

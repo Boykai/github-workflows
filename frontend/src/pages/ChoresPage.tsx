@@ -18,10 +18,11 @@ export function ChoresPage() {
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
 
   return (
-    <div className="flex flex-col h-full p-6 gap-6 overflow-auto">
+    <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-auto">
       {/* Page Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Chores</h2>
+        <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Ritual Maintenance</p>
+        <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Chores</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Schedule automated tasks and manage project cleanup
         </p>
@@ -29,7 +30,7 @@ export function ChoresPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
           <div className="text-4xl mb-2">🧹</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the sidebar to manage its chores</p>

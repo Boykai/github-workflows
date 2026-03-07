@@ -8,13 +8,13 @@ export function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 p-8 text-center">
+    <div className="starfield flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
       <span className="text-6xl font-bold text-primary/30">404</span>
-      <h1 className="text-2xl font-bold tracking-tight">Page Not Found</h1>
-      <p className="text-muted-foreground">The page you're looking for doesn't exist.</p>
+      <h1 className="text-4xl font-display font-medium tracking-[0.06em]">Lost Between Sun & Moon</h1>
+      <p className="max-w-md text-muted-foreground">The page you’re looking for drifted out of orbit. Return home to rejoin the main constellation.</p>
       <button
         onClick={() => navigate('/')}
-        className="mt-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+        className="mt-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
       >
         Go Home
       </button>

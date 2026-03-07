@@ -30,9 +30,12 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen gap-4">
+      <div className="starfield flex h-screen flex-col items-center justify-center gap-4 bg-background">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary shadow-md">
+          ☾
+        </div>
         <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Aligning the workspace...</p>
       </div>
     );
   }

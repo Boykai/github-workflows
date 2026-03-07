@@ -32,25 +32,25 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
     <div ref={ref} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-accent/70 hover:text-foreground"
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-80 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+        <div className="celestial-panel absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
             <span className="text-sm font-semibold">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={onMarkAllRead}
-                className="text-xs text-primary hover:text-primary/80 transition-colors"
+                className="text-xs text-primary transition-colors hover:text-foreground"
               >
                 Mark all read
               </button>
@@ -58,15 +58,15 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
           </div>
           <div className="max-h-[320px] overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="py-8 text-center">
-                <Bell className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
+              <div className="py-10 text-center">
+                <Bell className="mx-auto mb-3 h-8 w-8 text-primary/35" />
                 <p className="text-sm text-muted-foreground">No notifications yet</p>
               </div>
             ) : (
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex items-start gap-3 px-4 py-3 border-b border-border last:border-0 text-sm ${
+                  className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm last:border-0 ${
                     n.read ? 'opacity-60' : ''
                   }`}
                 >
