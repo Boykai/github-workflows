@@ -55,6 +55,12 @@ import type {
   PipelineConfigUpdate,
   PipelineConfigListResponse,
   AIModel,
+  McpToolConfig,
+  McpToolConfigCreate,
+  McpToolConfigListResponse,
+  McpToolSyncResult,
+  ToolChip,
+  ToolDeleteResult,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -859,5 +865,52 @@ export const modelsApi = {
       name: model.name,
       provider: model.provider,
     }));
+  },
+};
+
+// ============ Tools API (027-mcp-tools-page) ============
+
+export const toolsApi = {
+  list(projectId: string): Promise<McpToolConfigListResponse> {
+    return request<McpToolConfigListResponse>(`/tools/${projectId}`);
+  },
+
+  get(projectId: string, toolId: string): Promise<McpToolConfig> {
+    return request<McpToolConfig>(`/tools/${projectId}/${toolId}`);
+  },
+
+  create(projectId: string, data: McpToolConfigCreate): Promise<McpToolConfig> {
+    return request<McpToolConfig>(`/tools/${projectId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  sync(projectId: string, toolId: string): Promise<McpToolSyncResult> {
+    return request<McpToolSyncResult>(`/tools/${projectId}/${toolId}/sync`, {
+      method: 'POST',
+    });
+  },
+
+  delete(projectId: string, toolId: string, confirm = false): Promise<ToolDeleteResult> {
+    const qs = confirm ? '?confirm=true' : '';
+    return request<ToolDeleteResult>(`/tools/${projectId}/${toolId}${qs}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============ Agent Tools API (027-mcp-tools-page) ============
+
+export const agentToolsApi = {
+  getTools(projectId: string, agentId: string): Promise<{ tools: ToolChip[] }> {
+    return request<{ tools: ToolChip[] }>(`/agents/${projectId}/${agentId}/tools`);
+  },
+
+  updateTools(projectId: string, agentId: string, toolIds: string[]): Promise<{ tools: ToolChip[] }> {
+    return request<{ tools: ToolChip[] }>(`/agents/${projectId}/${agentId}/tools`, {
+      method: 'PUT',
+      body: JSON.stringify({ tool_ids: toolIds }),
+    });
   },
 };

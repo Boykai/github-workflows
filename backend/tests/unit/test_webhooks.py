@@ -473,9 +473,12 @@ class TestGithubWebhookEndpoint:
             )
         assert resp.status_code == 401
 
-    async def test_webhook_ignores_unhandled_event(self, client):
-        with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+    async def test_webhook_ignores_unhandled_event(self, client, webhook_secret):
+        with (
+            patch("src.api.webhooks.get_settings") as mock_s,
+            patch("src.api.webhooks.verify_webhook_signature", return_value=True),
+        ):
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             resp = await client.post(
                 "/api/v1/webhooks/github",
                 json={"action": "ping"},
@@ -484,9 +487,12 @@ class TestGithubWebhookEndpoint:
         assert resp.status_code == 200
         assert resp.json()["status"] == "ignored"
 
-    async def test_webhook_deduplication(self, client):
-        with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+    async def test_webhook_deduplication(self, client, webhook_secret):
+        with (
+            patch("src.api.webhooks.get_settings") as mock_s,
+            patch("src.api.webhooks.verify_webhook_signature", return_value=True),
+        ):
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             # Clear processed IDs for test isolation
             from src.api.webhooks import _processed_delivery_ids
 
@@ -512,10 +518,13 @@ class TestGithubWebhookEndpoint:
         assert resp2.json()["status"] == "duplicate"
         _processed_delivery_ids.discard("dedup-test-id")
 
-    async def test_webhook_pull_request_routing(self, client):
+    async def test_webhook_pull_request_routing(self, client, webhook_secret):
         """Pull request events are routed to handle_pull_request_event."""
-        with patch("src.api.webhooks.get_settings") as mock_s:
-            mock_s.return_value = MagicMock(github_webhook_secret="")
+        with (
+            patch("src.api.webhooks.get_settings") as mock_s,
+            patch("src.api.webhooks.verify_webhook_signature", return_value=True),
+        ):
+            mock_s.return_value = MagicMock(github_webhook_secret=webhook_secret)
             resp = await client.post(
                 "/api/v1/webhooks/github",
                 json={
@@ -635,9 +644,12 @@ class TestWebhookResponseSanitization:
         X-GitHub-Event header value, as it is user-controlled input."""
         from src.api.webhooks import _processed_delivery_ids
 
-        with patch("src.api.webhooks.get_settings") as mock_settings:
+        with (
+            patch("src.api.webhooks.get_settings") as mock_settings,
+            patch("src.api.webhooks.verify_webhook_signature", return_value=True),
+        ):
             mock_settings.return_value = MagicMock(
-                github_webhook_secret=None,
+                github_webhook_secret="test-secret",
                 debug=True,
             )
             resp = await client.post(

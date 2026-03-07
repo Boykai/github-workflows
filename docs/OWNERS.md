@@ -14,6 +14,9 @@ Each doc file has a designated owner responsible for keeping it accurate. Owners
 | `docs/testing.md` | QA / full-stack lead | Test commands, coverage targets, Playwright setup, CI behavior |
 | `docs/troubleshooting.md` | Rotating (whoever fixed the bug documents the fix) | Common errors and resolutions — remove fixed issues, add new ones |
 | `docs/project-structure.md` | Full-stack lead | Directory layout — update after any structural refactor |
+| `docs/checklists/weekly-sweep.md` | Rotating dev | Weekly staleness sweep checklist — API, config, setup accuracy |
+| `docs/checklists/monthly-review.md` | Tech lead | Monthly full documentation review checklist |
+| `docs/checklists/quarterly-audit.md` | Tech lead | Quarterly architecture audit checklist |
 | `docs/decisions/` | Tech lead | ADRs — one per significant architectural decision |
 | `frontend/docs/findings-log.md` | Frontend lead | Component findings and decisions log |
 

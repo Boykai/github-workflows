@@ -55,3 +55,12 @@ repos:
         files: ^backend/.*\.py$
         pass_filenames: false
         stages: [pre-push]  # Run tests only on push, not every commit
+
+  # Documentation hooks
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.48.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown (markdownlint)
+        args: [--config, .markdownlint.json]
+        files: (^docs/.*\.md$|^[^/]*\.md$)

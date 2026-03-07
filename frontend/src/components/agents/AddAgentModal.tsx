@@ -8,6 +8,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
+import { useToolsList } from '@/hooks/useTools';
+import { ToolChips } from '@/components/tools/ToolChips';
+import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { AgentConfig } from '@/services/api';
 
 interface AddAgentModalProps {
@@ -27,9 +30,12 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   const [aiEnhance, setAiEnhance] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successPrUrl, setSuccessPrUrl] = useState<string | null>(null);
+  const [selectedToolIds, setSelectedToolIds] = useState<string[]>([]);
+  const [showToolSelector, setShowToolSelector] = useState(false);
 
   const createMutation = useCreateAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
+  const { tools: availableTools } = useToolsList(projectId);
 
   const resetAndClose = useCallback(() => {
     setName('');
@@ -37,6 +43,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     setAiEnhance(true);
     setError(null);
     setSuccessPrUrl(null);
+    setSelectedToolIds([]);
     onClose();
   }, [onClose]);
 
@@ -45,6 +52,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     if (isOpen && editAgent) {
       setName(editAgent.name);
       setSystemPrompt(editAgent.system_prompt || '');
+      setSelectedToolIds(editAgent.tools ?? []);
     }
   }, [isOpen, editAgent]);
 
@@ -82,14 +90,15 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
           data: {
             name: trimmedName,
             system_prompt: trimmedPrompt,
+            tools: selectedToolIds,
           },
         });
         setSuccessPrUrl(result.pr_url);
       } else {
-        // AI Enhance generates description, tools, and enhanced prompt
         const result = await createMutation.mutateAsync({
           name: trimmedName,
           system_prompt: trimmedPrompt,
+          tools: selectedToolIds,
           raw: !aiEnhance,
         });
         setSuccessPrUrl(result.pr_url);
@@ -174,6 +183,19 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             />
           </div>
 
+          {/* Add Tools */}
+          <div>
+            <span className="block text-sm font-medium mb-1">MCP Tools</span>
+            <ToolChips
+              tools={selectedToolIds.map((id) => {
+                const t = availableTools.find((tool) => tool.id === id);
+                return { id, name: t?.name ?? id, description: t?.description ?? '' };
+              })}
+              onRemove={(id) => setSelectedToolIds((prev) => prev.filter((tid) => tid !== id))}
+              onAddClick={() => setShowToolSelector(true)}
+            />
+          </div>
+
           {/* Raw content toggle */}
           {!isEditMode && (
             <div className="flex items-center gap-2">
@@ -236,6 +258,15 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             </button>
           </div>
         </form>
+
+        {/* Tool Selector Modal */}
+        <ToolSelectorModal
+          isOpen={showToolSelector}
+          onClose={() => setShowToolSelector(false)}
+          onConfirm={(ids) => setSelectedToolIds(ids)}
+          initialSelectedIds={selectedToolIds}
+          projectId={projectId}
+        />
       </div>
     </div>
   );

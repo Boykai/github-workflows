@@ -92,26 +92,28 @@ class TestAuthEndpoints:
         assert response.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_auth_session_endpoint_requires_token(self, client):
-        """Session endpoint should require session_token parameter."""
-        response = await client.post("/api/v1/auth/session")
+    async def test_dev_login_requires_token(self, client):
+        """Dev-login endpoint should require github_token in body."""
+        response = await client.post("/api/v1/auth/dev-login", json={})
         assert response.status_code == 422  # Validation error
 
     @pytest.mark.asyncio
-    async def test_auth_session_endpoint_rejects_invalid_token(self, client):
-        """Session endpoint should reject invalid token."""
+    async def test_dev_login_rejects_invalid_token(self, client):
+        """Dev-login endpoint should reject invalid token."""
         with patch.object(
-            github_auth_service, "get_session", new_callable=AsyncMock, return_value=None
+            github_auth_service,
+            "create_session_from_token",
+            new_callable=AsyncMock,
+            side_effect=Exception("Authentication failed"),
         ):
             response = await client.post(
-                "/api/v1/auth/session", params={"session_token": "invalid_token"}
+                "/api/v1/auth/dev-login", json={"github_token": "invalid_token"}
             )
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_auth_session_endpoint_accepts_valid_token(self, client):
-        """Session endpoint should accept valid token and set cookie."""
-        # Create a test session
+    async def test_dev_login_accepts_valid_token(self, client):
+        """Dev-login endpoint should accept valid token and set cookie."""
         session = UserSession(
             github_user_id="12345",
             github_username="testuser",
@@ -121,13 +123,13 @@ class TestAuthEndpoints:
 
         with patch.object(
             github_auth_service,
-            "get_session",
+            "create_session_from_token",
             new_callable=AsyncMock,
             return_value=session,
         ):
             response = await client.post(
-                "/api/v1/auth/session",
-                params={"session_token": str(session.session_id)},
+                "/api/v1/auth/dev-login",
+                json={"github_token": "valid_test_token"},
             )
 
             assert response.status_code == 200

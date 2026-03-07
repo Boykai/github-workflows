@@ -913,3 +913,53 @@ export interface ModelGroup {
 }
 
 export type PipelineBoardState = 'empty' | 'creating' | 'editing';
+
+// ============ MCP Tools Types (027-mcp-tools-page) ============
+
+export type McpToolSyncStatus = 'synced' | 'pending' | 'error';
+
+export interface McpToolConfig {
+  id: string;
+  name: string;
+  description: string;
+  endpoint_url: string;
+  config_content: string;
+  sync_status: McpToolSyncStatus;
+  sync_error: string;
+  synced_at: string | null;
+  github_repo_target: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface McpToolConfigCreate {
+  name: string;
+  description: string;
+  config_content: string;
+  github_repo_target: string;
+}
+
+export interface McpToolConfigListResponse {
+  tools: McpToolConfig[];
+  count: number;
+}
+
+export interface McpToolSyncResult {
+  id: string;
+  sync_status: McpToolSyncStatus;
+  sync_error: string;
+  synced_at: string | null;
+}
+
+export interface ToolChip {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface ToolDeleteResult {
+  success: boolean;
+  deleted_id: string | null;
+  affected_agents: ToolChip[];
+}

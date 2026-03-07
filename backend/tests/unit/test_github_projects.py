@@ -84,8 +84,7 @@ class TestGraphQLMethod:
                     extra_headers={"X-Test": "true"},
                 )
 
-            assert "GraphQL error" in str(exc_info.value)
-            assert "Field not found" in str(exc_info.value)
+            assert "GitHub API request failed" in str(exc_info.value)
 
 
 # =============================================================================
