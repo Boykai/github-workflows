@@ -133,7 +133,7 @@ class Settings(BaseSettings):
                 _logger.warning("ENCRYPTION_KEY not set — tokens stored in plaintext (debug mode)")
             if not self.github_webhook_secret:
                 _logger.warning(
-                    "GITHUB_WEBHOOK_SECRET not set — webhook verification disabled (debug mode)"
+                    "GITHUB_WEBHOOK_SECRET not set — incoming GitHub webhooks will be rejected until configured (debug mode)"
                 )
             if len(self.session_secret_key) < 64:
                 _logger.warning("SESSION_SECRET_KEY is shorter than 64 characters (debug mode)")

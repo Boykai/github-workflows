@@ -1,18 +1,16 @@
 /**
  * Custom hook for chat message history navigation.
  * Provides shell-like up/down arrow key navigation through previously sent messages.
- * Persists history across sessions via localStorage with TTL-based expiration.
+ *
+ * Security: Message content is kept only in memory (React state) and is never
+ * persisted to localStorage or any other browser storage.  This prevents
+ * sensitive chat content from surviving page reloads or being readable by XSS.
  */
 
 import { useState, useRef, useCallback } from 'react';
 
-/** TTL for persisted chat history entries (24 hours in milliseconds). */
-const HISTORY_TTL_MS = 24 * 60 * 60 * 1000;
-
 export interface UseChatHistoryOptions {
-  /** localStorage key for persistence. Default: 'chat-message-history' */
-  storageKey?: string;
-  /** Maximum number of messages to store. Default: 100 */
+  /** Maximum number of messages to store in memory. Default: 100 */
   maxHistory?: number;
 }
 
@@ -31,61 +29,15 @@ export interface UseChatHistoryReturn {
   history: string[];
   /** Select a specific message by index (for mobile popover) */
   selectFromHistory: (index: number, currentInput: string) => string | null;
-  /** Clear all chat history from localStorage */
+  /** Clear in-memory chat history and any legacy localStorage data */
   clearHistory: () => void;
 }
 
-/** Wrapper stored in localStorage with TTL. */
-interface PersistedHistory {
-  entries: string[];
-  expiresAt: number;
-}
-
-function loadHistory(storageKey: string): string[] {
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      // Support new TTL format
-      if (parsed && typeof parsed === 'object' && 'entries' in parsed && 'expiresAt' in parsed) {
-        const wrapper = parsed as PersistedHistory;
-        if (Date.now() > wrapper.expiresAt) {
-          // Expired — clear and return empty
-          localStorage.removeItem(storageKey);
-          return [];
-        }
-        if (Array.isArray(wrapper.entries)) {
-          return wrapper.entries.filter((item): item is string => typeof item === 'string');
-        }
-      }
-      // Legacy format: plain array
-      if (Array.isArray(parsed)) {
-        return parsed.filter((item): item is string => typeof item === 'string');
-      }
-    }
-  } catch {
-    // Graceful fallback
-  }
-  return [];
-}
-
-function saveHistory(storageKey: string, history: string[]): void {
-  try {
-    const wrapper: PersistedHistory = {
-      entries: history,
-      expiresAt: Date.now() + HISTORY_TTL_MS,
-    };
-    localStorage.setItem(storageKey, JSON.stringify(wrapper));
-  } catch {
-    // Silently fail — in-session history still works
-  }
-}
-
 /**
- * Clear all chat history from localStorage.
- * Called during logout to prevent sensitive data from persisting.
+ * Remove any legacy chat history that may have been persisted to localStorage
+ * by earlier versions of this hook.
  */
-export function clearChatHistory(storageKey: string = 'chat-message-history'): void {
+function clearLegacyStorage(storageKey: string): void {
   try {
     localStorage.removeItem(storageKey);
   } catch {
@@ -93,11 +45,18 @@ export function clearChatHistory(storageKey: string = 'chat-message-history'): v
   }
 }
 
+/**
+ * Clear chat history from localStorage.
+ * Called during logout to ensure no stale data remains.
+ */
+export function clearChatHistory(storageKey: string = 'chat-message-history'): void {
+  clearLegacyStorage(storageKey);
+}
+
 export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryReturn {
-  const storageKey = options?.storageKey ?? 'chat-message-history';
   const maxHistory = options?.maxHistory ?? 100;
 
-  const [history, setHistory] = useState<string[]>(() => loadHistory(storageKey));
+  const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const draftBuffer = useRef<string>('');
 
@@ -111,12 +70,11 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
         while (next.length > maxHistory) {
           next.shift();
         }
-        saveHistory(storageKey, next);
         return next;
       });
       setHistoryIndex(-1);
     },
-    [storageKey, maxHistory],
+    [maxHistory],
   );
 
   const resetNavigation = useCallback(() => {
@@ -177,11 +135,11 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
   );
 
   const clearHistory = useCallback(() => {
-    clearChatHistory(storageKey);
+    clearLegacyStorage('chat-message-history');
     setHistory([]);
     setHistoryIndex(-1);
     draftBuffer.current = '';
-  }, [storageKey]);
+  }, []);
 
   return {
     addToHistory,

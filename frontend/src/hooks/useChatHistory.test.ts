@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useChatHistory } from './useChatHistory';
+import { useChatHistory, clearChatHistory } from './useChatHistory';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -27,72 +27,32 @@ describe('useChatHistory', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with empty history when localStorage is empty', () => {
+    it('should initialize with empty history (in-memory only)', () => {
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual([]);
       expect(result.current.isNavigating).toBe(false);
     });
 
-    it('should load existing history from localStorage (legacy format)', () => {
+    it('should NOT read from localStorage on init', () => {
       localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 'msg2']));
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
-    });
-
-    it('should load existing history from localStorage (TTL format)', () => {
-      localStorageMock.setItem(
-        'chat-message-history',
-        JSON.stringify({ entries: ['msg1', 'msg2'], expiresAt: Date.now() + 86400000 }),
-      );
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
-    });
-
-    it('should return empty history when TTL has expired', () => {
-      localStorageMock.setItem(
-        'chat-message-history',
-        JSON.stringify({ entries: ['msg1', 'msg2'], expiresAt: Date.now() - 1000 }),
-      );
+      vi.clearAllMocks(); // reset mock call counts
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual([]);
-    });
-
-    it('should use custom storage key', () => {
-      localStorageMock.setItem('custom-key', JSON.stringify(['custom']));
-      const { result } = renderHook(() => useChatHistory({ storageKey: 'custom-key' }));
-      expect(result.current.history).toEqual(['custom']);
-    });
-
-    it('should gracefully handle corrupt localStorage data', () => {
-      localStorageMock.setItem('chat-message-history', 'invalid json');
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual([]);
-    });
-
-    it('should filter non-string values from localStorage', () => {
-      localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 42, null, 'msg2']));
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
+      expect(localStorageMock.getItem).not.toHaveBeenCalled();
     });
   });
 
   describe('addToHistory', () => {
-    it('should add a message to history', () => {
+    it('should add a message to in-memory history', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
       expect(result.current.history).toEqual(['hello']);
     });
 
-    it('should persist to localStorage with TTL wrapper', () => {
+    it('should NOT persist to localStorage', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
-      expect(localStorageMock.setItem).toHaveBeenCalled();
-      const [key, value] = localStorageMock.setItem.mock.calls[0];
-      expect(key).toBe('chat-message-history');
-      const parsed = JSON.parse(value);
-      expect(parsed.entries).toEqual(['hello']);
-      expect(typeof parsed.expiresAt).toBe('number');
-      expect(parsed.expiresAt).toBeGreaterThan(Date.now());
+      expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
 
     it('should store duplicate messages as separate entries', () => {
@@ -254,24 +214,8 @@ describe('useChatHistory', () => {
     });
   });
 
-  describe('localStorage error handling', () => {
-    it('should handle localStorage.getItem throwing', () => {
-      localStorageMock.getItem.mockImplementationOnce(() => { throw new Error('denied'); });
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual([]);
-    });
-
-    it('should handle localStorage.setItem throwing', () => {
-      localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('quota'); });
-      const { result } = renderHook(() => useChatHistory());
-      // Should not throw
-      act(() => result.current.addToHistory('hello'));
-      expect(result.current.history).toEqual(['hello']);
-    });
-  });
-
   describe('clearHistory', () => {
-    it('should clear all history from state and localStorage', () => {
+    it('should clear in-memory history and remove legacy localStorage data', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('msg1'));
       act(() => result.current.addToHistory('msg2'));
@@ -279,6 +223,15 @@ describe('useChatHistory', () => {
 
       act(() => result.current.clearHistory());
       expect(result.current.history).toEqual([]);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('chat-message-history');
+    });
+  });
+
+  describe('clearChatHistory (exported)', () => {
+    it('should remove legacy localStorage data', () => {
+      localStorageMock.setItem('chat-message-history', 'legacy-data');
+      vi.clearAllMocks();
+      clearChatHistory();
       expect(localStorageMock.removeItem).toHaveBeenCalledWith('chat-message-history');
     });
   });

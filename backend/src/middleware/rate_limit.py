@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_key(request: Request) -> str:
-    """Extract a per-user rate-limit key from the session cookie.
+    """Extract a per-user rate-limit key from request context.
 
-    Falls back to the remote IP address when no session cookie is present
-    (e.g. unauthenticated OAuth callback requests).
+    Uses the session cookie value as a rate-limit identifier when present,
+    and falls back to the remote IP address for unauthenticated requests
+    (e.g. OAuth callback).
     """
     session_id = request.cookies.get(SESSION_COOKIE_NAME)
     if session_id:
@@ -31,8 +32,8 @@ def get_user_key(request: Request) -> str:
 def _is_rate_limiting_enabled() -> bool:
     """Check if rate limiting should be active.
 
-    Disabled when the ``TESTING`` environment variable is set, or when
-    ``DEBUG`` mode is active, to avoid interfering with test suites.
+    Disabled when the ``TESTING`` environment variable is set to avoid
+    interfering with test suites.
     """
     import os
 

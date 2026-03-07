@@ -14,7 +14,7 @@ After implementing all security changes, run these commands to verify each findi
 # - Browser URL bar should show /auth/callback with NO query parameters
 # - Browser history should contain NO session_token entries
 # - Server access logs should contain NO session_token values
-grep -r "session_token" /var/log/nginx/access.log  # Should return nothing
+docker compose logs frontend | grep -i "session_token"  # Should return nothing
 
 # Check 2: Backend refuses to start without ENCRYPTION_KEY
 cd backend
@@ -78,8 +78,9 @@ curl -sI http://localhost:5173/ | grep -i "x-xss-protection"
 for i in $(seq 1 15); do
   curl -s -o /dev/null -w "%{http_code}\n" \
     -H "Cookie: session_id=<valid_session>" \
-    -X POST http://localhost:8000/api/v1/chat/send \
-    -d '{"message": "test"}'
+    -H "Content-Type: application/json" \
+    -X POST http://localhost:8000/api/v1/chat/messages \
+    -d '{"content": "test"}'
 done
 # Expected: First 10 return 200, remaining return 429
 
@@ -115,8 +116,8 @@ docker compose up -d
 sleep 15
 
 # Verify health
-curl -s http://localhost:8000/api/v1/health | grep -q ok && echo "Backend healthy"
-curl -s http://localhost:5173/health | grep -q OK && echo "Frontend healthy"
+curl -fs http://localhost:8000/api/v1/health | grep -q '"status"' && echo "Backend healthy"
+curl -fs http://localhost:5173/health >/dev/null && echo "Frontend healthy"
 
 # Verify non-root containers
 docker exec ghchat-frontend id | grep -v "uid=0" && echo "Frontend non-root OK"

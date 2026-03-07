@@ -30,9 +30,11 @@ async def init_database() -> aiosqlite.Connection:
     db_path = settings.database_path
 
     # Ensure directory exists with restricted permissions (0700)
+    # Skip for in-memory databases (e.g. :memory: used in tests)
     db_dir = Path(db_path).parent
-    if str(db_dir) != ".":
-        db_dir.mkdir(parents=True, exist_ok=True)
+    is_in_memory = db_path == ":memory:" or db_path.startswith("file::memory:")
+    if not is_in_memory and str(db_dir) != ".":
+        db_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         # Restrict directory permissions so only the application user can access
         try:
             db_dir.chmod(0o700)
@@ -46,10 +48,12 @@ async def init_database() -> aiosqlite.Connection:
     db.row_factory = aiosqlite.Row
 
     # Restrict database file permissions (0600) after creation
-    try:
-        Path(db_path).chmod(0o600)
-    except OSError:
-        logger.warning("Could not set database file permissions to 0600")
+    # Skip for in-memory databases which have no file on disk
+    if not is_in_memory:
+        try:
+            Path(db_path).chmod(0o600)
+        except OSError:
+            logger.warning("Could not set database file permissions to 0600")
 
     # Set pragmas (WAL mode, busy_timeout, foreign_keys)
     await db.execute("PRAGMA journal_mode=WAL;")
