@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { CleanupPreflightResponse } from '@/types';
 
 interface CleanUpConfirmModalProps {
@@ -35,9 +36,9 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
   const hasItemsToDelete = data.branches_to_delete.length > 0 || data.prs_to_close.length > 0 || (data.orphaned_issues ?? []).length > 0;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-background/80 backdrop-blur-sm"
       role="none"
       onClick={handleBackdropClick}
     >
@@ -185,6 +186,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

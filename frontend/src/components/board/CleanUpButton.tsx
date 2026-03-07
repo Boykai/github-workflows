@@ -10,10 +10,12 @@ import { useCleanup } from '@/hooks/useCleanup';
 import { CleanUpConfirmModal } from './CleanUpConfirmModal';
 import { CleanUpSummary } from './CleanUpSummary';
 import { CleanUpAuditHistory } from './CleanUpAuditHistory';
+import { Button } from '@/components/ui/button';
+import { Trash2, Loader2 } from 'lucide-react';
 
 interface CleanUpButtonProps {
-  owner: string;
-  repo: string;
+  owner?: string;
+  repo?: string;
   projectId: string;
 }
 
@@ -35,42 +37,39 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
   } = useCleanup();
 
   const handleClick = () => {
+    if (!owner || !repo) return;
     startPreflight(owner, repo, projectId);
   };
 
   const handleConfirm = () => {
+    if (!owner || !repo) return;
     confirmExecute(owner, repo, projectId);
   };
 
   const handleViewHistory = async () => {
     // Await the history fetch before transitioning to the audit
     // history view so users never see a misleading empty-state flash.
-    await loadHistory(owner, repo);
+    await loadHistory(owner!, repo!);
     showAuditHistory();
   };
 
   return (
     <>
-      {/* Clean Up Button with tooltip */}
-      <div className="relative group">
-        <button
-          onClick={handleClick}
-          disabled={state === 'loading' || state === 'executing'}
-          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board"
-        >
-          {state === 'loading' && (
-            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          )}
-          {state === 'executing' && (
-            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          )}
-          {state !== 'loading' && state !== 'executing' && (
-            <span>🧹</span>
-          )}
-          {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
-        </button>
-      </div>
+      {/* Clean Up Button */}
+      <Button
+        onClick={handleClick}
+        disabled={!owner || !repo || state === 'loading' || state === 'executing'}
+        variant="outline"
+        size="lg"
+        title={!owner || !repo ? 'Link a repository to this project to enable cleanup' : "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board"}
+      >
+        {(state === 'loading' || state === 'executing') ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Trash2 className="h-4 w-4" />
+        )}
+        {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
+      </Button>
 
       {/* Permission error inline display */}
       {permissionError && (
@@ -79,7 +78,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <div className="flex-1">
             <p>{permissionError}</p>
             <button
-              onClick={() => startPreflight(owner, repo, projectId)}
+              onClick={() => startPreflight(owner!, repo!, projectId)}
               className="text-xs underline mt-1"
             >
               Retry
@@ -95,7 +94,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <div className="flex-1">
             <p>{error}</p>
             <button
-              onClick={() => startPreflight(owner, repo, projectId)}
+              onClick={() => startPreflight(owner!, repo!, projectId)}
               className="text-xs underline mt-1"
             >
               Retry

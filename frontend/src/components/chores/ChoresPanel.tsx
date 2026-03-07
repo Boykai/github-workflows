@@ -105,10 +105,8 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {owner && repo && (
-            <CleanUpButton owner={owner} repo={repo} projectId={projectId} />
-          )}
+        <div className="flex flex-col items-stretch gap-2">
+          <CleanUpButton owner={owner} repo={repo} projectId={projectId} />
           <Button onClick={() => setShowAddModal(true)} size="lg">+ Add Chore</Button>
         </div>
       </div>
