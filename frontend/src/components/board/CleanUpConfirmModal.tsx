@@ -4,6 +4,8 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { STATUS_COLORS } from '@/constants';
+import { cn } from '@/lib/utils';
 import type { CleanupPreflightResponse } from '@/types';
 
 interface CleanUpConfirmModalProps {
@@ -122,12 +124,12 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {/* Items to preserve */}
         {data.branches_to_preserve.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+            <h3 className={cn('text-sm font-medium mb-2', STATUS_COLORS.success.text)}>
               🛡️ Branches to Preserve ({data.branches_to_preserve.length})
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => (
-                <li key={branch.name} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li key={branch.name} className={cn('flex items-center gap-2 px-2 py-1 rounded', STATUS_COLORS.success.bg)}>
                   <span className="font-mono text-xs">{branch.name}</span>
                   {branch.preservation_reason && (
                     <span className="text-xs text-muted-foreground">— {branch.preservation_reason}</span>
@@ -140,12 +142,12 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
         {data.prs_to_preserve.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+            <h3 className={cn('text-sm font-medium mb-2', STATUS_COLORS.success.text)}>
               🛡️ Pull Requests to Preserve ({data.prs_to_preserve.length})
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => (
-                <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li key={pr.number} className={cn('flex items-center gap-2 px-2 py-1 rounded', STATUS_COLORS.success.bg)}>
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>
                   {pr.preservation_reason && (

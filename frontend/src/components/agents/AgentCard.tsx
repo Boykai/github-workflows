@@ -5,6 +5,8 @@
 
 import type { AgentConfig, AgentStatus } from '@/services/api';
 import { useDeleteAgent } from '@/hooks/useAgents';
+import { STATUS_COLORS } from '@/constants';
+import { cn } from '@/lib/utils';
 
 interface AgentCardProps {
   agent: AgentConfig;
@@ -15,7 +17,7 @@ interface AgentCardProps {
 const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = {
   active: {
     label: 'Active',
-    className: 'bg-green-100/80 text-green-800 dark:bg-green-900/40 dark:text-green-400',
+    className: cn(STATUS_COLORS.success.bg, STATUS_COLORS.success.text),
   },
   pending_pr: {
     label: 'Pending PR',
@@ -47,7 +49,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
         <h4 className="text-sm font-medium text-foreground truncate" title={agent.name}>
           {agent.name}
         </h4>
-        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}>
+        <span className={cn('px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0', badge.className)}>
           {badge.label}
         </span>
       </div>
@@ -99,7 +101,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
 
       {/* Delete success feedback */}
       {deleteMutation.isSuccess && deleteMutation.data && (
-        <div className="text-[10px] text-green-700 dark:text-green-400">
+        <div className={cn('text-[10px]', STATUS_COLORS.success.text)}>
           ✓ Deletion PR #{deleteMutation.data.pr_number} opened
         </div>
       )}

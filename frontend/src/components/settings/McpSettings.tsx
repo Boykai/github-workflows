@@ -10,7 +10,8 @@ import { useState, useCallback } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useMcpSettings } from '@/hooks/useMcpSettings';
 import { authApi, ApiError } from '@/services/api';
-import { TOAST_SUCCESS_MS } from '@/constants';
+import { TOAST_SUCCESS_MS, STATUS_COLORS } from '@/constants';
+import { cn } from '@/lib/utils';
 import type { McpConfiguration } from '@/types';
 
 // ── Validation Helpers ──
@@ -28,8 +29,8 @@ function isValidUrl(url: string): boolean {
 
 function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
-      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium', STATUS_COLORS.success.bg, STATUS_COLORS.success.text)}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', STATUS_COLORS.success.dot)} />
       Active
     </span>
   ) : (
@@ -207,10 +208,12 @@ function AddMcpForm({
           }}
           placeholder="My MCP Server"
           maxLength={100}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
-            placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
-            ${nameError ? 'border-destructive' : 'border-border'}`}
+          className={cn(
+            'px-3 py-2 text-sm rounded-md border bg-background text-foreground',
+            'placeholder:text-muted-foreground/50',
+            'focus:outline-none focus:ring-2 focus:ring-primary',
+            nameError ? 'border-destructive' : 'border-border',
+          )}
           disabled={isCreating}
         />
         {nameError && (
@@ -232,10 +235,12 @@ function AddMcpForm({
           }}
           placeholder="https://example.com/mcp"
           maxLength={2048}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
-            placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
-            ${urlError ? 'border-destructive' : 'border-border'}`}
+          className={cn(
+            'px-3 py-2 text-sm rounded-md border bg-background text-foreground',
+            'placeholder:text-muted-foreground/50',
+            'focus:outline-none focus:ring-2 focus:ring-primary',
+            urlError ? 'border-destructive' : 'border-border',
+          )}
           disabled={isCreating}
         />
         {urlError && (
@@ -351,8 +356,8 @@ export function McpSettings() {
         description="Manage Model Context Protocol servers for your GitHub agents."
         hideSave
       >
-        <div className="flex flex-col gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-4">
-          <p className="text-sm text-yellow-700 dark:text-yellow-300">
+        <div className={cn('flex flex-col gap-3 rounded-md border p-4', STATUS_COLORS.warning.border, STATUS_COLORS.warning.bg)}>
+          <p className={cn('text-sm', STATUS_COLORS.warning.text)}>
             Your session has expired. Please sign in again.
           </p>
           <button
@@ -411,8 +416,8 @@ export function McpSettings() {
     >
       {/* Success Message */}
       {successMessage && (
-        <div className="rounded-md border border-green-500/30 bg-green-500/10 p-3">
-          <p className="text-sm text-green-700 dark:text-green-400">{successMessage}</p>
+        <div className={cn('rounded-md border p-3', STATUS_COLORS.success.border, STATUS_COLORS.success.bg)}>
+          <p className={cn('text-sm', STATUS_COLORS.success.text)}>{successMessage}</p>
         </div>
       )}
 
