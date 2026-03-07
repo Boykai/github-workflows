@@ -59,7 +59,10 @@ class ToolsService:
 
         mcp_servers = data.get("mcpServers")
         if not isinstance(mcp_servers, dict) or len(mcp_servers) == 0:
-            return False, "Configuration must contain a 'mcpServers' object with at least one server entry"
+            return (
+                False,
+                "Configuration must contain a 'mcpServers' object with at least one server entry",
+            )
 
         for server_name, server_config in mcp_servers.items():
             if not isinstance(server_config, dict):
@@ -226,9 +229,23 @@ class ToolsService:
 
         logger.info("Created MCP tool %s for project %s", tool_id, project_id)
 
+        # Use the stored github_repo_target if it specifies a different owner/repo.
+        sync_owner, sync_repo = owner, repo
+        if github_repo_target and "/" in github_repo_target:
+            target_owner, target_repo = github_repo_target.split("/", 1)
+            target_owner = target_owner.strip()
+            target_repo = target_repo.strip()
+            if target_owner and target_repo:
+                sync_owner, sync_repo = target_owner, target_repo
+
         # Trigger sync
         sync_result = await self.sync_tool_to_github(
-            tool_id, project_id, github_user_id, owner, repo, access_token
+            tool_id,
+            project_id,
+            github_user_id,
+            sync_owner,
+            sync_repo,
+            access_token,
         )
 
         return McpToolConfigResponse(
@@ -456,8 +473,19 @@ class ToolsService:
             for row in rows
         ]
 
-    async def get_agent_tools(self, agent_id: str) -> AgentToolsResponse:
-        """Get MCP tools assigned to an agent."""
+    async def get_agent_tools(
+        self, agent_id: str, project_id: str, github_user_id: str
+    ) -> AgentToolsResponse:
+        """Get MCP tools assigned to an agent, scoped by project ownership."""
+        # Verify agent belongs to this project and user
+        cursor = await self.db.execute(
+            "SELECT id FROM agent_configs "
+            "WHERE id = ? AND project_id = ? AND created_by = ?",
+            (agent_id, project_id, github_user_id),
+        )
+        if not await cursor.fetchone():
+            return AgentToolsResponse(tools=[])
+
         cursor = await self.db.execute(
             "SELECT mc.id, mc.name, mc.description "
             "FROM agent_tool_associations ata "
@@ -467,7 +495,9 @@ class ToolsService:
         )
         rows = await cursor.fetchall()
         tools = [
-            AgentToolInfo(id=row["id"], name=row["name"], description=row["description"])
+            AgentToolInfo(
+                id=row["id"], name=row["name"], description=row["description"]
+            )
             for row in rows
         ]
         return AgentToolsResponse(tools=tools)
@@ -476,6 +506,15 @@ class ToolsService:
         self, agent_id: str, tool_ids: list[str], project_id: str, github_user_id: str
     ) -> AgentToolsResponse:
         """Set the MCP tools for an agent (replace all)."""
+        # Verify agent belongs to this project and user
+        cursor = await self.db.execute(
+            "SELECT id FROM agent_configs "
+            "WHERE id = ? AND project_id = ? AND created_by = ?",
+            (agent_id, project_id, github_user_id),
+        )
+        if not await cursor.fetchone():
+            raise ValueError(f"Agent {agent_id} not found in this project")
+
         # Validate all tool IDs exist
         if tool_ids:
             placeholders = ",".join("?" for _ in tool_ids)
@@ -510,7 +549,7 @@ class ToolsService:
         )
         await self.db.commit()
 
-        return await self.get_agent_tools(agent_id)
+        return await self.get_agent_tools(agent_id, project_id, github_user_id)
 
 
 class DuplicateToolNameError(Exception):

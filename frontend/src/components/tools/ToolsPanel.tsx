@@ -48,16 +48,10 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   });
 
   const handleDelete = async (toolId: string) => {
-    // First check for affected agents
+    // First check for affected agents; backend deletes immediately when none are affected.
     const result = await deleteTool({ toolId, confirm: false });
     if (!result.success && result.affected_agents.length > 0) {
       setDeleteConfirmId(toolId);
-    } else if (!result.success) {
-      // No affected agents but need confirmation
-      const confirmed = window.confirm('Are you sure you want to delete this MCP tool?');
-      if (confirmed) {
-        await deleteTool({ toolId, confirm: true });
-      }
     }
   };
 

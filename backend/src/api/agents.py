@@ -20,6 +20,7 @@ from src.models.agents import (
     AgentPendingCleanupResult,
     AgentUpdate,
 )
+from src.models.tools import AgentToolsResponse, AgentToolsUpdate
 from src.models.user import UserSession
 from src.services.agents.service import AgentsService
 from src.services.database import get_db
@@ -277,44 +278,47 @@ async def agent_chat(
 
 @router.get(
     "/{project_id}/{agent_id}/tools",
+    response_model=AgentToolsResponse,
     dependencies=[Depends(verify_project_access)],
 )
 async def get_agent_tools(
     project_id: str,
     agent_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> dict:
+) -> AgentToolsResponse:
     """List MCP tools assigned to a specific agent."""
     from src.services.tools.service import ToolsService
 
     service = ToolsService(get_db())
-    result = await service.get_agent_tools(agent_id)
-    return result.model_dump()
+    return await service.get_agent_tools(
+        agent_id=agent_id,
+        project_id=project_id,
+        github_user_id=session.github_user_id,
+    )
 
 
 @router.put(
     "/{project_id}/{agent_id}/tools",
+    response_model=AgentToolsResponse,
     dependencies=[Depends(verify_project_access)],
 )
 async def update_agent_tools(
     project_id: str,
     agent_id: str,
-    body: dict,
+    body: AgentToolsUpdate,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> dict:
+) -> AgentToolsResponse:
     """Set the MCP tools for an agent (replace all)."""
     from src.services.tools.service import ToolsService
 
-    tool_ids = body.get("tool_ids", [])
     service = ToolsService(get_db())
 
     try:
-        result = await service.update_agent_tools(
+        return await service.update_agent_tools(
             agent_id=agent_id,
-            tool_ids=tool_ids,
+            tool_ids=body.tool_ids,
             project_id=project_id,
             github_user_id=session.github_user_id,
         )
-        return result.model_dump()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

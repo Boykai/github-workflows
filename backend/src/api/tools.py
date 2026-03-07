@@ -45,7 +45,8 @@ async def list_tools(
     """List all MCP tool configurations for a project."""
     service = _get_service()
     return await service.list_tools(
-        project_id=project_id, github_user_id=session.github_user_id
+        project_id=project_id,
+        github_user_id=session.github_user_id,
     )
 
 
@@ -69,7 +70,10 @@ async def create_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Cannot resolve repository: {exc}") from exc
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot resolve repository: {exc}",
+        ) from exc
 
     try:
         return await service.create_tool(
@@ -102,7 +106,9 @@ async def get_tool(
     """Get a single MCP tool configuration."""
     service = _get_service()
     tool = await service.get_tool(
-        project_id=project_id, tool_id=tool_id, github_user_id=session.github_user_id
+        project_id=project_id,
+        tool_id=tool_id,
+        github_user_id=session.github_user_id,
     )
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -126,7 +132,9 @@ async def sync_tool(
     service = _get_service()
 
     tool = await service.get_tool(
-        project_id=project_id, tool_id=tool_id, github_user_id=session.github_user_id
+        project_id=project_id,
+        tool_id=tool_id,
+        github_user_id=session.github_user_id,
     )
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -134,7 +142,10 @@ async def sync_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Cannot resolve repository: {exc}") from exc
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot resolve repository: {exc}",
+        ) from exc
 
     return await service.sync_tool_to_github(
         tool_id=tool_id,
@@ -164,7 +175,9 @@ async def delete_tool(
     service = _get_service()
 
     tool = await service.get_tool(
-        project_id=project_id, tool_id=tool_id, github_user_id=session.github_user_id
+        project_id=project_id,
+        tool_id=tool_id,
+        github_user_id=session.github_user_id,
     )
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
@@ -172,7 +185,10 @@ async def delete_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Cannot resolve repository: {exc}") from exc
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot resolve repository: {exc}",
+        ) from exc
 
     return await service.delete_tool(
         project_id=project_id,

@@ -920,15 +920,15 @@ export interface McpToolConfig {
   id: string;
   name: string;
   description: string;
-  endpointUrl: string;
-  configContent: string;
-  syncStatus: McpToolSyncStatus;
-  syncError: string;
-  syncedAt: string | null;
-  githubRepoTarget: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  endpoint_url: string;
+  config_content: string;
+  sync_status: McpToolSyncStatus;
+  sync_error: string;
+  synced_at: string | null;
+  github_repo_target: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface McpToolConfigCreate {
@@ -945,9 +945,9 @@ export interface McpToolConfigListResponse {
 
 export interface McpToolSyncResult {
   id: string;
-  syncStatus: McpToolSyncStatus;
-  syncError: string;
-  syncedAt: string | null;
+  sync_status: McpToolSyncStatus;
+  sync_error: string;
+  synced_at: string | null;
 }
 
 export interface ToolChip {
