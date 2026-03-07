@@ -17,6 +17,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ChatPopup } from '@/components/chat/ChatPopup';
+import { RateLimitProvider } from '@/context/RateLimitContext';
 
 /** Dismissible Signal conflict banner bar. */
 function SignalBannerBar() {
@@ -84,6 +85,7 @@ export function AppLayout() {
   } = useWorkflow();
 
   return (
+    <RateLimitProvider>
     <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <div className="celestial-orbit left-[18%] top-[-28%] h-[30rem] w-[30rem]" />
@@ -148,5 +150,6 @@ export function AppLayout() {
         onNewChat={clearChat}
       />
     </div>
+    </RateLimitProvider>
   );
 }
