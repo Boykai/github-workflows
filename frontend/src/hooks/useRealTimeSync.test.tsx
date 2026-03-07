@@ -551,6 +551,50 @@ describe('useRealTimeSync', () => {
       // Only the first initial_data should trigger invalidation (debounce)
       expect(invalidateSpy).toHaveBeenCalledTimes(1);
     });
+
+    it('should reset debounce when projectId changes so new project is not suppressed', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { rerender } = renderHook(
+        ({ projectId }) => useRealTimeSync(projectId),
+        {
+          wrapper: ({ children }) => (
+            <QueryClientProvider client={queryClient}>
+              {children}
+            </QueryClientProvider>
+          ),
+          initialProps: { projectId: 'PVT_123' as string | null },
+        },
+      );
+
+      // Open WS and send initial_data for the first project
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      invalidateSpy.mockClear();
+
+      // Switch project immediately (within 2s debounce window)
+      rerender({ projectId: 'PVT_456' });
+
+      // Open the new WS connection and send initial_data
+      const newWs = mockWebSocketInstances[mockWebSocketInstances.length - 1];
+      await act(async () => {
+        newWs?.simulateOpen();
+      });
+      await act(async () => {
+        newWs?.simulateMessage({ type: 'initial_data' });
+      });
+
+      // The new project's initial_data should NOT be suppressed by the old debounce
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
   });
 
   describe('polling stops on WebSocket connect (T033/SC-007)', () => {
