@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
-from src.dependencies import require_admin
+from src.dependencies import require_admin, verify_project_access
 from src.models.settings import (
     AIProvider,
     EffectiveProjectSettings,
@@ -90,7 +90,11 @@ async def update_global_settings_endpoint(
     return await get_global_settings(db)
 
 
-@router.get("/project/{project_id}", response_model=EffectiveProjectSettings)
+@router.get(
+    "/project/{project_id}",
+    response_model=EffectiveProjectSettings,
+    dependencies=[Depends(verify_project_access)],
+)
 async def get_project_settings_endpoint(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -100,7 +104,11 @@ async def get_project_settings_endpoint(
     return await get_effective_project_settings(db, session.github_user_id, project_id)
 
 
-@router.put("/project/{project_id}", response_model=EffectiveProjectSettings)
+@router.put(
+    "/project/{project_id}",
+    response_model=EffectiveProjectSettings,
+    dependencies=[Depends(verify_project_access)],
+)
 async def update_project_settings_endpoint(
     project_id: str,
     body: ProjectSettingsUpdate,

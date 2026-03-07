@@ -16,7 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.ref_type == 'branch' && github.event.repository.fork == false
     permissions:
+      # Required to post comments on issues via `gh issue comment`
       issues: write
+      # Required to read repository metadata for branch detection
       contents: read
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

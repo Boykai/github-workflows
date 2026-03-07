@@ -6,6 +6,7 @@ disconnection with PII purge, notification preferences, and conflict banners.
 Endpoints are mounted at /api/v1/signal/ per contracts/signal-api.yaml.
 """
 
+import hmac
 import logging
 from datetime import UTC
 from typing import Annotated
@@ -284,7 +285,9 @@ async def handle_inbound_signal_message(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Signal webhook not configured",
         )
-    if x_signal_secret is None or x_signal_secret != settings.signal_webhook_secret:
+    if x_signal_secret is None or not hmac.compare_digest(
+        x_signal_secret, settings.signal_webhook_secret
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid webhook secret",

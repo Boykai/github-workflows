@@ -1,15 +1,16 @@
 /**
  * Custom hook for chat message history navigation.
  * Provides shell-like up/down arrow key navigation through previously sent messages.
- * Persists history across sessions via localStorage.
+ *
+ * Security: Message content is kept only in memory (React state) and is never
+ * persisted to localStorage or any other browser storage.  This prevents
+ * sensitive chat content from surviving page reloads or being readable by XSS.
  */
 
 import { useState, useRef, useCallback } from 'react';
 
 export interface UseChatHistoryOptions {
-  /** localStorage key for persistence. Default: 'chat-message-history' */
-  storageKey?: string;
-  /** Maximum number of messages to store. Default: 100 */
+  /** Maximum number of messages to store in memory. Default: 100 */
   maxHistory?: number;
 }
 
@@ -28,36 +29,34 @@ export interface UseChatHistoryReturn {
   history: string[];
   /** Select a specific message by index (for mobile popover) */
   selectFromHistory: (index: number, currentInput: string) => string | null;
+  /** Clear in-memory chat history and any legacy localStorage data */
+  clearHistory: () => void;
 }
 
-function loadHistory(storageKey: string): string[] {
+/**
+ * Remove any legacy chat history that may have been persisted to localStorage
+ * by earlier versions of this hook.
+ */
+function clearLegacyStorage(storageKey: string): void {
   try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.filter((item): item is string => typeof item === 'string');
-      }
-    }
+    localStorage.removeItem(storageKey);
   } catch {
-    // Graceful fallback
+    // Ignore storage errors
   }
-  return [];
 }
 
-function saveHistory(storageKey: string, history: string[]): void {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(history));
-  } catch {
-    // Silently fail — in-session history still works
-  }
+/**
+ * Clear chat history from localStorage.
+ * Called during logout to ensure no stale data remains.
+ */
+export function clearChatHistory(storageKey: string = 'chat-message-history'): void {
+  clearLegacyStorage(storageKey);
 }
 
 export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryReturn {
-  const storageKey = options?.storageKey ?? 'chat-message-history';
   const maxHistory = options?.maxHistory ?? 100;
 
-  const [history, setHistory] = useState<string[]>(() => loadHistory(storageKey));
+  const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const draftBuffer = useRef<string>('');
 
@@ -71,12 +70,11 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
         while (next.length > maxHistory) {
           next.shift();
         }
-        saveHistory(storageKey, next);
         return next;
       });
       setHistoryIndex(-1);
     },
-    [storageKey, maxHistory],
+    [maxHistory],
   );
 
   const resetNavigation = useCallback(() => {
@@ -136,6 +134,13 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
     [history, historyIndex],
   );
 
+  const clearHistory = useCallback(() => {
+    clearLegacyStorage('chat-message-history');
+    setHistory([]);
+    setHistoryIndex(-1);
+    draftBuffer.current = '';
+  }, []);
+
   return {
     addToHistory,
     navigateUp,
@@ -144,5 +149,6 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
     resetNavigation,
     history,
     selectFromHistory,
+    clearHistory,
   };
 }

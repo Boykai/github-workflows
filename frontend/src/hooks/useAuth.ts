@@ -21,35 +21,16 @@ interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const queryClient = useQueryClient();
   const [error, setError] = useState<Error | null>(null);
-  const [isProcessingToken, setIsProcessingToken] = useState(false);
 
-  // Handle session_token from URL (OAuth callback)
+  // After OAuth callback redirect, the cookie is already set by the backend.
+  // Clean the URL path if we landed on /auth/callback so the user sees a clean URL.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionToken = params.get('session_token');
-    
-    if (sessionToken && !isProcessingToken) {
-      setIsProcessingToken(true);
-      
-      // Exchange token for cookie via proxy
-      authApi.setSessionFromToken(sessionToken)
-        .then((user) => {
-          // Update query cache with user data
-          queryClient.setQueryData(['auth', 'me'], user);
-          
-          // Clean up URL (remove session_token param)
-          const newUrl = window.location.pathname;
-          window.history.replaceState({}, '', newUrl);
-        })
-        .catch((err) => {
-          console.error('Failed to set session from token:', err);
-          setError(err as Error);
-        })
-        .finally(() => {
-          setIsProcessingToken(false);
-        });
+    if (window.location.pathname === '/auth/callback') {
+      window.history.replaceState({}, '', '/');
+      // Refetch user to pick up the new session cookie
+      queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     }
-  }, [queryClient, isProcessingToken]);
+  }, [queryClient]);
 
   const {
     data: user,
@@ -62,8 +43,6 @@ export function useAuth(): UseAuthReturn {
     queryFn: authApi.getCurrentUser,
     retry: false,
     staleTime: STALE_TIME_LONG,
-    // Don't run query while processing token
-    enabled: !isProcessingToken,
   });
 
   const logoutMutation = useMutation({
@@ -72,6 +51,14 @@ export function useAuth(): UseAuthReturn {
       queryClient.setQueryData(['auth', 'me'], null);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['chat'] });
+
+      // Clear all local storage data on logout (security: prevent data
+      // surviving logout — FR-027)
+      try {
+        localStorage.removeItem('chat-message-history');
+      } catch {
+        // Ignore storage errors
+      }
     },
     onError: (err) => {
       setError(err as Error);
@@ -107,7 +94,7 @@ export function useAuth(): UseAuthReturn {
 
   // Consider loading done if we got a 401 (not authenticated) or if query completed
   const is401Error = queryError instanceof ApiError && queryError.status === 401;
-  const isLoading = (queryLoading || isProcessingToken) && !is401Error && !isFetched;
+  const isLoading = queryLoading && !is401Error && !isFetched;
 
   return {
     user: user ?? null,

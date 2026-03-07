@@ -116,7 +116,7 @@ class TestCookieBasedTokenDelivery:
 
         cookie_header = resp.headers.get("set-cookie", "").lower()
         assert "httponly" in cookie_header, "Cookie must be HttpOnly"
-        assert "samesite=lax" in cookie_header, "Cookie must have SameSite=Lax"
+        assert "samesite=strict" in cookie_header, "Cookie must have SameSite=Strict"
         assert "path=/" in cookie_header, "Cookie must have Path=/"
         app.dependency_overrides.clear()
 
@@ -144,7 +144,7 @@ class TestDevLoginGating:
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
                 resp = await ac.post(
                     "/api/v1/auth/dev-login",
-                    params={"github_token": "ghp_test"},
+                    json={"github_token": "ghp_test"},
                 )
 
         assert resp.status_code == 404, f"Expected 404, got {resp.status_code}: {resp.json()}"
@@ -155,7 +155,7 @@ class TestDevLoginGating:
         mock_github_auth_service.create_session_from_token.return_value = mock_session
         resp = await client.post(
             "/api/v1/auth/dev-login",
-            params={"github_token": "ghp_test"},
+            json={"github_token": "ghp_test"},
         )
         assert resp.status_code == 200
         assert resp.json()["github_username"] == mock_session.github_username
@@ -167,10 +167,18 @@ class TestDevLoginGating:
 def _prod_like_settings(*, debug: bool):
     from src.config import Settings
 
-    return Settings(
-        github_client_id="test-client-id",
-        github_client_secret="test-client-secret",
-        session_secret_key="test-session-secret-key-that-is-long-enough",
-        debug=debug,
-        _env_file=None,
-    )
+    kwargs = {
+        "github_client_id": "test-client-id",
+        "github_client_secret": "test-client-secret",
+        "session_secret_key": "test-session-secret-key-that-is-long-enough",
+        "debug": debug,
+        "_env_file": None,
+    }
+    if not debug:
+        # Provide valid production secrets to pass startup validation
+        kwargs["session_secret_key"] = "a" * 64
+        kwargs["encryption_key"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        kwargs["github_webhook_secret"] = "test-webhook-secret"
+        kwargs["cookie_secure"] = True
+
+    return Settings(**kwargs)
