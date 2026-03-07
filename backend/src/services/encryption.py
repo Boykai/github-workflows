@@ -1,9 +1,10 @@
 """Fernet-based encryption for sensitive token storage.
 
 Provides :class:`EncryptionService` for transparent encrypt/decrypt of
-GitHub OAuth tokens persisted in SQLite.  When no key is configured the
-service operates in *passthrough* mode — plaintext in, plaintext out —
-and logs a warning on startup.
+GitHub OAuth tokens persisted in SQLite.  When no key is configured,
+:meth:`~EncryptionService.encrypt` raises :class:`RuntimeError` to
+prevent plaintext storage.  :meth:`~EncryptionService.decrypt` still
+handles legacy plaintext tokens for migration compatibility.
 """
 
 from __future__ import annotations
