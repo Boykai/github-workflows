@@ -103,7 +103,7 @@ jobs:
         run: npm install -g markdownlint-cli@0.48.0 markdown-link-check@3.14.2
 
       - name: Lint markdown formatting
-        run: markdownlint "docs/**/*.md" "README.md" --config .markdownlint.json
+        run: markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json
 
       - name: Check documentation links
         run: |
@@ -111,6 +111,9 @@ jobs:
             markdown-link-check {} \
               --config .markdown-link-check.json \
               --quiet
+          markdown-link-check README.md \
+            --config .markdown-link-check.json \
+            --quiet
 
   # Docker build verification
   docker:
