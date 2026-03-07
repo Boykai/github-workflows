@@ -446,6 +446,111 @@ describe('useRealTimeSync', () => {
       // @ts-expect-error - Override global WebSocket
       global.WebSocket = MockWebSocket;
     });
+
+    it('should only invalidate tasks query during polling (not board data)', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      // Trigger fallback polling by simulating WebSocket error
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Advance past the polling interval to trigger a poll cycle
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      // Should invalidate tasks query
+      const tasksCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['projects', 'PVT_123', 'tasks'])
+      );
+      expect(tasksCalls.length).toBeGreaterThan(0);
+
+      // Should NOT invalidate board data query
+      const boardCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['board', 'data', 'PVT_123'])
+      );
+      expect(boardCalls.length).toBe(0);
+
+      vi.useRealTimers();
+    });
+
+    it('should call onRefreshTriggered during polling to reset auto-refresh timer', async () => {
+      vi.useFakeTimers();
+      const onRefreshTriggered = vi.fn();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
+        { wrapper: createWrapper() },
+      );
+
+      // Trigger fallback polling
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      onRefreshTriggered.mockClear();
+
+      // Advance past the polling interval
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      expect(onRefreshTriggered).toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('reconnection debounce', () => {
+    it('should debounce rapid initial_data messages within 2 seconds', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Send multiple rapid initial_data messages (simulating reconnection)
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      // Only the first initial_data should trigger invalidation (debounce)
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('polling stops on WebSocket connect (T033/SC-007)', () => {

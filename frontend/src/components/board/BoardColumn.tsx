@@ -2,6 +2,7 @@
  * BoardColumn component - displays a status column with header and scrollable card list.
  */
 
+import { memo } from 'react';
 import type { BoardColumn as BoardColumnType, BoardItem } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
@@ -11,7 +12,7 @@ interface BoardColumnProps {
   onCardClick: (item: BoardItem) => void;
 }
 
-export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
+export const BoardColumn = memo(function BoardColumn({ column, onCardClick }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
 
   return (
@@ -58,4 +59,4 @@ export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
       </div>
     </div>
   );
-}
+});

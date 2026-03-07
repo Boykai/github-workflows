@@ -78,8 +78,10 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
 
     try {
       if (forceRefresh) {
-        // Manual refresh: bypass the backend cache by fetching with
-        // refresh=true and writing the result directly into TanStack Query.
+        // Manual refresh: cancel any in-progress automatic refresh first,
+        // then bypass the backend cache by fetching with refresh=true
+        // and writing the result directly into TanStack Query.
+        await queryClient.cancelQueries({ queryKey: ['board', 'data', projectId] });
         const data = await boardApi.getBoardData(projectId, /* refresh */ true);
         queryClient.setQueryData(['board', 'data', projectId], data);
       } else {
