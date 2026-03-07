@@ -34,9 +34,7 @@ function resolvePreset(
     const actualCol = lowerMap.get(statusKey.toLowerCase());
     if (actualCol) {
       // Deep-clone each assignment with fresh UUIDs
-      result[actualCol] = assignments.map((a) =>
-        makeAssignment(a.slug, a.display_name ?? a.slug)
-      );
+      result[actualCol] = assignments.map((a) => makeAssignment(a.slug, a.display_name ?? a.slug));
     }
   }
 
@@ -162,11 +160,14 @@ export function AgentPresetSelector({
   });
 
   // Persist selected config to localStorage
-  const persistSelection = useCallback((configId: string) => {
-    if (projectId) {
-      localStorage.setItem(`pipeline-config:${projectId}`, configId);
-    }
-  }, [projectId]);
+  const persistSelection = useCallback(
+    (configId: string) => {
+      if (projectId) {
+        localStorage.setItem(`pipeline-config:${projectId}`, configId);
+      }
+    },
+    [projectId]
+  );
 
   const handlePresetClick = useCallback((preset: AgentPreset) => {
     setConfirmPreset(preset);
@@ -238,7 +239,14 @@ export function AgentPresetSelector({
             {showDropdown && (
               <>
                 {/* Backdrop to close dropdown */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowDropdown(false); }} role="presentation" />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowDropdown(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setShowDropdown(false);
+                  }}
+                  role="presentation"
+                />
                 <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-card shadow-lg py-1">
                   {savedPipelines?.pipelines.map((pipeline) => (
                     <button
@@ -248,7 +256,9 @@ export function AgentPresetSelector({
                       type="button"
                     >
                       <div className="font-medium text-foreground truncate">{pipeline.name}</div>
-                      <div className="text-muted-foreground">{pipeline.stage_count} stages · {pipeline.agent_count} agents</div>
+                      <div className="text-muted-foreground">
+                        {pipeline.stage_count} stages · {pipeline.agent_count} agents
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -260,7 +270,14 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog for built-in presets */}
       {confirmPreset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={handleCancel}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') handleCancel();
+          }}
+          role="presentation"
+        >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
@@ -298,7 +315,14 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog for saved pipeline */}
       {confirmPipeline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={handleCancel}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') handleCancel();
+          }}
+          role="presentation"
+        >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
@@ -311,8 +335,8 @@ export function AgentPresetSelector({
               Apply &ldquo;{confirmPipeline.name}&rdquo; pipeline?
             </h4>
             <p className="text-sm text-muted-foreground m-0">
-              This will replace your current agent configuration with the saved pipeline.
-              Unsaved changes will be reflected in the save bar.
+              This will replace your current agent configuration with the saved pipeline. Unsaved
+              changes will be reflected in the save bar.
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button

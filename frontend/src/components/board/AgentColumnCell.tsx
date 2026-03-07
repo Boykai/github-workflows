@@ -7,11 +7,7 @@
 
 import { useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { AgentTile } from './AgentTile';

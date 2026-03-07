@@ -22,7 +22,8 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
   // Build metadata line
   const metaParts: string[] = [];
   if (metadata?.default_model_name) metaParts.push(metadata.default_model_name);
-  if (metadata?.tools_count && metadata.tools_count > 0) metaParts.push(`${metadata.tools_count} tools`);
+  if (metadata?.tools_count && metadata.tools_count > 0)
+    metaParts.push(`${metadata.tools_count} tools`);
   const metaLine = metaParts.join(' · ');
 
   return (

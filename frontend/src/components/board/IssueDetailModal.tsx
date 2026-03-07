@@ -57,10 +57,17 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
       onClick={handleBackdropClick}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
       role="presentation"
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4" role="dialog" aria-modal="true" aria-label={item.title}>
+      <div
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label={item.title}
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -71,10 +78,16 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
               </span>
             )}
             {item.content_type === 'draft_issue' && (
-              <span className="px-2 py-0.5 text-xs font-medium uppercase tracking-wider bg-muted text-muted-foreground rounded-sm">Draft</span>
+              <span className="px-2 py-0.5 text-xs font-medium uppercase tracking-wider bg-muted text-muted-foreground rounded-sm">
+                Draft
+              </span>
             )}
           </div>
-          <button className="p-2 rounded-md hover:bg-muted transition-colors" onClick={onClose} aria-label="Close modal">
+          <button
+            className="p-2 rounded-md hover:bg-muted transition-colors"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             ✕
           </button>
         </div>
@@ -85,20 +98,22 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         {/* Status */}
         <div className="flex items-center gap-2 mb-6">
           <span className="text-sm font-medium text-muted-foreground">Status:</span>
-          <span className="px-2.5 py-0.5 text-sm font-medium bg-muted rounded-full">{item.status}</span>
+          <span className="px-2.5 py-0.5 text-sm font-medium bg-muted rounded-full">
+            {item.status}
+          </span>
         </div>
 
         {/* Custom fields */}
         <div className="flex flex-wrap gap-4 mb-6">
           {item.priority && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Priority
+              </span>
               <span
                 className="text-sm font-medium"
                 style={
-                  item.priority.color
-                    ? { color: statusColorToCSS(item.priority.color) }
-                    : undefined
+                  item.priority.color ? { color: statusColorToCSS(item.priority.color) } : undefined
                 }
               >
                 {item.priority.name}
@@ -107,14 +122,12 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           )}
           {item.size && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Size
+              </span>
               <span
                 className="text-sm font-medium"
-                style={
-                  item.size.color
-                    ? { color: statusColorToCSS(item.size.color) }
-                    : undefined
-                }
+                style={item.size.color ? { color: statusColorToCSS(item.size.color) } : undefined}
               >
                 {item.size.name}
               </span>
@@ -122,7 +135,9 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           )}
           {item.estimate != null && (
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Estimate</span>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Estimate
+              </span>
               <span className="text-sm font-medium">{item.estimate} points</span>
             </div>
           )}
@@ -134,7 +149,10 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             <h3 className="text-sm font-semibold mb-2">Assignees</h3>
             <div className="flex flex-wrap gap-2">
               {item.assignees.map((assignee) => (
-                <div key={assignee.login} className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md border border-border">
+                <div
+                  key={assignee.login}
+                  className="flex items-center gap-2 px-2 py-1 bg-muted/50 rounded-md border border-border"
+                >
                   <img
                     src={assignee.avatar_url}
                     alt={assignee.login}
@@ -154,9 +172,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Description</h3>
             <div className="prose prose-sm dark:prose-invert max-w-none overflow-y-auto max-h-[50vh] bg-muted/30 p-4 rounded-md border border-border">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {item.body}
-              </ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.body}</ReactMarkdown>
             </div>
           </div>
         )}
@@ -165,7 +181,8 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         {item.sub_issues && item.sub_issues.length > 0 && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">
-              Sub-Issues ({item.sub_issues.filter((s) => s.state === 'closed').length}/{item.sub_issues.length} completed)
+              Sub-Issues ({item.sub_issues.filter((s) => s.state === 'closed').length}/
+              {item.sub_issues.length} completed)
             </h3>
             <div className="flex flex-col gap-2">
               {item.sub_issues.map((si: SubIssue) => (
@@ -176,15 +193,21 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   rel="noopener noreferrer"
                   className={`flex items-center gap-3 p-3 rounded-md border transition-colors no-underline ${si.state === 'closed' ? 'bg-muted/30 border-border/50 text-muted-foreground' : 'bg-card border-border hover:border-primary/50'}`}
                 >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}>
+                  <span
+                    className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}
+                  >
                     {si.state === 'closed' ? '✓' : '○'}
                   </span>
                   <span className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {si.assigned_agent && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">{si.assigned_agent}</span>
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">
+                          {si.assigned_agent}
+                        </span>
                       )}
-                      <span className="text-xs font-medium text-muted-foreground">#{si.number}</span>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        #{si.number}
+                      </span>
                     </div>
                     <span className="text-sm font-medium truncate">{si.title}</span>
                   </span>
@@ -222,7 +245,9 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-md border border-border bg-card hover:border-primary/50 transition-colors no-underline"
                 >
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                  <span
+                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}
+                  >
                     {prStateLabel(pr.state)}
                   </span>
                   <span className="text-sm font-medium text-foreground">

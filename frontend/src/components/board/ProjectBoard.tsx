@@ -21,11 +21,7 @@ export function ProjectBoard({ boardData, onCardClick }: ProjectBoardProps) {
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(14rem, 1fr))` }}
       >
         {boardData.columns.map((column) => (
-          <BoardColumn
-            key={column.status.option_id}
-            column={column}
-            onCardClick={onCardClick}
-          />
+          <BoardColumn key={column.status.option_id} column={column} onCardClick={onCardClick} />
         ))}
       </div>
     </div>
