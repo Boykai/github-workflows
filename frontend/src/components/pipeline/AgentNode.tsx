@@ -3,7 +3,7 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench } from 'lucide-react';
+import { X, Wrench, Copy } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import type { PipelineAgentNode } from '@/types';
 
@@ -12,9 +12,10 @@ interface AgentNodeProps {
   onModelSelect: (modelId: string, modelName: string) => void;
   onRemove: () => void;
   onToolsClick?: () => void;
+  onClone?: () => void;
 }
 
-export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick }: AgentNodeProps) {
+export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, onClone }: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
 
   return (
@@ -44,6 +45,18 @@ export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick }: 
           </button>
         </div>
       </div>
+
+      {/* Clone button */}
+      {onClone && (
+        <button
+          type="button"
+          onClick={onClone}
+          className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+          title="Clone agent"
+        >
+          <Copy className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {/* Remove button */}
       <button
