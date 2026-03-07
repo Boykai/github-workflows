@@ -28,7 +28,7 @@
 
 **Purpose**: No new project setup required — this is a bug fix to an existing codebase. All infrastructure (FastAPI, Pydantic models, AIAgentService, ChatInterface) is already in place.
 
-- [ ] T001 Verify existing backend test suite passes by running `pytest backend/tests/ -v` to establish a clean baseline before making changes
+- [x] T001 Verify existing backend test suite passes by running `pytest backend/tests/ -v` to establish a clean baseline before making changes
 
 **Checkpoint**: Baseline confirmed. All existing tests pass. Ready for implementation.
 
@@ -40,7 +40,7 @@
 
 **⚠️ CRITICAL**: The new `generate_title_from_description()` method is required by US1 (core bug fix). No user story work can begin until this method exists.
 
-- [ ] T002 Add async method `generate_title_from_description(self, user_input: str, project_name: str, github_token: str | None = None) -> str` to `AIAgentService` class in backend/src/services/ai_agent.py — call the existing `_call_completion()` with a focused prompt asking only for a concise issue title from the raw user input, return the generated title string, and fall back to truncating user_input to first 80 characters (standard GitHub title length convention) + "..." if the AI call fails or returns empty
+- [x] T002 Add async method `generate_title_from_description(self, user_input: str, project_name: str, github_token: str | None = None) -> str` to `AIAgentService` class in backend/src/services/ai_agent.py — call the existing `_call_completion()` with a focused prompt asking only for a concise issue title from the raw user input, return the generated title string, and fall back to truncating user_input to first 80 characters (standard GitHub title length convention) + "..." if the AI call fails or returns empty
 
 **Checkpoint**: `generate_title_from_description()` is callable and returns a meaningful title from raw user input. Falls back gracefully on AI failure. Ready for US1 integration.
 
@@ -54,10 +54,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Add `ai_enhance=False` conditional check at the start of the fallback task generation block (before the existing `generate_task_from_description()` call at ~line 432) in `send_message()` in backend/src/api/chat.py — when `chat_request.ai_enhance is False`, enter the new metadata-only branch instead of calling `generate_task_from_description()`
-- [ ] T004 [US1] In the new ai_enhance=False branch, call `ai_service.generate_title_from_description(user_input=chat_request.content, project_name=project_name, github_token=session.access_token)` to generate a title from the raw user input in backend/src/api/chat.py
-- [ ] T005 [US1] Create an `AITaskProposal` instance with `session_id=session.session_id`, `original_input=chat_request.content`, `proposed_title=title` (from T004), and `proposed_description=chat_request.content` (user's exact raw input, verbatim) — `proposal_id` is auto-generated as a UUID by the Pydantic model default — then store it in `_proposals[str(proposal.proposal_id)]` in backend/src/api/chat.py
-- [ ] T006 [US1] Construct and return an assistant `ChatMessage` with `action_type=ActionType.TASK_CREATE`, `action_data` containing `proposal_id`, `proposed_title`, `proposed_description` (raw input), and `status=ProposalStatus.PENDING.value` — call `add_message()` and `_trigger_signal_delivery()` before returning, in backend/src/api/chat.py
+- [x] T003 [US1] Add `ai_enhance=False` conditional check at the start of the fallback task generation block (before the existing `generate_task_from_description()` call at ~line 432) in `send_message()` in backend/src/api/chat.py — when `chat_request.ai_enhance is False`, enter the new metadata-only branch instead of calling `generate_task_from_description()`
+- [x] T004 [US1] In the new ai_enhance=False branch, call `ai_service.generate_title_from_description(user_input=chat_request.content, project_name=project_name, github_token=session.access_token)` to generate a title from the raw user input in backend/src/api/chat.py
+- [x] T005 [US1] Create an `AITaskProposal` instance with `session_id=session.session_id`, `original_input=chat_request.content`, `proposed_title=title` (from T004), and `proposed_description=chat_request.content` (user's exact raw input, verbatim) — `proposal_id` is auto-generated as a UUID by the Pydantic model default — then store it in `_proposals[str(proposal.proposal_id)]` in backend/src/api/chat.py
+- [x] T006 [US1] Construct and return an assistant `ChatMessage` with `action_type=ActionType.TASK_CREATE`, `action_data` containing `proposal_id`, `proposed_title`, `proposed_description` (raw input), and `status=ProposalStatus.PENDING.value` — call `add_message()` and `_trigger_signal_delivery()` before returning, in backend/src/api/chat.py
 
 **Checkpoint**: AI Enhance OFF → submit message → task proposal returned with raw user input as description, AI-generated title. No "I couldn't generate a task" error. AI Enhance ON → existing behavior unchanged. This is the MVP — the core bug is fixed.
 
@@ -71,8 +71,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Wrap the entire ai_enhance=False branch (T003–T006) in a dedicated `try/except Exception` block that catches any failure from `generate_title_from_description()` or proposal creation, preventing the exception from propagating to the existing generic error handler at lines 465–476 in backend/src/api/chat.py
-- [ ] T008 [US2] Ensure the ai_enhance=False branch returns early (via explicit `return assistant_message`) before execution can reach the existing `generate_task_from_description()` call and its associated generic "I couldn't generate a task" error handler in backend/src/api/chat.py
+- [x] T007 [US2] Wrap the entire ai_enhance=False branch (T003–T006) in a dedicated `try/except Exception` block that catches any failure from `generate_title_from_description()` or proposal creation, preventing the exception from propagating to the existing generic error handler at lines 465–476 in backend/src/api/chat.py
+- [x] T008 [US2] Ensure the ai_enhance=False branch returns early (via explicit `return assistant_message`) before execution can reach the existing `generate_task_from_description()` call and its associated generic "I couldn't generate a task" error handler in backend/src/api/chat.py
 
 **Checkpoint**: No user-facing error messages appear when AI Enhance is disabled and valid input is provided. The generic "I couldn't generate a task from your description" error is structurally unreachable for ai_enhance=False requests.
 
@@ -86,8 +86,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] Audit `confirm_proposal()` in backend/src/api/chat.py (lines 603–696) to verify it processes `AITaskProposal` instances identically regardless of whether `proposed_description` contains raw user input or AI-enhanced content — specifically verify: (1) no conditional logic branches on description source, (2) same GitHub Issue creation via `github_service.create_issue()`, (3) same `WorkflowOrchestrator.create_all_sub_issues()` call, (4) same `assign_agent_for_status()` call
-- [ ] T010 [P] [US3] Audit `append_tracking_to_body()` in backend/src/services/agent_tracking.py to verify the Agent Pipeline configuration block (horizontal rule + "## 🤖 Agent Pipeline" heading + tracking table) is appended identically for both enhanced and non-enhanced issue descriptions — confirm no ai_enhance flag checks in the tracking logic
+- [x] T009 [US3] Audit `confirm_proposal()` in backend/src/api/chat.py (lines 603–696) to verify it processes `AITaskProposal` instances identically regardless of whether `proposed_description` contains raw user input or AI-enhanced content — specifically verify: (1) no conditional logic branches on description source, (2) same GitHub Issue creation via `github_service.create_issue()`, (3) same `WorkflowOrchestrator.create_all_sub_issues()` call, (4) same `assign_agent_for_status()` call
+- [x] T010 [P] [US3] Audit `append_tracking_to_body()` in backend/src/services/agent_tracking.py to verify the Agent Pipeline configuration block (horizontal rule + "## 🤖 Agent Pipeline" heading + tracking table) is appended identically for both enhanced and non-enhanced issue descriptions — confirm no ai_enhance flag checks in the tracking logic
 
 **Checkpoint**: Structural parity confirmed. Issues from both paths have identical structure: title, labels, estimates, assignees, Agent Pipeline config block. Only the description body content differs (raw vs. AI-enhanced).
 
@@ -101,8 +101,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T011 [US4] In the `except Exception` block of the ai_enhance=False branch (from T007), return a `ChatMessage` with `sender_type=SenderType.ASSISTANT` and content "I couldn't generate metadata for your request. Your input was preserved — please try again." instead of the generic error message, in backend/src/api/chat.py
-- [ ] T012 [US4] Add `logger.error("Failed to generate metadata (ai_enhance=off): %s", e, exc_info=True)` in the except block to log the metadata generation failure with full stack trace for debugging in backend/src/api/chat.py
+- [x] T011 [US4] In the `except Exception` block of the ai_enhance=False branch (from T007), return a `ChatMessage` with `sender_type=SenderType.ASSISTANT` and content "I couldn't generate metadata for your request. Your input was preserved — please try again." instead of the generic error message, in backend/src/api/chat.py
+- [x] T012 [US4] Add `logger.error("Failed to generate metadata (ai_enhance=off): %s", e, exc_info=True)` in the except block to log the metadata generation failure with full stack trace for debugging in backend/src/api/chat.py
 
 **Checkpoint**: Metadata generation failures when AI Enhance is disabled produce a specific, actionable error message. The generic "I couldn't generate a task" message is never shown. Error is logged with full context for debugging.
 
@@ -112,9 +112,9 @@
 
 **Purpose**: Final validation, cleanup, and regression testing across all user stories.
 
-- [ ] T013 Run `pytest backend/tests/ -v` to verify all existing backend tests still pass with the changes
-- [ ] T014 [P] Verify code style consistency — ensure the new ai_enhance=False branch in backend/src/api/chat.py follows the same patterns (logging, error handling, message construction) as the existing ai_enhance=True path
-- [ ] T015 Run quickstart.md verification checklist: AI Enhance ON unchanged, AI Enhance OFF creates proposal with raw input, no generic error, Agent Pipeline config appended on confirm, metadata generation failure shows specific error
+- [x] T013 Run `pytest backend/tests/ -v` to verify all existing backend tests still pass with the changes
+- [x] T014 [P] Verify code style consistency — ensure the new ai_enhance=False branch in backend/src/api/chat.py follows the same patterns (logging, error handling, message construction) as the existing ai_enhance=True path
+- [x] T015 Run quickstart.md verification checklist: AI Enhance ON unchanged, AI Enhance OFF creates proposal with raw input, no generic error, Agent Pipeline config appended on confirm, metadata generation failure shows specific error
 
 ---
 

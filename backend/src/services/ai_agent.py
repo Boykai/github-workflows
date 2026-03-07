@@ -423,6 +423,61 @@ class AIAgentService:
         return None
 
     # ──────────────────────────────────────────────────────────────────
+    # Title Generation (metadata-only path for ai_enhance=False)
+    # ──────────────────────────────────────────────────────────────────
+
+    async def generate_title_from_description(
+        self,
+        user_input: str,
+        project_name: str,
+        github_token: str | None = None,
+    ) -> str:
+        """Generate a concise issue title from raw user input.
+
+        Used when AI Enhance is disabled to generate only the title
+        while preserving the user's exact input as the description.
+
+        Args:
+            user_input: User's raw chat input
+            project_name: Name of the target project for context
+            github_token: GitHub OAuth token (required for Copilot provider)
+
+        Returns:
+            A concise issue title string. Falls back to truncated user
+            input (first 80 characters + "...") if the AI call fails.
+        """
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a concise title generator for GitHub issues. "
+                        f"Project: {project_name}. "
+                        "Given a user's description, generate ONLY a short, clear "
+                        "issue title (max 80 characters). "
+                        "Return ONLY the title text, nothing else."
+                    ),
+                },
+                {"role": "user", "content": user_input},
+            ]
+
+            title = await self._call_completion(
+                messages, temperature=0.3, max_tokens=100, github_token=github_token
+            )
+            title = title.strip().strip('"').strip("'")
+
+            if title:
+                return title[:80]
+
+        except Exception as e:
+            logger.warning("Failed to generate title from description: %s", e)
+
+        # Fallback: truncate user input to 80 characters
+        if len(user_input) > 80:
+            return user_input[:80] + "..."
+        return user_input
+
+    # ──────────────────────────────────────────────────────────────────
     # Existing Task Generation Methods
     # ──────────────────────────────────────────────────────────────────
 
