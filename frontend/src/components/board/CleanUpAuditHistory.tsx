@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { CleanupHistoryResponse } from '@/types';
 
 interface CleanUpAuditHistoryProps {
@@ -39,9 +40,9 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
     }
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-background/80 backdrop-blur-sm"
       role="none"
       onClick={handleBackdropClick}
     >
@@ -109,6 +110,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

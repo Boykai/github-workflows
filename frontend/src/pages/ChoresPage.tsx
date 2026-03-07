@@ -9,6 +9,8 @@ import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { workflowApi } from '@/services/api';
 
 export function ChoresPage() {
   const { user } = useAuth();
@@ -17,7 +19,21 @@ export function ChoresPage() {
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
 
-  const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
+  // Prefer repo info from board items; fall back to the project's workflow config.
+  const boardRepo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
+
+  const { data: workflowConfig } = useQuery({
+    queryKey: ['workflow', 'config', projectId],
+    queryFn: () => workflowApi.getConfig(),
+    enabled: !!projectId && !boardRepo,
+    staleTime: 60_000,
+  });
+
+  const owner = boardRepo?.owner ?? workflowConfig?.repository_owner;
+  const repoName = boardRepo?.name ?? workflowConfig?.repository_name;
+
+  // Synthesise a repo-like object for the hero badge/stats (same shape as BoardRepository)
+  const repo = owner && repoName ? { owner, name: repoName } : undefined;
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
@@ -58,8 +74,8 @@ export function ChoresPage() {
         <div className="flex-1 min-w-0">
           <ChoresPanel
             projectId={projectId}
-            owner={repo?.owner}
-            repo={repo?.name}
+            owner={owner}
+            repo={repoName}
           />
         </div>
       )}
