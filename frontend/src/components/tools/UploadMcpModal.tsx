@@ -193,7 +193,7 @@ export function UploadMcpModal({
           {/* Config Content */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium">MCP Configuration</label>
+              <label htmlFor={mode === 'paste' ? 'mcp-config-textarea' : 'mcp-config-file'} className="block text-sm font-medium">MCP Configuration</label>
               <button
                 type="button"
                 className="text-xs text-primary hover:underline"
@@ -204,6 +204,7 @@ export function UploadMcpModal({
             </div>
             {mode === 'paste' ? (
               <textarea
+                id="mcp-config-textarea"
                 value={configContent}
                 onChange={(e) => { setConfigContent(e.target.value); setValidationError(null); }}
                 placeholder={'{\n  "mcpServers": {\n    "my-server": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}'}
@@ -211,6 +212,7 @@ export function UploadMcpModal({
               />
             ) : (
               <input
+                id="mcp-config-file"
                 type="file"
                 accept=".json,application/json"
                 onChange={handleFileUpload}
