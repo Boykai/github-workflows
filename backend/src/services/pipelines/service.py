@@ -257,9 +257,7 @@ class PipelineService:
             stages = json.loads(row_dict.get("stages", "[]"))
             parsed_stages = [PipelineStage(**s) for s in stages]
             agent_count = sum(len(s.agents) for s in parsed_stages)
-            total_tool_count = sum(
-                a.tool_count for s in parsed_stages for a in s.agents
-            )
+            total_tool_count = sum(a.tool_count for s in parsed_stages for a in s.agents)
             summaries.append(
                 PipelineConfigSummary(
                     id=row_dict["id"],
@@ -438,8 +436,16 @@ class PipelineService:
                         (id, project_id, name, description, stages, is_preset, preset_id, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
                     """,
-                    (pipeline_id, project_id, preset["name"], preset["description"],
-                     stages_json, preset_id, now, now),
+                    (
+                        pipeline_id,
+                        project_id,
+                        preset["name"],
+                        preset["description"],
+                        stages_json,
+                        preset_id,
+                        now,
+                        now,
+                    ),
                 )
                 seeded.append(preset_id)
             except aiosqlite.IntegrityError:
