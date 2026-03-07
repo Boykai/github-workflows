@@ -65,7 +65,7 @@ export function ProjectsPage() {
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
 
   // Board controls: filter, sort, group-by with localStorage persistence
-  const boardControls = useBoardControls(selectedProjectId, boardData);
+  const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
 
   const handleProjectSwitch = useCallback((projectId: string) => {
