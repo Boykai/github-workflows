@@ -4,13 +4,22 @@
  * Simplified UX: only Name + System Prompt fields.
  * AI auto-generates description and tools from the prompt content.
  * "Raw content" toggle bypasses AI and uses exact text as-is.
+ *
+ * Enhanced with:
+ * - Dirty-state tracking (isDirty) in edit mode
+ * - Persistent unsaved-changes banner
+ * - Close guard (confirmation dialog on close/Escape when dirty)
+ * - beforeunload guard
+ * - PR link notification on successful save
+ * - Integrated ToolsEditor for add/remove/reorder
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { useToolsList } from '@/hooks/useTools';
 import { ToolChips } from '@/components/tools/ToolChips';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
+import { ToolsEditor } from './ToolsEditor';
 import type { AgentConfig } from '@/services/api';
 
 interface AddAgentModalProps {
@@ -29,42 +38,97 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   const [systemPrompt, setSystemPrompt] = useState('');
   const [aiEnhance, setAiEnhance] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toolsError, setToolsError] = useState<string | null>(null);
   const [successPrUrl, setSuccessPrUrl] = useState<string | null>(null);
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>([]);
   const [showToolSelector, setShowToolSelector] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   const createMutation = useCreateAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
   const { tools: availableTools } = useToolsList(projectId);
+
+  // Snapshot of original values for dirty comparison (edit mode only)
+  const [snapshot, setSnapshot] = useState<{
+    name: string;
+    systemPrompt: string;
+    tools: string[];
+  } | null>(null);
+
+  // Compute dirty state
+  const isDirty = useMemo(() => {
+    if (!isEditMode || !snapshot) return false;
+    if (name !== snapshot.name) return true;
+    if (systemPrompt !== snapshot.systemPrompt) return true;
+    if (selectedToolIds.length !== snapshot.tools.length) return true;
+    return selectedToolIds.some((id, i) => id !== snapshot.tools[i]);
+  }, [isEditMode, snapshot, name, systemPrompt, selectedToolIds]);
+
+  // Clear tools error when tools become non-empty
+  useEffect(() => {
+    if (selectedToolIds.length > 0 && toolsError) {
+      setToolsError(null);
+    }
+  }, [selectedToolIds, toolsError]);
 
   const resetAndClose = useCallback(() => {
     setName('');
     setSystemPrompt('');
     setAiEnhance(true);
     setError(null);
+    setToolsError(null);
     setSuccessPrUrl(null);
     setSelectedToolIds([]);
+    setSnapshot(null);
+    setShowCloseConfirm(false);
     onClose();
   }, [onClose]);
 
-  // Pre-populate fields in edit mode
+  // Pre-populate fields in edit mode + snapshot
   useEffect(() => {
     if (isOpen && editAgent) {
       setName(editAgent.name);
       setSystemPrompt(editAgent.system_prompt || '');
       setSelectedToolIds(editAgent.tools ?? []);
+      setSnapshot({
+        name: editAgent.name,
+        systemPrompt: editAgent.system_prompt || '',
+        tools: [...(editAgent.tools ?? [])],
+      });
     }
   }, [isOpen, editAgent]);
+
+  // Close guard — intercept close when dirty
+  const handleRequestClose = useCallback(() => {
+    if (isDirty) {
+      setShowCloseConfirm(true);
+    } else {
+      resetAndClose();
+    }
+  }, [isDirty, resetAndClose]);
 
   // Escape key handler
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') resetAndClose();
+      if (e.key === 'Escape') {
+        if (showToolSelector || showCloseConfirm) return;
+        handleRequestClose();
+      }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, resetAndClose]);
+  }, [isOpen, handleRequestClose, showToolSelector, showCloseConfirm]);
+
+  // beforeunload guard
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   if (!isOpen) return null;
 
@@ -80,6 +144,10 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     if (!trimmedPrompt) { setError('System prompt is required'); return; }
     if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
       setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
+      return;
+    }
+    if (isEditMode && selectedToolIds.length === 0) {
+      setToolsError('At least one tool must be assigned');
       return;
     }
 
@@ -110,6 +178,47 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  // Close confirmation dialog
+  if (showCloseConfirm) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation">
+        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-sm" role="presentation" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-lg font-semibold mb-2">Unsaved Changes</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            You have unsaved changes. What would you like to do?
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="px-3 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+              onClick={() => setShowCloseConfirm(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="px-3 py-2 text-sm font-medium rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20"
+              onClick={resetAndClose}
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => {
+                setShowCloseConfirm(false);
+                const form = document.getElementById('agent-form') as HTMLFormElement;
+                form?.requestSubmit();
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Success state
   if (successPrUrl) {
@@ -144,13 +253,20 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
   // Form
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={resetAndClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleRequestClose}>
       <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" role="presentation" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold mb-4">
           {isEditMode ? 'Edit Agent' : 'Add Agent'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* Unsaved changes banner */}
+        {isDirty && (
+          <div className="mb-4 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
+            ⚠️ You have unsaved changes
+          </div>
+        )}
+
+        <form id="agent-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
           <div>
             <label htmlFor="agent-name" className="block text-sm font-medium mb-1">Name</label>
@@ -183,17 +299,26 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             />
           </div>
 
-          {/* Add Tools */}
+          {/* Tools section */}
           <div>
             <span className="block text-sm font-medium mb-1">MCP Tools</span>
-            <ToolChips
-              tools={selectedToolIds.map((id) => {
-                const t = availableTools.find((tool) => tool.id === id);
-                return { id, name: t?.name ?? id, description: t?.description ?? '' };
-              })}
-              onRemove={(id) => setSelectedToolIds((prev) => prev.filter((tid) => tid !== id))}
-              onAddClick={() => setShowToolSelector(true)}
-            />
+            {isEditMode ? (
+              <ToolsEditor
+                tools={selectedToolIds}
+                onToolsChange={setSelectedToolIds}
+                error={toolsError ?? undefined}
+                projectId={projectId}
+              />
+            ) : (
+              <ToolChips
+                tools={selectedToolIds.map((id) => {
+                  const t = availableTools.find((tool) => tool.id === id);
+                  return { id, name: t?.name ?? id, description: t?.description ?? '' };
+                })}
+                onRemove={(id) => setSelectedToolIds((prev) => prev.filter((tid) => tid !== id))}
+                onAddClick={() => setShowToolSelector(true)}
+              />
+            )}
           </div>
 
           {/* Raw content toggle */}
@@ -245,7 +370,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             <button
               type="button"
               className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
-              onClick={resetAndClose}
+              onClick={handleRequestClose}
             >
               Cancel
             </button>
@@ -259,14 +384,16 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
           </div>
         </form>
 
-        {/* Tool Selector Modal */}
-        <ToolSelectorModal
-          isOpen={showToolSelector}
-          onClose={() => setShowToolSelector(false)}
-          onConfirm={(ids) => setSelectedToolIds(ids)}
-          initialSelectedIds={selectedToolIds}
-          projectId={projectId}
-        />
+        {/* Tool Selector Modal (create mode only) */}
+        {!isEditMode && (
+          <ToolSelectorModal
+            isOpen={showToolSelector}
+            onClose={() => setShowToolSelector(false)}
+            onConfirm={(ids) => setSelectedToolIds(ids)}
+            initialSelectedIds={selectedToolIds}
+            projectId={projectId}
+          />
+        )}
       </div>
     </div>
   );

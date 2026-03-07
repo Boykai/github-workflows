@@ -6,11 +6,12 @@
  */
 
 import { useDeferredValue, useState } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles, RefreshCw } from 'lucide-react';
 import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
 import { AgentCard } from './AgentCard';
 import { AddAgentModal } from './AddAgentModal';
+import { BulkModelUpdateDialog } from './BulkModelUpdateDialog';
 import type { AgentConfig } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
   const [editAgent, setEditAgent] = useState<AgentConfig | null>(null);
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<AgentSortMode>('name');
+  const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const handleClearPending = () => {
@@ -64,17 +66,40 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
       return left.name.localeCompare(right.name);
     });
 
-  const spotlightAgents = [...(agents ?? [])]
-    .sort((left, right) => {
-      const usageDelta = (agentUsageCounts[right.slug] ?? 0) - (agentUsageCounts[left.slug] ?? 0);
-      if (usageDelta !== 0) return usageDelta;
-      return left.name.localeCompare(right.name);
-    })
-    .slice(0, 3);
+  // Two-pass Featured Agents algorithm:
+  // Pass 1: agents with usage > 0, sorted descending, up to 3
+  // Pass 2: supplement with agents created within past 3 days
+  const spotlightAgents = (() => {
+    const allAgents = agents ?? [];
+    const usageAgents = allAgents
+      .filter((a) => (agentUsageCounts[a.slug] ?? 0) > 0)
+      .sort((a, b) => (agentUsageCounts[b.slug] ?? 0) - (agentUsageCounts[a.slug] ?? 0))
+      .slice(0, 3);
+
+    if (usageAgents.length >= 3) return usageAgents;
+
+    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    const usageSlugs = new Set(usageAgents.map((a) => a.slug));
+    const recentAgents = allAgents
+      .filter(
+        (a) =>
+          a.created_at &&
+          new Date(a.created_at).getTime() > threeDaysAgo &&
+          !usageSlugs.has(a.slug),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime(),
+      );
+
+    return [...usageAgents, ...recentAgents].slice(0, 3);
+  })();
 
   const totalAgents = agents?.length ?? 0;
   const usedAgents = agents?.filter((agent) => (agentUsageCounts[agent.slug] ?? 0) > 0).length ?? 0;
   const unresolvedPendingAgents = pendingAgents ?? [];
+  const repoName = repo ?? '';
+  const fullRepoName = owner && repo ? `${owner}/${repo}` : '';
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -191,6 +216,8 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
                   onEdit={(currentAgent) => setEditAgent(currentAgent)}
                   variant="default"
+                  repoName={repoName}
+                  fullRepoName={fullRepoName}
                 />
               ))}
             </div>
@@ -200,6 +227,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
 
       {!isLoading && !error && agents && agents.length > 0 && (
         <>
+          {spotlightAgents.length > 0 && (
           <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -209,7 +237,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                 </div>
                 <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">The agents setting the tone right now</h4>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Spotlight prioritizes the repo agents most heavily used in the board configuration.
+                  Spotlight prioritizes the most-used agents and recently created ones.
                 </p>
               </div>
 
@@ -250,10 +278,13 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
                   onEdit={(a) => setEditAgent(a)}
                   variant="spotlight"
+                  repoName={repoName}
+                  fullRepoName={fullRepoName}
                 />
               ))}
             </div>
           </section>
+          )}
 
           <section id="agents-catalog" className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -273,7 +304,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     className="moonwell h-12 rounded-full border-border/60 pl-10"
                   />
                 </div>
-                <div className="flex justify-end">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   <select
                     className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
                     value={sortMode}
@@ -283,6 +314,10 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     <option value="name">Alphabetical</option>
                     <option value="usage">By usage</option>
                   </select>
+                  <Button variant="outline" size="sm" onClick={() => setBulkUpdateOpen(true)}>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Update All Models
+                  </Button>
                 </div>
               </div>
             </div>
@@ -306,6 +341,8 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
                     onEdit={(a) => setEditAgent(a)}
+                    repoName={repoName}
+                    fullRepoName={fullRepoName}
                   />
                 ))}
               </div>
@@ -330,6 +367,15 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
           editAgent={editAgent}
         />
       )}
+
+      {/* Bulk Model Update Dialog */}
+      <BulkModelUpdateDialog
+        open={bulkUpdateOpen}
+        onOpenChange={setBulkUpdateOpen}
+        agents={agents ?? []}
+        projectId={projectId}
+        onSuccess={() => setBulkUpdateOpen(false)}
+      />
     </div>
   );
 }
