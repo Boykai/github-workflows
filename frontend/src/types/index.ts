@@ -839,3 +839,73 @@ export interface Notification {
   read: boolean;
   source?: string;
 }
+
+// ============ Pipeline Types ============
+
+export interface PipelineAgentNode {
+  id: string;
+  agent_slug: string;
+  agent_display_name: string;
+  model_id: string;
+  model_name: string;
+  config: Record<string, unknown>;
+}
+
+export interface PipelineStage {
+  id: string;
+  name: string;
+  order: number;
+  agents: PipelineAgentNode[];
+}
+
+export interface PipelineConfig {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string;
+  stages: PipelineStage[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PipelineConfigSummary {
+  id: string;
+  name: string;
+  description: string;
+  stage_count: number;
+  agent_count: number;
+  updated_at: string;
+}
+
+export interface PipelineConfigListResponse {
+  pipelines: PipelineConfigSummary[];
+  total: number;
+}
+
+export interface PipelineConfigCreate {
+  name: string;
+  description?: string;
+  stages: PipelineStage[];
+}
+
+export interface PipelineConfigUpdate {
+  name?: string;
+  description?: string;
+  stages?: PipelineStage[];
+}
+
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  context_window_size: number;
+  cost_tier: 'economy' | 'standard' | 'premium';
+  capability_category: string;
+}
+
+export interface ModelGroup {
+  provider: string;
+  models: AIModel[];
+}
+
+export type PipelineBoardState = 'empty' | 'creating' | 'editing';
