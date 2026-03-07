@@ -141,7 +141,7 @@
 ### 15. External Volume Mount (FR-025)
 
 - **Decision**: Change volume mount from `/app/data` to `/var/lib/ghchat/data`.
-- **Rationale**: Current mount at `data` (relative to `/app`) comingles runtime data with application code.
+- **Rationale**: Current mount at `data` (relative to `/app`) commingles runtime data with application code.
 - **Implementation**: Update `docker-compose.yml` volume mount path. Update `backend/Dockerfile` to create `/var/lib/ghchat/data` with correct ownership. Update `config.py` default `database_path` if it references `/app/data`.
 
 ### 16. Chat History Lightweight References (FR-026, FR-027)
