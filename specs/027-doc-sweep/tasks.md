@@ -24,9 +24,9 @@
 
 **Purpose**: Create the directory structure and foundational files needed by all user stories
 
-- [ ] T001 Create `docs/checklists/` directory for review checklist files
-- [ ] T002 [P] Verify existing `docs/OWNERS.md` is accessible and follows the expected ownership mapping format
-- [ ] T003 [P] Verify existing `docs/decisions/` directory contains the ADR template (`docs/decisions/README.md`) and existing ADRs (001–006)
+- [x] T001 Create `docs/checklists/` directory for review checklist files
+- [x] T002 [P] Verify existing `docs/OWNERS.md` is accessible and follows the expected ownership mapping format
+- [x] T003 [P] Verify existing `docs/decisions/` directory contains the ADR template (`docs/decisions/README.md`) and existing ADRs (001–006)
 
 ---
 
@@ -48,8 +48,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Create PR template at `.github/pull_request_template.md` with Description, Type of Change, Documentation checklist (6 items per FR-001), and Testing sections — per contract `specs/027-doc-sweep/contracts/pr-template.md`
-- [ ] T005 [US1] Validate PR template uses GitHub-flavored markdown checkbox syntax (`- [ ]`) and includes the "Doc files updated" free-text field for FR-002 reviewer visibility
+- [x] T004 [US1] Create PR template at `.github/pull_request_template.md` with Description, Type of Change, Documentation checklist (6 items per FR-001), and Testing sections — per contract `specs/027-doc-sweep/contracts/pr-template.md`
+- [x] T005 [US1] Validate PR template uses GitHub-flavored markdown checkbox syntax (`- [ ]`) and includes the "Doc files updated" free-text field for FR-002 reviewer visibility
 
 **Checkpoint**: User Story 1 complete — new PRs will auto-populate with the documentation checklist
 
@@ -63,8 +63,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Create weekly sweep checklist at `docs/checklists/weekly-sweep.md` with header (~30 min estimate), API Reference check, Configuration check, Setup Guide check, and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
-- [ ] T007 [US2] Validate weekly sweep checklist uses ATX-style headings (FR-014), inline code formatting for filenames (FR-015), and GitHub-flavored checkbox syntax
+- [x] T006 [US2] Create weekly sweep checklist at `docs/checklists/weekly-sweep.md` with header (~30 min estimate), API Reference check, Configuration check, Setup Guide check, and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
+- [x] T007 [US2] Validate weekly sweep checklist uses ATX-style headings (FR-014), inline code formatting for filenames (FR-015), and GitHub-flavored checkbox syntax
 
 **Checkpoint**: User Story 2 complete — weekly staleness sweep checklist is ready for use by the dev rotation
 
@@ -78,8 +78,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Create monthly review checklist at `docs/checklists/monthly-review.md` with header (2–3 hours estimate), Coverage Audit with per-file verification table (FR-005), Cross-Reference Check (FR-006), Readability Assessment (FR-007), and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
-- [ ] T009 [US3] Validate monthly review checklist includes all 11 documentation files from plan.md project structure (`docs/setup.md`, `docs/configuration.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/agent-pipeline.md`, `docs/custom-agents-best-practices.md`, `docs/signal-integration.md`, `docs/testing.md`, `docs/troubleshooting.md`, `docs/project-structure.md`, `frontend/docs/`)
+- [x] T008 [US3] Create monthly review checklist at `docs/checklists/monthly-review.md` with header (2–3 hours estimate), Coverage Audit with per-file verification table (FR-005), Cross-Reference Check (FR-006), Readability Assessment (FR-007), and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
+- [x] T009 [US3] Validate monthly review checklist includes all 11 documentation files from plan.md project structure (`docs/setup.md`, `docs/configuration.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/agent-pipeline.md`, `docs/custom-agents-best-practices.md`, `docs/signal-integration.md`, `docs/testing.md`, `docs/troubleshooting.md`, `docs/project-structure.md`, `frontend/docs/`)
 
 **Checkpoint**: User Story 3 complete — monthly full documentation review checklist is ready for use by the tech lead
 
@@ -93,8 +93,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T010 [US4] Create quarterly audit checklist at `docs/checklists/quarterly-audit.md` with header (~half day estimate), Architecture Document Review (FR-008), Architecture Decision Records (FR-009), Developer Experience Audit, Documentation Gaps Analysis, and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
-- [ ] T011 [US4] Validate quarterly audit checklist references existing `docs/decisions/` directory and its README.md template
+- [x] T010 [US4] Create quarterly audit checklist at `docs/checklists/quarterly-audit.md` with header (~half day estimate), Architecture Document Review (FR-008), Architecture Decision Records (FR-009), Developer Experience Audit, Documentation Gaps Analysis, and Completion Record sections — per contract `specs/027-doc-sweep/contracts/checklists.md`
+- [x] T011 [US4] Validate quarterly audit checklist references existing `docs/decisions/` directory and its README.md template
 
 **Checkpoint**: User Story 4 complete — quarterly architecture audit checklist is ready for use
 
@@ -108,10 +108,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T012 [US5] Update the markdownlint command in `.github/workflows/ci.yml` to expand the glob from `"docs/**/*.md" "README.md"` to `"docs/**/*.md" "*.md"` — per contract `specs/027-doc-sweep/contracts/ci-config.md`
-- [ ] T013 [US5] Verify the link-check step in `.github/workflows/ci.yml` covers `README.md` in addition to `docs/**/*.md` files — per contract `specs/027-doc-sweep/contracts/ci-config.md`
-- [ ] T014 [US5] Validate that the existing `.markdownlint.json` configuration does not need changes (confirm `MD013: false`, `MD033: false`, `MD041: false` are appropriate per ci-config contract)
-- [ ] T015 [US5] Validate that the existing `.markdown-link-check.json` configuration handles transient failures correctly (`retryOn429`, `retryCount`, `timeout` settings) per spec edge case on temporary link unreachability
+- [x] T012 [US5] Update the markdownlint command in `.github/workflows/ci.yml` to expand the glob from `"docs/**/*.md" "README.md"` to `"docs/**/*.md" "*.md"` — per contract `specs/027-doc-sweep/contracts/ci-config.md`
+- [x] T013 [US5] Verify the link-check step in `.github/workflows/ci.yml` covers `README.md` in addition to `docs/**/*.md` files — per contract `specs/027-doc-sweep/contracts/ci-config.md`
+- [x] T014 [US5] Validate that the existing `.markdownlint.json` configuration does not need changes (confirm `MD013: false`, `MD033: false`, `MD041: false` are appropriate per ci-config contract)
+- [x] T015 [US5] Validate that the existing `.markdown-link-check.json` configuration handles transient failures correctly (`retryOn429`, `retryCount`, `timeout` settings) per spec edge case on temporary link unreachability
 
 **Checkpoint**: User Story 5 complete — CI pipeline validates markdown formatting and links across all documentation and root-level `*.md` files
 
@@ -125,8 +125,8 @@
 
 ### Implementation for User Story 6
 
-- [ ] T016 [US6] Update `docs/OWNERS.md` to add ownership entries for new files: `docs/checklists/weekly-sweep.md`, `docs/checklists/monthly-review.md`, `docs/checklists/quarterly-audit.md` — assign to appropriate roles per data-model.md ownership mapping
-- [ ] T017 [US6] Validate that every file in `docs/` (including subdirectories) has a corresponding entry in `docs/OWNERS.md` per FR-013
+- [x] T016 [US6] Update `docs/OWNERS.md` to add ownership entries for new files: `docs/checklists/weekly-sweep.md`, `docs/checklists/monthly-review.md`, `docs/checklists/quarterly-audit.md` — assign to appropriate roles per data-model.md ownership mapping
+- [x] T017 [US6] Validate that every file in `docs/` (including subdirectories) has a corresponding entry in `docs/OWNERS.md` per FR-013
 
 **Checkpoint**: User Story 6 complete — all documentation files have designated owners
 
@@ -136,10 +136,10 @@
 
 **Purpose**: Final validation across all user stories to ensure consistency and completeness
 
-- [ ] T018 [P] Validate all new markdown files pass `markdownlint` locally: run `markdownlint "docs/checklists/*.md" ".github/pull_request_template.md" --config .markdownlint.json`
-- [ ] T019 [P] Validate all internal links in new checklist files resolve correctly: run `markdown-link-check` on each new file
-- [ ] T020 Verify all new files use ATX-style headings, language-tagged code blocks, tables for structured data, numbered lists for sequential steps, and bullet lists for non-ordered items (FR-014, FR-015)
-- [ ] T021 Run `specs/027-doc-sweep/quickstart.md` verification steps end-to-end to confirm all deliverables are in place
+- [x] T018 [P] Validate all new markdown files pass `markdownlint` locally: run `markdownlint "docs/checklists/*.md" ".github/pull_request_template.md" --config .markdownlint.json`
+- [x] T019 [P] Validate all internal links in new checklist files resolve correctly: run `markdown-link-check` on each new file
+- [x] T020 Verify all new files use ATX-style headings, language-tagged code blocks, tables for structured data, numbered lists for sequential steps, and bullet lists for non-ordered items (FR-014, FR-015)
+- [x] T021 Run `specs/027-doc-sweep/quickstart.md` verification steps end-to-end to confirm all deliverables are in place
 
 ---
 
