@@ -197,8 +197,15 @@ describe('useAuth', () => {
         writable: true,
       });
 
-      // Mock history.replaceState
-      const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+      // Mock history.replaceState so it clears the URL (like a real browser)
+      const replaceStateSpy = vi
+        .spyOn(window.history, 'replaceState')
+        .mockImplementation((_data, _title, url) => {
+          if (typeof url === 'string') {
+            window.location.search = '';
+            window.location.pathname = url;
+          }
+        });
 
       mockAuthApi.setSessionFromToken.mockResolvedValue(mockUser);
       mockAuthApi.getCurrentUser.mockResolvedValue(mockUser);
