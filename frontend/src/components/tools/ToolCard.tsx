@@ -51,26 +51,26 @@ export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: Tool
               )}
             </div>
           </div>
-          <SyncStatusBadge status={tool.syncStatus} error={tool.syncError} />
+          <SyncStatusBadge status={tool.sync_status} error={tool.sync_error} />
         </div>
 
-        {tool.syncStatus === 'error' && tool.syncError && (
+        {tool.sync_status === 'error' && tool.sync_error && (
           <div className="mt-3 rounded-lg bg-destructive/5 border border-destructive/20 p-2.5">
-            <p className="text-xs text-destructive">{tool.syncError}</p>
+            <p className="text-xs text-destructive">{tool.sync_error}</p>
           </div>
         )}
 
-        {tool.githubRepoTarget && (
+        {tool.github_repo_target && (
           <p className="mt-3 truncate text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            Target: {tool.githubRepoTarget}
+            Target: {tool.github_repo_target}
           </p>
         )}
 
         <div className="mt-3 flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground/60">
-            {tool.syncedAt
-              ? `Synced ${new Date(tool.syncedAt).toLocaleDateString()}`
-              : `Created ${new Date(tool.createdAt).toLocaleDateString()}`}
+            {tool.synced_at
+              ? `Synced ${new Date(tool.synced_at).toLocaleDateString()}`
+              : `Created ${new Date(tool.created_at).toLocaleDateString()}`}
           </span>
           <div className="flex items-center gap-1">
             <Button

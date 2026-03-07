@@ -52,6 +52,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     if (isOpen && editAgent) {
       setName(editAgent.name);
       setSystemPrompt(editAgent.system_prompt || '');
+      setSelectedToolIds(editAgent.tools ?? []);
     }
   }, [isOpen, editAgent]);
 
@@ -89,6 +90,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
           data: {
             name: trimmedName,
             system_prompt: trimmedPrompt,
+            tools: selectedToolIds,
           },
         });
         setSuccessPrUrl(result.pr_url);
