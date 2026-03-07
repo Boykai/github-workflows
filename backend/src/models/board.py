@@ -92,6 +92,14 @@ class LinkedPR(BaseModel):
     url: str = Field(..., description="PR URL on GitHub")
 
 
+class Label(BaseModel):
+    """A GitHub issue label with color information."""
+
+    id: str = Field(..., description="GraphQL node ID")
+    name: str = Field(..., description="Label display name (e.g., 'enhancement')")
+    color: str = Field(..., description="Hex color without '#' prefix (e.g., '0075ca')")
+
+
 class SubIssue(BaseModel):
     """A sub-issue attached to a parent issue, representing work for a specific agent."""
 
@@ -135,6 +143,18 @@ class BoardItem(BaseModel):
     )
     sub_issues: list[SubIssue] = Field(
         default_factory=list, description="Sub-issues for agent work"
+    )
+    labels: list[Label] = Field(
+        default_factory=list, description="GitHub issue labels"
+    )
+    created_at: str | None = Field(
+        default=None, description="ISO 8601 creation timestamp"
+    )
+    updated_at: str | None = Field(
+        default=None, description="ISO 8601 last update timestamp"
+    )
+    milestone: str | None = Field(
+        default=None, description="Milestone name"
     )
 
 
