@@ -67,10 +67,11 @@ class GitHubAuthService:
         params = {
             "client_id": self.settings.github_client_id,
             "redirect_uri": self.settings.github_redirect_uri,
-            # Minimum scopes for project management — repo scope removed
-            # to follow principle of least privilege. Existing users must
-            # re-authorize on next login to downgrade their token scopes.
-            "scope": "read:user read:org project",
+            # The app creates issues, sub-issues, comments, labels, and PRs.
+            # GitHub returns misleading 404s for many of those writes when the
+            # OAuth token only has project/read scopes, so repository scope is
+            # required here for the core workflow to function.
+            "scope": "read:user read:org project repo",
             "state": state,
         }
 

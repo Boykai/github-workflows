@@ -136,6 +136,107 @@ describe('useChat', () => {
     expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Test message' });
   });
 
+  it('should remove a pending proposal after confirmProposal succeeds', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+    mockChatApi.sendMessage.mockResolvedValue({
+      message_id: 'msg_task',
+      session_id: 's1',
+      sender_type: 'assistant',
+      content: 'Task proposal ready',
+      timestamp: '2024-01-01T00:00:02Z',
+      action_type: 'task_create',
+      action_data: {
+        proposal_id: 'proposal-1',
+        proposed_title: 'Add task confirmation feedback',
+        proposed_description: 'Show an error in chat when task creation fails.',
+        status: 'pending',
+      },
+    });
+    mockChatApi.confirmProposal.mockResolvedValue({
+      proposal_id: 'proposal-1',
+      session_id: 's1',
+      original_input: 'Create a task',
+      proposed_title: 'Add task confirmation feedback',
+      proposed_description: 'Show an error in chat when task creation fails.',
+      status: 'confirmed',
+      created_at: '2024-01-01T00:00:00Z',
+      expires_at: '2024-01-01T00:05:00Z',
+    });
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('Create a task');
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingProposals.has('proposal-1')).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.confirmProposal('proposal-1');
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingProposals.has('proposal-1')).toBe(false);
+    });
+  });
+
+  it('should append a system error message when confirmProposal fails', async () => {
+    mockChatApi.getMessages.mockResolvedValue({ messages: [] });
+    mockChatApi.sendMessage.mockResolvedValue({
+      message_id: 'msg_task',
+      session_id: 's1',
+      sender_type: 'assistant',
+      content: 'Task proposal ready',
+      timestamp: '2024-01-01T00:00:02Z',
+      action_type: 'task_create',
+      action_data: {
+        proposal_id: 'proposal-2',
+        proposed_title: 'Add task confirmation feedback',
+        proposed_description: 'Show an error in chat when task creation fails.',
+        status: 'pending',
+      },
+    });
+    mockChatApi.confirmProposal.mockRejectedValue(new Error('Failed to create issue'));
+
+    const { result } = renderHook(() => useChat(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('Create a task');
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingProposals.has('proposal-2')).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.confirmProposal('proposal-2');
+    });
+
+    expect(mockChatApi.confirmProposal).toHaveBeenCalledWith('proposal-2', undefined);
+    expect(result.current.pendingProposals.has('proposal-2')).toBe(true);
+    expect(
+      result.current.messages.some(
+        (message) =>
+          message.sender_type === 'system' &&
+          message.content === 'Task creation failed: Failed to create issue'
+      )
+    ).toBe(true);
+  });
+
   it('should handle sendMessage error gracefully', async () => {
     mockChatApi.getMessages.mockResolvedValue({ messages: [] });
     mockChatApi.sendMessage.mockRejectedValue(new Error('Send failed'));

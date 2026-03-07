@@ -159,6 +159,10 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   const savePipeline = useCallback(async () => {
     if (!pipeline || !projectId) return;
+    if (!pipeline.name.trim()) {
+      setSaveError('Pipeline name is required');
+      return;
+    }
     setIsSaving(true);
     setSaveError(null);
     try {

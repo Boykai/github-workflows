@@ -2,8 +2,12 @@
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import httpx
 import pytest
+from githubkit.exception import RequestFailed
+from githubkit.response import Response as GitHubResponse
 
+from src.exceptions import ValidationError
 from src.models.project import ProjectType
 from src.models.task import Task
 from src.services.github_projects import GitHubProjectsService
@@ -592,6 +596,28 @@ class TestCreateIssue:
             call_args = mock_rest.call_args
             assert call_args.kwargs["json"]["title"] == "Test Issue"
             assert call_args.kwargs["json"]["labels"] == ["bug", "enhancement"]
+
+    @pytest.mark.asyncio
+    async def test_create_issue_404_raises_reauth_validation_error(self, service):
+        """Should translate GitHub's opaque 404 into a clear re-auth message."""
+        github_response = GitHubResponse(
+            httpx.Response(
+                404, request=httpx.Request("POST", "https://api.github.com/repos/owner/repo/issues")
+            ),
+            data_model=object,
+        )
+
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.side_effect = RequestFailed(github_response)
+
+            with pytest.raises(ValidationError, match="missing repository write access"):
+                await service.create_issue(
+                    access_token="test-token",
+                    owner="owner",
+                    repo="repo",
+                    title="Test Issue",
+                    body="Issue body",
+                )
 
 
 class TestAddIssueToProject:

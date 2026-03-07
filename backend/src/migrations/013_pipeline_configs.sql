@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS pipeline_configs (
     name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     stages TEXT NOT NULL DEFAULT '[]',
-    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
     UNIQUE(name, project_id)
 );
 

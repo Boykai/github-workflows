@@ -275,7 +275,24 @@ export function useChat(): UseChatReturn {
 
   const confirmProposal = useCallback(
     async (proposalId: string, edits?: ProposalConfirmRequest) => {
-      await confirmMutation.mutateAsync({ proposalId, data: edits });
+      try {
+        await confirmMutation.mutateAsync({ proposalId, data: edits });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error && error.message
+            ? `Task creation failed: ${error.message}`
+            : 'Task creation failed due to an unexpected error.';
+
+        const systemErrorMsg: ChatMessage = {
+          message_id: generateId(),
+          session_id: 'local',
+          sender_type: 'system',
+          content: errorMessage,
+          timestamp: new Date().toISOString(),
+        };
+
+        setLocalMessages((prev) => [...prev, systemErrorMsg]);
+      }
     },
     [confirmMutation]
   );

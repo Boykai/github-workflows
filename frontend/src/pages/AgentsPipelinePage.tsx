@@ -3,7 +3,7 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useState, useEffect, useCallback, type CSSProperties } from 'react';
+import { useState, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -31,7 +31,7 @@ export function AgentsPipelinePage() {
   const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
 
-  const columns = boardData?.columns ?? [];
+  const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
   const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
   const alignedGridStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
@@ -161,6 +161,7 @@ export function AgentsPipelinePage() {
             boardState={pipelineConfig.boardState}
             isDirty={pipelineConfig.isDirty}
             isSaving={pipelineConfig.isSaving}
+            pipelineName={pipelineConfig.pipeline?.name}
             onNewPipeline={handleNewPipeline}
             onSave={pipelineConfig.savePipeline}
             onDelete={handleDelete}

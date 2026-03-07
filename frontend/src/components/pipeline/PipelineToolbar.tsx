@@ -11,6 +11,7 @@ interface PipelineToolbarProps {
   boardState: PipelineBoardState;
   isDirty: boolean;
   isSaving: boolean;
+  pipelineName?: string;
   onNewPipeline: () => void;
   onSave: () => void;
   onDelete: () => void;
@@ -21,15 +22,17 @@ export function PipelineToolbar({
   boardState,
   isDirty,
   isSaving,
+  pipelineName,
   onNewPipeline,
   onSave,
   onDelete,
   onDiscard,
 }: PipelineToolbarProps) {
   // Toolbar state matrix from data-model.md
+  const hasName = !!pipelineName?.trim();
   const isNewEnabled = boardState === 'empty' || (boardState === 'editing');
   const isSaveEnabled =
-    (boardState === 'creating' && isDirty) || (boardState === 'editing' && isDirty);
+    hasName && ((boardState === 'creating' && isDirty) || (boardState === 'editing' && isDirty));
   const isDiscardEnabled =
     (boardState === 'creating' && isDirty) || (boardState === 'editing' && isDirty);
   const isDeleteEnabled = boardState === 'editing';

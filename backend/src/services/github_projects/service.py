@@ -17,6 +17,7 @@ from githubkit.exception import RequestFailed
 if TYPE_CHECKING:
     from src.services.github_projects import GitHubClientFactory
 
+from src.exceptions import ValidationError
 from src.models.agent import AgentSource, AvailableAgent
 from src.models.project import GitHubProject, ProjectType, StatusColumn
 from src.models.task import Task
@@ -1265,27 +1266,7 @@ class GitHubProjectsService:
         milestone: int | None = None,
         assignees: list[str] | None = None,
     ) -> dict:
-        """
-        Create a GitHub Issue using REST API (T018).
-
-        Uses _request_with_retry for resilience against transient 429/503
-        errors (FR-008).  Issue creation is treated as idempotent here
-        because a failed request (5xx / rate-limit) means the issue was
-        NOT created, so retrying is safe.
-
-        Args:
-            access_token: GitHub OAuth access token
-            owner: Repository owner
-            repo: Repository name
-            title: Issue title
-            body: Issue body (markdown)
-            labels: Optional list of label names
-            milestone: Optional milestone number
-            assignees: Optional list of GitHub usernames to assign
-
-        Returns:
-            Dict with issue details: id, node_id, number, html_url
-        """
+        """Create a GitHub Issue using the REST API."""
         payload: dict = {
             "title": title,
             "body": body,
@@ -1296,15 +1277,24 @@ class GitHubProjectsService:
         if assignees:
             payload["assignees"] = assignees
 
-        issue = cast(
-            dict,
-            await self._rest(
-                access_token,
-                "POST",
-                f"/repos/{owner}/{repo}/issues",
-                json=payload,
-            ),
-        )
+        try:
+            issue = cast(
+                dict,
+                await self._rest(
+                    access_token,
+                    "POST",
+                    f"/repos/{owner}/{repo}/issues",
+                    json=payload,
+                ),
+            )
+        except RequestFailed as exc:
+            if exc.response.status_code == 404:
+                raise ValidationError(
+                    f"GitHub could not create an issue in {owner}/{repo}. "
+                    "Your current GitHub session may be missing repository write access. "
+                    "Log out and sign in again to refresh permissions."
+                ) from exc
+            raise
 
         logger.info("Created issue #%d in %s/%s", issue["number"], owner, repo)
         return issue
@@ -1355,24 +1345,8 @@ class GitHubProjectsService:
         labels_add: list[str] | None = None,
         labels_remove: list[str] | None = None,
     ) -> bool:
-        """
-        Update a GitHub Issue's state (open/closed) and optionally manage labels.
-
-        Args:
-            access_token: GitHub OAuth access token
-            owner: Repository owner
-            repo: Repository name
-            issue_number: Issue number
-            state: "open" or "closed"
-            state_reason: Optional reason ("completed", "not_planned", "reopened")
-            labels_add: Labels to add
-            labels_remove: Labels to remove
-
-        Returns:
-            True if update succeeded
-        """
+        """Update a GitHub issue's state and optionally adjust labels."""
         try:
-            # Update state
             payload: dict = {"state": state}
             if state_reason:
                 payload["state_reason"] = state_reason
@@ -1384,7 +1358,6 @@ class GitHubProjectsService:
                 json=payload,
             )
 
-            # Add labels
             if labels_add:
                 await self._rest(
                     access_token,
@@ -1393,15 +1366,19 @@ class GitHubProjectsService:
                     json={"labels": labels_add},
                 )
 
-            # Remove labels
             if labels_remove:
                 for label in labels_remove:
-                    await self._rest(
-                        access_token,
-                        "DELETE",
-                        f"/repos/{owner}/{repo}/issues/{issue_number}/labels/{label}",
-                    )
+                    try:
+                        await self._rest(
+                            access_token,
+                            "DELETE",
+                            f"/repos/{owner}/{repo}/issues/{issue_number}/labels/{label}",
+                        )
+                    except RequestFailed as exc:
+                        if exc.response.status_code != 404:
+                            raise
 
+            self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
             logger.info(
                 "Updated issue #%d state to '%s' in %s/%s",
                 issue_number,
@@ -1409,7 +1386,6 @@ class GitHubProjectsService:
                 owner,
                 repo,
             )
-            self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
             return True
         except Exception as e:
             logger.warning("Failed to update issue #%d state: %s", issue_number, e)
