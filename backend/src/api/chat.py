@@ -2,11 +2,12 @@
 
 import asyncio
 import logging
-import os
+import tempfile
+from pathlib import Path
 from typing import Annotated
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Request, UploadFile, File
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -760,8 +761,8 @@ async def cancel_proposal(
 
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
-    file: UploadFile = File(...),
-    session: UserSession = Depends(get_session_dep),
+    file: UploadFile = File(...),  # noqa: B008
+    session: UserSession = Depends(get_session_dep),  # noqa: B008
 ) -> FileUploadResponse | JSONResponse:
     """Upload a file for attachment to a future GitHub Issue.
 
@@ -775,7 +776,7 @@ async def upload_file(
         )
 
     # Validate file type
-    ext = os.path.splitext(file.filename)[1].lower()
+    ext = Path(file.filename).suffix.lower()
     if ext in BLOCKED_TYPES:
         return JSONResponse(
             status_code=415,
@@ -809,20 +810,15 @@ async def upload_file(
 
     # For now, store files in a temporary upload directory and serve via a local URL.
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
-    import tempfile
-    import base64
-    from uuid import uuid4
-
     upload_id = str(uuid4())[:8]
     safe_filename = f"{upload_id}-{file.filename}"
 
     # Store in a temporary directory
-    upload_dir = os.path.join(tempfile.gettempdir(), "chat-uploads")
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, safe_filename)
+    upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / safe_filename
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    file_path.write_bytes(content)
 
     # Generate a file URL — in production this would be a GitHub CDN URL
     file_url = f"/api/v1/chat/uploads/{safe_filename}"
