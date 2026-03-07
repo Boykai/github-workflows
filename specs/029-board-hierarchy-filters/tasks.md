@@ -44,7 +44,7 @@
 
 - [ ] T003 Extend `BOARD_GET_PROJECT_ITEMS_QUERY` `... on Issue` fragment with `createdAt`, `updatedAt`, `milestone { title }`, and `labels(first: 20) { nodes { id name color } }` in backend/src/services/github_projects/graphql.py
 - [ ] T004 Parse `labels`, `createdAt`, `updatedAt`, and `milestone` from the GraphQL response in the item processing loop — construct `Label` objects from `labels.nodes`, extract `createdAt`/`updatedAt` as strings, extract `milestone.title` as string — and assign to `BoardItem` in backend/src/services/github_projects/service.py
-- [ ] T005 Update sub-issue filtering to exclude sub-issue `content_id`s from ALL columns instead of only `_DONE_STATUS_NAMES` columns — remove the `if col.status.name.lower() in _DONE_STATUS_NAMES` condition so the filter applies to every column in backend/src/services/github_projects/service.py
+- [ ] T005 Update sub-issue filtering to exclude sub-issue `content_id`s from ALL columns instead of only Done/Closed/Completed columns (`_DONE_STATUS_NAMES`) — the current code only filters sub-issues from done columns (lines ~970-990), but FR-001 requires sub-issues to be excluded from every column so only parent issues appear as top-level cards — remove the `if col.status.name.lower() in _DONE_STATUS_NAMES` guard so the filter applies unconditionally in backend/src/services/github_projects/service.py
 - [ ] T006 Recalculate `item_count` and `estimate_total` per column after the expanded sub-issue filtering so column header counts reflect the parent-only item set in backend/src/services/github_projects/service.py
 
 **Checkpoint**: Backend returns parent-only board items with labels, timestamps, and milestone fields populated. Sub-issues no longer appear as standalone cards in any column.
@@ -76,7 +76,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] Render `item.labels` as colored label chips below the card description and above assignees — use `background: #{label.color}` with contrast-computed text color (white text on dark backgrounds, black text on light backgrounds based on luminance) in frontend/src/components/board/IssueCard.tsx
+- [ ] T011 [P] [US2] Render `item.labels` as colored label chips below the card description and above assignees — use `background: #{label.color}` with contrast-computed text color (white on dark backgrounds, black on light — use WCAG relative luminance formula: `L = 0.2126*R + 0.7152*G + 0.0722*B`, threshold `L > 0.179` → black text, else white text) in frontend/src/components/board/IssueCard.tsx
 - [ ] T012 [US2] Add `max-w-[120px] truncate` with `title={label.name}` hover tooltip for long label names, and `flex flex-wrap gap-1` on the label container for multi-line wrapping — hide the label section entirely when `item.labels.length === 0` in frontend/src/components/board/IssueCard.tsx
 
 **Checkpoint**: Label chips display correctly on parent cards with proper colors, truncation, and wrapping. Cards with no labels show no empty placeholder.
