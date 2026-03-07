@@ -45,7 +45,14 @@ const ICONS: ((s: number) => React.ReactNode)[] = [
         d={`M${s * 0.15},${s * 0.6} A${s * 0.35},${s * 0.35} 0 0,1 ${s * 0.85},${s * 0.6}`}
         fill="#fbbf24"
       />
-      <line x1={s * 0.1} y1={s * 0.6} x2={s * 0.9} y2={s * 0.6} stroke="#f59e0b" strokeWidth={s * 0.03} />
+      <line
+        x1={s * 0.1}
+        y1={s * 0.6}
+        x2={s * 0.9}
+        y2={s * 0.6}
+        stroke="#f59e0b"
+        strokeWidth={s * 0.03}
+      />
       {[0, 30, 60, 90, 120, 150, 180].map((deg) => (
         <line
           key={deg}
@@ -161,7 +168,14 @@ const ICONS: ((s: number) => React.ReactNode)[] = [
         d={`M${s * 0.15},${s * 0.6} A${s * 0.35},${s * 0.35} 0 0,1 ${s * 0.85},${s * 0.6}`}
         fill="#94a3b8"
       />
-      <line x1={s * 0.1} y1={s * 0.6} x2={s * 0.9} y2={s * 0.6} stroke="#64748b" strokeWidth={s * 0.03} />
+      <line
+        x1={s * 0.1}
+        y1={s * 0.6}
+        x2={s * 0.9}
+        y2={s * 0.6}
+        stroke="#64748b"
+        strokeWidth={s * 0.03}
+      />
     </g>
   ),
 ];
@@ -178,7 +192,9 @@ export function AgentAvatar({ slug, size = 'md', className }: AgentAvatarProps) 
   const icon = ICONS[idx];
 
   return (
-    <span className={`inline-flex items-center justify-center rounded-full bg-muted/50 p-1 ${className ?? ''}`}>
+    <span
+      className={`inline-flex items-center justify-center rounded-full bg-muted/50 p-1 ${className ?? ''}`}
+    >
       <svg
         width={px}
         height={px}

@@ -48,14 +48,18 @@ export function BulkModelUpdateDialog({
           handleClose();
           onSuccess();
         },
-      },
+      }
     );
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={handleClose}
+    >
       <div
         className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
         role="presentation"
@@ -65,7 +69,8 @@ export function BulkModelUpdateDialog({
           <>
             <h3 className="text-lg font-semibold mb-1">Update All Agent Models</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Select the target model to apply to all {agents.length} agent{agents.length === 1 ? '' : 's'}.
+              Select the target model to apply to all {agents.length} agent
+              {agents.length === 1 ? '' : 's'}.
             </p>
             <div className="mb-4">
               <ModelSelector
