@@ -3,6 +3,7 @@
  * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
  */
 
+import { memo } from 'react';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
@@ -64,7 +65,7 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
   );
 }
 
-export function IssueCard({ item, onClick }: IssueCardProps) {
+export const IssueCard = memo(function IssueCard({ item, onClick }: IssueCardProps) {
   const subIssues = item.sub_issues ?? [];
   const priorityName = item.priority?.name ?? '';
   const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
@@ -187,7 +188,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       </div>
     </div>
   );
-}
+});
 
 function SubIssuesIcon() {
   return (

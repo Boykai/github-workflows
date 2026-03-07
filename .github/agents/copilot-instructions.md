@@ -130,6 +130,8 @@ npx playwright test
 - N/A (local React state only — no persistence for pending messages) (026-chat-help-optimistic-render)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, react-router-dom v7, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (027-mcp-tools-page)
 - SQLite with WAL mode (aiosqlite) — extending existing `mcp_configurations` table + new `agent_tool_associations` junction table (027-mcp-tools-page)
+- Python 3.13 (backend), TypeScript 5.9 (frontend), Node 22 (build) + FastAPI, githubkit, pydantic 2.x, aiosqlite, React 19.2, TanStack Query, Vite 7.3 (027-performance-review)
+- SQLite with WAL mode (aiosqlite) — sessions, settings; in-memory cache (backend/src/services/cache.py) (027-performance-review)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI

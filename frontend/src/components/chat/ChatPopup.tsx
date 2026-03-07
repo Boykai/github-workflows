@@ -81,20 +81,31 @@ export function ChatPopup({
   );
 
   useEffect(() => {
+    let rafId = 0;
     const onMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
-      // Because the panel is anchored bottom-right, dragging left (negative dx) increases width,
-      // and dragging up (negative dy) increases height.
-      const dx = startPos.current.x - e.clientX;
-      const dy = startPos.current.y - e.clientY;
-      const newWidth = Math.min(Math.max(startPos.current.w + dx, MIN_WIDTH), MAX_WIDTH);
-      const newHeight = Math.min(Math.max(startPos.current.h + dy, MIN_HEIGHT), MAX_HEIGHT);
-      setSize({ width: newWidth, height: newHeight });
+      // Gate position updates to once per animation frame to prevent
+      // per-pixel event handler execution during drag.
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        // Because the panel is anchored bottom-right, dragging left (negative dx) increases width,
+        // and dragging up (negative dy) increases height.
+        const dx = startPos.current.x - e.clientX;
+        const dy = startPos.current.y - e.clientY;
+        const newWidth = Math.min(Math.max(startPos.current.w + dx, MIN_WIDTH), MAX_WIDTH);
+        const newHeight = Math.min(Math.max(startPos.current.h + dy, MIN_HEIGHT), MAX_HEIGHT);
+        setSize({ width: newWidth, height: newHeight });
+      });
     };
 
     const onMouseUp = () => {
       if (isResizing.current) {
         isResizing.current = false;
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = 0;
+        }
         // Persist final size
         setSize((prev) => {
           saveSize(prev.width, prev.height);
@@ -108,6 +119,7 @@ export function ChatPopup({
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 
