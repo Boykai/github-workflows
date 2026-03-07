@@ -62,7 +62,7 @@ interface UsePipelineConfigReturn {
   updateAgentInStage: (
     stageId: string,
     agentNodeId: string,
-    updates: Partial<PipelineAgentNode>,
+    updates: Partial<PipelineAgentNode>
   ) => void;
 }
 
@@ -72,13 +72,12 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const queryClient = useQueryClient();
 
   // Pipeline list query
-  const { data: pipelines, isLoading: pipelinesLoading } =
-    useQuery<PipelineConfigListResponse>({
-      queryKey: pipelineKeys.list(projectId ?? ''),
-      queryFn: () => pipelinesApi.list(projectId!),
-      staleTime: STALE_TIME_SHORT,
-      enabled: !!projectId,
-    });
+  const { data: pipelines, isLoading: pipelinesLoading } = useQuery<PipelineConfigListResponse>({
+    queryKey: pipelineKeys.list(projectId ?? ''),
+    queryFn: () => pipelinesApi.list(projectId!),
+    staleTime: STALE_TIME_SHORT,
+    enabled: !!projectId,
+  });
 
   // Local board state
   const [boardState, setBoardState] = useState<PipelineBoardState>('empty');
@@ -146,7 +145,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         setSaveError(err instanceof Error ? err.message : 'Failed to load pipeline');
       }
     },
-    [projectId, updateSnapshot],
+    [projectId, updateSnapshot]
   );
 
   const savePipeline = useCallback(async () => {
@@ -206,7 +205,9 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       // Revert to saved state
       const saved = JSON.parse(savedSnapshotRef.current);
       setPipeline((prev) =>
-        prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages } : null,
+        prev
+          ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages }
+          : null
       );
     } else {
       // New pipeline — reset to empty
@@ -283,7 +284,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       return {
         ...prev,
         stages: prev.stages.map((s) =>
-          s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s,
+          s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s
         ),
       };
     });
@@ -295,9 +296,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       return {
         ...prev,
         stages: prev.stages.map((s) =>
-          s.id === stageId
-            ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) }
-            : s,
+          s.id === stageId ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) } : s
         ),
       };
     });
@@ -315,12 +314,12 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
                   ...s,
                   agents: s.agents.map((a) => (a.id === agentNodeId ? { ...a, ...updates } : a)),
                 }
-              : s,
+              : s
           ),
         };
       });
     },
-    [],
+    []
   );
 
   return {

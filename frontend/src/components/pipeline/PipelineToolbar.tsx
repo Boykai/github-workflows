@@ -27,7 +27,7 @@ export function PipelineToolbar({
   onDiscard,
 }: PipelineToolbarProps) {
   // Toolbar state matrix from data-model.md
-  const isNewEnabled = boardState === 'empty' || (boardState === 'editing');
+  const isNewEnabled = boardState === 'empty' || boardState === 'editing';
   const isSaveEnabled =
     (boardState === 'creating' && isDirty) || (boardState === 'editing' && isDirty);
   const isDiscardEnabled =
@@ -36,22 +36,12 @@ export function PipelineToolbar({
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onNewPipeline}
-        disabled={!isNewEnabled}
-      >
+      <Button variant="outline" size="sm" onClick={onNewPipeline} disabled={!isNewEnabled}>
         <Plus className="mr-1.5 h-3.5 w-3.5" />
         New Pipeline
       </Button>
 
-      <Button
-        variant="default"
-        size="sm"
-        onClick={onSave}
-        disabled={!isSaveEnabled || isSaving}
-      >
+      <Button variant="default" size="sm" onClick={onSave} disabled={!isSaveEnabled || isSaving}>
         {isSaving ? (
           <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
         ) : (
@@ -60,22 +50,12 @@ export function PipelineToolbar({
         Save
       </Button>
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onDiscard}
-        disabled={!isDiscardEnabled}
-      >
+      <Button variant="ghost" size="sm" onClick={onDiscard} disabled={!isDiscardEnabled}>
         <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
         Discard
       </Button>
 
-      <Button
-        variant="destructive"
-        size="sm"
-        onClick={onDelete}
-        disabled={!isDeleteEnabled}
-      >
+      <Button variant="destructive" size="sm" onClick={onDelete} disabled={!isDeleteEnabled}>
         <Trash2 className="mr-1.5 h-3.5 w-3.5" />
         Delete
       </Button>

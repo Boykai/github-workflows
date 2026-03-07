@@ -22,7 +22,11 @@ interface PipelineBoardProps {
   onRemoveStage: (stageId: string) => void;
   onAddAgent: (stageId: string, agentSlug: string) => void;
   onRemoveAgent: (stageId: string, agentNodeId: string) => void;
-  onUpdateAgent: (stageId: string, agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
+  onUpdateAgent: (
+    stageId: string,
+    agentNodeId: string,
+    updates: Partial<PipelineAgentNode>
+  ) => void;
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
 }
 
@@ -44,9 +48,7 @@ export function PipelineBoard({
   const [editNameValue, setEditNameValue] = useState(pipelineName);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   useEffect(() => {
     setEditNameValue(pipelineName);
@@ -75,7 +77,7 @@ export function PipelineBoard({
       if (oldIndex === -1 || newIndex === -1) return;
       onStagesChange(arrayMove(stages, oldIndex, newIndex));
     },
-    [stages, onStagesChange],
+    [stages, onStagesChange]
   );
 
   // Empty state
@@ -100,7 +102,10 @@ export function PipelineBoard({
               onBlur={handleNameConfirm}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNameConfirm();
-                if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
+                if (e.key === 'Escape') {
+                  setEditNameValue(pipelineName);
+                  setIsEditingName(false);
+                }
               }}
               className="rounded-lg border border-primary/30 bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none"
               placeholder="Pipeline name"
@@ -109,7 +114,10 @@ export function PipelineBoard({
           ) : (
             <button
               type="button"
-              onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
+              onClick={() => {
+                setEditNameValue(pipelineName);
+                setIsEditingName(true);
+              }}
               className="text-lg font-semibold text-foreground hover:text-primary transition-colors"
               title="Click to rename"
             >
@@ -123,7 +131,8 @@ export function PipelineBoard({
           <Layers className="h-8 w-8 text-muted-foreground/40" />
           <h3 className="text-sm font-semibold text-foreground">Add your first stage</h3>
           <p className="text-xs text-muted-foreground">
-            Stages define the steps in your pipeline. Add agents to each stage to build your workflow.
+            Stages define the steps in your pipeline. Add agents to each stage to build your
+            workflow.
           </p>
           <button
             type="button"
@@ -158,7 +167,10 @@ export function PipelineBoard({
             onBlur={handleNameConfirm}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNameConfirm();
-              if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
+              if (e.key === 'Escape') {
+                setEditNameValue(pipelineName);
+                setIsEditingName(false);
+              }
             }}
             className="rounded-lg border border-primary/30 bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none"
             placeholder="Pipeline name"
@@ -167,7 +179,10 @@ export function PipelineBoard({
         ) : (
           <button
             type="button"
-            onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
+            onClick={() => {
+              setEditNameValue(pipelineName);
+              setIsEditingName(true);
+            }}
             className="text-lg font-semibold text-foreground hover:text-primary transition-colors"
             title="Click to rename"
           >

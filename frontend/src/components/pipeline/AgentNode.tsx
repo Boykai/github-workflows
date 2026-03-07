@@ -22,10 +22,7 @@ export function AgentNode({ agentNode, onModelSelect, onRemove }: AgentNodeProps
           {agentNode.agent_display_name || agentNode.agent_slug}
         </div>
         <div className="mt-1">
-          <ModelSelector
-            selectedModelId={agentNode.model_id || null}
-            onSelect={onModelSelect}
-          />
+          <ModelSelector selectedModelId={agentNode.model_id || null} onSelect={onModelSelect} />
         </div>
       </div>
 
