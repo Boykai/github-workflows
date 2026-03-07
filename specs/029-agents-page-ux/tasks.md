@@ -23,9 +23,9 @@
 
 **Purpose**: Project initialization — no new project setup required. This phase covers shared utilities and types used by multiple user stories.
 
-- [ ] T001 Create the `AgentAvatar` component with 12 inline SVG sun/moon icon variants and djb2 hash function in `frontend/src/components/agents/AgentAvatar.tsx`
-- [ ] T002 [P] Add `BulkModelUpdateRequest` and `BulkModelUpdateResult` Pydantic models in `backend/src/models/agents.py`
-- [ ] T003 [P] Add `bulkUpdateModels` API client method to the `agentsApi` namespace in `frontend/src/services/api.ts`
+- [x] T001 Create the `AgentAvatar` component with 12 inline SVG sun/moon icon variants and djb2 hash function in `frontend/src/components/agents/AgentAvatar.tsx`
+- [x] T002 [P] Add `BulkModelUpdateRequest` and `BulkModelUpdateResult` Pydantic models in `backend/src/models/agents.py`
+- [x] T003 [P] Add `bulkUpdateModels` API client method to the `agentsApi` namespace in `frontend/src/services/api.ts`
 
 ---
 
@@ -35,9 +35,9 @@
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T004 Add `bulk_update_models()` method to the agents service in `backend/src/services/agents/service.py` — iterate over all active agents, update each agent's `default_model_id` and `default_model_name` via existing model preference storage, return `BulkModelUpdateResult` summary
-- [ ] T005 Add `PATCH /{project_id}/bulk-model` endpoint in `backend/src/api/agents.py` — parse `BulkModelUpdateRequest` body, call `bulk_update_models()` service method, return `BulkModelUpdateResult` response
-- [ ] T006 [P] Add `useBulkUpdateModels(projectId)` TanStack Query mutation hook in `frontend/src/hooks/useAgents.ts` — call `agentsApi.bulkUpdateModels()`, invalidate `['agents', 'list', projectId]` and `['agents', 'pending', projectId]` queries on success
+- [x] T004 Add `bulk_update_models()` method to the agents service in `backend/src/services/agents/service.py` — iterate over all active agents, update each agent's `default_model_id` and `default_model_name` via existing model preference storage, return `BulkModelUpdateResult` summary
+- [x] T005 Add `PATCH /{project_id}/bulk-model` endpoint in `backend/src/api/agents.py` — parse `BulkModelUpdateRequest` body, call `bulk_update_models()` service method, return `BulkModelUpdateResult` response
+- [x] T006 [P] Add `useBulkUpdateModels(projectId)` TanStack Query mutation hook in `frontend/src/hooks/useAgents.ts` — call `agentsApi.bulkUpdateModels()`, invalidate `['agents', 'list', projectId]` and `['agents', 'pending', projectId]` queries on success
 
 **Checkpoint**: Backend bulk-model endpoint is functional and frontend API client + hook are wired. User story implementation can now begin in parallel.
 
@@ -51,11 +51,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add dirty-state tracking to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — snapshot original agent values on modal open in edit mode, compare current form state against snapshot using field-by-field comparison (name, description, system_prompt, tools, default_model_id), expose `isDirty` boolean
-- [ ] T008 [US1] Add persistent unsaved-changes banner to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — when `isDirty` is true, render a yellow warning banner ("You have unsaved changes") at the top of the modal content area
-- [ ] T009 [US1] Add close guard to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — intercept `onOpenChange(false)` and Escape key when `isDirty`, show a confirmation dialog with "Save," "Discard," and "Cancel" options; Save triggers the update mutation, Discard closes the modal, Cancel keeps the modal open
-- [ ] T010 [US1] Add `beforeunload` guard to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — add/remove `window.addEventListener('beforeunload', handler)` based on `isDirty` state via `useEffect`
-- [ ] T011 [US1] Add PR link notification to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — on successful save, display the `pr_url` from `AgentCreateResult` in a success toast/notification with a clickable link ("Changes saved! PR created: #N — View PR →"); preserve unsaved changes on save failure for retry (FR-020)
+- [x] T007 [US1] Add dirty-state tracking to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — snapshot original agent values on modal open in edit mode, compare current form state against snapshot using field-by-field comparison (name, description, system_prompt, tools, default_model_id), expose `isDirty` boolean
+- [x] T008 [US1] Add persistent unsaved-changes banner to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — when `isDirty` is true, render a yellow warning banner ("You have unsaved changes") at the top of the modal content area
+- [x] T009 [US1] Add close guard to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — intercept `onOpenChange(false)` and Escape key when `isDirty`, show a confirmation dialog with "Save," "Discard," and "Cancel" options; Save triggers the update mutation, Discard closes the modal, Cancel keeps the modal open
+- [x] T010 [US1] Add `beforeunload` guard to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — add/remove `window.addEventListener('beforeunload', handler)` based on `isDirty` state via `useEffect`
+- [x] T011 [US1] Add PR link notification to `AddAgentModal` in `frontend/src/components/agents/AddAgentModal.tsx` — on successful save, display the `pr_url` from `AgentCreateResult` in a success toast/notification with a clickable link ("Changes saved! PR created: #N — View PR →"); preserve unsaved changes on save failure for retry (FR-020)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — users can edit agents inline with dirty-state protection and see PR links on save.
 
@@ -69,9 +69,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Create `ToolsEditor` component in `frontend/src/components/agents/ToolsEditor.tsx` — render ordered `<ul>` of tool items with: tool name chip, up arrow button (disabled for first item), down arrow button (disabled for last item), remove button (×); "Add Tools" button at bottom opens existing `ToolSelectorModal`; empty state message; validation error display below list; icons from lucide-react (`ChevronUp`, `ChevronDown`, `X`, `Plus`)
-- [ ] T013 [US2] Integrate `ToolsEditor` into `AddAgentModal` edit mode in `frontend/src/components/agents/AddAgentModal.tsx` — replace static tool chip display with `<ToolsEditor tools={tools} onToolsChange={setTools} error={toolsError} />`; wire `onToolsChange` callback to update local tools state and mark form as dirty
-- [ ] T014 [US2] Add tools validation to `AddAgentModal` save flow in `frontend/src/components/agents/AddAgentModal.tsx` — before save, check `tools.length >= 1`; if empty, set `toolsError` to "At least one tool must be assigned" and block save; clear error when tools list becomes non-empty (FR-019)
+- [x] T012 [P] [US2] Create `ToolsEditor` component in `frontend/src/components/agents/ToolsEditor.tsx` — render ordered `<ul>` of tool items with: tool name chip, up arrow button (disabled for first item), down arrow button (disabled for last item), remove button (×); "Add Tools" button at bottom opens existing `ToolSelectorModal`; empty state message; validation error display below list; icons from lucide-react (`ChevronUp`, `ChevronDown`, `X`, `Plus`)
+- [x] T013 [US2] Integrate `ToolsEditor` into `AddAgentModal` edit mode in `frontend/src/components/agents/AddAgentModal.tsx` — replace static tool chip display with `<ToolsEditor tools={tools} onToolsChange={setTools} error={toolsError} />`; wire `onToolsChange` callback to update local tools state and mark form as dirty
+- [x] T014 [US2] Add tools validation to `AddAgentModal` save flow in `frontend/src/components/agents/AddAgentModal.tsx` — before save, check `tools.length >= 1`; if empty, set `toolsError` to "At least one tool must be assigned" and block save; clear error when tools list becomes non-empty (FR-019)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — inline editing with tools reorder/add/remove and full dirty-state management.
 
@@ -85,7 +85,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Integrate `AgentAvatar` into `AgentCard` in `frontend/src/components/agents/AgentCard.tsx` — import `AgentAvatar`, render `<AgentAvatar slug={agent.slug} size="md" />` in the card header before the agent name, wrapped in a circular container (`rounded-full bg-muted/50 p-1`)
+- [x] T015 [US3] Integrate `AgentAvatar` into `AgentCard` in `frontend/src/components/agents/AgentCard.tsx` — import `AgentAvatar`, render `<AgentAvatar slug={agent.slug} size="md" />` in the card header before the agent name, wrapped in a circular container (`rounded-full bg-muted/50 p-1`)
 
 **Checkpoint**: At this point, all agent cards display deterministic sun/moon avatars.
 
@@ -99,7 +99,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Update `spotlightAgents` computation in `AgentsPanel` in `frontend/src/components/agents/AgentsPanel.tsx` — replace existing logic (lines ~67–73) with two-pass algorithm: Pass 1 selects agents with usage count > 0 sorted descending (up to 3); Pass 2 supplements with agents whose `created_at` is within past 3 days (72 hours), excluding duplicates, sorted by creation date descending; cap total at 3; hide Featured section when 0 agents qualify (FR-003, FR-004, FR-005)
+- [x] T016 [US4] Update `spotlightAgents` computation in `AgentsPanel` in `frontend/src/components/agents/AgentsPanel.tsx` — replace existing logic (lines ~67–73) with two-pass algorithm: Pass 1 selects agents with usage count > 0 sorted descending (up to 3); Pass 2 supplements with agents whose `created_at` is within past 3 days (72 hours), excluding duplicates, sorted by creation date descending; cap total at 3; hide Featured section when 0 agents qualify (FR-003, FR-004, FR-005)
 
 **Checkpoint**: Featured Agents section correctly ranks by usage and supplements with recent agents.
 
@@ -113,8 +113,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [P] [US5] Create `BulkModelUpdateDialog` component in `frontend/src/components/agents/BulkModelUpdateDialog.tsx` — two-step dialog: Step 1 shows model selector (reuse existing model list pattern), "Next" enabled when model selected; Step 2 shows confirmation listing all agents with current model and target model, agent count badge, "Cancel" and "Confirm" buttons; loading spinner during API call; error display with retry; calls `useBulkUpdateModels` mutation on confirm; closes and calls `onSuccess` on success
-- [ ] T018 [US5] Add "Update All Models" button and `BulkModelUpdateDialog` integration to `AgentsPanel` in `frontend/src/components/agents/AgentsPanel.tsx` — add button with `RefreshCw` icon in the catalog controls toolbar; render `<BulkModelUpdateDialog>` controlled by local `bulkUpdateOpen` state; pass agents list and projectId as props
+- [x] T017 [P] [US5] Create `BulkModelUpdateDialog` component in `frontend/src/components/agents/BulkModelUpdateDialog.tsx` — two-step dialog: Step 1 shows model selector (reuse existing model list pattern), "Next" enabled when model selected; Step 2 shows confirmation listing all agents with current model and target model, agent count badge, "Cancel" and "Confirm" buttons; loading spinner during API call; error display with retry; calls `useBulkUpdateModels` mutation on confirm; closes and calls `onSuccess` on success
+- [x] T018 [US5] Add "Update All Models" button and `BulkModelUpdateDialog` integration to `AgentsPanel` in `frontend/src/components/agents/AgentsPanel.tsx` — add button with `RefreshCw` icon in the catalog controls toolbar; render `<BulkModelUpdateDialog>` controlled by local `bulkUpdateOpen` state; pass agents list and projectId as props
 
 **Checkpoint**: Bulk model update flow is complete — select model, confirm, all agents updated atomically via single API call.
 
@@ -128,8 +128,8 @@
 
 ### Implementation for User Story 6
 
-- [ ] T019 [P] [US6] Extract repository name from project context in `AgentsPage` in `frontend/src/pages/AgentsPage.tsx` — parse `fullRepo.split('/').pop()` to get repo name only; pass `repoName` prop down to `AgentsPanel` → `AgentCard`
-- [ ] T020 [US6] Add repository name bubble to `AgentCard` in `frontend/src/components/agents/AgentCard.tsx` — render a styled chip/bubble (`inline-flex max-w-[12rem] items-center truncate rounded-full bg-muted px-3 py-0.5 text-xs`) showing only the repo name; set `title={fullRepoName}` for hover tooltip on truncated names
+- [x] T019 [P] [US6] Extract repository name from project context in `AgentsPage` in `frontend/src/pages/AgentsPage.tsx` — parse `fullRepo.split('/').pop()` to get repo name only; pass `repoName` prop down to `AgentsPanel` → `AgentCard`
+- [x] T020 [US6] Add repository name bubble to `AgentCard` in `frontend/src/components/agents/AgentCard.tsx` — render a styled chip/bubble (`inline-flex max-w-[12rem] items-center truncate rounded-full bg-muted px-3 py-0.5 text-xs`) showing only the repo name; set `title={fullRepoName}` for hover tooltip on truncated names
 
 **Checkpoint**: Repository names display correctly — owner stripped, text fitted, ellipsis on overflow.
 
@@ -139,10 +139,10 @@
 
 **Purpose**: Improvements that affect multiple user stories and final validation.
 
-- [ ] T021 Verify all existing frontend tests pass after modifications by running `npm test` in `frontend/`
-- [ ] T022 Verify all existing backend tests pass after modifications by running `pytest` in `backend/`
-- [ ] T023 Run quickstart.md verification scenarios (all 22 verification steps) to validate end-to-end feature behavior
-- [ ] T024 Code cleanup — ensure consistent import ordering, remove unused imports, and verify TypeScript types are correctly applied across all modified files
+- [x] T021 Verify all existing frontend tests pass after modifications by running `npm test` in `frontend/`
+- [x] T022 Verify all existing backend tests pass after modifications by running `pytest` in `backend/`
+- [x] T023 Run quickstart.md verification scenarios (all 22 verification steps) to validate end-to-end feature behavior
+- [x] T024 Code cleanup — ensure consistent import ordering, remove unused imports, and verify TypeScript types are correctly applied across all modified files
 
 ---
 

@@ -8,6 +8,7 @@ import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ModelSelector } from '@/components/pipeline/ModelSelector';
+import { AgentAvatar } from './AgentAvatar';
 import { cn } from '@/lib/utils';
 
 interface AgentCardProps {
@@ -16,6 +17,8 @@ interface AgentCardProps {
   usageCount?: number;
   onEdit?: (agent: AgentConfig) => void;
   variant?: 'default' | 'spotlight';
+  repoName?: string;
+  fullRepoName?: string;
 }
 
 const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = {
@@ -33,7 +36,7 @@ const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = 
   },
 };
 
-export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 'default' }: AgentCardProps) {
+export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 'default', repoName, fullRepoName }: AgentCardProps) {
   const deleteMutation = useDeleteAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
@@ -77,19 +80,30 @@ export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.18),_transparent_72%)] opacity-90" />
       <CardContent className={cn('relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5', isSpotlight && 'sm:min-h-[21rem] sm:p-6')}>
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                {sourceLabel}
-              </span>
-              <span className={`px-2 py-1 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}>
-                {badge.label}
-              </span>
+          <div className="flex items-start gap-3 min-w-0">
+            <AgentAvatar slug={agent.slug} size={isSpotlight ? 'lg' : 'md'} />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                  {sourceLabel}
+                </span>
+                <span className={`px-2 py-1 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}>
+                  {badge.label}
+                </span>
+                {repoName && (
+                  <span
+                    className="inline-flex max-w-[12rem] items-center truncate rounded-full bg-muted px-3 py-0.5 text-[10px] text-muted-foreground"
+                    title={fullRepoName ?? repoName}
+                  >
+                    {repoName}
+                  </span>
+                )}
+              </div>
+              <h4 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]" title={agent.name}>
+                {agent.name}
+              </h4>
+              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/75">{agent.slug}</p>
             </div>
-            <h4 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]" title={agent.name}>
-              {agent.name}
-            </h4>
-            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/75">{agent.slug}</p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">

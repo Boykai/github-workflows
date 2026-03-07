@@ -801,6 +801,16 @@ export interface AgentChatResponse {
   preview: AgentPreviewResponse | null;
 }
 
+export interface BulkModelUpdateResult {
+  success: boolean;
+  updated_count: number;
+  failed_count: number;
+  updated_agents: string[];
+  failed_agents: string[];
+  target_model_id: string;
+  target_model_name: string;
+}
+
 export const agentsApi = {
   list(projectId: string): Promise<AgentConfig[]> {
     return request<AgentConfig[]>(`/agents/${projectId}`);
@@ -840,6 +850,13 @@ export const agentsApi = {
     return request<AgentChatResponse>(`/agents/${projectId}/chat`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  bulkUpdateModels(projectId: string, targetModelId: string, targetModelName: string): Promise<BulkModelUpdateResult> {
+    return request<BulkModelUpdateResult>(`/agents/${projectId}/bulk-model`, {
+      method: 'PATCH',
+      body: JSON.stringify({ target_model_id: targetModelId, target_model_name: targetModelName }),
     });
   },
 };
