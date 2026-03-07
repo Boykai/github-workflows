@@ -58,7 +58,7 @@ repos:
 
   # Documentation hooks
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.44.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
         name: Lint Markdown (markdownlint)
