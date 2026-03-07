@@ -16,10 +16,8 @@ interface PipelineBoardProps {
   availableAgents: AvailableAgent[];
   isEditMode: boolean;
   pipelineName: string;
-  pipelineDescription?: string;
   onStagesChange: (stages: PipelineStage[]) => void;
   onNameChange: (name: string) => void;
-  onDescriptionChange?: (description: string) => void;
   onAddStage: () => void;
   onRemoveStage: (stageId: string) => void;
   onAddAgent: (stageId: string, agentSlug: string) => void;
@@ -33,10 +31,8 @@ export function PipelineBoard({
   availableAgents,
   isEditMode,
   pipelineName,
-  pipelineDescription: _pipelineDescription,
   onStagesChange,
   onNameChange,
-  onDescriptionChange: _onDescriptionChange,
   onAddStage,
   onRemoveStage,
   onAddAgent,

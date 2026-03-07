@@ -152,7 +152,7 @@ export function StageCard({
 
         {showAgentPicker && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowAgentPicker(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowAgentPicker(false); }} role="presentation" />
+            <div className="fixed inset-0 z-40" onClick={() => setShowAgentPicker(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowAgentPicker(false); }} role="button" tabIndex={-1} aria-label="Close agent picker" />
             <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">
               <div className="max-h-40 overflow-y-auto p-1">
                 {availableAgents.length === 0 && (

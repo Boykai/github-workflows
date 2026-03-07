@@ -115,17 +115,13 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     const now = new Date().toISOString();
     const newConfig: PipelineConfig = {
       id: '',
-      projectId: projectId ?? '',
+      project_id: projectId ?? '',
       name: '',
       description: '',
       stages: [],
-      createdAt: now,
-      updatedAt: now,
-      // snake_case fields for API compatibility
-      project_id: projectId ?? '',
       created_at: now,
       updated_at: now,
-    } as PipelineConfig;
+    };
     setPipeline(newConfig);
     setEditingPipelineId(null);
     setBoardState('creating');

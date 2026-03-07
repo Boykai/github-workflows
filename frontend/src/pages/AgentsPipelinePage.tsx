@@ -163,10 +163,8 @@ export function AgentsPipelinePage() {
               availableAgents={availableAgents}
               isEditMode={pipelineConfig.boardState === 'editing'}
               pipelineName={pipelineConfig.pipeline.name}
-              pipelineDescription={pipelineConfig.pipeline.description}
               onStagesChange={pipelineConfig.reorderStages}
               onNameChange={pipelineConfig.setPipelineName}
-              onDescriptionChange={pipelineConfig.setPipelineDescription}
               onAddStage={() => pipelineConfig.addStage()}
               onRemoveStage={pipelineConfig.removeStage}
               onAddAgent={(stageId, slug) => {
