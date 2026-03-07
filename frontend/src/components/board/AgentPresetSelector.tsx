@@ -4,7 +4,7 @@
  * with confirmation dialog before replacing current agent configuration.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
@@ -166,13 +166,6 @@ export function AgentPresetSelector({
     if (projectId) {
       localStorage.setItem(`pipeline-config:${projectId}`, configId);
     }
-  }, [projectId]);
-
-  // Restore selection on mount
-  useEffect(() => {
-    if (!projectId) return;
-    // Read persisted selection for potential future use
-    localStorage.getItem(`pipeline-config:${projectId}`);
   }, [projectId]);
 
   const handlePresetClick = useCallback((preset: AgentPreset) => {

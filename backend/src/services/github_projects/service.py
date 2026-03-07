@@ -64,6 +64,9 @@ _T = TypeVar("_T")
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Status names considered "Done"/"Closed" for sub-issue filtering (FR-007).
+_DONE_STATUS_NAMES: frozenset[str] = frozenset({"done", "closed", "completed"})
+
 # Request-scoped storage for rate limit info.  Each FastAPI async handler
 # runs in its own contextvars context, so this isolates rate limit data
 # per-request and prevents concurrent requests from overwriting each other.
@@ -970,9 +973,8 @@ class GitHubProjectsService:
                     all_sub_issue_ids.add(si.id)
 
         if all_sub_issue_ids:
-            done_names = {"done", "closed", "completed"}
             for col in columns:
-                if col.status.name.lower() in done_names:
+                if col.status.name.lower() in _DONE_STATUS_NAMES:
                     original_count = len(col.items)
                     col.items = [
                         it for it in col.items
