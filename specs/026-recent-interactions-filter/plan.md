@@ -1,104 +1,85 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Recent Interactions — Filter Deleted Items & Display Only Parent Issues with Project Board Status Colors
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `026-recent-interactions-filter` | **Date**: 2026-03-07 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/026-recent-interactions-filter/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Enhance the existing Recent Interactions sidebar panel to: (1) filter out deleted/non-existent issues by validating cached entries against live board data, (2) restrict display to parent issues only (exclude sub-issues, PRs, draft issues), (3) color-code each entry by its project board status column using the existing `StatusColor` system, and (4) show a clear empty state when no valid parent issues remain. All changes are frontend-only — the existing `BoardDataResponse` API already provides all necessary data (item content type, sub-issues list, status color per column). No new backend endpoints or GraphQL queries are needed.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.9, React 19.2, Vite 7.3
+**Primary Dependencies**: react-router-dom v7, TanStack Query 5.90, Tailwind CSS v4, lucide-react 0.577
+**Storage**: localStorage (sidebar state), in-memory (board data via TanStack Query cache)
+**Testing**: Vitest 4 + Testing Library + happy-dom (unit), Playwright (E2E)
+**Target Platform**: Desktop browsers, 1024px minimum viewport width
+**Project Type**: Web application (frontend/ + backend/)
+**Performance Goals**: Panel renders within 3 seconds even with 50 cached entries (SC-006); status colors update within one render cycle (SC-003)
+**Constraints**: No new backend APIs, no new npm dependencies, existing color system reused, WCAG AA contrast compliance
+**Scale/Scope**: 3 modified files, 1 new constant, ~150 LOC net change
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Phase 0 Check
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | spec.md complete with 4 prioritized user stories (P1×2, P2, P3), acceptance scenarios, edge cases, and 11 functional requirements |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates; plan.md uses plan-template.md structure |
+| **III. Agent-Orchestrated** | ✅ PASS | Sequential phase execution (specify → plan); single-responsibility agent model |
+| **IV. Test Optionality** | ✅ PASS | Tests not explicitly mandated in spec; existing tests must continue to pass. Test updates included only where existing test fixtures change. |
+| **V. Simplicity/DRY** | ✅ PASS | Reuses existing `StatusColor` system, `colorUtils.ts` functions, and `BoardDataResponse` structure. No new abstractions — only modifies the existing `useRecentParentIssues` hook and `Sidebar` component. No new dependencies. |
+
+### Post-Phase 1 Re-Check
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | All design artifacts trace to spec FRs. research.md resolves all unknowns. |
+| **II. Template-Driven** | ✅ PASS | plan.md, research.md, data-model.md, contracts/, quickstart.md all follow template structure |
+| **III. Agent-Orchestrated** | ✅ PASS | Plan hands off to `/speckit.tasks` for Phase 2 task decomposition |
+| **IV. Test Optionality** | ✅ PASS | No new test mandate. Existing tests must pass. |
+| **V. Simplicity/DRY** | ✅ PASS | Total net change ~150 LOC across 3 files. Reuses existing color utilities and types. No unnecessary abstractions introduced. |
+
+**Gate result**: PASS — no violations.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/026-recent-interactions-filter/
+├── plan.md              # This file
+├── research.md          # Phase 0: 5 research items (R1–R5)
+├── data-model.md        # Phase 1: Type changes, hook contract, state transitions
+├── quickstart.md        # Phase 1: Developer onboarding guide
+├── contracts/
+│   └── components.md    # Phase 1: Updated component interface contracts
+├── checklists/
+│   └── requirements.md  # Pre-existing: Spec quality checklist
+└── tasks.md             # Phase 2 output (/speckit.tasks command — NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+frontend/src/
+├── types/index.ts                          # MODIFIED: Extend RecentInteraction type with status + statusColor fields
+├── hooks/useRecentParentIssues.ts          # MODIFIED: Add parent-only filtering, sub-issue exclusion, status color mapping
+├── layout/Sidebar.tsx                      # MODIFIED: Render status color accent on each recent interaction entry
+├── components/board/colorUtils.ts          # EXISTING (no changes): statusColorToCSS(), statusColorToBg() reused
+└── constants.ts                            # EXISTING (no changes): No new constants needed — status colors from board data
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (Option 2 — `frontend/` + `backend/`). All changes are in `frontend/src/`. Backend is unchanged. The existing `BoardDataResponse` → `BoardColumn` → `BoardStatusOption.color` pipeline already provides status colors. The `useRecentParentIssues` hook is the single point of change for filtering logic, and `Sidebar.tsx` is the single point of change for rendering.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+No violations to justify. All changes reuse existing infrastructure:
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+- Status colors: Reuse `StatusColor` type + `statusColorToCSS()` / `statusColorToBg()` from `colorUtils.ts`
+- Parent detection: Reuse `BoardItem.content_type` and cross-reference `SubIssue` arrays already in `BoardDataResponse`
+- Deletion detection: Items not present in `BoardDataResponse` are implicitly deleted/removed from the board
+- Empty state: Enhance existing empty state text in `Sidebar.tsx`
