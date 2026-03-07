@@ -2,16 +2,16 @@
  * ChoresPanel — container for the Chores feature on the project board.
  *
  * Renders list of ChoreCards, empty state with "Add Chore" button,
- * and loading / error states.
+ * and loading / error states. Supports inline editing with dirty tracking.
  */
 
-import { useDeferredValue, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
-import { useChoresList, useChoreTemplates } from '@/hooks/useChores';
+import { useChoresList, useChoreTemplates, useInlineUpdateChore } from '@/hooks/useChores';
 import { ChoreCard } from './ChoreCard';
 import { AddChoreModal } from './AddChoreModal';
 import { CleanUpButton } from '@/components/board/CleanUpButton';
-import type { ChoreTemplate } from '@/types';
+import type { Chore, ChoreEditState, ChoreInlineUpdate, ChoreTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,13 +21,15 @@ interface ChoresPanelProps {
   projectId: string;
   owner?: string;
   repo?: string;
+  parentIssueCount?: number;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 type ChoreStatusFilter = 'all' | 'active' | 'paused';
 type ScheduleFilter = 'all' | 'time' | 'count' | 'unscheduled';
 type ChoreSortMode = 'attention' | 'updated' | 'name';
 
-export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
+export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDirtyChange }: ChoresPanelProps) {
   const { data: chores, isLoading, error } = useChoresList(projectId);
   const { data: repoTemplates } = useChoreTemplates(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -37,6 +39,74 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
   const [scheduleFilter, setScheduleFilter] = useState<ScheduleFilter>('all');
   const [sortMode, setSortMode] = useState<ChoreSortMode>('attention');
   const deferredSearch = useDeferredValue(search);
+
+  // ── Inline Edit State ──
+  const [editState, setEditState] = useState<Record<string, ChoreEditState>>({});
+  const inlineUpdateMutation = useInlineUpdateChore(projectId);
+
+  const isAnyDirty = useMemo(
+    () => Object.values(editState).some(s => s.isDirty),
+    [editState],
+  );
+
+  // Notify parent of dirty state changes
+  useEffect(() => {
+    onDirtyChange?.(isAnyDirty);
+  }, [isAnyDirty, onDirtyChange]);
+
+  const handleEditChange = useCallback((choreId: string, updates: Partial<ChoreInlineUpdate>) => {
+    setEditState(prev => {
+      const existing = prev[choreId];
+      if (!existing) return prev;
+      const newCurrent = { ...existing.current, ...updates };
+      const isDirty = Object.keys(newCurrent).some(key => {
+        const k = key as keyof ChoreInlineUpdate;
+        const original = existing.original[k as keyof Chore];
+        return newCurrent[k] !== undefined && newCurrent[k] !== original;
+      });
+      return { ...prev, [choreId]: { ...existing, current: newCurrent, isDirty } };
+    });
+  }, []);
+
+  const handleEditStart = useCallback((chore: Chore) => {
+    setEditState(prev => ({
+      ...prev,
+      [chore.id]: {
+        original: chore,
+        current: {},
+        isDirty: false,
+        fileSha: null,
+      },
+    }));
+  }, []);
+
+  const handleEditDiscard = useCallback((choreId: string) => {
+    setEditState(prev => {
+      const next = { ...prev };
+      delete next[choreId];
+      return next;
+    });
+  }, []);
+
+  const handleEditSave = useCallback(async (choreId: string) => {
+    const state = editState[choreId];
+    if (!state?.isDirty) return;
+
+    try {
+      await inlineUpdateMutation.mutateAsync({
+        choreId,
+        data: state.current,
+      });
+      // Clear edit state on success
+      setEditState(prev => {
+        const next = { ...prev };
+        delete next[choreId];
+        return next;
+      });
+    } catch {
+      // Error handled by mutation state
+    }
+  }, [editState, inlineUpdateMutation]);
 
   const handleTemplateClick = (template: ChoreTemplate) => {
     setPreselectedTemplate(template);
@@ -110,6 +180,35 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
           <Button onClick={() => setShowAddModal(true)} size="lg">+ Add Chore</Button>
         </div>
       </div>
+
+      {/* Unsaved changes banner */}
+      {isAnyDirty && (
+        <div className="flex items-center justify-between gap-4 rounded-[1.2rem] border border-yellow-500/30 bg-yellow-50 px-4 py-3 dark:bg-yellow-900/20">
+          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+            You have unsaved changes
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditState({})}
+            >
+              Discard All
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                Object.keys(editState).forEach(id => {
+                  if (editState[id]?.isDirty) handleEditSave(id);
+                });
+              }}
+              disabled={inlineUpdateMutation.isPending}
+            >
+              {inlineUpdateMutation.isPending ? 'Saving…' : 'Save All'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -219,7 +318,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
               ) : (
                 <div className="constellation-grid mt-6 grid gap-4 lg:grid-cols-3">
                   {spotlightChores.map((chore) => (
-                    <ChoreCard key={chore.id} chore={chore} projectId={projectId} variant="spotlight" />
+                    <ChoreCard key={chore.id} chore={chore} projectId={projectId} variant="spotlight" parentIssueCount={parentIssueCount} />
                   ))}
                 </div>
               )}
@@ -310,7 +409,18 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
               ) : (
                 <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                   {filteredChores.map((chore) => (
-                    <ChoreCard key={chore.id} chore={chore} projectId={projectId} />
+                    <ChoreCard
+                      key={chore.id}
+                      chore={chore}
+                      projectId={projectId}
+                      parentIssueCount={parentIssueCount}
+                      editState={editState[chore.id]}
+                      onEditStart={() => handleEditStart(chore)}
+                      onEditChange={(updates) => handleEditChange(chore.id, updates)}
+                      onEditSave={() => handleEditSave(chore.id)}
+                      onEditDiscard={() => handleEditDiscard(chore.id)}
+                      isSaving={inlineUpdateMutation.isPending}
+                    />
                   ))}
                 </div>
               )}
