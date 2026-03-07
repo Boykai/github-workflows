@@ -1,6 +1,6 @@
 /**
  * StageCard — a named step within the pipeline board.
- * Contains agent nodes and supports inline renaming.
+ * Contains agent nodes and supports inline renaming and tool selection.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -9,11 +9,13 @@ import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AgentNode } from './AgentNode';
+import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 
 interface StageCardProps {
   stage: PipelineStage;
   availableAgents: AvailableAgent[];
+  projectId: string;
   onUpdate: (updatedStage: PipelineStage) => void;
   onRemove: () => void;
   onAddAgent: (agentSlug: string) => void;
@@ -24,6 +26,7 @@ interface StageCardProps {
 export function StageCard({
   stage,
   availableAgents,
+  projectId,
   onUpdate,
   onRemove,
   onAddAgent,
@@ -34,6 +37,7 @@ export function StageCard({
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
   const [pickerPosition, setPickerPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [toolModalAgent, setToolModalAgent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -166,9 +170,29 @@ export function StageCard({
               onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
             }
             onRemove={() => onRemoveAgent(agent.id)}
+            onToolsClick={() => setToolModalAgent(agent.id)}
           />
         ))}
       </div>
+
+      {/* Tool Selector Modal */}
+      {toolModalAgent && (
+        <ToolSelectorModal
+          isOpen={!!toolModalAgent}
+          onClose={() => setToolModalAgent(null)}
+          onConfirm={(selectedToolIds) => {
+            onUpdateAgent(toolModalAgent, {
+              tool_ids: selectedToolIds,
+              tool_count: selectedToolIds.length,
+            });
+            setToolModalAgent(null);
+          }}
+          initialSelectedIds={
+            stage.agents.find((a) => a.id === toolModalAgent)?.tool_ids ?? []
+          }
+          projectId={projectId}
+        />
+      )}
 
       {/* Add agent */}
       <div className="relative">

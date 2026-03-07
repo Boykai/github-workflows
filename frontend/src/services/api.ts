@@ -55,6 +55,8 @@ import type {
   PipelineConfigUpdate,
   PipelineConfigListResponse,
   AIModel,
+  PresetSeedResult,
+  ProjectPipelineAssignment,
   McpToolConfig,
   McpToolConfigCreate,
   McpToolConfigListResponse,
@@ -851,6 +853,23 @@ export const pipelinesApi = {
   delete(projectId: string, pipelineId: string): Promise<{ success: boolean; deleted_id: string }> {
     return request<{ success: boolean; deleted_id: string }>(`/pipelines/${projectId}/${pipelineId}`, {
       method: 'DELETE',
+    });
+  },
+
+  seedPresets(projectId: string): Promise<PresetSeedResult> {
+    return request<PresetSeedResult>(`/pipelines/${projectId}/seed-presets`, {
+      method: 'POST',
+    });
+  },
+
+  getAssignment(projectId: string): Promise<ProjectPipelineAssignment> {
+    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`);
+  },
+
+  setAssignment(projectId: string, pipelineId: string): Promise<ProjectPipelineAssignment> {
+    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
+      method: 'PUT',
+      body: JSON.stringify({ pipeline_id: pipelineId }),
     });
   },
 };
