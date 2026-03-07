@@ -702,6 +702,8 @@ async def confirm_proposal(
 
         return proposal
 
+    except ValidationError:
+        raise
     except Exception as e:
         logger.error("Failed to create issue from proposal: %s", e)
         raise ValidationError("Failed to create issue") from e

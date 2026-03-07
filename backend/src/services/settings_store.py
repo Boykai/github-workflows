@@ -381,6 +381,13 @@ def _merge_user_settings(
             return user_row[user_col]
         return global_row[g_col]
 
+    def _pick_nullable(user_col: str, global_col: str | None = None) -> Any:
+        """Return user value when row exists (None is a valid explicit override), else global value."""
+        g_col = global_col or user_col
+        if user_row is not None:
+            return user_row[user_col]
+        return global_row[g_col]
+
     return EffectiveUserSettings(
         ai=AIPreferences(
             provider=AIProvider(str(_pick("ai_provider"))),
@@ -393,7 +400,7 @@ def _merge_user_settings(
             sidebar_collapsed=bool(_pick("sidebar_collapsed")),
         ),
         workflow=WorkflowDefaults(
-            default_repository=_pick("default_repository"),
+            default_repository=_pick_nullable("default_repository"),
             default_assignee=str(_pick("default_assignee")),
             copilot_polling_interval=int(_pick("copilot_polling_interval")),
         ),
