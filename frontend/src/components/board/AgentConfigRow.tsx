@@ -243,6 +243,7 @@ export function AgentConfigRow({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
+           <div className="overflow-x-auto">
             <div className="grid min-w-full items-start gap-3 pb-2" style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))` }}>
               {columns.map((col) => {
                 const status = col.status.name;
@@ -262,6 +263,7 @@ export function AgentConfigRow({
                 );
               })}
             </div>
+           </div>
 
             {/* Floating drag overlay */}
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>

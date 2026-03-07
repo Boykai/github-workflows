@@ -496,23 +496,17 @@ async def list_agents(
     )
 
     if resolved_owner and resolved_repo:
-        configured_agents = await AgentsService(get_db()).list_agents(
-            project_id=session.selected_project_id,
-            owner=resolved_owner,
-            repo=resolved_repo,
-            access_token=session.access_token,
+        model_prefs = await AgentsService(get_db()).get_model_preferences(
+            session.selected_project_id
         )
-        configured_by_slug = {agent.slug: agent for agent in configured_agents}
         agents = [
             available_agent.model_copy(
                 update={
-                    "default_model_id": configured_by_slug[available_agent.slug].default_model_id,
-                    "default_model_name": configured_by_slug[
-                        available_agent.slug
-                    ].default_model_name,
+                    "default_model_id": model_prefs[available_agent.slug][0],
+                    "default_model_name": model_prefs[available_agent.slug][1],
                 }
             )
-            if available_agent.slug in configured_by_slug
+            if available_agent.slug in model_prefs
             else available_agent
             for available_agent in agents
         ]

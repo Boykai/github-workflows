@@ -21,10 +21,7 @@ interface RateLimitContextValue {
   updateRateLimit: (state: RateLimitState) => void;
 }
 
-const RateLimitContext = createContext<RateLimitContextValue>({
-  rateLimitState: { info: null, hasError: false },
-  updateRateLimit: () => {},
-});
+const RateLimitContext = createContext<RateLimitContextValue | undefined>(undefined);
 
 export function RateLimitProvider({ children }: { children: React.ReactNode }) {
   const [rateLimitState, setRateLimitState] = useState<RateLimitState>({
@@ -44,5 +41,9 @@ export function RateLimitProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useRateLimitStatus() {
-  return useContext(RateLimitContext);
+  const ctx = useContext(RateLimitContext);
+  if (ctx === undefined) {
+    throw new Error('useRateLimitStatus must be used within a RateLimitProvider');
+  }
+  return ctx;
 }

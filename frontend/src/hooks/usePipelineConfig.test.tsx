@@ -6,8 +6,8 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { usePipelineConfig } from './usePipelineConfig';
-import * as api from '../services/api';
-import type { AvailableAgent, PipelineStage } from '../types';
+import * as api from '@/services/api';
+import type { AvailableAgent, PipelineStage } from '@/types';
 
 vi.mock('@/services/api', () => ({
   pipelinesApi: {

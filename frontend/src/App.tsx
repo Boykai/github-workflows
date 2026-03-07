@@ -47,6 +47,7 @@ const router = createBrowserRouter(
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="pipeline" element={<AgentsPipelinePage />} />
         <Route path="agents" element={<AgentsPage />} />
+        <Route path="tools" element={<ToolsPage />} />
         <Route path="chores" element={<ChoresPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
@@ -62,21 +63,6 @@ export default function App() {
         {({ reset }) => (
           <ErrorBoundary onReset={reset}>
             <RouterProvider router={router} />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route element={<AuthGate><AppLayout /></AuthGate>}>
-                  <Route index element={<AppPage />} />
-                  <Route path="projects" element={<ProjectsPage />} />
-                  <Route path="pipeline" element={<AgentsPipelinePage />} />
-                  <Route path="agents" element={<AgentsPage />} />
-                  <Route path="tools" element={<ToolsPage />} />
-                  <Route path="chores" element={<ChoresPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Route>
-              </Routes>
-            </BrowserRouter>
           </ErrorBoundary>
         )}
       </QueryErrorResetBoundary>

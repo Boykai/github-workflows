@@ -3,9 +3,8 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
-import { useState, useMemo, useCallback } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
@@ -125,68 +124,6 @@ export function ProjectsPage() {
   const rateLimitRetryAfter = refreshError?.retryAfter
     ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
   const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-  const { totalItems, progressPercent } = useMemo(() => {
-    const total = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-    const done = boardData?.columns
-      .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
-      .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-    return { totalItems: total, progressPercent: percent };
-  }, [boardData]);
-
-  // Derive rate limit display state
-  const {
-    hasActiveRateLimitError,
-    showRateLimitBar,
-    rateLimitUsagePercent,
-    rateLimitLabel,
-    rateLimitTooltip,
-    rateLimitRetryAfter,
-    showRateLimitBanner,
-    projectsRateLimitError,
-    boardRateLimitError,
-  } = useMemo(() => {
-    const projectsRateLimitError = isRateLimitApiError(projectsError);
-    const boardRateLimitError = isRateLimitApiError(boardError);
-    const refreshRateLimitError = refreshError?.type === 'rate_limit';
-    const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
-    const boardRateLimitDetails = extractRateLimitInfo(boardError);
-    const effective = rateLimitInfo
-      ?? projectsRateLimitInfo
-      ?? refreshError?.rateLimitInfo
-      ?? boardRateLimitDetails
-      ?? projectsRateLimitDetails;
-    const hasActive = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-    const showBar = Boolean(effective) || hasActive;
-    const usagePercent = getRateLimitUsagePercent(
-      effective?.limit,
-      effective?.remaining,
-    ) || (hasActive ? 100 : 0);
-    const label = effective
-      ? `${effective.remaining}/${effective.limit} remaining`
-      : hasActive
-        ? 'Limit reached'
-        : null;
-    const tooltip = effective
-      ? `GitHub API usage: ${effective.used}/${effective.limit} used. Resets ${formatTimeUntil(new Date(effective.reset_at * 1000))}.`
-      : hasActive
-        ? 'GitHub API rate limit reached. Retry after the reset window.'
-        : null;
-    const retryAfter = refreshError?.retryAfter
-      ?? (effective ? new Date(effective.reset_at * 1000) : undefined);
-    const showBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-    return {
-      hasActiveRateLimitError: hasActive,
-      showRateLimitBar: showBar,
-      rateLimitUsagePercent: usagePercent,
-      rateLimitLabel: label,
-      rateLimitTooltip: tooltip,
-      rateLimitRetryAfter: retryAfter,
-      showRateLimitBanner: showBanner,
-      projectsRateLimitError,
-      boardRateLimitError,
-    };
-  }, [rateLimitInfo, projectsRateLimitInfo, refreshError, projectsError, boardError]);
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">

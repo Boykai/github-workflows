@@ -170,6 +170,26 @@ class AgentsService:
 
         return AgentPendingCleanupResult(deleted_count=len(deleted_ids))
 
+    async def get_model_preferences(self, project_id: str) -> dict[str, tuple[str, str]]:
+        """Return slug → (default_model_id, default_model_name) from local SQLite only."""
+        cursor = await self._db.execute(
+            "SELECT slug, default_model_id, default_model_name FROM agent_configs WHERE project_id = ?",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        result: dict[str, tuple[str, str]] = {}
+        for row in rows:
+            r = (
+                dict(row)
+                if isinstance(row, dict)
+                else dict(zip([d[0] for d in cursor.description], row, strict=False))
+            )
+            model_id = r.get("default_model_id", "") or ""
+            model_name = r.get("default_model_name", "") or ""
+            if model_id or model_name:
+                result[r["slug"]] = (model_id, model_name)
+        return result
+
     async def _list_local_agents(self, project_id: str) -> list[Agent]:
         """Query agents from SQLite ``agent_configs`` table."""
         cursor = await self._db.execute(
@@ -1423,6 +1443,6 @@ class AgentsService:
                 "default_model_name": resolved_model_name,
                 "status": persisted_status,
                 "created_at": created_at,
-                "id": agent.id if not agent.id.startswith("repo:") else persisted_id,
+                "id": persisted_id if not agent.id.startswith("repo:") else agent.id,
             }
         )
