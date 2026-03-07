@@ -43,7 +43,7 @@ describe('helpHandler', () => {
     // The help handler uses getAllCommands() dynamically, so any new command
     // registered will appear. We test this by checking the count.
     const result = helpHandler('', context);
-    const lineCount = result.message.split('\n').filter((l) => l.includes('#')).length;
+    const lineCount = result.message.split('\n').filter((l) => l.includes('/')).length;
     expect(lineCount).toBe(getAllCommands().length);
   });
 });

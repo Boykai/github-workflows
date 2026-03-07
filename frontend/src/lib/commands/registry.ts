@@ -1,5 +1,5 @@
 /**
- * Command registry — single source of truth for all # commands.
+ * Command registry — single source of truth for all /commands.
  *
  * All command surfaces (help output, autocomplete, execution) consume
  * this registry. Adding a new command here automatically makes it
@@ -44,11 +44,13 @@ export function filterCommands(prefix: string): CommandDefinition[] {
  * Parse user input into a ParsedCommand.
  *
  * Rules:
- * 1. Input starting with '#' (after trim) is a command.
+ * 1. Input starting with '/' (after trim) is a command.
  * 2. 'help' (exact, case-insensitive after trim) is a help alias.
- * 3. Command name is the first word after '#', lowercased.
+ * 3. Command name is the first word after '/', lowercased.
  * 4. Arguments are everything after the command name, whitespace-normalized.
- * 5. Bare '#' results in isCommand:true with name:null.
+ * 5. Bare '/' results in isCommand:true with name:null.
+ *
+ * Markdown characters (#, *, -, `, >) are NOT treated as commands.
  */
 export function parseCommand(input: string): ParsedCommand {
   const trimmed = input.trim();
@@ -59,26 +61,26 @@ export function parseCommand(input: string): ParsedCommand {
     return { isCommand: true, name: 'help', args: '', raw };
   }
 
-  // Must start with '#'
-  if (!trimmed.startsWith('#')) {
+  // Must start with '/'
+  if (!trimmed.startsWith('/')) {
     return { isCommand: false, name: null, args: '', raw };
   }
 
-  const afterHash = trimmed.slice(1).trim();
+  const afterSlash = trimmed.slice(1).trim();
 
-  // Bare '#'
-  if (!afterHash) {
+  // Bare '/'
+  if (!afterSlash) {
     return { isCommand: true, name: null, args: '', raw };
   }
 
   // Split into command name and arguments
-  const spaceIndex = afterHash.indexOf(' ');
+  const spaceIndex = afterSlash.indexOf(' ');
   if (spaceIndex === -1) {
-    return { isCommand: true, name: afterHash.toLowerCase(), args: '', raw };
+    return { isCommand: true, name: afterSlash.toLowerCase(), args: '', raw };
   }
 
-  const name = afterHash.slice(0, spaceIndex).toLowerCase();
-  const args = afterHash.slice(spaceIndex + 1).trim().replace(/\s+/g, ' ');
+  const name = afterSlash.slice(0, spaceIndex).toLowerCase();
+  const args = afterSlash.slice(spaceIndex + 1).trim().replace(/\s+/g, ' ');
 
   return { isCommand: true, name, args, raw };
 }
@@ -88,14 +90,14 @@ export function parseCommand(input: string): ParsedCommand {
 registerCommand({
   name: 'help',
   description: 'Show all available commands',
-  syntax: '#help',
+  syntax: '/help',
   handler: helpHandler,
 });
 
 registerCommand({
   name: 'theme',
   description: 'Change the UI theme',
-  syntax: '#theme <light|dark|system>',
+  syntax: '/theme <light|dark|system>',
   handler: themeHandler,
   parameterSchema: { type: 'enum', values: ['light', 'dark', 'system'] },
 });
@@ -103,7 +105,7 @@ registerCommand({
 registerCommand({
   name: 'language',
   description: 'Change the display language',
-  syntax: '#language <en|es|fr|de|ja|zh>',
+  syntax: '/language <en|es|fr|de|ja|zh>',
   handler: languageHandler,
   parameterSchema: { type: 'enum', values: ['en', 'es', 'fr', 'de', 'ja', 'zh'] },
 });
@@ -111,7 +113,7 @@ registerCommand({
 registerCommand({
   name: 'notifications',
   description: 'Toggle notifications on or off',
-  syntax: '#notifications <on|off>',
+  syntax: '/notifications <on|off>',
   handler: notificationsHandler,
   parameterSchema: { type: 'enum', values: ['on', 'off'] },
 });
@@ -119,7 +121,7 @@ registerCommand({
 registerCommand({
   name: 'view',
   description: 'Set the default view',
-  syntax: '#view <chat|board|settings>',
+  syntax: '/view <chat|board|settings>',
   handler: viewHandler,
   parameterSchema: { type: 'enum', values: ['chat', 'board', 'settings'] },
 });
@@ -127,7 +129,7 @@ registerCommand({
 registerCommand({
   name: 'agent',
   description: 'Create a custom agent for your project (admin only)',
-  syntax: '#agent <description> [#status-column]',
+  syntax: '/agent <description> [#status-column]',
   handler: agentHandler,
   passthrough: true,
 });

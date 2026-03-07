@@ -48,16 +48,16 @@ export function useCommands(): UseCommandsReturn {
       return { success: false, message: 'Not a command.', clearInput: false };
     }
 
-    // Bare '#'
+    // Bare '/'
     if (!parsed.name) {
-      return { success: false, message: 'Type #help to see available commands.', clearInput: false };
+      return { success: false, message: 'Type /help to see available commands.', clearInput: false };
     }
 
     const command = getCommand(parsed.name);
     if (!command) {
       return {
         success: false,
-        message: `Unknown command '${parsed.name}'. Type #help to see available commands.`,
+        message: `Unknown command '${parsed.name}'. Type /help to see available commands.`,
         clearInput: false,
       };
     }
