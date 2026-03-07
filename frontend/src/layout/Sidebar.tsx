@@ -7,6 +7,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
 import { PanelLeftClose, PanelLeft } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
+import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
 
@@ -97,8 +98,9 @@ export function Sidebar({
                 {recentInteractions.slice(0, 8).map((item) => (
                   <button
                     key={item.item_id}
-                    className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
-                    title={item.title}
+                    className="flex w-full items-center gap-2 rounded-2xl border-l-2 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                    style={{ borderLeftColor: statusColorToCSS(item.statusColor) }}
+                    title={`${item.title} — ${item.status}`}
                     onClick={() => navigate('/projects')}
                   >
                     {item.number != null && (
@@ -109,7 +111,7 @@ export function Sidebar({
                 ))}
               </div>
             ) : (
-              <p className="px-3 text-xs text-muted-foreground/60">No recent activity</p>
+              <p className="px-3 text-xs text-muted-foreground/60">No recent parent issues</p>
             )}
           </div>
         )}

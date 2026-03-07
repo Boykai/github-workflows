@@ -826,6 +826,8 @@ export interface RecentInteraction {
     name: string;
   };
   updatedAt: string;
+  status: string;
+  statusColor: StatusColor;
 }
 
 export interface Notification {
