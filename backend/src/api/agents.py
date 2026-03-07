@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
+from src.middleware.rate_limit import limiter
 from src.models.agents import (
     Agent,
     AgentChatMessage,
@@ -15,6 +17,7 @@ from src.models.agents import (
     AgentCreate,
     AgentCreateResult,
     AgentDeleteResult,
+    AgentPendingCleanupResult,
     AgentUpdate,
 )
 from src.models.user import UserSession
@@ -34,12 +37,14 @@ def _get_service() -> AgentsService:
 # ── List ──
 
 
-@router.get("/{project_id}", response_model=list[Agent])
+@router.get(
+    "/{project_id}", response_model=list[Agent], dependencies=[Depends(verify_project_access)]
+)
 async def list_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> list[Agent]:
-    """List all agents for a project (merged from SQLite + GitHub repo)."""
+    """List agents visible on the repository default branch under .github/agents/."""
     service = _get_service()
 
     try:
@@ -59,10 +64,66 @@ async def list_agents(
     )
 
 
+@router.get("/{project_id}/pending", response_model=list[Agent])
+async def list_pending_agents(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[Agent]:
+    """List agent PR work that is still pending merge or pending deletion."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Could not resolve repository for this project",
+        ) from exc
+
+    return await service.list_pending_agents(
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        access_token=session.access_token,
+    )
+
+
+@router.delete("/{project_id}/pending", response_model=AgentPendingCleanupResult)
+async def purge_pending_agents(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> AgentPendingCleanupResult:
+    """Delete stale pending agent rows from SQLite for the selected project."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Could not resolve repository for this project",
+        ) from exc
+
+    logger.info(
+        "Purging stale pending agents for project %s (%s/%s)",
+        project_id,
+        owner,
+        repo,
+    )
+    return await service.purge_pending_agents(project_id=project_id)
+
+
 # ── Create ──
 
 
-@router.post("/{project_id}", response_model=AgentCreateResult, status_code=201)
+@router.post(
+    "/{project_id}",
+    response_model=AgentCreateResult,
+    status_code=201,
+    dependencies=[Depends(verify_project_access)],
+)
 async def create_agent(
     project_id: str,
     body: AgentCreate,
@@ -99,7 +160,11 @@ async def create_agent(
 # ── Update (P3) ──
 
 
-@router.patch("/{project_id}/{agent_id}", response_model=AgentCreateResult)
+@router.patch(
+    "/{project_id}/{agent_id}",
+    response_model=AgentCreateResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def update_agent(
     project_id: str,
     agent_id: str,
@@ -137,7 +202,11 @@ async def update_agent(
 # ── Delete ──
 
 
-@router.delete("/{project_id}/{agent_id}", response_model=AgentDeleteResult)
+@router.delete(
+    "/{project_id}/{agent_id}",
+    response_model=AgentDeleteResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def delete_agent(
     project_id: str,
     agent_id: str,
@@ -176,8 +245,14 @@ async def delete_agent(
 # ── Chat ──
 
 
-@router.post("/{project_id}/chat", response_model=AgentChatResponse)
+@router.post(
+    "/{project_id}/chat",
+    response_model=AgentChatResponse,
+    dependencies=[Depends(verify_project_access)],
+)
+@limiter.limit("5/minute")
 async def agent_chat(
+    request: Request,
     project_id: str,
     body: AgentChatMessage,
     session: Annotated[UserSession, Depends(get_session_dep)],

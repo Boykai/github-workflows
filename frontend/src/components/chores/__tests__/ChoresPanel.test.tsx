@@ -14,10 +14,12 @@ import type { ReactNode } from 'react';
 // ── Mock API ──
 
 const mockList = vi.fn();
+const mockListTemplates = vi.fn();
 
 vi.mock('@/services/api', () => ({
   choresApi: {
     list: (...args: unknown[]) => mockList(...args),
+    listTemplates: (...args: unknown[]) => mockListTemplates(...args),
   },
   ApiError: class ApiError extends Error {
     constructor(public status: number, public error: { error: string }) {
@@ -69,6 +71,7 @@ function createChore(overrides: Partial<Chore> = {}): Chore {
 describe('ChoresPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockListTemplates.mockResolvedValue([]);
   });
 
   it('renders empty state when no chores exist', async () => {
@@ -92,10 +95,10 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Bug Bash')).toBeInTheDocument();
+      expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
     });
 
-    expect(screen.getByText('Dependency Update')).toBeInTheDocument();
+    expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
   });
 
   it('renders loading state with skeleton placeholders', () => {
@@ -125,7 +128,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText(/Chores/)).toBeInTheDocument();
+      expect(screen.getByText('Recurring work, given actual breathing room')).toBeInTheDocument();
     });
   });
 
@@ -135,7 +138,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getAllByTitle('Click to pause').some((element) => element.textContent?.includes('Active'))).toBe(true);
     });
   });
 
@@ -145,7 +148,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Paused')).toBeInTheDocument();
+      expect(screen.getAllByTitle('Click to activate').some((element) => element.textContent?.includes('Paused'))).toBe(true);
     });
   });
 });

@@ -111,7 +111,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             <span className="text-3xl">✅</span>
             <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
             <p className="text-sm text-muted-foreground">
-              A pull request has been opened with the agent configuration files.
+              A pull request has been opened with the agent configuration files. It will appear in the catalog after merge to main.
             </p>
             <a
               href={successPrUrl}

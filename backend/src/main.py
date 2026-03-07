@@ -368,8 +368,8 @@ def create_app() -> FastAPI:
         description="REST API for Agent Projects",
         version="0.1.0",
         lifespan=lifespan,
-        docs_url="/api/docs" if settings.debug else None,
-        redoc_url="/api/redoc" if settings.debug else None,
+        docs_url="/api/docs" if settings.enable_docs else None,
+        redoc_url="/api/redoc" if settings.enable_docs else None,
     )
 
     # CORS middleware
@@ -385,6 +385,15 @@ def create_app() -> FastAPI:
     from src.middleware.request_id import RequestIDMiddleware
 
     app.add_middleware(RequestIDMiddleware)
+
+    # Rate limiting — slowapi state + exception handler
+    from slowapi import _rate_limit_exceeded_handler
+    from slowapi.errors import RateLimitExceeded
+
+    from src.middleware.rate_limit import limiter
+
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Exception handlers
     @app.exception_handler(AppException)

@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from src.config import get_settings
+from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
 
@@ -213,7 +214,8 @@ async def github_webhook(
     # Read raw body for signature verification
     body = await request.body()
 
-    # Verify signature if secret is configured
+    # Verify signature — always required regardless of debug mode.
+    # Developers must configure a local test secret (GITHUB_WEBHOOK_SECRET).
     if settings.github_webhook_secret:
         if not verify_webhook_signature(body, x_hub_signature_256, settings.github_webhook_secret):
             logger.warning("Invalid webhook signature")
@@ -221,16 +223,12 @@ async def github_webhook(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or missing webhook signature",
             )
-    elif not settings.debug:
-        # In production, reject unsigned payloads when no secret is configured
-        logger.warning("Webhook received without signature in production mode")
+    else:
+        logger.warning("Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing webhook signature",
         )
-    else:
-        # Debug mode without secret — allow with warning
-        logger.warning("Webhook signature verification skipped (debug mode, no secret configured)")
 
     # Deduplicate by delivery ID
     if x_github_delivery:
@@ -292,6 +290,23 @@ async def handle_pull_request_event(payload: dict) -> dict[str, Any]:
         pr_author,
         is_draft,
     )
+
+    if action == "closed" and pr_data.get("merged"):
+        cache.delete(get_repo_agents_cache_key(repo_owner, repo_name))
+        logger.info(
+            "Invalidated repo agent cache for %s/%s after merged PR #%d",
+            repo_owner,
+            repo_name,
+            pr_number,
+        )
+        return {
+            "status": "processed",
+            "event": "pull_request",
+            "action": action,
+            "pr_number": pr_number,
+            "repository": f"{repo_owner}/{repo_name}",
+            "cache_invalidated": True,
+        }
 
     # Check if this is a Copilot PR being marked ready for review
     is_copilot_pr = "copilot" in pr_author.lower() or pr_author == "copilot-swe-agent[bot]"

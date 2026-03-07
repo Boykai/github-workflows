@@ -7,6 +7,28 @@ import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
 
+/** Allowed avatar URL hostnames from GitHub. */
+const ALLOWED_AVATAR_HOSTS = ['avatars.githubusercontent.com'];
+
+/**
+ * Validate that an avatar URL uses https and originates from a known GitHub
+ * avatar domain.  Returns the URL if valid, or a placeholder SVG data URI
+ * on failure.
+ */
+function validateAvatarUrl(url: string | undefined | null): string {
+  const placeholder =
+    'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%23d1d5db%22/%3E%3C/svg%3E';
+  if (!url) return placeholder;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return placeholder;
+    if (!ALLOWED_AVATAR_HOSTS.includes(parsed.hostname)) return placeholder;
+    return url;
+  } catch {
+    return placeholder;
+  }
+}
+
 interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
@@ -139,7 +161,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
                 <img
                   key={assignee.login}
                   className="h-6 w-6 rounded-full border-2 border-card"
-                  src={assignee.avatar_url}
+                  src={validateAvatarUrl(assignee.avatar_url)}
                   alt={assignee.login}
                   title={assignee.login}
                   width={24}

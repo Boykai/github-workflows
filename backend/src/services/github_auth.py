@@ -67,7 +67,10 @@ class GitHubAuthService:
         params = {
             "client_id": self.settings.github_client_id,
             "redirect_uri": self.settings.github_redirect_uri,
-            "scope": "read:user read:org project repo",
+            # Minimum scopes for project management — repo scope removed
+            # to follow principle of least privilege. Existing users must
+            # re-authorize on next login to downgrade their token scopes.
+            "scope": "read:user read:org project",
             "state": state,
         }
 

@@ -126,6 +126,8 @@ npx playwright test
 - localStorage (sidebar state, chat history, notification read timestamp, pre-auth redirect URL) (025-solune-ui-redesign)
 - TypeScript ~5.9, React 19.2, Vite 7.3 + react-router-dom v7, TanStack Query 5.90, Tailwind CSS v4, lucide-react 0.577 (026-recent-interactions-filter)
 - localStorage (sidebar state), in-memory (board data via TanStack Query cache) (026-recent-interactions-filter)
+- TypeScript ~5.9, React 19.2, Vite 7.3 + TanStack Query 5.90, Tailwind CSS v4, lucide-react 0.577 (026-chat-help-optimistic-render)
+- N/A (local React state only — no persistence for pending messages) (026-chat-help-optimistic-render)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI

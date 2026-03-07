@@ -20,6 +20,10 @@ os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_PATH", ":memory:")
+# Tests run in debug mode to bypass production secret requirements.
+os.environ.setdefault("DEBUG", "true")
+# Disable rate limiting during tests.
+os.environ["TESTING"] = "1"
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -189,7 +193,7 @@ async def client(
     - Global service singletons → AsyncMocks
     """
     from src.api.auth import get_session_dep
-    from src.dependencies import get_connection_manager, get_github_service
+    from src.dependencies import get_connection_manager, get_github_service, verify_project_access
     from src.main import create_app
 
     app = create_app()
@@ -198,6 +202,9 @@ async def client(
     app.dependency_overrides[get_session_dep] = lambda: mock_session
     app.dependency_overrides[get_github_service] = lambda: mock_github_service
     app.dependency_overrides[get_connection_manager] = lambda: mock_websocket_manager
+    # Bypass project ownership check in unit tests — individual tests
+    # that need to verify authorization behavior can re-enable it.
+    app.dependency_overrides[verify_project_access] = lambda: None
 
     with (
         patch("src.services.database.get_db", return_value=mock_db),

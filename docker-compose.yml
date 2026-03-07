@@ -6,7 +6,7 @@ services:
     container_name: ghchat-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
@@ -30,8 +30,11 @@ services:
       - CORS_ORIGINS=http://localhost:5173,http://localhost:80,http://frontend
       - SIGNAL_API_URL=${SIGNAL_API_URL:-http://signal-api:8080}
       - SIGNAL_PHONE_NUMBER=${SIGNAL_PHONE_NUMBER:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - ENABLE_DOCS=${ENABLE_DOCS:-false}
+      - DATABASE_PATH=/var/lib/ghchat/data/settings.db
     volumes:
-      - ghchat-data:/app/data
+      - ghchat-data:/var/lib/ghchat/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
       interval: 30s
@@ -52,12 +55,12 @@ services:
     container_name: ghchat-frontend
     restart: unless-stopped
     ports:
-      - "5173:80"
+      - "127.0.0.1:5173:8080"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

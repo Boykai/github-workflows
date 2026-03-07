@@ -5,11 +5,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import AppException, NotFoundError, ValidationError
+from src.middleware.rate_limit import limiter
 from src.models.agent import AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
 from src.models.user import UserSession
@@ -109,7 +110,9 @@ def _get_repository_info(session: UserSession) -> tuple[str, str]:
 
 
 @router.post("/recommendations/{recommendation_id}/confirm", response_model=WorkflowResult)
+@limiter.limit("10/minute")
 async def confirm_recommendation(
+    request: Request,
     recommendation_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowResult:
