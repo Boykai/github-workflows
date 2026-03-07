@@ -20,6 +20,8 @@ os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_PATH", ":memory:")
+# Encryption key for token-at-rest encryption (required by EncryptionService.encrypt())
+os.environ.setdefault("ENCRYPTION_KEY", "LXzEkjlSdHjmrNHZ9EMaII8_VluhkfTT7wfB_9F6SNw=")
 # Production validators are bypassed in debug mode. Tests default to debug=True
 # so that module-level Settings() instantiation doesn't fail.
 os.environ.setdefault("DEBUG", "true")
@@ -102,10 +104,16 @@ async def mock_db():
     Yields an aiosqlite Connection that behaves like the production DB.
     Automatically closed after each test.
     """
+    import src.services.session_store as _ss
+
     db = await aiosqlite.connect(":memory:")
     db.row_factory = aiosqlite.Row
     await _apply_migrations(db)
+    # Reset the lazy encryption-service singleton so each test picks up
+    # the test encryption key instead of a stale no-key instance.
+    _ss._encryption_service = None
     yield db
+    _ss._encryption_service = None
     await db.close()
 
 
@@ -126,6 +134,7 @@ def mock_settings() -> Settings:
         log_level="DEBUG",
         cors_origins="http://localhost:5173",
         database_path=":memory:",
+        encryption_key="LXzEkjlSdHjmrNHZ9EMaII8_VluhkfTT7wfB_9F6SNw=",
     )
 
 

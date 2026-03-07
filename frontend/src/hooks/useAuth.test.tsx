@@ -177,22 +177,22 @@ describe('useAuth', () => {
     expect(result.current.user?.selected_project_id).toBe('PVT_abc123');
   });
 
-  describe('session token handling', () => {
-    it('should process session_token from URL and exchange it', async () => {
+  describe('cookie-based auth callback', () => {
+    it('should clean up /auth/callback path and invalidate queries', async () => {
       const mockUser = {
         github_user_id: '12345',
         github_username: 'testuser',
         selected_project_id: null,
       };
 
-      // Set up URL with session_token
+      // Set up URL at /auth/callback (backend redirect after OAuth)
       Object.defineProperty(window, 'location', {
         value: {
           protocol: 'http:',
           host: 'localhost:5173',
-          href: 'http://localhost:5173/?session_token=test-session-token',
-          pathname: '/',
-          search: '?session_token=test-session-token',
+          href: 'http://localhost:5173/auth/callback',
+          pathname: '/auth/callback',
+          search: '',
           hash: '',
         },
         writable: true,
@@ -201,7 +201,6 @@ describe('useAuth', () => {
       // Mock history.replaceState
       const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
 
-      mockAuthApi.setSessionFromToken.mockResolvedValue(mockUser);
       mockAuthApi.getCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), {
@@ -209,18 +208,15 @@ describe('useAuth', () => {
       });
 
       await waitFor(() => {
-        expect(mockAuthApi.setSessionFromToken).toHaveBeenCalledWith('test-session-token');
-      });
-
-      await waitFor(() => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      // Should clean up URL
+      // Should clean up the callback path from the URL
       expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/');
     });
 
-    it('should handle session token exchange failure', async () => {
+    it('should not read session tokens from URL parameters', async () => {
+      // Even if a session_token appears in the URL, the hook must ignore it
       Object.defineProperty(window, 'location', {
         value: {
           protocol: 'http:',
@@ -233,7 +229,6 @@ describe('useAuth', () => {
         writable: true,
       });
 
-      mockAuthApi.setSessionFromToken.mockRejectedValue(new Error('Invalid token'));
       mockAuthApi.getCurrentUser.mockRejectedValue(
         new api.ApiError(401, { error: 'Not authenticated' })
       );
@@ -243,9 +238,11 @@ describe('useAuth', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.error).not.toBeNull();
+        expect(result.current.isLoading).toBe(false);
       });
 
+      // setSessionFromToken should never be called — tokens come via HttpOnly cookies
+      expect(mockAuthApi.setSessionFromToken).not.toHaveBeenCalled();
       expect(result.current.isAuthenticated).toBe(false);
     });
   });

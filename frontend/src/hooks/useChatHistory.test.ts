@@ -33,16 +33,24 @@ describe('useChatHistory', () => {
       expect(result.current.isNavigating).toBe(false);
     });
 
-    it('should load existing history from localStorage', () => {
-      localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 'msg2']));
+    it('should initialize with empty in-memory history even when localStorage has refs', () => {
+      // localStorage stores only lightweight refs (id + ts), not message content.
+      // In-memory history starts empty; content is session-only.
+      const refs = [
+        { id: 'ref-1', ts: new Date().toISOString() },
+        { id: 'ref-2', ts: new Date().toISOString() },
+      ];
+      localStorageMock.setItem('chat-message-history', JSON.stringify(refs));
       const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
+      expect(result.current.history).toEqual([]);
     });
 
-    it('should use custom storage key', () => {
-      localStorageMock.setItem('custom-key', JSON.stringify(['custom']));
+    it('should use custom storage key for refs', () => {
+      const refs = [{ id: 'ref-1', ts: new Date().toISOString() }];
+      localStorageMock.setItem('custom-key', JSON.stringify(refs));
       const { result } = renderHook(() => useChatHistory({ storageKey: 'custom-key' }));
-      expect(result.current.history).toEqual(['custom']);
+      // In-memory history is still empty — only refs are persisted
+      expect(result.current.history).toEqual([]);
     });
 
     it('should gracefully handle corrupt localStorage data', () => {
@@ -51,10 +59,11 @@ describe('useChatHistory', () => {
       expect(result.current.history).toEqual([]);
     });
 
-    it('should filter non-string values from localStorage', () => {
+    it('should gracefully handle non-MessageRef values in localStorage', () => {
+      // Old-format strings or invalid objects are filtered out during ref loading
       localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 42, null, 'msg2']));
       const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
+      expect(result.current.history).toEqual([]);
     });
   });
 
@@ -65,13 +74,21 @@ describe('useChatHistory', () => {
       expect(result.current.history).toEqual(['hello']);
     });
 
-    it('should persist to localStorage', () => {
+    it('should persist lightweight refs to localStorage', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
+      // localStorage receives MessageRef objects (id + ts), not message content
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'chat-message-history',
-        JSON.stringify(['hello']),
+        expect.stringMatching(/^\[.*"id".*"ts".*\]$/),
       );
+      // Verify the stored value is a valid JSON array of refs
+      const storedValue = localStorageMock.setItem.mock.calls[0][1];
+      const parsed = JSON.parse(storedValue);
+      expect(Array.isArray(parsed)).toBe(true);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]).toHaveProperty('id');
+      expect(parsed[0]).toHaveProperty('ts');
     });
 
     it('should store duplicate messages as separate entries', () => {
