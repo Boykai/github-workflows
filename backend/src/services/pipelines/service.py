@@ -454,5 +454,3 @@ class PipelineService:
         await self._db.commit()
 
         return ProjectPipelineAssignment(project_id=project_id, pipeline_id=pipeline_id)
-
-
