@@ -4,6 +4,7 @@
 
 import type { ChatMessage } from '@/types';
 import { AlertCircle, RotateCcw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -29,15 +30,13 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
         {isSystem ? (
           <div className="text-sm text-muted-foreground py-2">{message.content}</div>
         ) : (
-          <div className={`px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${
-            isFailed
-              ? 'bg-primary text-primary-foreground border-2 border-destructive'
-              : isPending
-                ? 'bg-primary/80 text-primary-foreground'
-                : isUser
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
-          }`}>
+          <div className={cn(
+            'px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
+            isFailed && 'bg-primary text-primary-foreground border-2 border-destructive',
+            isPending && !isFailed && 'bg-primary/80 text-primary-foreground',
+            !isFailed && !isPending && isUser && 'bg-primary text-primary-foreground',
+            !isUser && !isFailed && !isPending && 'bg-muted text-foreground',
+          )}>
             {message.content}
           </div>
         )}
