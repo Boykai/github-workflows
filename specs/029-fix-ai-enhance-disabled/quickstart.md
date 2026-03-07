@@ -79,7 +79,7 @@ if not chat_request.ai_enhance:
         assistant_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content=f"I've created a task proposal:\n\n**{title}**\n\n{chat_request.content[:200]}...\n\nClick confirm to create this task.",
+            content=f"I've created a task proposal:\n\n**{title}**\n\n{chat_request.content[:200]}{'...' if len(chat_request.content) > 200 else ''}\n\nClick confirm to create this task.",
             action_type=ActionType.TASK_CREATE,
             action_data={
                 "proposal_id": str(proposal.proposal_id),
