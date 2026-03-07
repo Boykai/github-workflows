@@ -285,7 +285,6 @@ async def get_agent_tools(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """List MCP tools assigned to a specific agent."""
-    from src.models.tools import AgentToolsResponse
     from src.services.tools.service import ToolsService
 
     service = ToolsService(get_db())
@@ -304,7 +303,6 @@ async def update_agent_tools(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Set the MCP tools for an agent (replace all)."""
-    from src.models.tools import AgentToolsUpdate
     from src.services.tools.service import ToolsService
 
     tool_ids = body.get("tool_ids", [])

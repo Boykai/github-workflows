@@ -10,8 +10,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
 from src.models.tools import (
-    AgentToolsResponse,
-    AgentToolsUpdate,
     McpToolConfigCreate,
     McpToolConfigListResponse,
     McpToolConfigResponse,

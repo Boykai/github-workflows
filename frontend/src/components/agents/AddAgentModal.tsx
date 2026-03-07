@@ -12,7 +12,6 @@ import { useToolsList } from '@/hooks/useTools';
 import { ToolChips } from '@/components/tools/ToolChips';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { AgentConfig } from '@/services/api';
-import type { ToolChip } from '@/types';
 
 interface AddAgentModalProps {
   projectId: string;
@@ -184,7 +183,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
           {/* Add Tools */}
           <div>
-            <label className="block text-sm font-medium mb-1">MCP Tools</label>
+            <span className="block text-sm font-medium mb-1">MCP Tools</span>
             <ToolChips
               tools={selectedToolIds.map((id) => {
                 const t = availableTools.find((tool) => tool.id === id);

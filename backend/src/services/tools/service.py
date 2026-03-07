@@ -10,7 +10,6 @@ from __future__ import annotations
 import base64
 import json
 import logging
-import re
 import uuid
 
 import aiosqlite
@@ -18,7 +17,6 @@ import aiosqlite
 from src.models.tools import (
     AgentToolInfo,
     AgentToolsResponse,
-    McpToolConfig,
     McpToolConfigCreate,
     McpToolConfigListResponse,
     McpToolConfigResponse,
@@ -85,7 +83,7 @@ class ToolsService:
         try:
             data = json.loads(config_content)
             servers = data.get("mcpServers", {})
-            for _name, cfg in servers.items():
+            for cfg in servers.values():
                 if cfg.get("type") == "http":
                     return cfg.get("url", "")
                 if cfg.get("type") == "stdio":
@@ -482,7 +480,7 @@ class ToolsService:
         if tool_ids:
             placeholders = ",".join("?" for _ in tool_ids)
             cursor = await self.db.execute(
-                f"SELECT id FROM mcp_configurations WHERE id IN ({placeholders}) "  # noqa: S608
+                f"SELECT id FROM mcp_configurations WHERE id IN ({placeholders}) "
                 "AND project_id = ? AND github_user_id = ?",
                 (*tool_ids, project_id, github_user_id),
             )
