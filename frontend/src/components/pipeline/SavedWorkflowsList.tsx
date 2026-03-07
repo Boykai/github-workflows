@@ -1,16 +1,20 @@
 /**
- * SavedWorkflowsList — displays saved pipeline configurations as cards.
- * Shows pipeline name, last modified date, stage/agent count.
+ * SavedWorkflowsList — displays saved pipeline configurations as enriched cards.
+ * Shows pipeline name, flow graph, stage details, tool counts, and preset badges.
  */
 
-import { Clock, Layers, Bot, Workflow } from 'lucide-react';
+import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2 } from 'lucide-react';
+import { PipelineFlowGraph } from './PipelineFlowGraph';
+import { PresetBadge } from './PresetBadge';
 import type { PipelineConfigSummary } from '@/types';
 
 interface SavedWorkflowsListProps {
   pipelines: PipelineConfigSummary[];
   activePipelineId: string | null;
+  assignedPipelineId?: string;
   isLoading: boolean;
   onSelect: (pipelineId: string) => void;
+  onAssign?: (pipelineId: string) => void;
 }
 
 function formatRelativeDate(dateStr: string): string {
@@ -35,8 +39,10 @@ function formatRelativeDate(dateStr: string): string {
 export function SavedWorkflowsList({
   pipelines,
   activePipelineId,
+  assignedPipelineId = '',
   isLoading,
   onSelect,
+  onAssign,
 }: SavedWorkflowsListProps) {
   return (
     <div>
@@ -51,7 +57,7 @@ export function SavedWorkflowsList({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-24 rounded-xl border border-border/50 bg-muted/20 animate-pulse"
+              className="h-32 rounded-xl border border-border/50 bg-muted/20 animate-pulse"
             />
           ))}
         </div>
@@ -72,34 +78,79 @@ export function SavedWorkflowsList({
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {pipelines.map((pipeline) => {
             const isActive = pipeline.id === activePipelineId;
+            const isAssigned = pipeline.id === assignedPipelineId;
             return (
-              <button
+              <div
                 key={pipeline.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(pipeline.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(pipeline.id);
+                  }
+                }}
                 className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:shadow-md ${
                   isActive
                     ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm'
-                    : 'border-border/60 bg-card/70 hover:border-primary/30'
+                    : pipeline.is_preset
+                      ? 'border-border/60 bg-card/80 hover:border-primary/30'
+                      : 'border-border/60 bg-card/70 hover:border-primary/30'
                 }`}
               >
+                {/* Header: name + badges */}
                 <div className="flex items-start justify-between gap-2">
                   <h4 className="text-sm font-semibold text-foreground truncate">
                     {pipeline.name}
                   </h4>
-                  {isActive && (
-                    <span className="shrink-0 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
-                      Active
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isAssigned && (
+                      <span className="rounded-full bg-emerald-100/80 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center gap-0.5">
+                        <CheckCircle2 className="h-2.5 w-2.5" />
+                        Assigned
+                      </span>
+                    )}
+                    {isActive && (
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
+                        Active
+                      </span>
+                    )}
+                    {pipeline.is_preset && (
+                      <PresetBadge presetId={pipeline.preset_id} />
+                    )}
+                  </div>
                 </div>
 
                 {pipeline.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">
+                  <p className="text-xs text-muted-foreground line-clamp-1">
                     {pipeline.description}
                   </p>
                 )}
 
+                {/* Flow graph */}
+                {pipeline.stages && pipeline.stages.length > 0 && (
+                  <PipelineFlowGraph stages={pipeline.stages} width={200} height={36} />
+                )}
+
+                {/* Stage details */}
+                {pipeline.stages && pipeline.stages.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {pipeline.stages.map((stage) => (
+                      <span
+                        key={stage.id}
+                        className="inline-flex items-center gap-1 rounded-md bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        {stage.name}
+                        <span className="font-medium text-foreground/70">
+                          ({stage.agents.length})
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Stats */}
                 <div className="flex items-center gap-3 mt-auto text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Layers className="h-3 w-3" />
@@ -109,12 +160,29 @@ export function SavedWorkflowsList({
                     <Bot className="h-3 w-3" />
                     {pipeline.agent_count} agent{pipeline.agent_count !== 1 ? 's' : ''}
                   </span>
+                  {(pipeline.total_tool_count ?? 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Wrench className="h-3 w-3" />
+                      {pipeline.total_tool_count} tool{pipeline.total_tool_count !== 1 ? 's' : ''}
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 ml-auto">
                     <Clock className="h-3 w-3" />
                     {formatRelativeDate(pipeline.updated_at)}
                   </span>
                 </div>
-              </button>
+
+                {/* Assign action */}
+                {onAssign && !isAssigned && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onAssign(pipeline.id); }}
+                    className="mt-1 text-[10px] text-primary/70 hover:text-primary transition-colors"
+                  >
+                    Assign to Project
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

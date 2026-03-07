@@ -6,13 +6,15 @@ from pydantic import BaseModel, Field
 
 
 class PipelineAgentNode(BaseModel):
-    """An agent placed within a stage, configured with a specific model."""
+    """An agent placed within a stage, configured with pipeline-scoped model and tool overrides."""
 
     id: str
     agent_slug: str
     agent_display_name: str = ""
     model_id: str = ""
     model_name: str = ""
+    tool_ids: list[str] = Field(default_factory=list)
+    tool_count: int = 0
     config: dict = Field(default_factory=dict)
 
 
@@ -33,6 +35,8 @@ class PipelineConfig(BaseModel):
     name: str
     description: str = ""
     stages: list[PipelineStage] = Field(default_factory=list)
+    is_preset: bool = False
+    preset_id: str = ""
     created_at: str
     updated_at: str
 
@@ -61,6 +65,10 @@ class PipelineConfigSummary(BaseModel):
     description: str
     stage_count: int
     agent_count: int
+    total_tool_count: int = 0
+    is_preset: bool = False
+    preset_id: str = ""
+    stages: list[PipelineStage] = Field(default_factory=list)
     updated_at: str
 
 
@@ -80,3 +88,16 @@ class AIModel(BaseModel):
     context_window_size: int
     cost_tier: str
     capability_category: str = ""
+
+
+class ProjectPipelineAssignment(BaseModel):
+    """Links a project to a saved pipeline for auto-assignment to new issues."""
+
+    project_id: str
+    pipeline_id: str = ""
+
+
+class ProjectPipelineAssignmentUpdate(BaseModel):
+    """Request body for setting/clearing pipeline assignment."""
+
+    pipeline_id: str = ""

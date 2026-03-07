@@ -14,6 +14,8 @@ from src.models.pipeline import (
     PipelineConfigCreate,
     PipelineConfigListResponse,
     PipelineConfigUpdate,
+    ProjectPipelineAssignment,
+    ProjectPipelineAssignmentUpdate,
 )
 from src.models.user import UserSession
 from src.services.database import get_db
@@ -54,6 +56,46 @@ async def list_pipelines(
     """List all pipeline configurations for a project."""
     service = _get_service()
     return await service.list_pipelines(project_id, sort=sort, order=order)
+
+
+# ── Seed Presets ──
+
+
+@router.post("/{project_id}/seed-presets")
+async def seed_presets(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Idempotently seed preset pipeline configurations for a project."""
+    service = _get_service()
+    return await service.seed_presets(project_id)
+
+
+# ── Assignment ──
+
+
+@router.get("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
+async def get_assignment(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> ProjectPipelineAssignment:
+    """Get the current pipeline assignment for a project."""
+    service = _get_service()
+    return await service.get_assignment(project_id)
+
+
+@router.put("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
+async def set_assignment(
+    project_id: str,
+    body: ProjectPipelineAssignmentUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> ProjectPipelineAssignment:
+    """Set the pipeline assignment for a project."""
+    service = _get_service()
+    try:
+        return await service.set_assignment(project_id, body.pipeline_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 # ── Create Pipeline ──
@@ -104,6 +146,8 @@ async def update_pipeline(
     service = _get_service()
     try:
         updated = await service.update_pipeline(project_id, pipeline_id, body)
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 

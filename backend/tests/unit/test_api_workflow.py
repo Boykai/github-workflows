@@ -27,6 +27,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from src.api.workflow import _check_duplicate, _get_repository_info, _recent_requests
+from src.models.agent import AgentSource, AvailableAgent
 from src.models.chat import (
     IssueRecommendation,
     RecommendationStatus,
@@ -173,13 +174,33 @@ class TestUpdateConfig:
 class TestListAgents:
     async def test_list_agents(self, client, mock_session, mock_github_service):
         mock_session.selected_project_id = TEST_PROJECT_ID
-        mock_github_service.list_available_agents.return_value = []
-        with patch(
-            f"{WF}.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")
+        mock_github_service.list_available_agents.return_value = [
+            AvailableAgent(
+                slug="repo-agent",
+                display_name="Repo Agent",
+                default_model_id="",
+                default_model_name="",
+                source=AgentSource.REPOSITORY,
+            )
+        ]
+        with (
+            patch(
+                f"{WF}.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")
+            ),
+            patch(f"{WF}.AgentsService") as mock_agents_service_cls,
         ):
+            mock_agents_service = mock_agents_service_cls.return_value
+            mock_agents_service.list_agents = AsyncMock(
+                return_value=[MagicMock(slug="repo-agent", tools=["tool-a", "tool-b"])]
+            )
+            mock_agents_service.get_model_preferences = AsyncMock(
+                return_value={"repo-agent": ("model-1", "GPT-5.4")}
+            )
             resp = await client.get("/api/v1/workflow/agents")
         assert resp.status_code == 200
         assert "agents" in resp.json()
+        assert resp.json()["agents"][0]["default_model_name"] == "GPT-5.4"
+        assert resp.json()["agents"][0]["tools_count"] == 2
 
     async def test_no_project(self, client, mock_session):
         mock_session.selected_project_id = None

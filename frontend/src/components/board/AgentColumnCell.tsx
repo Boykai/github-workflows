@@ -42,7 +42,7 @@ function SortableAgentTile({
   });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 
@@ -89,14 +89,14 @@ export function AgentColumnCell({
   const agentCount = agents.length;
 
   // Drop zone highlighting: ring + background when item is dragged over this column
-  const dropHighlight = isOver ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : '';
+  const dropHighlight = isOver ? 'border-primary/40 bg-primary/5 ring-2 ring-primary/30' : '';
 
   return (
     <div
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex h-full min-w-0 flex-col gap-2 rounded-md border bg-muted/20 p-2 transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
+      className={`flex h-full min-w-0 flex-col gap-2 rounded-[1.2rem] border p-2 transition-colors duration-150 ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
     >
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 min-h-[2px]">

@@ -1,10 +1,36 @@
 /**
  * IssueDetailModal component - displays expanded issue details in a modal overlay.
+ * Renders issue descriptions as Markdown using react-markdown with GFM support.
  */
 
 import { useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
+
+const SAFE_MARKDOWN_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel']);
+
+function sanitizeMarkdownUrl(url: string): string {
+  const value = url.trim();
+
+  if (
+    value.length === 0
+    || value.startsWith('#')
+    || value.startsWith('/')
+    || value.startsWith('./')
+    || value.startsWith('../')
+  ) {
+    return value;
+  }
+
+  const protocolMatch = value.match(/^([a-zA-Z][a-zA-Z\d+.-]*):/);
+  if (!protocolMatch) {
+    return value;
+  }
+
+  return SAFE_MARKDOWN_PROTOCOLS.has(protocolMatch[1].toLowerCase()) ? value : '';
+}
 
 interface IssueDetailModalProps {
   item: BoardItem;
@@ -146,11 +172,15 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
           </div>
         )}
 
-        {/* Body / Description */}
+        {/* Body / Description — rendered as Markdown */}
         {item.body && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Description</h3>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-4 rounded-md border border-border">{item.body}</div>
+            <div className="prose prose-sm dark:prose-invert max-w-none overflow-y-auto max-h-[50vh] bg-muted/30 p-4 rounded-md border border-border">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={sanitizeMarkdownUrl}>
+                {item.body}
+              </ReactMarkdown>
+            </div>
           </div>
         )}
 
