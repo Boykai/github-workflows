@@ -222,9 +222,7 @@ async def _generate_metadata_only(
             "title: '[CHORE] '\n"
             "labels: chore\n"
             "assignees: ''\n"
-            "---\n\n"
-            + user_content.strip()
-            + "\n"
+            "---\n\n" + user_content.strip() + "\n"
         )
         ready = True
 
