@@ -205,7 +205,7 @@ If presets already exist:
 {
   "seeded": [],
   "skipped": ["spec-kit", "github-copilot"],
-  "total": 0
+  "total": 2
 }
 ```
 
