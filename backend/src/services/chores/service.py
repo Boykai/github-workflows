@@ -690,14 +690,10 @@ class ChoresService:
                 pr_url = result.get("pr_url")
 
                 if pr_number:
-                    await self.update_chore_fields(
-                        chore_id, pr_number=pr_number, pr_url=pr_url
-                    )
+                    await self.update_chore_fields(chore_id, pr_number=pr_number, pr_url=pr_url)
                     chore = await self.get_chore(chore_id)
             except Exception:
-                logger.exception(
-                    "Failed to create PR for inline update of chore %s", chore_id
-                )
+                logger.exception("Failed to create PR for inline update of chore %s", chore_id)
 
         return {"chore": chore, "pr_number": pr_number, "pr_url": pr_url}
 
