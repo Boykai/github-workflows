@@ -15,6 +15,7 @@ interface ChoreChatFlowProps {
   choreName: string;
   onTemplateReady: (templateContent: string) => void;
   onCancel: () => void;
+  aiEnhance?: boolean;
 }
 
 interface ChatMessage {
@@ -28,6 +29,7 @@ export function ChoreChatFlow({
   choreName,
   onTemplateReady,
   onCancel,
+  aiEnhance = true,
 }: ChoreChatFlowProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'user', content: initialMessage },
@@ -42,7 +44,7 @@ export function ChoreChatFlow({
   // Send initial message on mount
   useEffect(() => {
     chatMutation.mutate(
-      { content: initialMessage, conversation_id: null },
+      { content: initialMessage, conversation_id: null, ai_enhance: aiEnhance },
       {
         onSuccess: (data) => {
           setConversationId(data.conversation_id);
@@ -69,7 +71,7 @@ export function ChoreChatFlow({
     setInput('');
 
     chatMutation.mutate(
-      { content: trimmed, conversation_id: conversationId },
+      { content: trimmed, conversation_id: conversationId, ai_enhance: aiEnhance },
       {
         onSuccess: (data) => {
           setConversationId(data.conversation_id);
@@ -131,6 +133,12 @@ export function ChoreChatFlow({
           Cancel
         </button>
       </div>
+
+      {!aiEnhance && (
+        <p className="text-xs text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/50">
+          ✨ Your input will be used as the template body — AI will generate metadata only
+        </p>
+      )}
 
       {/* Messages */}
       <div className="flex flex-col gap-2 max-h-64 overflow-y-auto p-2 rounded-md border border-border bg-muted/20">

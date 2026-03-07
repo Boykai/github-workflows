@@ -3,10 +3,14 @@
  * Composes ChoresPanel (list + add + cleanup), useProjectBoard for repo info.
  */
 
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
+import { useChoresList } from '@/hooks/useChores';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
+import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +22,19 @@ export function ChoresPage() {
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
+  const { data: chores } = useChoresList(projectId);
+  const [isAnyDirty, setIsAnyDirty] = useState(false);
+
+  // Compute parentIssueCount from board data: count items that are parent issues
+  const parentIssueCount = useMemo(() => {
+    if (!boardData?.columns) return 0;
+    const allItems = boardData.columns.flatMap(c => c.items);
+    // Count items that are issues (not sub-issues) — parent issues
+    return allItems.filter(item => item.content_type === 'issue').length;
+  }, [boardData]);
+
+  // Unsaved changes navigation guard
+  const { isBlocked, blocker } = useUnsavedChanges({ isDirty: isAnyDirty });
 
   // Prefer repo info from board items; fall back to the project's workflow config.
   const boardRepo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
@@ -61,6 +78,20 @@ export function ChoresPage() {
         }
       />
 
+      {/* Featured Rituals Panel */}
+      {projectId && chores && chores.length > 0 && (
+        <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
+          <div className="mb-4">
+            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Featured Rituals</p>
+            <h4 className="mt-1 text-[1.15rem] font-display font-medium leading-tight">Key chore highlights</h4>
+          </div>
+          <FeaturedRitualsPanel
+            chores={chores}
+            parentIssueCount={parentIssueCount}
+          />
+        </section>
+      )}
+
       {/* No project selected */}
       {!projectId && (
         <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
@@ -76,7 +107,30 @@ export function ChoresPage() {
             projectId={projectId}
             owner={owner}
             repo={repoName}
+            parentIssueCount={parentIssueCount}
+            onDirtyChange={setIsAnyDirty}
           />
+        </div>
+      )}
+
+      {/* Unsaved changes confirmation modal */}
+      {isBlocked && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" role="presentation" />
+          <div className="relative z-10 w-full max-w-sm mx-4 rounded-lg border border-border bg-background shadow-xl p-6 text-center">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Unsaved Changes</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              You have unsaved changes — are you sure you want to leave?
+            </p>
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={() => blocker.reset?.()}>
+                Stay
+              </Button>
+              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
+                Discard and Leave
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

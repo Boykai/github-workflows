@@ -32,11 +32,11 @@
 
 **Purpose**: Database migration, backend model extensions, frontend type definitions, and API client methods shared across all user stories.
 
-- [ ] T001 Create database migration in backend/src/migrations/016_chores_enhancements.sql — add `execution_count INTEGER NOT NULL DEFAULT 0`, `ai_enhance_enabled INTEGER NOT NULL DEFAULT 1`, `agent_pipeline_id TEXT NOT NULL DEFAULT ''` columns to `chores` table; add `idx_chores_execution_count` and `idx_chores_last_triggered_at` indexes per data-model.md schema
-- [ ] T002 [P] Extend Chore Pydantic model with `execution_count: int = 0`, `ai_enhance_enabled: bool = True`, `agent_pipeline_id: str = ""` fields; extend ChoreUpdate with optional `ai_enhance_enabled` and `agent_pipeline_id` fields; add ChoreInlineUpdate, ChoreInlineUpdateResponse, ChoreCreateWithConfirmation, ChoreCreateResponse model classes; add `ai_enhance: bool = True` field to ChoreChatMessage in backend/src/models/chores.py
-- [ ] T003 [P] Extend Chore TypeScript interface with `execution_count: number`, `ai_enhance_enabled: boolean`, `agent_pipeline_id: string` fields; add ChoreInlineUpdate, ChoreInlineUpdateResponse, ChoreCreateWithConfirmation, ChoreCreateResponse, FeaturedRituals, FeaturedRitualCard, ChoreEditState, ChoreCounterData, ChoreChatMessage interfaces in frontend/src/types/index.ts per data-model.md definitions
-- [ ] T004 [P] Add `inlineUpdate(projectId, choreId, data)` and `createWithAutoMerge(projectId, data)` methods to choresApi; extend existing `chat()` method to accept and pass `ai_enhance` boolean parameter in frontend/src/services/api.ts per contracts/api.md
-- [ ] T005 [P] Add `useInlineUpdateChore(projectId)` and `useCreateChoreWithAutoMerge(projectId)` TanStack Query mutation hooks; extend `useChoreChat` to pass `ai_enhance` parameter in frontend/src/hooks/useChores.ts per contracts/components.md hook extensions
+- [x] T001 Create database migration in backend/src/migrations/016_chores_enhancements.sql — add `execution_count INTEGER NOT NULL DEFAULT 0`, `ai_enhance_enabled INTEGER NOT NULL DEFAULT 1`, `agent_pipeline_id TEXT NOT NULL DEFAULT ''` columns to `chores` table; add `idx_chores_execution_count` and `idx_chores_last_triggered_at` indexes per data-model.md schema
+- [x] T002 [P] Extend Chore Pydantic model with `execution_count: int = 0`, `ai_enhance_enabled: bool = True`, `agent_pipeline_id: str = ""` fields; extend ChoreUpdate with optional `ai_enhance_enabled` and `agent_pipeline_id` fields; add ChoreInlineUpdate, ChoreInlineUpdateResponse, ChoreCreateWithConfirmation, ChoreCreateResponse model classes; add `ai_enhance: bool = True` field to ChoreChatMessage in backend/src/models/chores.py
+- [x] T003 [P] Extend Chore TypeScript interface with `execution_count: number`, `ai_enhance_enabled: boolean`, `agent_pipeline_id: string` fields; add ChoreInlineUpdate, ChoreInlineUpdateResponse, ChoreCreateWithConfirmation, ChoreCreateResponse, FeaturedRituals, FeaturedRitualCard, ChoreEditState, ChoreCounterData, ChoreChatMessage interfaces in frontend/src/types/index.ts per data-model.md definitions
+- [x] T004 [P] Add `inlineUpdate(projectId, choreId, data)` and `createWithAutoMerge(projectId, data)` methods to choresApi; extend existing `chat()` method to accept and pass `ai_enhance` boolean parameter in frontend/src/services/api.ts per contracts/api.md
+- [x] T005 [P] Add `useInlineUpdateChore(projectId)` and `useCreateChoreWithAutoMerge(projectId)` TanStack Query mutation hooks; extend `useChoreChat` to pass `ai_enhance` parameter in frontend/src/hooks/useChores.ts per contracts/components.md hook extensions
 
 **Checkpoint**: All shared types, models, API methods, and hooks are in place. Database migration ready to run on next startup. Ready for user story implementation.
 
@@ -48,8 +48,8 @@
 
 **⚠️ CRITICAL**: parentIssueCount computation is needed by US1 (counter) and US2 (featured rituals). useUnsavedChanges hook is needed by US3 (inline editing) and the ChoresPage navigation guard.
 
-- [ ] T006 Compute `parentIssueCount` from `useProjectBoard()` data in frontend/src/pages/ChoresPage.tsx — count GitHub Parent Issues (content_type === 'issue' items excluding sub-issues) using useMemo, pass as prop to ChoresPanel and FeaturedRitualsPanel
-- [ ] T007 [P] Create useUnsavedChanges hook in frontend/src/hooks/useUnsavedChanges.ts — register `beforeunload` event listener when `isDirty=true`, activate `useBlocker` from react-router-dom for SPA navigation blocking, return `{ blocker, isBlocked }` for custom modal rendering per contracts/components.md
+- [x] T006 Compute `parentIssueCount` from `useProjectBoard()` data in frontend/src/pages/ChoresPage.tsx — count GitHub Parent Issues (content_type === 'issue' items excluding sub-issues) using useMemo, pass as prop to ChoresPanel and FeaturedRitualsPanel
+- [x] T007 [P] Create useUnsavedChanges hook in frontend/src/hooks/useUnsavedChanges.ts — register `beforeunload` event listener when `isDirty=true`, activate `useBlocker` from react-router-dom for SPA navigation blocking, return `{ blocker, isBlocked }` for custom modal rendering per contracts/components.md
 
 **Checkpoint**: Foundation ready — parentIssueCount available for counter and panel components. Navigation guard hook ready for inline editing.
 
@@ -63,10 +63,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Fix per-Chore counter computation in backend/src/services/chores/counter.py to query GitHub Parent Issues created since `chore.last_triggered_at` timestamp, returning the scoped count for that specific Chore (not a global total) per FR-001
-- [ ] T009 [US1] Modify `trigger_chore()` in backend/src/services/chores/service.py to atomically increment `execution_count` (`SET execution_count = execution_count + 1`) and update `last_triggered_count` to the current parent issue count on each successful trigger per FR-002
-- [ ] T010 [US1] Pass `parentIssueCount` prop from ChoresPanel to each ChoreCard in frontend/src/components/chores/ChoresPanel.tsx for per-Chore counter computation
-- [ ] T011 [US1] Fix counter display in frontend/src/components/chores/ChoreCard.tsx — for count-based Chores, compute `remaining = schedule_value - (parentIssueCount - last_triggered_count)` clamped to 0 minimum, display as "X remaining" badge on the tile per FR-002 and quickstart.md pattern
+- [x] T008 [US1] Fix per-Chore counter computation in backend/src/services/chores/counter.py to query GitHub Parent Issues created since `chore.last_triggered_at` timestamp, returning the scoped count for that specific Chore (not a global total) per FR-001
+- [x] T009 [US1] Modify `trigger_chore()` in backend/src/services/chores/service.py to atomically increment `execution_count` (`SET execution_count = execution_count + 1`) and update `last_triggered_count` to the current parent issue count on each successful trigger per FR-002
+- [x] T010 [US1] Pass `parentIssueCount` prop from ChoresPanel to each ChoreCard in frontend/src/components/chores/ChoresPanel.tsx for per-Chore counter computation
+- [x] T011 [US1] Fix counter display in frontend/src/components/chores/ChoreCard.tsx — for count-based Chores, compute `remaining = schedule_value - (parentIssueCount - last_triggered_count)` clamped to 0 minimum, display as "X remaining" badge on the tile per FR-002 and quickstart.md pattern
 
 **Checkpoint**: Each Chore tile shows an accurate per-Chore countdown. Counter resets on trigger. Two Chores with different thresholds show independent counters.
 
@@ -80,8 +80,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Create FeaturedRitualsPanel component in frontend/src/components/chores/FeaturedRitualsPanel.tsx — accept `chores: Chore[]` and `parentIssueCount: number` props; compute three rankings (Next Run by lowest remaining count, Most Recently Run by latest `last_triggered_at`, Most Run by highest `execution_count`); render three horizontally arranged cards (`grid grid-cols-3 gap-4`) with Clock/PlayCircle/Trophy icons from lucide-react; handle empty state with onboarding message per contracts/components.md
-- [ ] T013 [US2] Render FeaturedRitualsPanel above ChoresPanel in frontend/src/pages/ChoresPage.tsx, passing `chores` array and `parentIssueCount`; wire `onChoreClick` to scroll-to or highlight the clicked Chore in the grid per FR-003 and FR-004
+- [x] T012 [P] [US2] Create FeaturedRitualsPanel component in frontend/src/components/chores/FeaturedRitualsPanel.tsx — accept `chores: Chore[]` and `parentIssueCount: number` props; compute three rankings (Next Run by lowest remaining count, Most Recently Run by latest `last_triggered_at`, Most Run by highest `execution_count`); render three horizontally arranged cards (`grid grid-cols-3 gap-4`) with Clock/PlayCircle/Trophy icons from lucide-react; handle empty state with onboarding message per contracts/components.md
+- [x] T013 [US2] Render FeaturedRitualsPanel above ChoresPanel in frontend/src/pages/ChoresPage.tsx, passing `chores` array and `parentIssueCount`; wire `onChoreClick` to scroll-to or highlight the clicked Chore in the grid per FR-003 and FR-004
 
 **Checkpoint**: Featured Rituals panel shows three cards with correct rankings. Empty state renders when no Chores exist. Cards link to their respective Chores.
 
@@ -95,13 +95,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [P] [US3] Create ChoreInlineEditor component in frontend/src/components/chores/ChoreInlineEditor.tsx — render editable `<input>` for name, `<textarea>` with auto-resize for template_content, reuse ChoreScheduleConfig for schedule fields; call `onChange(updates)` on every field change; respect `disabled` prop during save operations per contracts/components.md
-- [ ] T015 [P] [US3] Add `update_template_in_repo()` method to backend/src/services/chores/template_builder.py — create branch `chore/update-{slug}-{timestamp}`, commit updated template file via existing `commit_files_workflow`, open PR with title `chore: update {chore_name}` and auto-generated description per plan.md Phase 1 step 4
-- [ ] T016 [US3] Add `inline_update_chore(chore_id, body: ChoreInlineUpdate)` method to backend/src/services/chores/service.py — check `expected_sha` for conflict detection (return 409 if mismatch), update Chore record in database, call `update_template_in_repo()` if template_content or name changed per contracts/api.md inline-update behavior
-- [ ] T017 [US3] Add `PUT /{project_id}/{chore_id}/inline-update` endpoint to backend/src/api/chores.py — accept ChoreInlineUpdate body, call `inline_update_chore`, return ChoreInlineUpdateResponse with PR details, return 409 with current_sha and current_content on conflict per contracts/api.md
-- [ ] T018 [US3] Add inline edit state management to frontend/src/components/chores/ChoresPanel.tsx — maintain `editState: Record<string, ChoreEditState>` tracking per-Chore original values and current edits; compute `isDirty` per Chore and global `isAnyDirty`; render persistent "You have unsaved changes" banner and "Save All" button when dirty per FR-005 and contracts/components.md
-- [ ] T019 [US3] Modify frontend/src/components/chores/ChoreCard.tsx to render ChoreInlineEditor for editable fields, show dirty indicator (asterisk or highlight border) when `isDirty=true`, display Save and Discard action buttons when dirty per FR-005
-- [ ] T020 [US3] Wire useUnsavedChanges hook into frontend/src/pages/ChoresPage.tsx — pass `isAnyDirty` from ChoresPanel state; when `blocker.state === 'blocked'`, render custom confirmation modal with "You have unsaved changes — are you sure you want to leave?" and Stay/Discard and Leave buttons per FR-006
+- [x] T014 [P] [US3] Create ChoreInlineEditor component in frontend/src/components/chores/ChoreInlineEditor.tsx — render editable `<input>` for name, `<textarea>` with auto-resize for template_content, reuse ChoreScheduleConfig for schedule fields; call `onChange(updates)` on every field change; respect `disabled` prop during save operations per contracts/components.md
+- [x] T015 [P] [US3] Add `update_template_in_repo()` method to backend/src/services/chores/template_builder.py — create branch `chore/update-{slug}-{timestamp}`, commit updated template file via existing `commit_files_workflow`, open PR with title `chore: update {chore_name}` and auto-generated description per plan.md Phase 1 step 4
+- [x] T016 [US3] Add `inline_update_chore(chore_id, body: ChoreInlineUpdate)` method to backend/src/services/chores/service.py — check `expected_sha` for conflict detection (return 409 if mismatch), update Chore record in database, call `update_template_in_repo()` if template_content or name changed per contracts/api.md inline-update behavior
+- [x] T017 [US3] Add `PUT /{project_id}/{chore_id}/inline-update` endpoint to backend/src/api/chores.py — accept ChoreInlineUpdate body, call `inline_update_chore`, return ChoreInlineUpdateResponse with PR details, return 409 with current_sha and current_content on conflict per contracts/api.md
+- [x] T018 [US3] Add inline edit state management to frontend/src/components/chores/ChoresPanel.tsx — maintain `editState: Record<string, ChoreEditState>` tracking per-Chore original values and current edits; compute `isDirty` per Chore and global `isAnyDirty`; render persistent "You have unsaved changes" banner and "Save All" button when dirty per FR-005 and contracts/components.md
+- [x] T019 [US3] Modify frontend/src/components/chores/ChoreCard.tsx to render ChoreInlineEditor for editable fields, show dirty indicator (asterisk or highlight border) when `isDirty=true`, display Save and Discard action buttons when dirty per FR-005
+- [x] T020 [US3] Wire useUnsavedChanges hook into frontend/src/pages/ChoresPage.tsx — pass `isAnyDirty` from ChoresPanel state; when `blocker.state === 'blocked'`, render custom confirmation modal with "You have unsaved changes — are you sure you want to leave?" and Stay/Discard and Leave buttons per FR-006
 
 **Checkpoint**: Chore fields render as editable inputs. Editing shows dirty indicator. Navigation away prompts confirmation. Save creates a PR with updated file. Conflict detection works on stale edits.
 
@@ -115,11 +115,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T021 [US4] Add metadata-only generation path in backend/src/services/chores/chat.py — when `ai_enhance=False`, use structured system prompt requesting only metadata fields (name, about, title, labels, assignees); inject user's raw chat input as pre-filled locked body field; assemble final template as AI front matter + user verbatim body per FR-009 and plan.md Phase 1 step 6
-- [ ] T022 [US4] Pass `ai_enhance` field from ChoreChatMessage through `POST /{project_id}/chat` endpoint in backend/src/api/chores.py to the chat service's `generate_chat_response()` per contracts/api.md modified chat endpoint
-- [ ] T023 [US4] Modify frontend/src/components/chores/ChoreChatFlow.tsx to accept `aiEnhance: boolean` prop (default true), pass `ai_enhance` parameter in choresApi.chat() calls, show subtle indicator "Your input will be used as the template body" when aiEnhance is false per contracts/components.md
-- [ ] T024 [P] [US4] Add AI Enhance toggle button (Sparkles icon from lucide-react, ChatToolbar pill style with ON/OFF badge) to frontend/src/components/chores/AddChoreModal.tsx — default ON, pass value to ChoreChatFlow as aiEnhance prop per FR-008 and quickstart.md pattern
-- [ ] T025 [P] [US4] Add AI Enhance toggle to inline edit section of frontend/src/components/chores/ChoreCard.tsx — wire to `editState.ai_enhance_enabled`, persist via onEditChange handler per FR-008
+- [x] T021 [US4] Add metadata-only generation path in backend/src/services/chores/chat.py — when `ai_enhance=False`, use structured system prompt requesting only metadata fields (name, about, title, labels, assignees); inject user's raw chat input as pre-filled locked body field; assemble final template as AI front matter + user verbatim body per FR-009 and plan.md Phase 1 step 6
+- [x] T022 [US4] Pass `ai_enhance` field from ChoreChatMessage through `POST /{project_id}/chat` endpoint in backend/src/api/chores.py to the chat service's `generate_chat_response()` per contracts/api.md modified chat endpoint
+- [x] T023 [US4] Modify frontend/src/components/chores/ChoreChatFlow.tsx to accept `aiEnhance: boolean` prop (default true), pass `ai_enhance` parameter in choresApi.chat() calls, show subtle indicator "Your input will be used as the template body" when aiEnhance is false per contracts/components.md
+- [x] T024 [P] [US4] Add AI Enhance toggle button (Sparkles icon from lucide-react, ChatToolbar pill style with ON/OFF badge) to frontend/src/components/chores/AddChoreModal.tsx — default ON, pass value to ChoreChatFlow as aiEnhance prop per FR-008 and quickstart.md pattern
+- [x] T025 [P] [US4] Add AI Enhance toggle to inline edit section of frontend/src/components/chores/ChoreCard.tsx — wire to `editState.ai_enhance_enabled`, persist via onEditChange handler per FR-008
 
 **Checkpoint**: AI Enhance toggle visible and functional. OFF → user's exact text in body + AI metadata. ON → existing flow. Toggle state saved per Chore.
 
@@ -133,9 +133,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T026 [P] [US5] Create PipelineSelector component in frontend/src/components/chores/PipelineSelector.tsx — fetch pipeline list via `usePipelinesList(projectId)` hook; render dropdown with "Auto (Project Default)" as first option (value="") and saved pipelines by name; show "⚠ Pipeline no longer available" warning if selected ID not found; handle loading and error states per contracts/components.md
-- [ ] T027 [US5] Add agent pipeline resolution logic in `trigger_chore()` in backend/src/services/chores/service.py — if `agent_pipeline_id` non-empty, fetch from `pipeline_configs` (fall back to Auto with logged warning if not found per FR-017); if empty ("Auto"), read `project_settings.assigned_pipeline_id` at runtime per FR-012 and plan.md complexity tracking
-- [ ] T028 [US5] Integrate PipelineSelector into frontend/src/components/chores/ChoreCard.tsx configuration section (wired to editState.agent_pipeline_id) and frontend/src/components/chores/AddChoreModal.tsx form (default "Auto") per FR-011
+- [x] T026 [P] [US5] Create PipelineSelector component in frontend/src/components/chores/PipelineSelector.tsx — fetch pipeline list via `usePipelinesList(projectId)` hook; render dropdown with "Auto (Project Default)" as first option (value="") and saved pipelines by name; show "⚠ Pipeline no longer available" warning if selected ID not found; handle loading and error states per contracts/components.md
+- [x] T027 [US5] Add agent pipeline resolution logic in `trigger_chore()` in backend/src/services/chores/service.py — if `agent_pipeline_id` non-empty, fetch from `pipeline_configs` (fall back to Auto with logged warning if not found per FR-017); if empty ("Auto"), read `project_settings.assigned_pipeline_id` at runtime per FR-012 and plan.md complexity tracking
+- [x] T028 [US5] Integrate PipelineSelector into frontend/src/components/chores/ChoreCard.tsx configuration section (wired to editState.agent_pipeline_id) and frontend/src/components/chores/AddChoreModal.tsx form (default "Auto") per FR-011
 
 **Checkpoint**: Pipeline selector shows Auto + saved pipelines. Chores with specific pipelines use them at trigger time. "Auto" resolves to project's current active pipeline. Deleted pipeline falls back gracefully.
 
@@ -149,11 +149,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T029 [P] [US6] Create ConfirmChoreModal component in frontend/src/components/chores/ConfirmChoreModal.tsx — two-step flow: Step 1 shows AlertTriangle icon with repository warning and "I Understand, Continue" button; Step 2 shows CheckCircle icon with "Yes, Create Chore" button; support isLoading state with spinner; reset to Step 1 when modal reopens per contracts/components.md
-- [ ] T030 [US6] Add `merge_pull_request(access_token, owner, repo, pr_number, merge_method='squash')` method to backend/src/services/chores/template_builder.py — use GitHub REST API `PUT /repos/{owner}/{repo}/pulls/{pr_number}/merge`, return `(success: bool, error_message: str | None)` tuple per quickstart.md auto-merge pattern
-- [ ] T031 [US6] Add `create_chore_with_auto_merge()` method to backend/src/services/chores/service.py — sequentially: create branch + commit template, create PR, create tracking issue, attempt merge via `merge_pull_request()`, persist Chore record locally regardless of merge result per FR-014 and data-model.md state machine
-- [ ] T032 [US6] Modify `POST /{project_id}` endpoint in backend/src/api/chores.py to accept ChoreCreateWithConfirmation body (with `auto_merge` flag) and return ChoreCreateResponse including `pr_merged` and `merge_error` fields per contracts/api.md modified create endpoint
-- [ ] T033 [US6] Modify frontend/src/components/chores/AddChoreModal.tsx to use ConfirmChoreModal two-step flow when creating a new Chore — on final confirmation call `createWithAutoMerge` mutation; show success toast on merge success or warning toast with PR link on merge failure per FR-015 and FR-016
+- [x] T029 [P] [US6] Create ConfirmChoreModal component in frontend/src/components/chores/ConfirmChoreModal.tsx — two-step flow: Step 1 shows AlertTriangle icon with repository warning and "I Understand, Continue" button; Step 2 shows CheckCircle icon with "Yes, Create Chore" button; support isLoading state with spinner; reset to Step 1 when modal reopens per contracts/components.md
+- [x] T030 [US6] Add `merge_pull_request(access_token, owner, repo, pr_number, merge_method='squash')` method to backend/src/services/chores/template_builder.py — use GitHub REST API `PUT /repos/{owner}/{repo}/pulls/{pr_number}/merge`, return `(success: bool, error_message: str | None)` tuple per quickstart.md auto-merge pattern
+- [x] T031 [US6] Add `create_chore_with_auto_merge()` method to backend/src/services/chores/service.py — sequentially: create branch + commit template, create PR, create tracking issue, attempt merge via `merge_pull_request()`, persist Chore record locally regardless of merge result per FR-014 and data-model.md state machine
+- [x] T032 [US6] Modify `POST /{project_id}` endpoint in backend/src/api/chores.py to accept ChoreCreateWithConfirmation body (with `auto_merge` flag) and return ChoreCreateResponse including `pr_merged` and `merge_error` fields per contracts/api.md modified create endpoint
+- [x] T033 [US6] Modify frontend/src/components/chores/AddChoreModal.tsx to use ConfirmChoreModal two-step flow when creating a new Chore — on final confirmation call `createWithAutoMerge` mutation; show success toast on merge success or warning toast with PR link on merge failure per FR-015 and FR-016
 
 **Checkpoint**: New Chore creation shows two-step confirmation. Both confirmations lead to Issue + PR + auto-merge. Merge failures surface as actionable errors with PR link. Chore persists locally regardless.
 
@@ -163,8 +163,8 @@
 
 **Purpose**: Edge case handling, error notifications, and final validation across all user stories.
 
-- [ ] T034 [P] Handle edge cases in frontend/src/components/chores/ChoreCard.tsx and backend/src/services/chores/counter.py — never-executed Chore uses `created_at` for counter base (no `last_triggered_at`), threshold=1 immediate trigger display, bulk Parent Issue creation accuracy, mid-flow AI Enhance toggle preserves existing input per spec.md edge cases section
-- [ ] T035 [P] Add toast notifications in frontend/src/components/chores/ChoresPanel.tsx and frontend/src/components/chores/AddChoreModal.tsx for all async operations — PR creation success with PR link, auto-merge success/failure status, conflict detection warning with reload option, deleted pipeline fallback notification per FR-015, FR-016, FR-017
+- [x] T034 [P] Handle edge cases in frontend/src/components/chores/ChoreCard.tsx and backend/src/services/chores/counter.py — never-executed Chore uses `created_at` for counter base (no `last_triggered_at`), threshold=1 immediate trigger display, bulk Parent Issue creation accuracy, mid-flow AI Enhance toggle preserves existing input per spec.md edge cases section
+- [x] T035 [P] Add toast notifications in frontend/src/components/chores/ChoresPanel.tsx and frontend/src/components/chores/AddChoreModal.tsx for all async operations — PR creation success with PR link, auto-merge success/failure status, conflict detection warning with reload option, deleted pipeline fallback notification per FR-015, FR-016, FR-017
 - [ ] T036 Run quickstart.md verification scenarios for all 6 user stories — validate counter accuracy (scenarios 1–2), Featured Rituals rankings (scenarios 3–6), inline edit + PR flow (scenarios 7–10), AI Enhance toggle (scenarios 11–12), pipeline selector (scenarios 13–15), double-confirmation + auto-merge (scenarios 16–20) per quickstart.md verification section
 
 ---

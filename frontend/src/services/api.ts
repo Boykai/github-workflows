@@ -48,6 +48,10 @@ import type {
   ChoreTriggerResult,
   ChoreChatMessage,
   ChoreChatResponse,
+  ChoreInlineUpdate,
+  ChoreInlineUpdateResponse,
+  ChoreCreateWithConfirmation,
+  ChoreCreateResponse,
   EvaluateChoreTriggersResponse,
   RepositoryMetadata,
   PipelineConfig,
@@ -700,6 +704,26 @@ export const choresApi = {
    */
   chat(projectId: string, data: ChoreChatMessage): Promise<ChoreChatResponse> {
     return request<ChoreChatResponse>(`/chores/${projectId}/chat`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Inline update a chore definition (creates a PR on save).
+   */
+  inlineUpdate(projectId: string, choreId: string, data: ChoreInlineUpdate): Promise<ChoreInlineUpdateResponse> {
+    return request<ChoreInlineUpdateResponse>(`/chores/${projectId}/${choreId}/inline-update`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Create a new chore with auto-merge flow.
+   */
+  createWithAutoMerge(projectId: string, data: ChoreCreateWithConfirmation): Promise<ChoreCreateResponse> {
+    return request<ChoreCreateResponse>(`/chores/${projectId}/create-with-merge`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
