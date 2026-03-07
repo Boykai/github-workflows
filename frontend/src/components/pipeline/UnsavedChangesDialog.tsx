@@ -26,7 +26,7 @@ export function UnsavedChangesDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }} role="button" tabIndex={-1} aria-label="Close dialog" />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }} role="button" tabIndex={0} aria-label="Close dialog" />
 
       {/* Dialog */}
       <div className="relative z-10 mx-4 w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-xl">

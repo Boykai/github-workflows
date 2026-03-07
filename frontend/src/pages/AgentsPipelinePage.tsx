@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -32,6 +33,9 @@ export function AgentsPipelinePage() {
 
   const columns = boardData?.columns ?? [];
 
+  // Block in-app SPA navigation when there are unsaved changes
+  useBlocker(pipelineConfig.isDirty);
+
   // Unsaved changes dialog state
   const [unsavedDialog, setUnsavedDialog] = useState<{
     isOpen: boolean;
@@ -44,6 +48,7 @@ export function AgentsPipelinePage() {
     const handler = (e: BeforeUnloadEvent) => {
       if (pipelineConfig.isDirty) {
         e.preventDefault();
+        e.returnValue = '';
       }
     };
     window.addEventListener('beforeunload', handler);

@@ -13,10 +13,10 @@ All endpoints are prefixed with `/api/v1` and require an authenticated session (
 ### List Pipelines
 
 ```
-GET /api/v1/pipelines
+GET /api/v1/pipelines/{project_id}
 ```
 
-**Description**: List all saved pipeline configurations for the current project.
+**Description**: List all saved pipeline configurations for the given project.
 
 **Query Parameters**:
 | Parameter | Type | Default | Description |
@@ -49,10 +49,10 @@ GET /api/v1/pipelines
 ### Create Pipeline
 
 ```
-POST /api/v1/pipelines
+POST /api/v1/pipelines/{project_id}
 ```
 
-**Description**: Create a new pipeline configuration.
+**Description**: Create a new pipeline configuration for the given project.
 
 **Request Body**:
 ```json
@@ -82,9 +82,8 @@ POST /api/v1/pipelines
 **Validation**:
 - `name`: Required, 1–100 characters
 - `description`: Optional, 0–500 characters
-- `stages`: Required array (may be empty for initial save)
+- `stages`: Required array, must contain at least one stage (FR-001: "adding one or more stages")
 - Each stage `name`: Required, 1–100 characters
-- Must have at least one stage to save (FR-001: "adding one or more stages")
 
 **Response** (201 Created):
 ```json
@@ -109,7 +108,7 @@ POST /api/v1/pipelines
 ### Get Pipeline
 
 ```
-GET /api/v1/pipelines/{pipeline_id}
+GET /api/v1/pipelines/{project_id}/{pipeline_id}
 ```
 
 **Description**: Get a single pipeline configuration with all stages, agents, and model selections.
@@ -117,6 +116,7 @@ GET /api/v1/pipelines/{pipeline_id}
 **Path Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
+| `project_id` | string | Project identifier |
 | `pipeline_id` | string | UUID of the pipeline |
 
 **Response** (200 OK):
@@ -172,7 +172,7 @@ GET /api/v1/pipelines/{pipeline_id}
 ### Update Pipeline
 
 ```
-PUT /api/v1/pipelines/{pipeline_id}
+PUT /api/v1/pipelines/{project_id}/{pipeline_id}
 ```
 
 **Description**: Update an existing pipeline configuration. Replaces the full stage/agent data.
@@ -180,6 +180,7 @@ PUT /api/v1/pipelines/{pipeline_id}
 **Path Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
+| `project_id` | string | Project identifier |
 | `pipeline_id` | string | UUID of the pipeline |
 
 **Request Body**:
@@ -217,7 +218,7 @@ PUT /api/v1/pipelines/{pipeline_id}
 ### Delete Pipeline
 
 ```
-DELETE /api/v1/pipelines/{pipeline_id}
+DELETE /api/v1/pipelines/{project_id}/{pipeline_id}
 ```
 
 **Description**: Permanently delete a pipeline configuration.
@@ -225,6 +226,7 @@ DELETE /api/v1/pipelines/{pipeline_id}
 **Path Parameters**:
 | Parameter | Type | Description |
 |-----------|------|-------------|
+| `project_id` | string | Project identifier |
 | `pipeline_id` | string | UUID of the pipeline |
 
 **Response** (200 OK):
@@ -246,7 +248,7 @@ DELETE /api/v1/pipelines/{pipeline_id}
 ### List Available Models
 
 ```
-GET /api/v1/models
+GET /api/v1/pipelines/models/available
 ```
 
 **Description**: List all available AI models with metadata for the model picker.

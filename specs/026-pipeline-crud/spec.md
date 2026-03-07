@@ -122,7 +122,7 @@ A new user opens the pipeline page for the first time. The Agent Pipeline Board 
 - What happens when the user tries to save a pipeline with no stages? The system displays a validation message requiring at least one stage before saving.
 - What happens when the user tries to save a pipeline with a stage that has no agents? The system allows saving but displays a warning that one or more stages have no agents assigned.
 - What happens when the model list fails to load? The model picker displays an error message with a retry option; the user can still save the pipeline with the previously selected or default model.
-- What happens when the user creates a pipeline with a name that already exists among their saved workflows? The system allows duplicate names but shows a subtle warning suggesting a unique name.
+- What happens when the user creates a pipeline with a name that already exists among their saved workflows? The system does not allow duplicate names and displays a validation message indicating the name is already in use, prompting the user to choose a different name.
 - What happens when the user rapidly clicks "Save" multiple times? Only the first save request is processed; subsequent clicks are debounced until the save completes.
 - What happens when a save operation fails (e.g., network error)? The user sees an error notification with a "Retry" option, and no data is lost from the board.
 - What happens when the Saved Workflows list is very large? The list supports scrolling or pagination so performance is not degraded.

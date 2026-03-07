@@ -120,7 +120,7 @@ export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelec
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => { setIsOpen(false); setSearch(''); }} onKeyDown={(e) => { if (e.key === 'Escape') { setIsOpen(false); setSearch(''); } }} role="button" tabIndex={-1} aria-label="Close model selector" />
+          <div className="fixed inset-0 z-40" onClick={() => { setIsOpen(false); setSearch(''); }} onKeyDown={(e) => { if (e.key === 'Escape') { setIsOpen(false); setSearch(''); } }} role="button" tabIndex={0} aria-label="Close model selector" />
 
           {/* Popover */}
           <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">

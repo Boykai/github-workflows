@@ -124,8 +124,6 @@ npx playwright test
 ## Active Technologies
 - TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI (025-solune-ui-redesign)
 - localStorage (sidebar state, chat history, notification read timestamp, pre-auth redirect URL) (025-solune-ui-redesign)
-- TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, react-router-dom v7, TanStack Query v5.90, @dnd-kit (core + sortable), Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (026-pipeline-crud)
-- SQLite with WAL mode (aiosqlite) — new `pipeline_configs` table for saved pipeline configurations (026-pipeline-crud)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI

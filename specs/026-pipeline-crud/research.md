@@ -52,7 +52,7 @@
 
 **Task**: Determine how to track whether the pipeline board is in "new pipeline" or "editing existing" mode, and how to manage unsaved changes.
 
-**Decision**: Track `editingPipelineId: string | null` in the `usePipelineConfig` hook. When `null`, the board is in creation mode; when set, it's in edit mode. Maintain a local `boardState` (the working copy) separate from the persisted state, with an `isDirty` flag computed by deep comparison. This follows the exact pattern used in `useAgentConfig.ts` (lines 41–113).
+**Decision**: Track `editingPipelineId: string | null` in the `usePipelineConfig` hook. When `null`, the board is in creation mode; when set, it's in edit mode. Maintain a local `boardState` (the working copy) separate from the persisted state, with an `isDirty` flag computed by deep comparison. This follows the existing pattern in `useAgentConfig.ts`, where a local working copy is kept separate from the server-backed configuration and an `isDirty` flag is derived from comparing them.
 
 **Rationale**: The existing `useAgentConfig` hook already implements this pattern with `localMappings` vs. server state and `isDirty` tracking. Reusing this proven pattern ensures consistency and reduces cognitive load. The spec requires visual distinction between modes (FR-014) and unsaved changes protection (FR-018, FR-019), both of which depend on this state.
 

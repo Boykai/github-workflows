@@ -166,7 +166,7 @@
 
 - [x] T044 Add error handling and user-facing error notifications for all pipeline API operations (create, update, delete, load) in frontend/src/hooks/usePipelineConfig.ts — show error toast/message on failure with retry option (edge case: save failure)
 - [x] T045 Add optimistic UI updates for delete operations in usePipelineConfig hook (frontend/src/hooks/usePipelineConfig.ts) — immediately remove pipeline from list, rollback on failure
-- [x] T046 Add save debouncing logic to savePipeline() in frontend/src/hooks/usePipelineConfig.ts to prevent multiple rapid save requests (FR-020)
+- [x] T046 Add user-facing save status indicators driven by savePipeline() in frontend/src/hooks/usePipelineConfig.ts (e.g., "Saving…", "All changes saved", "Save failed — retry") to improve feedback for FR-020
 - [x] T047 [P] Add validation in frontend/src/hooks/usePipelineConfig.ts and frontend/src/components/pipeline/PipelineBoard.tsx: prevent saving with no stages (display validation message), warn when a stage has no agents (edge cases from spec)
 - [x] T048 [P] Add pipeline name validation in frontend/src/hooks/usePipelineConfig.ts: prompt user to provide a name before saving if name is empty (acceptance scenario US1-6)
 - [x] T049 [P] Verify all pipeline components use existing UI primitives (Button from components/ui/button.tsx, Card from components/ui/card.tsx) consistent with the rest of the application
