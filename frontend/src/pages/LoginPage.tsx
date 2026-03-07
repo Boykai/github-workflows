@@ -8,10 +8,11 @@ import { LoginButton } from '@/components/auth/LoginButton';
 export function LoginPage() {
   return (
     <div className="starfield relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(231,189,76,0.18),transparent_20%),radial-gradient(circle_at_70%_20%,rgba(108,94,167,0.18),transparent_24%),linear-gradient(180deg,rgba(8,7,15,0.12),transparent)] dark:bg-[radial-gradient(circle_at_top,rgba(231,189,76,0.14),transparent_18%),radial-gradient(circle_at_70%_20%,rgba(108,94,167,0.18),transparent_22%),linear-gradient(180deg,rgba(7,6,12,0.32),rgba(7,6,12,0.05))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <div className="celestial-orbit left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />
         <div className="celestial-orbit left-[58%] top-[18%] hidden h-[24rem] w-[24rem] border-primary/25 lg:block" />
+        <div className="absolute left-[6%] top-[8%] h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute left-[12%] top-[12%] hidden items-center gap-12 text-[11px] uppercase tracking-[0.3em] text-muted-foreground/70 lg:flex">
           <span>Meditation</span>
           <span>Tarot</span>
@@ -30,7 +31,7 @@ export function LoginPage() {
               Change your workflow mindset.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-              Solune reframes GitHub operations with celestial contrast, calmer hierarchy, and a shell designed to hold focus instead of noise.
+              Solune reframes GitHub operations with a brighter solar shell by day, a lunar shell by night, and calmer hierarchy throughout.
             </p>
           </div>
 
@@ -44,7 +45,7 @@ export function LoginPage() {
             <div>
               <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Daily affirmations</p>
               <p className="mt-3 max-w-sm text-2xl font-display font-medium leading-tight text-foreground">
-                Guide active work with warmer highlights and quieter night around it.
+                Guide active work with brighter highlights and quieter night around it.
               </p>
             </div>
           </div>
@@ -64,7 +65,7 @@ export function LoginPage() {
             <div className="absolute bottom-[14rem] left-[calc(50%-6.8rem)] h-28 w-24 rounded-[999px_999px_1.5rem_1.5rem] border border-border/45 bg-card/90" />
             <div className="absolute bottom-[14rem] right-[calc(50%-6.8rem)] h-28 w-24 rounded-[999px_999px_1.5rem_1.5rem] border border-border/45 bg-card/90" />
             <div className="absolute bottom-[15.6rem] left-[calc(50%-1.1rem)] h-10 w-[2.2rem] rounded-full bg-card" />
-            <div className="absolute bottom-[21rem] left-1/2 h-8 w-[15rem] -translate-x-1/2 rounded-full bg-primary/90 shadow-[0_0_40px_rgba(215,171,70,0.28)]" />
+            <div className="absolute bottom-[21rem] left-1/2 h-8 w-[15rem] -translate-x-1/2 rounded-full bg-primary/90 shadow-[0_0_48px_hsl(var(--glow)/0.32)]" />
             <div className="absolute bottom-[20.6rem] left-[calc(50%-8.6rem)] h-10 w-20 rounded-full bg-primary/90" />
             <div className="absolute bottom-[20.6rem] right-[calc(50%-8.6rem)] h-10 w-20 rounded-full bg-primary/90" />
             <div className="absolute bottom-[20.9rem] left-[calc(50%-10.6rem)] h-12 w-20 rounded-full bg-primary/90" />

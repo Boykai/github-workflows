@@ -9,6 +9,7 @@
 
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AvailableAgent, AgentAssignment } from '@/types';
 
 interface AddAgentPopoverProps {
@@ -138,15 +139,15 @@ export function AddAgentPopover({
     <div
       ref={popoverRef}
       style={{ position: 'fixed', top: position.top, left: position.left }}
-      className="w-64 bg-popover border border-border rounded-md shadow-lg z-[9999] flex flex-col max-h-80 overflow-hidden"
+      className="z-[9999] flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
       role="listbox"
       aria-label={`Add agent to ${status}`}
     >
       {/* Search filter */}
-      <div className="p-2 border-b border-border bg-muted/30">
+      <div className="border-b border-border bg-background/40 p-2">
         <input
           type="text"
-          className="w-full px-2 py-1 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-md border border-input bg-background/72 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           placeholder="Filter agents..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -190,13 +191,16 @@ export function AddAgentPopover({
               return (
                 <button
                   key={agent.slug}
-                  className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
+                  className={`relative flex w-full flex-col gap-1 rounded-md p-2 text-left transition-colors hover:bg-primary/10 ${isDuplicate ? 'opacity-70' : ''}`}
                   onClick={() => handleSelect(agent)}
                   type="button"
                   title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
+                  <div className="flex items-start justify-between gap-2 w-full">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <ThemedAgentIcon slug={agent.slug} name={agent.display_name} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="md" className="mt-0.5" />
+                      <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
+                    </div>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                       {agent.source}
                     </span>
@@ -206,7 +210,7 @@ export function AddAgentPopover({
                   )}
                   <div className="text-[10px] font-mono text-muted-foreground/70 truncate">{agent.slug}</div>
                   {isDuplicate && (
-                    <span className="absolute top-2 right-2 text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded">already assigned</span>
+                    <span className="absolute top-2 right-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">already assigned</span>
                   )}
                 </button>
               );
@@ -222,7 +226,7 @@ export function AddAgentPopover({
     <div className="relative">
       <button
         ref={triggerRef}
-        className="w-full py-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors border border-dashed border-border/50 hover:border-border"
+        className="w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground"
         onClick={() => setIsOpen(!isOpen)}
         title={`Add agent to ${status}`}
         type="button"

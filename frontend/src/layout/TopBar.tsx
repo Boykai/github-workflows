@@ -38,18 +38,22 @@ export function TopBar({
 
       <div className="flex items-center gap-3">
         <RateLimitBar />
-        <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/45 px-3 py-1.5 md:flex">
-          <span className="h-2 w-2 rounded-full bg-primary shadow-sm" />
+        <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/55 px-3 py-1.5 shadow-sm md:flex">
+          <span className="h-2 w-2 rounded-full bg-gold shadow-[0_0_16px_hsl(var(--glow)/0.32)]" />
           <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Solar focus</span>
         </div>
 
         {/* Theme toggle */}
         <button
           onClick={onToggleTheme}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background/50 text-muted-foreground transition-all hover:border-primary/30 hover:bg-accent/60 hover:text-foreground"
+          className={`flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background/65 transition-all hover:border-primary/30 hover:bg-primary/10 ${
+            isDarkMode
+              ? 'text-primary shadow-[0_0_24px_hsl(var(--glow)/0.12)]'
+              : 'text-accent shadow-[0_0_20px_hsl(var(--gold)/0.12)]'
+          }`}
           aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
         {/* Notification Bell */}

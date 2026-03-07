@@ -53,7 +53,7 @@ export function ProjectSelector({
       ref={ref}
       className="celestial-panel absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
     >
-      <div className="border-b border-border/70 px-3 py-3">
+      <div className="border-b border-border/70 bg-background/25 px-3 py-3">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Projects</p>
       </div>
 
@@ -75,7 +75,7 @@ export function ProjectSelector({
                 onSelectProject(project.project_id);
                 onClose();
               }}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/45 ${
+              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 ${
                 project.project_id === selectedProjectId ? 'bg-primary/10 text-primary' : 'text-foreground'
               }`}
             >

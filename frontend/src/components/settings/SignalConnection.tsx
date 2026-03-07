@@ -25,37 +25,41 @@ import type { SignalNotificationMode } from '@/types';
 function ConnectionStatusBadge({ status }: { status: string | null }) {
   const key = status ?? 'disconnected';
 
-  const config: Record<string, { label: string; dot: string; bg: string; text: string }> = {
+  const config: Record<string, { label: string; dot: string; bg: string; text: string; border?: string }> = {
     connected: {
       label: 'Connected',
       dot: 'bg-green-500',
-      bg: 'bg-green-500/10',
+      bg: 'bg-green-500/12',
       text: 'text-green-600 dark:text-green-400',
+      border: 'border-green-500/30',
     },
     pending: {
       label: 'Linking…',
       dot: 'bg-yellow-500 animate-pulse',
-      bg: 'bg-yellow-500/10',
+      bg: 'bg-yellow-500/12',
       text: 'text-yellow-600 dark:text-yellow-400',
+      border: 'border-yellow-500/30',
     },
     error: {
       label: 'Error',
       dot: 'bg-red-500',
-      bg: 'bg-red-500/10',
+      bg: 'bg-red-500/12',
       text: 'text-red-600 dark:text-red-400',
+      border: 'border-red-500/30',
     },
     disconnected: {
       label: 'Not Connected',
       dot: 'bg-muted-foreground/40',
-      bg: 'bg-muted/50',
+      bg: 'bg-background/72',
       text: 'text-muted-foreground',
+      border: 'border-border/70',
     },
   };
 
   const c = config[key] ?? config.disconnected;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm ${c.bg} ${c.text} ${c.border ?? 'border-transparent'}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
     </span>
@@ -64,7 +68,7 @@ function ConnectionStatusBadge({ status }: { status: string | null }) {
 
 function QRCodeDisplay({ base64, expiresIn }: { base64: string; expiresIn: number }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-muted/30 p-6">
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border bg-background/44 p-6 shadow-sm">
       <p className="text-sm text-muted-foreground text-center leading-relaxed">
         Scan this QR code with your Signal app:
         <br />
@@ -142,8 +146,8 @@ function NotificationPreferenceSelector() {
             htmlFor={`signal-notification-${opt.value}`}
             className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors
               ${preferences.notification_mode === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/40 hover:bg-muted/30'
+                ? 'border-primary/45 bg-primary/10 shadow-sm'
+                : 'border-border bg-background/54 hover:border-primary/40 hover:bg-primary/8'
               }
               ${isPending ? 'opacity-60 pointer-events-none' : ''}`}
           >
@@ -286,9 +290,7 @@ export function SignalConnection() {
           )}
 
           <button
-            className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-              border border-border text-muted-foreground
-              hover:bg-muted hover:text-foreground transition-colors w-fit"
+            className="solar-action inline-flex w-fit items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             onClick={() => resetLink()}
             type="button"
           >
@@ -328,9 +330,7 @@ export function SignalConnection() {
                   {isDisconnecting ? 'Disconnecting…' : 'Yes, Disconnect'}
                 </button>
                 <button
-                  className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-                    border border-border text-muted-foreground
-                    hover:bg-muted hover:text-foreground transition-colors"
+                  className="solar-action inline-flex items-center justify-center rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                   onClick={() => setShowDisconnectConfirm(false)}
                   type="button"
                 >

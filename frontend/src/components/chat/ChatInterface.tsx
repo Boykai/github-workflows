@@ -304,13 +304,13 @@ export function ChatInterface({
   }, [showHistoryPopover]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex h-full flex-col bg-background">
       {messages.length > 0 && (
-        <div className="flex justify-end p-3 border-b border-border bg-background">
+        <div className="flex justify-end border-b border-border bg-background/62 p-3">
           <button
             type="button"
             onClick={onNewChat}
-            className="flex items-center gap-1.5 px-4 py-2 bg-muted text-foreground border border-border rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-muted/80 hover:border-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium cursor-pointer text-foreground transition-colors hover:border-primary/20 hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSending}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="shrink-0">
@@ -325,7 +325,7 @@ export function ChatInterface({
           <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
             <h3 className="text-lg font-semibold text-foreground mb-2">Start a conversation</h3>
             <p>Describe a task you want to create, and I'll help you add it to your project.</p>
-            <div className="mt-6 bg-muted/50 p-4 rounded-lg text-left w-full max-w-sm">
+            <div className="mt-6 w-full max-w-sm rounded-lg border border-border bg-background/56 p-4 text-left">
               <p className="font-medium text-foreground mb-2">Try something like:</p>
               <ul className="list-none space-y-2">
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
@@ -391,7 +391,7 @@ export function ChatInterface({
 
         {isSending && (
           <div className="self-start ml-11">
-            <div className="flex gap-1 p-3 bg-muted rounded-2xl">
+            <div className="flex gap-1 rounded-2xl border border-border bg-background/56 p-3">
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.32s' }}></span>
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.16s' }}></span>
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
@@ -416,14 +416,14 @@ export function ChatInterface({
       <FilePreviewChips files={uploadFiles} onRemove={handleFileRemove} />
 
       {fileErrors.length > 0 && (
-        <div className="px-4 py-1.5 text-xs text-destructive bg-destructive/5 border-b border-destructive/20">
+        <div className="border-b border-destructive/20 bg-destructive/5 px-4 py-1.5 text-xs text-destructive">
           {fileErrors.map((err, i) => (
             <div key={i}>{err}</div>
           ))}
         </div>
       )}
 
-      <form className="relative flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
+      <form className="relative flex gap-3 border-t border-border bg-background/62 p-4" onSubmit={handleSubmit}>
         {showAutocomplete && (
           <CommandAutocomplete
             commands={autocompleteCommands}
@@ -443,7 +443,7 @@ export function ChatInterface({
             disabled={isSending}
             rows={2}
             className={cn(
-              'w-full p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors bg-background text-foreground placeholder:text-muted-foreground focus:border-primary disabled:bg-muted',
+              'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground resize-none focus:border-primary disabled:bg-muted',
               isNavigating && 'border-l-4 border-l-primary bg-primary/5',
             )}
           />
@@ -459,13 +459,13 @@ export function ChatInterface({
               type="button"
               onClick={() => setShowHistoryPopover((prev) => !prev)}
               aria-label="Message history"
-              className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
             >
               <History className="w-4 h-4" />
             </button>
           )}
           {showHistoryPopover && chatHistory.length > 0 && (
-            <div className="absolute bottom-full mb-2 right-0 w-64 max-h-60 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg z-20">
+            <div className="absolute bottom-full right-0 z-20 mb-2 max-h-60 w-64 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg backdrop-blur-sm">
               <ul className="py-1">
                 {chatHistory.map((_, idx) => {
                   const reverseIdx = chatHistory.length - 1 - idx;
@@ -474,7 +474,7 @@ export function ChatInterface({
                     <li key={reverseIdx}>
                       <button
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors truncate"
+                        className="w-full truncate px-3 py-2 text-left text-sm transition-colors hover:bg-primary/10"
                         onClick={() => {
                           const result = selectFromHistory(reverseIdx, input);
                           if (result !== null) {

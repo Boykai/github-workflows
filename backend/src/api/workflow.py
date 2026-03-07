@@ -515,16 +515,18 @@ async def list_agents(
             logger.debug("Could not resolve tool counts for workflow agents")
 
     if resolved_owner and resolved_repo:
-        model_prefs = await agents_service.get_model_preferences(session.selected_project_id)
+        agent_prefs = await agents_service.get_agent_preferences(session.selected_project_id)
         agents = [
             available_agent.model_copy(
                 update={
-                    "default_model_id": model_prefs[available_agent.slug][0],
-                    "default_model_name": model_prefs[available_agent.slug][1],
+                    "default_model_id": agent_prefs[available_agent.slug]["default_model_id"],
+                    "default_model_name": agent_prefs[available_agent.slug]["default_model_name"],
+                    "icon_name": agent_prefs[available_agent.slug]["icon_name"]
+                    or available_agent.icon_name,
                     "tools_count": tools_counts.get(available_agent.slug),
                 }
             )
-            if available_agent.slug in model_prefs
+            if available_agent.slug in agent_prefs
             else available_agent.model_copy(
                 update={"tools_count": tools_counts.get(available_agent.slug)}
             )

@@ -85,13 +85,18 @@ class AgentsService:
                 local_agent.slug: local_agent
                 for local_agent in local_agents
                 if local_agent.status == AgentStatus.ACTIVE
-                and (local_agent.default_model_id or local_agent.default_model_name)
+                and (
+                    local_agent.default_model_id
+                    or local_agent.default_model_name
+                    or local_agent.icon_name
+                )
             }
             return [
                 repo_agent.model_copy(
                     update={
                         "default_model_id": local_by_slug[repo_agent.slug].default_model_id,
                         "default_model_name": local_by_slug[repo_agent.slug].default_model_name,
+                        "icon_name": local_by_slug[repo_agent.slug].icon_name,
                     }
                 )
                 if repo_agent.slug in local_by_slug
@@ -195,7 +200,7 @@ class AgentsService:
 
         for agent in agents:
             try:
-                await self._save_runtime_model_selection(
+                await self._save_runtime_preferences(
                     project_id=project_id,
                     owner=owner,
                     repo=repo,
@@ -203,6 +208,7 @@ class AgentsService:
                     agent=agent,
                     default_model_id=body.target_model_id,
                     default_model_name=body.target_model_name,
+                    icon_name=agent.icon_name,
                 )
                 updated_agents.append(agent.slug)
             except Exception:
@@ -219,14 +225,14 @@ class AgentsService:
             target_model_name=body.target_model_name,
         )
 
-    async def get_model_preferences(self, project_id: str) -> dict[str, tuple[str, str]]:
-        """Return slug → (default_model_id, default_model_name) from local SQLite only."""
+    async def get_agent_preferences(self, project_id: str) -> dict[str, dict[str, str]]:
+        """Return slug → saved runtime preferences from local SQLite only."""
         cursor = await self._db.execute(
-            "SELECT slug, default_model_id, default_model_name FROM agent_configs WHERE project_id = ?",
+            "SELECT slug, default_model_id, default_model_name, icon_name FROM agent_configs WHERE project_id = ?",
             (project_id,),
         )
         rows = await cursor.fetchall()
-        result: dict[str, tuple[str, str]] = {}
+        result: dict[str, dict[str, str]] = {}
         for row in rows:
             r = (
                 dict(row)
@@ -235,9 +241,18 @@ class AgentsService:
             )
             model_id = r.get("default_model_id", "") or ""
             model_name = r.get("default_model_name", "") or ""
-            if model_id or model_name:
-                result[r["slug"]] = (model_id, model_name)
+            icon_name = r.get("icon_name", "") or ""
+            if model_id or model_name or icon_name:
+                result[r["slug"]] = {
+                    "default_model_id": model_id,
+                    "default_model_name": model_name,
+                    "icon_name": icon_name,
+                }
         return result
+
+    async def get_model_preferences(self, project_id: str) -> dict[str, dict[str, str]]:
+        """Backwards-compatible alias for callers still using the old preference name."""
+        return await self.get_agent_preferences(project_id)
 
     async def _list_local_agents(self, project_id: str) -> list[Agent]:
         """Query agents from SQLite ``agent_configs`` table."""
@@ -267,6 +282,7 @@ class AgentsService:
                     name=r["name"],
                     slug=r["slug"],
                     description=r["description"],
+                    icon_name=r.get("icon_name") or None,
                     system_prompt=r.get("system_prompt", ""),
                     default_model_id=r.get("default_model_id", "") or "",
                     default_model_name=r.get("default_model_name", "") or "",
@@ -327,6 +343,7 @@ class AgentsService:
             tools: list[str] = []
             system_prompt = ""
             agent_name: str | None = None
+            icon_name: str | None = None
 
             match = _FRONTMATTER_RE.match(content)
             if match:
@@ -335,6 +352,9 @@ class AgentsService:
                     if isinstance(fm, dict):
                         description = fm.get("description", "")
                         agent_name = fm.get("name")
+                        raw_icon_name = fm.get("icon") or fm.get("icon_name")
+                        if raw_icon_name is not None:
+                            icon_name = str(raw_icon_name)
                         raw_tools = fm.get("tools", [])
                         if isinstance(raw_tools, list):
                             tools = [str(t) for t in raw_tools]
@@ -352,6 +372,7 @@ class AgentsService:
                     name=agent_name or display_name,
                     slug=slug,
                     description=description,
+                    icon_name=icon_name,
                     system_prompt=system_prompt,
                     default_model_id="",
                     default_model_name="",
@@ -457,6 +478,7 @@ class AgentsService:
             name=body.name,
             slug=slug,
             description=description,
+            icon_name=body.icon_name,
             system_prompt=system_prompt,
             status_column=body.status_column,
             tools=tools,
@@ -516,9 +538,9 @@ class AgentsService:
         await self._db.execute(
             """INSERT INTO agent_configs
                (id, name, slug, description, system_prompt, status_column,
-                tools, default_model_id, default_model_name, project_id, owner, repo, created_by,
+                tools, icon_name, default_model_id, default_model_name, project_id, owner, repo, created_by,
                 github_issue_number, github_pr_number, branch_name, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 agent_id,
                 body.name,
@@ -527,6 +549,7 @@ class AgentsService:
                 system_prompt,
                 body.status_column,
                 tools_json,
+                body.icon_name,
                 body.default_model_id,
                 body.default_model_name,
                 project_id,
@@ -546,6 +569,7 @@ class AgentsService:
             name=body.name,
             slug=slug,
             description=description,
+            icon_name=body.icon_name,
             system_prompt=system_prompt,
             default_model_id=body.default_model_id,
             default_model_name=body.default_model_name,
@@ -685,8 +709,12 @@ class AgentsService:
         if not agent:
             raise LookupError(f"Agent '{agent_id}' not found")
 
-        only_runtime_model_update = (
-            (body.default_model_id is not None or body.default_model_name is not None)
+        only_runtime_preference_update = (
+            (
+                body.default_model_id is not None
+                or body.default_model_name is not None
+                or body.icon_name is not None
+            )
             and body.name is None
             and body.description is None
             and body.system_prompt is None
@@ -694,7 +722,7 @@ class AgentsService:
         )
 
         # Repo-only agents cannot be updated via the API, except for local runtime model preferences.
-        if agent.id.startswith("repo:") and not only_runtime_model_update:
+        if agent.id.startswith("repo:") and not only_runtime_preference_update:
             raise ValueError(
                 "Repo-only agents cannot be updated through the API. "
                 "Edit the .agent.md file directly in the repository."
@@ -705,8 +733,8 @@ class AgentsService:
                 "Agents pending deletion cannot be updated until the deletion PR is resolved."
             )
 
-        if only_runtime_model_update:
-            updated_agent = await self._save_runtime_model_selection(
+        if only_runtime_preference_update:
+            updated_agent = await self._save_runtime_preferences(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
@@ -714,6 +742,7 @@ class AgentsService:
                 agent=agent,
                 default_model_id=body.default_model_id,
                 default_model_name=body.default_model_name,
+                icon_name=body.icon_name,
             )
             return AgentCreateResult(
                 agent=updated_agent,
@@ -728,6 +757,7 @@ class AgentsService:
         description = body.description or agent.description
         system_prompt = body.system_prompt or agent.system_prompt
         tools = body.tools if body.tools is not None else agent.tools
+        icon_name = body.icon_name if body.icon_name is not None else agent.icon_name
         default_model_id = (
             body.default_model_id if body.default_model_id is not None else agent.default_model_id
         )
@@ -755,6 +785,7 @@ class AgentsService:
             name=name,
             slug=slug,
             description=description,
+            icon_name=icon_name,
             system_prompt=system_prompt,
             status_column=agent.status_column or "",
             tools=tools,
@@ -791,7 +822,7 @@ class AgentsService:
             await self._db.execute(
                 """UPDATE agent_configs
                    SET name = ?, slug = ?, description = ?, system_prompt = ?,
-                       tools = ?, default_model_id = ?, default_model_name = ?, github_pr_number = ?, branch_name = ?
+                       tools = ?, icon_name = ?, default_model_id = ?, default_model_name = ?, github_pr_number = ?, branch_name = ?
                    WHERE id = ?""",
                 (
                     name,
@@ -799,6 +830,7 @@ class AgentsService:
                     description,
                     system_prompt,
                     tools_json,
+                    icon_name,
                     default_model_id,
                     default_model_name,
                     result.pr_number,
@@ -813,6 +845,7 @@ class AgentsService:
             name=name,
             slug=slug,
             description=description,
+            icon_name=icon_name,
             system_prompt=system_prompt,
             default_model_id=default_model_id,
             default_model_name=default_model_name,
@@ -1258,6 +1291,7 @@ class AgentsService:
             name=r["name"],
             slug=r["slug"],
             description=r["description"],
+            icon_name=r.get("icon_name") or None,
             system_prompt=r.get("system_prompt", ""),
             default_model_id=r.get("default_model_id", "") or "",
             default_model_name=r.get("default_model_name", "") or "",
@@ -1378,9 +1412,9 @@ class AgentsService:
             await self._db.execute(
                 """INSERT INTO agent_configs
                    (id, name, slug, description, system_prompt, status_column,
-                    tools, default_model_id, default_model_name, project_id, owner, repo, created_by,
+                    tools, icon_name, default_model_id, default_model_name, project_id, owner, repo, created_by,
                     github_issue_number, github_pr_number, branch_name, created_at, lifecycle_status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     str(uuid.uuid4()),
                     agent.name,
@@ -1389,6 +1423,7 @@ class AgentsService:
                     agent.system_prompt,
                     agent.status_column or "",
                     tools_json,
+                    agent.icon_name,
                     agent.default_model_id,
                     agent.default_model_name,
                     project_id,
@@ -1405,7 +1440,7 @@ class AgentsService:
 
         await self._db.commit()
 
-    async def _save_runtime_model_selection(
+    async def _save_runtime_preferences(
         self,
         *,
         project_id: str,
@@ -1415,14 +1450,16 @@ class AgentsService:
         agent: Agent,
         default_model_id: str | None,
         default_model_name: str | None,
+        icon_name: str | None,
     ) -> Agent:
-        """Persist per-project default model selection without creating repo content changes."""
+        """Persist per-project runtime preferences without creating repo content changes."""
         resolved_model_id = (
             default_model_id if default_model_id is not None else agent.default_model_id
         )
         resolved_model_name = (
             default_model_name if default_model_name is not None else agent.default_model_name
         )
+        resolved_icon_name = icon_name if icon_name is not None else agent.icon_name
         existing_local_agent = await self._resolve_agent(project_id, agent.slug)
         tools_json = json.dumps(agent.tools)
         now = utcnow().isoformat()
@@ -1431,7 +1468,7 @@ class AgentsService:
             await self._db.execute(
                 """UPDATE agent_configs
                    SET name = ?, description = ?, system_prompt = ?, status_column = ?,
-                       tools = ?, owner = ?, repo = ?, created_by = ?, default_model_id = ?,
+                       tools = ?, owner = ?, repo = ?, created_by = ?, icon_name = ?, default_model_id = ?,
                        default_model_name = ?
                    WHERE id = ?""",
                 (
@@ -1443,6 +1480,7 @@ class AgentsService:
                     owner,
                     repo,
                     github_user_id,
+                    resolved_icon_name,
                     resolved_model_id,
                     resolved_model_name,
                     existing_local_agent.id,
@@ -1456,10 +1494,10 @@ class AgentsService:
             await self._db.execute(
                 """INSERT INTO agent_configs
                    (id, name, slug, description, system_prompt, status_column,
-                    tools, default_model_id, default_model_name, project_id, owner, repo,
+                    tools, icon_name, default_model_id, default_model_name, project_id, owner, repo,
                     created_by, github_issue_number, github_pr_number, branch_name, created_at,
                     lifecycle_status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     persisted_id,
                     agent.name,
@@ -1468,6 +1506,7 @@ class AgentsService:
                     agent.system_prompt,
                     agent.status_column or "",
                     tools_json,
+                    resolved_icon_name,
                     resolved_model_id,
                     resolved_model_name,
                     project_id,
@@ -1488,6 +1527,7 @@ class AgentsService:
 
         return agent.model_copy(
             update={
+                "icon_name": resolved_icon_name,
                 "default_model_id": resolved_model_id,
                 "default_model_name": resolved_model_name,
                 "status": persisted_status,

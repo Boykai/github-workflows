@@ -281,7 +281,7 @@ export function ProjectsPage() {
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">📋</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>

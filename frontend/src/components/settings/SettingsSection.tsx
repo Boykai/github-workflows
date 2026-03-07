@@ -52,9 +52,9 @@ export function SettingsSection({
   };
 
   return (
-    <div className="flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+    <div className="celestial-panel flex flex-col rounded-[1.25rem] border border-border/80 shadow-sm overflow-hidden">
       <button
-        className="flex items-start gap-3 p-5 w-full text-left bg-transparent hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+        className="flex w-full items-start gap-3 bg-transparent p-5 text-left transition-colors hover:bg-background/28 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
         onClick={() => setCollapsed((c) => !c)}
         type="button"
       >
@@ -76,7 +76,7 @@ export function SettingsSection({
           {!hideSave && onSave && (
             <div className="flex items-center gap-4 p-5 pt-0">
               <button
-                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleSave}
                 disabled={!isDirty || saving}
               >

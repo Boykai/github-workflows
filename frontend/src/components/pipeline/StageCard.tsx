@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Lock, Plus, Trash2 } from 'lucide-react';
 import { AgentNode } from './AgentNode';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 
@@ -96,7 +97,7 @@ export function StageCard({
 
   return (
     <div
-      className="flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/80 p-3 backdrop-blur-sm shadow-sm"
+    className="flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/92 p-3 shadow-sm backdrop-blur-sm"
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
@@ -112,7 +113,7 @@ export function StageCard({
             onChange={(e) => setEditName(e.target.value)}
             onBlur={handleRenameConfirm}
             onKeyDown={handleKeyDown}
-            className="flex-1 rounded-md border border-primary/30 bg-background/50 px-2 py-0.5 text-sm font-medium outline-none"
+            className="flex-1 rounded-md border border-primary/30 bg-background/72 px-2 py-0.5 text-sm font-medium outline-none"
             maxLength={100}
           />
         ) : (
@@ -177,7 +178,7 @@ export function StageCard({
           ref={addButtonRef}
           type="button"
           onClick={() => setShowAgentPicker(!showAgentPicker)}
-          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 bg-background/24 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
         >
           <Plus className="h-3 w-3" />
           Add Agent
@@ -187,7 +188,7 @@ export function StageCard({
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowAgentPicker(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowAgentPicker(false); }} role="button" tabIndex={0} aria-label="Close agent picker" />
             <div
-              className="fixed z-50 rounded-lg border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm"
+              className="fixed z-50 rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm"
               style={{ top: pickerPosition.top, left: pickerPosition.left, width: pickerPosition.width }}
             >
               <div className="max-h-40 overflow-y-auto p-1">
@@ -204,8 +205,9 @@ export function StageCard({
                       onAddAgent(agent.slug);
                       setShowAgentPicker(false);
                     }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-accent/50"
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
                   >
+                    <ThemedAgentIcon slug={agent.slug} name={agent.display_name} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
                     <span className="font-medium">{agent.display_name}</span>
                     <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
                   </button>

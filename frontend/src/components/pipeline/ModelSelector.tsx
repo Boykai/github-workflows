@@ -30,21 +30,21 @@ function CostTierBadge({ tier }: { tier: string }) {
   switch (tier) {
     case 'economy':
       return (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+        <span className="solar-chip-success inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
           <DollarSign className="h-2.5 w-2.5" />
           Economy
         </span>
       );
     case 'standard':
       return (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100/80 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
+        <span className="inline-flex items-center gap-0.5 rounded-full border border-sky-500/25 bg-sky-500/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-700 dark:text-sky-300">
           <Zap className="h-2.5 w-2.5" />
           Standard
         </span>
       );
     case 'premium':
       return (
-        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+        <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/25 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
           <Crown className="h-2.5 w-2.5" />
           Premium
         </span>
@@ -146,7 +146,7 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
           setIsOpen(!isOpen);
         }}
         disabled={disabled}
-        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/50 px-2.5 py-1.5 text-xs transition-colors hover:bg-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {trigger || (
           <>
@@ -162,7 +162,7 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
         <>
           <div className="fixed inset-0 z-40" onClick={() => { setIsOpen(false); setSearch(''); }} onKeyDown={(e) => { if (e.key === 'Escape') { setIsOpen(false); setSearch(''); } }} role="button" tabIndex={0} aria-label="Close model selector" />
 
-          <div className="fixed z-50 rounded-xl border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm" style={{ top: position.top, left: position.left, width: position.width }}>
+          <div className="fixed z-50 rounded-xl border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm" style={{ top: position.top, left: position.left, width: position.width }}>
             {/* Search */}
             <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -176,7 +176,7 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
               <button
                 type="button"
                 onClick={() => void refreshModels()}
-                className="rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isRefreshing}
               >
                 {isRefreshing ? 'Refreshing…' : 'Refresh'}
@@ -252,7 +252,7 @@ function ModelRow({
     <button
       type="button"
       onClick={() => onSelect(model)}
-      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent/50 ${
+      className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10 ${
         isSelected ? 'bg-primary/10' : ''
       }`}
     >

@@ -18,7 +18,7 @@ export function ToolsPage() {
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
       <CelestialCatalogHero
         eyebrow="Tool Forge"
         title="Equip your agents with MCP tools."
@@ -50,7 +50,7 @@ export function ToolsPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">🔧</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the sidebar to manage its MCP tools</p>

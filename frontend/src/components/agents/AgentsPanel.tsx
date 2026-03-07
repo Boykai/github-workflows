@@ -130,7 +130,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-56 rounded-[1.4rem] border border-border bg-muted/30 animate-pulse"
+              className="h-56 rounded-[1.4rem] border border-border bg-background/40 animate-pulse"
             />
           ))}
         </div>
@@ -146,7 +146,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
 
       {/* Empty state */}
       {!isLoading && !error && agents && agents.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-muted/10 p-8 text-center">
+        <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
           <span className="text-2xl">🤖</span>
           <p className="text-lg font-medium text-foreground">No agents yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
@@ -175,7 +175,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-3">
-              <div className="rounded-full border border-border/70 bg-background/55 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="solar-chip-soft rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
                 {pendingLoading ? 'Refreshing…' : `${unresolvedPendingAgents.length} pending`}
               </div>
               {!pendingLoading && unresolvedPendingAgents.length > 0 && (
@@ -184,7 +184,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   size="sm"
                   onClick={handleClearPending}
                   disabled={clearPendingMutation.isPending}
-                  className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="solar-action-danger"
                 >
                   {clearPendingMutation.isPending ? 'Deleting stale rows…' : 'Delete stale pending'}
                 </Button>
@@ -208,10 +208,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
           {pendingLoading ? (
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-48 rounded-[1.4rem] border border-border bg-muted/30 animate-pulse"
-                />
+                <div key={i} className="h-48 rounded-[1.4rem] border border-border bg-background/40 animate-pulse" />
               ))}
             </div>
           ) : (
@@ -350,10 +347,8 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
             </div>
 
             {filteredAgents.length === 0 ? (
-              <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/35 p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No agents match the current filters.
-                </p>
+              <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-8 text-center">
+                <p className="text-sm text-muted-foreground">No agents match the current filters.</p>
                 <Button
                   variant="ghost"
                   className="mt-3"

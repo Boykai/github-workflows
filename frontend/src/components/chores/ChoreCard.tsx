@@ -93,25 +93,25 @@ export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardPr
     <Card
       className={cn(
         'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
-        isSpotlight && 'border-primary/20 bg-background/55'
+        isSpotlight && 'border-primary/20 bg-background/62'
       )}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.16),_transparent_72%)] opacity-90" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.22),_transparent_72%)] opacity-90" />
       <CardContent className={cn('relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5', isSpotlight && 'sm:min-h-[21rem] sm:p-6')}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
                 {chore.schedule_type ? `${chore.schedule_type} cadence` : 'No cadence'}
               </span>
               <button
                 type="button"
                 onClick={handleToggleStatus}
                 disabled={updateMutation.isPending}
-                className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] cursor-pointer transition-colors ${
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
                   chore.status === 'active'
-                    ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
-                    : 'bg-accent/10 text-accent-foreground hover:bg-accent/20 dark:bg-accent/20 dark:hover:bg-accent/30'
+                    ? 'solar-chip-success'
+                    : 'solar-chip-violet'
                 } disabled:opacity-50`}
                 title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
               >
@@ -128,7 +128,7 @@ export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardPr
           </div>
 
           {triggerLabel && (
-            <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
+            <span className="solar-chip shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
               {triggerLabel}
             </span>
           )}
@@ -151,7 +151,7 @@ export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardPr
             <button
               type="button"
               onClick={() => setShowScheduleEditor(!showScheduleEditor)}
-              className="rounded-full border border-border/70 px-3 py-1.5 transition-colors hover:bg-accent/30 hover:text-foreground"
+              className="solar-chip-soft rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-primary/10 hover:text-foreground"
             >
               Every {chore.schedule_value} {chore.schedule_type === 'time' ? 'day' : 'issue'}
               {chore.schedule_value !== 1 ? 's' : ''}
@@ -160,7 +160,7 @@ export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardPr
             <button
               type="button"
               onClick={() => setShowScheduleEditor(true)}
-              className="rounded-full border border-dashed border-border/70 px-3 py-1.5 italic transition-colors hover:bg-accent/30 hover:text-foreground"
+              className="solar-chip-soft rounded-full border-dashed px-3 py-1.5 italic transition-colors hover:bg-primary/10 hover:text-foreground"
             >
               Configure schedule…
             </button>
@@ -202,7 +202,7 @@ export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardPr
             disabled={deleteMutation.isPending}
             variant="ghost"
             size="sm"
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="solar-action-danger"
           >
             {deleteMutation.isPending ? 'Removing…' : 'Remove'}
           </Button>

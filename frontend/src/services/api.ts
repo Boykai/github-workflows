@@ -719,6 +719,7 @@ export interface AgentConfig {
   name: string;
   slug: string;
   description: string;
+  icon_name: string | null;
   system_prompt: string;
   default_model_id: string;
   default_model_name: string;
@@ -735,6 +736,7 @@ export interface AgentConfig {
 export interface AgentCreate {
   name: string;
   description?: string;
+  icon_name?: string | null;
   system_prompt: string;
   tools?: string[];
   status_column?: string;
@@ -746,6 +748,7 @@ export interface AgentCreate {
 export interface AgentUpdate {
   name?: string;
   description?: string;
+  icon_name?: string | null;
   system_prompt?: string;
   tools?: string[];
   default_model_id?: string;

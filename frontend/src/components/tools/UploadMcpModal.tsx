@@ -200,7 +200,7 @@ export function UploadMcpModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
-      <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto" role="presentation" onClick={(e) => e.stopPropagation()}>
+      <div className="celestial-panel w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold mb-4">Upload MCP Configuration</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -213,7 +213,7 @@ export function UploadMcpModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Sentry MCP"
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
+              className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm"
               maxLength={100}
             />
             {duplicateWarning && (
@@ -234,7 +234,7 @@ export function UploadMcpModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this MCP configuration"
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background min-h-[60px] resize-y"
+              className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm min-h-[60px] resize-y"
               maxLength={500}
             />
           </div>
@@ -257,7 +257,7 @@ export function UploadMcpModal({
                 value={configContent}
                 onChange={(e) => { setConfigContent(e.target.value); setValidationError(null); }}
                 placeholder={'{\n  "mcpServers": {\n    "my-server": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}'}
-                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background min-h-[140px] resize-y font-mono text-xs leading-relaxed"
+                className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-xs font-mono leading-relaxed min-h-[140px] resize-y"
               />
             ) : (
               <input
@@ -265,7 +265,7 @@ export function UploadMcpModal({
                 type="file"
                 accept=".json,application/json"
                 onChange={handleFileUpload}
-                className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
+                className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm"
               />
             )}
           </div>
@@ -281,7 +281,7 @@ export function UploadMcpModal({
               value={githubRepoTarget}
               onChange={(e) => setGithubRepoTarget(e.target.value)}
               placeholder="owner/repo"
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
+              className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm"
             />
           </div>
 
@@ -311,7 +311,7 @@ export function UploadMcpModal({
           <div className="flex justify-end gap-2">
             <button
               type="button"
-              className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+              className="rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               onClick={handleClose}
             >
               Cancel

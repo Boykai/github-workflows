@@ -117,7 +117,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-56 rounded-[1.4rem] border border-border bg-muted/30 animate-pulse"
+              className="h-56 rounded-[1.4rem] border border-border bg-background/40 animate-pulse"
             />
           ))}
         </div>
@@ -133,7 +133,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
 
       {/* Empty state */}
       {!isLoading && !error && chores && chores.length === 0 && (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
-        <div className="flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-muted/10 p-8 text-center">
+        <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
           <span className="text-2xl">📋</span>
           <p className="text-lg font-medium text-foreground">No chores yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
@@ -259,8 +259,8 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
                           className={cn(
                             'rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] transition-colors',
                             statusFilter === option.value
-                              ? 'border-primary/40 bg-primary/12 text-primary'
-                              : 'border-border/70 bg-background/55 text-muted-foreground hover:bg-accent/35 hover:text-foreground'
+                              ? 'solar-chip'
+                              : 'solar-chip-soft hover:bg-primary/10 hover:text-foreground'
                           )}
                         >
                           {option.label}
@@ -296,7 +296,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
               </div>
 
               {filteredChores.length === 0 ? (
-                <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/35 p-8 text-center">
+                <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-8 text-center">
                   <p className="text-sm text-muted-foreground">No chores match the current filters.</p>
                   <Button variant="ghost" className="mt-3" onClick={() => {
                     setSearch('');
@@ -328,7 +328,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
                   <button
                     key={tpl.path}
                     onClick={() => handleTemplateClick(tpl)}
-                    className="flex items-start gap-3 rounded-[1.2rem] border border-dashed border-border bg-muted/10 p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent"
+                    className="flex items-start gap-3 rounded-[1.2rem] border border-dashed border-border bg-background/28 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
                     title={tpl.about || tpl.name}
                     type="button"
                   >

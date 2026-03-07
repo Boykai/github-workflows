@@ -200,7 +200,7 @@ export function AgentConfigRow({
   if (!isLoaded) {
     return (
       <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60">
-        <div className="flex items-center gap-2 p-2 border-b border-border/40 bg-muted/20 rounded-t-[1.2rem]">
+        <div className="flex items-center gap-2 rounded-t-[1.2rem] border-b border-border/40 bg-background/38 p-2">
           <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
         </div>
         <div className="p-2">
@@ -219,9 +219,9 @@ export function AgentConfigRow({
   return (
     <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60 relative">
       {/* Header with toggle and presets */}
-      <div className="flex items-center gap-2 p-2 border-b border-border/40 bg-muted/20 rounded-t-[1.2rem]">
+      <div className="flex items-center gap-2 rounded-t-[1.2rem] border-b border-border/40 bg-background/38 p-2">
         <button
-          className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"

@@ -17,14 +17,14 @@ interface ToolCardProps {
 
 function SyncStatusBadge({ status, error }: { status: string; error?: string }) {
   const styles: Record<string, string> = {
-    synced: 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
-    pending: 'bg-amber-100/80 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
-    error: 'bg-red-100/80 text-red-700 dark:bg-red-950/50 dark:text-red-300',
+    synced: 'solar-chip-success',
+    pending: 'solar-chip-warning',
+    error: 'solar-chip-danger',
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] ${styles[status] ?? styles.pending}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] shadow-sm ${styles[status] ?? styles.pending}`}
       title={status === 'error' ? error : undefined}
     >
       {status === 'pending' && (
@@ -37,7 +37,7 @@ function SyncStatusBadge({ status, error }: { status: string; error?: string }) 
 
 export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: ToolCardProps) {
   return (
-    <Card className="moonwell rounded-[1.35rem] border-border/75 shadow-none transition-colors hover:border-border">
+    <Card className="moonwell rounded-[1.35rem] border-border/75 shadow-none transition-colors hover:border-primary/20">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -55,7 +55,7 @@ export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: Tool
         </div>
 
         {tool.sync_status === 'error' && tool.sync_error && (
-          <div className="mt-3 rounded-lg bg-destructive/5 border border-destructive/20 p-2.5">
+          <div className="mt-3 rounded-lg border border-destructive/20 bg-destructive/5 p-2.5">
             <p className="text-xs text-destructive">{tool.sync_error}</p>
           </div>
         )}
@@ -76,7 +76,7 @@ export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: Tool
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 hover:bg-primary/10"
               onClick={() => onSync(tool.id)}
               disabled={isSyncing}
               title="Re-sync to GitHub"
@@ -86,7 +86,7 @@ export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: Tool
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+              className="solar-action-danger h-7 w-7 p-0"
               onClick={() => onDelete(tool.id)}
               disabled={isDeleting}
               title="Delete tool"

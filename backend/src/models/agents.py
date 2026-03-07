@@ -26,6 +26,7 @@ class Agent(BaseModel):
     name: str
     slug: str
     description: str
+    icon_name: str | None = None
     system_prompt: str = ""
     default_model_id: str = ""
     default_model_name: str = ""
@@ -44,6 +45,7 @@ class AgentCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
+    icon_name: str | None = Field(default=None, max_length=100)
     system_prompt: str = Field(..., min_length=1, max_length=30000)
     tools: list[str] = Field(default_factory=list)
     status_column: str = ""
@@ -57,6 +59,7 @@ class AgentUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, min_length=1, max_length=500)
+    icon_name: str | None = Field(default=None, max_length=100)
     system_prompt: str | None = Field(default=None, min_length=1, max_length=30000)
     tools: list[str] | None = None
     default_model_id: str | None = None
@@ -111,6 +114,7 @@ class AgentPreviewResponse(BaseModel):
     name: str
     slug: str
     description: str
+    icon_name: str | None = None
     system_prompt: str
     status_column: str = ""
     tools: list[str] = Field(default_factory=list)

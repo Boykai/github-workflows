@@ -4648,6 +4648,7 @@ class GitHubProjectsService:
             display_name="GitHub Copilot",
             description="Default GitHub Copilot coding agent",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4655,6 +4656,7 @@ class GitHubProjectsService:
             display_name="Copilot Review",
             description="GitHub Copilot code review agent",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4662,6 +4664,7 @@ class GitHubProjectsService:
             display_name="Spec Kit - Specify",
             description="Generates a detailed specification from a GitHub issue",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4669,6 +4672,7 @@ class GitHubProjectsService:
             display_name="Spec Kit - Plan",
             description="Creates an implementation plan from a specification",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4676,6 +4680,7 @@ class GitHubProjectsService:
             display_name="Spec Kit - Tasks",
             description="Breaks an implementation plan into granular tasks",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4683,6 +4688,7 @@ class GitHubProjectsService:
             display_name="Spec Kit - Implement",
             description="Implements code changes based on the task list",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
@@ -4690,6 +4696,7 @@ class GitHubProjectsService:
             display_name="Human",
             description="Manual human task — creates a sub-issue assigned to the issue creator",
             avatar_url=None,
+            icon_name=None,
             source=AgentSource.BUILTIN,
         ),
     ]
@@ -5000,6 +5007,7 @@ class GitHubProjectsService:
             download_url = file_info.get("download_url")
             display_name = slug
             description: str | None = None
+            icon_name: str | None = None
 
             # Fetch raw content and parse YAML frontmatter
             if download_url:
@@ -5017,6 +5025,9 @@ class GitHubProjectsService:
                             if isinstance(fm, dict):
                                 display_name = fm.get("name", slug)
                                 description = fm.get("description")
+                                raw_icon_name = fm.get("icon") or fm.get("icon_name")
+                                if raw_icon_name is not None:
+                                    icon_name = str(raw_icon_name)
                         except yaml.YAMLError:
                             logger.debug("Invalid YAML frontmatter in %s", file_info["name"])
                 except RequestFailed:
@@ -5028,6 +5039,7 @@ class GitHubProjectsService:
                     display_name=display_name,
                     description=description,
                     avatar_url=None,
+                    icon_name=icon_name,
                     source=AgentSource.REPOSITORY,
                 )
             )

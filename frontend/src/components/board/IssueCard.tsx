@@ -55,7 +55,7 @@ function SubIssueRow({ subIssue, availableAgents }: { subIssue: SubIssue; availa
 
   return (
     <a
-      className="flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-md bg-muted/50 hover:bg-muted transition-colors text-foreground no-underline"
+      className="solar-chip-soft flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-foreground no-underline transition-colors hover:border-primary/35 hover:bg-primary/10"
       href={subIssue.url}
       target="_blank"
       rel="noopener noreferrer"
@@ -64,7 +64,7 @@ function SubIssueRow({ subIssue, availableAgents }: { subIssue: SubIssue; availa
     >
       <SubIssueStateIcon state={subIssue.state} />
       {agentLabel && (
-        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-sm">{agentLabel}</span>
+        <span className="solar-chip rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">{agentLabel}</span>
       )}
       {modelName && (
         <span className="text-[10px] text-muted-foreground truncate">{modelName}</span>
@@ -119,7 +119,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
 
   return (
     <div
-      className="flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/88 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className="flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -139,7 +139,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
       )}
       {item.content_type === 'draft_issue' && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Draft</span>
+          <span className="solar-chip-soft rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Draft</span>
         </div>
       )}
 
@@ -211,14 +211,14 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
         )}
         {item.size && (
           <span
-            className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground"
+            className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
             style={item.size.color ? { borderColor: statusColorToCSS(item.size.color) } : undefined}
           >
             {item.size.name}
           </span>
         )}
         {item.estimate != null && (
-          <span className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {item.estimate}pt
           </span>
         )}

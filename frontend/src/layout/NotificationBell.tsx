@@ -32,7 +32,7 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
     <div ref={ref} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-accent/70 hover:text-foreground"
+        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <Bell className="w-5 h-5" />
@@ -45,7 +45,7 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
 
       {isOpen && (
         <div className="celestial-panel absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-border/70 bg-background/25 px-4 py-3">
             <span className="text-sm font-semibold">Notifications</span>
             {unreadCount > 0 && (
               <button
@@ -66,7 +66,7 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm last:border-0 ${
+                  className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20 ${
                     n.read ? 'opacity-60' : ''
                   }`}
                 >

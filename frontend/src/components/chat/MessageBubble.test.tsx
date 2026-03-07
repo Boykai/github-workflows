@@ -78,11 +78,13 @@ describe('MessageBubble', () => {
   });
 
   it('applies assistant bubble styling (bg-muted)', () => {
-    const { container } = render(
+    render(
       <MessageBubble message={createMessage({ sender_type: 'assistant' })} />
     );
-    const bubble = container.querySelector('.bg-muted:not(.w-8)');
+    const bubble = screen.getByText('Hello world').closest('div');
     expect(bubble).toBeInTheDocument();
+    expect(bubble?.className).toContain('bg-background/62');
+    expect(bubble?.className).toContain('border');
   });
 
   it('applies system message styling (text-muted-foreground)', () => {

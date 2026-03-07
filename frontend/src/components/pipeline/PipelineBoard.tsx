@@ -87,7 +87,7 @@ export function PipelineBoard({
       <div className="flex flex-col gap-4">
         {/* Edit mode banner */}
         {isEditMode && (
-          <div className="rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+          <div className="rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             ✏️ Editing: {pipelineName || 'Untitled Pipeline'}
           </div>
         )}
@@ -105,7 +105,7 @@ export function PipelineBoard({
                 if (e.key === 'Enter') handleNameConfirm();
                 if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
               }}
-              className={`rounded-lg border bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none ${
+              className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
                 validationErrors.name ? 'border-red-500' : 'border-primary/30'
               }`}
               placeholder="Pipeline name"
@@ -135,8 +135,8 @@ export function PipelineBoard({
           onModelChange={onModelOverrideChange}
         />
 
-        {/* Empty board info */}
-        <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 p-8 text-center">
+        {/* Empty board CTA */}
+        <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
           <Layers className="h-8 w-8 text-muted-foreground/40" />
           <h3 className="text-sm font-semibold text-foreground">No stages yet</h3>
           <p className="text-xs text-muted-foreground">
@@ -151,7 +151,7 @@ export function PipelineBoard({
     <div className="flex flex-col gap-4">
       {/* Edit mode banner */}
       {isEditMode && (
-        <div className="rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+        <div className="rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
           ✏️ Editing: {pipelineName || 'Untitled Pipeline'}
         </div>
       )}
@@ -169,7 +169,7 @@ export function PipelineBoard({
               if (e.key === 'Enter') handleNameConfirm();
               if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
             }}
-            className={`rounded-lg border bg-background/50 px-3 py-1.5 text-lg font-semibold outline-none ${
+            className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
               validationErrors.name ? 'border-red-500' : 'border-primary/30'
             }`}
             placeholder="Pipeline name"
@@ -202,20 +202,20 @@ export function PipelineBoard({
       {/* Stage cards */}
       <div className="overflow-x-auto pb-2">
         <div className="grid min-w-full items-start gap-3" style={gridStyle}>
-        {stages.map((stage) => (
-          <StageCard
-            key={stage.id}
-            stage={stage}
-            availableAgents={availableAgents}
-            projectId={projectId}
-            onUpdate={(updated) => onUpdateStage(stage.id, updated)}
-            onRemove={() => onRemoveStage(stage.id)}
-            onAddAgent={(slug) => onAddAgent(stage.id, slug)}
-            onRemoveAgent={(nodeId) => onRemoveAgent(stage.id, nodeId)}
-            onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
-            onCloneAgent={onCloneAgent ? (nodeId) => onCloneAgent(stage.id, nodeId) : undefined}
-          />
-        ))}
+          {stages.map((stage) => (
+            <StageCard
+              key={stage.id}
+              stage={stage}
+              availableAgents={availableAgents}
+              projectId={projectId}
+              onUpdate={(updated) => onUpdateStage(stage.id, updated)}
+              onRemove={() => onRemoveStage(stage.id)}
+              onAddAgent={(slug) => onAddAgent(stage.id, slug)}
+              onRemoveAgent={(nodeId) => onRemoveAgent(stage.id, nodeId)}
+              onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
+              onCloneAgent={onCloneAgent ? (nodeId) => onCloneAgent(stage.id, nodeId) : undefined}
+            />
+          ))}
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ class AgentPreview(BaseModel):
     name: str = Field(..., description="Agent display name")
     slug: str = Field(..., description="Kebab-case derived identifier")
     description: str = Field(..., description="One-line summary")
+    icon_name: str | None = Field(default=None, description="Celestial icon identifier")
     system_prompt: str = Field(..., description="Full system prompt text")
     status_column: str = Field(..., description="Assigned status column")
     tools: list[str] = Field(default_factory=list, description="All available tool identifiers")

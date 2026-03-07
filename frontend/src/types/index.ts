@@ -312,6 +312,7 @@ export interface AvailableAgent {
   display_name: string;
   description?: string | null;
   avatar_url?: string | null;
+  icon_name?: string | null;
   default_model_id?: string;
   default_model_name?: string;
   tools_count?: number | null;

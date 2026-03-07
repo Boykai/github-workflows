@@ -74,7 +74,7 @@ export function ToolSelectorModal({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
       <div
-        className="bg-card rounded-lg border border-border shadow-lg w-full max-w-3xl max-h-[85vh] flex flex-col"
+        className="celestial-panel flex w-full max-w-3xl max-h-[85vh] flex-col rounded-[1.4rem] border border-border shadow-lg"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
       >
@@ -98,7 +98,7 @@ export function ToolSelectorModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search tools by name or description"
-              className="w-full pl-10 pr-3 py-2 text-sm border border-border rounded-md bg-background"
+              className="w-full rounded-md border border-border bg-background/72 py-2 pl-10 pr-3 text-sm"
             />
           </div>
         </div>
@@ -108,7 +108,7 @@ export function ToolSelectorModal({
           {isLoading && (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 rounded-lg border border-border bg-muted/30 animate-pulse" />
+                <div key={i} className="h-24 rounded-lg border border-border bg-background/40 animate-pulse" />
               ))}
             </div>
           )}
@@ -135,8 +135,8 @@ export function ToolSelectorModal({
                     onClick={() => toggleTool(tool.id)}
                     className={`relative flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
                       isSelected
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-border/80 hover:bg-muted/30'
+                        ? 'border-primary bg-primary/8'
+                        : 'border-border hover:border-primary/20 hover:bg-background/34'
                     }`}
                   >
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
@@ -165,7 +165,7 @@ export function ToolSelectorModal({
           </span>
           <div className="flex gap-2">
             <button
-              className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+              className="rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-primary/10 hover:text-foreground"
               onClick={onClose}
             >
               Cancel

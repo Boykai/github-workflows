@@ -45,7 +45,7 @@ function formatTimeAgo(isoString: string): string {
 }
 
 const selectClass =
-  'flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed';
+  'flex h-9 w-full rounded-md border border-input bg-background/72 text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed';
 
 export function DynamicDropdown({
   value,
@@ -85,7 +85,7 @@ export function DynamicDropdown({
           <input
             id={id}
             type="text"
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="e.g. gpt-4o"
@@ -137,7 +137,7 @@ export function DynamicDropdown({
           {label}
         </label>
         <div
-          className="flex items-center gap-2 p-3 rounded-md border border-accent/50 bg-accent/10 dark:bg-accent/20 text-sm text-accent-foreground"
+          className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 p-3 text-sm text-foreground"
           role="status"
         >
           <span className="shrink-0">⚠️</span>
@@ -211,7 +211,7 @@ export function DynamicDropdown({
           </select>
         ) : null}
         <div
-          className="flex items-center gap-2 p-2 rounded-md bg-accent/10 dark:bg-accent/20 text-xs text-accent-foreground"
+          className="flex items-center gap-2 rounded-md bg-primary/10 p-2 text-xs text-foreground"
           role="status"
         >
           <span>⚠️ {message || 'Rate limit reached. Using cached values.'}</span>
@@ -245,7 +245,7 @@ export function DynamicDropdown({
         </select>
       ) : (
         <div
-          className="flex items-center gap-2 p-3 rounded-md border border-border bg-muted/50 text-sm text-muted-foreground"
+          className="flex items-center gap-2 rounded-md border border-border bg-background/52 p-3 text-sm text-muted-foreground"
           role="status"
         >
           No models available for this provider
