@@ -1,5 +1,5 @@
 /**
- * Handler for the #help command.
+ * Handler for the /help command.
  */
 
 import type { CommandResult, CommandContext } from '../types';

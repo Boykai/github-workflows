@@ -87,10 +87,10 @@ export function ChatInterface({
   // works even when the parent (e.g. ChatPopup) does not pass command props.
   useEffect(() => {
     const trimmed = input.trimStart();
-    const shouldShow = trimmed.startsWith('#') && !trimmed.slice(1).includes(' ');
+    const shouldShow = trimmed.startsWith('/') && !trimmed.slice(1).includes(' ');
 
     if (shouldShow) {
-      // Extract the partial command name after '#' to filter the registry
+      // Extract the partial command name after '/' to filter the registry
       const prefix = trimmed.slice(1);
       const filtered = getFilteredCommands(prefix);
       if (filtered.length > 0) {
@@ -106,7 +106,7 @@ export function ChatInterface({
   }, [input, getFilteredCommands]);
 
   const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
-    setInput(`#${command.name} `);
+    setInput(`/${command.name} `);
     setShowAutocomplete(false);
     inputRef.current?.focus();
   }, []);
@@ -140,7 +140,7 @@ export function ChatInterface({
     const autocompleteActive =
       showAutocomplete &&
       autocompleteCommands.length > 0 &&
-      trimmed.startsWith('#') &&
+      trimmed.startsWith('/') &&
       !trimmed.slice(1).includes(' ');
 
     if (autocompleteActive) {
@@ -267,7 +267,7 @@ export function ChatInterface({
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Add a bug fix for the login page crash</li>
                 <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Set up CI/CD pipeline for the project</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Type #help to see available commands</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Type /help to see available commands</li>
               </ul>
             </div>
           </div>
@@ -353,7 +353,7 @@ export function ChatInterface({
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Describe a task or type # for commands..."
+          placeholder="Describe a task or type / for commands..."
           disabled={isSending}
           rows={2}
           className={cn(

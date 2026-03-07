@@ -65,7 +65,7 @@ export function CommandAutocomplete({
             }}
             onMouseEnter={() => onHighlightChange(index)}
           >
-            <span className="font-mono font-medium text-primary">#{cmd.name}</span>
+            <span className="font-mono font-medium text-primary">/{cmd.name}</span>
             <span className="text-muted-foreground truncate">{cmd.description}</span>
           </li>
         ))}

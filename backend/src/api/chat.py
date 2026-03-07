@@ -191,7 +191,7 @@ async def send_message(
     from src.services.database import get_db
 
     session_key = str(session.session_id)
-    is_agent_command = chat_request.content.strip().lower().startswith("#agent")
+    is_agent_command = chat_request.content.strip().lower().startswith("/agent") or chat_request.content.strip().lower().startswith("#agent")
     active_agent_session = get_active_session(session_key)
 
     if is_agent_command or active_agent_session:

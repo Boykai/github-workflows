@@ -95,6 +95,8 @@ class ChatMessageRequest(BaseModel):
     """Request to send a chat message."""
 
     content: str = Field(..., max_length=100000, description="Message content")
+    ai_enhance: bool = Field(default=True, description="When True, AI rewrites description. When False, use raw input as description.")
+    file_urls: list[str] = Field(default_factory=list, description="URLs of uploaded files to attach to issue")
 
     @field_validator("content")
     @classmethod
