@@ -23,7 +23,7 @@
 
 **Purpose**: No new project initialization is needed — this feature modifies 3 existing files and introduces no new dependencies.
 
-- [ ] T001 Verify existing source files are accessible and review current implementations: `frontend/src/types/index.ts` (RecentInteraction interface), `frontend/src/hooks/useRecentParentIssues.ts` (hook logic), `frontend/src/layout/Sidebar.tsx` (rendering), `frontend/src/components/board/colorUtils.ts` (color utilities)
+- [x] T001 Verify existing source files are accessible and review current implementations: `frontend/src/types/index.ts` (RecentInteraction interface), `frontend/src/hooks/useRecentParentIssues.ts` (hook logic), `frontend/src/layout/Sidebar.tsx` (rendering), `frontend/src/components/board/colorUtils.ts` (color utilities)
 
 ---
 
@@ -33,7 +33,7 @@
 
 **⚠️ CRITICAL**: US3 rendering and hook status-capture tasks depend on this type extension being complete.
 
-- [ ] T002 Add `status: string` and `statusColor: StatusColor` fields to the `RecentInteraction` interface in `frontend/src/types/index.ts`. The `status` field holds the project board column name (e.g., "In Progress", "Done") and `statusColor` holds the `StatusColor` enum value from `BoardStatusOption.color`. Import `StatusColor` type if not already imported in the same file.
+- [x] T002 Add `status: string` and `statusColor: StatusColor` fields to the `RecentInteraction` interface in `frontend/src/types/index.ts`. The `status` field holds the project board column name (e.g., "In Progress", "Done") and `statusColor` holds the `StatusColor` enum value from `BoardStatusOption.color`. Import `StatusColor` type if not already imported in the same file.
 
 **Checkpoint**: `RecentInteraction` type updated — hook and rendering changes can now begin.
 
@@ -47,7 +47,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Refactor `useRecentParentIssues` hook in `frontend/src/hooks/useRecentParentIssues.ts` to iterate `boardData.columns` with a nested column→items loop (instead of the current `flatMap`) so that each item retains its parent column context. Return `[]` when `boardData` is null. Only items currently present in the `BoardDataResponse` are included in the output — items deleted from the project board or GitHub are automatically excluded. Preserve existing deduplication by `item_id` via `Set<string>` and the `MAX_RECENT = 8` limit.
+- [x] T003 [US1] Refactor `useRecentParentIssues` hook in `frontend/src/hooks/useRecentParentIssues.ts` to iterate `boardData.columns` with a nested column→items loop (instead of the current `flatMap`) so that each item retains its parent column context. Return `[]` when `boardData` is null. Only items currently present in the `BoardDataResponse` are included in the output — items deleted from the project board or GitHub are automatically excluded. Preserve existing deduplication by `item_id` via `Set<string>` and the `MAX_RECENT = 8` limit.
 
 **Checkpoint**: Deleted items are automatically excluded from Recent Interactions. The panel shows only items that exist in the current board data. Verify by deleting an issue and confirming it disappears after board data refresh.
 
@@ -61,9 +61,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [US2] Add a `content_type === 'issue'` filter to the item iteration in `useRecentParentIssues` in `frontend/src/hooks/useRecentParentIssues.ts`. Skip any item where `item.content_type` is `'draft_issue'` or `'pull_request'`. This ensures only GitHub Issues (not PRs or drafts) appear in the Recent Interactions list (FR-004).
+- [x] T004 [US2] Add a `content_type === 'issue'` filter to the item iteration in `useRecentParentIssues` in `frontend/src/hooks/useRecentParentIssues.ts`. Skip any item where `item.content_type` is `'draft_issue'` or `'pull_request'`. This ensures only GitHub Issues (not PRs or drafts) appear in the Recent Interactions list (FR-004).
 
-- [ ] T005 [US2] Build a `Set<number>` of all sub-issue numbers by iterating every `BoardItem.sub_issues` array across all columns at the start of the `useMemo` computation in `frontend/src/hooks/useRecentParentIssues.ts`. During the main item iteration, skip any item whose `number` is present in this sub-issue set. This ensures only parent issues (top-level issues that are not sub-issues of another issue) are included (FR-005).
+- [x] T005 [US2] Build a `Set<number>` of all sub-issue numbers by iterating every `BoardItem.sub_issues` array across all columns at the start of the `useMemo` computation in `frontend/src/hooks/useRecentParentIssues.ts`. During the main item iteration, skip any item whose `number` is present in this sub-issue set. This ensures only parent issues (top-level issues that are not sub-issues of another issue) are included (FR-005).
 
 **Checkpoint**: Only parent issues appear in Recent Interactions. Sub-issues, PRs, and draft issues are excluded. Verify by checking that items with `content_type !== 'issue'` or items whose `number` appears in another item's `sub_issues` array do not appear in the sidebar.
 
@@ -77,11 +77,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T006 [US3] During the column→items iteration in `useRecentParentIssues` in `frontend/src/hooks/useRecentParentIssues.ts`, capture `column.status.name` as the `status` field and `column.status.color` (with fallback to `'GRAY'` via nullish coalescing `?? 'GRAY'`) as the `statusColor` field on each `RecentInteraction` object. This populates the new type fields added in T002 (FR-006, FR-007, FR-010).
+- [x] T006 [US3] During the column→items iteration in `useRecentParentIssues` in `frontend/src/hooks/useRecentParentIssues.ts`, capture `column.status.name` as the `status` field and `column.status.color` (with fallback to `'GRAY'` via nullish coalescing `?? 'GRAY'`) as the `statusColor` field on each `RecentInteraction` object. This populates the new type fields added in T002 (FR-006, FR-007, FR-010).
 
-- [ ] T007 [US3] Import `statusColorToCSS` from `@/components/board/colorUtils` in `frontend/src/layout/Sidebar.tsx`. Add a `border-l-2` class and inline `style={{ borderLeftColor: statusColorToCSS(item.statusColor) }}` to each recent interaction `<button>` element, rendering a colored left-border accent that reflects the item's project board status (FR-007, FR-008). Research decision R4 specifies left border accent as the rendering strategy.
+- [x] T007 [US3] Import `statusColorToCSS` from `@/components/board/colorUtils` in `frontend/src/layout/Sidebar.tsx`. Add a `border-l-2` class and inline `style={{ borderLeftColor: statusColorToCSS(item.statusColor) }}` to each recent interaction `<button>` element, rendering a colored left-border accent that reflects the item's project board status (FR-007, FR-008). Research decision R4 specifies left border accent as the rendering strategy.
 
-- [ ] T008 [US3] Update the `title` attribute on each recent interaction button in `frontend/src/layout/Sidebar.tsx` to include the status name, formatted as `"{item.title} — {item.status}"` (e.g., "Fix login bug — In Progress"). This provides additional context on hover (contracts/components.md rendering contract item 4).
+- [x] T008 [US3] Update the `title` attribute on each recent interaction button in `frontend/src/layout/Sidebar.tsx` to include the status name, formatted as `"{item.title} — {item.status}"` (e.g., "Fix login bug — In Progress"). This provides additional context on hover (contracts/components.md rendering contract item 4).
 
 **Checkpoint**: Each recent interaction entry displays a colored left border matching its board column status. Hovering shows the status name in the tooltip. Colors update automatically when board data refreshes. Items with no status show a neutral gray border.
 
@@ -95,7 +95,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [US4] Update the empty state text in the Recent Interactions section of `frontend/src/layout/Sidebar.tsx` from `"No recent activity"` to `"No recent parent issues"` to accurately reflect the filtered behavior (FR-009, research decision R5).
+- [x] T009 [US4] Update the empty state text in the Recent Interactions section of `frontend/src/layout/Sidebar.tsx` from `"No recent activity"` to `"No recent parent issues"` to accurately reflect the filtered behavior (FR-009, research decision R5).
 
 **Checkpoint**: When `recentInteractions.length === 0`, the sidebar displays "No recent parent issues" instead of "No recent activity". Verify by selecting a project with no parent issues in the board data.
 
@@ -105,9 +105,9 @@
 
 **Purpose**: Validate that all changes compile, pass linting, and pass existing tests. Run quickstart.md verification steps.
 
-- [ ] T010 [P] Verify TypeScript compilation passes with `npx tsc --noEmit` in `frontend/`
-- [ ] T011 [P] Verify existing linting passes with `npm run lint` in `frontend/`
-- [ ] T012 [P] Verify existing unit tests pass with `npm run test` in `frontend/`
+- [x] T010 [P] Verify TypeScript compilation passes with `npx tsc --noEmit` in `frontend/`
+- [x] T011 [P] Verify existing linting passes with `npm run lint` in `frontend/`
+- [x] T012 [P] Verify existing unit tests pass with `npm run test` in `frontend/`
 - [ ] T013 Run quickstart.md verification steps to validate all acceptance scenarios end-to-end
 
 ---
