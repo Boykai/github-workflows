@@ -1,6 +1,6 @@
 /**
  * useRecentParentIssues — derives recent parent issues from board data.
- * Returns up to 8 recent parent issues with project board status colors.
+ * Returns up to MAX_RECENT recent parent issues with project board status colors.
  *
  * Filters: content_type === 'issue' only, excludes sub-issues,
  * captures status color from the parent column context.
