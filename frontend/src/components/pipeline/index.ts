@@ -10,3 +10,6 @@ export { AgentNode } from './AgentNode';
 export { ModelSelector } from './ModelSelector';
 export { SavedWorkflowsList } from './SavedWorkflowsList';
 export { UnsavedChangesDialog } from './UnsavedChangesDialog';
+export { PipelineFlowGraph } from './PipelineFlowGraph';
+export { PipelineModelDropdown } from './PipelineModelDropdown';
+export { PresetBadge } from './PresetBadge';
