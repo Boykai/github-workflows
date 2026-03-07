@@ -177,6 +177,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   agent={agent}
                   projectId={projectId}
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
+                  onEdit={(currentAgent) => setEditAgent(currentAgent)}
                   variant="default"
                 />
               ))}
