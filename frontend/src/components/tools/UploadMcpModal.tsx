@@ -125,7 +125,10 @@ export function UploadMcpModal({
   // Auto-populate name from mcpServers key when name is empty
   useEffect(() => {
     if (name.trim()) return; // Don't overwrite user-entered names
-    if (!configContent.trim()) { setMultiServerWarning(null); return; }
+    if (!configContent.trim()) {
+      setMultiServerWarning(null);
+      return;
+    }
 
     try {
       const parsed = JSON.parse(configContent);
