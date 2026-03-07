@@ -2,7 +2,7 @@
 
 **Feature Branch**: `027-doc-sweep`  
 **Created**: 2026-03-07  
-**Status**: Draft  
+**Status**: Implemented  
 **Input**: User description: "Documentation Sweep — A structured cadence for keeping all project documentation accurate, complete, and helpful across the full stack. Includes PR-level checks, weekly staleness sweeps, monthly full reviews, quarterly architecture audits, and standards/tooling enforcement."
 
 ## User Scenarios & Testing *(mandatory)*

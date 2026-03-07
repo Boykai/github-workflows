@@ -55,7 +55,7 @@ The `docs/checklists/` subdirectory keeps process documentation separate from pr
 
 **Task**: Evaluate whether the existing `docs/OWNERS.md` meets FR-013 requirements or needs modifications.
 
-**Decision**: The existing `docs/OWNERS.md` fully satisfies FR-013. No modifications needed.
+**Decision**: The existing `docs/OWNERS.md` structure satisfies FR-013, but it must be updated to include entries for any new documentation files introduced by this feature (such as `docs/checklists/*.md`).
 
 **Rationale**: The current `docs/OWNERS.md` maps each documentation file to a responsible role (Backend lead, Tech lead, QA/full-stack lead, Infra/DX lead, rotating owner). It also documents the review cadence (PR-level, weekly, monthly, quarterly). This directly fulfills FR-013 ("A documentation ownership file MUST exist that maps each documentation file to a responsible role"). The file uses role-based ownership (not individual names), which is more resilient to team changes — matching the edge case in the spec about ownership during team restructures.
 

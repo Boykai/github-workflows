@@ -8,9 +8,7 @@
 - Node.js 20+ (for running markdown linting locally)
 - Familiarity with the project's `docs/` directory structure
 
-```bash
-git checkout 027-doc-sweep
-```
+After this feature is merged, all deliverables below are available on the `main` branch.
 
 ## What This Feature Delivers
 
@@ -37,11 +35,15 @@ npm install -g markdownlint-cli@0.48.0 markdown-link-check@3.14.2
 # Lint docs and root-level markdown files
 markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json
 
-# Check links in documentation
+# Check links in documentation and README (matches CI)
 find docs -name "*.md" -print0 | xargs -0 -I {} \
   markdown-link-check {} \
     --config .markdown-link-check.json \
     --quiet
+
+markdown-link-check README.md \
+  --config .markdown-link-check.json \
+  --quiet
 ```
 
 ### 3. Verify Checklists

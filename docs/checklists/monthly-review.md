@@ -21,6 +21,7 @@ Walk every file in `docs/` and verify it is accurate, complete, and consistent.
 | `docs/troubleshooting.md` | Rotating | Common errors and resolutions — remove fixed issues, add new ones |
 | `docs/project-structure.md` | Full-stack lead | Directory layout — update after any structural refactor |
 | `frontend/docs/` | Frontend lead | Component patterns, findings log, any frontend-specific guides |
+| `docs/checklists/` | Rotating dev / Tech lead | Checklist item accuracy — update if codebase paths change |
 
 For each file, verify:
 
