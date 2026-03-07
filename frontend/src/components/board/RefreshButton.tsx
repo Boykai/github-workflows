@@ -4,6 +4,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface RefreshButtonProps {
   /** Callback to trigger manual refresh */
@@ -25,7 +26,7 @@ export function RefreshButton({ onRefresh, isRefreshing, disabled }: RefreshButt
       aria-label="Refresh board data"
       className="h-8 w-8"
     >
-      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+      <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
     </Button>
   );
 }

@@ -6,6 +6,7 @@
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
+import { cn } from '@/lib/utils';
 
 interface IssueCardProps {
   item: BoardItem;
@@ -72,7 +73,7 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
 
   return (
     <div
-      className="flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/88 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className="flex cursor-pointer flex-col gap-2 rounded-[1.25rem] border border-border/80 bg-card/85 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -127,7 +128,11 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       <div className="mt-1 flex flex-wrap gap-1.5">
         {item.priority && (
           <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${priorityConfig.bg} ${priorityConfig.text}`}
+            className={cn(
+              'rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]',
+              priorityConfig.bg,
+              priorityConfig.text
+            )}
           >
             {item.priority.name}
           </span>

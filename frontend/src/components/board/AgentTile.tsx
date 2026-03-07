@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { User } from 'lucide-react';
 import type { AgentAssignment, AvailableAgent } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface AgentTileProps {
   agent: AgentAssignment;
@@ -52,7 +53,11 @@ export function AgentTile({
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-accent/50 bg-accent/5' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
+      className={cn(
+        'flex flex-col bg-card border rounded-md shadow-sm transition-all',
+        isWarning ? 'border-accent/50 bg-accent/5' : 'border-border',
+        sortableProps?.isDragging && 'border-dashed opacity-30 shadow-none'
+      )}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
       aria-roledescription="sortable agent"
@@ -70,7 +75,10 @@ export function AgentTile({
 
         {/* Avatar */}
         <span
-          className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden ${isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'}`}
+          className={cn(
+            'flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden',
+            isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'
+          )}
           title={agent.slug}
         >
           {isHuman ? (

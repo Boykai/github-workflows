@@ -97,3 +97,57 @@ export const PRIORITY_COLORS: Record<string, { bg: string; text: string; label: 
     label: 'Low',
   },
 };
+
+// ============ Status Colors ============
+
+/** Centralized color classes for operational states used across multiple components. */
+export const STATUS_COLORS = {
+  success: {
+    bg: 'bg-green-500/10 dark:bg-green-500/15',
+    text: 'text-green-600 dark:text-green-400',
+    border: 'border-green-500/30 dark:border-green-500/20',
+    dot: 'bg-green-500',
+  },
+  warning: {
+    bg: 'bg-yellow-500/10 dark:bg-yellow-500/15',
+    text: 'text-yellow-600 dark:text-yellow-400',
+    border: 'border-yellow-500/30 dark:border-yellow-500/20',
+    dot: 'bg-yellow-500',
+  },
+  error: {
+    bg: 'bg-red-500/10 dark:bg-red-500/15',
+    text: 'text-red-600 dark:text-red-400',
+    border: 'border-red-500/30 dark:border-red-500/20',
+    dot: 'bg-red-500',
+  },
+  info: {
+    bg: 'bg-blue-500/10 dark:bg-blue-500/15',
+    text: 'text-blue-600 dark:text-blue-400',
+    border: 'border-blue-500/30 dark:border-blue-500/20',
+    dot: 'bg-blue-500',
+  },
+  neutral: {
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    border: 'border-border',
+    dot: 'bg-muted-foreground',
+  },
+} as const;
+
+// ============ Agent Source Colors ============
+
+/** Color mappings for agent source types. */
+export const AGENT_SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
+  builtin: {
+    bg: 'bg-blue-500/10 dark:bg-blue-500/15',
+    text: 'text-blue-600 dark:text-blue-400',
+  },
+  custom: {
+    bg: 'bg-purple-500/10 dark:bg-purple-500/15',
+    text: 'text-purple-600 dark:text-purple-400',
+  },
+  community: {
+    bg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+    text: 'text-emerald-600 dark:text-emerald-400',
+  },
+};

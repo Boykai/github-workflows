@@ -11,6 +11,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { AgentTile } from './AgentTile';
+import { cn } from '@/lib/utils';
 
 interface AgentColumnCellProps {
   status: string;
@@ -92,7 +93,11 @@ export function AgentColumnCell({
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
+      className={cn(
+        'flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors',
+        isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50',
+        dropHighlight
+      )}
     >
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 min-h-[2px]">

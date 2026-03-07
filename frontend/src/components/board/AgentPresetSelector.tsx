@@ -7,6 +7,7 @@
 import { useState, useCallback } from 'react';
 import type { AgentAssignment, AgentPreset } from '@/types';
 import { generateId } from '@/utils/generateId';
+import { cn } from '@/lib/utils';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
   return { id: generateId(), slug, display_name: displayName };
@@ -140,7 +141,12 @@ export function AgentPresetSelector({
           return (
             <button
               key={preset.id}
-              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${isActive ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              className={cn(
+                'px-3 py-1 text-xs font-medium rounded-sm transition-colors',
+                isActive
+                  ? 'bg-background text-foreground shadow-sm border border-border/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
               onClick={() => handleClick(preset)}
               title={preset.description}
               type="button"

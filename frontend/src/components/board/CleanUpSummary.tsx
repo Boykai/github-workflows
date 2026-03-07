@@ -7,6 +7,8 @@
 
 import { useEffect, useCallback } from 'react';
 import type { CleanupExecuteResponse } from '@/types';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS } from '@/constants';
 
 interface CleanUpSummaryProps {
   result: CleanupExecuteResponse | null;
@@ -94,20 +96,20 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
 
         {/* Summary counts */}
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
-            <div className="text-2xl font-bold text-green-800 dark:text-green-400">
+          <div className={cn('p-3 rounded text-center', STATUS_COLORS.success.bg)}>
+            <div className={cn('text-2xl font-bold', STATUS_COLORS.success.text)}>
               {result.branches_deleted}
             </div>
             <div className="text-xs text-muted-foreground">Branches Deleted</div>
           </div>
-          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
-            <div className="text-2xl font-bold text-green-800 dark:text-green-400">
+          <div className={cn('p-3 rounded text-center', STATUS_COLORS.success.bg)}>
+            <div className={cn('text-2xl font-bold', STATUS_COLORS.success.text)}>
               {result.prs_closed}
             </div>
             <div className="text-xs text-muted-foreground">PRs Closed</div>
           </div>
-          <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
-            <div className="text-2xl font-bold text-green-800 dark:text-green-400">
+          <div className={cn('p-3 rounded text-center', STATUS_COLORS.success.bg)}>
+            <div className={cn('text-2xl font-bold', STATUS_COLORS.success.text)}>
               {result.issues_closed ?? 0}
             </div>
             <div className="text-xs text-muted-foreground">Issues Closed</div>
@@ -122,9 +124,9 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
               {successfulBranches.map((item) => (
                 <li
                   key={item.identifier}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                  className={cn('flex items-center gap-2 px-2 py-1 rounded', STATUS_COLORS.success.bg)}
                 >
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <span className={STATUS_COLORS.success.text}>✓</span>
                   <span className="font-mono text-xs">{item.identifier}</span>
                 </li>
               ))}
@@ -139,9 +141,9 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
               {successfulPRs.map((item) => (
                 <li
                   key={item.identifier}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                  className={cn('flex items-center gap-2 px-2 py-1 rounded', STATUS_COLORS.success.bg)}
                 >
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <span className={STATUS_COLORS.success.text}>✓</span>
                   <span>#{item.identifier}</span>
                 </li>
               ))}
@@ -156,9 +158,9 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
               {successfulIssues.map((item) => (
                 <li
                   key={item.identifier}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                  className={cn('flex items-center gap-2 px-2 py-1 rounded', STATUS_COLORS.success.bg)}
                 >
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <span className={STATUS_COLORS.success.text}>✓</span>
                   <span>#{item.identifier}</span>
                 </li>
               ))}

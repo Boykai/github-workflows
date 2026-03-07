@@ -15,7 +15,7 @@ export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
 
   return (
-    <div className="celestial-panel flex w-[320px] shrink-0 flex-col overflow-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
+    <div className="celestial-panel flex w-[320px] shrink-0 flex-col overflow-hidden rounded-[1.25rem] border border-border/80 shadow-sm">
       {/* Column Header */}
       <div className="flex items-center justify-between border-b border-border/70 bg-background/50 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">

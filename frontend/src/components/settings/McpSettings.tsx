@@ -12,6 +12,7 @@ import { useMcpSettings } from '@/hooks/useMcpSettings';
 import { authApi, ApiError } from '@/services/api';
 import { TOAST_SUCCESS_MS } from '@/constants';
 import type { McpConfiguration } from '@/types';
+import { cn } from '@/lib/utils';
 
 // ── Validation Helpers ──
 
@@ -208,10 +209,10 @@ function AddMcpForm({
           }}
           placeholder="My MCP Server"
           maxLength={100}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
-            placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
-            ${nameError ? 'border-destructive' : 'border-border'}`}
+          className={cn(
+            'px-3 py-2 text-sm rounded-md border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary',
+            nameError ? 'border-destructive' : 'border-border'
+          )}
           disabled={isCreating}
         />
         {nameError && <p className="text-xs text-destructive">{nameError}</p>}
@@ -231,10 +232,10 @@ function AddMcpForm({
           }}
           placeholder="https://example.com/mcp"
           maxLength={2048}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
-            placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
-            ${urlError ? 'border-destructive' : 'border-border'}`}
+          className={cn(
+            'px-3 py-2 text-sm rounded-md border bg-background text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary',
+            urlError ? 'border-destructive' : 'border-border'
+          )}
           disabled={isCreating}
         />
         {urlError && <p className="text-xs text-destructive">{urlError}</p>}

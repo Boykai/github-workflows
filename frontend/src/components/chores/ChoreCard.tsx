@@ -9,6 +9,8 @@ import { useState } from 'react';
 import type { Chore } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS } from '@/constants';
 
 interface ChoreCardProps {
   chore: Chore;
@@ -82,11 +84,12 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
           type="button"
           onClick={handleToggleStatus}
           disabled={updateMutation.isPending}
-          className={`shrink-0 px-1.5 py-0.5 text-xs font-medium rounded-full cursor-pointer transition-colors ${
+          className={cn(
+            'shrink-0 px-1.5 py-0.5 text-xs font-medium rounded-full cursor-pointer transition-colors disabled:opacity-50',
             chore.status === 'active'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+              ? cn(STATUS_COLORS.success.bg, STATUS_COLORS.success.text, 'hover:bg-green-200 dark:hover:bg-green-900/50')
               : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 hover:bg-accent/20 dark:hover:bg-accent/30'
-          } disabled:opacity-50`}
+          )}
           title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
         >
           {chore.status === 'active' ? 'Active' : 'Paused'}

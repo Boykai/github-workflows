@@ -3,6 +3,7 @@
  */
 
 import type { ChatMessage } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -14,7 +15,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
   return (
     <div
-      className={`flex gap-3 max-w-[80%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}
+      className={cn('flex gap-3 max-w-[80%]', isUser ? 'self-end flex-row-reverse' : 'self-start')}
     >
       {!isUser && !isSystem && (
         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground shrink-0">
@@ -28,12 +29,15 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           <div className="text-sm text-muted-foreground py-2">{message.content}</div>
         ) : (
           <div
-            className={`px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}
+            className={cn(
+              'px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
+              isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+            )}
           >
             {message.content}
           </div>
         )}
-        <time className={`text-[11px] text-muted-foreground px-1 ${isUser ? 'text-right' : ''}`}>
+        <time className={cn('text-[11px] text-muted-foreground px-1', isUser && 'text-right')}>
           {new Date(message.timestamp).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',

@@ -10,6 +10,8 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { AvailableAgent, AgentAssignment } from '@/types';
+import { cn } from '@/lib/utils';
+import { AGENT_SOURCE_COLORS, STATUS_COLORS } from '@/constants';
 
 interface AddAgentPopoverProps {
   /** Status column name */
@@ -192,7 +194,10 @@ export function AddAgentPopover({
                     return (
                       <button
                         key={agent.slug}
-                        className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
+                        className={cn(
+                          'w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative',
+                          isDuplicate && 'opacity-70'
+                        )}
                         onClick={() => handleSelect(agent)}
                         type="button"
                         title={
@@ -206,7 +211,11 @@ export function AddAgentPopover({
                             {agent.display_name}
                           </span>
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}
+                            className={cn(
+                              'text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0',
+                              AGENT_SOURCE_COLORS[agent.source]?.bg ?? STATUS_COLORS.neutral.bg,
+                              AGENT_SOURCE_COLORS[agent.source]?.text ?? STATUS_COLORS.neutral.text
+                            )}
                           >
                             {agent.source}
                           </span>
