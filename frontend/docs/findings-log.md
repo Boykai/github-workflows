@@ -41,11 +41,13 @@
 ### Bundle Analysis
 
 **Build Output** (production):
+
 - `dist/assets/index-*.js`: 370KB (110KB gzipped)
 - `dist/assets/index-*.css`: 34KB (6.8KB gzipped)
 - `dist/index.html`: 0.71KB
 
 **Assessment**: Bundle size is within acceptable range for a React + TanStack Query + dnd-kit app. The single JS chunk includes all application code. Future optimization opportunities:
+
 - Route-level code splitting with `React.lazy()` for Settings and Board pages
 - Dynamic import for heavy components (IssueRecommendationPreview, ChatInterface)
 - Tree-shaking audit for Lucide React icons (verify only used icons are bundled)

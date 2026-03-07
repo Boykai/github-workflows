@@ -10,7 +10,8 @@ assignees: ''
 
 Perform a balanced first pass focused on measurable, low-risk performance gains across backend and frontend. Start by capturing baselines and instrumentation, then fix the highest-value issues already surfaced by the codebase: backend GitHub API churn around board refreshes and polling, and frontend board responsiveness issues caused by broad query invalidation, full-list rerenders, and hot event listeners. Defer broader architectural refactors like virtualization and large service decomposition unless the first pass fails to meet targets.
 
-**Steps**
+### Steps
+
 1. Phase 1 — Baseline and guardrails. Capture current backend and frontend performance baselines before changing behavior. Measure idle API activity for an open board, board endpoint request cost, WebSocket/polling refresh behavior, and frontend render hot spots. Reuse existing tests around cache, polling, WebSocket fallback, and board refresh to define a before/after checklist. This phase blocks all optimization work because the success criteria and regression guardrails depend on it.
 2. Phase 1 — Confirm current backend state against Spec 022. Verify whether WebSocket change detection, board cache TTL alignment, and sub-issue cache invalidation are fully implemented or only partially landed. The current board endpoint already appears to set a 300-second TTL and clears sub-issue cache on manual refresh, so the remaining work should target any still-missing pieces rather than redoing completed items. This step can run in parallel with frontend baseline inspection once the measurement checklist is defined.
 3. Phase 2 — Backend API consumption fixes. Prioritize the highest-value remaining server-side issues: WebSocket subscription refresh logic in the projects API, sub-issue caching behavior for board data, and any remaining unnecessary GitHub calls in polling or repository resolution. Explicitly validate that idle board viewing no longer emits repeated refreshes when data is unchanged, that warm sub-issue caches materially reduce board refresh call count, and that fallback polling does not trigger expensive board refreshes unintentionally. This depends on Phase 1 baselines.
@@ -19,7 +20,8 @@ Perform a balanced first pass focused on measurable, low-risk performance gains 
 6. Phase 3 — Verification and regression coverage. Extend or adjust unit/integration coverage around backend cache behavior, WebSocket change detection, fallback polling, and frontend board refresh logic. Validate with backend tests, frontend tests, and at least one manual network/profile pass to confirm the target improvements are real rather than inferred. This depends on Phases 2 and 3.
 7. Phase 4 — Optional second-wave work. If the first pass still leaves material UI lag on large boards or excessive backend complexity, prepare a follow-on plan for structural changes: board virtualization, deeper service decomposition around GitHub project fetching/polling, bounded cache policies, and stronger instrumentation around request budgets and render timings. This phase is explicitly out of scope for the first implementation unless measurements prove it is necessary.
 
-**Relevant files**
+### Relevant files
+
 - `/root/repos/github-projects-chat/github-workflows/specs/022-api-rate-limit-protection/spec.md` — primary acceptance criteria for idle-rate-limit reduction, sub-issue caching, refresh behavior, and cache TTL alignment.
 - `/root/repos/github-projects-chat/github-workflows/backend/src/api/projects.py` — projects tasks endpoints and WebSocket subscription flow; likely location for change-detection verification and refresh semantics.
 - `/root/repos/github-projects-chat/github-workflows/backend/src/api/board.py` — board-data cache behavior, manual refresh semantics, and sub-issue cache invalidation path.
@@ -42,21 +44,24 @@ Perform a balanced first pass focused on measurable, low-risk performance gains 
 - `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useRealTimeSync.test.tsx` — refresh invalidation and WebSocket fallback coverage to extend.
 - `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useBoardRefresh.test.tsx` — refresh timer and deduplication behavior to reuse.
 
-**Verification**
+### Verification
+
 1. Backend baseline: measure idle API activity for an open board over a fixed interval and compare against Spec 022 targets; confirm no repeated unchanged refreshes are sent.
 2. Backend automated checks: run Ruff, Pyright, and the targeted pytest files covering cache, board, projects/WebSocket, and polling behavior.
 3. Frontend baseline: profile board load and interaction on a representative project size, inspect network activity for WebSocket, fallback polling, and board query invalidation, and identify repeated rerender sources.
 4. Frontend automated checks: run ESLint, type-checking, Vitest coverage for real-time sync and board refresh hooks, and a build check.
 5. Manual end-to-end check: verify that WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh still bypasses caches when intended, and board interactions remain responsive.
 
-**Decisions**
+### Decisions
+
 - Selected approach: balanced pass across backend and frontend rather than a single-area optimization.
 - Recommended implementation scope for the first pass: low-risk optimizations first, even though the user left the aggressiveness undecided.
 - Included scope: measurement, idle API reduction, refresh-path cleanup, low-risk render optimization, and regression coverage.
 - Excluded from the first pass unless metrics justify it: board virtualization, major service decomposition, dependency changes, and larger architectural rewrites.
 - Baseline measurement is mandatory before code changes so the improvements can be proven and not just assumed.
 
-**Further Considerations**
+### Further Considerations
+
 1. If large boards still feel slow after the low-risk frontend fixes, the next recommended option is virtualization rather than additional scattered memoization.
 2. If backend API churn remains high after Spec 022-aligned fixes, the next recommended option is deeper consolidation in the GitHub projects service and polling pipeline rather than more cache-layer patching.
 3. If repeated performance work is expected in this repo, add lightweight instrumentation or logging around board refresh cost, sub-issue cache hit rate, and refresh-source attribution so regressions are visible earlier.
