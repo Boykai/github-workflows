@@ -104,7 +104,7 @@ function ConflictBanners() {
           <span className="text-base leading-none mt-0.5">⚠️</span>
           <span className={cn('flex-1 text-sm', STATUS_COLORS.warning.text)}>{banner.message}</span>
           <button
-            className="shrink-0 text-xs font-medium text-yellow-700 dark:text-yellow-300 underline underline-offset-2 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors disabled:opacity-50"
+            className={cn('shrink-0 text-xs font-medium underline underline-offset-2 transition-colors disabled:opacity-50', STATUS_COLORS.warning.text, 'hover:text-yellow-900 dark:hover:text-yellow-100')}
             onClick={() => dismissBanner(banner.id)}
             disabled={isPending}
             type="button"
