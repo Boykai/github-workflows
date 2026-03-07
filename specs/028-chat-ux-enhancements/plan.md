@@ -5,18 +5,18 @@
 
 ## Summary
 
-Enhance the app chat interface with four capabilities: (1) an "AI Enhance" toggle that lets users choose between AI-rewritten or verbatim issue descriptions while always generating metadata, (2) Markdown-safe input parsing that restricts command detection to explicit `/`-prefixed tokens, (3) file upload with preview chips and GitHub Issue attachment via the REST API, and (4) voice-to-text input using the Web Speech API with graceful fallback. The frontend extends `ChatInterface.tsx` with a new `ChatToolbar` component housing the toggle, file upload button, and microphone button, following the existing `AddAgentPopover` styling pattern. The backend adds a `/api/v1/chat/upload` endpoint for file handling and modifies the chat message processing pipeline to conditionally skip AI description rewriting based on the `ai_enhance` flag. Command parsing in `lib/commands/registry.ts` is updated to only match `/`-prefixed commands, resolving Markdown conflicts.
+Enhance the app chat interface with four capabilities: (1) an "AI Enhance" toggle that lets users choose between AI-rewritten or verbatim issue descriptions while always generating metadata, (2) Markdown-safe input parsing that restricts command detection to explicit `/`-prefixed tokens, (3) file upload with preview chips and temporary attachment URLs embedded in the GitHub Issue body, and (4) voice-to-text input using the Web Speech API with graceful fallback. The frontend extends `ChatInterface.tsx` with a new `ChatToolbar` component housing the toggle, file upload button, and microphone button, following the existing `AddAgentPopover` styling pattern. The backend adds `/api/v1/chat/upload` and `/api/v1/chat/uploads/{filename}` endpoints for file handling and modifies the chat message processing pipeline to conditionally skip AI description rewriting based on the `ai_enhance` flag. Command parsing in `lib/commands/registry.ts` is updated to only match `/`-prefixed commands, resolving Markdown conflicts.
 
 ## Technical Context
 
-**Language/Version**: TypeScript ~5.9 (frontend), Python 3.13 (backend)
+**Language/Version**: TypeScript ~5.9 (frontend), Python >=3.12 (backend, with 3.13-targeted tooling)
 **Primary Dependencies**: React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12, python-multipart 0.0.22 (backend)
 **Storage**: SQLite with WAL mode (aiosqlite) — existing `chat_messages`, `chat_proposals`, `chat_recommendations` tables; localStorage for toggle preference persistence
 **Testing**: Vitest 4 + Testing Library (frontend), pytest + pytest-asyncio (backend)
 **Target Platform**: Desktop browsers (Chrome, Firefox, Safari, Edge); Linux server (Docker)
 **Project Type**: Web application (frontend/ + backend/)
 **Performance Goals**: Toggle interaction < 100ms; file upload preview < 500ms; voice transcription latency < 2s; chat submission unchanged
-**Constraints**: Max 10 MB per file (GitHub API limit); Web Speech API browser-dependent; no new UI library additions
+**Constraints**: Max 10 MB per file; Web Speech API browser-dependent; no new UI library additions
 **Scale/Scope**: ~5 new/modified frontend components, ~2 new hooks, 1 new backend endpoint, modifications to chat API and AI agent pipeline
 
 ## Constitution Check
@@ -106,4 +106,4 @@ frontend/
 | `/`-prefix for commands (replacing `#`) | Resolves Markdown conflict by using the universally recognized slash-command pattern; eliminates false-positive command detection for all Markdown characters | Keeping `#` but requiring no space after hash (rejected: fragile heuristic, `#heading` looks like `#command`) |
 | localStorage for toggle persistence | Simplest persistence mechanism; no backend storage needed; survives browser refresh within same origin | Session storage (rejected: lost on tab close), backend user preference (rejected: over-engineered for single boolean, YAGNI) |
 | Web Speech API (no third-party STT) | Zero dependency, works natively in Chrome/Edge/Safari; no API key management; meets P3 priority level | Whisper API (rejected: adds backend dependency, API cost, latency; can be added later as enhancement) |
-| File URL embedding in issue body | GitHub Issues API doesn't support direct file attachments programmatically; uploading to GitHub via the user-content CDN and embedding URLs is the standard pattern | Direct attachment via API (rejected: not supported by GitHub REST API for issues) |
+| File URL embedding in issue body | GitHub Issues API doesn't support direct file attachments programmatically; temporary app-hosted URLs are the smallest implementation that still lets the issue body reference uploaded files | Direct attachment via API (rejected: not supported by GitHub REST API for issues) |

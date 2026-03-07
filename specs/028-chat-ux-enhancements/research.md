@@ -8,7 +8,7 @@
 
 **Decision**: Switch the command prefix from `#` to `/` (slash). Update `parseCommand()` in `lib/commands/registry.ts` to only match tokens starting with `/` at the beginning of the message. Update `CommandAutocomplete` trigger condition in `ChatInterface.tsx` to match on `/` instead of `#`.
 
-**Rationale**: The current parser in `registry.ts` (line 63) checks `if (!trimmed.startsWith('#'))` which blocks all Markdown headers (`# Heading`, `## Subheading`) and triggers false-positive command detection for any `#`-prefixed input. The `/` (slash) prefix is the de facto standard for chat commands across Slack, Discord, GitHub, and virtually all chat interfaces. It has zero collision with Markdown syntax since `/` is not a Markdown formatting character. The change is minimal — two pattern matches in `registry.ts` and one trigger condition in `ChatInterface.tsx`. The autocomplete in `CommandAutocomplete.tsx` already renders command names without the prefix character, so it adapts automatically.
+**Rationale**: The current parser in `registry.ts` (line 63) checks `if (!trimmed.startsWith('#'))` which blocks all Markdown headers (`# Heading`, `## Subheading`) and triggers false-positive command detection for any `#`-prefixed input. The `/` (slash) prefix is the de facto standard for chat commands across Slack, Discord, GitHub, and virtually all chat interfaces. It has zero collision with Markdown syntax since `/` is not a Markdown formatting character. The change is minimal — two pattern matches in `registry.ts` and one trigger condition in `ChatInterface.tsx`. `CommandAutocomplete.tsx` renders `/{cmd.name}`, so the UI already matches the slash-command convention once the trigger logic switches.
 
 **Alternatives Considered**:
 - **Keep `#` but require no space after hash**: Rejected — too fragile; `#heading` (no space) is valid Markdown and would still conflict. Users habitually write `#tag` for labels.
@@ -47,24 +47,20 @@
 
 ---
 
-## R4: File Upload Strategy via GitHub API
+## R4: Temporary File Upload Strategy
 
 **Task**: Determine how to attach files to GitHub Issues from the chat, given GitHub REST API constraints.
 
 **Decision**: Implement a two-step upload flow:
 1. **Frontend**: User selects files → client-side validation (type, size ≤ 10 MB) → display preview chips → on submission, upload files to backend endpoint `POST /api/v1/chat/upload` as multipart/form-data.
-2. **Backend**: Receive files → for images, create a GitHub Gist with the image encoded as a base64 data URI or upload via the GitHub repository contents API to a designated `uploads/` branch, returning a raw GitHub URL. For non-image files (PDFs, text, CSV, etc.), create a GitHub Gist containing the file content (text files) or a Gist with a download link comment (binary files). Return the accessible URL → embed URLs as Markdown links/images in the issue body.
+2. **Backend**: Receive files → store them in a temporary server-side upload directory using a sanitized filename → return an application URL under `GET /api/v1/chat/uploads/{filename}` → embed those URLs as Markdown links/images in the issue body.
 
-The concrete upload mechanism is:
-- **Image files** (png, jpg, gif, webp, svg): Upload to the repository via the GitHub Contents API (`PUT /repos/{owner}/{repo}/contents/uploads/{filename}`) on a dedicated `uploads` branch, then use the raw URL (`https://raw.githubusercontent.com/...`) embedded as `![filename](url)` in the issue body.
-- **Document files** (pdf, txt, md, csv, json, yaml, zip): Create a GitHub Gist via `POST /gists` containing the file content, then embed the Gist URL as `[filename](gist_url)` in the issue body.
-
-**Rationale**: GitHub's Issues REST API does not support direct programmatic file attachment (the web UI uses an undocumented upload endpoint). The repository contents API and Gist API are both well-documented, stable, and available with the existing GitHub token. Using the repository contents API for images keeps assets co-located with the project and produces predictable raw URLs. Using Gists for documents provides a clean, shareable link for each file. The backend handles all GitHub API interactions, abstracting the upload mechanism from the frontend. Client-side validation prevents unnecessary network requests for invalid files.
+**Rationale**: GitHub's Issues REST API does not support direct programmatic file attachment (the web UI uses an undocumented upload endpoint). Temporary server-backed storage is the smallest implementation that supports previews and attachment URLs without introducing external infrastructure or repository writes. The backend keeps control of validation and filename sanitization, while the frontend stays limited to selection, preview, and upload orchestration.
 
 **Alternatives Considered**:
 - **Direct frontend upload to GitHub**: Rejected — requires exposing GitHub tokens to the frontend; CORS restrictions; the backend already manages GitHub authentication.
-- **Store files in local SQLite as BLOBs**: Rejected — files need to be accessible via GitHub Issue URLs, not local storage.
-- **Third-party file hosting (S3, Cloudflare R2)**: Rejected — adds external dependency, costs, and configuration; GitHub-native hosting is sufficient and free.
+- **Store files in local SQLite as BLOBs**: Rejected — the current feature only needs temporary attachment URLs, not durable database storage.
+- **Third-party file hosting (S3, Cloudflare R2)**: Rejected — adds external dependency, costs, and configuration for an MVP workflow.
 
 ---
 

@@ -18,12 +18,12 @@ POST /api/v1/chat/messages
 
 **Description**: Send a user chat message for processing. Modified to include AI Enhance flag and file attachment URLs.
 
-**Request Body** (updated fields in **bold**):
+**Request Body**:
 ```json
 {
   "message": "## Feature Request\n\nI want to add dark mode support with...",
-  "**ai_enhance**": true,
-  "**file_urls**": [
+  "ai_enhance": true,
+  "file_urls": [
     "https://user-images.githubusercontent.com/12345/abc123.png",
     "https://gist.githubusercontent.com/user/def456/raw/document.pdf"
   ]
@@ -64,7 +64,7 @@ POST /api/v1/chat/messages
 POST /api/v1/chat/upload
 ```
 
-**Description**: Upload a file for attachment to a future GitHub Issue. Returns a publicly accessible URL. Files are uploaded to GitHub's user-content CDN (for images) or as Gist attachments (for documents).
+**Description**: Upload a file for attachment to a future GitHub Issue. Returns an application-served URL under `/api/v1/chat/uploads/{filename}` backed by temporary server storage.
 
 **Request**: `multipart/form-data`
 
@@ -81,7 +81,7 @@ POST /api/v1/chat/upload
 ```json
 {
   "filename": "screenshot.png",
-  "file_url": "https://user-images.githubusercontent.com/12345/abc123-screenshot.png",
+  "file_url": "/api/v1/chat/uploads/a1b2c3d4-screenshot.png",
   "file_size": 245760,
   "content_type": "image/png"
 }
@@ -106,14 +106,19 @@ POST /api/v1/chat/upload
     "error_code": "unsupported_type"
   }
   ```
-- `502 Bad Gateway` — Upload to GitHub failed
-  ```json
-  {
-    "filename": "screenshot.png",
-    "error": "Failed to upload file to GitHub. Please try again.",
-    "error_code": "upload_failed"
-  }
-  ```
+
+### Fetch Uploaded File
+
+```
+GET /api/v1/chat/uploads/{filename}
+```
+
+**Description**: Serves a previously uploaded attachment from temporary storage using the sanitized filename returned by `/chat/upload`.
+
+**Response** (200 OK): Raw file contents with the inferred content type.
+
+**Error Responses**:
+- `404 Not Found` — No uploaded file exists for the given filename
 
 ---
 
@@ -197,8 +202,8 @@ When AI Enhance is OFF, the GitHub Issue body follows this structure:
 
 ### Attachments
 
-- ![screenshot.png](https://user-images.githubusercontent.com/.../screenshot.png)
-- [document.pdf](https://gist.githubusercontent.com/.../document.pdf)
+- ![screenshot.png](/api/v1/chat/uploads/a1b2c3d4-screenshot.png)
+- [document.pdf](/api/v1/chat/uploads/e5f6g7h8-document.pdf)
 ```
 
 When AI Enhance is ON, the existing AI-generated body format is used, with file URLs appended in the same Attachments section.
