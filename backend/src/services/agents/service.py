@@ -101,10 +101,6 @@ class AgentsService:
 
         stale_agents = cache.get_stale(cache_key)
         if isinstance(stale_agents, list):
-            await self._cleanup_resolved_pending_agents(
-                project_id=project_id,
-                repo_agents=stale_agents,
-            )
             return sorted(stale_agents, key=lambda a: a.name.lower())
 
         return []
