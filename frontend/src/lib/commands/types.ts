@@ -29,7 +29,10 @@ export interface CommandResult {
 }
 
 /** Handler function signature for commands. */
-export type CommandHandler = (args: string, context: CommandContext) => CommandResult | Promise<CommandResult>;
+export type CommandHandler = (
+  args: string,
+  context: CommandContext
+) => CommandResult | Promise<CommandResult>;
 
 /** A single entry in the command registry. */
 export interface CommandDefinition {

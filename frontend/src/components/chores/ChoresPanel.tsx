@@ -48,9 +48,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
         </h3>
         {/* Add Chore button */}
         <div className="flex items-center gap-1.5">
-          {owner && repo && (
-            <CleanUpButton owner={owner} repo={repo} projectId={projectId} />
-          )}
+          {owner && repo && <CleanUpButton owner={owner} repo={repo} projectId={projectId} />}
           <button
             className="px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             onClick={() => setShowAddModal(true)}
@@ -81,15 +79,19 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && chores && chores.length === 0 && (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
-        <div className="flex flex-col items-center gap-2 p-6 rounded-md border-2 border-dashed border-border bg-muted/10 text-center">
-          <span className="text-2xl">📋</span>
-          <p className="text-sm text-muted-foreground">No chores yet</p>
-          <p className="text-xs text-muted-foreground">
-            Add a chore to set up recurring maintenance tasks
-          </p>
-        </div>
-      )}
+      {!isLoading &&
+        !error &&
+        chores &&
+        chores.length === 0 &&
+        (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
+          <div className="flex flex-col items-center gap-2 p-6 rounded-md border-2 border-dashed border-border bg-muted/10 text-center">
+            <span className="text-2xl">📋</span>
+            <p className="text-sm text-muted-foreground">No chores yet</p>
+            <p className="text-xs text-muted-foreground">
+              Add a chore to set up recurring maintenance tasks
+            </p>
+          </div>
+        )}
 
       {/* Chore list */}
       {!isLoading && !error && chores && chores.length > 0 && (

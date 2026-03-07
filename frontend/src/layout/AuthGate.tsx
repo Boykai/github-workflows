@@ -35,7 +35,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           ☾
         </div>
         <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Aligning the workspace...</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+          Aligning the workspace...
+        </p>
       </div>
     );
   }

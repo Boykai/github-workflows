@@ -101,8 +101,7 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
             onClick={() => setShowScheduleEditor(!showScheduleEditor)}
             className="hover:text-foreground transition-colors underline decoration-dotted"
           >
-            Every {chore.schedule_value}{' '}
-            {chore.schedule_type === 'time' ? 'day' : 'issue'}
+            Every {chore.schedule_value} {chore.schedule_type === 'time' ? 'day' : 'issue'}
             {chore.schedule_value !== 1 ? 's' : ''}
           </button>
         ) : (
@@ -126,11 +125,7 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
       )}
 
       {/* Next trigger countdown */}
-      {nextTriggerInfo && (
-        <p className="text-xs text-muted-foreground">
-          ⏱ {nextTriggerInfo}
-        </p>
-      )}
+      {nextTriggerInfo && <p className="text-xs text-muted-foreground">⏱ {nextTriggerInfo}</p>}
 
       {/* Last triggered */}
       {chore.last_triggered_at && (
@@ -172,7 +167,11 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
           onClick={handleTrigger}
           disabled={triggerMutation.isPending}
           className="px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title={chore.current_issue_number ? 'An open issue may exist — will verify before triggering' : 'Manually trigger this chore'}
+          title={
+            chore.current_issue_number
+              ? 'An open issue may exist — will verify before triggering'
+              : 'Manually trigger this chore'
+          }
         >
           {triggerMutation.isPending ? 'Triggering…' : '▶ Trigger'}
         </button>

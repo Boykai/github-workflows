@@ -6,7 +6,13 @@ import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MEDIUM, PROPOSAL_EXPIRY_MS } from '@/constants';
 import { chatApi, tasksApi } from '@/services/api';
-import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData, StatusChangeProposal } from '@/types';
+import type {
+  AITaskProposal,
+  ChatMessage,
+  ProposalConfirmRequest,
+  IssueCreateActionData,
+  StatusChangeProposal,
+} from '@/types';
 import { useCommands } from '@/hooks/useCommands';
 import { generateId } from '@/utils/generateId';
 
@@ -29,8 +35,12 @@ interface UseChatReturn {
 export function useChat(): UseChatReturn {
   const queryClient = useQueryClient();
   const [pendingProposals, setPendingProposals] = useState<Map<string, AITaskProposal>>(new Map());
-  const [pendingStatusChanges, setPendingStatusChanges] = useState<Map<string, StatusChangeProposal>>(new Map());
-  const [pendingRecommendations, setPendingRecommendations] = useState<Map<string, IssueCreateActionData>>(new Map());
+  const [pendingStatusChanges, setPendingStatusChanges] = useState<
+    Map<string, StatusChangeProposal>
+  >(new Map());
+  const [pendingRecommendations, setPendingRecommendations] = useState<
+    Map<string, IssueCreateActionData>
+  >(new Map());
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const { isCommand, executeCommand } = useCommands();
 
@@ -57,16 +67,16 @@ export function useChat(): UseChatReturn {
             proposal_id: data.proposal_id as string,
             session_id: response.session_id,
             original_input: '',
-            proposed_title: data.proposed_title as string || '',
-            proposed_description: data.proposed_description as string || '',
+            proposed_title: (data.proposed_title as string) || '',
+            proposed_description: (data.proposed_description as string) || '',
             status: 'pending',
             created_at: new Date().toISOString(),
             expires_at: new Date(Date.now() + PROPOSAL_EXPIRY_MS).toISOString(),
           };
-          setPendingProposals(prev => new Map(prev).set(proposal.proposal_id, proposal));
+          setPendingProposals((prev) => new Map(prev).set(proposal.proposal_id, proposal));
         }
       }
-      
+
       // Check if response contains a status change proposal (T052)
       if (response.action_type === 'status_update' && response.action_data) {
         const data = response.action_data as unknown as Record<string, unknown>;
@@ -81,7 +91,9 @@ export function useChat(): UseChatReturn {
             status_field_id: data.status_field_id as string,
             status: data.status as string,
           };
-          setPendingStatusChanges(prev => new Map(prev).set(statusChange.proposal_id, statusChange));
+          setPendingStatusChanges((prev) =>
+            new Map(prev).set(statusChange.proposal_id, statusChange)
+          );
         }
       }
 
@@ -97,10 +109,12 @@ export function useChat(): UseChatReturn {
             functional_requirements: data.functional_requirements as string[],
             status: 'pending',
           };
-          setPendingRecommendations(prev => new Map(prev).set(recommendation.recommendation_id, recommendation));
+          setPendingRecommendations((prev) =>
+            new Map(prev).set(recommendation.recommendation_id, recommendation)
+          );
         }
       }
-      
+
       // Refetch messages
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
     },
@@ -111,7 +125,7 @@ export function useChat(): UseChatReturn {
     mutationFn: ({ proposalId, data }: { proposalId: string; data?: ProposalConfirmRequest }) =>
       chatApi.confirmProposal(proposalId, data),
     onSuccess: (_, variables) => {
-      setPendingProposals(prev => {
+      setPendingProposals((prev) => {
         const next = new Map(prev);
         next.delete(variables.proposalId);
         return next;
@@ -127,14 +141,11 @@ export function useChat(): UseChatReturn {
     mutationFn: async (proposalId: string) => {
       const statusChange = pendingStatusChanges.get(proposalId);
       if (!statusChange) throw new Error('No pending status change found');
-      
-      return tasksApi.updateStatus(
-        statusChange.task_id,
-        statusChange.target_status
-      );
+
+      return tasksApi.updateStatus(statusChange.task_id, statusChange.target_status);
     },
     onSuccess: (_, proposalId) => {
-      setPendingStatusChanges(prev => {
+      setPendingStatusChanges((prev) => {
         const next = new Map(prev);
         next.delete(proposalId);
         return next;
@@ -149,12 +160,12 @@ export function useChat(): UseChatReturn {
   const cancelMutation = useMutation({
     mutationFn: chatApi.cancelProposal,
     onSuccess: (_, proposalId) => {
-      setPendingProposals(prev => {
+      setPendingProposals((prev) => {
         const next = new Map(prev);
         next.delete(proposalId);
         return next;
       });
-      setPendingStatusChanges(prev => {
+      setPendingStatusChanges((prev) => {
         const next = new Map(prev);
         next.delete(proposalId);
         return next;
@@ -237,9 +248,12 @@ export function useChat(): UseChatReturn {
     [confirmMutation]
   );
 
-  const confirmStatusChange = useCallback(async (proposalId: string) => {
-    await statusChangeMutation.mutateAsync(proposalId);
-  }, [statusChangeMutation]);
+  const confirmStatusChange = useCallback(
+    async (proposalId: string) => {
+      await statusChangeMutation.mutateAsync(proposalId);
+    },
+    [statusChangeMutation]
+  );
 
   const rejectProposal = useCallback(
     async (proposalId: string) => {
@@ -249,7 +263,7 @@ export function useChat(): UseChatReturn {
   );
 
   const removePendingRecommendation = useCallback((recommendationId: string) => {
-    setPendingRecommendations(prev => {
+    setPendingRecommendations((prev) => {
       const next = new Map(prev);
       next.delete(recommendationId);
       return next;

@@ -10,10 +10,18 @@ const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: vi.fn((key: string) => store[key] ?? null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value; }),
-    removeItem: vi.fn((key: string) => { delete store[key]; }),
-    clear: vi.fn(() => { store = {}; }),
-    get length() { return Object.keys(store).length; },
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    get length() {
+      return Object.keys(store).length;
+    },
     key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
   };
 })();
@@ -70,7 +78,7 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('hello'));
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         'chat-message-history',
-        JSON.stringify(['hello']),
+        JSON.stringify(['hello'])
       );
     });
 
@@ -95,7 +103,9 @@ describe('useChatHistory', () => {
     it('should return null when history is empty', () => {
       const { result } = renderHook(() => useChatHistory());
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateUp('draft'); });
+      act(() => {
+        nav = result.current.navigateUp('draft');
+      });
       expect(nav).toBeNull();
     });
 
@@ -106,7 +116,9 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg3'));
 
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBe('msg3');
       expect(result.current.isNavigating).toBe(true);
     });
@@ -118,13 +130,19 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg3'));
 
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBe('msg3');
 
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBe('msg2');
 
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBe('msg1');
     });
 
@@ -133,10 +151,14 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg1'));
 
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBe('msg1');
 
-      act(() => { nav = result.current.navigateUp(''); });
+      act(() => {
+        nav = result.current.navigateUp('');
+      });
       expect(nav).toBeNull(); // Already at oldest
     });
   });
@@ -145,7 +167,9 @@ describe('useChatHistory', () => {
     it('should return null when not navigating', () => {
       const { result } = renderHook(() => useChatHistory());
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateDown(); });
+      act(() => {
+        nav = result.current.navigateDown();
+      });
       expect(nav).toBeNull();
     });
 
@@ -156,16 +180,26 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg3'));
 
       // Navigate up to msg1
-      act(() => { result.current.navigateUp('draft'); });
-      act(() => { result.current.navigateUp(''); });
-      act(() => { result.current.navigateUp(''); });
+      act(() => {
+        result.current.navigateUp('draft');
+      });
+      act(() => {
+        result.current.navigateUp('');
+      });
+      act(() => {
+        result.current.navigateUp('');
+      });
 
       // Navigate back down
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateDown(); });
+      act(() => {
+        nav = result.current.navigateDown();
+      });
       expect(nav).toBe('msg2');
 
-      act(() => { nav = result.current.navigateDown(); });
+      act(() => {
+        nav = result.current.navigateDown();
+      });
       expect(nav).toBe('msg3');
     });
 
@@ -174,11 +208,15 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg1'));
 
       // Navigate up (captures draft)
-      act(() => { result.current.navigateUp('my draft text'); });
+      act(() => {
+        result.current.navigateUp('my draft text');
+      });
 
       // Navigate down past newest → restore draft
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateDown(); });
+      act(() => {
+        nav = result.current.navigateDown();
+      });
       expect(nav).toBe('my draft text');
       expect(result.current.isNavigating).toBe(false);
     });
@@ -188,7 +226,9 @@ describe('useChatHistory', () => {
     it('should reset historyIndex to -1', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('msg1'));
-      act(() => { result.current.navigateUp(''); });
+      act(() => {
+        result.current.navigateUp('');
+      });
       expect(result.current.isNavigating).toBe(true);
 
       act(() => result.current.resetNavigation());
@@ -200,9 +240,13 @@ describe('useChatHistory', () => {
     it('should return null for invalid index', () => {
       const { result } = renderHook(() => useChatHistory());
       let nav: string | null = null;
-      act(() => { nav = result.current.selectFromHistory(-1, ''); });
+      act(() => {
+        nav = result.current.selectFromHistory(-1, '');
+      });
       expect(nav).toBeNull();
-      act(() => { nav = result.current.selectFromHistory(0, ''); });
+      act(() => {
+        nav = result.current.selectFromHistory(0, '');
+      });
       expect(nav).toBeNull(); // empty history
     });
 
@@ -212,7 +256,9 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg2'));
 
       let nav: string | null = null;
-      act(() => { nav = result.current.selectFromHistory(0, 'draft'); });
+      act(() => {
+        nav = result.current.selectFromHistory(0, 'draft');
+      });
       expect(nav).toBe('msg1');
       expect(result.current.isNavigating).toBe(true);
     });
@@ -223,25 +269,33 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg2'));
 
       // Select from history (captures draft)
-      act(() => { result.current.selectFromHistory(1, 'my draft'); });
+      act(() => {
+        result.current.selectFromHistory(1, 'my draft');
+      });
       // After selectFromHistory(1, ...), historyIndex = history.length-1-1 = 0
 
       // Navigate down → historyIndex goes to -1 → returns draft
       let nav: string | null = null;
-      act(() => { nav = result.current.navigateDown(); });
+      act(() => {
+        nav = result.current.navigateDown();
+      });
       expect(nav).toBe('my draft');
     });
   });
 
   describe('localStorage error handling', () => {
     it('should handle localStorage.getItem throwing', () => {
-      localStorageMock.getItem.mockImplementationOnce(() => { throw new Error('denied'); });
+      localStorageMock.getItem.mockImplementationOnce(() => {
+        throw new Error('denied');
+      });
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual([]);
     });
 
     it('should handle localStorage.setItem throwing', () => {
-      localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('quota'); });
+      localStorageMock.setItem.mockImplementationOnce(() => {
+        throw new Error('quota');
+      });
       const { result } = renderHook(() => useChatHistory());
       // Should not throw
       act(() => result.current.addToHistory('hello'));

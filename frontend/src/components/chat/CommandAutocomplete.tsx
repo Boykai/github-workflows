@@ -36,10 +36,7 @@ export function CommandAutocomplete({
   const activeId = highlightedIndex >= 0 ? `cmd-option-${highlightedIndex}` : undefined;
 
   return (
-    <div
-      className="absolute bottom-full left-0 right-0 mb-1 z-50"
-      role="presentation"
-    >
+    <div className="absolute bottom-full left-0 right-0 mb-1 z-50" role="presentation">
       <ul
         ref={listRef}
         role="listbox"

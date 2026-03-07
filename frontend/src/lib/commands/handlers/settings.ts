@@ -84,7 +84,10 @@ export function languageHandler(args: string, _context: CommandContext): Command
 
 const VALID_NOTIFICATION_VALUES = ['on', 'off'] as const;
 
-export async function notificationsHandler(args: string, context: CommandContext): Promise<CommandResult> {
+export async function notificationsHandler(
+  args: string,
+  context: CommandContext
+): Promise<CommandResult> {
   const value = args.trim().toLowerCase();
 
   if (!value) {
@@ -160,7 +163,9 @@ export async function viewHandler(args: string, context: CommandContext): Promis
   // Await the settings mutation so failures are reported to the user
   // instead of silently rejecting with an unhandled promise.
   try {
-    await context.updateSettings({ display: { default_view: value as 'chat' | 'board' | 'settings' } });
+    await context.updateSettings({
+      display: { default_view: value as 'chat' | 'board' | 'settings' },
+    });
   } catch {
     return {
       success: false,

@@ -5,13 +5,7 @@
  * be overridden via a partial parameter object.
  */
 
-import type {
-  ChatMessage,
-  Project,
-  StatusColumn,
-  Task,
-  User,
-} from '@/types';
+import type { ChatMessage, Project, StatusColumn, Task, User } from '@/types';
 
 // ── User & Auth ────────────────────────────────────────────────────────────
 
@@ -27,9 +21,7 @@ export function createMockUser(overrides: Partial<User> = {}): User {
 
 // ── Projects ───────────────────────────────────────────────────────────────
 
-export function createMockStatusColumn(
-  overrides: Partial<StatusColumn> = {},
-): StatusColumn {
+export function createMockStatusColumn(overrides: Partial<StatusColumn> = {}): StatusColumn {
   return {
     field_id: 'PVTSSF_1',
     name: 'Todo',
@@ -77,9 +69,7 @@ export function createMockTask(overrides: Partial<Task> = {}): Task {
 
 // ── Chat Messages ──────────────────────────────────────────────────────────
 
-export function createMockChatMessage(
-  overrides: Partial<ChatMessage> = {},
-): ChatMessage {
+export function createMockChatMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
   return {
     message_id: 'msg-1',
     session_id: 'session-1',
@@ -99,9 +89,7 @@ export interface MockSettings {
   notifications: { enabled: boolean; sound: boolean };
 }
 
-export function createMockSettings(
-  overrides: Partial<MockSettings> = {},
-): MockSettings {
+export function createMockSettings(overrides: Partial<MockSettings> = {}): MockSettings {
   return {
     ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
     display: { theme: 'dark', default_view: 'board', sidebar_collapsed: false },
@@ -125,7 +113,7 @@ import type {
 } from '@/lib/commands/types';
 
 export function createCommandDefinition(
-  overrides: Partial<CommandDefinition> = {},
+  overrides: Partial<CommandDefinition> = {}
 ): CommandDefinition {
   return {
     name: 'test',
@@ -136,29 +124,34 @@ export function createCommandDefinition(
   };
 }
 
-export function createCommandContext(
-  overrides: Partial<CommandContext> = {},
-): CommandContext {
+export function createCommandContext(overrides: Partial<CommandContext> = {}): CommandContext {
   return {
     setTheme: () => {},
     updateSettings: async () => {},
     currentSettings: {
       ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
-      display: { theme: 'dark' as 'light' | 'dark', default_view: 'board' as 'chat' | 'board' | 'settings', sidebar_collapsed: false },
+      display: {
+        theme: 'dark' as 'light' | 'dark',
+        default_view: 'board' as 'chat' | 'board' | 'settings',
+        sidebar_collapsed: false,
+      },
       // default_assignee is typed as `string` in WorkflowDefaults — use empty
       // string rather than null to match the interface and avoid hiding
       // type mismatches in tests.
       workflow: { default_repository: null, default_assignee: '', copilot_polling_interval: 15 },
-      notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
+      notifications: {
+        task_status_change: true,
+        agent_completion: true,
+        new_recommendation: true,
+        chat_mention: true,
+      },
     },
     currentTheme: 'dark',
     ...overrides,
   };
 }
 
-export function createCommandResult(
-  overrides: Partial<CommandResult> = {},
-): CommandResult {
+export function createCommandResult(overrides: Partial<CommandResult> = {}): CommandResult {
   return {
     success: true,
     message: 'Command executed successfully.',
@@ -167,9 +160,7 @@ export function createCommandResult(
   };
 }
 
-export function createParsedCommand(
-  overrides: Partial<ParsedCommand> = {},
-): ParsedCommand {
+export function createParsedCommand(overrides: Partial<ParsedCommand> = {}): ParsedCommand {
   return {
     isCommand: true,
     name: 'test',

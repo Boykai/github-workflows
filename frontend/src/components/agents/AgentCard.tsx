@@ -23,7 +23,8 @@ const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = 
   },
   pending_deletion: {
     label: 'Pending Deletion',
-    className: 'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground',
+    className:
+      'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground',
   },
 };
 
@@ -35,7 +36,9 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
   const isRepoOnly = agent.source === 'repo';
 
   const handleDelete = () => {
-    if (window.confirm(`Remove agent "${agent.name}"? This will open a PR to delete the agent files.`)) {
+    if (
+      window.confirm(`Remove agent "${agent.name}"? This will open a PR to delete the agent files.`)
+    ) {
       deleteMutation.mutate(agent.id);
     }
   };
@@ -47,7 +50,9 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
         <h4 className="text-sm font-medium text-foreground truncate" title={agent.name}>
           {agent.name}
         </h4>
-        <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}>
+        <span
+          className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}
+        >
           {badge.label}
         </span>
       </div>
@@ -61,12 +66,17 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
       {agent.tools.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {agent.tools.slice(0, 3).map((tool) => (
-            <span key={tool} className="px-1.5 py-0.5 text-[10px] bg-muted rounded text-muted-foreground">
+            <span
+              key={tool}
+              className="px-1.5 py-0.5 text-[10px] bg-muted rounded text-muted-foreground"
+            >
               {tool}
             </span>
           ))}
           {agent.tools.length > 3 && (
-            <span className="text-[10px] text-muted-foreground">+{agent.tools.length - 3} more</span>
+            <span className="text-[10px] text-muted-foreground">
+              +{agent.tools.length - 3} more
+            </span>
           )}
         </div>
       )}

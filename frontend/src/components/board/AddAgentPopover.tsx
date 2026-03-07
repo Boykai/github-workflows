@@ -134,89 +134,106 @@ export function AddAgentPopover({
   // Count how many times each slug is already assigned
   const assignedSlugs = new Set(assignedAgents.map((a) => a.slug));
 
-  const dropdown = isOpen && position ? createPortal(
-    <div
-      ref={popoverRef}
-      style={{ position: 'fixed', top: position.top, left: position.left }}
-      className="w-64 bg-popover border border-border rounded-md shadow-lg z-[9999] flex flex-col max-h-80 overflow-hidden"
-      role="listbox"
-      aria-label={`Add agent to ${status}`}
-    >
-      {/* Search filter */}
-      <div className="p-2 border-b border-border bg-muted/30">
-        <input
-          type="text"
-          className="w-full px-2 py-1 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
-          placeholder="Filter agents..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          /* eslint-disable-next-line jsx-a11y/no-autofocus */
-          autoFocus
-        />
-      </div>
-
-      {/* Loading */}
-      {isLoading && (
-        <div className="p-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
-          <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-          Loading agents...
-        </div>
-      )}
-
-      {/* Error */}
-      {error && !isLoading && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
-          <span>⚠ {error}</span>
-          <button
-            className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
-            onClick={onRetry}
-            type="button"
+  const dropdown =
+    isOpen && position
+      ? createPortal(
+          <div
+            ref={popoverRef}
+            style={{ position: 'fixed', top: position.top, left: position.left }}
+            className="w-64 bg-popover border border-border rounded-md shadow-lg z-[9999] flex flex-col max-h-80 overflow-hidden"
+            role="listbox"
+            aria-label={`Add agent to ${status}`}
           >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Agent list */}
-      {!isLoading && !error && (
-        <div className="overflow-y-auto flex-1 p-1">
-          {filteredAgents.length === 0 ? (
-            <div className="p-3 text-sm text-muted-foreground text-center">
-              {filter ? 'No matching agents' : 'No agents available'}
+            {/* Search filter */}
+            <div className="p-2 border-b border-border bg-muted/30">
+              <input
+                type="text"
+                className="w-full px-2 py-1 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder="Filter agents..."
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                /* eslint-disable-next-line jsx-a11y/no-autofocus */
+                autoFocus
+              />
             </div>
-          ) : (
-            filteredAgents.map((agent) => {
-              const isDuplicate = assignedSlugs.has(agent.slug);
-              return (
+
+            {/* Loading */}
+            {isLoading && (
+              <div className="p-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                Loading agents...
+              </div>
+            )}
+
+            {/* Error */}
+            {error && !isLoading && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
+                <span>⚠ {error}</span>
                 <button
-                  key={agent.slug}
-                  className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
-                  onClick={() => handleSelect(agent)}
+                  className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
+                  onClick={onRetry}
                   type="button"
-                  title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
-                      {agent.source}
-                    </span>
-                  </div>
-                  {agent.description && (
-                    <div className="text-xs text-muted-foreground line-clamp-2 leading-snug">{agent.description}</div>
-                  )}
-                  <div className="text-[10px] font-mono text-muted-foreground/70 truncate">{agent.slug}</div>
-                  {isDuplicate && (
-                    <span className="absolute top-2 right-2 text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded">already assigned</span>
-                  )}
+                  Retry
                 </button>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>,
-    document.body,
-  ) : null;
+              </div>
+            )}
+
+            {/* Agent list */}
+            {!isLoading && !error && (
+              <div className="overflow-y-auto flex-1 p-1">
+                {filteredAgents.length === 0 ? (
+                  <div className="p-3 text-sm text-muted-foreground text-center">
+                    {filter ? 'No matching agents' : 'No agents available'}
+                  </div>
+                ) : (
+                  filteredAgents.map((agent) => {
+                    const isDuplicate = assignedSlugs.has(agent.slug);
+                    return (
+                      <button
+                        key={agent.slug}
+                        className={`w-full text-left p-2 rounded-md hover:bg-muted transition-colors flex flex-col gap-1 relative ${isDuplicate ? 'opacity-70' : ''}`}
+                        onClick={() => handleSelect(agent)}
+                        type="button"
+                        title={
+                          isDuplicate
+                            ? `${agent.display_name} (already assigned)`
+                            : agent.display_name
+                        }
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-sm font-medium text-foreground truncate pr-2">
+                            {agent.display_name}
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}
+                          >
+                            {agent.source}
+                          </span>
+                        </div>
+                        {agent.description && (
+                          <div className="text-xs text-muted-foreground line-clamp-2 leading-snug">
+                            {agent.description}
+                          </div>
+                        )}
+                        <div className="text-[10px] font-mono text-muted-foreground/70 truncate">
+                          {agent.slug}
+                        </div>
+                        {isDuplicate && (
+                          <span className="absolute top-2 right-2 text-[10px] bg-accent/10 text-accent-foreground px-1.5 py-0.5 rounded">
+                            already assigned
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className="relative">

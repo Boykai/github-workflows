@@ -27,16 +27,17 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionToken = params.get('session_token');
-    
+
     if (sessionToken && !isProcessingToken) {
       setIsProcessingToken(true);
-      
+
       // Exchange token for cookie via proxy
-      authApi.setSessionFromToken(sessionToken)
+      authApi
+        .setSessionFromToken(sessionToken)
         .then((user) => {
           // Update query cache with user data
           queryClient.setQueryData(['auth', 'me'], user);
-          
+
           // Clean up URL (remove session_token param)
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);

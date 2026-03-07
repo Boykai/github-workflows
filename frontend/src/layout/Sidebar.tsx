@@ -51,8 +51,12 @@ export function Sidebar({
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
                 Solune
               </span>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Sun & Moon</span>
-              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">Guided project orbit</span>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/80">
+                Sun & Moon
+              </span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">
+                Guided project orbit
+              </span>
             </div>
           </div>
         )}
@@ -117,13 +121,19 @@ export function Sidebar({
 
       {/* Project Selector (bottom) */}
       <div className="relative border-t border-border/70 px-2 py-3">
-        {!isCollapsed && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
+        {!isCollapsed && (
+          <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+        )}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
           className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/45 ${
             isCollapsed ? 'justify-center' : ''
           }`}
-          title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}
+          title={
+            selectedProject
+              ? `${selectedProject.owner_login}/${selectedProject.name}`
+              : 'Select project'
+          }
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
             {selectedProject ? selectedProject.name.charAt(0).toUpperCase() : '?'}

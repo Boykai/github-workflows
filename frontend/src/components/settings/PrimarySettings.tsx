@@ -11,11 +11,7 @@ import { DynamicDropdown } from './DynamicDropdown';
 import { SignalConnection } from './SignalConnection';
 import { useSettingsForm } from '@/hooks/useSettingsForm';
 import { useModelOptions } from '@/hooks/useSettings';
-import type {
-  AIPreferences,
-  AIProviderType,
-  UserPreferencesUpdate,
-} from '@/types';
+import type { AIPreferences, AIProviderType, UserPreferencesUpdate } from '@/types';
 
 /** Provider metadata — mirrors backend PROVIDER_METADATA */
 const PROVIDER_INFO: Record<string, { label: string; supportsDynamic: boolean }> = {

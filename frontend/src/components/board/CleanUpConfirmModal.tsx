@@ -33,7 +33,10 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
     if (e.target === e.currentTarget) onCancel();
   };
 
-  const hasItemsToDelete = data.branches_to_delete.length > 0 || data.prs_to_close.length > 0 || (data.orphaned_issues ?? []).length > 0;
+  const hasItemsToDelete =
+    data.branches_to_delete.length > 0 ||
+    data.prs_to_close.length > 0 ||
+    (data.orphaned_issues ?? []).length > 0;
 
   return (
     <div
@@ -71,7 +74,10 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => (
-                <li key={branch.name} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
+                <li
+                  key={branch.name}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10"
+                >
                   <span className="font-mono text-xs">{branch.name}</span>
                 </li>
               ))}
@@ -86,7 +92,10 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => (
-                <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
+                <li
+                  key={pr.number}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10"
+                >
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>
                 </li>
@@ -105,7 +114,10 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </p>
             <ul className="space-y-1 text-sm">
               {data.orphaned_issues.map((issue) => (
-                <li key={issue.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
+                <li
+                  key={issue.number}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10"
+                >
                   <span className="font-medium">#{issue.number}</span>
                   <span className="text-muted-foreground truncate">{issue.title}</span>
                   {issue.labels.length > 0 && (
@@ -127,10 +139,15 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => (
-                <li key={branch.name} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li
+                  key={branch.name}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                >
                   <span className="font-mono text-xs">{branch.name}</span>
                   {branch.preservation_reason && (
-                    <span className="text-xs text-muted-foreground">— {branch.preservation_reason}</span>
+                    <span className="text-xs text-muted-foreground">
+                      — {branch.preservation_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -145,11 +162,16 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => (
-                <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li
+                  key={pr.number}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                >
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>
                   {pr.preservation_reason && (
-                    <span className="text-xs text-muted-foreground">— {pr.preservation_reason}</span>
+                    <span className="text-xs text-muted-foreground">
+                      — {pr.preservation_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -165,7 +187,8 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
         {/* Summary line */}
         <p className="text-xs text-muted-foreground mb-4">
-          {data.open_issues_on_board} open issue{data.open_issues_on_board !== 1 ? 's' : ''} on the project board used for cross-referencing.
+          {data.open_issues_on_board} open issue{data.open_issues_on_board !== 1 ? 's' : ''} on the
+          project board used for cross-referencing.
         </p>
 
         {/* Actions */}

@@ -29,9 +29,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -132,9 +130,7 @@ describe('useWorkflow', () => {
   });
 
   it('should surface errors from mutations', async () => {
-    mockWorkflowApi.confirmRecommendation.mockRejectedValue(
-      new Error('API failure'),
-    );
+    mockWorkflowApi.confirmRecommendation.mockRejectedValue(new Error('API failure'));
 
     const { result } = renderHook(() => useWorkflow(), {
       wrapper: createWrapper(),

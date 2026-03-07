@@ -15,9 +15,7 @@ export function Breadcrumb() {
   );
 
   // Build breadcrumb segments
-  const segments: Array<{ label: string; path: string }> = [
-    { label: 'Home', path: '/' },
-  ];
+  const segments: Array<{ label: string; path: string }> = [{ label: 'Home', path: '/' }];
 
   if (matchedRoute && matchedRoute.path !== '/') {
     segments.push({ label: matchedRoute.label, path: matchedRoute.path });
@@ -29,10 +27,7 @@ export function Breadcrumb() {
         <span key={segment.path} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-primary/60" />}
           {i < segments.length - 1 ? (
-            <Link
-              to={segment.path}
-              className="transition-colors hover:text-primary"
-            >
+            <Link to={segment.path} className="transition-colors hover:text-primary">
               {segment.label}
             </Link>
           ) : (

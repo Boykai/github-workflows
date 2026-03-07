@@ -62,11 +62,7 @@ function createWrapper() {
     },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -144,20 +140,17 @@ describe('useRealTimeSync', () => {
     });
 
     const ws = mockWebSocketInstances[0];
-    
+
     unmount();
 
     expect(ws?.readyState).toBe(MockWebSocket.CLOSED);
   });
 
   it('should become disconnected when projectId changes to null', async () => {
-    const { result, rerender } = renderHook(
-      ({ projectId }) => useRealTimeSync(projectId),
-      {
-        wrapper: createWrapper(),
-        initialProps: { projectId: 'PVT_123' as string | null },
-      }
-    );
+    const { result, rerender } = renderHook(({ projectId }) => useRealTimeSync(projectId), {
+      wrapper: createWrapper(),
+      initialProps: { projectId: 'PVT_123' as string | null },
+    });
 
     // Change to null
     await act(async () => {
@@ -168,13 +161,10 @@ describe('useRealTimeSync', () => {
   });
 
   it('should reconnect when projectId changes', () => {
-    const { rerender } = renderHook(
-      ({ projectId }) => useRealTimeSync(projectId),
-      {
-        wrapper: createWrapper(),
-        initialProps: { projectId: 'PVT_123' as string | null },
-      }
-    );
+    const { rerender } = renderHook(({ projectId }) => useRealTimeSync(projectId), {
+      wrapper: createWrapper(),
+      initialProps: { projectId: 'PVT_123' as string | null },
+    });
 
     const initialCount = mockWebSocketInstances.length;
 
@@ -193,7 +183,7 @@ describe('useRealTimeSync', () => {
 
     // Wait for the initial state to settle
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     await act(async () => {
@@ -213,9 +203,7 @@ describe('useRealTimeSync', () => {
 
       const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -239,9 +227,7 @@ describe('useRealTimeSync', () => {
 
       renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -264,9 +250,7 @@ describe('useRealTimeSync', () => {
 
       renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -289,9 +273,7 @@ describe('useRealTimeSync', () => {
 
       renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -314,9 +296,7 @@ describe('useRealTimeSync', () => {
 
       renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -361,9 +341,7 @@ describe('useRealTimeSync', () => {
 
       renderHook(() => useRealTimeSync('PVT_123'), {
         wrapper: ({ children }) => (
-          <QueryClientProvider client={queryClient}>
-            {children}
-          </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         ),
       });
 
@@ -565,7 +543,7 @@ describe('useRealTimeSync', () => {
       const allTimeoutDelays = setTimeoutSpy.mock.calls
         .map(([, delay]) => delay)
         .filter((d): d is number => typeof d === 'number' && d >= 1000);
-      
+
       for (const delay of allTimeoutDelays) {
         expect(delay).toBeLessThanOrEqual(31000); // 30000 + max jitter
       }
@@ -581,10 +559,9 @@ describe('useRealTimeSync', () => {
     it('should invoke onRefreshTriggered on initial_data message', async () => {
       const onRefreshTriggered = vi.fn();
 
-      renderHook(
-        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123', { onRefreshTriggered }), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();
@@ -600,10 +577,9 @@ describe('useRealTimeSync', () => {
     it('should invoke onRefreshTriggered on task_update message', async () => {
       const onRefreshTriggered = vi.fn();
 
-      renderHook(
-        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123', { onRefreshTriggered }), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();
@@ -619,10 +595,9 @@ describe('useRealTimeSync', () => {
     it('should invoke onRefreshTriggered on refresh message', async () => {
       const onRefreshTriggered = vi.fn();
 
-      renderHook(
-        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123', { onRefreshTriggered }), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();
@@ -638,10 +613,9 @@ describe('useRealTimeSync', () => {
     it('should invoke onRefreshTriggered on status_changed message', async () => {
       const onRefreshTriggered = vi.fn();
 
-      renderHook(
-        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123', { onRefreshTriggered }), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();
@@ -657,10 +631,9 @@ describe('useRealTimeSync', () => {
     it('should NOT invoke onRefreshTriggered for unknown message types', async () => {
       const onRefreshTriggered = vi.fn();
 
-      renderHook(
-        () => useRealTimeSync('PVT_123', { onRefreshTriggered }),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123', { onRefreshTriggered }), {
+        wrapper: createWrapper(),
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();
@@ -675,10 +648,7 @@ describe('useRealTimeSync', () => {
 
     it('should NOT invoke onRefreshTriggered when callback is not provided', async () => {
       // Render without onRefreshTriggered — should not throw
-      renderHook(
-        () => useRealTimeSync('PVT_123'),
-        { wrapper: createWrapper() },
-      );
+      renderHook(() => useRealTimeSync('PVT_123'), { wrapper: createWrapper() });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateOpen();

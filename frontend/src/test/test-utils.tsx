@@ -48,7 +48,7 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
  */
 export function renderWithProviders(
   ui: ReactElement,
-  { queryClient = createTestQueryClient(), ...options }: ExtendedRenderOptions = {},
+  { queryClient = createTestQueryClient(), ...options }: ExtendedRenderOptions = {}
 ) {
   function Wrapper({ children }: WrapperProps) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;

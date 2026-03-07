@@ -26,7 +26,12 @@ vi.mock('@/services/api', () => ({
       ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
       display: { theme: 'dark', default_view: 'board', sidebar_collapsed: false },
       workflow: { auto_assign: true, default_status: 'Todo', polling_interval: 15 },
-      notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
+      notifications: {
+        task_status_change: true,
+        agent_completion: true,
+        new_recommendation: true,
+        chat_mention: true,
+      },
     }),
     updateUserSettings: vi.fn().mockResolvedValue({}),
   },
@@ -59,9 +64,7 @@ function createWrapper() {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <ThemeProvider defaultTheme="dark" storageKey="test-theme">
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
       </ThemeProvider>
     );
   };
@@ -90,8 +93,20 @@ describe('useChat', () => {
   it('should return messages after loading', async () => {
     const mockMessages = {
       messages: [
-        { message_id: 'msg_1', session_id: 's1', sender_type: 'user', content: 'Hello', timestamp: '2024-01-01T00:00:00Z' },
-        { message_id: 'msg_2', session_id: 's1', sender_type: 'assistant', content: 'Hi there!', timestamp: '2024-01-01T00:00:01Z' },
+        {
+          message_id: 'msg_1',
+          session_id: 's1',
+          sender_type: 'user',
+          content: 'Hello',
+          timestamp: '2024-01-01T00:00:00Z',
+        },
+        {
+          message_id: 'msg_2',
+          session_id: 's1',
+          sender_type: 'assistant',
+          content: 'Hi there!',
+          timestamp: '2024-01-01T00:00:01Z',
+        },
       ],
     };
 
@@ -151,7 +166,7 @@ describe('useChat', () => {
     await expect(
       act(async () => {
         await result.current.sendMessage('Bad message');
-      }),
+      })
     ).rejects.toThrow('Send failed');
 
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
@@ -285,7 +300,9 @@ describe('useChat', () => {
 
     // Passthrough command SHOULD reach the backend
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '#agent Build a code reviewer' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({
+      content: '#agent Build a code reviewer',
+    });
   });
 
   it('should forward #agent via isCommand option to backend (passthrough)', async () => {

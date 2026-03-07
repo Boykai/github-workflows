@@ -26,12 +26,15 @@ export function useCommands(): UseCommandsReturn {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useUserSettings();
 
-  const buildContext = useCallback((): CommandContext => ({
-    setTheme: (t: string) => setTheme(t as 'light' | 'dark' | 'system'),
-    updateSettings,
-    currentSettings: settings,
-    currentTheme: theme,
-  }), [theme, setTheme, settings, updateSettings]);
+  const buildContext = useCallback(
+    (): CommandContext => ({
+      setTheme: (t: string) => setTheme(t as 'light' | 'dark' | 'system'),
+      updateSettings,
+      currentSettings: settings,
+      currentTheme: theme,
+    }),
+    [theme, setTheme, settings, updateSettings]
+  );
 
   const isCommandFn = useCallback((input: string): boolean => {
     return parseCommand(input).isCommand;
@@ -41,36 +44,43 @@ export function useCommands(): UseCommandsReturn {
     return parseCommand(input);
   }, []);
 
-  const executeCommandFn = useCallback((input: string): CommandResult | Promise<CommandResult> => {
-    const parsed = parseCommand(input);
+  const executeCommandFn = useCallback(
+    (input: string): CommandResult | Promise<CommandResult> => {
+      const parsed = parseCommand(input);
 
-    if (!parsed.isCommand) {
-      return { success: false, message: 'Not a command.', clearInput: false };
-    }
+      if (!parsed.isCommand) {
+        return { success: false, message: 'Not a command.', clearInput: false };
+      }
 
-    // Bare '#'
-    if (!parsed.name) {
-      return { success: false, message: 'Type #help to see available commands.', clearInput: false };
-    }
+      // Bare '#'
+      if (!parsed.name) {
+        return {
+          success: false,
+          message: 'Type #help to see available commands.',
+          clearInput: false,
+        };
+      }
 
-    const command = getCommand(parsed.name);
-    if (!command) {
-      return {
-        success: false,
-        message: `Unknown command '${parsed.name}'. Type #help to see available commands.`,
-        clearInput: false,
-      };
-    }
+      const command = getCommand(parsed.name);
+      if (!command) {
+        return {
+          success: false,
+          message: `Unknown command '${parsed.name}'. Type #help to see available commands.`,
+          clearInput: false,
+        };
+      }
 
-    // Passthrough commands are handled by the backend — signal the caller
-    // to forward the message to the API rather than displaying locally.
-    if (command.passthrough) {
-      return { success: true, message: '', clearInput: true, passthrough: true };
-    }
+      // Passthrough commands are handled by the backend — signal the caller
+      // to forward the message to the API rather than displaying locally.
+      if (command.passthrough) {
+        return { success: true, message: '', clearInput: true, passthrough: true };
+      }
 
-    const context = buildContext();
-    return command.handler(parsed.args, context);
-  }, [buildContext]);
+      const context = buildContext();
+      return command.handler(parsed.args, context);
+    },
+    [buildContext]
+  );
 
   const getFilteredCommandsFn = useCallback((prefix: string): CommandDefinition[] => {
     return filterCommands(prefix);

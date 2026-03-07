@@ -137,7 +137,7 @@ export function createMockApi(): MockApiShape {
     ApiError: class extends Error {
       constructor(
         public status: number,
-        public error: { error: string },
+        public error: { error: string }
       ) {
         super(error.error);
         this.name = 'ApiError';

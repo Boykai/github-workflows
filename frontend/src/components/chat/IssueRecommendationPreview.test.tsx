@@ -7,7 +7,9 @@ import { render, screen, userEvent, waitFor } from '@/test/test-utils';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 
-function createRecommendation(overrides: Partial<IssueCreateActionData> = {}): IssueCreateActionData {
+function createRecommendation(
+  overrides: Partial<IssueCreateActionData> = {}
+): IssueCreateActionData {
   return {
     recommendation_id: 'rec-1',
     proposed_title: 'Add Dark Mode',

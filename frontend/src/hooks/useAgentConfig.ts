@@ -26,7 +26,12 @@ interface UseAgentConfigReturn {
   /** Reorder agents within a column */
   reorderAgents: (status: string, newOrder: AgentAssignment[]) => void;
   /** Move an agent from one column to another */
-  moveAgentToColumn: (sourceStatus: string, targetStatus: string, agentId: string, targetIndex?: number) => void;
+  moveAgentToColumn: (
+    sourceStatus: string,
+    targetStatus: string,
+    agentId: string,
+    targetIndex?: number
+  ) => void;
   /** Apply a preset configuration */
   applyPreset: (mappings: Record<string, AgentAssignment[]>) => void;
   /** Save changes to server */
@@ -79,7 +84,10 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
         if (existingKey === undefined) {
           seen.set(lower, key);
           deduped[key] = agents;
-        } else if ((!deduped[existingKey] || deduped[existingKey].length === 0) && agents.length > 0) {
+        } else if (
+          (!deduped[existingKey] || deduped[existingKey].length === 0) &&
+          agents.length > 0
+        ) {
           // Replace the empty entry with the populated one
           delete deduped[existingKey];
           seen.set(lower, key);
@@ -203,7 +211,9 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
           const working = [...sourceAgents];
           working.splice(agentIndex, 1);
           const insertAt =
-            targetIndex !== undefined ? Math.min(Math.max(0, targetIndex), working.length) : working.length;
+            targetIndex !== undefined
+              ? Math.min(Math.max(0, targetIndex), working.length)
+              : working.length;
           working.splice(insertAt, 0, agent);
           return { ...prev, [sourceKey]: working };
         }
@@ -215,7 +225,9 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
 
         // Clamp target index
         const insertAt =
-          targetIndex !== undefined ? Math.min(Math.max(0, targetIndex), targetAgents.length) : targetAgents.length;
+          targetIndex !== undefined
+            ? Math.min(Math.max(0, targetIndex), targetAgents.length)
+            : targetAgents.length;
         targetAgents.splice(insertAt, 0, agent);
 
         return { ...prev, [sourceKey]: newSource, [targetKey]: targetAgents };
@@ -290,12 +302,7 @@ interface UseAvailableAgentsReturn {
 }
 
 export function useAvailableAgents(projectId?: string | null): UseAvailableAgentsReturn {
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['workflow', 'agents', projectId],
     queryFn: async () => {
       const result = await workflowApi.listAgents();

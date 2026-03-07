@@ -23,7 +23,10 @@ vi.mock('@/services/api', () => ({
     list: vi.fn().mockResolvedValue([]),
   },
   ApiError: class ApiError extends Error {
-    constructor(public status: number, public error: { error: string }) {
+    constructor(
+      public status: number,
+      public error: { error: string }
+    ) {
       super(error.error);
     }
   },
@@ -36,9 +39,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -52,19 +53,17 @@ describe('AddChoreModal', () => {
   });
 
   it('does not render when isOpen is false', () => {
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={false} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={false} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.queryByText('Add Chore')).not.toBeInTheDocument();
   });
 
   it('renders modal when isOpen is true', () => {
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.getByText('Add Chore')).toBeInTheDocument();
     expect(screen.getByLabelText('Name')).toBeInTheDocument();
@@ -74,10 +73,9 @@ describe('AddChoreModal', () => {
   it('shows validation error when name is empty', async () => {
     const user = userEvent.setup();
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.click(screen.getByText('Create Chore'));
 
@@ -88,10 +86,9 @@ describe('AddChoreModal', () => {
   it('shows validation error when template content is empty', async () => {
     const user = userEvent.setup();
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.type(screen.getByLabelText('Name'), 'Bug Bash');
     await user.click(screen.getByText('Create Chore'));
@@ -108,10 +105,9 @@ describe('AddChoreModal', () => {
       project_id: 'PVT_1',
     });
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.type(screen.getByLabelText('Name'), 'Bug Bash');
     await user.type(screen.getByLabelText('Template Content'), '## Overview\nRun a bug bash');
@@ -128,10 +124,9 @@ describe('AddChoreModal', () => {
   it('calls onClose when Cancel is clicked', async () => {
     const user = userEvent.setup();
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.click(screen.getByText('Cancel'));
 
@@ -142,15 +137,14 @@ describe('AddChoreModal', () => {
     const user = userEvent.setup();
     mockCreate.mockRejectedValue(new Error('Duplicate chore name'));
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.type(screen.getByLabelText('Name'), 'Test');
     await user.type(
       screen.getByLabelText('Template Content'),
-      '## Overview\n\n- Step one\n- Step two\n- Step three\n\nDetailed content here',
+      '## Overview\n\n- Step one\n- Step two\n- Step three\n\nDetailed content here'
     );
     await user.click(screen.getByText('Create Chore'));
 
@@ -168,10 +162,9 @@ describe('AddChoreModal', () => {
       template_content: null,
     });
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.type(screen.getByLabelText('Name'), 'Bug Bash');
     await user.type(screen.getByLabelText('Template Content'), 'run a bug bash');
@@ -192,12 +185,12 @@ describe('AddChoreModal', () => {
       project_id: 'PVT_1',
     });
 
-    const richContent = '## Dependency Update\n\n- Check outdated packages\n- Run npm audit\n- Update major versions';
+    const richContent =
+      '## Dependency Update\n\n- Check outdated packages\n- Run npm audit\n- Update major versions';
 
-    render(
-      <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
-      { wrapper: createWrapper() },
-    );
+    render(<AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.type(screen.getByLabelText('Name'), 'Dep Update');
     await user.type(screen.getByLabelText('Template Content'), richContent);
