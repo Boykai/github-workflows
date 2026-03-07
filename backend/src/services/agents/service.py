@@ -77,13 +77,34 @@ class AgentsService:
         """List agents from the repo default branch, with a long-lived cache."""
         cache_key = get_repo_agents_cache_key(owner, repo)
 
+        async def _overlay_runtime_preferences(repo_agents: list[Agent]) -> list[Agent]:
+            local_agents = await self._list_local_agents(project_id)
+            local_by_slug = {
+                local_agent.slug: local_agent
+                for local_agent in local_agents
+                if local_agent.status == AgentStatus.ACTIVE
+                and (local_agent.default_model_id or local_agent.default_model_name)
+            }
+            return [
+                repo_agent.model_copy(
+                    update={
+                        "default_model_id": local_by_slug[repo_agent.slug].default_model_id,
+                        "default_model_name": local_by_slug[repo_agent.slug].default_model_name,
+                    }
+                )
+                if repo_agent.slug in local_by_slug
+                else repo_agent
+                for repo_agent in repo_agents
+            ]
+
         cached_agents = cache.get(cache_key)
         if isinstance(cached_agents, list):
             await self._cleanup_resolved_pending_agents(
                 project_id=project_id,
                 repo_agents=cached_agents,
             )
-            return sorted(cached_agents, key=lambda a: a.name.lower())
+            hydrated_agents = await _overlay_runtime_preferences(cached_agents)
+            return sorted(hydrated_agents, key=lambda a: a.name.lower())
 
         repo_agents, repo_available = await self._list_repo_agents(
             owner=owner,
@@ -97,11 +118,13 @@ class AgentsService:
                 project_id=project_id,
                 repo_agents=repo_agents,
             )
-            return sorted(repo_agents, key=lambda a: a.name.lower())
+            hydrated_agents = await _overlay_runtime_preferences(repo_agents)
+            return sorted(hydrated_agents, key=lambda a: a.name.lower())
 
         stale_agents = cache.get_stale(cache_key)
         if isinstance(stale_agents, list):
-            return sorted(stale_agents, key=lambda a: a.name.lower())
+            hydrated_agents = await _overlay_runtime_preferences(stale_agents)
+            return sorted(hydrated_agents, key=lambda a: a.name.lower())
 
         return []
 
@@ -147,6 +170,26 @@ class AgentsService:
 
         return AgentPendingCleanupResult(deleted_count=len(deleted_ids))
 
+    async def get_model_preferences(self, project_id: str) -> dict[str, tuple[str, str]]:
+        """Return slug → (default_model_id, default_model_name) from local SQLite only."""
+        cursor = await self._db.execute(
+            "SELECT slug, default_model_id, default_model_name FROM agent_configs WHERE project_id = ?",
+            (project_id,),
+        )
+        rows = await cursor.fetchall()
+        result: dict[str, tuple[str, str]] = {}
+        for row in rows:
+            r = (
+                dict(row)
+                if isinstance(row, dict)
+                else dict(zip([d[0] for d in cursor.description], row, strict=False))
+            )
+            model_id = r.get("default_model_id", "") or ""
+            model_name = r.get("default_model_name", "") or ""
+            if model_id or model_name:
+                result[r["slug"]] = (model_id, model_name)
+        return result
+
     async def _list_local_agents(self, project_id: str) -> list[Agent]:
         """Query agents from SQLite ``agent_configs`` table."""
         cursor = await self._db.execute(
@@ -176,6 +219,8 @@ class AgentsService:
                     slug=r["slug"],
                     description=r["description"],
                     system_prompt=r.get("system_prompt", ""),
+                    default_model_id=r.get("default_model_id", "") or "",
+                    default_model_name=r.get("default_model_name", "") or "",
                     status=status,
                     tools=tools,
                     status_column=r.get("status_column") or None,
@@ -259,6 +304,8 @@ class AgentsService:
                     slug=slug,
                     description=description,
                     system_prompt=system_prompt,
+                    default_model_id="",
+                    default_model_name="",
                     status=AgentStatus.ACTIVE,
                     tools=tools,
                     status_column=None,
@@ -420,9 +467,9 @@ class AgentsService:
         await self._db.execute(
             """INSERT INTO agent_configs
                (id, name, slug, description, system_prompt, status_column,
-                tools, project_id, owner, repo, created_by,
+                tools, default_model_id, default_model_name, project_id, owner, repo, created_by,
                 github_issue_number, github_pr_number, branch_name, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 agent_id,
                 body.name,
@@ -431,6 +478,8 @@ class AgentsService:
                 system_prompt,
                 body.status_column,
                 tools_json,
+                body.default_model_id,
+                body.default_model_name,
                 project_id,
                 owner,
                 repo,
@@ -449,6 +498,8 @@ class AgentsService:
             slug=slug,
             description=description,
             system_prompt=system_prompt,
+            default_model_id=body.default_model_id,
+            default_model_name=body.default_model_name,
             status=AgentStatus.PENDING_PR,
             tools=tools,
             status_column=body.status_column or None,
@@ -575,12 +626,26 @@ class AgentsService:
         github_user_id: str,
     ) -> AgentCreateResult:
         """Update agent config — open PR with updated files."""
-        agent = await self._resolve_agent(project_id, agent_id)
+        agent = await self._resolve_listed_agent(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+            agent_id=agent_id,
+        )
         if not agent:
             raise LookupError(f"Agent '{agent_id}' not found")
 
-        # Repo-only agents cannot be updated via the API
-        if agent.id.startswith("repo:"):
+        only_runtime_model_update = (
+            (body.default_model_id is not None or body.default_model_name is not None)
+            and body.name is None
+            and body.description is None
+            and body.system_prompt is None
+            and body.tools is None
+        )
+
+        # Repo-only agents cannot be updated via the API, except for local runtime model preferences.
+        if agent.id.startswith("repo:") and not only_runtime_model_update:
             raise ValueError(
                 "Repo-only agents cannot be updated through the API. "
                 "Edit the .agent.md file directly in the repository."
@@ -591,11 +656,37 @@ class AgentsService:
                 "Agents pending deletion cannot be updated until the deletion PR is resolved."
             )
 
+        if only_runtime_model_update:
+            updated_agent = await self._save_runtime_model_selection(
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                github_user_id=github_user_id,
+                agent=agent,
+                default_model_id=body.default_model_id,
+                default_model_name=body.default_model_name,
+            )
+            return AgentCreateResult(
+                agent=updated_agent,
+                pr_url="",
+                pr_number=0,
+                issue_number=updated_agent.github_issue_number,
+                branch_name=updated_agent.branch_name or "",
+            )
+
         # Apply updates
         name = body.name or agent.name
         description = body.description or agent.description
         system_prompt = body.system_prompt or agent.system_prompt
         tools = body.tools if body.tools is not None else agent.tools
+        default_model_id = (
+            body.default_model_id if body.default_model_id is not None else agent.default_model_id
+        )
+        default_model_name = (
+            body.default_model_name
+            if body.default_model_name is not None
+            else agent.default_model_name
+        )
 
         slug = AgentPreview.name_to_slug(name)
 
@@ -651,7 +742,7 @@ class AgentsService:
             await self._db.execute(
                 """UPDATE agent_configs
                    SET name = ?, slug = ?, description = ?, system_prompt = ?,
-                       tools = ?, github_pr_number = ?, branch_name = ?
+                       tools = ?, default_model_id = ?, default_model_name = ?, github_pr_number = ?, branch_name = ?
                    WHERE id = ?""",
                 (
                     name,
@@ -659,6 +750,8 @@ class AgentsService:
                     description,
                     system_prompt,
                     tools_json,
+                    default_model_id,
+                    default_model_name,
                     result.pr_number,
                     branch_name,
                     agent.id,
@@ -672,6 +765,8 @@ class AgentsService:
             slug=slug,
             description=description,
             system_prompt=system_prompt,
+            default_model_id=default_model_id,
+            default_model_name=default_model_name,
             status=agent.status,
             tools=tools,
             status_column=agent.status_column,
@@ -1115,6 +1210,8 @@ class AgentsService:
             slug=r["slug"],
             description=r["description"],
             system_prompt=r.get("system_prompt", ""),
+            default_model_id=r.get("default_model_id", "") or "",
+            default_model_name=r.get("default_model_name", "") or "",
             status=status,
             tools=tools,
             status_column=r.get("status_column") or None,
@@ -1232,9 +1329,9 @@ class AgentsService:
             await self._db.execute(
                 """INSERT INTO agent_configs
                    (id, name, slug, description, system_prompt, status_column,
-                    tools, project_id, owner, repo, created_by,
+                    tools, default_model_id, default_model_name, project_id, owner, repo, created_by,
                     github_issue_number, github_pr_number, branch_name, created_at, lifecycle_status)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     str(uuid.uuid4()),
                     agent.name,
@@ -1243,6 +1340,8 @@ class AgentsService:
                     agent.system_prompt,
                     agent.status_column or "",
                     tools_json,
+                    agent.default_model_id,
+                    agent.default_model_name,
                     project_id,
                     owner,
                     repo,
@@ -1256,3 +1355,94 @@ class AgentsService:
             )
 
         await self._db.commit()
+
+    async def _save_runtime_model_selection(
+        self,
+        *,
+        project_id: str,
+        owner: str,
+        repo: str,
+        github_user_id: str,
+        agent: Agent,
+        default_model_id: str | None,
+        default_model_name: str | None,
+    ) -> Agent:
+        """Persist per-project default model selection without creating repo content changes."""
+        resolved_model_id = (
+            default_model_id if default_model_id is not None else agent.default_model_id
+        )
+        resolved_model_name = (
+            default_model_name if default_model_name is not None else agent.default_model_name
+        )
+        existing_local_agent = await self._resolve_agent(project_id, agent.slug)
+        tools_json = json.dumps(agent.tools)
+        now = utcnow().isoformat()
+
+        if existing_local_agent and not existing_local_agent.id.startswith("repo:"):
+            await self._db.execute(
+                """UPDATE agent_configs
+                   SET name = ?, description = ?, system_prompt = ?, status_column = ?,
+                       tools = ?, owner = ?, repo = ?, created_by = ?, default_model_id = ?,
+                       default_model_name = ?
+                   WHERE id = ?""",
+                (
+                    agent.name,
+                    agent.description,
+                    agent.system_prompt,
+                    agent.status_column or "",
+                    tools_json,
+                    owner,
+                    repo,
+                    github_user_id,
+                    resolved_model_id,
+                    resolved_model_name,
+                    existing_local_agent.id,
+                ),
+            )
+            persisted_status = existing_local_agent.status
+            persisted_id = existing_local_agent.id
+            created_at = existing_local_agent.created_at
+        else:
+            persisted_id = str(uuid.uuid4())
+            await self._db.execute(
+                """INSERT INTO agent_configs
+                   (id, name, slug, description, system_prompt, status_column,
+                    tools, default_model_id, default_model_name, project_id, owner, repo,
+                    created_by, github_issue_number, github_pr_number, branch_name, created_at,
+                    lifecycle_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    persisted_id,
+                    agent.name,
+                    agent.slug,
+                    agent.description,
+                    agent.system_prompt,
+                    agent.status_column or "",
+                    tools_json,
+                    resolved_model_id,
+                    resolved_model_name,
+                    project_id,
+                    owner,
+                    repo,
+                    github_user_id,
+                    agent.github_issue_number,
+                    agent.github_pr_number,
+                    agent.branch_name,
+                    now,
+                    AgentStatus.ACTIVE.value,
+                ),
+            )
+            persisted_status = AgentStatus.ACTIVE
+            created_at = now
+
+        await self._db.commit()
+
+        return agent.model_copy(
+            update={
+                "default_model_id": resolved_model_id,
+                "default_model_name": resolved_model_name,
+                "status": persisted_status,
+                "created_at": created_at,
+                "id": persisted_id if not agent.id.startswith("repo:") else agent.id,
+            }
+        )

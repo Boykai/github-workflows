@@ -3,7 +3,8 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
@@ -22,19 +23,8 @@ import type { BoardItem } from '@/types';
 import { ApiError } from '@/services/api';
 import { Filter, ArrowUpDown, Columns3 } from 'lucide-react';
 
-function getRateLimitUsagePercent(limit?: number, remaining?: number) {
-  if (!limit || limit <= 0 || remaining === undefined) return 0;
-  const used = Math.max(0, limit - remaining);
-  return Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
-}
-
-function getRateLimitFillClass(usagePercent: number) {
-  if (usagePercent >= 90) return 'bg-destructive shadow-[0_0_16px_rgba(224,98,98,0.45)]';
-  if (usagePercent >= 70) return 'bg-accent shadow-[0_0_14px_rgba(227,179,92,0.35)]';
-  return 'bg-primary shadow-[0_0_14px_rgba(194,166,98,0.28)]';
-}
-
 export function ProjectsPage() {
+  const { updateRateLimit } = useRateLimitStatus();
   const { user } = useAuth();
   const {
     projects,
@@ -109,68 +99,31 @@ export function ProjectsPage() {
   }, [boardData, sortField]);
 
   // Calculate progress
-  const { totalItems, progressPercent } = useMemo(() => {
-    const total = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-    const done = boardData?.columns
-      .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
-      .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-    return { totalItems: total, progressPercent: percent };
-  }, [boardData]);
+  const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const doneItems = boardData?.columns
+    .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
+    .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+  const projectsRateLimitError = isRateLimitApiError(projectsError);
+  const boardRateLimitError = isRateLimitApiError(boardError);
+  const refreshRateLimitError = refreshError?.type === 'rate_limit';
+  const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
+  const boardRateLimitDetails = extractRateLimitInfo(boardError);
+  const effectiveRateLimitInfo = rateLimitInfo
+    ?? projectsRateLimitInfo
+    ?? refreshError?.rateLimitInfo
+    ?? boardRateLimitDetails
+    ?? projectsRateLimitDetails;
+  const hasActiveRateLimitError = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
-  // Derive rate limit display state
-  const {
-    hasActiveRateLimitError,
-    showRateLimitBar,
-    rateLimitUsagePercent,
-    rateLimitLabel,
-    rateLimitTooltip,
-    rateLimitRetryAfter,
-    showRateLimitBanner,
-    projectsRateLimitError,
-    boardRateLimitError,
-  } = useMemo(() => {
-    const projectsRateLimitError = isRateLimitApiError(projectsError);
-    const boardRateLimitError = isRateLimitApiError(boardError);
-    const refreshRateLimitError = refreshError?.type === 'rate_limit';
-    const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
-    const boardRateLimitDetails = extractRateLimitInfo(boardError);
-    const effective = rateLimitInfo
-      ?? projectsRateLimitInfo
-      ?? refreshError?.rateLimitInfo
-      ?? boardRateLimitDetails
-      ?? projectsRateLimitDetails;
-    const hasActive = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-    const showBar = Boolean(effective) || hasActive;
-    const usagePercent = getRateLimitUsagePercent(
-      effective?.limit,
-      effective?.remaining,
-    ) || (hasActive ? 100 : 0);
-    const label = effective
-      ? `${effective.remaining}/${effective.limit} remaining`
-      : hasActive
-        ? 'Limit reached'
-        : null;
-    const tooltip = effective
-      ? `GitHub API usage: ${effective.used}/${effective.limit} used. Resets ${formatTimeUntil(new Date(effective.reset_at * 1000))}.`
-      : hasActive
-        ? 'GitHub API rate limit reached. Retry after the reset window.'
-        : null;
-    const retryAfter = refreshError?.retryAfter
-      ?? (effective ? new Date(effective.reset_at * 1000) : undefined);
-    const showBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-    return {
-      hasActiveRateLimitError: hasActive,
-      showRateLimitBar: showBar,
-      rateLimitUsagePercent: usagePercent,
-      rateLimitLabel: label,
-      rateLimitTooltip: tooltip,
-      rateLimitRetryAfter: retryAfter,
-      showRateLimitBanner: showBanner,
-      projectsRateLimitError,
-      boardRateLimitError,
-    };
-  }, [rateLimitInfo, projectsRateLimitInfo, refreshError, projectsError, boardError]);
+  // Publish rate limit state to global context so TopBar can display it on any page.
+  useEffect(() => {
+    updateRateLimit({ info: effectiveRateLimitInfo ?? null, hasError: hasActiveRateLimitError });
+  }, [effectiveRateLimitInfo, hasActiveRateLimitError, updateRateLimit]);
+
+  const rateLimitRetryAfter = refreshError?.retryAfter
+    ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
+  const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
@@ -201,27 +154,6 @@ export function ProjectsPage() {
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {showRateLimitBar && (
-            <div
-              className="flex items-center gap-2 rounded-full border border-border/70 bg-background/45 px-3 py-2 backdrop-blur-sm"
-              title={rateLimitTooltip ?? undefined}
-              aria-label="GitHub API rate limit"
-            >
-              <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground/80">
-                GitHub API
-              </span>
-              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/80">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${getRateLimitFillClass(rateLimitUsagePercent)}`}
-                  style={{ width: `${rateLimitUsagePercent}%` }}
-                />
-              </div>
-              <span className={`text-[11px] ${hasActiveRateLimitError ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
-                {rateLimitLabel}
-              </span>
-            </div>
-          )}
-
           {selectedProjectId && (
             <span className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${
@@ -391,6 +323,7 @@ export function ProjectsPage() {
       {selectedProjectId && !boardLoading && sortedBoardData && (
         <div className="flex flex-col flex-1 gap-6 overflow-hidden">
           <AgentConfigRow
+            columnCount={Math.max(sortedBoardData.columns.length, 1)}
             columns={sortedBoardData.columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}

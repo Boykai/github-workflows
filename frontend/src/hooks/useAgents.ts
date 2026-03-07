@@ -52,7 +52,10 @@ export function useUpdateAgent(projectId: string | null | undefined) {
   return useMutation<AgentCreateResult, ApiError, { agentId: string; data: AgentUpdate }>({
     mutationFn: ({ agentId, data }) => agentsApi.update(projectId!, agentId, data),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      }
     },
   });
 }

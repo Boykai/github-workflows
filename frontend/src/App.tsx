@@ -4,7 +4,7 @@
  */
 
 import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { ApiError } from '@/services/api';
 import { AuthGate } from '@/layout/AuthGate';
@@ -38,27 +38,31 @@ const queryClient = new QueryClient({
   },
 });
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<AuthGate><AppLayout /></AuthGate>}>
+        <Route index element={<AppPage />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="pipeline" element={<AgentsPipelinePage />} />
+        <Route path="agents" element={<AgentsPage />} />
+        <Route path="tools" element={<ToolsPage />} />
+        <Route path="chores" element={<ChoresPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </>,
+  ),
+);
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <QueryErrorResetBoundary>
         {({ reset }) => (
           <ErrorBoundary onReset={reset}>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route element={<AuthGate><AppLayout /></AuthGate>}>
-                  <Route index element={<AppPage />} />
-                  <Route path="projects" element={<ProjectsPage />} />
-                  <Route path="pipeline" element={<AgentsPipelinePage />} />
-                  <Route path="agents" element={<AgentsPage />} />
-                  <Route path="tools" element={<ToolsPage />} />
-                  <Route path="chores" element={<ChoresPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Route>
-              </Routes>
-            </BrowserRouter>
+            <RouterProvider router={router} />
           </ErrorBoundary>
         )}
       </QueryErrorResetBoundary>

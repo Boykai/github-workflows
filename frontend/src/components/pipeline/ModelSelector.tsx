@@ -3,7 +3,8 @@
  * Groups models by provider, shows metadata, tracks recently used.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useModels } from '@/hooks/useModels';
 import { ChevronDown, Search, Check, Zap, DollarSign, Crown } from 'lucide-react';
 import type { AIModel } from '@/types';
@@ -12,6 +13,7 @@ interface ModelSelectorProps {
   selectedModelId: string | null;
   onSelect: (modelId: string, modelName: string) => void;
   trigger?: React.ReactNode;
+  disabled?: boolean;
 }
 
 // Session-level recently used tracking
@@ -58,10 +60,12 @@ function formatContextWindow(size: number): string {
   return `${size} tokens`;
 }
 
-export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelectorProps) {
+export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = false }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { models, modelsByProvider, isLoading } = useModels();
+  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { models, modelsByProvider, isLoading, isRefreshing, refreshModels } = useModels();
 
   const recentModels = useMemo(
     () =>
@@ -100,12 +104,49 @@ export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelec
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+
+      const rect = triggerRef.current.getBoundingClientRect();
+      const width = 288;
+      const height = 320;
+      const margin = 12;
+      const left = Math.min(Math.max(rect.left, margin), window.innerWidth - width - margin);
+      const placeAbove = window.innerHeight - rect.bottom < height && rect.top > height;
+      const top = placeAbove
+        ? Math.max(margin, rect.top - height - 4)
+        : Math.min(rect.bottom + 4, window.innerHeight - height - margin);
+
+      setPosition({ top, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
+
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/50 px-2.5 py-1.5 text-xs transition-colors hover:bg-accent/50"
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+        }}
+        disabled={disabled}
+        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/50 px-2.5 py-1.5 text-xs transition-colors hover:bg-accent/50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {trigger || (
           <>
@@ -117,13 +158,11 @@ export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelec
         )}
       </button>
 
-      {isOpen && (
+      {isOpen && position && createPortal(
         <>
-          {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => { setIsOpen(false); setSearch(''); }} onKeyDown={(e) => { if (e.key === 'Escape') { setIsOpen(false); setSearch(''); } }} role="button" tabIndex={0} aria-label="Close model selector" />
 
-          {/* Popover */}
-          <div className="absolute left-0 top-full z-50 mt-1 w-72 rounded-xl border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">
+          <div className="fixed z-50 rounded-xl border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm" style={{ top: position.top, left: position.left, width: position.width }}>
             {/* Search */}
             <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
               <Search className="h-3.5 w-3.5 text-muted-foreground" />
@@ -134,6 +173,14 @@ export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelec
                 onChange={(e) => setSearch(e.target.value)}
                 className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/60"
               />
+              <button
+                type="button"
+                onClick={() => void refreshModels()}
+                className="rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? 'Refreshing…' : 'Refresh'}
+              </button>
             </div>
 
             <div className="max-h-64 overflow-y-auto p-1.5">
@@ -185,7 +232,8 @@ export function ModelSelector({ selectedModelId, onSelect, trigger }: ModelSelec
               )}
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
     </div>
   );
@@ -214,10 +262,12 @@ function ModelRow({
           {isSelected && <Check className="h-3 w-3 text-primary" />}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[10px] text-muted-foreground">
-            {formatContextWindow(model.context_window_size)}
-          </span>
-          <CostTierBadge tier={model.cost_tier} />
+          {model.context_window_size ? (
+            <span className="text-[10px] text-muted-foreground">
+              {formatContextWindow(model.context_window_size)}
+            </span>
+          ) : null}
+          {model.cost_tier ? <CostTierBadge tier={model.cost_tier} /> : null}
         </div>
       </div>
     </button>

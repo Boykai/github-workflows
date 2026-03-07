@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -32,7 +33,9 @@ export function StageCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [pickerPosition, setPickerPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const {
     attributes,
@@ -56,6 +59,34 @@ export function StageCard({
     }
   }, [isEditing]);
 
+  useEffect(() => {
+    if (!showAgentPicker) {
+      setPickerPosition(null);
+      return;
+    }
+
+    const updatePickerPosition = () => {
+      if (!addButtonRef.current) return;
+      const rect = addButtonRef.current.getBoundingClientRect();
+      const width = Math.max(rect.width, 220);
+      const maxLeft = Math.max(window.innerWidth - width - 12, 12);
+      setPickerPosition({
+        top: rect.bottom + 4,
+        left: Math.min(rect.left, maxLeft),
+        width,
+      });
+    };
+
+    updatePickerPosition();
+    window.addEventListener('resize', updatePickerPosition);
+    window.addEventListener('scroll', updatePickerPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePickerPosition);
+      window.removeEventListener('scroll', updatePickerPosition, true);
+    };
+  }, [showAgentPicker]);
+
   const handleRenameConfirm = () => {
     const trimmed = editName.trim();
     if (trimmed && trimmed !== stage.name) {
@@ -78,7 +109,7 @@ export function StageCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex min-w-[220px] flex-col gap-2 rounded-xl border border-border/70 bg-card/80 p-3 backdrop-blur-sm transition-shadow ${
+      className={`flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/80 p-3 backdrop-blur-sm transition-shadow ${
         isDragging ? 'shadow-lg ring-2 ring-primary/30' : 'shadow-sm'
       }`}
     >
@@ -142,6 +173,7 @@ export function StageCard({
       {/* Add agent */}
       <div className="relative">
         <button
+          ref={addButtonRef}
           type="button"
           onClick={() => setShowAgentPicker(!showAgentPicker)}
           className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
@@ -150,10 +182,13 @@ export function StageCard({
           Add Agent
         </button>
 
-        {showAgentPicker && (
+        {showAgentPicker && pickerPosition && createPortal(
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowAgentPicker(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowAgentPicker(false); }} role="button" tabIndex={0} aria-label="Close agent picker" />
-            <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">
+            <div
+              className="fixed z-50 rounded-lg border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm"
+              style={{ top: pickerPosition.top, left: pickerPosition.left, width: pickerPosition.width }}
+            >
               <div className="max-h-40 overflow-y-auto p-1">
                 {availableAgents.length === 0 && (
                   <div className="py-2 text-center text-xs text-muted-foreground">
@@ -176,7 +211,8 @@ export function StageCard({
                 ))}
               </div>
             </div>
-          </>
+          </>,
+          document.body,
         )}
       </div>
     </div>

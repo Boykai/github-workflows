@@ -19,7 +19,9 @@ from src.models.workflow import (
     WorkflowResult,
     WorkflowTransition,
 )
+from src.services.agents.service import AgentsService
 from src.services.cache import cache, get_user_projects_cache_key
+from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
@@ -492,6 +494,22 @@ async def list_agents(
         repo=resolved_repo or "",
         access_token=session.access_token,
     )
+
+    if resolved_owner and resolved_repo:
+        model_prefs = await AgentsService(get_db()).get_model_preferences(
+            session.selected_project_id
+        )
+        agents = [
+            available_agent.model_copy(
+                update={
+                    "default_model_id": model_prefs[available_agent.slug][0],
+                    "default_model_name": model_prefs[available_agent.slug][1],
+                }
+            )
+            if available_agent.slug in model_prefs
+            else available_agent
+            for available_agent in agents
+        ]
 
     return AvailableAgentsResponse(agents=agents)
 

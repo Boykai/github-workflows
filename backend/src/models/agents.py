@@ -27,6 +27,8 @@ class Agent(BaseModel):
     slug: str
     description: str
     system_prompt: str = ""
+    default_model_id: str = ""
+    default_model_name: str = ""
     status: AgentStatus = AgentStatus.ACTIVE
     tools: list[str] = Field(default_factory=list)
     status_column: str | None = None
@@ -45,6 +47,8 @@ class AgentCreate(BaseModel):
     system_prompt: str = Field(..., min_length=1, max_length=30000)
     tools: list[str] = Field(default_factory=list)
     status_column: str = ""
+    default_model_id: str = ""
+    default_model_name: str = ""
     raw: bool = False  # If True, use exact content as-is without AI generation
 
 
@@ -55,6 +59,8 @@ class AgentUpdate(BaseModel):
     description: str | None = Field(default=None, min_length=1, max_length=500)
     system_prompt: str | None = Field(default=None, min_length=1, max_length=30000)
     tools: list[str] | None = None
+    default_model_id: str | None = None
+    default_model_name: str | None = None
 
 
 class AgentCreateResult(BaseModel):

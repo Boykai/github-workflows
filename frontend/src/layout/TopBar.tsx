@@ -6,6 +6,7 @@ import { Sun, Moon } from 'lucide-react';
 import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
 import { LoginButton } from '@/components/auth/LoginButton';
+import { RateLimitBar } from './RateLimitBar';
 import type { Notification } from '@/types';
 
 interface TopBarProps {
@@ -36,6 +37,7 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-3">
+        <RateLimitBar />
         <div className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/45 px-3 py-1.5 md:flex">
           <span className="h-2 w-2 rounded-full bg-primary shadow-sm" />
           <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Solar focus</span>

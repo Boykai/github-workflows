@@ -30,6 +30,7 @@ import { AgentSaveBar } from './AgentSaveBar';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 
 interface AgentConfigRowProps {
+  columnCount: number;
   columns: BoardColumn[];
   agentConfig: ReturnType<typeof useAgentConfig>;
   availableAgents?: AvailableAgent[];
@@ -51,6 +52,7 @@ function findColumnForAgent(
 }
 
 export function AgentConfigRow({
+  columnCount,
   columns,
   agentConfig,
   availableAgents,
@@ -232,7 +234,7 @@ export function AgentConfigRow({
 
       {/* Collapsible body */}
       {isExpanded && (
-        <div className="p-2 bg-muted/10">
+        <div className="bg-muted/10 py-2">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -241,7 +243,8 @@ export function AgentConfigRow({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <div className="flex gap-4 overflow-x-auto pb-2">
+           <div className="overflow-x-auto">
+            <div className="grid min-w-full items-start gap-3 pb-2" style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))` }}>
               {columns.map((col) => {
                 const status = col.status.name;
                 const agents = localMappings[status] ?? [];
@@ -260,6 +263,7 @@ export function AgentConfigRow({
                 );
               })}
             </div>
+           </div>
 
             {/* Floating drag overlay */}
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>

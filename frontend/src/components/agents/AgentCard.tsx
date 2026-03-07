@@ -4,9 +4,10 @@
  */
 
 import type { AgentConfig, AgentStatus } from '@/services/api';
-import { useDeleteAgent } from '@/hooks/useAgents';
+import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ModelSelector } from '@/components/pipeline/ModelSelector';
 import { cn } from '@/lib/utils';
 
 interface AgentCardProps {
@@ -34,6 +35,7 @@ const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = 
 
 export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 'default' }: AgentCardProps) {
   const deleteMutation = useDeleteAgent(projectId);
+  const updateMutation = useUpdateAgent(projectId);
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
 
   // Repo-only agents cannot be edited through the API, but they can be deleted via PR.
@@ -41,6 +43,7 @@ export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 
   const isPendingDeletion = agent.status === 'pending_deletion';
   const isPendingCreation = agent.status === 'pending_pr' && agent.source === 'local';
   const canDelete = !isPendingDeletion && !isPendingCreation;
+  const canConfigureModel = !isPendingDeletion;
 
   const handleDelete = () => {
     if (window.confirm(`Remove agent "${agent.name}"? This opens a PR to delete the repo files. The catalog only updates after that PR is merged into main.`)) {
@@ -52,6 +55,17 @@ export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 
   const sourceLabel = agent.source === 'both' ? 'Shared' : agent.source === 'repo' ? 'Repository' : 'Local';
   const createdLabel = agent.created_at ? new Date(agent.created_at).toLocaleDateString() : 'Recently added';
   const usageLabel = `${usageCount} config${usageCount === 1 ? '' : 's'}`;
+  const pipelineModelLabel = agent.default_model_name || 'No default model';
+
+  const handleModelSelect = (modelId: string, modelName: string) => {
+    updateMutation.mutate({
+      agentId: agent.id,
+      data: {
+        default_model_id: modelId,
+        default_model_name: modelName,
+      },
+    });
+  };
 
   return (
     <Card
@@ -121,6 +135,25 @@ export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 
           </div>
         </div>
 
+        <div className="moonwell flex flex-col gap-3 rounded-[1.3rem] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Pipeline model</p>
+              <p className="mt-1 truncate text-sm text-foreground" title={pipelineModelLabel}>{pipelineModelLabel}</p>
+            </div>
+            <ModelSelector
+              selectedModelId={agent.default_model_id || null}
+              onSelect={handleModelSelect}
+              disabled={!canConfigureModel || updateMutation.isPending}
+            />
+          </div>
+          {agent.source === 'repo' ? (
+            <p className="text-[11px] leading-5 text-muted-foreground">
+              Saved as a local runtime preference for this project.
+            </p>
+          ) : null}
+        </div>
+
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {onEdit && !isRepoOnly && !isPendingDeletion && (
             <Button variant="outline" size="sm" onClick={() => onEdit(agent)}>
@@ -158,6 +191,12 @@ export function AgentCard({ agent, projectId, usageCount = 0, onEdit, variant = 
         {deleteMutation.isError && (
           <div className="text-xs text-destructive">
             {deleteMutation.error?.message || 'Delete failed'}
+          </div>
+        )}
+
+        {updateMutation.isError && (
+          <div className="text-xs text-destructive">
+            {updateMutation.error?.message || 'Failed to update default model'}
           </div>
         )}
       </CardContent>

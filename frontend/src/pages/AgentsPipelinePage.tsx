@@ -3,7 +3,7 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -32,6 +32,10 @@ export function AgentsPipelinePage() {
   const pipelineConfig = usePipelineConfig(projectId);
 
   const columns = boardData?.columns ?? [];
+  const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
+  const alignedGridStyle: CSSProperties = {
+    gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
+  };
 
   // Block in-app SPA navigation when there are unsaved changes
   useBlocker(pipelineConfig.isDirty);
@@ -73,16 +77,18 @@ export function AgentsPipelinePage() {
 
   // Handle new pipeline with unsaved changes check
   const handleNewPipeline = useCallback(() => {
+    const initialStageNames = columns.map((column) => column.status.name);
+
     if (pipelineConfig.isDirty) {
       setUnsavedDialog({
         isOpen: true,
-        pendingAction: () => pipelineConfig.newPipeline(),
+        pendingAction: () => pipelineConfig.newPipeline(initialStageNames),
         description: 'Creating a new pipeline will discard your changes',
       });
     } else {
-      pipelineConfig.newPipeline();
+      pipelineConfig.newPipeline(initialStageNames);
     }
-  }, [pipelineConfig]);
+  }, [columns, pipelineConfig]);
 
   // Handle delete with confirmation
   const handleDelete = useCallback(() => {
@@ -164,6 +170,7 @@ export function AgentsPipelinePage() {
           {/* Pipeline Board */}
           {pipelineConfig.boardState !== 'empty' && pipelineConfig.pipeline && (
             <PipelineBoard
+              columnCount={alignedColumnCount}
               stages={pipelineConfig.pipeline.stages}
               availableAgents={availableAgents}
               isEditMode={pipelineConfig.boardState === 'editing'}
@@ -203,6 +210,7 @@ export function AgentsPipelinePage() {
 
           {/* Agent Config Row — drag-and-drop assignment */}
           <AgentConfigRow
+            columnCount={alignedColumnCount}
             columns={columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}
@@ -229,15 +237,15 @@ export function AgentsPipelinePage() {
           {/* Pipeline Stages Visualization */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Pipeline Stages</h3>
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {columns.map((col, idx) => {
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-full items-stretch gap-3" style={alignedGridStyle}>
+                {columns.map((col) => {
                 const assigned = agentConfig.localMappings[col.status.name] ?? [];
                 const dotColor = statusColorToCSS(col.status.color);
                 return (
-                  <div key={col.status.option_id} className="flex items-center gap-3 shrink-0">
-                    <div className="celestial-panel flex min-w-[160px] flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 p-4">
+                  <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 p-4 text-center">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dotColor }} />
-                      <span className="text-sm font-medium text-center">{col.status.name}</span>
+                      <span className="text-sm font-medium">{col.status.name}</span>
                       <span className="text-xs text-muted-foreground">{col.item_count} items</span>
                       {assigned.length > 0 ? (
                         <div className="flex flex-wrap gap-1 justify-center mt-1">
@@ -250,13 +258,10 @@ export function AgentsPipelinePage() {
                       ) : (
                         <span className="text-[10px] text-muted-foreground/60 mt-1">No agents</span>
                       )}
-                    </div>
-                    {idx < columns.length - 1 && (
-                      <span className="text-muted-foreground/40 text-lg">→</span>
-                    )}
                   </div>
                 );
-              })}
+                })}
+              </div>
             </div>
           </div>
 

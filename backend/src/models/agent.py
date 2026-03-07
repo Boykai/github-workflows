@@ -42,6 +42,8 @@ class AvailableAgent(BaseModel):
     display_name: str = Field(..., description="Human-readable name")
     description: str | None = Field(default=None, description="Agent description")
     avatar_url: str | None = Field(default=None, description="Avatar URL")
+    default_model_id: str = Field(default="", description="Saved default model ID")
+    default_model_name: str = Field(default="", description="Saved default model name")
     source: AgentSource = Field(..., description="Discovery source")
 
 

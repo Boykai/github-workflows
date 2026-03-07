@@ -703,6 +703,8 @@ export interface AgentConfig {
   slug: string;
   description: string;
   system_prompt: string;
+  default_model_id: string;
+  default_model_name: string;
   status: AgentStatus;
   tools: string[];
   status_column: string | null;
@@ -719,6 +721,8 @@ export interface AgentCreate {
   system_prompt: string;
   tools?: string[];
   status_column?: string;
+  default_model_id?: string;
+  default_model_name?: string;
   raw?: boolean;
 }
 
@@ -727,6 +731,8 @@ export interface AgentUpdate {
   description?: string;
   system_prompt?: string;
   tools?: string[];
+  default_model_id?: string;
+  default_model_name?: string;
 }
 
 export interface AgentCreateResult {
@@ -852,8 +858,13 @@ export const pipelinesApi = {
 // ============ Models API ============
 
 export const modelsApi = {
-  list(_projectId: string): Promise<AIModel[]> {
-    return request<AIModel[]>(`/pipelines/models/available`);
+  async list(forceRefresh = false): Promise<AIModel[]> {
+    const response = await settingsApi.fetchModels('copilot', forceRefresh);
+    return (response.models ?? []).map((model) => ({
+      id: model.id,
+      name: model.name,
+      provider: model.provider,
+    }));
   },
 };
 
