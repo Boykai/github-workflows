@@ -183,7 +183,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   if (showCloseConfirm) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">
-        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-sm" role="presentation" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-lg font-semibold mb-2">Unsaved Changes</h3>
           <p className="text-sm text-muted-foreground mb-4">
             You have unsaved changes. What would you like to do?
@@ -223,8 +223,8 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   // Success state
   if (successPrUrl) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" onClick={resetAndClose}>
-        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={resetAndClose}>
+        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md" role="presentation" onClick={(e) => e.stopPropagation()}>
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-3xl">✅</span>
             <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
@@ -253,8 +253,8 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
   // Form
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" onClick={handleRequestClose}>
-      <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleRequestClose}>
+      <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" role="presentation" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold mb-4">
           {isEditMode ? 'Edit Agent' : 'Add Agent'}
         </h2>

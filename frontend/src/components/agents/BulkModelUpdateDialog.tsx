@@ -55,9 +55,10 @@ export function BulkModelUpdateDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
       <div
         className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+        role="presentation"
         onClick={(e) => e.stopPropagation()}
       >
         {step === 1 && (
