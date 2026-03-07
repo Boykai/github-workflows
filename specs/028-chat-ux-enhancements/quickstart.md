@@ -176,9 +176,10 @@ const validateFile = (file: File): string | null => {
   if (file.size > FILE_VALIDATION.maxFileSize) {
     return `File exceeds ${FILE_VALIDATION.maxFileSize / 1024 / 1024} MB limit`;
   }
-  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-  if (!ALLOWED_TYPES.includes(ext)) {
-    return `File type ${ext} is not supported`;
+  const parts = file.name.split('.');
+  const ext = parts.length > 1 ? '.' + parts.pop()!.toLowerCase() : '';
+  if (!ext || !ALLOWED_TYPES.includes(ext)) {
+    return `File type ${ext || '(no extension)'} is not supported`;
   }
   return null; // valid
 };

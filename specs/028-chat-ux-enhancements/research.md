@@ -53,11 +53,13 @@
 
 **Decision**: Implement a two-step upload flow:
 1. **Frontend**: User selects files → client-side validation (type, size ≤ 10 MB) → display preview chips → on submission, upload files to backend endpoint `POST /api/v1/chat/upload` as multipart/form-data.
-2. **Backend**: Receive files → upload to GitHub's user-content CDN via the repository upload mechanism (same mechanism GitHub uses for drag-and-drop in issue comments, using `POST https://uploads.github.com/repos/{owner}/{repo}/issues/{issue_number}/comments` with the file content, or uploading via a comment body with embedded image markdown) → return file URLs → embed URLs as Markdown links/images in the issue body.
+2. **Backend**: Receive files → for images, create a GitHub Gist with the image encoded as a base64 data URI or upload via the GitHub repository contents API to a designated `uploads/` branch, returning a raw GitHub URL. For non-image files (PDFs, text, CSV, etc.), create a GitHub Gist containing the file content (text files) or a Gist with a download link comment (binary files). Return the accessible URL → embed URLs as Markdown links/images in the issue body.
 
-For files that GitHub doesn't natively embed (PDFs, text files), the backend creates a GitHub Gist or uses a release asset as a hosting mechanism and embeds the URL in the issue body.
+The concrete upload mechanism is:
+- **Image files** (png, jpg, gif, webp, svg): Upload to the repository via the GitHub Contents API (`PUT /repos/{owner}/{repo}/contents/uploads/{filename}`) on a dedicated `uploads` branch, then use the raw URL (`https://raw.githubusercontent.com/...`) embedded as `![filename](url)` in the issue body.
+- **Document files** (pdf, txt, md, csv, json, yaml, zip): Create a GitHub Gist via `POST /gists` containing the file content, then embed the Gist URL as `[filename](gist_url)` in the issue body.
 
-**Rationale**: GitHub's Issues REST API does not support direct programmatic file attachment (unlike the web UI's drag-and-drop which uses a hidden upload endpoint). The standard workaround is to upload files to an accessible URL and embed the link in the issue body. GitHub's user-content CDN supports images natively when posted in issue/comment bodies. For non-image files, linking to a Gist or release asset is a well-established pattern. The backend handles the upload to abstract GitHub API details from the frontend. Client-side validation prevents unnecessary network requests for invalid files.
+**Rationale**: GitHub's Issues REST API does not support direct programmatic file attachment (the web UI uses an undocumented upload endpoint). The repository contents API and Gist API are both well-documented, stable, and available with the existing GitHub token. Using the repository contents API for images keeps assets co-located with the project and produces predictable raw URLs. Using Gists for documents provides a clean, shareable link for each file. The backend handles all GitHub API interactions, abstracting the upload mechanism from the frontend. Client-side validation prevents unnecessary network requests for invalid files.
 
 **Alternatives Considered**:
 - **Direct frontend upload to GitHub**: Rejected — requires exposing GitHub tokens to the frontend; CORS restrictions; the backend already manages GitHub authentication.
