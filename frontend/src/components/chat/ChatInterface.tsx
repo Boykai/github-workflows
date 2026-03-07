@@ -10,8 +10,12 @@ import { CommandAutocomplete } from './CommandAutocomplete';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
+import { ChatToolbar } from './ChatToolbar';
+import { FilePreviewChips } from './FilePreviewChips';
 import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
+import { useFileUpload } from '@/hooks/useFileUpload';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
 import type { CommandDefinition } from '@/lib/commands/types';
 import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
@@ -22,7 +26,7 @@ interface ChatInterfaceProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
+  onSendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[] }) => void;
   onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
@@ -30,6 +34,17 @@ interface ChatInterfaceProps {
   onRejectProposal: (proposalId: string) => void;
   onRejectRecommendation: (recommendationId: string) => Promise<void>;
   onNewChat: () => void;
+}
+
+const AI_ENHANCE_STORAGE_KEY = 'chat-ai-enhance';
+
+function getInitialAiEnhance(): boolean {
+  try {
+    const stored = localStorage.getItem(AI_ENHANCE_STORAGE_KEY);
+    return stored === null ? true : stored === 'true';
+  } catch {
+    return true;
+  }
 }
 
 export function ChatInterface({
@@ -52,6 +67,7 @@ export function ChatInterface({
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
   const [showHistoryPopover, setShowHistoryPopover] = useState(false);
+  const [aiEnhance, setAiEnhance] = useState(getInitialAiEnhance);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const historyPopoverRef = useRef<HTMLDivElement>(null);
@@ -71,6 +87,47 @@ export function ChatInterface({
     history: chatHistory,
     selectFromHistory,
   } = useChatHistory();
+
+  // File upload management
+  const {
+    files: uploadFiles,
+    errors: fileErrors,
+    addFiles: handleFileAdd,
+    removeFile: handleFileRemove,
+    uploadAll: uploadAllFiles,
+    clearAll: clearAllFiles,
+  } = useFileUpload();
+
+  // Voice input management
+  const handleVoiceTranscript = useCallback((text: string) => {
+    setInput((prev) => (prev ? `${prev} ${text}` : text));
+  }, []);
+  const {
+    isSupported: isVoiceSupported,
+    isRecording,
+    interimTranscript,
+    error: voiceError,
+    startRecording,
+    stopRecording,
+  } = useVoiceInput(handleVoiceTranscript);
+
+  // AI Enhance persistence
+  const handleAiEnhanceChange = useCallback((enabled: boolean) => {
+    setAiEnhance(enabled);
+    try {
+      localStorage.setItem(AI_ENHANCE_STORAGE_KEY, String(enabled));
+    } catch {
+      // localStorage unavailable — state still works in-memory
+    }
+  }, []);
+
+  const handleVoiceToggle = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -111,7 +168,7 @@ export function ChatInterface({
     inputRef.current?.focus();
   }, []);
 
-  const doSubmit = () => {
+  const doSubmit = async () => {
     const content = input.trim();
     if (content && !isSending) {
       setShowAutocomplete(false);
@@ -119,10 +176,17 @@ export function ChatInterface({
       addToHistory(content);
       resetNavigation();
       const commandInput = isCommandFn(content);
-      onSendMessage(content, { isCommand: commandInput });
-      // Always clear input after submission — command-level input preservation
-      // is handled by the useChat hook via CommandResult.clearInput when needed.
+
+      // Upload pending files before sending
+      let fileUrls: string[] = [];
+      if (uploadFiles.length > 0 && !commandInput) {
+        fileUrls = await uploadAllFiles();
+      }
+
+      onSendMessage(content, { isCommand: commandInput, aiEnhance, fileUrls });
+      // Always clear input after submission
       setInput('');
+      clearAllFiles();
     }
   };
 
@@ -338,6 +402,27 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
+      <ChatToolbar
+        aiEnhance={aiEnhance}
+        onAiEnhanceChange={handleAiEnhanceChange}
+        onFileSelect={handleFileAdd}
+        isRecording={isRecording}
+        isVoiceSupported={isVoiceSupported}
+        onVoiceToggle={handleVoiceToggle}
+        voiceError={voiceError}
+        fileCount={uploadFiles.length}
+      />
+
+      <FilePreviewChips files={uploadFiles} onRemove={handleFileRemove} />
+
+      {fileErrors.length > 0 && (
+        <div className="px-4 py-1.5 text-xs text-destructive bg-destructive/5 border-b border-destructive/20">
+          {fileErrors.map((err, i) => (
+            <div key={i}>{err}</div>
+          ))}
+        </div>
+      )}
+
       <form className="relative flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
         {showAutocomplete && (
           <CommandAutocomplete
@@ -348,19 +433,26 @@ export function ChatInterface({
             onHighlightChange={setHighlightedIndex}
           />
         )}
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Describe a task or type / for commands..."
-          disabled={isSending}
-          rows={2}
-          className={cn(
-            'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors bg-background text-foreground placeholder:text-muted-foreground focus:border-primary disabled:bg-muted',
-            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe a task or type / for commands..."
+            disabled={isSending}
+            rows={2}
+            className={cn(
+              'w-full p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors bg-background text-foreground placeholder:text-muted-foreground focus:border-primary disabled:bg-muted',
+              isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+            )}
+          />
+          {interimTranscript && (
+            <div className="px-3 py-1 text-xs text-muted-foreground italic truncate">
+              {interimTranscript}
+            </div>
           )}
-        />
+        </div>
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
           {chatHistory.length > 0 && (
             <button

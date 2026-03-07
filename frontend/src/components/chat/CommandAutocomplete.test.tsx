@@ -7,9 +7,9 @@ import { CommandAutocomplete } from './CommandAutocomplete';
 import { createCommandDefinition } from '@/test/factories';
 
 const mockCommands = [
-  createCommandDefinition({ name: 'help', description: 'Show all commands', syntax: '#help' }),
-  createCommandDefinition({ name: 'theme', description: 'Change theme', syntax: '#theme <value>' }),
-  createCommandDefinition({ name: 'view', description: 'Set default view', syntax: '#view <value>' }),
+  createCommandDefinition({ name: 'help', description: 'Show all commands', syntax: '/help' }),
+  createCommandDefinition({ name: 'theme', description: 'Change theme', syntax: '/theme <value>' }),
+  createCommandDefinition({ name: 'view', description: 'Set default view', syntax: '/view <value>' }),
 ];
 
 describe('CommandAutocomplete', () => {
@@ -24,9 +24,9 @@ describe('CommandAutocomplete', () => {
       />,
     );
 
-    expect(screen.getByText('#help')).toBeTruthy();
-    expect(screen.getByText('#theme')).toBeTruthy();
-    expect(screen.getByText('#view')).toBeTruthy();
+    expect(screen.getByText('/help')).toBeTruthy();
+    expect(screen.getByText('/theme')).toBeTruthy();
+    expect(screen.getByText('/view')).toBeTruthy();
   });
 
   it('shows command description', () => {
