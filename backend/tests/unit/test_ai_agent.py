@@ -700,6 +700,97 @@ class TestRepairTruncatedJson:
         assert result is None
 
 
+class TestGenerateTitleFromDescription:
+    """Tests for lightweight title generation (ai_enhance=False path)."""
+
+    @pytest.fixture
+    def mock_provider(self):
+        return MockCompletionProvider()
+
+    @pytest.fixture
+    def service(self, mock_provider):
+        return AIAgentService(provider=mock_provider)
+
+    @pytest.mark.asyncio
+    async def test_returns_ai_generated_title(self, service, mock_provider):
+        """Should return the AI-generated title stripped of quotes."""
+        mock_provider.set_response('"Fix login page timeout"')
+
+        result = await service.generate_title_from_description(
+            "The login page times out after 30 seconds", "MyProject", github_token="tok"
+        )
+
+        assert result == "Fix login page timeout"
+
+    @pytest.mark.asyncio
+    async def test_truncates_long_title_to_80_chars(self, service, mock_provider):
+        """Should truncate titles longer than 80 characters."""
+        long_title = "A" * 100
+        mock_provider.set_response(long_title)
+
+        result = await service.generate_title_from_description(
+            "some input", "Project", github_token="tok"
+        )
+
+        assert len(result) == 80
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_ai_error(self, service, mock_provider):
+        """Should fall back to truncated user input when AI call fails."""
+        mock_provider.set_error(RuntimeError("API unavailable"))
+
+        result = await service.generate_title_from_description(
+            "Short input", "Project", github_token="tok"
+        )
+
+        assert result == "Short input"
+
+    @pytest.mark.asyncio
+    async def test_fallback_truncates_long_input(self, service, mock_provider):
+        """Fallback should truncate long user input to 80 chars + '...'."""
+        mock_provider.set_error(RuntimeError("API unavailable"))
+        long_input = "x" * 200
+
+        result = await service.generate_title_from_description(
+            long_input, "Project", github_token="tok"
+        )
+
+        assert result == "x" * 80 + "..."
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_empty_ai_response(self, service, mock_provider):
+        """Should fall back when AI returns empty string."""
+        mock_provider.set_response("")
+
+        result = await service.generate_title_from_description(
+            "My task description", "Project", github_token="tok"
+        )
+
+        assert result == "My task description"
+
+    @pytest.mark.asyncio
+    async def test_passes_github_token(self, service, mock_provider):
+        """Should pass github_token through to the provider."""
+        mock_provider.set_response("Some Title")
+
+        await service.generate_title_from_description(
+            "input", "Project", github_token="user-oauth-token"
+        )
+
+        assert mock_provider.last_github_token == "user-oauth-token"
+
+    @pytest.mark.asyncio
+    async def test_strips_surrounding_quotes(self, service, mock_provider):
+        """Should strip both single and double quotes from AI response."""
+        mock_provider.set_response("'Fix the auth bug'")
+
+        result = await service.generate_title_from_description(
+            "auth is broken", "Project", github_token="tok"
+        )
+
+        assert result == "Fix the auth bug"
+
+
 class TestParseJsonResponseExtended:
     """Additional edge cases for _parse_json_response."""
 
