@@ -6,7 +6,7 @@ import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
-import type { BoardProject, BoardDataResponse } from '@/types';
+import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
 
 interface UseProjectBoardOptions {
   /** Externally managed selected project ID (from session) */
@@ -18,6 +18,8 @@ interface UseProjectBoardOptions {
 interface UseProjectBoardReturn {
   /** List of available projects */
   projects: BoardProject[];
+  /** Rate-limit information returned with the projects list */
+  projectsRateLimitInfo: RateLimitInfo | null;
   /** Whether the projects list is loading */
   projectsLoading: boolean;
   /** Error fetching projects */
@@ -86,6 +88,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
 
   return {
     projects: projectsData?.projects ?? [],
+    projectsRateLimitInfo: projectsData?.rate_limit ?? null,
     projectsLoading,
     projectsError: projectsError as Error | null,
     selectedProjectId,

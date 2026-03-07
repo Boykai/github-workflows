@@ -1,14 +1,14 @@
 """Board API endpoints for the Project Board feature."""
 
 import logging
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import JSONResponse
-from githubkit.exception import RequestFailed
+from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
-from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError
+from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
 from src.models.board import (
     BoardDataResponse,
     BoardProject,
@@ -88,6 +88,44 @@ def _classify_github_error(exc: Exception) -> str:
     if "connect" in msg:
         return "Could not connect to GitHub API"
     return "Unexpected error communicating with GitHub"
+
+
+def _is_github_rate_limit_error(exc: Exception) -> bool:
+    """Return True if *exc* represents a GitHub rate-limit response."""
+    if isinstance(exc, PrimaryRateLimitExceeded):
+        return True
+    if isinstance(exc, RequestFailed):
+        response = exc.response
+        if response.status_code == 429:
+            return True
+        if response.status_code == 403:
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            return remaining is not None and remaining.strip() == "0"
+    rate_limit = _get_rate_limit_info()
+    return rate_limit is not None and rate_limit.remaining == 0
+
+
+def _rate_limit_details() -> dict[str, object]:
+    """Return serialized rate-limit details when available."""
+    rate_limit = _get_rate_limit_info()
+    return {"rate_limit": rate_limit.model_dump()} if rate_limit is not None else {}
+
+
+def _retry_after_seconds(exc: Exception) -> int:
+    """Best-effort extraction of retry-after seconds from GitHub exceptions."""
+    retry_after = getattr(exc, "retry_after", None)
+    if retry_after is None:
+        args = getattr(exc, "args", ())
+        if len(args) > 1:
+            retry_after = args[1]
+
+    if isinstance(retry_after, timedelta):
+        return max(1, int(retry_after.total_seconds()))
+
+    if isinstance(retry_after, int):
+        return max(1, retry_after)
+
+    return 60
 
 
 logger = logging.getLogger(__name__)
@@ -194,6 +232,16 @@ async def list_board_projects(
             session.access_token, session.github_username
         )
     except Exception as e:
+        if _is_github_rate_limit_error(e):
+            logger.warning(
+                "Rate limit exceeded while fetching board projects for user %s",
+                session.github_username,
+            )
+            raise RateLimitError(
+                message="GitHub API rate limit exceeded",
+                retry_after=_retry_after_seconds(e),
+                details=_rate_limit_details(),
+            ) from e
         if _is_github_auth_error(e):
             logger.warning(
                 "GitHub token invalid/expired for user %s — returning 401",
@@ -245,7 +293,7 @@ async def get_board_data(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
-) -> BoardDataResponse | JSONResponse:
+) -> BoardDataResponse:
     """Get board data for a specific project with columns and items."""
     cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
 
@@ -280,6 +328,15 @@ async def get_board_data(
         logger.warning("Project not found: %s - %s", project_id, e)
         raise NotFoundError("Project not found") from e
     except Exception as e:
+        if _is_github_rate_limit_error(e):
+            logger.warning(
+                "Rate limit exceeded while fetching board data for project %s", project_id
+            )
+            raise RateLimitError(
+                message="GitHub API rate limit exceeded",
+                retry_after=_retry_after_seconds(e),
+                details=_rate_limit_details(),
+            ) from e
         if _is_github_auth_error(e):
             logger.warning(
                 "GitHub token invalid/expired for user %s — returning 401",
@@ -288,24 +345,6 @@ async def get_board_data(
             raise AuthenticationError(
                 "Your GitHub session has expired. Please log in again."
             ) from e
-        # Check if this is a rate limit error
-        rl = github_projects_service.get_last_rate_limit()
-        if isinstance(rl, dict) and rl.get("remaining") == 0:
-            logger.warning(
-                "Rate limit exceeded while fetching board data for project %s", project_id
-            )
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "detail": "GitHub API rate limit exceeded",
-                    "rate_limit": {
-                        "limit": rl["limit"],
-                        "remaining": 0,
-                        "reset_at": rl["reset_at"],
-                        "used": rl["used"],
-                    },
-                },
-            )
         logger.error("Failed to fetch board data: %s", e, exc_info=True)
         raise GitHubAPIError(
             message="Failed to fetch board data from GitHub",

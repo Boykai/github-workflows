@@ -20,7 +20,7 @@ class AgentSource(StrEnum):
 
 
 class Agent(BaseModel):
-    """API response model — merged view from SQLite + GitHub repo."""
+    """API response model for repo-backed agent availability and agent workflow results."""
 
     id: str
     name: str
@@ -74,6 +74,13 @@ class AgentDeleteResult(BaseModel):
     pr_url: str
     pr_number: int
     issue_number: int | None = None
+
+
+class AgentPendingCleanupResult(BaseModel):
+    """Response for deleting stale pending agent rows from SQLite."""
+
+    success: bool = True
+    deleted_count: int
 
 
 class AgentChatMessage(BaseModel):

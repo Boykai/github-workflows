@@ -59,6 +59,7 @@ export function AgentConfigRow({
 }: AgentConfigRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeAgent, setActiveAgent] = useState<AgentAssignment | null>(null);
+  const [activeAgentWidth, setActiveAgentWidth] = useState<number | null>(null);
   const snapshotRef = useRef<Record<string, AgentAssignment[]> | null>(null);
 
   const {
@@ -87,6 +88,7 @@ export function AgentConfigRow({
     (event: DragStartEvent) => {
       const agentId = String(event.active.id);
       snapshotRef.current = structuredClone(localMappings);
+      setActiveAgentWidth(event.active.rect.current.initial?.width ?? null);
 
       // Find the active agent across all columns
       for (const agents of Object.values(localMappings)) {
@@ -142,6 +144,7 @@ export function AgentConfigRow({
     (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveAgent(null);
+      setActiveAgentWidth(null);
       snapshotRef.current = null;
 
       if (!over || active.id === over.id) return;
@@ -171,6 +174,7 @@ export function AgentConfigRow({
   // Revert to snapshot on cancel
   const handleDragCancel = useCallback(() => {
     setActiveAgent(null);
+    setActiveAgentWidth(null);
     if (snapshotRef.current) {
       const snapshot = snapshotRef.current;
       const snapshotStatuses = new Set(Object.keys(snapshot));
@@ -260,7 +264,11 @@ export function AgentConfigRow({
             {/* Floating drag overlay */}
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
               {activeAgent ? (
-                <AgentDragOverlay agent={activeAgent} availableAgents={availableAgents} />
+                <AgentDragOverlay
+                  agent={activeAgent}
+                  availableAgents={availableAgents}
+                  width={activeAgentWidth}
+                />
               ) : null}
             </DragOverlay>
           </DndContext>

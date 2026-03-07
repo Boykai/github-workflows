@@ -9,16 +9,20 @@ import type { AgentAssignment, AvailableAgent } from '@/types';
 interface AgentDragOverlayProps {
   agent: AgentAssignment;
   availableAgents?: AvailableAgent[];
+  width?: number | null;
 }
 
-export function AgentDragOverlay({ agent, availableAgents }: AgentDragOverlayProps) {
+export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOverlayProps) {
   const displayName = agent.display_name || agent.slug;
   const metadata = availableAgents?.find((a) => a.slug === agent.slug);
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const isHuman = agent.slug === 'human';
 
   return (
-    <div className="flex items-center gap-2 p-2 bg-card border border-primary/50 rounded-md shadow-lg opacity-80 rotate-1 min-w-[280px] max-w-[340px] cursor-grabbing">
+    <div
+      className="flex min-w-[280px] max-w-[340px] items-center gap-2 rounded-md border border-primary/50 bg-card p-2 shadow-lg opacity-80 cursor-grabbing"
+      style={width != null ? { width } : undefined}
+    >
       {/* Drag handle (decorative) */}
       <span className="text-muted-foreground/50 px-1">⠿</span>
 

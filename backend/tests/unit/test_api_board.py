@@ -106,6 +106,24 @@ class TestListBoardProjects:
         # Should raise GitHubAPIError (mapped to 502 via AppException handler)
         assert resp.status_code == 502
 
+    async def test_rate_limit_uses_cached_headers_for_generic_errors(
+        self, client, mock_github_service
+    ):
+        mock_github_service.list_board_projects.side_effect = RuntimeError("network")
+        mock_github_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": 1_700_000_000,
+            "used": 5000,
+        }
+
+        resp = await client.get("/api/v1/board/projects", params={"refresh": True})
+
+        assert resp.status_code == 429
+        body = resp.json()
+        assert body["error"] == "GitHub API rate limit exceeded"
+        assert body["details"]["rate_limit"]["remaining"] == 0
+
 
 # ── GET /board/projects/{project_id} ───────────────────────────────────────
 
@@ -130,6 +148,24 @@ class TestGetBoardData:
         mock_github_service.get_board_data.side_effect = RuntimeError("timeout")
         resp = await client.get("/api/v1/board/projects/PVT_error", params={"refresh": True})
         assert resp.status_code == 502
+
+    async def test_rate_limit_uses_cached_headers_for_board_data_generic_errors(
+        self, client, mock_github_service
+    ):
+        mock_github_service.get_board_data.side_effect = RuntimeError("timeout")
+        mock_github_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 0,
+            "reset_at": 1_700_000_000,
+            "used": 5000,
+        }
+
+        resp = await client.get("/api/v1/board/projects/PVT_error", params={"refresh": True})
+
+        assert resp.status_code == 429
+        body = resp.json()
+        assert body["error"] == "GitHub API rate limit exceeded"
+        assert body["details"]["rate_limit"]["used"] == 5000
 
     async def test_refresh_board_data(self, client, mock_github_service):
         bd = _make_board_data()
