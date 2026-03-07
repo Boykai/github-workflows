@@ -427,7 +427,62 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
 
             return error_message
 
-    # Not a status change - generate task from description
+    # ──────────────────────────────────────────────────────────────────
+    # PRIORITY 3: Generate task from description
+    # Two branches: metadata-only (ai_enhance=False) vs full AI (ai_enhance=True)
+    # ──────────────────────────────────────────────────────────────────
+
+    # Metadata-only path: user's raw input as description, AI-generated title only
+    if not chat_request.ai_enhance:
+        try:
+            title = await ai_service.generate_title_from_description(
+                user_input=chat_request.content,
+                project_name=project_name,
+                github_token=session.access_token,
+            )
+
+            proposal = AITaskProposal(
+                session_id=session.session_id,
+                original_input=chat_request.content,
+                proposed_title=title,
+                proposed_description=chat_request.content,
+            )
+            _proposals[str(proposal.proposal_id)] = proposal
+
+            description_preview = chat_request.content[:200]
+            if len(chat_request.content) > 200:
+                description_preview += "..."
+
+            assistant_message = ChatMessage(
+                session_id=session.session_id,
+                sender_type=SenderType.ASSISTANT,
+                content=f"I've created a task proposal:\n\n**{title}**\n\n{description_preview}\n\nClick confirm to create this task.",
+                action_type=ActionType.TASK_CREATE,
+                action_data={
+                    "proposal_id": str(proposal.proposal_id),
+                    "proposed_title": title,
+                    "proposed_description": chat_request.content,
+                    "status": ProposalStatus.PENDING.value,
+                },
+            )
+            add_message(session.session_id, assistant_message)
+            _trigger_signal_delivery(session, assistant_message, project_name)
+
+            return assistant_message
+
+        except Exception as e:
+            logger.error("Failed to generate metadata (ai_enhance=off): %s", e, exc_info=True)
+
+            error_message = ChatMessage(
+                session_id=session.session_id,
+                sender_type=SenderType.ASSISTANT,
+                content="I couldn't generate metadata for your request. Your input was preserved — please try again.",
+            )
+            add_message(session.session_id, error_message)
+
+            return error_message
+
+    # Full AI pipeline: generate both title and description via AI
     try:
         generated = await ai_service.generate_task_from_description(
             user_input=chat_request.content,
