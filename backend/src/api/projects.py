@@ -5,14 +5,16 @@ import hashlib
 import json
 import logging
 from collections.abc import AsyncGenerator
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
+from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_current_session, get_session_dep
 from src.constants import SESSION_COOKIE_NAME
-from src.exceptions import GitHubAPIError, NotFoundError
+from src.exceptions import GitHubAPIError, NotFoundError, RateLimitError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
@@ -28,6 +30,54 @@ from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _is_github_rate_limit_error(exc: Exception) -> bool:
+    """Return True when GitHub rejected the request due to rate limits."""
+    if isinstance(exc, PrimaryRateLimitExceeded):
+        return True
+    if isinstance(exc, RequestFailed):
+        if exc.response.status_code == 429:
+            return True
+        if exc.response.status_code == 403:
+            remaining = exc.response.headers.get("X-RateLimit-Remaining")
+            return remaining is not None and remaining.strip() == "0"
+    return False
+
+
+def _retry_after_seconds(exc: Exception) -> int:
+    """Extract retry-after seconds from a GitHub exception when available."""
+    retry_after = getattr(exc, "retry_after", None)
+    if retry_after is None:
+        args = getattr(exc, "args", ())
+        if len(args) > 1:
+            retry_after = args[1]
+
+    if isinstance(retry_after, timedelta):
+        return max(1, int(retry_after.total_seconds()))
+
+    if isinstance(retry_after, int):
+        return max(1, retry_after)
+
+    return 60
+
+
+def _rate_limit_details() -> dict[str, object]:
+    """Return serialized rate-limit details from the shared GitHub client state."""
+    rl = github_projects_service.get_last_rate_limit()
+    if not isinstance(rl, dict):
+        return {}
+    expected_keys = {"limit", "remaining", "reset_at", "used"}
+    if not expected_keys.issubset(rl):
+        return {}
+    return {
+        "rate_limit": {
+            "limit": rl["limit"],
+            "remaining": rl["remaining"],
+            "reset_at": rl["reset_at"],
+            "used": rl["used"],
+        }
+    }
 
 
 @router.get("", response_model=ProjectListResponse)
@@ -64,6 +114,21 @@ async def list_projects(
 
         return ProjectListResponse(projects=all_projects)
     except Exception as e:
+        if _is_github_rate_limit_error(e):
+            if not refresh:
+                stale = cache.get_stale(cache_key)
+                if stale:
+                    logger.warning(
+                        "Serving stale cached projects for user %s due to rate limit",
+                        session.github_username,
+                    )
+                    return ProjectListResponse(projects=stale)
+
+            raise RateLimitError(
+                message="GitHub API rate limit exceeded",
+                retry_after=_retry_after_seconds(e),
+                details=_rate_limit_details(),
+            ) from e
         if not refresh:
             stale = cache.get_stale(cache_key)
             if stale:

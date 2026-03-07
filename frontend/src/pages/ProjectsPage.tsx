@@ -17,9 +17,22 @@ import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
+import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import type { BoardItem } from '@/types';
 import { ApiError } from '@/services/api';
 import { Filter, ArrowUpDown, Columns3 } from 'lucide-react';
+
+function getRateLimitUsagePercent(limit?: number, remaining?: number) {
+  if (!limit || limit <= 0 || remaining === undefined) return 0;
+  const used = Math.max(0, limit - remaining);
+  return Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
+}
+
+function getRateLimitFillClass(usagePercent: number) {
+  if (usagePercent >= 90) return 'bg-destructive shadow-[0_0_16px_rgba(224,98,98,0.45)]';
+  if (usagePercent >= 70) return 'bg-accent shadow-[0_0_14px_rgba(227,179,92,0.35)]';
+  return 'bg-primary shadow-[0_0_14px_rgba(194,166,98,0.28)]';
+}
 
 export function ProjectsPage() {
   const { user } = useAuth();
@@ -30,6 +43,7 @@ export function ProjectsPage() {
   } = useProjects(user?.selected_project_id);
 
   const {
+    projectsRateLimitInfo,
     projectsLoading,
     projectsError,
     selectedProjectId,
@@ -99,6 +113,35 @@ export function ProjectsPage() {
     .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
     .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
   const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
+  const projectsRateLimitError = isRateLimitApiError(projectsError);
+  const boardRateLimitError = isRateLimitApiError(boardError);
+  const refreshRateLimitError = refreshError?.type === 'rate_limit';
+  const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
+  const boardRateLimitDetails = extractRateLimitInfo(boardError);
+  const effectiveRateLimitInfo = rateLimitInfo
+    ?? projectsRateLimitInfo
+    ?? refreshError?.rateLimitInfo
+    ?? boardRateLimitDetails
+    ?? projectsRateLimitDetails;
+  const hasActiveRateLimitError = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+  const showRateLimitBar = Boolean(effectiveRateLimitInfo) || hasActiveRateLimitError;
+  const rateLimitUsagePercent = getRateLimitUsagePercent(
+    effectiveRateLimitInfo?.limit,
+    effectiveRateLimitInfo?.remaining,
+  ) || (hasActiveRateLimitError ? 100 : 0);
+  const rateLimitLabel = effectiveRateLimitInfo
+    ? `${effectiveRateLimitInfo.remaining}/${effectiveRateLimitInfo.limit} remaining`
+    : hasActiveRateLimitError
+      ? 'Limit reached'
+      : null;
+  const rateLimitTooltip = effectiveRateLimitInfo
+    ? `GitHub API usage: ${effectiveRateLimitInfo.used}/${effectiveRateLimitInfo.limit} used. Resets ${formatTimeUntil(new Date(effectiveRateLimitInfo.reset_at * 1000))}.`
+    : hasActiveRateLimitError
+      ? 'GitHub API rate limit reached. Retry after the reset window.'
+      : null;
+  const rateLimitRetryAfter = refreshError?.retryAfter
+    ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
+  const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
@@ -129,6 +172,27 @@ export function ProjectsPage() {
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {showRateLimitBar && (
+            <div
+              className="flex items-center gap-2 rounded-full border border-border/70 bg-background/45 px-3 py-2 backdrop-blur-sm"
+              title={rateLimitTooltip ?? undefined}
+              aria-label="GitHub API rate limit"
+            >
+              <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground/80">
+                GitHub API
+              </span>
+              <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/80">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${getRateLimitFillClass(rateLimitUsagePercent)}`}
+                  style={{ width: `${rateLimitUsagePercent}%` }}
+                />
+              </div>
+              <span className={`text-[11px] ${hasActiveRateLimitError ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+                {rateLimitLabel}
+              </span>
+            </div>
+          )}
+
           {selectedProjectId && (
             <span className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${
@@ -214,17 +278,21 @@ export function ProjectsPage() {
       )}
 
       {/* Rate limit / error banners */}
-      {refreshError?.type === 'rate_limit' && (
+      {showRateLimitBanner && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
           <span className="text-lg">⏳</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit reached</strong>
-            <p>{refreshError.retryAfter ? `Resets ${formatTimeUntil(refreshError.retryAfter)}.` : refreshError.message}</p>
+            <p>
+              {rateLimitRetryAfter
+                ? `Resets ${formatTimeUntil(rateLimitRetryAfter)}.`
+                : 'GitHub API rate limit reached. Retry after the quota window resets.'}
+            </p>
           </div>
         </div>
       )}
 
-      {isRateLimitLow && !refreshError && rateLimitInfo && (
+      {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
@@ -244,7 +312,7 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {projectsError && (
+      {projectsError && !projectsRateLimitError && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
@@ -259,7 +327,7 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {boardError && !boardLoading && (
+      {boardError && !boardLoading && !boardRateLimitError && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">

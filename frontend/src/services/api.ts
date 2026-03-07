@@ -76,6 +76,42 @@ export function onAuthExpired(listener: AuthExpiredListener): () => void {
   return () => { authExpiredListeners.delete(listener); };
 }
 
+function normalizeApiError(response: Response, payload: unknown): APIError {
+  const fallbackMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+  if (!payload || typeof payload !== 'object') {
+    return { error: fallbackMessage };
+  }
+
+  const raw = payload as Record<string, unknown>;
+  const details = raw.details && typeof raw.details === 'object'
+    ? { ...(raw.details as Record<string, unknown>) }
+    : undefined;
+
+  if (raw.rate_limit && typeof raw.rate_limit === 'object') {
+    const mergedDetails = details ?? {};
+    mergedDetails.rate_limit = raw.rate_limit;
+
+    return {
+      error: typeof raw.error === 'string'
+        ? raw.error
+        : typeof raw.detail === 'string'
+          ? raw.detail
+          : fallbackMessage,
+      details: mergedDetails,
+    };
+  }
+
+  return {
+    error: typeof raw.error === 'string'
+      ? raw.error
+      : typeof raw.detail === 'string'
+        ? raw.detail
+        : fallbackMessage,
+    details,
+  };
+}
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -92,9 +128,8 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    const error: APIError = await response.json().catch(() => ({
-      error: `HTTP ${response.status}: ${response.statusText}`,
-    }));
+    const payload = await response.json().catch(() => null);
+    const error = normalizeApiError(response, payload);
 
     // Auto-logout: if any non-auth endpoint returns 401, the session or
     // GitHub token has expired.  Notify listeners (useAuth) so the UI
@@ -698,6 +733,11 @@ export interface AgentDeleteResult {
   issue_number: number | null;
 }
 
+export interface AgentPendingCleanupResult {
+  success: boolean;
+  deleted_count: number;
+}
+
 export interface AgentChatMessage {
   message: string;
   session_id?: string | null;
@@ -722,6 +762,16 @@ export interface AgentChatResponse {
 export const agentsApi = {
   list(projectId: string): Promise<AgentConfig[]> {
     return request<AgentConfig[]>(`/agents/${projectId}`);
+  },
+
+  pending(projectId: string): Promise<AgentConfig[]> {
+    return request<AgentConfig[]>(`/agents/${projectId}/pending`);
+  },
+
+  clearPending(projectId: string): Promise<AgentPendingCleanupResult> {
+    return request<AgentPendingCleanupResult>(`/agents/${projectId}/pending`, {
+      method: 'DELETE',
+    });
   },
 
   create(projectId: string, data: AgentCreate): Promise<AgentCreateResult> {

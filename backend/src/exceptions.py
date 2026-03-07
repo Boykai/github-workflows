@@ -58,8 +58,17 @@ class GitHubAPIError(AppException):
 class RateLimitError(AppException):
     """Rate limit exceeded."""
 
-    def __init__(self, message: str = "Rate limit exceeded", retry_after: int = 60):
-        super().__init__(message, status_code=status.HTTP_429_TOO_MANY_REQUESTS)
+    def __init__(
+        self,
+        message: str = "Rate limit exceeded",
+        retry_after: int = 60,
+        details: dict | None = None,
+    ):
+        super().__init__(
+            message,
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            details=details,
+        )
         self.retry_after = retry_after
 
 

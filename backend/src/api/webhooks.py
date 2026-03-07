@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from src.config import get_settings
+from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
 
@@ -292,6 +293,23 @@ async def handle_pull_request_event(payload: dict) -> dict[str, Any]:
         pr_author,
         is_draft,
     )
+
+    if action == "closed" and pr_data.get("merged"):
+        cache.delete(get_repo_agents_cache_key(repo_owner, repo_name))
+        logger.info(
+            "Invalidated repo agent cache for %s/%s after merged PR #%d",
+            repo_owner,
+            repo_name,
+            pr_number,
+        )
+        return {
+            "status": "processed",
+            "event": "pull_request",
+            "action": action,
+            "pr_number": pr_number,
+            "repository": f"{repo_owner}/{repo_name}",
+            "cache_invalidated": True,
+        }
 
     # Check if this is a Copilot PR being marked ready for review
     is_copilot_pr = "copilot" in pr_author.lower() or pr_author == "copilot-swe-agent[bot]"
