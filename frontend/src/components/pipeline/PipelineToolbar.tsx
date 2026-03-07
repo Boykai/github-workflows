@@ -3,7 +3,7 @@
  * Save is always enabled during creation/editing. Presets show "Save as Copy".
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Save, Copy, Trash2, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PipelineBoardState, PipelineValidationErrors } from '@/types';
@@ -55,6 +55,25 @@ export function PipelineToolbar({
     }
   };
 
+  useEffect(() => {
+    if (!showCopyDialog) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowCopyDialog(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [showCopyDialog]);
+
   return (
     <div className="flex items-center gap-2">
       <Button
@@ -80,9 +99,21 @@ export function PipelineToolbar({
           </Button>
 
           {showCopyDialog && (
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCopyDialog(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowCopyDialog(false); }} role="dialog" aria-modal="true" aria-labelledby="copy-dialog-title" tabIndex={-1}>
-              <div className="bg-card rounded-lg border border-border shadow-lg p-4 w-80" role="presentation" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setShowCopyDialog(false);
+                }
+              }}
+            >
+              <div
+                className="bg-card rounded-lg border border-border shadow-lg p-4 w-80"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="copy-dialog-title"
+              >
                 <h3 id="copy-dialog-title" className="text-sm font-semibold mb-2">Save as Copy</h3>
                 <input
                   type="text"

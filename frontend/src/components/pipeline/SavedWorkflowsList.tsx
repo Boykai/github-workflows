@@ -80,10 +80,17 @@ export function SavedWorkflowsList({
             const isActive = pipeline.id === activePipelineId;
             const isAssigned = pipeline.id === assignedPipelineId;
             return (
-              <button
+              <div
                 key={pipeline.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(pipeline.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(pipeline.id);
+                  }
+                }}
                 className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:shadow-md ${
                   isActive
                     ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm'
@@ -175,7 +182,7 @@ export function SavedWorkflowsList({
                     Assign to Project
                   </button>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

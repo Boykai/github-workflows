@@ -36,7 +36,9 @@ export function PipelineModelDropdown({
 
   const displayLabel = currentOverride.mode === 'auto'
     ? 'Auto (Agent Defaults)'
-    : currentOverride.modelName || currentOverride.modelId;
+    : currentOverride.mode === 'mixed'
+      ? 'Mixed'
+      : currentOverride.modelName || currentOverride.modelId;
 
   // Group models by provider
   const grouped = models.reduce<Record<string, AIModel[]>>((acc, model) => {

@@ -923,7 +923,7 @@ export interface ModelGroup {
 export type PipelineBoardState = 'empty' | 'creating' | 'editing';
 
 export interface PipelineModelOverride {
-  mode: 'auto' | 'specific';
+  mode: 'auto' | 'specific' | 'mixed';
   modelId: string;
   modelName: string;
 }
@@ -935,8 +935,8 @@ export interface PipelineValidationErrors {
 }
 
 export interface ProjectPipelineAssignment {
-  projectId: string;
-  pipelineId: string;
+  project_id: string;
+  pipeline_id: string;
 }
 
 export interface PresetPipelineDefinition {

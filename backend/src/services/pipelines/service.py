@@ -22,6 +22,8 @@ from src.models.pipeline import (
 
 logger = logging.getLogger(__name__)
 
+_CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
+
 # Column allowlist for dynamic SET clauses
 _PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
 
@@ -464,8 +466,13 @@ class PipelineService:
     ) -> ProjectPipelineAssignment:
         """Get the current pipeline assignment for a project."""
         cursor = await self._db.execute(
-            "SELECT assigned_pipeline_id FROM project_settings WHERE project_id = ? LIMIT 1",
-            (project_id,),
+            """
+            SELECT assigned_pipeline_id
+            FROM project_settings
+            WHERE github_user_id = ? AND project_id = ?
+            LIMIT 1
+            """,
+            (_CANONICAL_PROJECT_SETTINGS_USER, project_id),
         )
         row = await cursor.fetchone()
         pipeline_id = dict(row).get("assigned_pipeline_id", "") if row else ""
@@ -485,22 +492,17 @@ class PipelineService:
             if existing is None:
                 raise ValueError(f"Pipeline '{pipeline_id}' not found in this project.")
 
-        # Try to update existing row first
-        cursor = await self._db.execute(
-            "UPDATE project_settings SET assigned_pipeline_id = ? WHERE project_id = ?",
-            (pipeline_id, project_id),
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        await self._db.execute(
+            """
+            INSERT INTO project_settings (github_user_id, project_id, updated_at, assigned_pipeline_id)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(github_user_id, project_id) DO UPDATE SET
+                assigned_pipeline_id = excluded.assigned_pipeline_id,
+                updated_at = excluded.updated_at
+            """,
+            (_CANONICAL_PROJECT_SETTINGS_USER, project_id, now, pipeline_id),
         )
-        if cursor.rowcount == 0:
-            # No row exists for this project, insert one
-            now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-            await self._db.execute(
-                """
-                INSERT OR IGNORE INTO project_settings
-                    (github_user_id, project_id, assigned_pipeline_id, updated_at)
-                VALUES ('__pipeline__', ?, ?, ?)
-                """,
-                (project_id, pipeline_id, now),
-            )
         await self._db.commit()
 
         return ProjectPipelineAssignment(project_id=project_id, pipeline_id=pipeline_id)

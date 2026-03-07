@@ -5,13 +5,13 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
-import { useQueryClient } from '@tanstack/react-query';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
@@ -24,19 +24,14 @@ import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog
 import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
 import type { AIModel } from '@/types';
 
-// Simple hook to get available models for the pipeline dropdown
 function usePipelineModels(): AIModel[] {
-  const [models, setModels] = useState<AIModel[]>([]);
-  const fetched = useRef(false);
-  useEffect(() => {
-    if (fetched.current) return;
-    fetched.current = true;
-    fetch('/api/v1/pipelines/models/available', { credentials: 'include' })
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => setModels(Array.isArray(data) ? data : []))
-      .catch((err) => { console.warn('Failed to fetch pipeline models:', err); });
-  }, []);
-  return models;
+  const { data } = useQuery<AIModel[]>({
+    queryKey: [...pipelineKeys.all, 'models', 'available'],
+    queryFn: () => pipelinesApi.listModels(),
+    staleTime: Infinity,
+  });
+
+  return data ?? [];
 }
 
 export function AgentsPipelinePage() {
@@ -132,10 +127,12 @@ export function AgentsPipelinePage() {
 
   // Unsaved dialog handlers
   const handleUnsavedSave = useCallback(async () => {
-    await pipelineConfig.savePipeline();
+    const saved = await pipelineConfig.savePipeline();
     const action = unsavedDialog.pendingAction;
     setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
-    action?.();
+    if (saved) {
+      action?.();
+    }
   }, [pipelineConfig, unsavedDialog.pendingAction]);
 
   const handleUnsavedDiscard = useCallback(() => {
