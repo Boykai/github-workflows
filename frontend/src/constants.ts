@@ -142,6 +142,10 @@ export const AGENT_SOURCE_COLORS: Record<string, { bg: string; text: string }> =
     bg: 'bg-blue-500/10 dark:bg-blue-500/15',
     text: 'text-blue-600 dark:text-blue-400',
   },
+  repository: {
+    bg: 'bg-green-500/10 dark:bg-green-500/15',
+    text: 'text-green-600 dark:text-green-400',
+  },
   custom: {
     bg: 'bg-purple-500/10 dark:bg-purple-500/15',
     text: 'text-purple-600 dark:text-purple-400',
