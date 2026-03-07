@@ -35,7 +35,10 @@ interface UseBoardRefreshReturn {
   resetTimer: () => void;
 }
 
-export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions): UseBoardRefreshReturn {
+export function useBoardRefresh({
+  projectId,
+  boardData,
+}: UseBoardRefreshOptions): UseBoardRefreshReturn {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
@@ -70,36 +73,39 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
     }
   }, []);
 
-  const doRefresh = useCallback(async (forceRefresh = false) => {
-    if (!projectId || isRefreshingRef.current) return;
+  const doRefresh = useCallback(
+    async (forceRefresh = false) => {
+      if (!projectId || isRefreshingRef.current) return;
 
-    isRefreshingRef.current = true;
-    setIsRefreshing(true);
+      isRefreshingRef.current = true;
+      setIsRefreshing(true);
 
-    try {
-      if (forceRefresh) {
-        // Manual refresh: bypass the backend cache by fetching with
-        // refresh=true and writing the result directly into TanStack Query.
-        const data = await boardApi.getBoardData(projectId, /* refresh */ true);
-        queryClient.setQueryData(['board', 'data', projectId], data);
-      } else {
-        // Auto-refresh: revalidate using the default queryFn which may
-        // serve backend-cached data — acceptable for periodic background refreshes.
-        await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
+      try {
+        if (forceRefresh) {
+          // Manual refresh: bypass the backend cache by fetching with
+          // refresh=true and writing the result directly into TanStack Query.
+          const data = await boardApi.getBoardData(projectId, /* refresh */ true);
+          queryClient.setQueryData(['board', 'data', projectId], data);
+        } else {
+          // Auto-refresh: revalidate using the default queryFn which may
+          // serve backend-cached data — acceptable for periodic background refreshes.
+          await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
+        }
+        setLastRefreshedAt(new Date());
+        setError(null);
+      } catch (err) {
+        const refreshError = parseRefreshError(err);
+        setError(refreshError);
+        if (refreshError.rateLimitInfo) {
+          setRateLimitInfo(refreshError.rateLimitInfo);
+        }
+      } finally {
+        isRefreshingRef.current = false;
+        setIsRefreshing(false);
       }
-      setLastRefreshedAt(new Date());
-      setError(null);
-    } catch (err) {
-      const refreshError = parseRefreshError(err);
-      setError(refreshError);
-      if (refreshError.rateLimitInfo) {
-        setRateLimitInfo(refreshError.rateLimitInfo);
-      }
-    } finally {
-      isRefreshingRef.current = false;
-      setIsRefreshing(false);
-    }
-  }, [projectId, queryClient]);
+    },
+    [projectId, queryClient]
+  );
 
   const startTimer = useCallback(() => {
     clearTimer();
@@ -155,7 +161,8 @@ export function useBoardRefresh({ projectId, boardData }: UseBoardRefreshOptions
     return clearTimer;
   }, [projectId, startTimer, clearTimer]);
 
-  const isRateLimitLow = rateLimitInfo !== null && rateLimitInfo.remaining < RATE_LIMIT_LOW_THRESHOLD;
+  const isRateLimitLow =
+    rateLimitInfo !== null && rateLimitInfo.remaining < RATE_LIMIT_LOW_THRESHOLD;
 
   return {
     refresh,

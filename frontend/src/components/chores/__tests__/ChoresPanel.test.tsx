@@ -20,7 +20,10 @@ vi.mock('@/services/api', () => ({
     list: (...args: unknown[]) => mockList(...args),
   },
   ApiError: class ApiError extends Error {
-    constructor(public status: number, public error: { error: string }) {
+    constructor(
+      public status: number,
+      public error: { error: string }
+    ) {
       super(error.error);
     }
   },
@@ -33,9 +36,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -86,7 +87,12 @@ describe('ChoresPanel', () => {
   it('renders chore list with ChoreCards', async () => {
     mockList.mockResolvedValue([
       createChore({ id: 'c1', name: 'Bug Bash' }),
-      createChore({ id: 'c2', name: 'Dependency Update', schedule_type: 'count', schedule_value: 5 }),
+      createChore({
+        id: 'c2',
+        name: 'Dependency Update',
+        schedule_type: 'count',
+        schedule_value: 5,
+      }),
     ]);
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });

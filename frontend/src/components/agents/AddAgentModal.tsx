@@ -67,9 +67,18 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     const trimmedName = name.trim();
     const trimmedPrompt = systemPrompt.trim();
 
-    if (!trimmedName) { setError('Name is required'); return; }
-    if (trimmedName.length > 100) { setError('Name must be 100 characters or fewer'); return; }
-    if (!trimmedPrompt) { setError('System prompt is required'); return; }
+    if (!trimmedName) {
+      setError('Name is required');
+      return;
+    }
+    if (trimmedName.length > 100) {
+      setError('Name must be 100 characters or fewer');
+      return;
+    }
+    if (!trimmedPrompt) {
+      setError('System prompt is required');
+      return;
+    }
     if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
       setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
       return;
@@ -105,11 +114,21 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   // Success state
   if (successPrUrl) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={resetAndClose}>
-        <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md" role="presentation" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        role="presentation"
+        onClick={resetAndClose}
+      >
+        <div
+          className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md"
+          role="presentation"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-3xl">✅</span>
-            <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
+            <h3 className="text-lg font-semibold">
+              {isEditMode ? 'Agent Updated' : 'Agent Created'}
+            </h3>
             <p className="text-sm text-muted-foreground">
               A pull request has been opened with the agent configuration files.
             </p>
@@ -135,16 +154,24 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
   // Form
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={resetAndClose}>
-      <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto" role="presentation" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold mb-4">
-          {isEditMode ? 'Edit Agent' : 'Add Agent'}
-        </h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={resetAndClose}
+    >
+      <div
+        className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold mb-4">{isEditMode ? 'Edit Agent' : 'Add Agent'}</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
           <div>
-            <label htmlFor="agent-name" className="block text-sm font-medium mb-1">Name</label>
+            <label htmlFor="agent-name" className="block text-sm font-medium mb-1">
+              Name
+            </label>
             <input
               id="agent-name"
               type="text"
@@ -213,9 +240,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
           {/* Error */}
           {error && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-2">
-              {error}
-            </div>
+            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-2">{error}</div>
           )}
 
           {/* Actions */}

@@ -12,7 +12,11 @@ interface NotificationBellProps {
   onMarkAllRead: () => void;
 }
 
-export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: NotificationBellProps) {
+export function NotificationBell({
+  notifications,
+  unreadCount,
+  onMarkAllRead,
+}: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -70,7 +74,9 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
                     n.read ? 'opacity-60' : ''
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-primary'}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-primary'}`}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="text-foreground truncate">{n.title}</p>
                     {n.source && <p className="text-xs text-muted-foreground mt-0.5">{n.source}</p>}

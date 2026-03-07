@@ -51,7 +51,7 @@ export function ChoreChatFlow({
             setTemplateContent(data.template_content);
           }
         },
-      },
+      }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -78,7 +78,7 @@ export function ChoreChatFlow({
             setTemplateContent(data.template_content);
           }
         },
-      },
+      }
     );
   };
 
@@ -147,9 +147,7 @@ export function ChoreChatFlow({
           </div>
         ))}
         {chatMutation.isPending && (
-          <div className="self-start text-xs text-muted-foreground p-2">
-            Thinking…
-          </div>
+          <div className="self-start text-xs text-muted-foreground p-2">Thinking…</div>
         )}
         <div ref={messagesEndRef} />
       </div>

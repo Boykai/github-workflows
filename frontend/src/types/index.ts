@@ -159,7 +159,7 @@ export type IssuePriority = 'P0' | 'P1' | 'P2' | 'P3';
 export type IssueSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
 
 // Pre-defined labels for GitHub Issues
-export type IssueLabel = 
+export type IssueLabel =
   // Type labels
   | 'feature'
   | 'bug'
@@ -235,8 +235,8 @@ export interface IssueCreateActionData {
 export type AgentSource = 'builtin' | 'repository';
 
 export interface AgentAssignment {
-  id: string;           // UUID string
-  slug: string;         // Agent identifier
+  id: string; // UUID string
+  slug: string; // Agent identifier
   display_name?: string | null;
   config?: Record<string, unknown> | null;
 }

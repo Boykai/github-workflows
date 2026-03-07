@@ -6,8 +6,18 @@ import { useNavigate } from 'react-router-dom';
 import { Kanban, GitBranch, Bot, ListChecks } from 'lucide-react';
 
 const quickLinks = [
-  { path: '/projects', label: 'Projects', description: 'View and manage your Kanban board', icon: Kanban },
-  { path: '/pipeline', label: 'Agents Pipeline', description: 'Visualize your agent workflow', icon: GitBranch },
+  {
+    path: '/projects',
+    label: 'Projects',
+    description: 'View and manage your Kanban board',
+    icon: Kanban,
+  },
+  {
+    path: '/pipeline',
+    label: 'Agents Pipeline',
+    description: 'Visualize your agent workflow',
+    icon: GitBranch,
+  },
   { path: '/agents', label: 'Agents', description: 'Configure and manage agents', icon: Bot },
   { path: '/chores', label: 'Chores', description: 'Schedule and track chores', icon: ListChecks },
 ];
@@ -29,26 +39,36 @@ export function AppPage() {
               Change your project mindset.
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
-              Move across projects, pipelines, chores, and agent operations inside a shell that feels more like a ritual workspace than a utility dashboard.
+              Move across projects, pipelines, chores, and agent operations inside a shell that
+              feels more like a ritual workspace than a utility dashboard.
             </p>
           </div>
 
           <div className="grid gap-6 lg:max-w-xl">
             <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] text-muted-foreground/80">
-              <span className="rounded-full border border-border/70 px-4 py-2">Moon phase focus</span>
-              <span className="rounded-full border border-border/70 px-4 py-2">Solar highlights</span>
-              <span className="rounded-full border border-border/70 px-4 py-2">Ambient navigation</span>
+              <span className="rounded-full border border-border/70 px-4 py-2">
+                Moon phase focus
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2">
+                Solar highlights
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2">
+                Ambient navigation
+              </span>
             </div>
 
             <div className="celestial-panel rounded-[1.8rem] border border-border/70 p-6">
-              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Daily affirmation</p>
+              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">
+                Daily affirmation
+              </p>
               <div className="mt-4 flex items-start justify-between gap-6">
                 <div>
                   <p className="max-w-sm text-2xl font-display font-medium leading-tight text-foreground">
                     Keep the active path bright and let the rest of the board fall quiet.
                   </p>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    The shell, navigation, and calls to action now carry more of the illustrated Sun & Moon tension without crowding the app’s real work.
+                    The shell, navigation, and calls to action now carry more of the illustrated Sun
+                    & Moon tension without crowding the app’s real work.
                   </p>
                 </div>
                 <div className="hidden shrink-0 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-[11px] uppercase tracking-[0.28em] text-primary md:block">
@@ -73,9 +93,12 @@ export function AppPage() {
               <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-5xl text-primary">
                 ✦
               </div>
-              <p className="text-xs uppercase tracking-[0.28em] text-primary/80">Navigate the cosmos</p>
+              <p className="text-xs uppercase tracking-[0.28em] text-primary/80">
+                Navigate the cosmos
+              </p>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Quick paths are arranged inside a more ceremonial composition, but their routing and behavior are unchanged.
+                Quick paths are arranged inside a more ceremonial composition, but their routing and
+                behavior are unchanged.
               </p>
             </div>
 
@@ -89,7 +112,9 @@ export function AppPage() {
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/12 text-primary">
                     <link.icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mb-1 text-sm font-semibold uppercase tracking-[0.12em] text-foreground">{link.label}</h3>
+                  <h3 className="mb-1 text-sm font-semibold uppercase tracking-[0.12em] text-foreground">
+                    {link.label}
+                  </h3>
                   <p className="text-xs leading-5 text-muted-foreground">{link.description}</p>
                 </button>
               ))}

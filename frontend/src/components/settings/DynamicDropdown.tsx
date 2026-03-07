@@ -110,12 +110,7 @@ export function DynamicDropdown({
           {label}
         </label>
         <div className="relative" aria-busy="true" aria-label={`Loading ${label}`}>
-          <select
-            id={id}
-            className={selectClass}
-            disabled
-            aria-label={`${label} - loading`}
-          >
+          <select id={id} className={selectClass} disabled aria-label={`${label} - loading`}>
             <option>Loading models...</option>
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -259,9 +254,7 @@ export function DynamicDropdown({
           </span>
         )}
         {rateLimitWarning && (
-          <span className="text-xs text-accent-foreground">
-            ⚠️ API rate limit approaching
-          </span>
+          <span className="text-xs text-accent-foreground">⚠️ API rate limit approaching</span>
         )}
         {isLoading && (
           <div className="w-3 h-3 border-2 border-border border-t-primary rounded-full animate-spin" />

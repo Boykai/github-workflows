@@ -86,7 +86,12 @@ describe('SettingsSection', () => {
 
   it('shows Saving... text during save', async () => {
     let resolverFn: (() => void) | undefined;
-    const onSave = vi.fn().mockImplementation(() => new Promise<void>(r => { resolverFn = r; }));
+    const onSave = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          resolverFn = r;
+        })
+    );
     render(
       <SettingsSection title="Test" onSave={onSave} isDirty={true}>
         <div>Content</div>

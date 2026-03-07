@@ -5,7 +5,13 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
+import type {
+  ChatMessage,
+  AITaskProposal,
+  IssueCreateActionData,
+  WorkflowResult,
+  StatusChangeProposal,
+} from '@/types';
 import { ChatInterface } from './ChatInterface';
 
 const DEFAULT_WIDTH = 400;
@@ -27,7 +33,9 @@ function loadSize(): { width: number; height: number } {
         height: Math.min(Math.max(parsed.height ?? DEFAULT_HEIGHT, MIN_HEIGHT), MAX_HEIGHT),
       };
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT };
 }
 
@@ -75,7 +83,7 @@ export function ChatPopup({
       isResizing.current = true;
       startPos.current = { x: e.clientX, y: e.clientY, w: size.width, h: size.height };
     },
-    [size],
+    [size]
   );
 
   useEffect(() => {
@@ -117,7 +125,14 @@ export function ChatPopup({
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
         {isOpen ? (
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="24" height="24">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            width="24"
+            height="24"
+          >
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         ) : (

@@ -77,12 +77,15 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     staleTime: STALE_TIME_SHORT,
   });
 
-  const selectProject = useCallback((projectId: string) => {
-    setLastUpdated(null);
-    if (onProjectSelect) {
-      onProjectSelect(projectId);
-    }
-  }, [onProjectSelect]);
+  const selectProject = useCallback(
+    (projectId: string) => {
+      setLastUpdated(null);
+      if (onProjectSelect) {
+        onProjectSelect(projectId);
+      }
+    },
+    [onProjectSelect]
+  );
 
   return {
     projects: projectsData?.projects ?? [],

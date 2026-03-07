@@ -25,7 +25,13 @@ interface AgentTileProps {
   isWarning?: boolean;
 }
 
-export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isWarning }: AgentTileProps) {
+export function AgentTile({
+  agent,
+  onRemove,
+  sortableProps,
+  availableAgents,
+  isWarning,
+}: AgentTileProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = agent.display_name || agent.slug;
@@ -54,17 +60,27 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
       <div className="flex items-center gap-2 p-2">
         {/* Drag handle */}
         {sortableProps && (
-          <span className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1" {...(sortableProps.listeners ?? {})}>
+          <span
+            className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1"
+            {...(sortableProps.listeners ?? {})}
+          >
             ⠿
           </span>
         )}
 
         {/* Avatar */}
-        <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden ${isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'}`} title={agent.slug}>
+        <span
+          className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden ${isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'}`}
+          title={agent.slug}
+        >
           {isHuman ? (
             <User className="w-3.5 h-3.5" />
           ) : metadata?.avatar_url ? (
-            <img src={metadata.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+            <img
+              src={metadata.avatar_url}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
           ) : (
             avatarLetter
           )}
@@ -77,7 +93,10 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
 
         {/* Warning badge (T032) */}
         {isWarning && (
-          <span className="text-accent-foreground text-xs font-bold px-1" title="Agent not found in available agents">
+          <span
+            className="text-accent-foreground text-xs font-bold px-1"
+            title="Agent not found in available agents"
+          >
             ⚠
           </span>
         )}
@@ -110,7 +129,9 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
         <div className="flex flex-col gap-1.5 p-3 pt-0 text-xs border-t border-border/50 mt-1 bg-muted/30 rounded-b-md">
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-muted-foreground font-medium min-w-[70px]">Slug:</span>
-            <code className="px-1.5 py-0.5 bg-background rounded border border-border text-[10px] font-mono break-all">{agent.slug}</code>
+            <code className="px-1.5 py-0.5 bg-background rounded border border-border text-[10px] font-mono break-all">
+              {agent.slug}
+            </code>
           </div>
           {metadata?.source && (
             <div className="flex items-baseline gap-2">

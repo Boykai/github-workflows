@@ -3,7 +3,13 @@
  */
 
 import { useState, useRef, useEffect, useCallback, FormEvent } from 'react';
-import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
+import type {
+  ChatMessage,
+  AITaskProposal,
+  IssueCreateActionData,
+  WorkflowResult,
+  StatusChangeProposal,
+} from '@/types';
 import { MessageBubble } from './MessageBubble';
 import { SystemMessage } from './SystemMessage';
 import { CommandAutocomplete } from './CommandAutocomplete';
@@ -149,7 +155,9 @@ export function ChatInterface({
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev - 1 + autocompleteCommands.length) % autocompleteCommands.length);
+        setHighlightedIndex(
+          (prev) => (prev - 1 + autocompleteCommands.length) % autocompleteCommands.length
+        );
         return;
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
@@ -247,7 +255,15 @@ export function ChatInterface({
             className="flex items-center gap-1.5 px-4 py-2 bg-muted text-foreground border border-border rounded-md text-sm font-medium cursor-pointer transition-colors hover:bg-muted/80 hover:border-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSending}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="shrink-0">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              width="16"
+              height="16"
+              className="shrink-0"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             New Chat
@@ -262,10 +278,18 @@ export function ChatInterface({
             <div className="mt-6 bg-muted/50 p-4 rounded-lg text-left w-full max-w-sm">
               <p className="font-medium text-foreground mb-2">Try something like:</p>
               <ul className="list-none space-y-2">
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Add a bug fix for the login page crash</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Set up CI/CD pipeline for the project</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Type #help to see available commands</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Create a task to add user authentication
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Add a bug fix for the login page crash
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Set up CI/CD pipeline for the project
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Type #help to see available commands
+                </li>
               </ul>
             </div>
           </div>
@@ -284,12 +308,14 @@ export function ChatInterface({
             const recommendationId = actionData?.recommendation_id as string | undefined;
             const proposal = proposalId ? pendingProposals.get(proposalId) : null;
             const statusChange = proposalId ? pendingStatusChanges.get(proposalId) : null;
-            const recommendation = recommendationId ? pendingRecommendations.get(recommendationId) : null;
+            const recommendation = recommendationId
+              ? pendingRecommendations.get(recommendationId)
+              : null;
 
             return (
               <div key={message.message_id} className="flex flex-col gap-2">
                 <MessageBubble message={message} />
-                
+
                 {proposal && message.action_type === 'task_create' && (
                   <TaskPreview
                     proposal={proposal}
@@ -323,8 +349,14 @@ export function ChatInterface({
         {isSending && (
           <div className="self-start ml-11">
             <div className="flex gap-1 p-3 bg-muted rounded-2xl">
-              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.32s' }}></span>
-              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.16s' }}></span>
+              <span
+                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                style={{ animationDelay: '-0.32s' }}
+              ></span>
+              <span
+                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                style={{ animationDelay: '-0.16s' }}
+              ></span>
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
             </div>
           </div>
@@ -333,7 +365,10 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      <form className="relative flex gap-3 p-4 border-t border-border bg-background" onSubmit={handleSubmit}>
+      <form
+        className="relative flex gap-3 p-4 border-t border-border bg-background"
+        onSubmit={handleSubmit}
+      >
         {showAutocomplete && (
           <CommandAutocomplete
             commands={autocompleteCommands}
@@ -353,7 +388,7 @@ export function ChatInterface({
           rows={2}
           className={cn(
             'flex-1 p-3 border border-border rounded-xl text-sm font-inherit leading-relaxed resize-none outline-none min-h-[52px] max-h-[400px] overflow-y-auto transition-colors bg-background text-foreground placeholder:text-muted-foreground focus:border-primary disabled:bg-muted',
-            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+            isNavigating && 'border-l-4 border-l-primary bg-primary/5'
           )}
         />
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>

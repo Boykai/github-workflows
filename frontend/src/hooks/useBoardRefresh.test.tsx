@@ -60,10 +60,9 @@ describe('useBoardRefresh', () => {
   // ---------- initial state ----------
 
   it('should return correct initial state when projectId is null', () => {
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: null }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: null }), {
+      wrapper: createWrapper(),
+    });
 
     expect(result.current.isRefreshing).toBe(false);
     expect(result.current.lastRefreshedAt).toBeNull();
@@ -80,10 +79,9 @@ describe('useBoardRefresh', () => {
     });
     const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
 
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await act(async () => {
       result.current.refresh();
@@ -92,10 +90,7 @@ describe('useBoardRefresh', () => {
     // Manual refresh should bypass server cache
     expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
     // And write the result directly into the TanStack Query cache
-    expect(setQueryDataSpy).toHaveBeenCalledWith(
-      ['board', 'data', 'PVT_123'],
-      expect.anything(),
-    );
+    expect(setQueryDataSpy).toHaveBeenCalledWith(['board', 'data', 'PVT_123'], expect.anything());
   });
 
   it('should update lastRefreshedAt after a successful refresh', async () => {
@@ -104,10 +99,9 @@ describe('useBoardRefresh', () => {
     });
     mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
 
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     expect(result.current.lastRefreshedAt).toBeNull();
 
@@ -128,10 +122,9 @@ describe('useBoardRefresh', () => {
     });
     mockGetBoardData.mockReturnValue(pendingPromise);
 
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Fire multiple rapid refreshes — only the first should execute
     act(() => {
@@ -157,10 +150,9 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // No auto-refresh yet
     expect(invalidateSpy).not.toHaveBeenCalled();
@@ -181,10 +173,9 @@ describe('useBoardRefresh', () => {
     vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
     mockGetBoardData.mockClear();
 
-    renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Advance past one interval to trigger auto-refresh
     await act(async () => {
@@ -202,10 +193,7 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    renderHook(
-      () => useBoardRefresh({ projectId: null }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    renderHook(() => useBoardRefresh({ projectId: null }), { wrapper: createWrapper(queryClient) });
 
     vi.advanceTimersByTime(5000);
     expect(invalidateSpy).not.toHaveBeenCalled();
@@ -218,10 +206,9 @@ describe('useBoardRefresh', () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
     mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
 
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Advance 800ms (close to the 1s interval but not past it)
     await act(async () => {
@@ -256,13 +243,10 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    const { rerender } = renderHook(
-      ({ projectId }) => useBoardRefresh({ projectId }),
-      {
-        wrapper: createWrapper(queryClient),
-        initialProps: { projectId: 'PVT_123' as string | null },
-      },
-    );
+    const { rerender } = renderHook(({ projectId }) => useBoardRefresh({ projectId }), {
+      wrapper: createWrapper(queryClient),
+      initialProps: { projectId: 'PVT_123' as string | null },
+    });
 
     // Remove projectId
     rerender({ projectId: null });
@@ -284,10 +268,9 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    const { result } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Advance 800ms, then reset timer externally
     await act(async () => {
@@ -316,10 +299,9 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Simulate tab becoming hidden
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
@@ -344,10 +326,9 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     // Simulate tab hidden
     Object.defineProperty(document, 'hidden', { value: true, writable: true });
@@ -379,7 +360,7 @@ describe('useBoardRefresh', () => {
       {
         wrapper: createWrapper(),
         initialProps: { boardData: undefined as { rate_limit?: typeof rateLimitData } | undefined },
-      },
+      }
     );
 
     expect(result.current.rateLimitInfo).toBeNull();
@@ -399,7 +380,7 @@ describe('useBoardRefresh', () => {
           projectId: 'PVT_123',
           boardData: { rate_limit: lowRateLimit } as never,
         }),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper() }
     );
 
     expect(result.current.isRateLimitLow).toBe(true);
@@ -414,7 +395,7 @@ describe('useBoardRefresh', () => {
           projectId: 'PVT_123',
           boardData: { rate_limit: healthyRateLimit } as never,
         }),
-      { wrapper: createWrapper() },
+      { wrapper: createWrapper() }
     );
 
     expect(result.current.isRateLimitLow).toBe(false);
@@ -442,7 +423,7 @@ describe('useBoardRefresh', () => {
           projectId: 'PVT_123',
           boardData: { project: {}, columns: [] } as never,
         }),
-      { wrapper: createWrapper(queryClient) },
+      { wrapper: createWrapper(queryClient) }
     );
 
     // lastRefreshedAt should have been initialized from the query cache
@@ -458,10 +439,9 @@ describe('useBoardRefresh', () => {
     });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    const { unmount } = renderHook(
-      () => useBoardRefresh({ projectId: 'PVT_123' }),
-      { wrapper: createWrapper(queryClient) },
-    );
+    const { unmount } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
 
     unmount();
     invalidateSpy.mockClear();

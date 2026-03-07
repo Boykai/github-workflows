@@ -46,7 +46,13 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route element={<AuthGate><AppLayout /></AuthGate>}>
+                <Route
+                  element={
+                    <AuthGate>
+                      <AppLayout />
+                    </AuthGate>
+                  }
+                >
                   <Route index element={<AppPage />} />
                   <Route path="projects" element={<ProjectsPage />} />
                   <Route path="pipeline" element={<AgentsPipelinePage />} />

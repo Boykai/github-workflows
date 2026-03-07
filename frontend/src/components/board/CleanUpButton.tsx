@@ -65,10 +65,12 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           {state === 'executing' && (
             <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
           )}
-          {state !== 'loading' && state !== 'executing' && (
-            <span>🧹</span>
-          )}
-          {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
+          {state !== 'loading' && state !== 'executing' && <span>🧹</span>}
+          {state === 'loading'
+            ? 'Analyzing...'
+            : state === 'executing'
+              ? 'Cleaning up...'
+              : 'Clean Up'}
         </button>
       </div>
 
@@ -106,11 +108,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
 
       {/* Confirmation Modal */}
       {state === 'confirming' && preflightData && (
-        <CleanUpConfirmModal
-          data={preflightData}
-          onConfirm={handleConfirm}
-          onCancel={cancel}
-        />
+        <CleanUpConfirmModal data={preflightData} onConfirm={handleConfirm} onCancel={cancel} />
       )}
 
       {/* Summary Modal */}
@@ -125,10 +123,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
 
       {/* Audit History Modal */}
       {state === 'auditHistory' && (
-        <CleanUpAuditHistory
-          data={historyData}
-          onClose={closeAuditHistory}
-        />
+        <CleanUpAuditHistory data={historyData} onClose={closeAuditHistory} />
       )}
     </>
   );
