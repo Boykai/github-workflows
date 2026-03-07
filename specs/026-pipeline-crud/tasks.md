@@ -25,11 +25,11 @@
 
 **Purpose**: Project initialization — new directories, migration, and shared types/models that all user stories depend on.
 
-- [ ] T001 Create database migration file at backend/src/migrations/013_pipeline_configs.sql with pipeline_configs table (id, project_id, name, description, stages JSON, created_at, updated_at), UNIQUE(name, project_id) constraint, and indexes on project_id and updated_at DESC
-- [ ] T002 Create backend Pydantic models at backend/src/models/pipeline.py defining PipelineConfig, PipelineStage, PipelineAgentNode, AIModel, PipelineConfigCreate, PipelineConfigUpdate, PipelineConfigSummary, and PipelineConfigListResponse per data-model.md
-- [ ] T003 [P] Create pipeline service package at backend/src/services/pipelines/__init__.py with re-exports for PipelineService
-- [ ] T004 [P] Add pipeline and model TypeScript interfaces (PipelineConfig, PipelineStage, PipelineAgentNode, PipelineConfigSummary, PipelineConfigCreate, PipelineConfigUpdate, AIModel, ModelGroup, PipelineBoardState) to frontend/src/types/index.ts
-- [ ] T005 [P] Create empty frontend/src/components/pipeline/ directory structure (add an index barrel file at frontend/src/components/pipeline/index.ts re-exporting all pipeline components)
+- [x] T001 Create database migration file at backend/src/migrations/013_pipeline_configs.sql with pipeline_configs table (id, project_id, name, description, stages JSON, created_at, updated_at), UNIQUE(name, project_id) constraint, and indexes on project_id and updated_at DESC
+- [x] T002 Create backend Pydantic models at backend/src/models/pipeline.py defining PipelineConfig, PipelineStage, PipelineAgentNode, AIModel, PipelineConfigCreate, PipelineConfigUpdate, PipelineConfigSummary, and PipelineConfigListResponse per data-model.md
+- [x] T003 [P] Create pipeline service package at backend/src/services/pipelines/__init__.py with re-exports for PipelineService
+- [x] T004 [P] Add pipeline and model TypeScript interfaces (PipelineConfig, PipelineStage, PipelineAgentNode, PipelineConfigSummary, PipelineConfigCreate, PipelineConfigUpdate, AIModel, ModelGroup, PipelineBoardState) to frontend/src/types/index.ts
+- [x] T005 [P] Create empty frontend/src/components/pipeline/ directory structure (add an index barrel file at frontend/src/components/pipeline/index.ts re-exporting all pipeline components)
 
 ---
 
@@ -39,12 +39,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T006 Implement PipelineService in backend/src/services/pipelines/service.py with CRUD methods: list_pipelines(project_id), get_pipeline(project_id, pipeline_id), create_pipeline(project_id, data), update_pipeline(project_id, pipeline_id, data), delete_pipeline(project_id, pipeline_id) — following the pattern from backend/src/services/chores/service.py with aiosqlite queries against pipeline_configs table
-- [ ] T007 Implement list_models() method in backend/src/services/pipelines/service.py returning a static list of AIModel objects (GPT-4o, GPT-4o Mini, Claude Sonnet 4, Claude 3.5 Haiku, Gemini 2.5 Pro, Gemini 2.5 Flash) per contracts/api.md
-- [ ] T008 Create FastAPI router at backend/src/api/pipelines.py with endpoints: GET /api/v1/pipelines (list), POST /api/v1/pipelines (create), GET /api/v1/pipelines/{pipeline_id} (get), PUT /api/v1/pipelines/{pipeline_id} (update), DELETE /api/v1/pipelines/{pipeline_id} (delete), GET /api/v1/models (list models) — wired to PipelineService, following pattern from existing API routers
-- [ ] T009 Register the pipelines router in backend/src/main.py by importing and including the new router with appropriate prefix
-- [ ] T010 Add pipeline and models API client methods to frontend/src/services/api.ts: pipelines.list(), pipelines.get(id), pipelines.create(data), pipelines.update(id, data), pipelines.delete(id), models.list() — following existing API client patterns
-- [ ] T011 [P] Create useModels hook at frontend/src/hooks/useModels.ts that fetches models via TanStack Query with queryKey ['models'] and staleTime 300000ms, deriving modelsByProvider grouping from the flat models array
+- [x] T006 Implement PipelineService in backend/src/services/pipelines/service.py with CRUD methods: list_pipelines(project_id), get_pipeline(project_id, pipeline_id), create_pipeline(project_id, data), update_pipeline(project_id, pipeline_id, data), delete_pipeline(project_id, pipeline_id) — following the pattern from backend/src/services/chores/service.py with aiosqlite queries against pipeline_configs table
+- [x] T007 Implement list_models() method in backend/src/services/pipelines/service.py returning a static list of AIModel objects (GPT-4o, GPT-4o Mini, Claude Sonnet 4, Claude 3.5 Haiku, Gemini 2.5 Pro, Gemini 2.5 Flash) per contracts/api.md
+- [x] T008 Create FastAPI router at backend/src/api/pipelines.py with endpoints: GET /api/v1/pipelines (list), POST /api/v1/pipelines (create), GET /api/v1/pipelines/{pipeline_id} (get), PUT /api/v1/pipelines/{pipeline_id} (update), DELETE /api/v1/pipelines/{pipeline_id} (delete), GET /api/v1/models (list models) — wired to PipelineService, following pattern from existing API routers
+- [x] T009 Register the pipelines router in backend/src/main.py by importing and including the new router with appropriate prefix
+- [x] T010 Add pipeline and models API client methods to frontend/src/services/api.ts: pipelines.list(), pipelines.get(id), pipelines.create(data), pipelines.update(id, data), pipelines.delete(id), models.list() — following existing API client patterns
+- [x] T011 [P] Create useModels hook at frontend/src/hooks/useModels.ts that fetches models via TanStack Query with queryKey ['models'] and staleTime 300000ms, deriving modelsByProvider grouping from the flat models array
 
 **Checkpoint**: Backend CRUD + API + frontend API client ready — user story implementation can now begin in parallel.
 
@@ -58,15 +58,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Create usePipelineConfig hook at frontend/src/hooks/usePipelineConfig.ts implementing board state management (empty/creating/editing), local working copy, isDirty tracking via deep comparison, newPipeline(), savePipeline() with TanStack Query mutation (debounced), setPipelineName(), setPipelineDescription(), addStage(), removeStage(), addAgentToStage(), removeAgentFromStage(), updateAgentInStage() — per contracts/components.md hook contract
-- [ ] T013 [P] [US1] Create ModelSelector component at frontend/src/components/pipeline/ModelSelector.tsx as a popover/dropdown showing models grouped by provider with name, context window size, cost tier badge; includes search filter and recently used models pinned at top — uses useModels hook per contracts/components.md
-- [ ] T014 [P] [US1] Create AgentNode component at frontend/src/components/pipeline/AgentNode.tsx displaying agent display name, current model selection (or "Select model" prompt), model area that opens ModelSelector on click, and remove (X) button — per contracts/components.md
-- [ ] T015 [P] [US1] Create PipelineToolbar component at frontend/src/components/pipeline/PipelineToolbar.tsx with New Pipeline, Save, Delete, Discard buttons following the toolbar state matrix from data-model.md (enabled/disabled based on boardState and isDirty) — per contracts/components.md
-- [ ] T016 [US1] Create StageCard component at frontend/src/components/pipeline/StageCard.tsx rendering stage name, contained AgentNode components, and an "Add Agent" button/popover to assign agents from availableAgents list — per contracts/components.md
-- [ ] T017 [US1] Create PipelineBoard component at frontend/src/components/pipeline/PipelineBoard.tsx rendering pipeline name as editable inline field, stages as StageCard components, and an "Add Stage" button; shows empty state with "Add your first stage" CTA when stages array is empty — per contracts/components.md
-- [ ] T018 [US1] Create SavedWorkflowsList component at frontend/src/components/pipeline/SavedWorkflowsList.tsx displaying pipeline summaries as cards with name, relative last modified date, stage count, agent count; cards are clickable; shows loading skeleton during fetch — per contracts/components.md
-- [ ] T019 [US1] Modify frontend/src/pages/AgentsPipelinePage.tsx to compose PipelineToolbar, PipelineBoard, and SavedWorkflowsList; wire usePipelineConfig hook for state management; fetch saved pipelines list via TanStack Query with queryKey ['pipelines', 'list']
-- [ ] T020 [US1] Update frontend/src/components/pipeline/index.ts barrel file to re-export all new components (PipelineBoard, PipelineToolbar, StageCard, AgentNode, ModelSelector, SavedWorkflowsList)
+- [x] T012 [US1] Create usePipelineConfig hook at frontend/src/hooks/usePipelineConfig.ts implementing board state management (empty/creating/editing), local working copy, isDirty tracking via deep comparison, newPipeline(), savePipeline() with TanStack Query mutation (debounced), setPipelineName(), setPipelineDescription(), addStage(), removeStage(), addAgentToStage(), removeAgentFromStage(), updateAgentInStage() — per contracts/components.md hook contract
+- [x] T013 [P] [US1] Create ModelSelector component at frontend/src/components/pipeline/ModelSelector.tsx as a popover/dropdown showing models grouped by provider with name, context window size, cost tier badge; includes search filter and recently used models pinned at top — uses useModels hook per contracts/components.md
+- [x] T014 [P] [US1] Create AgentNode component at frontend/src/components/pipeline/AgentNode.tsx displaying agent display name, current model selection (or "Select model" prompt), model area that opens ModelSelector on click, and remove (X) button — per contracts/components.md
+- [x] T015 [P] [US1] Create PipelineToolbar component at frontend/src/components/pipeline/PipelineToolbar.tsx with New Pipeline, Save, Delete, Discard buttons following the toolbar state matrix from data-model.md (enabled/disabled based on boardState and isDirty) — per contracts/components.md
+- [x] T016 [US1] Create StageCard component at frontend/src/components/pipeline/StageCard.tsx rendering stage name, contained AgentNode components, and an "Add Agent" button/popover to assign agents from availableAgents list — per contracts/components.md
+- [x] T017 [US1] Create PipelineBoard component at frontend/src/components/pipeline/PipelineBoard.tsx rendering pipeline name as editable inline field, stages as StageCard components, and an "Add Stage" button; shows empty state with "Add your first stage" CTA when stages array is empty — per contracts/components.md
+- [x] T018 [US1] Create SavedWorkflowsList component at frontend/src/components/pipeline/SavedWorkflowsList.tsx displaying pipeline summaries as cards with name, relative last modified date, stage count, agent count; cards are clickable; shows loading skeleton during fetch — per contracts/components.md
+- [x] T019 [US1] Modify frontend/src/pages/AgentsPipelinePage.tsx to compose PipelineToolbar, PipelineBoard, and SavedWorkflowsList; wire usePipelineConfig hook for state management; fetch saved pipelines list via TanStack Query with queryKey ['pipelines', 'list']
+- [x] T020 [US1] Update frontend/src/components/pipeline/index.ts barrel file to re-export all new components (PipelineBoard, PipelineToolbar, StageCard, AgentNode, ModelSelector, SavedWorkflowsList)
 
 **Checkpoint**: At this point, users can create, name, configure, and save a new pipeline. The saved pipeline appears in the list. This is the MVP.
 
@@ -80,11 +80,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Add loadPipeline(pipelineId) method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that fetches pipeline detail via API, populates local board state, sets editingPipelineId, and transitions boardState to 'editing'
-- [ ] T022 [US2] Add edit mode visual indicator to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx — display a banner or highlighted header showing "Editing: [pipeline name]" when isEditMode is true (FR-014)
-- [ ] T023 [US2] Update savePipeline() in usePipelineConfig hook (frontend/src/hooks/usePipelineConfig.ts) to call pipelines.update() when editingPipelineId is set (update existing) vs. pipelines.create() when null (create new); invalidate ['pipelines', 'list'] query on success
-- [ ] T024 [US2] Wire SavedWorkflowsList onSelect handler in frontend/src/pages/AgentsPipelinePage.tsx to call loadPipeline(pipelineId), highlighting the active pipeline card via activePipelineId prop
-- [ ] T025 [US2] Ensure SavedWorkflowsList in frontend/src/components/pipeline/SavedWorkflowsList.tsx visually highlights the currently active/selected pipeline card and updates the displayed last modified date and counts after save operations
+- [x] T021 [US2] Add loadPipeline(pipelineId) method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that fetches pipeline detail via API, populates local board state, sets editingPipelineId, and transitions boardState to 'editing'
+- [x] T022 [US2] Add edit mode visual indicator to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx — display a banner or highlighted header showing "Editing: [pipeline name]" when isEditMode is true (FR-014)
+- [x] T023 [US2] Update savePipeline() in usePipelineConfig hook (frontend/src/hooks/usePipelineConfig.ts) to call pipelines.update() when editingPipelineId is set (update existing) vs. pipelines.create() when null (create new); invalidate ['pipelines', 'list'] query on success
+- [x] T024 [US2] Wire SavedWorkflowsList onSelect handler in frontend/src/pages/AgentsPipelinePage.tsx to call loadPipeline(pipelineId), highlighting the active pipeline card via activePipelineId prop
+- [x] T025 [US2] Ensure SavedWorkflowsList in frontend/src/components/pipeline/SavedWorkflowsList.tsx visually highlights the currently active/selected pipeline card and updates the displayed last modified date and counts after save operations
 
 **Checkpoint**: At this point, users can create, save, load, edit, and re-save pipelines. Full Create + Read + Update flow works.
 
@@ -98,9 +98,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Add deletePipeline() method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that calls pipelines.delete(editingPipelineId), invalidates ['pipelines', 'list'] query, and resets board to 'empty' state on success
-- [ ] T027 [US3] Add delete confirmation dialog to frontend/src/pages/AgentsPipelinePage.tsx — when toolbar's onDelete fires, show a confirmation prompt (using existing UI dialog/card components) warning the action is permanent; on confirm call deletePipeline(), on cancel do nothing (FR-005)
-- [ ] T028 [US3] Verify PipelineToolbar Delete button states in frontend/src/components/pipeline/PipelineToolbar.tsx: disabled when boardState is 'empty' or 'creating'; enabled when boardState is 'editing' — per toolbar state matrix in data-model.md
+- [x] T026 [US3] Add deletePipeline() method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that calls pipelines.delete(editingPipelineId), invalidates ['pipelines', 'list'] query, and resets board to 'empty' state on success
+- [x] T027 [US3] Add delete confirmation dialog to frontend/src/pages/AgentsPipelinePage.tsx — when toolbar's onDelete fires, show a confirmation prompt (using existing UI dialog/card components) warning the action is permanent; on confirm call deletePipeline(), on cancel do nothing (FR-005)
+- [x] T028 [US3] Verify PipelineToolbar Delete button states in frontend/src/components/pipeline/PipelineToolbar.tsx: disabled when boardState is 'empty' or 'creating'; enabled when boardState is 'editing' — per toolbar state matrix in data-model.md
 
 **Checkpoint**: Full CRUD lifecycle (Create, Read, Update, Delete) is now complete.
 
@@ -114,10 +114,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Enhance ModelSelector in frontend/src/components/pipeline/ModelSelector.tsx to track recently used models in session state (last 3 selected models) and display them in a pinned "Recent" group at the top of the list (FR-009)
-- [ ] T030 [US4] Add cost tier badge styling to ModelSelector in frontend/src/components/pipeline/ModelSelector.tsx — display economy/standard/premium as colored badges alongside each model entry (FR-008)
-- [ ] T031 [US4] Ensure AgentNode in frontend/src/components/pipeline/AgentNode.tsx displays "Select model" prompt when no model is selected, and shows model name plus provider badge when a model is selected (FR-010)
-- [ ] T032 [US4] Add search/filter input at the top of the ModelSelector popover in frontend/src/components/pipeline/ModelSelector.tsx for quick lookup when model list is long
+- [x] T029 [US4] Enhance ModelSelector in frontend/src/components/pipeline/ModelSelector.tsx to track recently used models in session state (last 3 selected models) and display them in a pinned "Recent" group at the top of the list (FR-009)
+- [x] T030 [US4] Add cost tier badge styling to ModelSelector in frontend/src/components/pipeline/ModelSelector.tsx — display economy/standard/premium as colored badges alongside each model entry (FR-008)
+- [x] T031 [US4] Ensure AgentNode in frontend/src/components/pipeline/AgentNode.tsx displays "Select model" prompt when no model is selected, and shows model name plus provider badge when a model is selected (FR-010)
+- [x] T032 [US4] Add search/filter input at the top of the ModelSelector popover in frontend/src/components/pipeline/ModelSelector.tsx for quick lookup when model list is long
 
 **Checkpoint**: Model selection UX is polished with grouping, metadata, recent models, and search.
 
@@ -131,14 +131,14 @@
 
 ### Implementation for User Story 5
 
-- [ ] T033 [US5] Create UnsavedChangesDialog component at frontend/src/components/pipeline/UnsavedChangesDialog.tsx with Save, Discard, and Cancel buttons; accepts isOpen, onSave, onDiscard, onCancel, and actionDescription props — per contracts/components.md (FR-018)
-- [ ] T034 [US5] Integrate unsaved changes check in frontend/src/pages/AgentsPipelinePage.tsx: when user clicks a different saved workflow and isDirty is true, show UnsavedChangesDialog before proceeding; wire Save (save then load), Discard (reset then load), and Cancel (no-op) handlers
-- [ ] T035 [US5] Add browser navigation guard in frontend/src/pages/AgentsPipelinePage.tsx using window.onbeforeunload when isDirty is true, and React Router useBlocker hook for in-app route changes (FR-019)
-- [ ] T036 [US5] Add discardChanges() method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that reverts the working copy to the last saved state (or clears the board if creating a new unsaved pipeline) (FR-006)
-- [ ] T037 [US5] Add drag-and-drop stage reordering to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx using @dnd-kit SortableContext and DndContext with arrayMove from @dnd-kit/sortable; call onStagesChange after reorder (FR-015)
-- [ ] T038 [US5] Add reorderStages(newOrder) method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that updates stage order values and marks board as dirty
-- [ ] T039 [US5] Add inline rename support to StageCard in frontend/src/components/pipeline/StageCard.tsx: click stage name → inline text input → Enter or blur to confirm rename; call onUpdate with new name (FR-016)
-- [ ] T040 [US5] Update frontend/src/components/pipeline/index.ts barrel file to re-export UnsavedChangesDialog
+- [x] T033 [US5] Create UnsavedChangesDialog component at frontend/src/components/pipeline/UnsavedChangesDialog.tsx with Save, Discard, and Cancel buttons; accepts isOpen, onSave, onDiscard, onCancel, and actionDescription props — per contracts/components.md (FR-018)
+- [x] T034 [US5] Integrate unsaved changes check in frontend/src/pages/AgentsPipelinePage.tsx: when user clicks a different saved workflow and isDirty is true, show UnsavedChangesDialog before proceeding; wire Save (save then load), Discard (reset then load), and Cancel (no-op) handlers
+- [x] T035 [US5] Add browser navigation guard in frontend/src/pages/AgentsPipelinePage.tsx using window.onbeforeunload when isDirty is true, and React Router useBlocker hook for in-app route changes (FR-019)
+- [x] T036 [US5] Add discardChanges() method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that reverts the working copy to the last saved state (or clears the board if creating a new unsaved pipeline) (FR-006)
+- [x] T037 [US5] Add drag-and-drop stage reordering to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx using @dnd-kit SortableContext and DndContext with arrayMove from @dnd-kit/sortable; call onStagesChange after reorder (FR-015)
+- [x] T038 [US5] Add reorderStages(newOrder) method to usePipelineConfig hook in frontend/src/hooks/usePipelineConfig.ts that updates stage order values and marks board as dirty
+- [x] T039 [US5] Add inline rename support to StageCard in frontend/src/components/pipeline/StageCard.tsx: click stage name → inline text input → Enter or blur to confirm rename; call onUpdate with new name (FR-016)
+- [x] T040 [US5] Update frontend/src/components/pipeline/index.ts barrel file to re-export UnsavedChangesDialog
 
 **Checkpoint**: Unsaved changes protection is active for both in-app and browser navigation. Stages support drag-and-drop reordering and inline renaming.
 
@@ -152,9 +152,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T041 [US6] Add board empty state to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx: when no pipeline is loaded (stages is null/empty and boardState is 'empty'), display a welcoming message with "Create your first pipeline" CTA button that triggers onNewPipeline (FR-021)
-- [ ] T042 [US6] Add Saved Workflows empty state to SavedWorkflowsList in frontend/src/components/pipeline/SavedWorkflowsList.tsx: when pipelines array is empty and isLoading is false, display "No saved pipelines yet. Create your first pipeline above!" message with CTA (FR-022)
-- [ ] T043 [US6] Verify and refine PipelineToolbar contextual states in frontend/src/components/pipeline/PipelineToolbar.tsx: ensure all five board states from the toolbar state matrix in data-model.md are correctly handled — empty (only New enabled), creating no changes (all disabled), creating with changes (Save/Discard enabled), editing no changes (New/Delete enabled), editing with changes (all enabled) (FR-017)
+- [x] T041 [US6] Add board empty state to PipelineBoard in frontend/src/components/pipeline/PipelineBoard.tsx: when no pipeline is loaded (stages is null/empty and boardState is 'empty'), display a welcoming message with "Create your first pipeline" CTA button that triggers onNewPipeline (FR-021)
+- [x] T042 [US6] Add Saved Workflows empty state to SavedWorkflowsList in frontend/src/components/pipeline/SavedWorkflowsList.tsx: when pipelines array is empty and isLoading is false, display "No saved pipelines yet. Create your first pipeline above!" message with CTA (FR-022)
+- [x] T043 [US6] Verify and refine PipelineToolbar contextual states in frontend/src/components/pipeline/PipelineToolbar.tsx: ensure all five board states from the toolbar state matrix in data-model.md are correctly handled — empty (only New enabled), creating no changes (all disabled), creating with changes (Save/Discard enabled), editing no changes (New/Delete enabled), editing with changes (all enabled) (FR-017)
 
 **Checkpoint**: All empty states render correctly. Toolbar actions are contextually appropriate in every board state.
 
@@ -164,13 +164,13 @@
 
 **Purpose**: Improvements that affect multiple user stories — error handling, optimistic updates, performance, and cleanup.
 
-- [ ] T044 Add error handling and user-facing error notifications for all pipeline API operations (create, update, delete, load) in frontend/src/hooks/usePipelineConfig.ts — show error toast/message on failure with retry option (edge case: save failure)
-- [ ] T045 Add optimistic UI updates for delete operations in usePipelineConfig hook (frontend/src/hooks/usePipelineConfig.ts) — immediately remove pipeline from list, rollback on failure
-- [ ] T046 Add save debouncing logic to savePipeline() in frontend/src/hooks/usePipelineConfig.ts to prevent multiple rapid save requests (FR-020)
-- [ ] T047 [P] Add validation in frontend/src/hooks/usePipelineConfig.ts and frontend/src/components/pipeline/PipelineBoard.tsx: prevent saving with no stages (display validation message), warn when a stage has no agents (edge cases from spec)
-- [ ] T048 [P] Add pipeline name validation in frontend/src/hooks/usePipelineConfig.ts: prompt user to provide a name before saving if name is empty (acceptance scenario US1-6)
-- [ ] T049 [P] Verify all pipeline components use existing UI primitives (Button from components/ui/button.tsx, Card from components/ui/card.tsx) consistent with the rest of the application
-- [ ] T050 Run quickstart.md verification steps: create pipeline, reload to verify persistence, load saved pipeline, modify and save, delete, test model selection, test unsaved changes dialog, test stage reordering
+- [x] T044 Add error handling and user-facing error notifications for all pipeline API operations (create, update, delete, load) in frontend/src/hooks/usePipelineConfig.ts — show error toast/message on failure with retry option (edge case: save failure)
+- [x] T045 Add optimistic UI updates for delete operations in usePipelineConfig hook (frontend/src/hooks/usePipelineConfig.ts) — immediately remove pipeline from list, rollback on failure
+- [x] T046 Add save debouncing logic to savePipeline() in frontend/src/hooks/usePipelineConfig.ts to prevent multiple rapid save requests (FR-020)
+- [x] T047 [P] Add validation in frontend/src/hooks/usePipelineConfig.ts and frontend/src/components/pipeline/PipelineBoard.tsx: prevent saving with no stages (display validation message), warn when a stage has no agents (edge cases from spec)
+- [x] T048 [P] Add pipeline name validation in frontend/src/hooks/usePipelineConfig.ts: prompt user to provide a name before saving if name is empty (acceptance scenario US1-6)
+- [x] T049 [P] Verify all pipeline components use existing UI primitives (Button from components/ui/button.tsx, Card from components/ui/card.tsx) consistent with the rest of the application
+- [x] T050 Run quickstart.md verification steps: create pipeline, reload to verify persistence, load saved pipeline, modify and save, delete, test model selection, test unsaved changes dialog, test stage reordering
 
 ---
 
