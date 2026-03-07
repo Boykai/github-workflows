@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/028-project-page-ux/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Unit tests included for `formatAgentName` utility (pure function with defined edge cases) and sub-issue filtering logic (critical data correctness), as specified in the plan's test optionality section.
+**Tests**: Unit tests are included for the `formatAgentName` utility (pure function with defined edge cases). Unit tests for sub-issue filtering logic are planned under T034, as specified in the plan's test optionality section.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 

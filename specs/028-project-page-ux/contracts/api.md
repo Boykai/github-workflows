@@ -35,9 +35,7 @@ for column in columns:
 
 ### Done/Closed Status Detection
 
-A status option is considered "Done" or "Closed" if:
-- `status.name.lower()` is in `{"done", "closed", "completed"}`
-- OR the status is the last column in the project board (convention)
+A status option is considered "Done" or "Closed" when `status.name.lower()` is in `{"done", "closed", "completed"}`.
 
 ### Response Shape (Unchanged)
 

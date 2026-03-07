@@ -44,6 +44,7 @@ class AvailableAgent(BaseModel):
     avatar_url: str | None = Field(default=None, description="Avatar URL")
     default_model_id: str = Field(default="", description="Saved default model ID")
     default_model_name: str = Field(default="", description="Saved default model name")
+    tools_count: int | None = Field(default=None, description="Number of configured tools")
     source: AgentSource = Field(..., description="Discovery source")
 
 

@@ -4,7 +4,7 @@
  * with confirmation dialog before replacing current agent configuration.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
@@ -152,6 +152,8 @@ export function AgentPresetSelector({
   const [confirmPreset, setConfirmPreset] = useState<AgentPreset | null>(null);
   const [confirmPipeline, setConfirmPipeline] = useState<PipelineConfigSummary | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const restoredProjectRef = useRef<string | null>(null);
 
   // Fetch saved pipeline configurations
   const { data: savedPipelines } = useQuery({
@@ -168,12 +170,80 @@ export function AgentPresetSelector({
     }
   }, [projectId]);
 
+  useEffect(() => {
+    if (!showDropdown) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowDropdown(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDropdown]);
+
+  useEffect(() => {
+    restoredProjectRef.current = null;
+    setApplyError(null);
+    setShowDropdown(false);
+    setConfirmPreset(null);
+    setConfirmPipeline(null);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!projectId || restoredProjectRef.current === projectId) {
+      return undefined;
+    }
+
+    const storedSelection = localStorage.getItem(`pipeline-config:${projectId}`);
+    restoredProjectRef.current = projectId;
+
+    if (!storedSelection) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const restoreSelection = async () => {
+      try {
+        if (storedSelection.startsWith('builtin:')) {
+          const presetId = storedSelection.slice('builtin:'.length);
+          const preset = PRESETS.find((candidate) => candidate.id === presetId);
+          if (preset) {
+            onApplyPreset(resolvePreset(preset, columnNames));
+          }
+          return;
+        }
+
+        const fullConfig = await pipelinesApi.get(projectId, storedSelection);
+        if (!cancelled) {
+          onApplyPreset(pipelineConfigToMappings(fullConfig, columnNames));
+        }
+      } catch {
+        if (!cancelled) {
+          setApplyError('Failed to restore the saved pipeline selection.');
+        }
+      }
+    };
+
+    void restoreSelection();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [columnNames, onApplyPreset, projectId]);
+
   const handlePresetClick = useCallback((preset: AgentPreset) => {
+    setApplyError(null);
     setConfirmPreset(preset);
     setShowDropdown(false);
   }, []);
 
   const handlePipelineClick = useCallback((pipeline: PipelineConfigSummary) => {
+    setApplyError(null);
     setConfirmPipeline(pipeline);
     setShowDropdown(false);
   }, []);
@@ -183,6 +253,7 @@ export function AgentPresetSelector({
     const resolved = resolvePreset(confirmPreset, columnNames);
     onApplyPreset(resolved);
     persistSelection(`builtin:${confirmPreset.id}`);
+    setApplyError(null);
     setConfirmPreset(null);
   }, [confirmPreset, columnNames, onApplyPreset, persistSelection]);
 
@@ -193,10 +264,11 @@ export function AgentPresetSelector({
       const mappings = pipelineConfigToMappings(fullConfig, columnNames);
       onApplyPreset(mappings);
       persistSelection(confirmPipeline.id);
+      setApplyError(null);
+      setConfirmPipeline(null);
     } catch {
-      // Silently fail - user can retry
+      setApplyError('Failed to load and apply the selected pipeline. Please try again.');
     }
-    setConfirmPipeline(null);
   }, [confirmPipeline, projectId, columnNames, onApplyPreset, persistSelection]);
 
   const handleCancel = useCallback(() => {
@@ -238,7 +310,7 @@ export function AgentPresetSelector({
             {showDropdown && (
               <>
                 {/* Backdrop to close dropdown */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowDropdown(false); }} role="presentation" />
+                <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} role="presentation" />
                 <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-card shadow-lg py-1">
                   {savedPipelines?.pipelines.map((pipeline) => (
                     <button
@@ -314,6 +386,11 @@ export function AgentPresetSelector({
               This will replace your current agent configuration with the saved pipeline.
               Unsaved changes will be reflected in the save bar.
             </p>
+            {applyError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                {applyError}
+              </div>
+            )}
             <div className="flex justify-end gap-3 mt-2">
               <button
                 className="px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
@@ -331,6 +408,12 @@ export function AgentPresetSelector({
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {applyError && !confirmPipeline && (
+        <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive" role="alert">
+          {applyError}
         </div>
       )}
     </>
