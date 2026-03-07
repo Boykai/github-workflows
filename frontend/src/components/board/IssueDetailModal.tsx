@@ -3,6 +3,8 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS } from '@/constants';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 
@@ -167,9 +169,19 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   href={si.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-3 p-3 rounded-md border transition-colors no-underline ${si.state === 'closed' ? 'bg-muted/30 border-border/50 text-muted-foreground' : 'bg-card border-border hover:border-primary/50'}`}
+                  className={cn(
+                    'flex items-center gap-3 p-3 rounded-md border transition-colors no-underline',
+                    si.state === 'closed'
+                      ? 'bg-muted/30 border-border/50 text-muted-foreground'
+                      : 'bg-card border-border hover:border-primary/50',
+                  )}
                 >
-                  <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}>
+                  <span className={cn(
+                    'flex items-center justify-center w-5 h-5 rounded-full text-xs',
+                    si.state === 'closed'
+                      ? 'bg-purple-500/10 text-purple-500'
+                      : cn(STATUS_COLORS.success.bg, STATUS_COLORS.success.text),
+                  )}>
                     {si.state === 'closed' ? '✓' : '○'}
                   </span>
                   <span className="flex flex-col flex-1 min-w-0">
@@ -215,7 +227,14 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-md border border-border bg-card hover:border-primary/50 transition-colors no-underline"
                 >
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                  <span className={cn(
+                    'px-2 py-0.5 text-xs font-medium rounded-full',
+                    pr.state === 'merged'
+                      ? 'bg-purple-500/10 text-purple-500'
+                      : pr.state === 'closed'
+                        ? cn(STATUS_COLORS.error.bg, STATUS_COLORS.error.text)
+                        : cn(STATUS_COLORS.success.bg, STATUS_COLORS.success.text),
+                  )}>
                     {prStateLabel(pr.state)}
                   </span>
                   <span className="text-sm font-medium text-foreground">

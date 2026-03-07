@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { SettingsSection } from './SettingsSection';
 import {
   useSignalConnection,
@@ -18,6 +19,7 @@ import {
   useSignalBanners,
   useDismissBanner,
 } from '@/hooks/useSettings';
+import { STATUS_COLORS } from '@/constants';
 import type { SignalNotificationMode } from '@/types';
 
 // ── Sub-components ──
@@ -28,35 +30,35 @@ function ConnectionStatusBadge({ status }: { status: string | null }) {
   const config: Record<string, { label: string; dot: string; bg: string; text: string }> = {
     connected: {
       label: 'Connected',
-      dot: 'bg-green-500',
-      bg: 'bg-green-500/10',
-      text: 'text-green-600 dark:text-green-400',
+      dot: STATUS_COLORS.success.dot,
+      bg: STATUS_COLORS.success.bg,
+      text: STATUS_COLORS.success.text,
     },
     pending: {
       label: 'Linking…',
-      dot: 'bg-yellow-500 animate-pulse',
-      bg: 'bg-yellow-500/10',
-      text: 'text-yellow-600 dark:text-yellow-400',
+      dot: `${STATUS_COLORS.warning.dot} animate-pulse`,
+      bg: STATUS_COLORS.warning.bg,
+      text: STATUS_COLORS.warning.text,
     },
     error: {
       label: 'Error',
-      dot: 'bg-red-500',
-      bg: 'bg-red-500/10',
-      text: 'text-red-600 dark:text-red-400',
+      dot: STATUS_COLORS.error.dot,
+      bg: STATUS_COLORS.error.bg,
+      text: STATUS_COLORS.error.text,
     },
     disconnected: {
       label: 'Not Connected',
-      dot: 'bg-muted-foreground/40',
-      bg: 'bg-muted/50',
-      text: 'text-muted-foreground',
+      dot: STATUS_COLORS.neutral.dot + '/40',
+      bg: STATUS_COLORS.neutral.bg + '/50',
+      text: STATUS_COLORS.neutral.text,
     },
   };
 
   const c = config[key] ?? config.disconnected;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium', c.bg, c.text)}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', c.dot)} />
       {c.label}
     </span>
   );
@@ -97,10 +99,10 @@ function ConflictBanners() {
       {banners.map((banner) => (
         <div
           key={banner.id}
-          className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
+          className={cn('flex items-start gap-3 rounded-md border p-3', STATUS_COLORS.warning.border, STATUS_COLORS.warning.bg)}
         >
           <span className="text-base leading-none mt-0.5">⚠️</span>
-          <span className="flex-1 text-sm text-yellow-700 dark:text-yellow-300">{banner.message}</span>
+          <span className={cn('flex-1 text-sm', STATUS_COLORS.warning.text)}>{banner.message}</span>
           <button
             className="shrink-0 text-xs font-medium text-yellow-700 dark:text-yellow-300 underline underline-offset-2 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors disabled:opacity-50"
             onClick={() => dismissBanner(banner.id)}
@@ -140,12 +142,13 @@ function NotificationPreferenceSelector() {
           <label
             key={opt.value}
             htmlFor={`signal-notification-${opt.value}`}
-            className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors
-              ${preferences.notification_mode === opt.value
+            className={cn(
+              'flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors',
+              preferences.notification_mode === opt.value
                 ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/40 hover:bg-muted/30'
-              }
-              ${isPending ? 'opacity-60 pointer-events-none' : ''}`}
+                : 'border-border hover:border-primary/40 hover:bg-muted/30',
+              isPending && 'opacity-60 pointer-events-none',
+            )}
           >
             <input
               id={`signal-notification-${opt.value}`}

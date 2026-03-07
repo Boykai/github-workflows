@@ -7,6 +7,8 @@
  */
 
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { STATUS_COLORS, PRIORITY_COLORS } from '@/constants';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 
 interface IssueRecommendationPreviewProps {
@@ -61,7 +63,7 @@ export function IssueRecommendationPreview({
   // Show success result
   if (result?.success) {
     return (
-      <div className="bg-green-100/80 border border-green-200 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400 rounded-lg p-4 mt-3 max-w-[600px]">
+      <div className={cn('rounded-lg p-4 mt-3 max-w-[600px] border', STATUS_COLORS.success.bg, STATUS_COLORS.success.text, STATUS_COLORS.success.border)}>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl">✓</span>
           <h4 className="m-0 font-semibold">Issue Created Successfully</h4>
@@ -177,7 +179,7 @@ export function IssueRecommendationPreview({
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
-              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
+              <span className={cn('text-sm font-medium', PRIORITY_COLORS[recommendation.metadata.priority ?? 'P2']?.text ?? 'text-muted-foreground')}>
                 {recommendation.metadata.priority || 'P2'}
               </span>
             </div>
@@ -210,7 +212,7 @@ export function IssueRecommendationPreview({
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Labels</span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.labels.map((label, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-medium">{label}</span>
+                    <span key={idx} className={cn('inline-block px-2 py-0.5 rounded-full text-[11px] font-medium', STATUS_COLORS.info.bg, STATUS_COLORS.info.text)}>{label}</span>
                   ))}
                 </div>
               </div>
@@ -220,7 +222,7 @@ export function IssueRecommendationPreview({
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Assignees</span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.assignees.map((assignee, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium">@{assignee}</span>
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium">@{assignee}</span>
                   ))}
                 </div>
               </div>
@@ -236,7 +238,7 @@ export function IssueRecommendationPreview({
             {recommendation.metadata.branch && (
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">Branch</span>
-                <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[11px] font-mono w-fit">
+                <span className={cn('inline-block px-2 py-0.5 rounded text-[11px] font-mono w-fit', STATUS_COLORS.success.bg, STATUS_COLORS.success.text)}>
                   {recommendation.metadata.branch}
                 </span>
               </div>
