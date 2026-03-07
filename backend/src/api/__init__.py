@@ -16,6 +16,7 @@ from src.api.projects import router as projects_router
 from src.api.settings import router as settings_router
 from src.api.signal import router as signal_router
 from src.api.tasks import router as tasks_router
+from src.api.tools import router as tools_router
 from src.api.webhooks import router as webhooks_router
 from src.api.workflow import router as workflow_router
 
@@ -35,5 +36,6 @@ router.include_router(signal_router, prefix="/signal", tags=["signal"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
 router.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 router.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
+router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 router.include_router(health_router, tags=["health"])

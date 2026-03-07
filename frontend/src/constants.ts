@@ -59,7 +59,7 @@ export const HIGHLIGHT_DURATION_MS = 2_000;
 
 // ============ Solune Navigation ============
 
-import { LayoutDashboard, Kanban, GitBranch, Bot, ListChecks, Settings } from 'lucide-react';
+import { LayoutDashboard, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings } from 'lucide-react';
 import type { NavRoute } from '@/types';
 
 /** Sidebar navigation routes with Lucide icons. */
@@ -68,6 +68,7 @@ export const NAV_ROUTES: NavRoute[] = [
   { path: '/projects', label: 'Projects', icon: Kanban },
   { path: '/pipeline', label: 'Agents Pipeline', icon: GitBranch },
   { path: '/agents', label: 'Agents', icon: Bot },
+  { path: '/tools', label: 'Tools', icon: Wrench },
   { path: '/chores', label: 'Chores', icon: ListChecks },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];

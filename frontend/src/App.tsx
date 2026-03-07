@@ -13,6 +13,7 @@ import { AppPage } from '@/pages/AppPage';
 import { ProjectsPage } from '@/pages/ProjectsPage';
 import { AgentsPipelinePage } from '@/pages/AgentsPipelinePage';
 import { AgentsPage } from '@/pages/AgentsPage';
+import { ToolsPage } from '@/pages/ToolsPage';
 import { ChoresPage } from '@/pages/ChoresPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -51,6 +52,7 @@ export default function App() {
                   <Route path="projects" element={<ProjectsPage />} />
                   <Route path="pipeline" element={<AgentsPipelinePage />} />
                   <Route path="agents" element={<AgentsPage />} />
+                  <Route path="tools" element={<ToolsPage />} />
                   <Route path="chores" element={<ChoresPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="*" element={<NotFoundPage />} />
