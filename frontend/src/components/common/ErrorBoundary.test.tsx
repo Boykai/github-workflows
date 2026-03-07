@@ -31,7 +31,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <SafeComponent />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
 
     expect(screen.getByText('Safe content')).toBeDefined();
@@ -41,7 +41,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <ThrowingComponent error={new Error('Test crash')} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
 
     expect(screen.getByRole('alert')).toBeDefined();
@@ -53,7 +53,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary fallback={<div>Custom error UI</div>}>
         <ThrowingComponent error={new Error('Boom')} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
 
     expect(screen.getByText('Custom error UI')).toBeDefined();
@@ -73,7 +73,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary onReset={onReset}>
         <ConditionalThrow />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
 
     // Should show error fallback
@@ -92,7 +92,7 @@ describe('ErrorBoundary', () => {
     render(
       <ErrorBoundary>
         <ThrowingComponent error={new Error('Detailed error message')} />
-      </ErrorBoundary>,
+      </ErrorBoundary>
     );
 
     expect(screen.getByText('Detailed error message')).toBeDefined();

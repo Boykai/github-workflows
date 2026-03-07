@@ -28,7 +28,9 @@ export function useRecentParentIssues(boardData: BoardDataResponse | null): Rece
         item_id: item.item_id,
         title: item.title,
         number: item.number,
-        repository: item.repository ? { owner: item.repository.owner, name: item.repository.name } : undefined,
+        repository: item.repository
+          ? { owner: item.repository.owner, name: item.repository.name }
+          : undefined,
         updatedAt: new Date().toISOString(),
       });
 

@@ -76,7 +76,7 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
       });
       setHistoryIndex(-1);
     },
-    [storageKey, maxHistory],
+    [storageKey, maxHistory]
   );
 
   const resetNavigation = useCallback(() => {
@@ -102,7 +102,7 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
       setHistoryIndex(newIndex);
       return history[history.length - 1 - newIndex];
     },
-    [history, historyIndex],
+    [history, historyIndex]
   );
 
   const navigateDown = useCallback((): string | null => {
@@ -133,7 +133,7 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
       setHistoryIndex(newHistoryIndex);
       return history[index];
     },
-    [history, historyIndex],
+    [history, historyIndex]
   );
 
   return {

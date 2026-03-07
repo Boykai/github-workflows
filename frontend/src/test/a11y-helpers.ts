@@ -38,7 +38,7 @@ export async function expectNoA11yViolations(container: HTMLElement): Promise<vo
  * ```
  */
 export async function renderAndCheckA11y(
-  ui: ReactElement,
+  ui: ReactElement
 ): Promise<RenderResult & { queryClient: import('@tanstack/react-query').QueryClient }> {
   const result = renderWithProviders(ui);
   await expectNoA11yViolations(result.container);

@@ -77,10 +77,7 @@ export function AppLayout() {
     clearChat,
   } = useChat();
 
-  const {
-    confirmRecommendation,
-    rejectRecommendation,
-  } = useWorkflow();
+  const { confirmRecommendation, rejectRecommendation } = useWorkflow();
 
   return (
     <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
@@ -94,11 +91,15 @@ export function AppLayout() {
       <Sidebar
         isCollapsed={isCollapsed}
         onToggle={toggleSidebar}
-        selectedProject={selectedProject ? {
-          project_id: selectedProject.project_id,
-          name: selectedProject.name,
-          owner_login: selectedProject.owner_login,
-        } : undefined}
+        selectedProject={
+          selectedProject
+            ? {
+                project_id: selectedProject.project_id,
+                name: selectedProject.name,
+                owner_login: selectedProject.owner_login,
+              }
+            : undefined
+        }
         recentInteractions={recentInteractions}
         projects={projects}
         projectsLoading={projectsLoading}
@@ -108,7 +109,9 @@ export function AppLayout() {
         <TopBar
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
-          user={user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined}
+          user={
+            user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined
+          }
           notifications={notifications}
           unreadCount={unreadCount}
           onMarkAllRead={markAllRead}

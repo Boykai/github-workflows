@@ -8,7 +8,12 @@
 
 import type { CommandDefinition, ParsedCommand } from './types';
 import { helpHandler } from './handlers/help';
-import { themeHandler, languageHandler, notificationsHandler, viewHandler } from './handlers/settings';
+import {
+  themeHandler,
+  languageHandler,
+  notificationsHandler,
+  viewHandler,
+} from './handlers/settings';
 import { agentHandler } from './handlers/agent';
 
 /** Central command store keyed by lowercase command name. */
@@ -78,7 +83,10 @@ export function parseCommand(input: string): ParsedCommand {
   }
 
   const name = afterHash.slice(0, spaceIndex).toLowerCase();
-  const args = afterHash.slice(spaceIndex + 1).trim().replace(/\s+/g, ' ');
+  const args = afterHash
+    .slice(spaceIndex + 1)
+    .trim()
+    .replace(/\s+/g, ' ');
 
   return { isCommand: true, name, args, raw };
 }

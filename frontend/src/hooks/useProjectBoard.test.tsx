@@ -38,11 +38,7 @@ function createWrapper() {
     },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -71,8 +67,20 @@ describe('useProjectBoard', () => {
     // field_id (not id) to match the real BoardStatusField interface.
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf1', options: [] } },
-        { project_id: 'PVT_2', name: 'Board Beta', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf2', options: [] } },
+        {
+          project_id: 'PVT_1',
+          name: 'Board Alpha',
+          url: 'https://github.com',
+          owner_login: 'user',
+          status_field: { field_id: 'sf1', options: [] },
+        },
+        {
+          project_id: 'PVT_2',
+          name: 'Board Beta',
+          url: 'https://github.com',
+          owner_login: 'user',
+          status_field: { field_id: 'sf2', options: [] },
+        },
       ],
     };
 
@@ -95,7 +103,13 @@ describe('useProjectBoard', () => {
     // Use type-accurate shapes matching BoardProject / BoardDataResponse.
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_1', name: 'Board Alpha', url: 'https://github.com', owner_login: 'user', status_field: { field_id: 'sf1', options: [] } },
+        {
+          project_id: 'PVT_1',
+          name: 'Board Alpha',
+          url: 'https://github.com',
+          owner_login: 'user',
+          status_field: { field_id: 'sf1', options: [] },
+        },
       ],
     };
     const mockBoardData = {
@@ -113,10 +127,9 @@ describe('useProjectBoard', () => {
     mockBoardApi.listProjects.mockResolvedValue(mockProjects);
     mockBoardApi.getBoardData.mockResolvedValue(mockBoardData);
 
-    const { result } = renderHook(
-      () => useProjectBoard({ selectedProjectId: 'PVT_1' }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useProjectBoard({ selectedProjectId: 'PVT_1' }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.boardData).not.toBeNull();
@@ -130,10 +143,9 @@ describe('useProjectBoard', () => {
     mockBoardApi.listProjects.mockResolvedValue({ projects: [] });
     const onProjectSelect = vi.fn();
 
-    const { result } = renderHook(
-      () => useProjectBoard({ onProjectSelect }),
-      { wrapper: createWrapper() },
-    );
+    const { result } = renderHook(() => useProjectBoard({ onProjectSelect }), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => {
       expect(result.current.projectsLoading).toBe(false);

@@ -155,11 +155,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
   if (showChatFlow) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleCancel}
-          role="presentation"
-        />
+        <div className="absolute inset-0 bg-black/50" onClick={handleCancel} role="presentation" />
         <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
@@ -189,11 +185,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={handleCancel}
-        role="presentation"
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={handleCancel} role="presentation" />
 
       {/* Modal */}
       <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
@@ -212,9 +204,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           {/* Template picker */}
           {repoTemplates && repoTemplates.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Start from a template
-              </span>
+              <span className="text-sm font-medium text-foreground">Start from a template</span>
               <div className="flex flex-wrap gap-2">
                 {repoTemplates.map((tpl) => (
                   <button
@@ -228,9 +218,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Or create a custom chore below
-              </p>
+              <p className="text-xs text-muted-foreground">Or create a custom chore below</p>
             </div>
           )}
 
@@ -271,9 +259,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           </div>
 
           {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">

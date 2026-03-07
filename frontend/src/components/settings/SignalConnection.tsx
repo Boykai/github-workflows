@@ -55,7 +55,9 @@ function ConnectionStatusBadge({ status }: { status: string | null }) {
   const c = config[key] ?? config.disconnected;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${c.bg} ${c.text}`}
+    >
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
     </span>
@@ -80,7 +82,8 @@ function QRCodeDisplay({ base64, expiresIn }: { base64: string; expiresIn: numbe
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        QR code expires in <span className="font-medium">{expiresIn}s</span>. A new one will be generated if it expires.
+        QR code expires in <span className="font-medium">{expiresIn}s</span>. A new one will be
+        generated if it expires.
       </p>
     </div>
   );
@@ -100,7 +103,9 @@ function ConflictBanners() {
           className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
         >
           <span className="text-base leading-none mt-0.5">⚠️</span>
-          <span className="flex-1 text-sm text-yellow-700 dark:text-yellow-300">{banner.message}</span>
+          <span className="flex-1 text-sm text-yellow-700 dark:text-yellow-300">
+            {banner.message}
+          </span>
           <button
             className="shrink-0 text-xs font-medium text-yellow-700 dark:text-yellow-300 underline underline-offset-2 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors disabled:opacity-50"
             onClick={() => dismissBanner(banner.id)}
@@ -123,8 +128,16 @@ function NotificationPreferenceSelector() {
 
   const options: { value: SignalNotificationMode; label: string; description: string }[] = [
     { value: 'all', label: 'All Messages', description: 'Receive all chat messages via Signal' },
-    { value: 'actions_only', label: 'Action Proposals Only', description: 'Only task proposals and action items' },
-    { value: 'confirmations_only', label: 'Confirmations Only', description: 'Only task creation and status change confirmations' },
+    {
+      value: 'actions_only',
+      label: 'Action Proposals Only',
+      description: 'Only task proposals and action items',
+    },
+    {
+      value: 'confirmations_only',
+      label: 'Confirmations Only',
+      description: 'Only task creation and status change confirmations',
+    },
     { value: 'none', label: 'None', description: 'Do not forward any messages to Signal' },
   ];
 
@@ -141,9 +154,10 @@ function NotificationPreferenceSelector() {
             key={opt.value}
             htmlFor={`signal-notification-${opt.value}`}
             className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors
-              ${preferences.notification_mode === opt.value
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/40 hover:bg-muted/30'
+              ${
+                preferences.notification_mode === opt.value
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/40 hover:bg-muted/30'
               }
               ${isPending ? 'opacity-60 pointer-events-none' : ''}`}
           >
@@ -172,7 +186,12 @@ function NotificationPreferenceSelector() {
 
 export function SignalConnection() {
   const { connection, isLoading } = useSignalConnection();
-  const { initiateLink, data: linkData, isPending: isLinking, reset: resetLink } = useInitiateSignalLink();
+  const {
+    initiateLink,
+    data: linkData,
+    isPending: isLinking,
+    reset: resetLink,
+  } = useInitiateSignalLink();
   const { disconnect, isPending: isDisconnecting } = useDisconnectSignal();
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
 
@@ -226,7 +245,9 @@ export function SignalConnection() {
         {isConnected && connection?.signal_identifier && (
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-muted-foreground">Phone</span>
-            <span className="text-sm font-mono text-foreground">{connection.signal_identifier}</span>
+            <span className="text-sm font-mono text-foreground">
+              {connection.signal_identifier}
+            </span>
           </div>
         )}
       </div>
@@ -257,10 +278,7 @@ export function SignalConnection() {
       {/* QR Code display during linking */}
       {isLinkingInProgress && linkData && !isConnected && (
         <div className="flex flex-col gap-4">
-          <QRCodeDisplay
-            base64={linkData.qr_code_base64}
-            expiresIn={linkData.expires_in_seconds}
-          />
+          <QRCodeDisplay base64={linkData.qr_code_base64} expiresIn={linkData.expires_in_seconds} />
 
           {linkStatus?.status === 'pending' && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -313,7 +331,8 @@ export function SignalConnection() {
           ) : (
             <div className="flex flex-col gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4">
               <p className="text-sm text-foreground">
-                Are you sure? This will stop all Signal notifications and delete your linked phone number.
+                Are you sure? This will stop all Signal notifications and delete your linked phone
+                number.
               </p>
               <div className="flex items-center gap-2">
                 <button

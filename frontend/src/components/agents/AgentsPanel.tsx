@@ -66,7 +66,8 @@ export function AgentsPanel({ projectId }: AgentsPanelProps) {
             Add an agent to create custom GitHub Copilot agents for your repository.
           </p>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            See <span className="font-medium">docs/custom-agents-best-practices.md</span> for guidance.
+            See <span className="font-medium">docs/custom-agents-best-practices.md</span> for
+            guidance.
           </p>
         </div>
       )}

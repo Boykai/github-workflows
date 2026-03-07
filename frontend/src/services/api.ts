@@ -73,13 +73,12 @@ const authExpiredListeners = new Set<AuthExpiredListener>();
 
 export function onAuthExpired(listener: AuthExpiredListener): () => void {
   authExpiredListeners.add(listener);
-  return () => { authExpiredListeners.delete(listener); };
+  return () => {
+    authExpiredListeners.delete(listener);
+  };
 }
 
-async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const response = await fetch(url, {
@@ -251,10 +250,7 @@ export const chatApi = {
   /**
    * Confirm an AI task proposal.
    */
-  confirmProposal(
-    proposalId: string,
-    data?: ProposalConfirmRequest
-  ): Promise<AITaskProposal> {
+  confirmProposal(proposalId: string, data?: ProposalConfirmRequest): Promise<AITaskProposal> {
     return request<AITaskProposal>(`/chat/proposals/${proposalId}/confirm`, {
       method: 'POST',
       body: JSON.stringify(data || {}),
@@ -354,16 +350,9 @@ export const settingsApi = {
    * Accepts an optional `RequestInit` so callers (e.g. TanStack Query) can
    * pass an `AbortSignal` for request cancellation.
    */
-  fetchModels(
-    provider: string,
-    forceRefresh = false,
-    init?: RequestInit,
-  ): Promise<ModelsResponse> {
+  fetchModels(provider: string, forceRefresh = false, init?: RequestInit): Promise<ModelsResponse> {
     const params = forceRefresh ? '?force_refresh=true' : '';
-    return request<ModelsResponse>(
-      `/settings/models/${provider}${params}`,
-      init,
-    );
+    return request<ModelsResponse>(`/settings/models/${provider}${params}`, init);
   },
 };
 
@@ -374,20 +363,18 @@ export const workflowApi = {
    * Confirm an AI-generated issue recommendation.
    */
   confirmRecommendation(recommendationId: string): Promise<WorkflowResult> {
-    return request<WorkflowResult>(
-      `/workflow/recommendations/${recommendationId}/confirm`,
-      { method: 'POST' },
-    );
+    return request<WorkflowResult>(`/workflow/recommendations/${recommendationId}/confirm`, {
+      method: 'POST',
+    });
   },
 
   /**
    * Reject an AI-generated issue recommendation.
    */
   rejectRecommendation(recommendationId: string): Promise<void> {
-    return request<void>(
-      `/workflow/recommendations/${recommendationId}/reject`,
-      { method: 'POST' },
-    );
+    return request<void>(`/workflow/recommendations/${recommendationId}/reject`, {
+      method: 'POST',
+    });
   },
 
   /**
@@ -608,10 +595,13 @@ export const choresApi = {
   /**
    * Delete a chore.
    */
-  delete(projectId: string, choreId: string): Promise<{ deleted: boolean; closed_issue_number: number | null }> {
+  delete(
+    projectId: string,
+    choreId: string
+  ): Promise<{ deleted: boolean; closed_issue_number: number | null }> {
     return request<{ deleted: boolean; closed_issue_number: number | null }>(
       `/chores/${projectId}/${choreId}`,
-      { method: 'DELETE' },
+      { method: 'DELETE' }
     );
   },
 
@@ -644,7 +634,6 @@ export const choresApi = {
     });
   },
 };
-
 
 // ── Agents API ─────────────────────────────────────────────────────────
 

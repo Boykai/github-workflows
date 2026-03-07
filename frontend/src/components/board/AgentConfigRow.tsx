@@ -19,10 +19,7 @@ import {
   type DragOverEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { BoardColumn, AvailableAgent, AgentAssignment } from '@/types';
 import { AgentColumnCell } from './AgentColumnCell';
 import { AgentDragOverlay } from './AgentDragOverlay';
@@ -195,12 +192,17 @@ export function AgentConfigRow({
     return (
       <div className="flex flex-col bg-card border-b border-border">
         <div className="flex items-center gap-2 p-2 border-b border-border/50 bg-muted/30">
-          <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
+          <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+            🤖 Agent Pipeline
+          </span>
         </div>
         <div className="p-2 bg-muted/10">
           <div className="flex gap-4 overflow-x-auto pb-2">
             {columns.map((col) => (
-              <div key={col.status.option_id} className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border border-border/50 animate-pulse">
+              <div
+                key={col.status.option_id}
+                className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border border-border/50 animate-pulse"
+              >
                 <div className="h-10 bg-muted rounded-md w-full" />
               </div>
             ))}
@@ -222,7 +224,9 @@ export function AgentConfigRow({
         >
           {isExpanded ? '▾' : '▸'}
         </button>
-        <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
+        <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+          🤖 Agent Pipeline
+        </span>
         {renderPresetSelector}
       </div>
 
@@ -269,12 +273,7 @@ export function AgentConfigRow({
 
       {/* Floating save bar */}
       {isDirty && (
-        <AgentSaveBar
-          onSave={save}
-          onDiscard={discard}
-          isSaving={isSaving}
-          error={saveError}
-        />
+        <AgentSaveBar onSave={save} onDiscard={discard} isSaving={isSaving} error={saveError} />
       )}
     </div>
   );

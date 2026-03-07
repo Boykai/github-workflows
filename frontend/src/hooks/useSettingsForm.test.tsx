@@ -83,10 +83,9 @@ describe('useSettingsForm', () => {
   });
 
   it('should re-sync when serverState changes', () => {
-    const { result, rerender } = renderHook(
-      ({ serverState }) => useSettingsForm(serverState),
-      { initialProps: { serverState: defaultServerState } },
-    );
+    const { result, rerender } = renderHook(({ serverState }) => useSettingsForm(serverState), {
+      initialProps: { serverState: defaultServerState },
+    });
 
     expect(result.current.localState.theme).toBe('light');
 

@@ -81,7 +81,13 @@ describe('IssueDetailModal', () => {
   it('renders linked PRs when present', () => {
     const item = createBoardItem({
       linked_prs: [
-        { pr_id: 'pr-1', number: 99, title: 'Fix bug', state: 'open', url: 'https://github.com/pr/99' },
+        {
+          pr_id: 'pr-1',
+          number: 99,
+          title: 'Fix bug',
+          state: 'open',
+          url: 'https://github.com/pr/99',
+        },
       ],
     });
     render(<IssueDetailModal item={item} onClose={vi.fn()} />);

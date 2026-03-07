@@ -9,7 +9,11 @@ import { createCommandDefinition } from '@/test/factories';
 const mockCommands = [
   createCommandDefinition({ name: 'help', description: 'Show all commands', syntax: '#help' }),
   createCommandDefinition({ name: 'theme', description: 'Change theme', syntax: '#theme <value>' }),
-  createCommandDefinition({ name: 'view', description: 'Set default view', syntax: '#view <value>' }),
+  createCommandDefinition({
+    name: 'view',
+    description: 'Set default view',
+    syntax: '#view <value>',
+  }),
 ];
 
 describe('CommandAutocomplete', () => {
@@ -21,7 +25,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     expect(screen.getByText('#help')).toBeTruthy();
@@ -37,7 +41,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     expect(screen.getByText('Show all commands')).toBeTruthy();
@@ -52,7 +56,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     const options = screen.getAllByRole('option');
@@ -69,7 +73,7 @@ describe('CommandAutocomplete', () => {
         onSelect={onSelect}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     const options = screen.getAllByRole('option');
@@ -85,7 +89,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     expect(container.innerHTML).toBe('');
@@ -99,7 +103,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     expect(screen.getByRole('listbox')).toBeTruthy();
@@ -113,7 +117,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={vi.fn()}
-      />,
+      />
     );
 
     const options = screen.getAllByRole('option');
@@ -129,7 +133,7 @@ describe('CommandAutocomplete', () => {
         onSelect={vi.fn()}
         onDismiss={vi.fn()}
         onHighlightChange={onHighlightChange}
-      />,
+      />
     );
 
     const options = screen.getAllByRole('option');

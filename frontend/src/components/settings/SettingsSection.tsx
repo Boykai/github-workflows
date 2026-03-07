@@ -58,14 +58,14 @@ export function SettingsSection({
         onClick={() => setCollapsed((c) => !c)}
         type="button"
       >
-        <span className={`text-xs text-muted-foreground mt-1.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}>
+        <span
+          className={`text-xs text-muted-foreground mt-1.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+        >
           ▼
         </span>
         <div className="flex flex-col gap-1">
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-          {description && (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
       </button>
 
@@ -83,7 +83,9 @@ export function SettingsSection({
                 {saving ? 'Saving...' : 'Save'}
               </button>
               {saveStatus === 'success' && (
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">Saved!</span>
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                  Saved!
+                </span>
               )}
               {saveStatus === 'error' && (
                 <span className="text-sm font-medium text-destructive">Failed to save</span>
