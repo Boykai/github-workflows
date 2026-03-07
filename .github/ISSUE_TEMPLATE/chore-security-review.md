@@ -10,6 +10,7 @@ Plan: Security, Privacy & Vulnerability Audit
 3 Critical · 8 High · 9 Medium · 2 Low — across OWASP Top 10. Findings describe the vulnerable pattern/behavior, not tied to specific function or line numbers.
 
 Phase 1 — Critical (Fix Immediately)
+
 1. Session token passed in URL — OWASP A02 (Critical)
 The OAuth flow redirects the browser to the frontend with ?session_token=... in the URL. Tokens in URLs are recorded in browser history, server/proxy/CDN access logs, and HTTP Referer headers.
 
@@ -113,22 +114,25 @@ Phase 4 — Low (Backlog)
 Correct behavior: Scope to minimum permission needed; add a justification comment.
 Files: branch-issue-link.yml
 21. Avatar URLs rendered without domain validation — OWASP A03 (Low)
-External avatar URLs from the GitHub API are used in <img src> without validating protocol or hostname.
+External avatar URLs from the GitHub API are used in `<img src>` without validating protocol or hostname.
 
 Correct behavior: Validate URLs use https: and originate from a known GitHub avatar domain. Fall back to a placeholder on validation failure.
 Files: IssueCard.tsx
 Verification (Behavior-Based)
-#	Check
-1	After login, no credentials appear in browser URL bar, history, or access logs
-2	Backend refuses to start in non-debug mode without ENCRYPTION_KEY set
-3	docker exec into frontend container — id must return non-root UID
-4	Authenticated request with unowned project_id returns 403, not success
-5	WebSocket connection to an unowned project ID is rejected before any data is sent
-6	All webhook secret comparisons use constant-time function (code review)
-7	curl -I frontend returns Content-Security-Policy, Strict-Transport-Security, Referrer-Policy; no nginx version in Server: header
-8	After rate limit threshold, expensive endpoints return 429 Too Many Requests
-9	After logout, localStorage contains no message content (browser devtools)
-10	DB directory permissions are 0700; file permissions are 0600
+
+| # | Check |
+|---|-------|
+| 1 | After login, no credentials appear in browser URL bar, history, or access logs |
+| 2 | Backend refuses to start in non-debug mode without ENCRYPTION_KEY set |
+| 3 | docker exec into frontend container — id must return non-root UID |
+| 4 | Authenticated request with unowned project_id returns 403, not success |
+| 5 | WebSocket connection to an unowned project ID is rejected before any data is sent |
+| 6 | All webhook secret comparisons use constant-time function (code review) |
+| 7 | curl -I frontend returns Content-Security-Policy, Strict-Transport-Security, Referrer-Policy; no nginx version in Server: header |
+| 8 | After rate limit threshold, expensive endpoints return 429 Too Many Requests |
+| 9 | After logout, localStorage contains no message content (browser devtools) |
+| 10 | DB directory permissions are 0700; file permissions are 0600 |
+
 Key Decisions
 OAuth scope removal (step 8): May break write operations. Test in staging; users must re-authorize after scope change.
 Encryption enforcement (step 2): Breaking change for deployments without a key. Migration path for existing plaintext rows must be included in the same change.

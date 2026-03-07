@@ -6,7 +6,7 @@ labels: chore
 assignees: ''
 ---
 
-# Recurring Documentation Update Process
+## Recurring Documentation Update Process
 
 ## Overview
 
@@ -38,7 +38,8 @@ The PR author is responsible. Reviewers must not approve if these are unmet.
 - [ ] PR description references which doc files were updated (or explicitly states "no doc changes needed")
 
 **Add to PR template checklist:**
-```
+
+```markdown
 - [ ] Documentation updated (or confirmed not needed)
 ```
 
@@ -49,15 +50,18 @@ The PR author is responsible. Reviewers must not approve if these are unmet.
 A quick pass to catch docs that have drifted from the codebase.
 
 ### API Reference (`docs/api-reference.md`)
+
 - [ ] Scan `backend/src/api/` — confirm every route file has matching API table entries
 - [ ] Confirm all path prefixes, methods, and path params are still accurate
 - [ ] Flag any endpoints removed or deprecated but still listed
 
 ### Configuration (`docs/configuration.md`)
+
 - [ ] Compare documented env vars against `backend/src/config.py` — add any missing, remove any deleted
 - [ ] Confirm default values and required/optional status are still correct
 
 ### Setup Guide (`docs/setup.md`)
+
 - [ ] Confirm Docker Compose and manual setup steps still match project state
 - [ ] Confirm prerequisite versions (Python, Node, Docker) still match `pyproject.toml` and `package.json`
 - [ ] Confirm Codespaces badge and quick start flow still work end-to-end
@@ -69,6 +73,7 @@ A quick pass to catch docs that have drifted from the codebase.
 ### Coverage Audit
 
 Walk every file in `docs/` and verify it is:
+
 - [ ] **Accurate** — reflects current code behavior, not aspirational or outdated state
 - [ ] **Complete** — no major features or workflows are undocumented
 - [ ] **Consistent** — terminology, naming, and formatting are uniform across files
@@ -88,12 +93,14 @@ Walk every file in `docs/` and verify it is:
 | `frontend/docs/` | Frontend | Component patterns, findings log, any frontend-specific guides |
 
 ### Cross-Reference Check
+
 - [ ] All internal `docs/` links are valid and resolve to existing headings
 - [ ] Code snippets in docs compile or run without error against current codebase
 - [ ] README.md top-level links to correct doc files
 - [ ] Any external links (GitHub docs, library docs) still resolve to relevant pages
 
 ### Readability & Usability
+
 - [ ] Each page has a clear purpose statement at the top
 - [ ] Step-by-step guides use numbered lists and include expected outcomes
 - [ ] Configuration tables include: variable name, type, required/optional, default, description
@@ -107,21 +114,25 @@ Walk every file in `docs/` and verify it is:
 Run after major feature milestones (new integrations, significant refactors, new agent types).
 
 ### Architecture Document (`docs/architecture.md`)
+
 - [ ] Service diagram reflects current Docker Compose topology
 - [ ] All backend service modules are represented (Workflow Orchestrator, Copilot Polling, GitHub Projects Service, Signal Bridge, AI providers)
 - [ ] Data flow arrows are accurate — especially WebSocket paths and GitHub API interactions
 - [ ] AI provider list is current (Copilot SDK, OpenAI, Anthropic, etc.)
 
 ### Decision Records
+
 - [ ] Any significant architectural decision made this quarter is captured as an ADR (Architecture Decision Record) in `docs/decisions/` (create if it doesn't exist)
 - [ ] ADR format: **Context → Decision → Consequences**
 
 ### Developer Experience Audit
+
 - [ ] Have a team member (or new contributor) follow `docs/setup.md` from scratch — note any friction
 - [ ] Time the full local setup end-to-end; document in setup guide
 - [ ] Review `docs/troubleshooting.md` — add any issues encountered during the audit
 
 ### Docs Gaps Analysis
+
 - [ ] List all features shipped in the last quarter — confirm each has adequate documentation
 - [ ] Identify docs that exist but no one references — consider consolidating or removing
 - [ ] Check if a public-facing changelog or `CHANGELOG.md` should be started or updated
@@ -131,6 +142,7 @@ Run after major feature milestones (new integrations, significant refactors, new
 ## Phase 5 — Standards & Tooling
 
 ### Formatting Standards
+
 - All docs use ATX-style headings (`#`, `##`, `###`)
 - Code blocks specify language for syntax highlighting (` ```python `, ` ```bash `, ` ```typescript `)
 - Tables used for: env vars, API endpoints, config options
@@ -138,14 +150,16 @@ Run after major feature milestones (new integrations, significant refactors, new
 - Filenames referenced in docs use inline code formatting (e.g., `config.py`)
 
 ### Linting & Automation
+
 - [ ] Add `markdownlint` to CI — enforce consistent formatting on all `docs/` and `*.md` files
 - [ ] Add `markdown-link-check` to CI — catch broken internal and external links automatically
 - [ ] Consider `vale` for prose style linting (consistent tone, no passive voice, etc.)
 
 ### Doc Ownership
+
 Each doc file should have a designated owner listed in a `docs/OWNERS.md` file:
 
-```
+```text
 docs/setup.md                   → infra/DX lead
 docs/api-reference.md           → backend lead
 docs/architecture.md            → tech lead

@@ -24,14 +24,14 @@ docker compose up --build -d
 
 When `DEBUG=true`:
 
-- Swagger UI: http://localhost:8000/api/docs
-- ReDoc: http://localhost:8000/api/redoc
+- Swagger UI: <http://localhost:8000/api/docs>
+- ReDoc: <http://localhost:8000/api/redoc>
 
 ## Architecture
 
 The backend follows a layered architecture: **API routes → Services → Models**, with three large service modules decomposed into focused sub-module packages. A `dependencies.py` module provides FastAPI DI helpers backed by `app.state` singletons registered in the lifespan handler.
 
-```
+```text
 src/
 ├── main.py                    # FastAPI app factory, lifespan (DB init, DI registration), CORS
 ├── config.py                  # Pydantic Settings from env / .env
@@ -156,6 +156,7 @@ This tracking survives server restarts and provides visibility into pipeline pro
 Decomposed into 4 focused sub-modules managing per-issue pipeline state, hierarchical PR branching, **sub-issue creation**, and **async SQLite-backed workflow config persistence**:
 
 #### `models.py` — Data Models (leaf dependency, no service imports)
+
 - **`WorkflowContext`** — Immutable context for pipeline operations (issue, config, service refs)
 - **`PipelineState`** — Tracks active agent pipelines per issue (completed agents, current agent)
 - **`WorkflowState`** — Top-level state container (pipeline states, main branches, sub-issue maps)
@@ -163,6 +164,7 @@ Decomposed into 4 focused sub-modules managing per-issue pipeline state, hierarc
 - **`_ci_get()`** — Case-insensitive dictionary key lookup, prevents mismatches between config status names and GitHub project board column names
 
 #### `config.py` — Async Configuration Persistence
+
 - **Async aiosqlite** for config load/persist (migrated from sync sqlite3)
 - `load_workflow_config_from_db()` / `persist_workflow_config_to_db()` — Read/write workflow JSON to `project_settings.workflow_config`
 - `get_default_workflow_config()` — Builds default config from available Copilot agents
@@ -170,12 +172,14 @@ Decomposed into 4 focused sub-modules managing per-issue pipeline state, hierarc
 - In-memory dict cache for fast reads; writes go to both cache and DB
 
 #### `transitions.py` — Pipeline State Management
+
 - `advance_pipeline()` / `transition_after_pipeline_complete()` — Move to the next agent or next status when an agent finishes
 - `set_issue_main_branch()` / `get_issue_main_branch()` — Main branch tracking for hierarchical PR branching
 - `update_sub_issue_map()` / `get_sub_issue_number()` — Sub-issue number mappings per parent issue per agent
 - `reconstruct_pipeline_state()` — Rebuilds pipeline state from issue comments on server restart
 
 #### `orchestrator.py` — WorkflowOrchestrator Class
+
 - `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, manages branch refs
 - `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`)
 - `create_all_sub_issues()` — Creates one sub-issue per agent upfront when a workflow is confirmed
@@ -225,6 +229,7 @@ Pluggable AI completion layer used by `ai_agent.py` for issue generation:
 Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claude Opus 4.6** as the default model for Copilot agents.
 
 #### `service.py` — GitHubProjectsService class
+
 - Pooled `githubkit` SDK clients via `GitHubClientFactory` with built-in retry, throttling, and HTTP cache
 - `_rest()` / `_rest_response()` — SDK-routed REST helpers with automatic auth and rate-limit tracking
 - `_graphql()` — GraphQL request routing through SDK client
@@ -234,6 +239,7 @@ Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claud
 - `find_existing_pr_for_issue()`, `get_pull_request()`, `format_issue_context_as_prompt()`
 
 #### `graphql.py` — GraphQL query/mutation strings
+
 - All GraphQL operations extracted as named constants for readability and reuse
 
 ## Database & Migrations
@@ -264,6 +270,7 @@ pytest tests/ -v --tb=short -q            # Quick summary
 ```
 
 The test suite covers:
+
 - **Unit**: Each service in isolation (AI agent, cache, completion providers, config, database, GitHub auth/projects, models, prompts, session store, settings store, polling, webhooks, WebSocket, workflow orchestrator, all API routes)
 - **Integration**: Custom agent assignment flow
 - **E2E**: Full API endpoint testing
