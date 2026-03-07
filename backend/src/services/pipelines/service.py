@@ -27,7 +27,6 @@ _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 _PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
 
 
-
 # Preset pipeline definitions
 _PRESET_DEFINITIONS = [
     {
