@@ -45,8 +45,8 @@ The documentation checklist required by FR-001. All items MUST be present.
 ```markdown
 ## Documentation
 
-- [ ] Any new endpoint added to `api/` has a corresponding entry in `docs/api-reference.md`
-- [ ] Any new environment variable added to `config.py` is documented in `docs/configuration.md`
+- [ ] Any new endpoint added to `backend/src/api/` has a corresponding entry in `docs/api-reference.md`
+- [ ] Any new environment variable added to `backend/src/config.py` is documented in `docs/configuration.md`
 - [ ] Any change to startup behavior, Docker setup, or prerequisites is reflected in `docs/setup.md`
 - [ ] Any new agent, workflow module, or AI provider change is reflected in `docs/agent-pipeline.md`
 - [ ] Any schema or data model change is reflected in relevant API or architecture docs

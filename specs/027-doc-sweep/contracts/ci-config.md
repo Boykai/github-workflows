@@ -35,7 +35,7 @@ The CI workflow (`.github/workflows/ci.yml`) already includes a `docs` job that:
 
 **Current**: Checks only `docs/**/*.md` files.
 
-**Required**: No change needed. Link checking is most valuable for documentation files that contain cross-references and external links. Root-level `*.md` files (README) should also be checked.
+**Required**: Add `README.md` to the link-check step so root-level markdown files are also validated. Link checking is most valuable for documentation files that contain cross-references and external links.
 
 ```yaml
 - name: Check documentation links
