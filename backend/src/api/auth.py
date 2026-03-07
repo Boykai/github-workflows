@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
@@ -30,7 +31,7 @@ def _set_session_cookie(response: Response, session_id: str) -> None:
         value=session_id,
         httponly=True,
         secure=settings.effective_cookie_secure,
-        samesite="lax",
+        samesite="strict",
         max_age=settings.cookie_max_age,
         path="/",
     )
@@ -155,31 +156,6 @@ async def github_callback(
         ) from e
 
 
-@router.post("/session")
-async def set_session_cookie(
-    response: Response,
-    session_token: Annotated[str, Query(description="Session token from OAuth callback")],
-) -> UserResponse:
-    """
-    Set session cookie from token.
-
-    Called by frontend after OAuth callback to set cookie via proxy.
-    This ensures the cookie is associated with the frontend's origin.
-    """
-    session = await github_auth_service.get_session(session_token)
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session token",
-        )
-
-    # Set the session cookie
-    _set_session_cookie(response, str(session.session_id))
-
-    logger.info("Set session cookie for user: %s", session.github_username)
-    return UserResponse.from_session(session)
-
-
 @router.get("/me", response_model=UserResponse)
 async def get_current_user(
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,
@@ -202,15 +178,22 @@ async def logout(
     return {"message": "Logged out successfully"}
 
 
+class DevLoginRequest(BaseModel):
+    """Request body for dev-login endpoint."""
+
+    github_token: str
+
+
 @router.post("/dev-login")
 async def dev_login(
+    body: DevLoginRequest,
     response: Response,
-    github_token: str = Query(..., description="GitHub Personal Access Token"),
 ) -> UserResponse:
     """
     Development-only endpoint to login with a GitHub Personal Access Token.
 
     This bypasses OAuth and is only for testing/development purposes.
+    Credentials are accepted in the POST body (JSON), never in the URL.
     """
     from src.config import get_settings
 
@@ -223,7 +206,7 @@ async def dev_login(
         )
 
     try:
-        session = await github_auth_service.create_session_from_token(github_token)
+        session = await github_auth_service.create_session_from_token(body.github_token)
 
         # Set the session cookie
         _set_session_cookie(response, str(session.session_id))

@@ -135,3 +135,38 @@ async def require_admin(
         )
 
     return session
+
+
+async def verify_project_access(
+    request: Request,
+    project_id: str,
+    session: UserSession = Depends(_get_session_dep()),  # noqa: B008
+) -> None:
+    """Verify the authenticated user has access to *project_id*.
+
+    Fetches the user's project list and confirms *project_id* is included.
+    Raises HTTP 403 if the user does not own or have access to the project.
+    """
+    svc = get_github_service(request)
+    try:
+        projects = await svc.list_user_projects(
+            session.access_token, session.github_username
+        )
+        if any(p.project_id == project_id for p in projects):
+            return
+    except Exception:
+        logger.warning(
+            "Failed to verify project access for user=%s project=%s",
+            session.github_username,
+            project_id,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unable to verify project access",
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not have access to this project",
+    )
