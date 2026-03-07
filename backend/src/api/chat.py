@@ -8,7 +8,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from src.api.auth import get_session_dep
@@ -58,6 +58,7 @@ ALLOWED_DOC_TYPES = {".pdf", ".txt", ".md", ".csv", ".json", ".yaml", ".yml"}
 ALLOWED_ARCHIVE_TYPES = {".zip"}
 BLOCKED_TYPES = {".exe", ".sh", ".bat", ".cmd", ".js", ".py", ".rb"}
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "chat-uploads"
 
 
 class FileUploadResponse(BaseModel):
@@ -67,6 +68,31 @@ class FileUploadResponse(BaseModel):
     file_url: str
     file_size: int
     content_type: str
+
+
+def _sanitize_uploaded_filename(filename: str) -> str:
+    """Return a basename-safe filename suitable for temporary storage."""
+    basename = Path(filename).name.strip()
+    if not basename:
+        raise ValidationError("Invalid filename")
+
+    sanitized = "".join(
+        char if char.isalnum() or char in {"-", "_", "."} else "_" for char in basename
+    ).strip("._")
+
+    return sanitized or "upload"
+
+
+def _resolve_upload_path(filename: str) -> Path:
+    """Resolve a temporary upload path while rejecting traversal attempts."""
+    if filename != Path(filename).name:
+        raise NotFoundError(f"Uploaded file not found: {filename}")
+
+    upload_path = UPLOAD_DIR / filename
+    if not upload_path.is_file():
+        raise NotFoundError(f"Uploaded file not found: {filename}")
+
+    return upload_path
 
 
 # TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
@@ -815,12 +841,11 @@ async def upload_file(
     # For now, store files in a temporary upload directory and serve via a local URL.
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
-    safe_filename = f"{upload_id}-{file.filename}"
+    safe_filename = f"{upload_id}-{_sanitize_uploaded_filename(file.filename)}"
 
     # Store in a temporary directory
-    upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    file_path = upload_dir / safe_filename
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = UPLOAD_DIR / safe_filename
 
     file_path.write_bytes(content)
 
@@ -833,3 +858,10 @@ async def upload_file(
         file_size=len(content),
         content_type=file.content_type or "application/octet-stream",
     )
+
+
+@router.get("/uploads/{filename}", response_class=FileResponse)
+async def get_uploaded_file(filename: str) -> FileResponse:
+    """Serve a previously uploaded chat attachment from temporary storage."""
+    upload_path = _resolve_upload_path(filename)
+    return FileResponse(path=upload_path)

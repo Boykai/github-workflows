@@ -849,3 +849,29 @@ class TestErrorMessageSanitization:
         assert "token expired" not in str(body)
         assert "12345" not in str(body)
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+
+class TestFileUploads:
+    async def test_upload_sanitizes_filename_and_serves_file(self, client, tmp_path):
+        with patch("src.api.chat.UPLOAD_DIR", tmp_path):
+            response = await client.post(
+                "/api/v1/chat/upload",
+                files={"file": ("../../unsafe name.png", b"image-bytes", "image/png")},
+            )
+
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["filename"] == "../../unsafe name.png"
+            assert payload["file_url"].startswith("/api/v1/chat/uploads/")
+            assert ".." not in payload["file_url"]
+            assert "unsafe_name.png" in payload["file_url"]
+
+            fetch_response = await client.get(payload["file_url"])
+            assert fetch_response.status_code == 200
+            assert fetch_response.content == b"image-bytes"
+
+    async def test_uploaded_file_returns_not_found_for_missing_entry(self, client, tmp_path):
+        with patch("src.api.chat.UPLOAD_DIR", tmp_path):
+            response = await client.get("/api/v1/chat/uploads/missing-file.png")
+
+        assert response.status_code == 404
