@@ -462,6 +462,9 @@ query($owner: String!, $name: String!, $number: Int!) {
             ... on User {
               login
             }
+            ... on Bot {
+              login
+            }
           }
         }
       }

@@ -322,7 +322,7 @@ async def recover_stalled_issues(
                     repo=task_repo,
                     parent_issue_number=issue_number,
                     agent_name=agent_name,
-                    pipeline=_cp.get_pipeline_state(issue_number),
+                    pipeline=recovery_pipeline,
                 )
                 if already_done:
                     logger.debug(

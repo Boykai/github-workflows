@@ -1283,6 +1283,47 @@ class TestHasCopilotReviewedPr:
 
             assert result is True
 
+    @pytest.mark.asyncio
+    async def test_has_copilot_reviewed_graphql_requested_bot_returns_false(self, service):
+        """GraphQL fallback should treat the reviewer bot as still requested when returned as a Bot type."""
+        mock_response = {
+            "repository": {
+                "pullRequest": {
+                    "reviewRequests": {
+                        "nodes": [
+                            {"requestedReviewer": {"login": "copilot-pull-request-reviewer[bot]"}}
+                        ]
+                    },
+                    "reviews": {
+                        "nodes": [
+                            {
+                                "author": {"login": "copilot-pull-request-reviewer[bot]"},
+                                "state": "COMMENTED",
+                                "submittedAt": "2026-03-07T12:00:00Z",
+                                "body": "## Pull request overview\n\nSome review text",
+                            }
+                        ]
+                    },
+                }
+            }
+        }
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest,
+            patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql,
+        ):
+            mock_rest.side_effect = RuntimeError("REST unavailable")
+            mock_graphql.return_value = mock_response
+
+            result = await service.has_copilot_reviewed_pr(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                pr_number=42,
+            )
+
+            assert result is False
+
 
 # =============================================================================
 # Polling and Change Detection Tests
