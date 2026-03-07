@@ -28,8 +28,8 @@ LOGPID=$!
 sleep 300
 kill $LOGPID
 
-# 4. Count API calls in the log
-grep -c "github" /tmp/baseline-idle-5min.log
+# 4. Count API calls in the log (match githubkit HTTP request lines)
+grep -c "githubkit" /tmp/baseline-idle-5min.log
 # Target: ≤2 calls (excluding initial load) after optimization
 # Baseline: record current count for comparison
 ```
