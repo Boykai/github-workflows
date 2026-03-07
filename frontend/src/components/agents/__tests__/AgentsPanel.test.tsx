@@ -12,6 +12,7 @@ const mockUseClearPendingAgents = vi.fn();
 const mockUseDeleteAgent = vi.fn();
 const mockUseCreateAgent = vi.fn();
 const mockUseUpdateAgent = vi.fn();
+const mockUseBulkUpdateModels = vi.fn();
 
 vi.mock('@/hooks/useAgents', () => ({
   useAgentsList: (...args: unknown[]) => mockUseAgentsList(...args),
@@ -20,6 +21,7 @@ vi.mock('@/hooks/useAgents', () => ({
   useDeleteAgent: (...args: unknown[]) => mockUseDeleteAgent(...args),
   useCreateAgent: (...args: unknown[]) => mockUseCreateAgent(...args),
   useUpdateAgent: (...args: unknown[]) => mockUseUpdateAgent(...args),
+  useBulkUpdateModels: (...args: unknown[]) => mockUseBulkUpdateModels(...args),
 }));
 
 function createWrapper() {
@@ -86,6 +88,14 @@ describe('AgentsPanel', () => {
     mockUseUpdateAgent.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue({ pr_url: 'https://example.test/pr/1' }),
       isPending: false,
+    });
+    mockUseBulkUpdateModels.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      data: undefined,
+      error: null,
     });
   });
 
