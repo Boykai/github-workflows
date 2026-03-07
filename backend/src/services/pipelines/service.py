@@ -283,7 +283,11 @@ class PipelineService:
 
         if "stages" in updates and updates["stages"] is not None:
             # Normalize tool counts before saving
-            parsed = [PipelineStage(**(s.model_dump() if hasattr(s, "model_dump") else s)) for s in updates["stages"]]
+            raw_stages = updates["stages"]
+            parsed = [
+                PipelineStage(**(s.model_dump() if hasattr(s, "model_dump") else s))
+                for s in raw_stages
+            ]
             self._normalize_tool_counts(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])
 

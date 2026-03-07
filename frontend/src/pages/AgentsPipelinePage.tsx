@@ -34,7 +34,7 @@ function usePipelineModels(): AIModel[] {
     fetch('/api/v1/pipelines/models/available', { credentials: 'include' })
       .then((r) => r.ok ? r.json() : [])
       .then((data) => setModels(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .catch((err) => { console.warn('Failed to fetch pipeline models:', err); });
   }, []);
   return models;
 }
@@ -65,7 +65,9 @@ export function AgentsPipelinePage() {
     seededRef.current = true;
     pipelinesApi.seedPresets(projectId).then(() => {
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
-    }).catch(() => {});
+    }).catch((err) => {
+      console.warn('Failed to seed preset pipelines:', err);
+    });
   }, [projectId, queryClient]);
 
   // Block in-app SPA navigation when there are unsaved changes

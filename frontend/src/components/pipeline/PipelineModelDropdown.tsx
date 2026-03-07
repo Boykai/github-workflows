@@ -46,9 +46,9 @@ export function PipelineModelDropdown({
 
   return (
     <div ref={dropdownRef} className="relative">
-      <label className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         Pipeline Model
-      </label>
+      </span>
       <button
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}

@@ -185,8 +185,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     try {
       await pipelinesApi.setAssignment(projectId, pipelineId);
       setAssignedPipelineId(pipelineId);
-    } catch {
-      // Silently fail — assignment is non-critical
+    } catch (err) {
+      console.warn('Pipeline assignment failed:', err);
     }
   }, [projectId]);
 

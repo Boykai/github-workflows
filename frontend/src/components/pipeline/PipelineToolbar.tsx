@@ -80,9 +80,10 @@ export function PipelineToolbar({
           </Button>
 
           {showCopyDialog && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCopyDialog(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowCopyDialog(false); }} role="dialog" aria-modal="true" aria-labelledby="copy-dialog-title" tabIndex={-1}>
               <div className="bg-card rounded-lg border border-border shadow-lg p-4 w-80" role="presentation" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-sm font-semibold mb-2">Save as Copy</h3>
+                <h3 id="copy-dialog-title" className="text-sm font-semibold mb-2">Save as Copy</h3>
                 <input
                   type="text"
                   value={copyName}
@@ -91,7 +92,6 @@ export function PipelineToolbar({
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   placeholder="New pipeline name"
                   maxLength={100}
-                  autoFocus
                 />
                 <div className="flex justify-end gap-2 mt-3">
                   <Button variant="ghost" size="sm" onClick={() => setShowCopyDialog(false)}>Cancel</Button>
