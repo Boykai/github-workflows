@@ -173,16 +173,20 @@ export function ChatInterface({
     if (content && !isSending) {
       setShowAutocomplete(false);
       setShowHistoryPopover(false);
-      addToHistory(content);
-      resetNavigation();
       const commandInput = isCommandFn(content);
 
       // Upload pending files before sending
       let fileUrls: string[] = [];
       if (uploadFiles.length > 0 && !commandInput) {
-        fileUrls = await uploadAllFiles();
+        const uploadResult = await uploadAllFiles();
+        if (uploadResult.hasErrors) {
+          return;
+        }
+        fileUrls = uploadResult.urls;
       }
 
+      addToHistory(content);
+      resetNavigation();
       onSendMessage(content, { isCommand: commandInput, aiEnhance, fileUrls });
       // Always clear input after submission
       setInput('');

@@ -3,10 +3,15 @@
  * upload state, and preview data.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FileAttachment } from '@/types';
 import { FILE_VALIDATION, ALLOWED_TYPES } from '@/types';
 import { chatApi } from '@/services/api';
+
+interface UploadAllResult {
+  urls: string[];
+  hasErrors: boolean;
+}
 
 interface UseFileUploadReturn {
   files: FileAttachment[];
@@ -14,7 +19,7 @@ interface UseFileUploadReturn {
   errors: string[];
   addFiles: (fileList: FileList) => void;
   removeFile: (fileId: string) => void;
-  uploadAll: () => Promise<string[]>;
+  uploadAll: () => Promise<UploadAllResult>;
   clearAll: () => void;
 }
 
@@ -34,6 +39,26 @@ export function useFileUpload(): UseFileUploadReturn {
   const [files, setFiles] = useState<FileAttachment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const errorTimeoutRef = useRef<number | null>(null);
+
+  const scheduleErrorClear = useCallback(() => {
+    if (errorTimeoutRef.current !== null) {
+      window.clearTimeout(errorTimeoutRef.current);
+    }
+
+    errorTimeoutRef.current = window.setTimeout(() => {
+      setErrors([]);
+      errorTimeoutRef.current = null;
+    }, 5000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current !== null) {
+        window.clearTimeout(errorTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const addFiles = useCallback((fileList: FileList) => {
     const newErrors: string[] = [];
@@ -79,24 +104,26 @@ export function useFileUpload(): UseFileUploadReturn {
     }
     if (newErrors.length > 0) {
       setErrors(newErrors);
-      // Clear errors after a few seconds
-      setTimeout(() => setErrors([]), 5000);
+      scheduleErrorClear();
     }
-  }, [files.length]);
+  }, [files.length, scheduleErrorClear]);
 
   const removeFile = useCallback((fileId: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
   }, []);
 
-  const uploadAll = useCallback(async (): Promise<string[]> => {
+  const uploadAll = useCallback(async (): Promise<UploadAllResult> => {
     const pendingFiles = files.filter((f) => f.status === 'pending');
     if (pendingFiles.length === 0) {
-      // Return already-uploaded URLs
-      return files.filter((f) => f.status === 'uploaded' && f.fileUrl).map((f) => f.fileUrl!);
+      return {
+        urls: files.filter((f) => f.status === 'uploaded' && f.fileUrl).map((f) => f.fileUrl!),
+        hasErrors: files.some((f) => f.status === 'error'),
+      };
     }
 
     setIsUploading(true);
     const urls: string[] = [];
+    let hasErrors = files.some((f) => f.status === 'error');
 
     // Include already uploaded URLs
     for (const f of files) {
@@ -122,6 +149,7 @@ export function useFileUpload(): UseFileUploadReturn {
           )
         );
       } catch (err) {
+        hasErrors = true;
         const errorMsg = err instanceof Error ? err.message : 'Upload failed';
         setFiles((prev) =>
           prev.map((f) =>
@@ -132,8 +160,13 @@ export function useFileUpload(): UseFileUploadReturn {
     }
 
     setIsUploading(false);
-    return urls;
-  }, [files]);
+    if (hasErrors) {
+      setErrors(['One or more files failed to upload. Remove the failed file and try again.']);
+      scheduleErrorClear();
+    }
+
+    return { urls, hasErrors };
+  }, [files, scheduleErrorClear]);
 
   const clearAll = useCallback(() => {
     setFiles([]);
