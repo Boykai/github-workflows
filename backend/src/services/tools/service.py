@@ -69,8 +69,19 @@ class ToolsService:
                 return False, f"Server '{server_name}' must be an object"
 
             server_type = server_config.get("type")
+
+            # Infer type from fields when not explicitly specified
+            if server_type is None:
+                if server_config.get("command"):
+                    server_type = "stdio"
+                elif server_config.get("url"):
+                    server_type = "http"
+
             if server_type not in ("http", "stdio"):
-                return False, f"Server '{server_name}' must have 'type' of 'http' or 'stdio'"
+                return (
+                    False,
+                    f"Server '{server_name}' must have 'type' of 'http' or 'stdio', or include a 'command' (stdio) or 'url' (http) field",
+                )
 
             if server_type == "http" and not server_config.get("url"):
                 return False, f"HTTP server '{server_name}' must have a 'url' field"
@@ -87,9 +98,16 @@ class ToolsService:
             data = json.loads(config_content)
             servers = data.get("mcpServers", {})
             for cfg in servers.values():
-                if cfg.get("type") == "http":
+                server_type = cfg.get("type")
+                # Infer type from fields when not explicitly specified
+                if server_type is None:
+                    if cfg.get("command"):
+                        server_type = "stdio"
+                    elif cfg.get("url"):
+                        server_type = "http"
+                if server_type == "http":
                     return cfg.get("url", "")
-                if cfg.get("type") == "stdio":
+                if server_type == "stdio":
                     return cfg.get("command", "")
         except (json.JSONDecodeError, AttributeError):
             pass
