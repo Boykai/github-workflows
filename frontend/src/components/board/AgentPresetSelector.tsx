@@ -287,7 +287,8 @@ export function AgentPresetSelector({
     if (!matchedPipeline) return null;
     // Check if current mappings still match the saved pipeline (not dirty)
     // by verifying it's not the custom/empty state
-    const isCustom = matchesPreset(PRESETS[0], currentMappings, columnNames);
+    const customPreset = PRESETS.find((p) => p.id === 'custom');
+    const isCustom = customPreset ? matchesPreset(customPreset, currentMappings, columnNames) : false;
     if (isCustom) return null;
     return matchedPipeline.name;
   }, [projectId, savedPipelines, currentMappings, columnNames]);

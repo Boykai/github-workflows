@@ -218,25 +218,23 @@ export function useBoardControls(projectId: string | null, boardData: BoardDataR
       const map = new Map<string, BoardItem[]>();
 
       for (const item of items) {
-        let keys: string[];
+        let key: string;
         switch (group.field) {
           case 'label':
-            keys = (item.labels ?? []).length > 0 ? (item.labels ?? []).map((l) => l.name) : ['No Label'];
+            key = (item.labels ?? [])[0]?.name ?? 'No Label';
             break;
           case 'assignee':
-            keys = item.assignees.length > 0 ? item.assignees.map((a) => a.login) : ['Unassigned'];
+            key = item.assignees[0]?.login ?? 'Unassigned';
             break;
           case 'milestone':
-            keys = item.milestone ? [item.milestone] : ['No Milestone'];
+            key = item.milestone ?? 'No Milestone';
             break;
           default:
-            keys = ['Other'];
+            key = 'Other';
         }
-        for (const key of keys) {
-          const existing = map.get(key) ?? [];
-          existing.push(item);
-          map.set(key, existing);
-        }
+        const existing = map.get(key) ?? [];
+        existing.push(item);
+        map.set(key, existing);
       }
 
       return Array.from(map.entries())
