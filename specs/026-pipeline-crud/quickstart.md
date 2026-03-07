@@ -65,7 +65,7 @@ npm run dev
 | `frontend/src/pages/AgentsPipelinePage.tsx` | Compose new pipeline components, wire hooks |
 | `frontend/src/services/api.ts` | Add `pipelines` and `models` API client methods |
 | `frontend/src/types/index.ts` | Add pipeline and model TypeScript interfaces |
-| `backend/src/main.py` | Register new `pipelines` router |
+| `backend/src/api/__init__.py` | Register new `pipelines` router |
 
 ## Implementation Order
 
