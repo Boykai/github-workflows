@@ -7,8 +7,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { STATUS_COLORS } from '@/constants';
-import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
+import { STATUS_COLORS, TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
 
 interface SettingsSectionProps {
   title: string;
