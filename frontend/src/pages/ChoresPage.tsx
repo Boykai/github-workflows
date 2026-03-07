@@ -23,7 +23,7 @@ export function ChoresPage() {
   const boardRepo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
 
   const { data: workflowConfig } = useQuery({
-    queryKey: ['workflow', 'config'],
+    queryKey: ['workflow', 'config', projectId],
     queryFn: () => workflowApi.getConfig(),
     enabled: !!projectId && !boardRepo,
     staleTime: 60_000,

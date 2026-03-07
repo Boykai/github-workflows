@@ -47,9 +47,10 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
   };
 
   const handleViewHistory = async () => {
+    if (!owner || !repo) return;
     // Await the history fetch before transitioning to the audit
     // history view so users never see a misleading empty-state flash.
-    await loadHistory(owner!, repo!);
+    await loadHistory(owner, repo);
     showAuditHistory();
   };
 
@@ -61,6 +62,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
         disabled={!owner || !repo || state === 'loading' || state === 'executing'}
         variant="outline"
         size="lg"
+        className="gap-2"
         title={!owner || !repo ? 'Link a repository to this project to enable cleanup' : "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board"}
       >
         {(state === 'loading' || state === 'executing') ? (
@@ -77,12 +79,14 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <span>🔒</span>
           <div className="flex-1">
             <p>{permissionError}</p>
-            <button
-              onClick={() => startPreflight(owner!, repo!, projectId)}
-              className="text-xs underline mt-1"
-            >
-              Retry
-            </button>
+            {owner && repo && (
+              <button
+                onClick={() => startPreflight(owner, repo, projectId)}
+                className="text-xs underline mt-1"
+              >
+                Retry
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -93,12 +97,14 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <span>⚠️</span>
           <div className="flex-1">
             <p>{error}</p>
-            <button
-              onClick={() => startPreflight(owner!, repo!, projectId)}
-              className="text-xs underline mt-1"
-            >
-              Retry
-            </button>
+            {owner && repo && (
+              <button
+                onClick={() => startPreflight(owner, repo, projectId)}
+                className="text-xs underline mt-1"
+              >
+                Retry
+              </button>
+            )}
           </div>
         </div>
       )}
