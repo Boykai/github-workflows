@@ -213,7 +213,8 @@ async def github_webhook(
     # Read raw body for signature verification
     body = await request.body()
 
-    # Verify signature if secret is configured
+    # Verify signature — always required regardless of debug mode.
+    # Developers must configure a local test secret (GITHUB_WEBHOOK_SECRET).
     if settings.github_webhook_secret:
         if not verify_webhook_signature(body, x_hub_signature_256, settings.github_webhook_secret):
             logger.warning("Invalid webhook signature")
@@ -221,16 +222,12 @@ async def github_webhook(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or missing webhook signature",
             )
-    elif not settings.debug:
-        # In production, reject unsigned payloads when no secret is configured
-        logger.warning("Webhook received without signature in production mode")
+    else:
+        logger.warning("Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing webhook signature",
         )
-    else:
-        # Debug mode without secret — allow with warning
-        logger.warning("Webhook signature verification skipped (debug mode, no secret configured)")
 
     # Deduplicate by delivery ID
     if x_github_delivery:

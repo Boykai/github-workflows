@@ -33,10 +33,28 @@ describe('useChatHistory', () => {
       expect(result.current.isNavigating).toBe(false);
     });
 
-    it('should load existing history from localStorage', () => {
+    it('should load existing history from localStorage (legacy format)', () => {
       localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 'msg2']));
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual(['msg1', 'msg2']);
+    });
+
+    it('should load existing history from localStorage (TTL format)', () => {
+      localStorageMock.setItem(
+        'chat-message-history',
+        JSON.stringify({ entries: ['msg1', 'msg2'], expiresAt: Date.now() + 86400000 }),
+      );
+      const { result } = renderHook(() => useChatHistory());
+      expect(result.current.history).toEqual(['msg1', 'msg2']);
+    });
+
+    it('should return empty history when TTL has expired', () => {
+      localStorageMock.setItem(
+        'chat-message-history',
+        JSON.stringify({ entries: ['msg1', 'msg2'], expiresAt: Date.now() - 1000 }),
+      );
+      const { result } = renderHook(() => useChatHistory());
+      expect(result.current.history).toEqual([]);
     });
 
     it('should use custom storage key', () => {
@@ -65,13 +83,16 @@ describe('useChatHistory', () => {
       expect(result.current.history).toEqual(['hello']);
     });
 
-    it('should persist to localStorage', () => {
+    it('should persist to localStorage with TTL wrapper', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'chat-message-history',
-        JSON.stringify(['hello']),
-      );
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+      const [key, value] = localStorageMock.setItem.mock.calls[0];
+      expect(key).toBe('chat-message-history');
+      const parsed = JSON.parse(value);
+      expect(parsed.entries).toEqual(['hello']);
+      expect(typeof parsed.expiresAt).toBe('number');
+      expect(parsed.expiresAt).toBeGreaterThan(Date.now());
     });
 
     it('should store duplicate messages as separate entries', () => {
@@ -246,6 +267,19 @@ describe('useChatHistory', () => {
       // Should not throw
       act(() => result.current.addToHistory('hello'));
       expect(result.current.history).toEqual(['hello']);
+    });
+  });
+
+  describe('clearHistory', () => {
+    it('should clear all history from state and localStorage', () => {
+      const { result } = renderHook(() => useChatHistory());
+      act(() => result.current.addToHistory('msg1'));
+      act(() => result.current.addToHistory('msg2'));
+      expect(result.current.history).toEqual(['msg1', 'msg2']);
+
+      act(() => result.current.clearHistory());
+      expect(result.current.history).toEqual([]);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('chat-message-history');
     });
   });
 });
