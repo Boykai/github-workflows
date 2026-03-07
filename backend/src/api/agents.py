@@ -36,7 +36,9 @@ def _get_service() -> AgentsService:
 # ── List ──
 
 
-@router.get("/{project_id}", response_model=list[Agent], dependencies=[Depends(verify_project_access)])
+@router.get(
+    "/{project_id}", response_model=list[Agent], dependencies=[Depends(verify_project_access)]
+)
 async def list_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -64,7 +66,12 @@ async def list_agents(
 # ── Create ──
 
 
-@router.post("/{project_id}", response_model=AgentCreateResult, status_code=201, dependencies=[Depends(verify_project_access)])
+@router.post(
+    "/{project_id}",
+    response_model=AgentCreateResult,
+    status_code=201,
+    dependencies=[Depends(verify_project_access)],
+)
 async def create_agent(
     project_id: str,
     body: AgentCreate,
@@ -101,7 +108,11 @@ async def create_agent(
 # ── Update (P3) ──
 
 
-@router.patch("/{project_id}/{agent_id}", response_model=AgentCreateResult, dependencies=[Depends(verify_project_access)])
+@router.patch(
+    "/{project_id}/{agent_id}",
+    response_model=AgentCreateResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def update_agent(
     project_id: str,
     agent_id: str,
@@ -139,7 +150,11 @@ async def update_agent(
 # ── Delete ──
 
 
-@router.delete("/{project_id}/{agent_id}", response_model=AgentDeleteResult, dependencies=[Depends(verify_project_access)])
+@router.delete(
+    "/{project_id}/{agent_id}",
+    response_model=AgentDeleteResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def delete_agent(
     project_id: str,
     agent_id: str,
@@ -178,7 +193,11 @@ async def delete_agent(
 # ── Chat ──
 
 
-@router.post("/{project_id}/chat", response_model=AgentChatResponse, dependencies=[Depends(verify_project_access)])
+@router.post(
+    "/{project_id}/chat",
+    response_model=AgentChatResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 @limiter.limit("5/minute")
 async def agent_chat(
     request: Request,

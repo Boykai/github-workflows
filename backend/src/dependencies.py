@@ -149,9 +149,7 @@ async def verify_project_access(
     """
     svc = get_github_service(request)
     try:
-        projects = await svc.list_user_projects(
-            session.access_token, session.github_username
-        )
+        projects = await svc.list_user_projects(session.access_token, session.github_username)
         if any(p.project_id == project_id for p in projects):
             return
     except Exception:
@@ -164,7 +162,7 @@ async def verify_project_access(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unable to verify project access",
-        )
+        ) from None
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,

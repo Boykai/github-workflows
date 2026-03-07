@@ -90,7 +90,11 @@ async def update_global_settings_endpoint(
     return await get_global_settings(db)
 
 
-@router.get("/project/{project_id}", response_model=EffectiveProjectSettings, dependencies=[Depends(verify_project_access)])
+@router.get(
+    "/project/{project_id}",
+    response_model=EffectiveProjectSettings,
+    dependencies=[Depends(verify_project_access)],
+)
 async def get_project_settings_endpoint(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -100,7 +104,11 @@ async def get_project_settings_endpoint(
     return await get_effective_project_settings(db, session.github_user_id, project_id)
 
 
-@router.put("/project/{project_id}", response_model=EffectiveProjectSettings, dependencies=[Depends(verify_project_access)])
+@router.put(
+    "/project/{project_id}",
+    response_model=EffectiveProjectSettings,
+    dependencies=[Depends(verify_project_access)],
+)
 async def update_project_settings_endpoint(
     project_id: str,
     body: ProjectSettingsUpdate,

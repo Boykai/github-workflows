@@ -77,7 +77,9 @@ async def list_projects(
         raise GitHubAPIError("Failed to fetch projects from GitHub") from e
 
 
-@router.get("/{project_id}", response_model=GitHubProject, dependencies=[Depends(verify_project_access)])
+@router.get(
+    "/{project_id}", response_model=GitHubProject, dependencies=[Depends(verify_project_access)]
+)
 async def get_project(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -102,7 +104,11 @@ async def get_project(
     raise NotFoundError(f"Project not found: {project_id}")
 
 
-@router.get("/{project_id}/tasks", response_model=TaskListResponse, dependencies=[Depends(verify_project_access)])
+@router.get(
+    "/{project_id}/tasks",
+    response_model=TaskListResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def get_project_tasks(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -128,7 +134,11 @@ async def get_project_tasks(
     return TaskListResponse(tasks=tasks)
 
 
-@router.post("/{project_id}/select", response_model=UserResponse, dependencies=[Depends(verify_project_access)])
+@router.post(
+    "/{project_id}/select",
+    response_model=UserResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def select_project(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],

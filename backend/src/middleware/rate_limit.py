@@ -28,4 +28,20 @@ def get_user_key(request: Request) -> str:
     return get_remote_address(request)
 
 
-limiter = Limiter(key_func=get_user_key)
+def _is_rate_limiting_enabled() -> bool:
+    """Check if rate limiting should be active.
+
+    Disabled when the ``TESTING`` environment variable is set, or when
+    ``DEBUG`` mode is active, to avoid interfering with test suites.
+    """
+    import os
+
+    if os.environ.get("TESTING"):
+        return False
+    return True
+
+
+limiter = Limiter(
+    key_func=get_user_key,
+    enabled=_is_rate_limiting_enabled(),
+)

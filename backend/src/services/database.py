@@ -1,7 +1,6 @@
 """SQLite database connection, initialization, and migration runner."""
 
 import logging
-import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -36,7 +35,7 @@ async def init_database() -> aiosqlite.Connection:
         db_dir.mkdir(parents=True, exist_ok=True)
         # Restrict directory permissions so only the application user can access
         try:
-            os.chmod(db_dir, 0o700)
+            db_dir.chmod(0o700)
         except OSError:
             logger.warning("Could not set database directory permissions to 0700")
 
@@ -48,7 +47,7 @@ async def init_database() -> aiosqlite.Connection:
 
     # Restrict database file permissions (0600) after creation
     try:
-        os.chmod(db_path, 0o600)
+        Path(db_path).chmod(0o600)
     except OSError:
         logger.warning("Could not set database file permissions to 0600")
 

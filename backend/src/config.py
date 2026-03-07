@@ -127,22 +127,16 @@ class Settings(BaseSettings):
                     "Set COOKIE_SECURE=true or use an https:// FRONTEND_URL."
                 )
             if errors:
-                raise ValueError(
-                    "Production configuration errors:\n  - " + "\n  - ".join(errors)
-                )
+                raise ValueError("Production configuration errors:\n  - " + "\n  - ".join(errors))
         else:
             if not self.encryption_key:
-                _logger.warning(
-                    "ENCRYPTION_KEY not set — tokens stored in plaintext (debug mode)"
-                )
+                _logger.warning("ENCRYPTION_KEY not set — tokens stored in plaintext (debug mode)")
             if not self.github_webhook_secret:
                 _logger.warning(
                     "GITHUB_WEBHOOK_SECRET not set — webhook verification disabled (debug mode)"
                 )
             if len(self.session_secret_key) < 64:
-                _logger.warning(
-                    "SESSION_SECRET_KEY is shorter than 64 characters (debug mode)"
-                )
+                _logger.warning("SESSION_SECRET_KEY is shorter than 64 characters (debug mode)")
 
         return self
 

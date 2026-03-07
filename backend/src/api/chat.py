@@ -8,10 +8,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
-from src.middleware.rate_limit import limiter
 from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
+from src.middleware.rate_limit import limiter
 from src.models.chat import (
     ActionType,
     ChatMessage,

@@ -1,9 +1,8 @@
 """Tests for webhook signature verification (US6 — SC-009).
 
 Verifies:
-- Unsigned payloads rejected with 401 in production mode
+- Unsigned payloads rejected with 401 (always, regardless of debug mode)
 - Signed payloads accepted
-- Unsigned payloads allowed in debug mode with warning
 """
 
 import hashlib
@@ -15,6 +14,14 @@ from httpx import ASGITransport, AsyncClient
 
 from src.config import Settings
 from src.models.user import UserSession
+
+
+# Production-valid secrets for tests that need debug=False
+_PROD_SECRETS = {
+    "session_secret_key": "a" * 64,
+    "encryption_key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+    "cookie_secure": True,
+}
 
 
 def _make_session(**overrides) -> UserSession:
@@ -34,27 +41,28 @@ def _sign_payload(payload: bytes, secret: str) -> str:
 
 
 class TestWebhookVerification:
-    """Webhook signature verification must be enforced in production."""
+    """Webhook signature verification must always be enforced."""
 
-    async def test_unsigned_payload_rejected_in_production(self):
-        """POST /webhooks/github without signature → 401 when debug=False."""
+    async def test_unsigned_payload_rejected_without_secret(self):
+        """POST /webhooks/github without signature → 401 when no secret configured."""
         from src.api.auth import get_session_dep
         from src.main import create_app
 
-        prod_settings = Settings(
+        # In debug mode with no secret, webhooks are now rejected (bypass removed)
+        settings = Settings(
             github_client_id="id",
             github_client_secret="secret",
             session_secret_key="key-key-key-key-key-key-key-key-key",
-            debug=False,
-            github_webhook_secret=None,  # No secret configured
+            debug=True,
+            github_webhook_secret=None,
             _env_file=None,
         )
         app = create_app()
         session = _make_session()
         app.dependency_overrides[get_session_dep] = lambda: session
         with (
-            patch("src.config.get_settings", return_value=prod_settings),
-            patch("src.api.webhooks.get_settings", return_value=prod_settings),
+            patch("src.config.get_settings", return_value=settings),
+            patch("src.api.webhooks.get_settings", return_value=settings),
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
@@ -68,46 +76,7 @@ class TestWebhookVerification:
                 )
 
         assert resp.status_code == 401, (
-            f"Expected 401 for unsigned webhook in production, got {resp.status_code}"
-        )
-        app.dependency_overrides.clear()
-
-    async def test_unsigned_payload_accepted_in_debug(self):
-        """POST /webhooks/github without signature → allowed when debug=True."""
-        from src.api.auth import get_session_dep
-        from src.main import create_app
-
-        debug_settings = Settings(
-            github_client_id="id",
-            github_client_secret="secret",
-            session_secret_key="key-key-key-key-key-key-key-key-key",
-            debug=True,
-            github_webhook_secret=None,
-            _env_file=None,
-        )
-        app = create_app()
-        session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
-        mock_gh = AsyncMock(name="github_projects_service")
-        with (
-            patch("src.config.get_settings", return_value=debug_settings),
-            patch("src.api.webhooks.get_settings", return_value=debug_settings),
-            patch("src.api.webhooks.github_projects_service", mock_gh),
-        ):
-            transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-                resp = await ac.post(
-                    "/api/v1/webhooks/github",
-                    json={"action": "opened"},
-                    headers={
-                        "X-GitHub-Event": "ping",
-                        "X-GitHub-Delivery": "test-delivery-002",
-                    },
-                )
-
-        # In debug mode, unsigned payloads should be allowed
-        assert resp.status_code != 401, (
-            f"Unsigned webhook should be allowed in debug mode, got {resp.status_code}"
+            f"Expected 401 for unsigned webhook, got {resp.status_code}"
         )
         app.dependency_overrides.clear()
 
@@ -120,10 +89,11 @@ class TestWebhookVerification:
         settings = Settings(
             github_client_id="id",
             github_client_secret="secret",
-            session_secret_key="key-key-key-key-key-key-key-key-key",
-            debug=False,
+            debug=True,
             github_webhook_secret=webhook_secret,
             _env_file=None,
+            **{k: v for k, v in _PROD_SECRETS.items() if k != "session_secret_key"},
+            session_secret_key="key-key-key-key-key-key-key-key-key",
         )
 
         payload = json.dumps({"action": "opened"}).encode()
