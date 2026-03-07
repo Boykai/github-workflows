@@ -109,7 +109,7 @@ export function IssueRecommendationPreview({
             </a>
           )}
           {error && (
-            <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">
+            <div className="bg-destructive/10 text-destructive p-2 rounded-md text-sm mt-3">
               {error}
             </div>
           )}
@@ -282,13 +282,14 @@ export function IssueRecommendationPreview({
       )}
 
       {error && (
-        <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">
+        <div className="bg-destructive/10 text-destructive p-2 rounded-md text-sm mt-3">
           {error}
         </div>
       )}
 
       <div className="flex gap-3 mt-4 pt-3 border-t border-border">
         <button
+          type="button"
           className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleConfirm}
           disabled={isLoading || recommendation.status !== 'pending'}
@@ -296,6 +297,7 @@ export function IssueRecommendationPreview({
           {isLoading ? 'Creating...' : '✓ Confirm & Create Issue'}
         </button>
         <button
+          type="button"
           className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-transparent text-destructive border border-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleReject}
           disabled={isLoading || recommendation.status !== 'pending'}

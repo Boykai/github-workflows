@@ -35,6 +35,7 @@ export function BoardColumn({ column, onCardClick }: BoardColumnProps) {
             </span>
           )}
           <button
+            type="button"
             className="rounded-full p-1.5 text-muted-foreground/60 transition-colors hover:bg-accent/60 hover:text-foreground"
             title="Coming soon"
           >

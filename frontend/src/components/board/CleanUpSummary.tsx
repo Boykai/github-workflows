@@ -54,6 +54,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
           <p className="text-sm text-muted-foreground mb-4">{error}</p>
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={onDismiss}
               className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
@@ -197,12 +198,17 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
         <div className="flex justify-between items-center mt-4">
           <div>
             {onViewHistory && (
-              <button onClick={onViewHistory} className="text-sm text-primary hover:underline">
+              <button
+                type="button"
+                onClick={onViewHistory}
+                className="text-sm text-primary hover:underline"
+              >
                 View Audit History
               </button>
             )}
           </div>
           <button
+            type="button"
             onClick={onDismiss}
             className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >

@@ -30,6 +30,7 @@ export function AgentsPanel({ projectId }: AgentsPanelProps) {
           🤖 Agents
         </h3>
         <button
+          type="button"
           className="px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           onClick={() => setShowAddModal(true)}
         >

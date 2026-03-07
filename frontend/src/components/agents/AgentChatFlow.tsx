@@ -104,7 +104,11 @@ export function AgentChatFlow({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">🤖 Agent Refinement</h3>
-        <button className="text-xs text-muted-foreground hover:text-foreground" onClick={onCancel}>
+        <button
+          type="button"
+          className="text-xs text-muted-foreground hover:text-foreground"
+          onClick={onCancel}
+        >
           ✕ Cancel
         </button>
       </div>
@@ -149,6 +153,7 @@ export function AgentChatFlow({
           )}
           <p className="text-xs mt-1 text-muted-foreground line-clamp-3">{preview.system_prompt}</p>
           <button
+            type="button"
             className="mt-2 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() =>
               onAgentReady(
@@ -177,6 +182,7 @@ export function AgentChatFlow({
             disabled={chatMutation.isPending}
           />
           <button
+            type="button"
             className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             onClick={handleSend}
             disabled={chatMutation.isPending || !input.trim()}

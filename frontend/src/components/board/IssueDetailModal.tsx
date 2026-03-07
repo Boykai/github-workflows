@@ -81,6 +81,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             )}
           </div>
           <button
+            type="button"
             className="p-2 rounded-md hover:bg-muted transition-colors"
             onClick={onClose}
             aria-label="Close modal"

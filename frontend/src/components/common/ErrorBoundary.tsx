@@ -42,12 +42,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div role="alert" style={{ padding: '2rem', textAlign: 'center' }}>
+        <div role="alert" className="p-8 text-center">
           <h2>Something went wrong</h2>
           <pre className="text-destructive whitespace-pre-wrap mb-4">
             {this.state.error?.message}
           </pre>
-          <button type="button" onClick={this.handleReset}>
+          <button
+            type="button"
+            className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            onClick={this.handleReset}
+          >
             Try again
           </button>
         </div>

@@ -54,6 +54,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Confirm Repository Cleanup</h2>
           <button
+            type="button"
             onClick={onCancel}
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Close"
@@ -194,12 +195,14 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {/* Actions */}
         <div className="flex justify-end gap-3">
           <button
+            type="button"
             onClick={onCancel}
             className="px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={!hasItemsToDelete}
             className="px-4 py-2 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

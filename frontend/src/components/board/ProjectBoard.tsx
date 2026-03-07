@@ -18,6 +18,7 @@ export function ProjectBoard({ boardData, onCardClick }: ProjectBoardProps) {
           <BoardColumn key={column.status.option_id} column={column} onCardClick={onCardClick} />
         ))}
         <button
+          type="button"
           className="celestial-panel flex h-12 w-[320px] shrink-0 items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-border/80 text-sm font-medium text-muted-foreground/70 transition-colors hover:border-primary/35 hover:text-foreground"
           title="Coming soon"
         >

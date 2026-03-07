@@ -50,6 +50,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
         <div className="flex items-center gap-1.5">
           {owner && repo && <CleanUpButton owner={owner} repo={repo} projectId={projectId} />}
           <button
+            type="button"
             className="px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             onClick={() => setShowAddModal(true)}
           >
@@ -110,6 +111,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
           </span>
           {uncreatedTemplates.map((tpl) => (
             <button
+              type="button"
               key={tpl.path}
               onClick={() => handleTemplateClick(tpl)}
               className="flex items-start gap-2 p-2.5 rounded-md border border-dashed border-border bg-muted/10 hover:bg-accent hover:border-primary/40 transition-colors text-left"

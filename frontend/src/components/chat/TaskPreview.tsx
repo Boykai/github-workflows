@@ -29,12 +29,14 @@ export function TaskPreview({ proposal, onConfirm, onReject }: TaskPreviewProps)
 
       <div className="flex gap-2 p-3 bg-background border-t border-border">
         <button
+          type="button"
           onClick={onReject}
           className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-muted text-muted-foreground border border-border hover:bg-border"
         >
           Cancel
         </button>
         <button
+          type="button"
           onClick={onConfirm}
           className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90"
         >

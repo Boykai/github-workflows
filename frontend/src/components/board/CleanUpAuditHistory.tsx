@@ -54,6 +54,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Cleanup Audit History</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Close"
@@ -100,6 +101,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
 
         <div className="flex justify-end mt-4">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >

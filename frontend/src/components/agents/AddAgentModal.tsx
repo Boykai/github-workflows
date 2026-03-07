@@ -141,6 +141,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
               View Pull Request →
             </a>
             <button
+              type="button"
               className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
               onClick={resetAndClose}
             >

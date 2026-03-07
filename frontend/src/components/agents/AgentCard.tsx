@@ -90,6 +90,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
       <div className="flex items-center gap-1.5 mt-1">
         {onEdit && !isRepoOnly && (
           <button
+            type="button"
             className="px-2 py-0.5 text-[10px] font-medium rounded bg-muted hover:bg-muted/80 text-muted-foreground transition-colors"
             onClick={() => onEdit(agent)}
           >
@@ -98,6 +99,7 @@ export function AgentCard({ agent, projectId, onEdit }: AgentCardProps) {
         )}
         {!isRepoOnly && (
           <button
+            type="button"
             className="px-2 py-0.5 text-[10px] font-medium rounded bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}

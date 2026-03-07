@@ -54,6 +54,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
       {/* Clean Up Button with tooltip */}
       <div className="relative group">
         <button
+          type="button"
           onClick={handleClick}
           disabled={state === 'loading' || state === 'executing'}
           className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -81,6 +82,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <div className="flex-1">
             <p>{permissionError}</p>
             <button
+              type="button"
               onClick={() => startPreflight(owner, repo, projectId)}
               className="text-xs underline mt-1"
             >
@@ -97,6 +99,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           <div className="flex-1">
             <p>{error}</p>
             <button
+              type="button"
               onClick={() => startPreflight(owner, repo, projectId)}
               className="text-xs underline mt-1"
             >

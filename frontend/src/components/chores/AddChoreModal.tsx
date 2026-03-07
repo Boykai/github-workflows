@@ -160,6 +160,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
             <button
+              type="button"
               className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               onClick={handleCancel}
               aria-label="Close"
@@ -192,6 +193,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">Add Chore</h3>
           <button
+            type="button"
             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             onClick={handleCancel}
             aria-label="Close"
