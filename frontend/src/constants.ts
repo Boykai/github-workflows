@@ -95,9 +95,11 @@ export const STATUS_COLORS = {
 
 // ============ Agent Source Colors ============
 
-/** Color mappings for agent source types (builtin, custom, community). */
+/** Color mappings for agent source types (builtin, custom, community, repository/repo). */
 export const AGENT_SOURCE_COLORS: Record<string, { bg: string; text: string }> = {
   builtin: { bg: 'bg-blue-500/10 dark:bg-blue-500/15', text: 'text-blue-600 dark:text-blue-400' },
   custom: { bg: 'bg-purple-500/10 dark:bg-purple-500/15', text: 'text-purple-600 dark:text-purple-400' },
   community: { bg: 'bg-emerald-500/10 dark:bg-emerald-500/15', text: 'text-emerald-600 dark:text-emerald-400' },
+  repository: { bg: 'bg-emerald-500/10 dark:bg-emerald-500/15', text: 'text-emerald-600 dark:text-emerald-400' },
+  repo: { bg: 'bg-emerald-500/10 dark:bg-emerald-500/15', text: 'text-emerald-600 dark:text-emerald-400' },
 };
