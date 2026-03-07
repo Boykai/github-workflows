@@ -804,3 +804,35 @@ export interface ChoreChatResponse {
   template_content: string | null;
   template_name: string | null;
 }
+
+// ============ Solune UI Redesign Types (025) ============
+
+export interface NavRoute {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export interface SidebarState {
+  isCollapsed: boolean;
+}
+
+export interface RecentInteraction {
+  item_id: string;
+  title: string;
+  number?: number;
+  repository?: {
+    owner: string;
+    name: string;
+  };
+  updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  type: 'agent' | 'chore';
+  title: string;
+  timestamp: string;
+  read: boolean;
+  source?: string;
+}

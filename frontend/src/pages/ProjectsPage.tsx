@@ -1,37 +1,35 @@
 /**
- * ProjectBoardPage component - main page with project selector and board view.
+ * ProjectsPage — Project board with enhanced Kanban view.
+ * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
 import { useState } from 'react';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
-import { useChat } from '@/hooks/useChat';
-import { useWorkflow } from '@/hooks/useWorkflow';
+import { useProjects } from '@/hooks/useProjects';
+import { useAuth } from '@/hooks/useAuth';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { RefreshButton } from '@/components/board/RefreshButton';
-import { ChatPopup } from '@/components/chat/ChatPopup';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
-import { ChoresPanel } from '@/components/chores/ChoresPanel';
-import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import type { BoardItem } from '@/types';
 import { ApiError } from '@/services/api';
+import { Filter, ArrowUpDown, Columns3 } from 'lucide-react';
 
-interface ProjectBoardPageProps {
-  /** Currently selected project ID (shared with chat page) */
-  selectedProjectId?: string | null;
-  /** Callback when user selects a project (persists to session) */
-  onProjectSelect?: (projectId: string) => void;
-}
-
-export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProjectSelect }: ProjectBoardPageProps) {
+export function ProjectsPage() {
+  const { user } = useAuth();
   const {
     projects,
+    selectedProject,
+    selectProject,
+  } = useProjects(user?.selected_project_id);
+
+  const {
     projectsLoading,
     projectsError,
     selectedProjectId,
@@ -40,10 +38,9 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     isFetching,
     boardError,
     lastUpdated,
-    selectProject,
-  } = useProjectBoard({ selectedProjectId: externalProjectId, onProjectSelect });
+    selectProject: selectBoardProject,
+  } = useProjectBoard({ selectedProjectId: selectedProject?.project_id, onProjectSelect: selectProject });
 
-  // Board refresh orchestration: manual refresh, auto-refresh, rate limit tracking
   const {
     refresh,
     isRefreshing,
@@ -53,35 +50,14 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
     resetTimer,
   } = useBoardRefresh({ projectId: selectedProjectId, boardData });
 
-  // Real-time sync: WebSocket with polling fallback — drives board auto-refresh
   const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
     onRefreshTriggered: resetTimer,
   });
 
-  // Chat hooks (moved from App.tsx so chat API calls only fire on the board page)
-  const {
-    messages,
-    pendingProposals,
-    pendingStatusChanges,
-    pendingRecommendations,
-    isSending,
-    sendMessage,
-    confirmProposal,
-    confirmStatusChange,
-    rejectProposal,
-    removePendingRecommendation,
-    clearChat,
-  } = useChat();
-
-  const {
-    confirmRecommendation,
-    rejectRecommendation,
-  } = useWorkflow();
-
-  // Modal state (US2)
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
 
-  // Agent config state (004-agent-workflow-config-ui)
   const agentConfig = useAgentConfig(selectedProjectId);
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
 
@@ -93,32 +69,50 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
       if (!confirmed) return;
       agentConfig.discard();
     }
-    selectProject(projectId);
+    selectBoardProject(projectId);
   };
 
-  const handleCardClick = (item: BoardItem) => {
-    setSelectedItem(item);
-  };
+  const handleCardClick = (item: BoardItem) => setSelectedItem(item);
+  const handleCloseModal = () => setSelectedItem(null);
 
-  const handleCloseModal = () => {
-    setSelectedItem(null);
-  };
+  // Derive board data with optional sorting
+  const sortedBoardData = boardData && sortField
+    ? {
+        ...boardData,
+        columns: boardData.columns.map((col) => ({
+          ...col,
+          items: [...col.items].sort((a, b) => {
+            if (sortField === 'priority') {
+              const order: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
+              return (order[a.priority?.name ?? 'P2'] ?? 2) - (order[b.priority?.name ?? 'P2'] ?? 2);
+            }
+            if (sortField === 'title') return a.title.localeCompare(b.title);
+            return 0;
+          }),
+        })),
+      }
+    : boardData;
 
-  // Derive repository info for cleanup button from the first board item with a repository
-  const cleanupRepo = selectedProjectId && boardData
-    ? boardData.columns.flatMap(c => c.items).find(i => i.repository)?.repository
-    : undefined;
+  // Calculate progress
+  const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const doneItems = boardData?.columns
+    .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
+    .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
 
   return (
-    <div className="flex flex-col h-full p-6 gap-6 overflow-hidden">
+    <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
       {/* Page Header */}
       <div className="flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-display font-bold tracking-tight">Project Board</h2>
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Celestial Board</p>
+            <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Projects</h2>
+          </div>
 
           {/* Project Selector */}
           <select
-            className="flex h-9 w-[250px] items-center justify-between rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-[280px] items-center justify-between rounded-full border border-input bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             value={selectedProjectId ?? ''}
             onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
             disabled={projectsLoading}
@@ -135,7 +129,6 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {/* Sync status */}
           {selectedProjectId && (
             <span className="flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${
@@ -151,7 +144,6 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             </span>
           )}
 
-          {/* Manual refresh button */}
           {selectedProjectId && (
             <RefreshButton
               onRefresh={refresh}
@@ -159,7 +151,6 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
             />
           )}
 
-          {/* Last updated */}
           {(lastUpdated || syncLastUpdate) && (
             <span className="text-xs">
               Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
@@ -168,24 +159,73 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
       </div>
 
-      {/* Rate limit warning banner */}
-      {refreshError?.type === 'rate_limit' && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
-          <span className="text-lg">⏳</span>
-          <div className="flex flex-col gap-1">
-            <strong>Rate limit reached</strong>
-            <p>
-              {refreshError.retryAfter
-                ? `Resets ${formatTimeUntil(refreshError.retryAfter)}.`
-                : refreshError.message}
-            </p>
+      {/* Project info header (when a project is selected and has data) */}
+      {selectedProjectId && boardData && (
+        <div className="celestial-panel flex items-center justify-between shrink-0 rounded-[1.25rem] border border-border/70 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-display font-medium tracking-[0.04em]">{boardData.project.name}</h3>
+            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-secondary-foreground">
+              {boardData.project.owner_login}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {totalItems} items
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-32 overflow-hidden rounded-full bg-muted/80">
+              <div
+                className="h-full rounded-full bg-primary shadow-sm transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">{progressPercent}%</span>
           </div>
         </div>
       )}
 
-      {/* Low rate limit preemptive warning */}
+      {/* Toolbar */}
+      {selectedProjectId && boardData && (
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
+          >
+            <Filter className="w-3.5 h-3.5" />
+            Filter
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setSortField(sortField ? null : 'priority')}
+              className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+              Sort{sortField ? `: ${sortField}` : ''}
+            </button>
+          </div>
+          <button
+            className="cursor-default flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"
+            title="Coming soon"
+          >
+            <Columns3 className="w-3.5 h-3.5" />
+            Group by
+          </button>
+        </div>
+      )}
+
+      {/* Rate limit / error banners */}
+      {refreshError?.type === 'rate_limit' && (
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
+          <span className="text-lg">⏳</span>
+          <div className="flex flex-col gap-1">
+            <strong>Rate limit reached</strong>
+            <p>{refreshError.retryAfter ? `Resets ${formatTimeUntil(refreshError.retryAfter)}.` : refreshError.message}</p>
+          </div>
+        </div>
+      )}
+
       {isRateLimitLow && !refreshError && rateLimitInfo && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-accent/10 text-accent-foreground border border-accent/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>
@@ -194,9 +234,8 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
       )}
 
-      {/* Non-rate-limit refresh error banner */}
       {refreshError && refreshError.type !== 'rate_limit' && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
@@ -205,9 +244,8 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
       )}
 
-      {/* Error states */}
       {projectsError && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
@@ -222,7 +260,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
       )}
 
       {boardError && !boardLoading && (
-        <div className="flex items-start gap-3 p-4 rounded-md bg-destructive/10 text-destructive border border-destructive/20">
+        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <span className="text-lg">⚠️</span>
           <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
@@ -230,7 +268,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           </div>
           <button
             className="px-3 py-1.5 text-sm font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors ml-auto"
-            onClick={() => selectProject(selectedProjectId!)}
+            onClick={() => selectBoardProject(selectedProjectId!)}
           >
             Retry
           </button>
@@ -239,7 +277,7 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
           <div className="text-4xl mb-2">📋</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>
@@ -253,16 +291,15 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
         </div>
       )}
 
-      {selectedProjectId && !boardLoading && boardData && (
+      {selectedProjectId && !boardLoading && sortedBoardData && (
         <div className="flex flex-col flex-1 gap-6 overflow-hidden">
-          {/* Agent Configuration Row */}
           <AgentConfigRow
-            columns={boardData.columns}
+            columns={sortedBoardData.columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}
             renderPresetSelector={
               <AgentPresetSelector
-                columnNames={boardData.columns.map((c) => c.status.name)}
+                columnNames={sortedBoardData.columns.map((c) => c.status.name)}
                 currentMappings={agentConfig.localMappings}
                 onApplyPreset={agentConfig.applyPreset}
               />
@@ -281,65 +318,22 @@ export function ProjectBoardPage({ selectedProjectId: externalProjectId, onProje
           />
 
           <div className="flex flex-1 gap-6 overflow-hidden">
-            {boardData.columns.every((col) => col.items.length === 0) ? (
-              <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8 border-2 border-dashed border-border rounded-lg bg-muted/10">
+            {sortedBoardData.columns.every((col) => col.items.length === 0) ? (
+              <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
                 <div className="text-4xl mb-2">📭</div>
                 <h3 className="text-xl font-semibold">No items yet</h3>
                 <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
               </div>
             ) : (
-              <ProjectBoard boardData={boardData} onCardClick={handleCardClick} />
+              <ProjectBoard boardData={sortedBoardData} onCardClick={handleCardClick} />
             )}
-
-            {/* Chores Panel — right side of board */}
-            <div className="flex flex-col gap-4">
-              <ChoresPanel
-                projectId={selectedProjectId}
-                owner={cleanupRepo?.owner}
-                repo={cleanupRepo?.name}
-              />
-              {/* Agents Panel — below Chores */}
-              <AgentsPanel
-                projectId={selectedProjectId}
-                owner={cleanupRepo?.owner}
-                repo={cleanupRepo?.name}
-              />
-            </div>
           </div>
         </div>
       )}
 
-      {/* Detail Modal (US2) */}
       {selectedItem && (
         <IssueDetailModal item={selectedItem} onClose={handleCloseModal} />
       )}
-
-      {/* Chat Pop-Up Module */}
-      <ChatPopup
-        messages={messages}
-        pendingProposals={pendingProposals}
-        pendingStatusChanges={pendingStatusChanges}
-        pendingRecommendations={pendingRecommendations}
-        isSending={isSending}
-        onSendMessage={sendMessage}
-        onConfirmProposal={async (proposalId) => {
-          await confirmProposal(proposalId);
-        }}
-        onConfirmStatusChange={confirmStatusChange}
-        onConfirmRecommendation={async (recommendationId) => {
-          const result = await confirmRecommendation(recommendationId);
-          if (result.success) {
-            removePendingRecommendation(recommendationId);
-          }
-          return result;
-        }}
-        onRejectProposal={rejectProposal}
-        onRejectRecommendation={async (recommendationId) => {
-          await rejectRecommendation(recommendationId);
-          removePendingRecommendation(recommendationId);
-        }}
-        onNewChat={clearChat}
-      />
     </div>
   );
 }

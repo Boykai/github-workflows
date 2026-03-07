@@ -6,26 +6,26 @@ import type { StatusColor } from '@/types';
 
 /** Map GitHub StatusColor enum values to CSS hex colors */
 const STATUS_COLOR_MAP: Record<StatusColor, string> = {
-  GRAY: '#6e7781',
-  BLUE: '#0969da',
-  GREEN: '#1a7f37',
-  YELLOW: '#bf8700',
-  ORANGE: '#bc4c00',
-  RED: '#cf222e',
-  PINK: '#bf3989',
-  PURPLE: '#8250df',
+  GRAY: '#9b9389',
+  BLUE: '#5a74d6',
+  GREEN: '#4e9e74',
+  YELLOW: '#d7ab46',
+  ORANGE: '#d88947',
+  RED: '#d45f67',
+  PINK: '#cb7eb3',
+  PURPLE: '#8f78d8',
 };
 
 /** Map StatusColor to background with low opacity for badges */
 const STATUS_COLOR_BG_MAP: Record<StatusColor, string> = {
-  GRAY: 'rgba(110, 119, 129, 0.15)',
-  BLUE: 'rgba(9, 105, 218, 0.15)',
-  GREEN: 'rgba(26, 127, 55, 0.15)',
-  YELLOW: 'rgba(191, 135, 0, 0.15)',
-  ORANGE: 'rgba(188, 76, 0, 0.15)',
-  RED: 'rgba(207, 34, 46, 0.15)',
-  PINK: 'rgba(191, 57, 137, 0.15)',
-  PURPLE: 'rgba(130, 80, 223, 0.15)',
+  GRAY: 'rgba(155, 147, 137, 0.18)',
+  BLUE: 'rgba(90, 116, 214, 0.18)',
+  GREEN: 'rgba(78, 158, 116, 0.18)',
+  YELLOW: 'rgba(215, 171, 70, 0.2)',
+  ORANGE: 'rgba(216, 137, 71, 0.18)',
+  RED: 'rgba(212, 95, 103, 0.18)',
+  PINK: 'rgba(203, 126, 179, 0.18)',
+  PURPLE: 'rgba(143, 120, 216, 0.18)',
 };
 
 /**

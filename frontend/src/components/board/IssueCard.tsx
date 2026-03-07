@@ -1,9 +1,11 @@
 /**
  * IssueCard component - displays a board item as a card with metadata badges.
+ * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
  */
 
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
+import { PRIORITY_COLORS } from '@/constants';
 
 interface IssueCardProps {
   item: BoardItem;
@@ -42,10 +44,19 @@ function SubIssueRow({ subIssue }: { subIssue: SubIssue }) {
 
 export function IssueCard({ item, onClick }: IssueCardProps) {
   const subIssues = item.sub_issues ?? [];
+  const priorityName = item.priority?.name ?? '';
+  const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
+
+  // Truncate body to ~80 chars for description snippet
+  const snippet = item.body
+    ? item.body.length > 80
+      ? item.body.slice(0, 80).trimEnd() + '…'
+      : item.body
+    : null;
 
   return (
     <div
-      className="flex flex-col gap-2 p-3 bg-card rounded-md border border-border shadow-sm cursor-pointer transition-all hover:border-primary/50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className="flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/88 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -58,19 +69,24 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
     >
       {/* Repository + Issue Number */}
       {item.repository && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
           {item.repository.owner}/{item.repository.name}
           {item.number != null && <span className="font-medium">#{item.number}</span>}
         </div>
       )}
       {item.content_type === 'draft_issue' && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-muted text-muted-foreground rounded-sm">Draft</span>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Draft</span>
         </div>
       )}
 
       {/* Title */}
-      <div className="text-sm font-medium leading-snug text-foreground">{item.title}</div>
+      <div className="text-sm font-semibold leading-snug text-foreground">{item.title}</div>
+
+      {/* Description snippet */}
+      {snippet && (
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{snippet}</p>
+      )}
 
       {/* Sub-Issues */}
       {subIssues.length > 0 && (
@@ -90,47 +106,53 @@ export function IssueCard({ item, onClick }: IssueCardProps) {
       )}
 
       {/* Metadata badges */}
-      <div className="flex flex-wrap gap-1.5 mt-1">
+      <div className="mt-1 flex flex-wrap gap-1.5">
         {item.priority && (
           <span
-            className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground"
-            style={item.priority.color ? { borderColor: statusColorToCSS(item.priority.color) } : undefined}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${priorityConfig.bg} ${priorityConfig.text}`}
           >
             {item.priority.name}
           </span>
         )}
         {item.size && (
           <span
-            className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground"
+            className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground"
             style={item.size.color ? { borderColor: statusColorToCSS(item.size.color) } : undefined}
           >
             {item.size.name}
           </span>
         )}
         {item.estimate != null && (
-          <span className="px-2 py-0.5 text-xs font-medium rounded-full border border-border bg-background text-muted-foreground">
+          <span className="rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
             {item.estimate}pt
           </span>
         )}
       </div>
 
       {/* Footer: Assignees + Linked PRs */}
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-        {/* Assignees */}
-        <div className="flex items-center -space-x-1.5">
-          {item.assignees.length > 0 ? (
-            item.assignees.map((assignee) => (
-              <img
-                key={assignee.login}
-                className="w-6 h-6 rounded-full border-2 border-card"
-                src={assignee.avatar_url}
-                alt={assignee.login}
-                title={assignee.login}
-                width={24}
-                height={24}
-              />
-            ))
-          ) : null}
+      <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2">
+        {/* Assignees with names */}
+        <div className="flex items-center gap-2">
+          {item.assignees.length > 0 && (
+            <div className="flex items-center -space-x-1.5">
+              {item.assignees.map((assignee) => (
+                <img
+                  key={assignee.login}
+                  className="h-6 w-6 rounded-full border-2 border-card"
+                  src={assignee.avatar_url}
+                  alt={assignee.login}
+                  title={assignee.login}
+                  width={24}
+                  height={24}
+                />
+              ))}
+            </div>
+          )}
+          {item.assignees.length > 0 && item.assignees.length <= 2 && (
+            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+              {item.assignees.map((a) => a.login).join(', ')}
+            </span>
+          )}
         </div>
 
         {/* Linked PRs */}

@@ -28,9 +28,9 @@ describe('Card', () => {
   it('applies border and shadow styling', () => {
     const { container } = render(<Card>Card content</Card>);
     const card = container.firstChild as HTMLElement;
-    expect(card.className).toContain('rounded-lg');
+    expect(card.className).toContain('rounded-[1.25rem]');
     expect(card.className).toContain('border');
-    expect(card.className).toContain('shadow-warm-sm');
+    expect(card.className).toContain('shadow-sm');
   });
 
   it('renders CardTitle as h3 heading', () => {

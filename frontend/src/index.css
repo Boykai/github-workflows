@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: 'Rye', 'Georgia', serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', 'system-ui', sans-serif;
   --font-sans: 'Inter', 'system-ui', sans-serif;
-  --shadow-warm-sm: 0 1px 2px 0 rgba(59,45,31,0.08);
-  --shadow-warm: 0 1px 3px 0 rgba(59,45,31,0.12), 0 1px 2px -1px rgba(59,45,31,0.12);
-  --shadow-warm-md: 0 4px 6px -1px rgba(59,45,31,0.12), 0 2px 4px -2px rgba(59,45,31,0.12);
-  --shadow-warm-lg: 0 10px 15px -3px rgba(59,45,31,0.12), 0 4px 6px -4px rgba(59,45,31,0.12);
+  --shadow-sm: 0 8px 24px rgba(23, 19, 39, 0.08);
+  --shadow-default: 0 16px 40px rgba(23, 19, 39, 0.12);
+  --shadow-md: 0 22px 50px rgba(23, 19, 39, 0.16);
+  --shadow-lg: 0 32px 72px rgba(10, 8, 18, 0.22);
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -29,6 +29,11 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  --color-panel: hsl(var(--panel));
+  --color-panel-foreground: hsl(var(--panel-foreground));
+  --color-glow: hsl(var(--glow));
+  --color-gold: hsl(var(--gold));
+  --color-night: hsl(var(--night));
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -45,65 +50,87 @@
 
 @layer base {
   :root {
-    --background: 39 50% 96%;
-    --foreground: 24 30% 15%;
+    --background: 32 46% 92%;
+    --foreground: 252 22% 15%;
 
-    --card: 39 40% 97%;
-    --card-foreground: 24 30% 15%;
+    --card: 34 50% 96%;
+    --card-foreground: 252 22% 15%;
 
-    --popover: 39 40% 97%;
-    --popover-foreground: 24 30% 15%;
+    --popover: 36 44% 95%;
+    --popover-foreground: 252 22% 15%;
 
-    --primary: 24 50% 22%;
-    --primary-foreground: 40 60% 95%;
+    --primary: 43 78% 58%;
+    --primary-foreground: 248 27% 12%;
 
-    --secondary: 33 30% 88%;
-    --secondary-foreground: 24 30% 20%;
+    --secondary: 28 30% 87%;
+    --secondary-foreground: 252 18% 24%;
 
-    --muted: 35 25% 90%;
-    --muted-foreground: 24 15% 45%;
+    --muted: 32 28% 88%;
+    --muted-foreground: 252 10% 42%;
 
-    --accent: 36 80% 55%;
-    --accent-foreground: 24 50% 15%;
+    --accent: 251 42% 32%;
+    --accent-foreground: 39 68% 90%;
 
-    --destructive: 0 60% 45%;
-    --destructive-foreground: 40 60% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 30 20% 80%;
-    --input: 30 20% 82%;
-    --ring: 36 80% 55%;
+    --border: 34 22% 76%;
+    --input: 34 26% 90%;
+    --ring: 43 78% 58%;
 
-    --radius: 0.375rem;
+    --panel: 34 44% 94%;
+    --panel-foreground: 252 22% 15%;
+    --glow: 44 100% 85%;
+    --gold: 42 78% 56%;
+    --night: 250 27% 17%;
+
+    --radius: 1rem;
+
+    --priority-p0: 0 72% 51%;
+    --priority-p1: 25 95% 53%;
+    --priority-p2: 217 91% 60%;
+    --priority-p3: 142 71% 45%;
   }
 
   .dark {
-    --background: 24 30% 10%;
-    --foreground: 39 40% 90%;
+    --background: 252 30% 6%;
+    --foreground: 38 45% 89%;
 
-    --card: 24 25% 14%;
-    --card-foreground: 39 40% 90%;
+    --card: 248 23% 10%;
+    --card-foreground: 38 45% 89%;
 
-    --popover: 24 25% 14%;
-    --popover-foreground: 39 40% 90%;
+    --popover: 248 22% 9%;
+    --popover-foreground: 38 45% 89%;
 
-    --primary: 36 80% 55%;
-    --primary-foreground: 24 30% 10%;
+    --primary: 43 74% 57%;
+    --primary-foreground: 252 30% 8%;
 
-    --secondary: 24 20% 20%;
-    --secondary-foreground: 39 40% 90%;
+    --secondary: 248 16% 18%;
+    --secondary-foreground: 38 45% 89%;
 
-    --muted: 24 20% 18%;
-    --muted-foreground: 24 15% 60%;
+    --muted: 248 17% 14%;
+    --muted-foreground: 34 22% 68%;
 
-    --accent: 36 80% 55%;
-    --accent-foreground: 24 30% 10%;
+    --accent: 253 35% 27%;
+    --accent-foreground: 38 45% 89%;
 
-    --destructive: 0 50% 40%;
-    --destructive-foreground: 39 40% 90%;
+    --destructive: 0 65% 53%;
+    --destructive-foreground: 240 10% 92%;
 
-    --border: 24 20% 25%;
-    --input: 24 20% 25%;
-    --ring: 36 80% 55%;
+    --border: 252 17% 24%;
+    --input: 249 18% 15%;
+    --ring: 43 74% 57%;
+
+    --panel: 249 19% 11%;
+    --panel-foreground: 38 45% 89%;
+    --glow: 44 88% 67%;
+    --gold: 42 74% 55%;
+    --night: 253 30% 5%;
+
+    --priority-p0: 0 72% 51%;
+    --priority-p1: 25 95% 53%;
+    --priority-p2: 217 91% 60%;
+    --priority-p3: 142 71% 45%;
   }
 }
 
@@ -111,11 +138,26 @@
   * {
     @apply border-border;
   }
+  html {
+    background-color: hsl(var(--background));
+  }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 20% 16%, hsl(var(--glow) / 0.22), transparent 18%),
+      radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.12), transparent 14%),
+      radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.08), transparent 34%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, color-mix(in srgb, hsl(var(--background)) 88%, black) 100%);
+    min-height: 100vh;
   }
   h1, h2, h3 {
     font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  h1 {
+    font-weight: 500;
+    line-height: 0.95;
   }
   /* Ensure native form elements respect the current theme */
   select,
@@ -131,5 +173,128 @@
   select option {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .celestial-panel {
+    background:
+      radial-gradient(circle at top, hsl(var(--glow) / 0.12), transparent 34%),
+      linear-gradient(180deg, hsl(var(--panel)) 0%, color-mix(in srgb, hsl(var(--panel)) 88%, black) 100%);
+  }
+
+  .celestial-shell {
+    background:
+      radial-gradient(circle at 50% -10%, hsl(var(--glow) / 0.08), transparent 28%),
+      radial-gradient(circle at 100% 0%, hsl(var(--accent) / 0.08), transparent 22%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, color-mix(in srgb, hsl(var(--background)) 92%, black) 100%);
+  }
+
+  .golden-ring {
+    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.28), 0 24px 60px hsl(var(--night) / 0.28);
+  }
+
+  .celestial-orbit {
+    position: absolute;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border) / 0.5);
+    pointer-events: none;
+  }
+
+  .solar-halo {
+    background:
+      radial-gradient(circle, hsl(var(--gold) / 0.95) 0%, hsl(var(--gold) / 0.82) 34%, hsl(var(--gold) / 0.18) 62%, transparent 72%);
+    box-shadow: 0 0 36px hsl(var(--gold) / 0.18);
+  }
+
+  .lunar-disc {
+    background:
+      radial-gradient(circle at 36% 36%, rgba(255,255,255,0.94) 0%, rgba(248,240,224,0.92) 40%, rgba(209,196,172,0.84) 72%, rgba(209,196,172,0.2) 100%);
+    box-shadow: inset -12px -10px 28px rgba(12, 9, 24, 0.18), 0 0 24px hsl(var(--glow) / 0.16);
+  }
+
+  .celestial-sigil {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .celestial-sigil::before,
+  .celestial-sigil::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent 0%, hsl(var(--gold) / 0.9) 28%, hsl(var(--gold) / 0.2) 100%);
+  }
+
+  .celestial-sigil::before {
+    transform: rotate(90deg);
+  }
+
+  .celestial-sigil::after {
+    transform: rotate(0deg);
+  }
+
+  .hanging-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.6;
+    background-image:
+      linear-gradient(hsl(var(--border) / 0.55), hsl(var(--border) / 0.02)),
+      linear-gradient(hsl(var(--border) / 0.45), hsl(var(--border) / 0.02)),
+      linear-gradient(hsl(var(--border) / 0.4), hsl(var(--border) / 0.02));
+    background-size: 1px 92px, 1px 76px, 1px 108px;
+    background-repeat: no-repeat;
+    background-position: 22% 0, 49% 0, 74% 0;
+  }
+
+  .hanging-stars::before,
+  .hanging-stars::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: hsl(var(--gold) / 0.8);
+    box-shadow:
+      0 0 0 3px hsl(var(--background) / 0.22),
+      182px -18px 0 -1px hsl(var(--glow) / 0.75),
+      318px 14px 0 -1px hsl(var(--gold) / 0.75);
+  }
+
+  .hanging-stars::before {
+    left: calc(22% - 3px);
+    top: 92px;
+  }
+
+  .hanging-stars::after {
+    left: calc(49% - 3px);
+    top: 76px;
+  }
+
+  .starfield {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .starfield::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(255,255,255,0.85) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 28% 42%, rgba(255,255,255,0.55) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 46% 22%, rgba(255,255,255,0.65) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 66% 12%, rgba(255,255,255,0.7) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 78% 36%, rgba(255,255,255,0.42) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 88% 24%, rgba(255,255,255,0.6) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 18% 78%, rgba(255,255,255,0.4) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 62% 72%, rgba(255,255,255,0.5) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 82% 82%, rgba(255,255,255,0.3) 0 1px, transparent 1.8px);
   }
 }

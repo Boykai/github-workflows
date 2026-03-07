@@ -95,4 +95,18 @@ describe('LoginButton', () => {
     expect(img).toBeDefined();
     expect(img.getAttribute('src')).toBe('https://avatar.example.com/123');
   });
+
+  it('should render only logout action in action-only mode when authenticated', () => {
+    mockAuthState.isAuthenticated = true;
+    mockAuthState.user = {
+      github_username: 'testuser',
+      github_avatar_url: 'https://avatar.example.com/123',
+    };
+
+    render(<LoginButton authenticatedDisplay="action-only" />);
+
+    expect(screen.queryByText('testuser')).toBeNull();
+    expect(screen.queryByAltText('testuser')).toBeNull();
+    expect(screen.getByRole('button', { name: /logout/i })).toBeDefined();
+  });
 });

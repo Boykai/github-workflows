@@ -66,7 +66,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
 
   if (userLoading) {
     return (
-      <div className="flex flex-col h-full p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+      <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
           <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
           <p className="text-muted-foreground">Loading settings...</p>
@@ -76,10 +76,11 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
   }
 
   return (
-    <div className="flex flex-col h-full p-8 overflow-y-auto max-w-4xl mx-auto w-full">
+    <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto rounded-[1.75rem] border border-border/70 bg-background/35 p-8 backdrop-blur-sm mx-auto">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Settings</h2>
-        <p className="text-muted-foreground">Configure your preferences for Agent Projects.</p>
+        <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Orbital Configuration</p>
+        <h2 className="mb-2 text-3xl font-display font-medium tracking-[0.04em]">Settings</h2>
+        <p className="text-muted-foreground">Configure your preferences for Solune.</p>
       </div>
 
       <div className="flex flex-col gap-8">
