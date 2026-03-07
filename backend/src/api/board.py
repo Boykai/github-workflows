@@ -101,7 +101,8 @@ def _is_github_rate_limit_error(exc: Exception) -> bool:
         if response.status_code == 403:
             remaining = response.headers.get("X-RateLimit-Remaining")
             return remaining is not None and remaining.strip() == "0"
-    return False
+    rate_limit = _get_rate_limit_info()
+    return rate_limit is not None and rate_limit.remaining == 0
 
 
 def _rate_limit_details() -> dict[str, object]:

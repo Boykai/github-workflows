@@ -42,7 +42,8 @@ def _is_github_rate_limit_error(exc: Exception) -> bool:
         if exc.response.status_code == 403:
             remaining = exc.response.headers.get("X-RateLimit-Remaining")
             return remaining is not None and remaining.strip() == "0"
-    return False
+    rl = github_projects_service.get_last_rate_limit()
+    return isinstance(rl, dict) and rl.get("remaining") == 0
 
 
 def _retry_after_seconds(exc: Exception) -> int:
