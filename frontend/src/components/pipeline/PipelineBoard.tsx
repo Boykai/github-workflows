@@ -3,7 +3,7 @@
  * Supports drag-and-drop stage reordering via @dnd-kit.
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { Plus, Layers } from 'lucide-react';
@@ -12,6 +12,7 @@ import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 import type { DragEndEvent } from '@dnd-kit/core';
 
 interface PipelineBoardProps {
+  columnCount: number;
   stages: PipelineStage[];
   availableAgents: AvailableAgent[];
   isEditMode: boolean;
@@ -27,6 +28,7 @@ interface PipelineBoardProps {
 }
 
 export function PipelineBoard({
+  columnCount,
   stages,
   availableAgents,
   isEditMode,
@@ -47,6 +49,9 @@ export function PipelineBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
+  const gridStyle: CSSProperties = {
+    gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))`,
+  };
 
   useEffect(() => {
     setEditNameValue(pipelineName);
@@ -179,7 +184,8 @@ export function PipelineBoard({
       {/* Stage cards with drag-and-drop */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={stages.map((s) => s.id)} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="overflow-x-auto pb-2">
+            <div className="grid min-w-full items-start gap-3" style={gridStyle}>
             {stages.map((stage) => (
               <StageCard
                 key={stage.id}
@@ -192,19 +198,19 @@ export function PipelineBoard({
                 onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
               />
             ))}
-
-            {/* Add stage button */}
-            <button
-              type="button"
-              onClick={onAddStage}
-              className="flex min-w-[160px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 p-4 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="text-xs font-medium">Add Stage</span>
-            </button>
+            </div>
           </div>
         </SortableContext>
       </DndContext>
+
+      <button
+        type="button"
+        onClick={onAddStage}
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 px-4 py-3 text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+      >
+        <Plus className="h-5 w-5" />
+        <span className="text-xs font-medium uppercase tracking-[0.16em]">Add Stage</span>
+      </button>
     </div>
   );
 }

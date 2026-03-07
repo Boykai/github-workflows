@@ -44,7 +44,7 @@ interface UsePipelineConfigReturn {
   pipelinesLoading: boolean;
 
   // Pipeline actions
-  newPipeline: () => void;
+  newPipeline: (stageNames?: string[]) => void;
   loadPipeline: (pipelineId: string) => Promise<void>;
   savePipeline: () => Promise<void>;
   deletePipeline: () => Promise<void>;
@@ -70,6 +70,13 @@ interface UsePipelineConfigReturn {
 
 export function usePipelineConfig(projectId: string | null): UsePipelineConfigReturn {
   const queryClient = useQueryClient();
+
+  const buildStage = useCallback((name: string, order: number): PipelineStage => ({
+    id: generateId(),
+    name,
+    order,
+    agents: [],
+  }), []);
 
   // Pipeline list query
   const { data: pipelines, isLoading: pipelinesLoading } =
@@ -111,14 +118,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   // ── Pipeline Actions ──
 
-  const newPipeline = useCallback(() => {
+  const newPipeline = useCallback((stageNames: string[] = []) => {
     const now = new Date().toISOString();
+    const seededStages = stageNames.map((stageName, index) => buildStage(stageName, index));
     const newConfig: PipelineConfig = {
       id: '',
       project_id: projectId ?? '',
       name: '',
       description: '',
-      stages: [],
+      stages: seededStages,
       created_at: now,
       updated_at: now,
     };
@@ -128,9 +136,9 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     savedSnapshotRef.current = JSON.stringify({
       name: '',
       description: '',
-      stages: [],
+      stages: seededStages,
     });
-  }, [projectId]);
+  }, [buildStage, projectId]);
 
   const loadPipeline = useCallback(
     async (pipelineId: string) => {
@@ -231,15 +239,10 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const addStage = useCallback((name?: string) => {
     setPipeline((prev) => {
       if (!prev) return null;
-      const newStage: PipelineStage = {
-        id: generateId(),
-        name: name ?? `Stage ${prev.stages.length + 1}`,
-        order: prev.stages.length,
-        agents: [],
-      };
+      const newStage = buildStage(name ?? `Stage ${prev.stages.length + 1}`, prev.stages.length);
       return { ...prev, stages: [...prev.stages, newStage] };
     });
-  }, []);
+  }, [buildStage]);
 
   const removeStage = useCallback((stageId: string) => {
     setPipeline((prev) => {
@@ -276,8 +279,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         id: generateId(),
         agent_slug: agent.slug,
         agent_display_name: agent.display_name,
-        model_id: '',
-        model_name: '',
+        model_id: agent.default_model_id ?? '',
+        model_name: agent.default_model_name ?? '',
         config: {},
       };
       return {

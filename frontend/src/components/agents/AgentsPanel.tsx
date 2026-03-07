@@ -8,6 +8,7 @@
 import { useDeferredValue, useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
 import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
+import { useModels } from '@/hooks/useModels';
 import { AgentCard } from './AgentCard';
 import { AddAgentModal } from './AddAgentModal';
 import type { AgentConfig } from '@/services/api';
@@ -27,6 +28,7 @@ type AgentSortMode = 'name' | 'usage';
 export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: AgentsPanelProps) {
   const { data: agents, isLoading, error } = useAgentsList(projectId);
   const { data: pendingAgents, isLoading: pendingLoading } = usePendingAgentsList(projectId);
+  const { refreshModels, isRefreshing: isRefreshingModels } = useModels();
   const clearPendingMutation = useClearPendingAgents(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAgent, setEditAgent] = useState<AgentConfig | null>(null);
@@ -85,7 +87,17 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
             {owner && repo ? ` Linked repository: ${owner}/${repo}.` : ''}
           </p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} size="lg">+ Add Agent</Button>
+        <div className="flex flex-wrap justify-end gap-3">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => void refreshModels()}
+            disabled={isRefreshingModels}
+          >
+            {isRefreshingModels ? 'Refreshing models…' : 'Refresh models'}
+          </Button>
+          <Button onClick={() => setShowAddModal(true)} size="lg">+ Add Agent</Button>
+        </div>
       </div>
 
       {/* Loading state */}

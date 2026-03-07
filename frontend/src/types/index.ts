@@ -249,6 +249,8 @@ export interface AvailableAgent {
   display_name: string;
   description?: string | null;
   avatar_url?: string | null;
+  default_model_id?: string;
+  default_model_name?: string;
   source: AgentSource;
 }
 
@@ -900,9 +902,9 @@ export interface AIModel {
   id: string;
   name: string;
   provider: string;
-  context_window_size: number;
-  cost_tier: 'economy' | 'standard' | 'premium';
-  capability_category: string;
+  context_window_size?: number;
+  cost_tier?: 'economy' | 'standard' | 'premium';
+  capability_category?: string;
 }
 
 export interface ModelGroup {

@@ -96,7 +96,7 @@ export function AgentColumnCell({
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 bg-muted/20 rounded-md border transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
+      className={`flex h-full min-w-0 flex-col gap-2 rounded-md border bg-muted/20 p-2 transition-colors ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/50'} ${dropHighlight}`}
     >
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-2 min-h-[2px]">

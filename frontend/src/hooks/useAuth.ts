@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi, ApiError, onAuthExpired } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
+import { fetchCopilotModels, modelKeys } from '@/hooks/useModels';
 import type { User } from '@/types';
 
 interface UseAuthReturn {
@@ -49,6 +50,7 @@ export function useAuth(): UseAuthReturn {
     mutationFn: authApi.logout,
     onSuccess: () => {
       queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.removeQueries({ queryKey: modelKeys.all });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['chat'] });
 
@@ -73,6 +75,15 @@ export function useAuth(): UseAuthReturn {
     await logoutMutation.mutateAsync();
   }, [logoutMutation]);
 
+  useEffect(() => {
+    if (!user) return;
+    void queryClient.prefetchQuery({
+      queryKey: modelKeys.copilot(),
+      queryFn: () => fetchCopilotModels(true),
+      staleTime: Infinity,
+    });
+  }, [queryClient, user]);
+
   // Handle auth errors (401 means not logged in, which is expected)
   useEffect(() => {
     if (queryError && !(queryError instanceof ApiError && queryError.status === 401)) {
@@ -86,6 +97,7 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     return onAuthExpired(() => {
       queryClient.setQueryData(['auth', 'me'], null);
+      queryClient.removeQueries({ queryKey: modelKeys.all });
       queryClient.invalidateQueries({ queryKey: ['board'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['chat'] });
