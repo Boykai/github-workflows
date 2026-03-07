@@ -18,6 +18,36 @@ from .state import (
 logger = logging.getLogger(__name__)
 
 
+async def _resolve_expected_agent_from_completion_signals(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    steps: list,
+    pipeline: Any,
+) -> Any | None:
+    """Return the first step that is not durably complete.
+
+    The issue-body tracking table can lag behind the true pipeline state when
+    a Done! comment was posted but the body update failed or the process
+    restarted before the table was refreshed. In that case recovery must not
+    trust the first stale ⏳ Pending row, or it can reassign an already-finished
+    earlier agent and create duplicate branches.
+    """
+    for step in steps:
+        if await _cp._check_agent_done_on_sub_or_parent(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            parent_issue_number=issue_number,
+            agent_name=step.agent_name,
+            pipeline=pipeline,
+        ):
+            continue
+        return step
+    return None
+
+
 async def recover_stalled_issues(
     access_token: str,
     project_id: str,
@@ -139,12 +169,50 @@ async def recover_stalled_issues(
                 # No tracking table — this issue wasn't created through our pipeline
                 continue
 
+            recovery_pipeline = _cp.get_pipeline_state(issue_number)
+
             # ── Determine expected agent ──────────────────────────────────
             # The active agent (🔄) is the one that should be working.
             # If there is no active agent, the next pending agent (⏳) needs
             # to be assigned.
             active_step = _cp.get_current_agent_from_tracking(body)
             pending_step = _cp.get_next_pending_agent(body)
+
+            # If the tracking table says an earlier step is still pending
+            # even though a later step is already done/active, the table is
+            # stale. Recompute the current step from durable completion
+            # signals before attempting any recovery assignment.
+            if active_step is None and pending_step is not None:
+                later_steps = [step for step in steps if step.index > pending_step.index]
+                has_later_progress = any(
+                    ("Done" in step.state or "Active" in step.state) for step in later_steps
+                )
+                if has_later_progress:
+                    resolved_step = await _resolve_expected_agent_from_completion_signals(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=issue_number,
+                        steps=steps,
+                        pipeline=recovery_pipeline,
+                    )
+                    if resolved_step is not None and resolved_step.index != pending_step.index:
+                        logger.warning(
+                            "Recovery: issue #%d tracking table is stale/inconsistent "
+                            "(first pending '%s' but later progress exists) — "
+                            "using durable completion signals to resume at '%s' instead",
+                            issue_number,
+                            pending_step.agent_name,
+                            resolved_step.agent_name,
+                        )
+                        pending_step = resolved_step
+                    elif resolved_step is None:
+                        logger.warning(
+                            "Recovery: issue #%d tracking table is stale/inconsistent "
+                            "and durable completion signals show all agents complete",
+                            issue_number,
+                        )
+                        pending_step = None
 
             if active_step is None and pending_step is None:
                 # All agents are ✅ Done for this status.  Check whether the
@@ -254,7 +322,7 @@ async def recover_stalled_issues(
                     repo=task_repo,
                     parent_issue_number=issue_number,
                     agent_name=agent_name,
-                    pipeline=_cp.get_pipeline_state(issue_number),
+                    pipeline=recovery_pipeline,
                 )
                 if already_done:
                     logger.debug(
@@ -281,7 +349,6 @@ async def recover_stalled_issues(
             copilot_assigned = False
 
             # Try sub-issue first
-            recovery_pipeline = _cp.get_pipeline_state(issue_number)
             sub_issue_number = _get_sub_issue_number(recovery_pipeline, agent_name, issue_number)
             if sub_issue_number != issue_number:
                 copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(

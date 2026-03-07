@@ -3508,6 +3508,93 @@ class TestRecoverStalledIssues:
         assert 100 in _recovery_last_attempt
 
     @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch(
+        "src.services.copilot_polling._check_agent_done_on_sub_or_parent",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_uses_durable_completion_when_tracking_table_is_stale(
+        self,
+        mock_config,
+        mock_service,
+        mock_check_done,
+        mock_get_branch,
+        mock_get_orch,
+    ):
+        """Recovery should not resurrect earlier agents from a stale table.
+
+        If the issue body still shows earlier steps as pending but later steps
+        already completed, recovery must recompute the expected agent from
+        durable Done! markers instead of reassigning the first stale pending row.
+        """
+        tracking_body = (
+            "## Issue Body\n\n"
+            "---\n\n"
+            "## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | State |\n"
+            "|---|--------|-------|-------|\n"
+            "| 1 | In Progress | `speckit.tasks` | ⏳ Pending |\n"
+            "| 2 | In Progress | `speckit.implement` | ⏳ Pending |\n"
+            "| 3 | In Progress | `copilot-review` | ✅ Done |\n"
+            "| 4 | In Progress | `judge` | ⏳ Pending |\n"
+        )
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={
+                "In Progress": [
+                    "speckit.tasks",
+                    "speckit.implement",
+                    "copilot-review",
+                    "judge",
+                ]
+            },
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": tracking_body})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_get_branch.return_value = None
+
+        async def done_side_effect(*, agent_name, **kwargs):
+            return agent_name in {
+                "speckit.tasks",
+                "speckit.implement",
+                "copilot-review",
+            }
+
+        mock_check_done.side_effect = done_side_effect
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+
+        task = MagicMock()
+        task.github_item_id = "PVTI_2104"
+        task.github_content_id = "I_2104"
+        task.issue_number = 2104
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Pipeline issue"
+        task.status = "In Progress"
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[task],
+        )
+
+        assert len(results) == 1
+        assert results[0]["agent_name"] == "judge"
+        mock_orchestrator.assign_agent_for_status.assert_awaited_once()
+        args = mock_orchestrator.assign_agent_for_status.await_args.args
+        assert args[1] == "In Progress"
+        assert mock_orchestrator.assign_agent_for_status.await_args.kwargs["agent_index"] == 3
+
+    @pytest.mark.asyncio
     @patch(
         "src.services.copilot_polling._check_agent_done_on_sub_or_parent",
         new_callable=AsyncMock,
