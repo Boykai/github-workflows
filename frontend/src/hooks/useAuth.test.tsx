@@ -14,7 +14,6 @@ vi.mock('@/services/api', () => ({
     getCurrentUser: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
-    setSessionFromToken: vi.fn(),
   },
   ApiError: class ApiError extends Error {
     constructor(public status: number, public error: { error: string }) {
@@ -29,7 +28,6 @@ const mockAuthApi = api.authApi as unknown as {
   getCurrentUser: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   logout: ReturnType<typeof vi.fn>;
-  setSessionFromToken: ReturnType<typeof vi.fn>;
 };
 
 // Create wrapper with QueryClientProvider
@@ -178,21 +176,21 @@ describe('useAuth', () => {
   });
 
   describe('session token handling', () => {
-    it('should process session_token from URL and exchange it', async () => {
+    it('should clean URL and invalidate query when on /auth/callback', async () => {
       const mockUser = {
         github_user_id: '12345',
         github_username: 'testuser',
         selected_project_id: null,
       };
 
-      // Set up URL with session_token
+      // Set up URL at /auth/callback (OAuth redirect landing)
       Object.defineProperty(window, 'location', {
         value: {
           protocol: 'http:',
           host: 'localhost:5173',
-          href: 'http://localhost:5173/?session_token=test-session-token',
-          pathname: '/',
-          search: '?session_token=test-session-token',
+          href: 'http://localhost:5173/auth/callback',
+          pathname: '/auth/callback',
+          search: '',
           hash: '',
         },
         writable: true,
@@ -201,15 +199,10 @@ describe('useAuth', () => {
       // Mock history.replaceState
       const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
 
-      mockAuthApi.setSessionFromToken.mockResolvedValue(mockUser);
       mockAuthApi.getCurrentUser.mockResolvedValue(mockUser);
 
       const { result } = renderHook(() => useAuth(), {
         wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(mockAuthApi.setSessionFromToken).toHaveBeenCalledWith('test-session-token');
       });
 
       await waitFor(() => {
@@ -220,33 +213,23 @@ describe('useAuth', () => {
       expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/');
     });
 
-    it('should handle session token exchange failure', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          protocol: 'http:',
-          host: 'localhost:5173',
-          href: 'http://localhost:5173/?session_token=bad-token',
-          pathname: '/',
-          search: '?session_token=bad-token',
-          hash: '',
-        },
-        writable: true,
-      });
-
-      mockAuthApi.setSessionFromToken.mockRejectedValue(new Error('Invalid token'));
+    it('should not modify URL when not on /auth/callback', async () => {
       mockAuthApi.getCurrentUser.mockRejectedValue(
         new api.ApiError(401, { error: 'Not authenticated' })
       );
 
-      const { result } = renderHook(() => useAuth(), {
+      const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+
+      renderHook(() => useAuth(), {
         wrapper: createWrapper(),
       });
 
       await waitFor(() => {
-        expect(result.current.error).not.toBeNull();
+        expect(mockAuthApi.getCurrentUser).toHaveBeenCalled();
       });
 
-      expect(result.current.isAuthenticated).toBe(false);
+      // Should NOT have cleaned URL since we're not on /auth/callback
+      expect(replaceStateSpy).not.toHaveBeenCalled();
     });
   });
 

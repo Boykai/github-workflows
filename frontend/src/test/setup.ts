@@ -82,7 +82,6 @@ export interface MockApiShape {
   ApiError: typeof import('@/services/api').ApiError;
   authApi: {
     login: Mock;
-    setSessionFromToken: Mock;
     getCurrentUser: Mock;
     logout: Mock;
   };
@@ -145,7 +144,6 @@ export function createMockApi(): MockApiShape {
     },
     authApi: {
       login: vi.fn(),
-      setSessionFromToken: vi.fn(),
       getCurrentUser: vi.fn(),
       logout: vi.fn(),
     },

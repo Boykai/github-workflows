@@ -29,16 +29,27 @@ async def init_database() -> aiosqlite.Connection:
     settings = get_settings()
     db_path = settings.database_path
 
-    # Ensure directory exists (if a directory component is present)
+    # Ensure directory exists with restricted permissions (0700)
     db_dir = Path(db_path).parent
     if str(db_dir) != ".":
         db_dir.mkdir(parents=True, exist_ok=True)
+        # Restrict directory permissions so only the application user can access
+        try:
+            db_dir.chmod(0o700)
+        except OSError:
+            logger.warning("Could not set database directory permissions to 0700")
 
     logger.info("Initializing database at %s", db_path)
 
     # Open persistent connection
     db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
+
+    # Restrict database file permissions (0600) after creation
+    try:
+        Path(db_path).chmod(0o600)
+    except OSError:
+        logger.warning("Could not set database file permissions to 0600")
 
     # Set pragmas (WAL mode, busy_timeout, foreign_keys)
     await db.execute("PRAGMA journal_mode=WAL;")

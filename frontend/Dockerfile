@@ -20,18 +20,28 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
+# Create non-root user for nginx
+RUN addgroup -S nginx-app && adduser -S -G nginx-app nginx-app \
+    && mkdir -p /var/cache/nginx /var/run /tmp/nginx \
+    && chown -R nginx-app:nginx-app /var/cache/nginx /var/run /tmp/nginx \
+    && chown -R nginx-app:nginx-app /usr/share/nginx/html \
+    && chown -R nginx-app:nginx-app /etc/nginx/conf.d
+
 # Copy built assets
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx-app:nginx-app /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx-app:nginx-app nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port
-EXPOSE 80
+# Switch to non-root user
+USER nginx-app
 
-# Health check
+# Expose non-privileged port
+EXPOSE 8080
+
+# Health check (non-privileged port)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Run nginx
 CMD ["nginx", "-g", "daemon off;"]

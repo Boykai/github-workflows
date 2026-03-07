@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from src.api.auth import get_current_session, get_session_dep
 from src.constants import SESSION_COOKIE_NAME
+from src.dependencies import verify_project_access
 from src.exceptions import GitHubAPIError, NotFoundError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
@@ -76,7 +77,9 @@ async def list_projects(
         raise GitHubAPIError("Failed to fetch projects from GitHub") from e
 
 
-@router.get("/{project_id}", response_model=GitHubProject)
+@router.get(
+    "/{project_id}", response_model=GitHubProject, dependencies=[Depends(verify_project_access)]
+)
 async def get_project(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -101,7 +104,11 @@ async def get_project(
     raise NotFoundError(f"Project not found: {project_id}")
 
 
-@router.get("/{project_id}/tasks", response_model=TaskListResponse)
+@router.get(
+    "/{project_id}/tasks",
+    response_model=TaskListResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def get_project_tasks(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -127,7 +134,11 @@ async def get_project_tasks(
     return TaskListResponse(tasks=tasks)
 
 
-@router.post("/{project_id}/select", response_model=UserResponse)
+@router.post(
+    "/{project_id}/select",
+    response_model=UserResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def select_project(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -210,6 +221,24 @@ async def websocket_subscribe(
     except Exception as e:
         logger.error("WebSocket authentication failed: %s", e)
         await websocket.close(code=1008, reason="Authentication required")
+        return
+
+    # Verify the user has access to this project before accepting
+    try:
+        projects = await github_projects_service.list_user_projects(
+            session.access_token, session.github_username
+        )
+        if not any(p.project_id == project_id for p in projects):
+            logger.warning(
+                "WebSocket project access denied: user=%s project=%s",
+                session.github_username,
+                project_id,
+            )
+            await websocket.close(code=4403, reason="Project access denied")
+            return
+    except Exception as e:
+        logger.error("WebSocket project access check failed: %s", e)
+        await websocket.close(code=4403, reason="Project access denied")
         return
 
     await connection_manager.connect(websocket, project_id)
@@ -308,7 +337,7 @@ async def websocket_subscribe(
         connection_manager.disconnect(websocket)
 
 
-@router.get("/{project_id}/events")
+@router.get("/{project_id}/events", dependencies=[Depends(verify_project_access)])
 async def sse_subscribe(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
