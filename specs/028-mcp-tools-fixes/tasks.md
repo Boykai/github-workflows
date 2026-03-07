@@ -23,9 +23,9 @@
 
 **Purpose**: No new project setup needed — all changes are in-place modifications to existing files. This phase covers reading existing code to understand current behavior before making changes.
 
-- [ ] T001 [P] Review current MCP validation logic in `backend/src/services/tools/service.py` (functions `validate_mcp_config()` and `_extract_endpoint_url()`)
-- [ ] T002 [P] Review current frontend validation in `frontend/src/components/tools/UploadMcpModal.tsx` (function `validateMcpJson()`)
-- [ ] T003 [P] Review current ToolsPage layout in `frontend/src/pages/ToolsPage.tsx` (docs link, repo display, action buttons)
+- [X] T001 [P] Review current MCP validation logic in `backend/src/services/tools/service.py` (functions `validate_mcp_config()` and `_extract_endpoint_url()`)
+- [X] T002 [P] Review current frontend validation in `frontend/src/components/tools/UploadMcpModal.tsx` (function `validateMcpJson()`)
+- [X] T003 [P] Review current ToolsPage layout in `frontend/src/pages/ToolsPage.tsx` (docs link, repo display, action buttons)
 
 ---
 
@@ -47,9 +47,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update `validate_mcp_config()` type inference in `backend/src/services/tools/service.py` — infer `stdio` from `command`, `http` from `url` when `type` is absent; return clear errors for ambiguous or invalid definitions
-- [ ] T005 [US1] Update `_extract_endpoint_url()` in `backend/src/services/tools/service.py` to handle configs without explicit `type` by checking for `url`/`command` fields when `type` is absent, matching the inference logic from T004
-- [ ] T006 [P] [US1] Update `validateMcpJson()` in `frontend/src/components/tools/UploadMcpModal.tsx` to mirror backend type inference: infer `stdio` when `command` is present and `type` is absent, infer `http` when `url` is present and `type` is absent, update subsequent field-specific checks to use resolved type, and return clear error messages for ambiguous/invalid definitions
+- [X] T004 [US1] Update `validate_mcp_config()` type inference in `backend/src/services/tools/service.py` — infer `stdio` from `command`, `http` from `url` when `type` is absent; return clear errors for ambiguous or invalid definitions
+- [X] T005 [US1] Update `_extract_endpoint_url()` in `backend/src/services/tools/service.py` to handle configs without explicit `type` by checking for `url`/`command` fields when `type` is absent, matching the inference logic from T004
+- [X] T006 [P] [US1] Update `validateMcpJson()` in `frontend/src/components/tools/UploadMcpModal.tsx` to mirror backend type inference: infer `stdio` when `command` is present and `type` is absent, infer `http` when `url` is present and `type` is absent, update subsequent field-specific checks to use resolved type, and return clear error messages for ambiguous/invalid definitions
 
 **Checkpoint**: Command/args-style MCP definitions (e.g., Docker-based servers) are accepted without validation errors in both frontend and backend. Explicit `type` configs continue to work. Ambiguous configs produce clear, actionable errors.
 
@@ -63,9 +63,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Add `multiServerWarning` state variable in `frontend/src/components/tools/UploadMcpModal.tsx` for informational messaging when multiple servers are detected
-- [ ] T008 [US2] Add `useEffect` hook in `frontend/src/components/tools/UploadMcpModal.tsx` that watches `configContent` state, parses JSON, extracts `Object.keys(parsed.mcpServers)[0]`, sets name only when `name.trim() === ''`, and sets multi-server warning when `keys.length > 1`
-- [ ] T009 [US2] Render `multiServerWarning` message in `frontend/src/components/tools/UploadMcpModal.tsx` below the name field using amber informational styling consistent with existing `duplicateWarning` display
+- [X] T007 [US2] Add `multiServerWarning` state variable in `frontend/src/components/tools/UploadMcpModal.tsx` for informational messaging when multiple servers are detected
+- [X] T008 [US2] Add `useEffect` hook in `frontend/src/components/tools/UploadMcpModal.tsx` that watches `configContent` state, parses JSON, extracts `Object.keys(parsed.mcpServers)[0]`, sets name only when `name.trim() === ''`, and sets multi-server warning when `keys.length > 1`
+- [X] T009 [US2] Render `multiServerWarning` message in `frontend/src/components/tools/UploadMcpModal.tsx` below the name field using amber informational styling consistent with existing `duplicateWarning` display
 
 **Checkpoint**: MCP Name auto-populates from uploaded/pasted JSON when empty. User-entered names are never overwritten. Multi-server definitions show an informational warning.
 
@@ -79,7 +79,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [P] [US3] Replace the broken MCP docs URL in `frontend/src/pages/ToolsPage.tsx` from `https://docs.github.com/en/copilot/customizing-copilot/extending-the-functionality-of-github-copilot-in-your-organization` to `https://docs.github.com/copilot/customizing-copilot/using-model-context-protocol`
+- [X] T010 [P] [US3] Replace the broken MCP docs URL in `frontend/src/pages/ToolsPage.tsx` from `https://docs.github.com/en/copilot/customizing-copilot/extending-the-functionality-of-github-copilot-in-your-organization` to `https://docs.github.com/copilot/customizing-copilot/using-model-context-protocol`
 
 **Checkpoint**: MCP docs link navigates to the correct GitHub Copilot MCP documentation page.
 
@@ -93,7 +93,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T011 [P] [US4] Update both the `badge` prop and the Repository stats `value` in `frontend/src/pages/ToolsPage.tsx` from `` `${repo.owner}/${repo.name}` `` to `repo.name`
+- [X] T011 [P] [US4] Update both the `badge` prop and the Repository stats `value` in `frontend/src/pages/ToolsPage.tsx` from `` `${repo.owner}/${repo.name}` `` to `repo.name`
 
 **Checkpoint**: Repository bubble and stats display show the repository name (not the owner or full path) and resize dynamically.
 
@@ -107,7 +107,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T012 [US5] Add a "Discover" `<Button>` element with `variant="outline"` and `size="lg"` in the actions slot of `CelestialCatalogHero` in `frontend/src/pages/ToolsPage.tsx`, after the existing "MCP docs" button, wrapping an `<a>` tag with `href="https://github.com/mcp"`, `target="_blank"`, `rel="noopener noreferrer"`, and `aria-label="Discover MCP integrations on GitHub"`
+- [X] T012 [US5] Add a "Discover" `<Button>` element with `variant="outline"` and `size="lg"` in the actions slot of `CelestialCatalogHero` in `frontend/src/pages/ToolsPage.tsx`, after the existing "MCP docs" button, wrapping an `<a>` tag with `href="https://github.com/mcp"`, `target="_blank"`, `rel="noopener noreferrer"`, and `aria-label="Discover MCP integrations on GitHub"`
 
 **Checkpoint**: Discover button renders, is keyboard-accessible, opens the GitHub MCP Registry in a new tab, and is visually consistent with existing buttons.
 
@@ -117,11 +117,11 @@
 
 **Purpose**: Final validation across all user stories to ensure no regressions.
 
-- [ ] T013 Run frontend type check (`npx tsc --noEmit` in `frontend/`) to verify no TypeScript errors
-- [ ] T014 [P] Run frontend lint (`npx eslint src/` in `frontend/`) to verify no lint violations
-- [ ] T015 [P] Run frontend tests (`npx vitest run` in `frontend/`) to verify no regressions
-- [ ] T016 [P] Run backend lint (`ruff check src/` in `backend/`) to verify no lint violations
-- [ ] T017 [P] Run backend tests (`pytest` in `backend/`) to verify no regressions
+- [X] T013 Run frontend type check (`npx tsc --noEmit` in `frontend/`) to verify no TypeScript errors
+- [X] T014 [P] Run frontend lint (`npx eslint src/` in `frontend/`) to verify no lint violations
+- [X] T015 [P] Run frontend tests (`npx vitest run` in `frontend/`) to verify no regressions
+- [X] T016 [P] Run backend lint (`ruff check src/` in `backend/`) to verify no lint violations
+- [X] T017 [P] Run backend tests (`pytest` in `backend/`) to verify no regressions
 - [ ] T018 Validate all 5 fixes end-to-end per `quickstart.md` verification steps
 
 ---
