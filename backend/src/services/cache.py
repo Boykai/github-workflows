@@ -196,3 +196,10 @@ def get_sub_issues_cache_key(owner: str, repo: str, issue_number: int) -> str:
     from src.constants import CACHE_PREFIX_SUB_ISSUES
 
     return f"{CACHE_PREFIX_SUB_ISSUES}:{owner}/{repo}#{issue_number}"
+
+
+def get_repo_agents_cache_key(owner: str, repo: str) -> str:
+    """Get cache key for repo-backed agents from the default branch."""
+    from src.constants import CACHE_PREFIX_REPO_AGENTS
+
+    return get_cache_key(CACHE_PREFIX_REPO_AGENTS, f"{owner}/{repo}")

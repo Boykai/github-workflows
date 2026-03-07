@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useChatHistory } from './useChatHistory';
+import { useChatHistory, clearChatHistory } from './useChatHistory';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -27,51 +27,32 @@ describe('useChatHistory', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with empty history when localStorage is empty', () => {
+    it('should initialize with empty history (in-memory only)', () => {
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual([]);
       expect(result.current.isNavigating).toBe(false);
     });
 
-    it('should load existing history from localStorage', () => {
+    it('should NOT read from localStorage on init', () => {
       localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 'msg2']));
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
-    });
-
-    it('should use custom storage key', () => {
-      localStorageMock.setItem('custom-key', JSON.stringify(['custom']));
-      const { result } = renderHook(() => useChatHistory({ storageKey: 'custom-key' }));
-      expect(result.current.history).toEqual(['custom']);
-    });
-
-    it('should gracefully handle corrupt localStorage data', () => {
-      localStorageMock.setItem('chat-message-history', 'invalid json');
+      vi.clearAllMocks(); // reset mock call counts
       const { result } = renderHook(() => useChatHistory());
       expect(result.current.history).toEqual([]);
-    });
-
-    it('should filter non-string values from localStorage', () => {
-      localStorageMock.setItem('chat-message-history', JSON.stringify(['msg1', 42, null, 'msg2']));
-      const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual(['msg1', 'msg2']);
+      expect(localStorageMock.getItem).not.toHaveBeenCalled();
     });
   });
 
   describe('addToHistory', () => {
-    it('should add a message to history', () => {
+    it('should add a message to in-memory history', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
       expect(result.current.history).toEqual(['hello']);
     });
 
-    it('should persist to localStorage', () => {
+    it('should NOT persist to localStorage', () => {
       const { result } = renderHook(() => useChatHistory());
       act(() => result.current.addToHistory('hello'));
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'chat-message-history',
-        JSON.stringify(['hello']),
-      );
+      expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
 
     it('should store duplicate messages as separate entries', () => {
@@ -233,19 +214,25 @@ describe('useChatHistory', () => {
     });
   });
 
-  describe('localStorage error handling', () => {
-    it('should handle localStorage.getItem throwing', () => {
-      localStorageMock.getItem.mockImplementationOnce(() => { throw new Error('denied'); });
+  describe('clearHistory', () => {
+    it('should clear in-memory history and remove legacy localStorage data', () => {
       const { result } = renderHook(() => useChatHistory());
-      expect(result.current.history).toEqual([]);
-    });
+      act(() => result.current.addToHistory('msg1'));
+      act(() => result.current.addToHistory('msg2'));
+      expect(result.current.history).toEqual(['msg1', 'msg2']);
 
-    it('should handle localStorage.setItem throwing', () => {
-      localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('quota'); });
-      const { result } = renderHook(() => useChatHistory());
-      // Should not throw
-      act(() => result.current.addToHistory('hello'));
-      expect(result.current.history).toEqual(['hello']);
+      act(() => result.current.clearHistory());
+      expect(result.current.history).toEqual([]);
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('chat-message-history');
+    });
+  });
+
+  describe('clearChatHistory (exported)', () => {
+    it('should remove legacy localStorage data', () => {
+      localStorageMock.setItem('chat-message-history', 'legacy-data');
+      vi.clearAllMocks();
+      clearChatHistory();
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('chat-message-history');
     });
   });
 });

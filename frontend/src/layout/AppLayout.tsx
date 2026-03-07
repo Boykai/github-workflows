@@ -70,6 +70,7 @@ export function AppLayout() {
     pendingRecommendations,
     isSending,
     sendMessage,
+    retryMessage,
     confirmProposal,
     confirmStatusChange,
     rejectProposal,
@@ -127,6 +128,7 @@ export function AppLayout() {
         pendingRecommendations={pendingRecommendations}
         isSending={isSending}
         onSendMessage={sendMessage}
+        onRetryMessage={retryMessage}
         onConfirmProposal={async (proposalId) => {
           await confirmProposal(proposalId);
         }}

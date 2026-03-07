@@ -2,7 +2,9 @@
 
 import logging
 from functools import lru_cache
+from urllib.parse import urlparse
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -74,7 +76,7 @@ class Settings(BaseSettings):
     encryption_key: str | None = None
 
     # Database
-    database_path: str = "/app/data/settings.db"
+    database_path: str = "/var/lib/ghchat/data/settings.db"
 
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"
@@ -88,10 +90,76 @@ class Settings(BaseSettings):
     # Session cleanup interval in seconds
     session_cleanup_interval: int = 3600
 
+    # API documentation toggle (independent of DEBUG)
+    enable_docs: bool = False
+
+    @model_validator(mode="after")
+    def _validate_production_secrets(self) -> "Settings":
+        """Enforce mandatory secrets in non-debug (production) mode.
+
+        In debug mode, missing values produce warnings instead of errors so
+        that local development is not blocked.
+        """
+        _logger = logging.getLogger(__name__)
+        errors: list[str] = []
+
+        if not self.debug:
+            if not self.encryption_key:
+                errors.append(
+                    "ENCRYPTION_KEY is required in production mode. "
+                    'Generate one with: python -c "from cryptography.fernet import Fernet; '
+                    'print(Fernet.generate_key().decode())"'
+                )
+            if not self.github_webhook_secret:
+                errors.append(
+                    "GITHUB_WEBHOOK_SECRET is required in production mode. "
+                    "Generate one with: openssl rand -hex 32"
+                )
+            if len(self.session_secret_key) < 64:
+                errors.append(
+                    f"SESSION_SECRET_KEY must be at least 64 characters "
+                    f"(current length: {len(self.session_secret_key)}). "
+                    "Generate one with: openssl rand -hex 32"
+                )
+            if not self.effective_cookie_secure:
+                errors.append(
+                    "Cookies must use the Secure flag in production mode. "
+                    "Set COOKIE_SECURE=true or use an https:// FRONTEND_URL."
+                )
+            if errors:
+                raise ValueError("Production configuration errors:\n  - " + "\n  - ".join(errors))
+        else:
+            if not self.encryption_key:
+                _logger.warning("ENCRYPTION_KEY not set — tokens stored in plaintext (debug mode)")
+            if not self.github_webhook_secret:
+                _logger.warning(
+                    "GITHUB_WEBHOOK_SECRET not set — incoming GitHub webhooks will be rejected until configured (debug mode)"
+                )
+            if len(self.session_secret_key) < 64:
+                _logger.warning("SESSION_SECRET_KEY is shorter than 64 characters (debug mode)")
+
+        return self
+
     @property
     def cors_origins_list(self) -> list[str]:
-        """Parse CORS origins from comma-separated string."""
-        return [origin.strip() for origin in self.cors_origins.split(",")]
+        """Parse and validate CORS origins from comma-separated string.
+
+        Each origin must be a well-formed URL with a scheme (http/https)
+        and a hostname.  Raises :class:`ValueError` on malformed values.
+        """
+        origins: list[str] = []
+        for raw in self.cors_origins.split(","):
+            origin = raw.strip()
+            if not origin:
+                continue
+            parsed = urlparse(origin)
+            if parsed.scheme not in ("http", "https") or not parsed.hostname:
+                raise ValueError(
+                    f"Malformed CORS origin: {origin!r}. "
+                    "Each origin must include a scheme (http/https) and hostname."
+                )
+            origins.append(origin)
+        return origins
 
     @property
     def default_repo_owner(self) -> str | None:

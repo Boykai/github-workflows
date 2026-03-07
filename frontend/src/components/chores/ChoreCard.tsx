@@ -9,10 +9,14 @@ import { useState } from 'react';
 import type { Chore } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ChoreCardProps {
   chore: Chore;
   projectId: string;
+  variant?: 'default' | 'spotlight';
 }
 
 /**
@@ -49,12 +53,26 @@ function getNextTriggerInfo(chore: Chore): string | null {
   return null;
 }
 
-export function ChoreCard({ chore, projectId }: ChoreCardProps) {
+function getTopRightTriggerLabel(chore: Chore): string | null {
+  if (!chore.schedule_type || !chore.schedule_value) {
+    return 'No cadence';
+  }
+
+  if (chore.schedule_type === 'time') {
+    return getNextTriggerInfo(chore);
+  }
+
+  return `${chore.schedule_value} issue${chore.schedule_value !== 1 ? 's' : ''}`;
+}
+
+export function ChoreCard({ chore, projectId, variant = 'default' }: ChoreCardProps) {
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
   const nextTriggerInfo = getNextTriggerInfo(chore);
+  const triggerLabel = getTopRightTriggerLabel(chore);
   const updateMutation = useUpdateChore(projectId);
   const deleteMutation = useDeleteChore(projectId);
   const triggerMutation = useTriggerChore(projectId);
+  const isSpotlight = variant === 'spotlight';
 
   const handleToggleStatus = () => {
     const newStatus = chore.status === 'active' ? 'paused' : 'active';
@@ -72,119 +90,124 @@ export function ChoreCard({ chore, projectId }: ChoreCardProps) {
   };
 
   return (
-    <div className="flex flex-col gap-1.5 p-3 rounded-md border border-border bg-card hover:bg-accent/50 transition-colors">
-      {/* Header: name + status badge */}
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-medium text-foreground truncate" title={chore.name}>
-          {chore.name}
-        </h4>
-        <button
-          type="button"
-          onClick={handleToggleStatus}
-          disabled={updateMutation.isPending}
-          className={`shrink-0 px-1.5 py-0.5 text-xs font-medium rounded-full cursor-pointer transition-colors ${
-            chore.status === 'active'
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
-              : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 hover:bg-accent/20 dark:hover:bg-accent/30'
-          } disabled:opacity-50`}
-          title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
-        >
-          {chore.status === 'active' ? 'Active' : 'Paused'}
-        </button>
-      </div>
+    <Card
+      className={cn(
+        'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
+        isSpotlight && 'border-primary/20 bg-background/55'
+      )}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.16),_transparent_72%)] opacity-90" />
+      <CardContent className={cn('relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5', isSpotlight && 'sm:min-h-[21rem] sm:p-6')}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                {chore.schedule_type ? `${chore.schedule_type} cadence` : 'No cadence'}
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleStatus}
+                disabled={updateMutation.isPending}
+                className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] cursor-pointer transition-colors ${
+                  chore.status === 'active'
+                    ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50'
+                    : 'bg-accent/10 text-accent-foreground hover:bg-accent/20 dark:bg-accent/20 dark:hover:bg-accent/30'
+                } disabled:opacity-50`}
+                title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
+              >
+                {chore.status === 'active' ? 'Active' : 'Paused'}
+              </button>
+            </div>
 
-      {/* Schedule info */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {chore.schedule_type ? (
-          <button
-            type="button"
-            onClick={() => setShowScheduleEditor(!showScheduleEditor)}
-            className="hover:text-foreground transition-colors underline decoration-dotted"
-          >
-            Every {chore.schedule_value}{' '}
-            {chore.schedule_type === 'time' ? 'day' : 'issue'}
-            {chore.schedule_value !== 1 ? 's' : ''}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowScheduleEditor(true)}
-            className="italic hover:text-foreground transition-colors"
-          >
-            Configure schedule…
-          </button>
+            <h4 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]" title={chore.name}>
+              {chore.name}
+            </h4>
+            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/75">
+              {chore.template_path.replace('.github/ISSUE_TEMPLATE/', '')}
+            </p>
+          </div>
+
+          {triggerLabel && (
+            <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
+              {triggerLabel}
+            </span>
+          )}
+        </div>
+
+        <div className="moonwell rounded-[1.3rem] p-3">
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>Next checkpoint</span>
+            <span>{nextTriggerInfo ?? 'Awaiting schedule'}</span>
+          </div>
+          {chore.last_triggered_at && (
+            <p className="mt-2 text-sm text-foreground">
+              Last triggered {new Date(chore.last_triggered_at).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {chore.schedule_type ? (
+            <button
+              type="button"
+              onClick={() => setShowScheduleEditor(!showScheduleEditor)}
+              className="rounded-full border border-border/70 px-3 py-1.5 transition-colors hover:bg-accent/30 hover:text-foreground"
+            >
+              Every {chore.schedule_value} {chore.schedule_type === 'time' ? 'day' : 'issue'}
+              {chore.schedule_value !== 1 ? 's' : ''}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowScheduleEditor(true)}
+              className="rounded-full border border-dashed border-border/70 px-3 py-1.5 italic transition-colors hover:bg-accent/30 hover:text-foreground"
+            >
+              Configure schedule…
+            </button>
+          )}
+        </div>
+
+        {showScheduleEditor && (
+          <ChoreScheduleConfig
+            chore={chore}
+            projectId={projectId}
+            onDone={() => setShowScheduleEditor(false)}
+          />
         )}
-      </div>
 
-      {/* Schedule editor */}
-      {showScheduleEditor && (
-        <ChoreScheduleConfig
-          chore={chore}
-          projectId={projectId}
-          onDone={() => setShowScheduleEditor(false)}
-        />
-      )}
+        {triggerMutation.isError && (
+          <p className="text-xs text-destructive">
+            Trigger failed — {triggerMutation.error?.message ?? 'please retry'}
+          </p>
+        )}
 
-      {/* Next trigger countdown */}
-      {nextTriggerInfo && (
-        <p className="text-xs text-muted-foreground">
-          ⏱ {nextTriggerInfo}
-        </p>
-      )}
+        {!chore.schedule_type && chore.status === 'active' && (
+          <p className="text-xs text-yellow-600 dark:text-yellow-400">
+            No schedule configured — this chore will not auto-trigger yet.
+          </p>
+        )}
 
-      {/* Last triggered */}
-      {chore.last_triggered_at && (
-        <p className="text-xs text-muted-foreground">
-          Last triggered: {new Date(chore.last_triggered_at).toLocaleDateString()}
-        </p>
-      )}
-
-      {/* Current open issue indicator */}
-      {chore.current_issue_number && (
-        <p className="text-xs text-blue-600 dark:text-blue-400">
-          Open issue: #{chore.current_issue_number}
-        </p>
-      )}
-
-      {/* Trigger failure warning */}
-      {triggerMutation.isError && (
-        <p className="text-xs text-destructive">
-          ⚠ Trigger failed — {triggerMutation.error?.message ?? 'please retry'}
-        </p>
-      )}
-
-      {/* No schedule warning */}
-      {!chore.schedule_type && chore.status === 'active' && (
-        <p className="text-xs text-yellow-600 dark:text-yellow-400">
-          ⚠ No schedule configured — this chore won&apos;t auto-trigger
-        </p>
-      )}
-
-      {/* Template path */}
-      <p className="text-xs text-muted-foreground truncate" title={chore.template_path}>
-        📄 {chore.template_path.replace('.github/ISSUE_TEMPLATE/', '')}
-      </p>
-
-      {/* Action buttons */}
-      <div className="flex items-center justify-between mt-1">
-        <button
-          type="button"
-          onClick={handleTrigger}
-          disabled={triggerMutation.isPending}
-          className="px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title={chore.current_issue_number ? 'An open issue may exist — will verify before triggering' : 'Manually trigger this chore'}
-        >
-          {triggerMutation.isPending ? 'Triggering…' : '▶ Trigger'}
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={deleteMutation.isPending}
-          className="px-2 py-0.5 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors disabled:opacity-50"
-        >
-          {deleteMutation.isPending ? 'Removing…' : 'Remove'}
-        </button>
-      </div>
-    </div>
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+          <Button
+            type="button"
+            onClick={handleTrigger}
+            disabled={triggerMutation.isPending}
+            size="sm"
+          >
+            {triggerMutation.isPending ? 'Triggering…' : 'Trigger'}
+          </Button>
+          <Button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleteMutation.isPending}
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          >
+            {deleteMutation.isPending ? 'Removing…' : 'Remove'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

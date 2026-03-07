@@ -66,24 +66,19 @@ class TestLogout:
         assert resp.json()["message"] == "Logged out successfully"
 
 
-# ── POST /auth/session ─────────────────────────────────────────────────────
+# ── POST /auth/session (REMOVED — endpoint no longer exists) ───────────────
 
 
 class TestSetSessionCookie:
-    async def test_set_cookie_valid_token(self, client, mock_session, mock_github_auth_service):
+    async def test_session_endpoint_removed(self, client, mock_session, mock_github_auth_service):
+        """POST /auth/session was removed — credentials are now set via cookie on OAuth callback."""
         mock_github_auth_service.get_session.return_value = mock_session
         resp = await client.post(
             "/api/v1/auth/session",
             params={"session_token": str(mock_session.session_id)},
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["github_username"] == mock_session.github_username
-
-    async def test_set_cookie_invalid_token(self, client, mock_github_auth_service):
-        mock_github_auth_service.get_session.return_value = None
-        resp = await client.post("/api/v1/auth/session", params={"session_token": "bad"})
-        assert resp.status_code == 401
+        # Endpoint removed — expect 404 or 405
+        assert resp.status_code in (404, 405)
 
 
 # ── GET /auth/github ────────────────────────────────────────────────────────
@@ -150,7 +145,7 @@ class TestDevLogin:
         mock_github_auth_service.create_session_from_token.return_value = mock_session
         resp = await client.post(
             "/api/v1/auth/dev-login",
-            params={"github_token": "ghp_test"},
+            json={"github_token": "ghp_test"},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -165,7 +160,10 @@ class TestDevLogin:
         prod_settings = Settings(
             github_client_id="id",
             github_client_secret="secret",
-            session_secret_key="key-key-key-key-key-key-key-key-key",
+            session_secret_key="a" * 64,
+            encryption_key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+            github_webhook_secret="test-webhook-secret",
+            cookie_secure=True,
             debug=False,
             _env_file=None,
         )
@@ -178,6 +176,6 @@ class TestDevLogin:
         ):
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-                resp = await ac.post("/api/v1/auth/dev-login", params={"github_token": "ghp_test"})
+                resp = await ac.post("/api/v1/auth/dev-login", json={"github_token": "ghp_test"})
         assert resp.status_code == 404
         app.dependency_overrides.clear()
