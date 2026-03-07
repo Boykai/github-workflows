@@ -393,7 +393,7 @@ def create_app() -> FastAPI:
     from src.middleware.rate_limit import limiter
 
     app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Exception handlers
     @app.exception_handler(AppException)

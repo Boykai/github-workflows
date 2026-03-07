@@ -15,7 +15,7 @@ from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 from src.api.auth import get_current_session, get_session_dep
 from src.constants import SESSION_COOKIE_NAME
 from src.dependencies import verify_project_access
-from src.exceptions import GitHubAPIError, NotFoundError
+from src.exceptions import GitHubAPIError, NotFoundError, RateLimitError
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
