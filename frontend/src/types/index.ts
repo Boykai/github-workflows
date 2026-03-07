@@ -852,6 +852,8 @@ export interface PipelineAgentNode {
   agent_display_name: string;
   model_id: string;
   model_name: string;
+  tool_ids: string[];
+  tool_count: number;
   config: Record<string, unknown>;
 }
 
@@ -868,6 +870,8 @@ export interface PipelineConfig {
   name: string;
   description: string;
   stages: PipelineStage[];
+  is_preset: boolean;
+  preset_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -878,6 +882,10 @@ export interface PipelineConfigSummary {
   description: string;
   stage_count: number;
   agent_count: number;
+  total_tool_count: number;
+  is_preset: boolean;
+  preset_id: string;
+  stages: PipelineStage[];
   updated_at: string;
 }
 
@@ -913,6 +921,44 @@ export interface ModelGroup {
 }
 
 export type PipelineBoardState = 'empty' | 'creating' | 'editing';
+
+export interface PipelineModelOverride {
+  mode: 'auto' | 'specific';
+  modelId: string;
+  modelName: string;
+}
+
+export interface PipelineValidationErrors {
+  name?: string;
+  stages?: string;
+  [key: string]: string | undefined;
+}
+
+export interface ProjectPipelineAssignment {
+  projectId: string;
+  pipelineId: string;
+}
+
+export interface PresetPipelineDefinition {
+  presetId: string;
+  name: string;
+  description: string;
+  stages: PipelineStage[];
+}
+
+export interface FlowGraphNode {
+  id: string;
+  label: string;
+  agentCount: number;
+  x: number;
+  y: number;
+}
+
+export interface PresetSeedResult {
+  seeded: string[];
+  skipped: string[];
+  total: number;
+}
 
 // ============ MCP Tools Types (027-mcp-tools-page) ============
 

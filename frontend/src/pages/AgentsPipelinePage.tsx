@@ -3,14 +3,16 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useState, useEffect, useCallback, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
-import { usePipelineConfig } from '@/hooks/usePipelineConfig';
+import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
+import { useQueryClient } from '@tanstack/react-query';
+import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
@@ -19,23 +21,54 @@ import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
+import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
+import type { AIModel } from '@/types';
+
+// Simple hook to get available models for the pipeline dropdown
+function usePipelineModels(): AIModel[] {
+  const [models, setModels] = useState<AIModel[]>([]);
+  const fetched = useRef(false);
+  useEffect(() => {
+    if (fetched.current) return;
+    fetched.current = true;
+    fetch('/api/v1/pipelines/models/available', { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => setModels(Array.isArray(data) ? data : []))
+      .catch((err) => { console.warn('Failed to fetch pipeline models:', err); });
+  }, []);
+  return models;
+}
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
   const { selectedProject } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
+  const queryClient = useQueryClient();
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(projectId);
   const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
+  const availableModels = usePipelineModels();
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
   const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
   const alignedGridStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
   };
+
+  // Seed presets on mount
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (!projectId || seededRef.current) return;
+    seededRef.current = true;
+    pipelinesApi.seedPresets(projectId).then(() => {
+      queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+    }).catch((err) => {
+      console.warn('Failed to seed preset pipelines:', err);
+    });
+  }, [projectId, queryClient]);
 
   // Block in-app SPA navigation when there are unsaved changes
   useBlocker(pipelineConfig.isDirty);
@@ -161,9 +194,12 @@ export function AgentsPipelinePage() {
             boardState={pipelineConfig.boardState}
             isDirty={pipelineConfig.isDirty}
             isSaving={pipelineConfig.isSaving}
+            isPreset={pipelineConfig.isPreset}
             pipelineName={pipelineConfig.pipeline?.name}
+            validationErrors={pipelineConfig.validationErrors}
             onNewPipeline={handleNewPipeline}
             onSave={pipelineConfig.savePipeline}
+            onSaveAsCopy={(newName) => pipelineConfig.saveAsCopy(newName)}
             onDelete={handleDelete}
             onDiscard={pipelineConfig.discardChanges}
           />
@@ -174,10 +210,16 @@ export function AgentsPipelinePage() {
               columnCount={alignedColumnCount}
               stages={pipelineConfig.pipeline.stages}
               availableAgents={availableAgents}
+              availableModels={availableModels}
               isEditMode={pipelineConfig.boardState === 'editing'}
               pipelineName={pipelineConfig.pipeline.name}
+              projectId={projectId}
+              modelOverride={pipelineConfig.modelOverride}
+              validationErrors={pipelineConfig.validationErrors}
               onStagesChange={pipelineConfig.reorderStages}
               onNameChange={pipelineConfig.setPipelineName}
+              onModelOverrideChange={pipelineConfig.setModelOverride}
+              onClearValidationError={pipelineConfig.clearValidationError}
               onAddStage={() => pipelineConfig.addStage()}
               onRemoveStage={pipelineConfig.removeStage}
               onAddAgent={(stageId, slug) => {
@@ -270,17 +312,35 @@ export function AgentsPipelinePage() {
           <SavedWorkflowsList
             pipelines={pipelineConfig.pipelines?.pipelines ?? []}
             activePipelineId={pipelineConfig.editingPipelineId}
+            assignedPipelineId={pipelineConfig.assignedPipelineId}
             isLoading={pipelineConfig.pipelinesLoading}
             onSelect={handleWorkflowSelect}
+            onAssign={pipelineConfig.assignPipeline}
           />
 
-          {/* Activity Feed placeholder */}
+          {/* Activity Feed with flow graph for recent pipelines */}
           <div>
             <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
             <div className="celestial-panel rounded-[1.2rem] border border-border/75 p-4">
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Agent workflow events will appear here as agents process items
-              </p>
+              {(pipelineConfig.pipelines?.pipelines ?? []).length > 0 ? (
+                <div className="flex flex-col gap-3">
+                  {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/40 p-2">
+                      <PipelineFlowGraph stages={p.stages ?? []} width={120} height={32} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {p.stage_count} stages · {p.agent_count} agents
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Agent workflow events will appear here as agents process items
+                </p>
+              )}
             </div>
           </div>
         </>

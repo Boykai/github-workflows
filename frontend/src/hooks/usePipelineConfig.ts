@@ -16,6 +16,8 @@ import type {
   PipelineAgentNode,
   PipelineBoardState,
   PipelineConfigListResponse,
+  PipelineModelOverride,
+  PipelineValidationErrors,
   AvailableAgent,
 } from '@/types';
 
@@ -26,6 +28,8 @@ export const pipelineKeys = {
   list: (projectId: string) => [...pipelineKeys.all, 'list', projectId] as const,
   detail: (projectId: string, pipelineId: string) =>
     [...pipelineKeys.all, 'detail', projectId, pipelineId] as const,
+  assignment: (projectId: string) =>
+    [...pipelineKeys.all, 'assignment', projectId] as const,
 };
 
 // ── Return Type ──
@@ -38,15 +42,30 @@ interface UsePipelineConfigReturn {
   isDirty: boolean;
   isSaving: boolean;
   saveError: string | null;
+  isPreset: boolean;
+
+  // Model override
+  modelOverride: PipelineModelOverride;
+  setModelOverride: (override: PipelineModelOverride) => void;
+
+  // Validation
+  validationErrors: PipelineValidationErrors;
+  validatePipeline: () => boolean;
+  clearValidationError: (field: string) => void;
 
   // Pipeline list
   pipelines: PipelineConfigListResponse | null;
   pipelinesLoading: boolean;
 
+  // Pipeline assignment
+  assignedPipelineId: string;
+  assignPipeline: (pipelineId: string) => Promise<void>;
+
   // Pipeline actions
   newPipeline: (stageNames?: string[]) => void;
   loadPipeline: (pipelineId: string) => Promise<void>;
   savePipeline: () => Promise<void>;
+  saveAsCopy: (newName: string) => Promise<void>;
   deletePipeline: () => Promise<void>;
   discardChanges: () => void;
 
@@ -64,6 +83,7 @@ interface UsePipelineConfigReturn {
     agentNodeId: string,
     updates: Partial<PipelineAgentNode>,
   ) => void;
+  updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
 }
 
 // ── Hook ──
@@ -93,6 +113,11 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const [editingPipelineId, setEditingPipelineId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [modelOverride, setModelOverrideState] = useState<PipelineModelOverride>({
+    mode: 'auto', modelId: '', modelName: '',
+  });
+  const [validationErrors, setValidationErrors] = useState<PipelineValidationErrors>({});
+  const [assignedPipelineId, setAssignedPipelineId] = useState('');
 
   // Saved snapshot for isDirty comparison
   const savedSnapshotRef = useRef<string | null>(null);
@@ -107,6 +132,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     return currentSnapshot !== savedSnapshotRef.current;
   }, [pipeline]);
 
+  const isPreset = useMemo(() => pipeline?.is_preset ?? false, [pipeline]);
+
   // ── Save snapshot helper ──
   const updateSnapshot = useCallback((config: PipelineConfig) => {
     savedSnapshotRef.current = JSON.stringify({
@@ -115,6 +142,53 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       stages: config.stages,
     });
   }, []);
+
+  // ── Validation ──
+  const validatePipeline = useCallback((): boolean => {
+    const errors: PipelineValidationErrors = {};
+    if (!pipeline?.name?.trim()) {
+      errors.name = 'Pipeline name is required';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [pipeline]);
+
+  const clearValidationError = useCallback((field: string) => {
+    setValidationErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
+
+  // ── Model Override ──
+  const setModelOverride = useCallback((override: PipelineModelOverride) => {
+    setModelOverrideState(override);
+    setPipeline((prev) => {
+      if (!prev) return null;
+      const updatedStages = prev.stages.map((stage) => ({
+        ...stage,
+        agents: stage.agents.map((agent) => ({
+          ...agent,
+          model_id: override.mode === 'specific' ? override.modelId : '',
+          model_name: override.mode === 'specific' ? override.modelName : '',
+        })),
+      }));
+      return { ...prev, stages: updatedStages };
+    });
+  }, []);
+
+  // ── Pipeline Assignment ──
+  const assignPipeline = useCallback(async (pipelineId: string) => {
+    if (!projectId) return;
+    try {
+      await pipelinesApi.setAssignment(projectId, pipelineId);
+      setAssignedPipelineId(pipelineId);
+    } catch (err) {
+      console.warn('Pipeline assignment failed:', err);
+    }
+  }, [projectId]);
 
   // ── Pipeline Actions ──
 
@@ -127,12 +201,16 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       name: '',
       description: '',
       stages: seededStages,
+      is_preset: false,
+      preset_id: '',
       created_at: now,
       updated_at: now,
     };
     setPipeline(newConfig);
     setEditingPipelineId(null);
     setBoardState('creating');
+    setValidationErrors({});
+    setModelOverrideState({ mode: 'auto', modelId: '', modelName: '' });
     savedSnapshotRef.current = JSON.stringify({
       name: '',
       description: '',
@@ -150,6 +228,20 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         setBoardState('editing');
         updateSnapshot(config);
         setSaveError(null);
+        setValidationErrors({});
+        // Detect model override state
+        const allModels = config.stages.flatMap((s) => s.agents.map((a) => a.model_id));
+        const uniqueModels = [...new Set(allModels.filter(Boolean))];
+        if (uniqueModels.length === 1) {
+          const model = config.stages.flatMap((s) => s.agents).find((a) => a.model_id === uniqueModels[0]);
+          setModelOverrideState({
+            mode: 'specific',
+            modelId: uniqueModels[0],
+            modelName: model?.model_name ?? '',
+          });
+        } else {
+          setModelOverrideState({ mode: 'auto', modelId: '', modelName: '' });
+        }
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : 'Failed to load pipeline');
       }
@@ -159,10 +251,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   const savePipeline = useCallback(async () => {
     if (!pipeline || !projectId) return;
-    if (!pipeline.name.trim()) {
-      setSaveError('Pipeline name is required');
-      return;
-    }
+    if (!validatePipeline()) return;
+
     setIsSaving(true);
     setSaveError(null);
     try {
@@ -193,7 +283,29 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     } finally {
       setIsSaving(false);
     }
-  }, [pipeline, projectId, editingPipelineId, updateSnapshot, queryClient]);
+  }, [pipeline, projectId, editingPipelineId, updateSnapshot, queryClient, validatePipeline]);
+
+  const saveAsCopy = useCallback(async (newName: string) => {
+    if (!pipeline || !projectId) return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const saved = await pipelinesApi.create(projectId, {
+        name: newName,
+        description: pipeline.description,
+        stages: pipeline.stages,
+      });
+      setPipeline(saved);
+      setEditingPipelineId(saved.id);
+      setBoardState('editing');
+      updateSnapshot(saved);
+      queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save pipeline copy');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [pipeline, projectId, updateSnapshot, queryClient]);
 
   const deletePipeline = useCallback(async () => {
     if (!editingPipelineId || !projectId) return;
@@ -228,13 +340,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       savedSnapshotRef.current = null;
     }
     setSaveError(null);
+    setValidationErrors({});
   }, [editingPipelineId]);
 
   // ── Board Mutations ──
 
   const setPipelineName = useCallback((name: string) => {
     setPipeline((prev) => (prev ? { ...prev, name } : null));
-  }, []);
+    clearValidationError('name');
+  }, [clearValidationError]);
 
   const setPipelineDescription = useCallback((description: string) => {
     setPipeline((prev) => (prev ? { ...prev, description } : null));
@@ -285,6 +399,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         agent_display_name: agent.display_name,
         model_id: agent.default_model_id ?? '',
         model_name: agent.default_model_name ?? '',
+        tool_ids: [],
+        tool_count: 0,
         config: {},
       };
       return {
@@ -330,6 +446,30 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     [],
   );
 
+  const updateAgentTools = useCallback(
+    (stageId: string, agentNodeId: string, toolIds: string[]) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) =>
+            s.id === stageId
+              ? {
+                  ...s,
+                  agents: s.agents.map((a) =>
+                    a.id === agentNodeId
+                      ? { ...a, tool_ids: toolIds, tool_count: toolIds.length }
+                      : a
+                  ),
+                }
+              : s,
+          ),
+        };
+      });
+    },
+    [],
+  );
+
   return {
     boardState,
     pipeline,
@@ -337,11 +477,20 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     isDirty,
     isSaving,
     saveError,
+    isPreset,
+    modelOverride,
+    setModelOverride,
+    validationErrors,
+    validatePipeline,
+    clearValidationError,
     pipelines: pipelines ?? null,
     pipelinesLoading,
+    assignedPipelineId,
+    assignPipeline,
     newPipeline,
     loadPipeline,
     savePipeline,
+    saveAsCopy,
     deletePipeline,
     discardChanges,
     setPipelineName,
@@ -353,5 +502,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     addAgentToStage,
     removeAgentFromStage,
     updateAgentInStage,
+    updateAgentTools,
   };
 }
