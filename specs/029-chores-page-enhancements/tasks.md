@@ -322,6 +322,7 @@ With multiple developers:
 | **Polish Tasks** | 3 (T034–T036) |
 | **Parallel Opportunities** | 15 tasks marked [P] across 8 phases |
 | **Suggested MVP Scope** | User Stories 1–3 (Phases 1–5, 20 tasks) |
+| **Total Estimated Effort** | 32h (from issue metadata) |
 | **Estimated MVP Effort** | ~18h of the 32h total |
 
 ---
