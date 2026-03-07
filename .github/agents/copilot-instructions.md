@@ -128,6 +128,8 @@ npx playwright test
 - localStorage (sidebar state), in-memory (board data via TanStack Query cache) (026-recent-interactions-filter)
 - TypeScript ~5.9, React 19.2, Vite 7.3 + TanStack Query 5.90, Tailwind CSS v4, lucide-react 0.577 (026-chat-help-optimistic-render)
 - N/A (local React state only — no persistence for pending messages) (026-chat-help-optimistic-render)
+- Python 3.13 (backend), TypeScript 5.9 (frontend), Node 22 (build) + FastAPI, githubkit, pydantic 2.x, aiosqlite, React 19.2, TanStack Query, Vite 7.3 (027-performance-review)
+- SQLite with WAL mode (aiosqlite) — sessions, settings; in-memory cache (backend/src/services/cache.py) (027-performance-review)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI
