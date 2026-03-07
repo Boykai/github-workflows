@@ -5,6 +5,7 @@
 
 import { User } from 'lucide-react';
 import type { AgentAssignment, AvailableAgent } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface AgentDragOverlayProps {
   agent: AgentAssignment;
@@ -13,10 +14,16 @@ interface AgentDragOverlayProps {
 }
 
 export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOverlayProps) {
-  const displayName = agent.display_name || agent.slug;
+  const displayName = formatAgentName(agent.slug, agent.display_name);
   const metadata = availableAgents?.find((a) => a.slug === agent.slug);
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const isHuman = agent.slug === 'human';
+
+  // Build metadata line
+  const metaParts: string[] = [];
+  if (metadata?.default_model_name) metaParts.push(metadata.default_model_name);
+  if (metadata?.tools_count && metadata.tools_count > 0) metaParts.push(`${metadata.tools_count} tools`);
+  const metaLine = metaParts.join(' · ');
 
   return (
     <div
@@ -40,10 +47,15 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
         )}
       </span>
 
-      {/* Name */}
-      <span className="flex-1 text-sm font-medium truncate" title={agent.slug}>
-        {displayName}
-      </span>
+      {/* Name and metadata */}
+      <div className="flex-1 min-w-0">
+        <span className="block text-sm font-medium truncate" title={agent.slug}>
+          {displayName}
+        </span>
+        {metaLine && (
+          <span className="block text-[10px] text-muted-foreground truncate">{metaLine}</span>
+        )}
+      </div>
     </div>
   );
 }

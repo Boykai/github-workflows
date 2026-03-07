@@ -251,6 +251,7 @@ export interface AvailableAgent {
   avatar_url?: string | null;
   default_model_id?: string;
   default_model_name?: string;
+  tools_count?: number | null;
   source: AgentSource;
 }
 

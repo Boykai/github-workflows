@@ -64,6 +64,9 @@ _T = TypeVar("_T")
 # Configurable delay (seconds) before status/assignment updates to let GitHub sync.
 API_ACTION_DELAY_SECONDS: float = 2.0
 
+# Status names considered "Done"/"Closed" for sub-issue filtering (FR-007).
+_DONE_STATUS_NAMES: frozenset[str] = frozenset({"done", "closed", "completed"})
+
 # Request-scoped storage for rate limit info.  Each FastAPI async handler
 # runs in its own contextvars context, so this isolates rate limit data
 # per-request and prevents concurrent requests from overwriting each other.
@@ -959,6 +962,24 @@ class GitHubProjectsService:
                     estimate_total=estimate_total,
                 )
             )
+
+        # ── Sub-issue filtering for Done/Closed columns ──
+        # Collect all sub-issue IDs across all parent items so we can
+        # exclude them from "Done"/"Closed"/"Completed" columns (FR-007).
+        all_sub_issue_ids: set[str] = set()
+        for board_item in all_items:
+            for si in board_item.sub_issues:
+                if si.id:
+                    all_sub_issue_ids.add(si.id)
+
+        if all_sub_issue_ids:
+            for col in columns:
+                if col.status.name.lower() in _DONE_STATUS_NAMES:
+                    original_count = len(col.items)
+                    col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
+                    if len(col.items) != original_count:
+                        col.item_count = len(col.items)
+                        col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
 
         logger.info(
             "Board data for project %s: %d items across %d columns",
