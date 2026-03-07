@@ -977,7 +977,8 @@ class GitHubProjectsService:
                 if col.status.name.lower() in _DONE_STATUS_NAMES:
                     original_count = len(col.items)
                     col.items = [
-                        it for it in col.items
+                        it
+                        for it in col.items
                         if it.content_id not in all_sub_issue_ids
                     ]
                     if len(col.items) != original_count:
