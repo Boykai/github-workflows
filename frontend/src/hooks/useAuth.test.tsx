@@ -52,6 +52,10 @@ function createWrapper() {
 describe('useAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Restore default mock implementations after vi.resetAllMocks() clears them
+    mockAuthApi.setSessionFromToken.mockResolvedValue(undefined);
+    mockAuthApi.getCurrentUser.mockResolvedValue(undefined);
+    mockAuthApi.logout.mockResolvedValue(undefined);
     // Reset window.location.search
     Object.defineProperty(window, 'location', {
       value: {
