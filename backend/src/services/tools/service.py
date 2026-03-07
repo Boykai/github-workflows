@@ -78,7 +78,10 @@ class ToolsService:
                     server_type = "http"
 
             if server_type not in ("http", "stdio"):
-                return False, f"Server '{server_name}' must have 'type' of 'http' or 'stdio', or include a 'command' (stdio) or 'url' (http) field"
+                return (
+                    False,
+                    f"Server '{server_name}' must have 'type' of 'http' or 'stdio', or include a 'command' (stdio) or 'url' (http) field",
+                )
 
             if server_type == "http" and not server_config.get("url"):
                 return False, f"HTTP server '{server_name}' must have a 'url' field"

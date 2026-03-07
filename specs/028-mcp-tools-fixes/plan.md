@@ -10,7 +10,7 @@ Fix five targeted issues on the existing Tools page MCP section: (1) Update the 
 ## Technical Context
 
 **Language/Version**: TypeScript ~5.9 (frontend), Python 3.13 (backend)
-**Primary Dependencies**: React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22 (backend)
+**Primary Dependencies**: React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI >=0.135.0, aiosqlite >=0.22.0 (backend)
 **Storage**: N/A — no schema changes; existing SQLite tables unchanged
 **Testing**: Vitest 4 + Testing Library (frontend), pytest + pytest-asyncio (backend)
 **Target Platform**: Desktop browsers (768px+ viewport); Linux server (Docker)

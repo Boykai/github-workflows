@@ -104,7 +104,7 @@ interface UploadMcpModalProps {
 
 The `validateMcpJson()` function's server type check is updated to support implicit type inference.
 
-**Before** (lines 50–53):
+**Before**:
 ```typescript
 const serverType = serverCfg.type;
 if (serverType !== 'http' && serverType !== 'stdio') {

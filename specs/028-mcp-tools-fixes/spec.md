@@ -127,7 +127,7 @@ As a developer exploring available MCP integrations, I want a "Discover" button 
 - The correct GitHub Copilot MCP documentation URL is a stable, publicly accessible URL maintained by GitHub. The implementation team will confirm the exact URL during development.
 - The MCP spec convention that `command`-based servers are inherently `stdio` transports is an industry-standard assumption that will not change in the near term.
 - When `url` is present without `type`, inferring `http` follows the same convention pattern as `command` implying `stdio`.
-- The "first key" under `mcpServers` for auto-population follows the object key insertion order as specified by the JSON standard and modern runtimes.
+- The "first key" under `mcpServers` for auto-population is taken as the first property name returned by `Object.keys(parsed.mcpServers)` in the JavaScript runtime, relying on ECMAScript property enumeration behavior rather than any ordering guarantee from the JSON standard.
 - The Discover button target URL (`https://github.com/mcp`) is the official GitHub MCP Registry and will remain stable.
 - The Repository bubble currently receives the full repository identifier (e.g., `owner/repo-name`), and the fix involves extracting and displaying only the repo name portion.
 

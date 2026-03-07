@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Node.js 20+ and npm
+- Node.js 20.19+ (or Node.js 22+) and npm
 - Python 3.12+
 - The repository cloned and on the feature branch
 
@@ -52,7 +52,7 @@ npm run dev
 
 **File**: `backend/src/services/tools/service.py`
 
-1. In `validate_mcp_config()`, replace the strict type check (lines 71–73):
+1. In `validate_mcp_config()`, find the existing strict type check on `server_config.get("type")` and replace it:
 
 ```python
 # Before:
@@ -73,7 +73,7 @@ else:
     return False, f"Server '{server_name}' must have 'type', 'command', or 'url'"
 ```
 
-2. In `_extract_endpoint_url()`, update to handle configs without explicit type (lines 89–93):
+2. In `_extract_endpoint_url()`, update the type-based endpoint extraction logic to handle configs without explicit type:
 
 ```python
 # Before:
@@ -94,7 +94,7 @@ if cfg_type == "stdio" or (cfg_type is None and cfg.get("command")):
 
 **File**: `frontend/src/components/tools/UploadMcpModal.tsx`
 
-1. In `validateMcpJson()`, replace the strict type check (lines 50–53):
+1. In `validateMcpJson()`, find the strict type check on `serverCfg.type` and replace it:
 
 ```typescript
 // Before:

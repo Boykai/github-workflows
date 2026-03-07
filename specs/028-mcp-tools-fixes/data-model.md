@@ -71,7 +71,7 @@ Input: server_config object
 function validateMcpJson(content: string): string | null
 ```
 
-**Changed behavior**: The server type check (lines 50–53) is replaced with type inference logic matching the truth table above. The subsequent field-specific validation (lines 54–59) remains the same but uses the resolved type.
+**Changed behavior**: The server type check is replaced with type inference logic matching the truth table above. The subsequent field-specific validation remains the same but uses the resolved type.
 
 ### Backend: `validate_mcp_config()`
 
@@ -83,7 +83,7 @@ function validateMcpJson(content: string): string | null
 def validate_mcp_config(config_content: str) -> tuple[bool, str]
 ```
 
-**Changed behavior**: The `server_type` check (lines 71–73) is replaced with type inference logic matching the truth table above. The subsequent field-specific validation (lines 75–79) remains the same but uses the resolved type.
+**Changed behavior**: The `server_type` check is replaced with type inference logic matching the truth table above. The subsequent field-specific validation remains the same but uses the resolved type.
 
 ### Backend: `_extract_endpoint_url()`
 
