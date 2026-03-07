@@ -33,10 +33,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T001 Remove static `_AVAILABLE_MODELS` list and `list_models()` static method from `backend/src/services/pipelines/service.py`
-- [ ] T002 [P] Remove `GET /models/available` endpoint handler from `backend/src/api/pipelines.py`
-- [ ] T003 [P] Remove `pipelinesApi.listModels()` method from `frontend/src/services/api.ts`
-- [ ] T004 Add `cloneAgentInStage(stageId, agentNodeId)` action using `structuredClone` + `crypto.randomUUID()` and remove `addStage` from return interface in `frontend/src/hooks/usePipelineConfig.ts`
+- [x] T001 Remove static `_AVAILABLE_MODELS` list and `list_models()` static method from `backend/src/services/pipelines/service.py`
+- [x] T002 [P] Remove `GET /models/available` endpoint handler from `backend/src/api/pipelines.py`
+- [x] T003 [P] Remove `pipelinesApi.listModels()` method from `frontend/src/services/api.ts`
+- [x] T004 Add `cloneAgentInStage(stageId, agentNodeId)` action using `structuredClone` + `crypto.randomUUID()` and remove `addStage` from return interface in `frontend/src/hooks/usePipelineConfig.ts`
 
 **Checkpoint**: Backend static model endpoint removed; frontend API client cleaned up; state management hook updated with clone action and without addStage — user story implementation can now begin
 
@@ -50,8 +50,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Remove inline `usePipelineModels()` hook definition (which called `pipelinesApi.listModels()`) and replace with `useModels()` import from `@/hooks/useModels` in `frontend/src/pages/AgentsPipelinePage.tsx`
-- [ ] T006 [US1] Update `availableModels` binding from `usePipelineModels()` return value to `useModels()` destructured `{ models: availableModels, isLoading, error }` and pass to `PipelineBoard` in `frontend/src/pages/AgentsPipelinePage.tsx`
+- [x] T005 [US1] Remove inline `usePipelineModels()` hook definition (which called `pipelinesApi.listModels()`) and replace with `useModels()` import from `@/hooks/useModels` in `frontend/src/pages/AgentsPipelinePage.tsx`
+- [x] T006 [US1] Update `availableModels` binding from `usePipelineModels()` return value to `useModels()` destructured `{ models: availableModels, isLoading, error }` and pass to `PipelineBoard` in `frontend/src/pages/AgentsPipelinePage.tsx`
 
 **Checkpoint**: The "Select model" dropdown now shows per-user GitHub models fetched dynamically. Both the pipeline-level `PipelineModelDropdown` and per-agent `ModelSelector` use the same `useModels()` data source. Error and empty states are handled by the existing `useModels` hook (TanStack Query caching with `staleTime: Infinity`).
 
@@ -65,7 +65,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [P] [US2] Fix z-index stacking context in `frontend/src/components/tools/ToolSelectorModal.tsx`: increase backdrop z-index from `z-50` to `z-[9999]` and wrap modal render in `createPortal(modal, document.body)` to escape the `StageCard` DnD transform stacking context
+- [x] T007 [P] [US2] Fix z-index stacking context in `frontend/src/components/tools/ToolSelectorModal.tsx`: increase backdrop z-index from `z-50` to `z-[9999]` and wrap modal render in `createPortal(modal, document.body)` to escape the `StageCard` DnD transform stacking context
 
 **Checkpoint**: The ToolSelectorModal renders above all pipeline elements regardless of StageCard transforms or parent overflow. The portal approach is consistent with existing patterns (`ModelSelector` line 236, `StageCard` agent picker line 209).
 
@@ -79,8 +79,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Disable stage drag in `frontend/src/components/pipeline/StageCard.tsx`: set `disabled: true` on `useSortable({ id, disabled: true })`, remove drag handle button (GripVertical icon), remove `cursor-grab` styling, and add a Lock icon (from lucide-react) in the stage header to visually indicate fixed position
-- [ ] T009 [US3] Simplify stage DnD handling in `frontend/src/components/pipeline/PipelineBoard.tsx`: remove or no-op the `handleDragEnd` callback for stage reordering since all stages are now non-draggable
+- [x] T008 [US3] Disable stage drag in `frontend/src/components/pipeline/StageCard.tsx`: set `disabled: true` on `useSortable({ id, disabled: true })`, remove drag handle button (GripVertical icon), remove `cursor-grab` styling, and add a Lock icon (from lucide-react) in the stage header to visually indicate fixed position
+- [x] T009 [US3] Simplify stage DnD handling in `frontend/src/components/pipeline/PipelineBoard.tsx`: remove or no-op the `handleDragEnd` callback for stage reordering since all stages are now non-draggable
 
 **Checkpoint**: Stage cards are locked in place with a lock icon. No grab cursor, no drag events on stages. Agent nodes remain fully interactive within each stage. The `DndContext`/`SortableContext` wrapper is retained (as a no-op) to preserve the component tree structure for potential future use.
 
@@ -94,10 +94,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T010 [P] [US4] Add `onClone` callback prop to `AgentNodeProps` interface and render a Clone button with Copy icon (from lucide-react) next to the remove button in `frontend/src/components/pipeline/AgentNode.tsx`
-- [ ] T011 [US4] Add `onCloneAgent(agentNodeId: string)` prop to `StageCardProps` and pass `() => onCloneAgent(agent.id)` as `onClone` to each `AgentNode` in `frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T012 [US4] Add `onCloneAgent(stageId: string, agentNodeId: string)` prop to `PipelineBoardProps` and pass `(agentNodeId) => onCloneAgent(stage.id, agentNodeId)` to each `StageCard` in `frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T013 [US4] Wire `pipelineConfig.cloneAgentInStage` to `PipelineBoard` via `onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}` prop in `frontend/src/pages/AgentsPipelinePage.tsx`
+- [x] T010 [P] [US4] Add `onClone` callback prop to `AgentNodeProps` interface and render a Clone button with Copy icon (from lucide-react) next to the remove button in `frontend/src/components/pipeline/AgentNode.tsx`
+- [x] T011 [US4] Add `onCloneAgent(agentNodeId: string)` prop to `StageCardProps` and pass `() => onCloneAgent(agent.id)` as `onClone` to each `AgentNode` in `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T012 [US4] Add `onCloneAgent(stageId: string, agentNodeId: string)` prop to `PipelineBoardProps` and pass `(agentNodeId) => onCloneAgent(stage.id, agentNodeId)` to each `StageCard` in `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T013 [US4] Wire `pipelineConfig.cloneAgentInStage` to `PipelineBoard` via `onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}` prop in `frontend/src/pages/AgentsPipelinePage.tsx`
 
 **Checkpoint**: Each agent tile shows a Clone button. Clicking Clone creates a deep copy with a new UUID, appended to the same stage. Editing the clone does not affect the original. The `cloneAgentInStage` action in `usePipelineConfig` triggers dirty state detection.
 
@@ -111,8 +111,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T014 [US5] Remove both "Add Stage" buttons (empty state at ~lines 165-172 and normal state at ~lines 253-260) and remove `onAddStage` prop from `PipelineBoardProps` interface in `frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T015 [US5] Remove `onAddStage={() => pipelineConfig.addStage()}` prop binding from `PipelineBoard` usage in `frontend/src/pages/AgentsPipelinePage.tsx`
+- [x] T014 [US5] Remove both "Add Stage" buttons (empty state at ~lines 165-172 and normal state at ~lines 253-260) and remove `onAddStage` prop from `PipelineBoardProps` interface in `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T015 [US5] Remove `onAddStage={() => pipelineConfig.addStage()}` prop binding from `PipelineBoard` usage in `frontend/src/pages/AgentsPipelinePage.tsx`
 
 **Checkpoint**: No "Add Stage" button visible anywhere in Pipeline Creation. The empty state shows an informational message about stages being derived from board columns. The `addStage` action has already been removed from the `usePipelineConfig` return interface (T004).
 
@@ -122,8 +122,8 @@
 
 **Purpose**: Validation, build verification, and cross-story integration checks
 
-- [ ] T016 [P] Run frontend lint (`npm run lint`) and TypeScript build (`npm run build`) in `frontend/` to verify no type errors or lint violations across all modified files
-- [ ] T017 [P] Run backend tests (`pytest`) in `backend/` to verify endpoint removal does not break existing test suite
+- [x] T016 [P] Run frontend lint (`npm run lint`) and TypeScript build (`npm run build`) in `frontend/` to verify no type errors or lint violations across all modified files
+- [x] T017 [P] Run backend tests (`pytest`) in `backend/` to verify endpoint removal does not break existing test suite
 - [ ] T018 Run quickstart.md verification scenarios for all 5 fixes to confirm end-to-end correctness
 
 ---
