@@ -1379,6 +1379,13 @@ class GitHubProjectsService:
                             raise
 
             self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
+            logger.info(
+                "Updated issue #%d state to '%s' in %s/%s",
+                issue_number,
+                state,
+                owner,
+                repo,
+            )
             return True
         except Exception as e:
             logger.warning("Failed to update issue #%d state: %s", issue_number, e)

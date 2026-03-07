@@ -597,6 +597,7 @@ class TestCreateIssue:
             assert call_args.kwargs["json"]["title"] == "Test Issue"
             assert call_args.kwargs["json"]["labels"] == ["bug", "enhancement"]
 
+    @pytest.mark.asyncio
     async def test_create_issue_404_raises_reauth_validation_error(self, service):
         """Should translate GitHub's opaque 404 into a clear re-auth message."""
         github_response = GitHubResponse(
