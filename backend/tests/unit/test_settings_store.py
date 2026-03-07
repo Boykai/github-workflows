@@ -98,7 +98,7 @@ class TestUpsertUserPreferences:
         eff = await get_effective_user_settings(seeded_db, "user1")
         assert row is not None
         assert row["default_repository"] is None
-        assert eff.workflow.default_repository == "Boykai/github-workflows"
+        assert eff.workflow.default_repository is None
 
 
 class TestGetEffectiveUserSettings:

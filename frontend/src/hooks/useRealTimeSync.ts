@@ -10,6 +10,8 @@ import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS } from '@/constants';
 const MAX_RECONNECT_DELAY_MS = 30_000;
 /** Base reconnection delay in milliseconds. */
 const BASE_RECONNECT_DELAY_MS = 1_000;
+/** Debounce window for reconnection invalidations (milliseconds). */
+const RECONNECT_DEBOUNCE_MS = 2_000;
 
 type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 
@@ -32,6 +34,8 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
   const onRefreshTriggeredRef = useRef(options?.onRefreshTriggered);
+  /** Timestamp of the last reconnection invalidation for debounce. */
+  const lastReconnectInvalidationRef = useRef(0);
 
   // Keep the callback ref up to date
   onRefreshTriggeredRef.current = options?.onRefreshTriggered;
@@ -41,8 +45,22 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
       try {
         const data = JSON.parse(event.data);
 
-        // Handle initial data with all tasks
-        if (data.type === 'initial_data' || data.type === 'refresh') {
+        // Handle initial data / reconnection — debounce to at most once per cycle
+        if (data.type === 'initial_data') {
+          const now = Date.now();
+          if (now - lastReconnectInvalidationRef.current < RECONNECT_DEBOUNCE_MS) {
+            // Skip — already invalidated within the debounce window
+            return;
+          }
+          lastReconnectInvalidationRef.current = now;
+          // Only invalidate tasks — board data refreshes on its own 5-minute schedule
+          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          setLastUpdate(new Date());
+          onRefreshTriggeredRef.current?.();
+          return;
+        }
+
+        if (data.type === 'refresh') {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           setLastUpdate(new Date());
@@ -71,9 +89,10 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
     setLastUpdate(new Date()); // Mark as updated when polling starts
 
     pollingIntervalRef.current = window.setInterval(() => {
+      // Only invalidate tasks — board data refreshes on its own 5-minute schedule
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
       setLastUpdate(new Date());
+      onRefreshTriggeredRef.current?.();
     }, WS_FALLBACK_POLL_MS);
   }, [projectId, queryClient]);
 
@@ -161,6 +180,8 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
   useEffect(() => {
     if (projectId) {
       reconnectAttempts.current = 0;
+      // Reset debounce so the first initial_data for the new project is not suppressed
+      lastReconnectInvalidationRef.current = 0;
       // Try WebSocket first. Polling starts only as a fallback
       // (on WS error/close/timeout). Starting both simultaneously
       // caused a polling storm that froze the UI.

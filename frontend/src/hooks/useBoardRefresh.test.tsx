@@ -98,6 +98,27 @@ describe('useBoardRefresh', () => {
     );
   });
 
+  it('should cancel in-progress queries before manual refresh', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const cancelSpy = vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+
+    const { result } = renderHook(
+      () => useBoardRefresh({ projectId: 'PVT_123' }),
+      { wrapper: createWrapper(queryClient) },
+    );
+
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    // Manual refresh should cancel any in-progress automatic refresh
+    expect(cancelSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['board', 'data', 'PVT_123'] }),
+    );
+  });
+
   it('should update lastRefreshedAt after a successful refresh', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -134,7 +155,7 @@ describe('useBoardRefresh', () => {
     );
 
     // Fire multiple rapid refreshes — only the first should execute
-    act(() => {
+    await act(async () => {
       result.current.refresh();
       result.current.refresh();
       result.current.refresh();
