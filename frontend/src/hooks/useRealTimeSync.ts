@@ -180,6 +180,8 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
   useEffect(() => {
     if (projectId) {
       reconnectAttempts.current = 0;
+      // Reset debounce so the first initial_data for the new project is not suppressed
+      lastReconnectInvalidationRef.current = 0;
       // Try WebSocket first. Polling starts only as a fallback
       // (on WS error/close/timeout). Starting both simultaneously
       // caused a polling storm that froze the UI.
