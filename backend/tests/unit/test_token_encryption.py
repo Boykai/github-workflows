@@ -74,11 +74,14 @@ class TestTokenEncryptionAtRest:
         assert result == legacy_token
 
     async def test_passthrough_mode_when_no_key(self):
-        """Without encryption_key, tokens should pass through unchanged."""
+        """Without encryption_key, encrypt must refuse (RuntimeError) but decrypt still passes through."""
         svc = EncryptionService(key=None)
         assert not svc.enabled
         token = "gho_mytoken"
-        assert svc.encrypt(token) == token
+        # encrypt() must refuse to store plaintext
+        with pytest.raises(RuntimeError, match="refusing to store plaintext"):
+            svc.encrypt(token)
+        # decrypt() still passes through for reading legacy data
         assert svc.decrypt(token) == token
 
     async def test_decrypt_invalid_utf8_raises_value_error(self):

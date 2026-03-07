@@ -638,9 +638,7 @@ class TestWebhookResponseSanitization:
 
         webhook_secret = "test-sanitization-secret"
         payload = _json.dumps({"action": "test"}).encode()
-        sig = "sha256=" + hmac.new(
-            webhook_secret.encode(), payload, hashlib.sha256
-        ).hexdigest()
+        sig = "sha256=" + hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
 
         with patch("src.api.webhooks.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(
