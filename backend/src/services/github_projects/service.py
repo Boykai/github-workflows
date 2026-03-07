@@ -976,16 +976,10 @@ class GitHubProjectsService:
             for col in columns:
                 if col.status.name.lower() in _DONE_STATUS_NAMES:
                     original_count = len(col.items)
-                    col.items = [
-                        it
-                        for it in col.items
-                        if it.content_id not in all_sub_issue_ids
-                    ]
+                    col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
                     if len(col.items) != original_count:
                         col.item_count = len(col.items)
-                        col.estimate_total = sum(
-                            it.estimate or 0.0 for it in col.items
-                        )
+                        col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
 
         logger.info(
             "Board data for project %s: %d items across %d columns",
