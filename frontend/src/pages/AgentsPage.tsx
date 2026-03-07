@@ -35,7 +35,7 @@ export function AgentsPage() {
       <CelestialCatalogHero
         eyebrow="Celestial Catalog"
         title="Shape your agent constellation."
-        description="Browse repository agents in a broader catalog, spotlight the most active rituals, and keep every board column tied to the right assistant." 
+        description="Browse repository agents in a broader catalog, spotlight the most active rituals, and keep every board column tied to the right assistant."
         badge={repo ? `${repo.owner}/${repo.name}` : 'Awaiting repository'}
         note="Give active agents more surface area, keep pending work visible, and let assignments read like a calm operations map instead of a stacked sidebar."
         stats={[

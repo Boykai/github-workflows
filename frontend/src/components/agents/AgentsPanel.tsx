@@ -90,7 +90,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
 
       {/* Loading state */}
       {isLoading && (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
@@ -257,6 +257,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Search by name, slug, description, or tool"
+                    aria-label="Search agents catalog"
                     className="moonwell h-12 rounded-full border-border/60 pl-10"
                   />
                 </div>
@@ -265,6 +266,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
                     value={sortMode}
                     onChange={(event) => setSortMode(event.target.value as AgentSortMode)}
+                    aria-label="Sort agents"
                   >
                     <option value="name">Alphabetical</option>
                     <option value="usage">By usage</option>

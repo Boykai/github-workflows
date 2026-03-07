@@ -20,8 +20,8 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md border border-primary/50 bg-card p-2 shadow-lg opacity-80 cursor-grabbing"
-      style={width ? { width } : undefined}
+      className="flex min-w-[280px] max-w-[340px] items-center gap-2 rounded-md border border-primary/50 bg-card p-2 shadow-lg opacity-80 cursor-grabbing"
+      style={width != null ? { width } : undefined}
     >
       {/* Drag handle (decorative) */}
       <span className="text-muted-foreground/50 px-1">⠿</span>

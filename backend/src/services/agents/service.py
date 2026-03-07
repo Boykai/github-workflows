@@ -16,7 +16,6 @@ import uuid
 import aiosqlite
 import yaml
 
-from src.constants import CACHE_PREFIX_REPO_AGENTS
 from src.models.agent_creator import AgentPreview
 from src.models.agents import (
     Agent,
@@ -31,7 +30,7 @@ from src.models.agents import (
     AgentUpdate,
 )
 from src.services.agent_creator import generate_config_files, generate_issue_body
-from src.services.cache import cache, get_cache_key
+from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_commit_workflow import commit_files_workflow
 from src.services.github_projects import github_projects_service
 from src.utils import utcnow
@@ -76,7 +75,7 @@ class AgentsService:
         access_token: str,
     ) -> list[Agent]:
         """List agents from the repo default branch, with a long-lived cache."""
-        cache_key = get_cache_key(CACHE_PREFIX_REPO_AGENTS, f"{owner}/{repo}")
+        cache_key = get_repo_agents_cache_key(owner, repo)
 
         cached_agents = cache.get(cache_key)
         if isinstance(cached_agents, list):

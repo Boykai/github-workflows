@@ -243,6 +243,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                       placeholder="Search by name or template path"
+                      aria-label="Search chores by name or template path"
                       className="moonwell h-12 rounded-full border-border/60 pl-10"
                     />
                   </div>
@@ -274,6 +275,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
                         className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
                         value={scheduleFilter}
                         onChange={(event) => setScheduleFilter(event.target.value as ScheduleFilter)}
+                        aria-label="Filter chores by schedule"
                       >
                         <option value="all">All schedules</option>
                         <option value="time">Time-based</option>
@@ -284,6 +286,7 @@ export function ChoresPanel({ projectId, owner, repo }: ChoresPanelProps) {
                         className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
                         value={sortMode}
                         onChange={(event) => setSortMode(event.target.value as ChoreSortMode)}
+                        aria-label="Sort chores"
                       >
                         <option value="attention">Needs attention</option>
                         <option value="updated">Recently updated</option>
