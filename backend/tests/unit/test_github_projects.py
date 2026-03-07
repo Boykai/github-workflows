@@ -1123,26 +1123,23 @@ class TestHasCopilotReviewedPr:
 
     @pytest.mark.asyncio
     async def test_has_copilot_reviewed_true(self, service):
-        """Should return True when Copilot has reviewed with a non-empty body."""
-        mock_response = {
-            "repository": {
-                "pullRequest": {
-                    "reviews": {
-                        "nodes": [
-                            {"author": {"login": "human"}, "state": "APPROVED", "body": "LGTM"},
-                            {
-                                "author": {"login": "copilot"},
-                                "state": "COMMENTED",
-                                "body": "## Pull request overview\n\nSome review text",
-                            },
-                        ]
-                    }
-                }
-            }
-        }
-
-        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
-            mock_graphql.return_value = mock_response
+        """Should return True when Copilot submitted a review and is no longer requested."""
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest,
+            patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql,
+        ):
+            mock_rest.side_effect = [
+                {"users": [], "teams": []},
+                [
+                    {"user": {"login": "human"}, "state": "APPROVED", "body": "LGTM"},
+                    {
+                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                        "state": "COMMENTED",
+                        "submitted_at": "2026-03-07T12:00:00Z",
+                        "body": "## Pull request overview\n\nSome review text",
+                    },
+                ],
+            ]
 
             result = await service.has_copilot_reviewed_pr(
                 access_token="test-token",
@@ -1152,24 +1149,23 @@ class TestHasCopilotReviewedPr:
             )
 
             assert result is True
+            mock_graphql.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_copilot_review_empty_body_returns_false(self, service):
         """Should return False when Copilot review has an empty body (partial/ghost review)."""
-        mock_response = {
-            "repository": {
-                "pullRequest": {
-                    "reviews": {
-                        "nodes": [
-                            {"author": {"login": "copilot"}, "state": "COMMENTED", "body": ""},
-                        ]
-                    }
-                }
-            }
-        }
-
-        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
-            mock_graphql.return_value = mock_response
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.side_effect = [
+                {"users": [], "teams": []},
+                [
+                    {
+                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                        "state": "COMMENTED",
+                        "submitted_at": "2026-03-07T12:00:00Z",
+                        "body": "",
+                    },
+                ],
+            ]
 
             result = await service.has_copilot_reviewed_pr(
                 access_token="test-token",
@@ -1183,24 +1179,18 @@ class TestHasCopilotReviewedPr:
     @pytest.mark.asyncio
     async def test_copilot_pending_review_returns_false(self, service):
         """Should return False when Copilot review is in PENDING state."""
-        mock_response = {
-            "repository": {
-                "pullRequest": {
-                    "reviews": {
-                        "nodes": [
-                            {
-                                "author": {"login": "copilot"},
-                                "state": "PENDING",
-                                "body": "## Review",
-                            },
-                        ]
-                    }
-                }
-            }
-        }
-
-        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
-            mock_graphql.return_value = mock_response
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.side_effect = [
+                {"users": [], "teams": []},
+                [
+                    {
+                        "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                        "state": "PENDING",
+                        "submitted_at": None,
+                        "body": "## Review",
+                    },
+                ],
+            ]
 
             result = await service.has_copilot_reviewed_pr(
                 access_token="test-token",
@@ -1214,20 +1204,18 @@ class TestHasCopilotReviewedPr:
     @pytest.mark.asyncio
     async def test_has_copilot_reviewed_false(self, service):
         """Should return False when Copilot has not reviewed."""
-        mock_response = {
-            "repository": {
-                "pullRequest": {
-                    "reviews": {
-                        "nodes": [
-                            {"author": {"login": "human"}, "state": "APPROVED"},
-                        ]
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.side_effect = [
+                {"users": [], "teams": []},
+                [
+                    {
+                        "user": {"login": "human"},
+                        "state": "APPROVED",
+                        "submitted_at": "2026-03-07T12:00:00Z",
+                        "body": "LGTM",
                     }
-                }
-            }
-        }
-
-        with patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql:
-            mock_graphql.return_value = mock_response
+                ],
+            ]
 
             result = await service.has_copilot_reviewed_pr(
                 access_token="test-token",
@@ -1237,6 +1225,63 @@ class TestHasCopilotReviewedPr:
             )
 
             assert result is False
+
+    @pytest.mark.asyncio
+    async def test_copilot_still_requested_returns_false(self, service):
+        """Should return False while Copilot remains in requested reviewers."""
+        with patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest:
+            mock_rest.side_effect = [
+                {
+                    "users": [{"login": "copilot-pull-request-reviewer[bot]"}],
+                    "teams": [],
+                },
+            ]
+
+            result = await service.has_copilot_reviewed_pr(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                pr_number=42,
+            )
+
+            assert result is False
+
+    @pytest.mark.asyncio
+    async def test_has_copilot_reviewed_graphql_fallback(self, service):
+        """Should fall back to GraphQL and require no active review request plus submitted review."""
+        mock_response = {
+            "repository": {
+                "pullRequest": {
+                    "reviewRequests": {"nodes": []},
+                    "reviews": {
+                        "nodes": [
+                            {
+                                "author": {"login": "copilot-pull-request-reviewer[bot]"},
+                                "state": "COMMENTED",
+                                "submittedAt": "2026-03-07T12:00:00Z",
+                                "body": "## Pull request overview\n\nSome review text",
+                            },
+                        ]
+                    },
+                }
+            }
+        }
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock) as mock_rest,
+            patch.object(service, "_graphql", new_callable=AsyncMock) as mock_graphql,
+        ):
+            mock_rest.side_effect = RuntimeError("REST unavailable")
+            mock_graphql.return_value = mock_response
+
+            result = await service.has_copilot_reviewed_pr(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                pr_number=42,
+            )
+
+            assert result is True
 
 
 # =============================================================================

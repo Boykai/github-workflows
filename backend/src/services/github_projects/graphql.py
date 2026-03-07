@@ -473,6 +473,7 @@ query($owner: String!, $name: String!, $number: Int!) {
           state
           body
           createdAt
+          submittedAt
         }
       }
       changedFiles
