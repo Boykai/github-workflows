@@ -3,22 +3,23 @@
  */
 
 import { memo } from 'react';
-import type { BoardColumn as BoardColumnType, BoardItem } from '@/types';
+import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
 
 interface BoardColumnProps {
   column: BoardColumnType;
   onCardClick: (item: BoardItem) => void;
+  availableAgents?: AvailableAgent[];
 }
 
-export const BoardColumn = memo(function BoardColumn({ column, onCardClick }: BoardColumnProps) {
+export const BoardColumn = memo(function BoardColumn({ column, onCardClick, availableAgents }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
 
   return (
-    <div className="celestial-panel flex min-w-0 shrink-0 flex-col overflow-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
+    <div className="celestial-panel flex min-w-0 shrink-0 flex-col h-full overflow-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
       {/* Column Header */}
-      <div className="flex items-center justify-between border-b border-border/70 bg-background/50 p-4 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border/70 bg-background/50 p-4 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-2">
           <span
             className="w-2.5 h-2.5 rounded-full"
@@ -53,7 +54,7 @@ export const BoardColumn = memo(function BoardColumn({ column, onCardClick }: Bo
           <div className="text-sm text-muted-foreground text-center py-8 italic">No items</div>
         ) : (
           column.items.map((item) => (
-            <IssueCard key={item.item_id} item={item} onClick={onCardClick} />
+            <IssueCard key={item.item_id} item={item} onClick={onCardClick} availableAgents={availableAgents} />
           ))
         )}
       </div>

@@ -356,7 +356,7 @@ export function ProjectsPage() {
                 <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
               </div>
             ) : (
-              <ProjectBoard boardData={sortedBoardData} onCardClick={handleCardClick} />
+              <ProjectBoard boardData={sortedBoardData} onCardClick={handleCardClick} availableAgents={availableAgents} />
             )}
           </div>
         </div>
