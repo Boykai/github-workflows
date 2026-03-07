@@ -23,10 +23,10 @@ export function ToolsPage() {
         eyebrow="Tool Forge"
         title="Equip your agents with MCP tools."
         description="Upload and manage MCP configurations that sync to your GitHub repository. Assign tools to agents during creation for enhanced capabilities."
-        badge={repo ? `${repo.owner}/${repo.name}` : 'Awaiting repository'}
+        badge={repo ? repo.name : 'Awaiting repository'}
         note="Each MCP tool configuration is synced to .copilot/mcp.json in your repository, enabling GitHub Custom Agents to discover and use them."
         stats={[
-          { label: 'Repository', value: repo ? `${repo.owner}/${repo.name}` : 'Unlinked' },
+          { label: 'Repository', value: repo ? repo.name : 'Unlinked' },
           { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
         ]}
         actions={
@@ -35,8 +35,13 @@ export function ToolsPage() {
               <a href="#tools-catalog">Browse tools</a>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href="https://docs.github.com/en/copilot/customizing-copilot/extending-the-functionality-of-github-copilot-in-your-organization" target="_blank" rel="noopener noreferrer">
+              <a href="https://docs.github.com/en/copilot/concepts/context/mcp" target="_blank" rel="noopener noreferrer">
                 MCP docs
+              </a>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <a href="https://github.com/mcp" target="_blank" rel="noopener noreferrer" aria-label="Discover MCP integrations on GitHub">
+                Discover
               </a>
             </Button>
           </>
