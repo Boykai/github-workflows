@@ -91,9 +91,7 @@ export function ToolsEditor({ tools, onToolsChange, error, projectId }: ToolsEdi
         </ul>
       )}
 
-      {error && (
-        <p className="mt-1 text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
 
       <button
         type="button"

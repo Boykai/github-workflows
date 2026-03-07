@@ -91,7 +91,11 @@ export function useAgentChat(projectId: string | null | undefined) {
 
 export function useBulkUpdateModels(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
-  return useMutation<BulkModelUpdateResult, ApiError, { targetModelId: string; targetModelName: string }>({
+  return useMutation<
+    BulkModelUpdateResult,
+    ApiError,
+    { targetModelId: string; targetModelName: string }
+  >({
     mutationFn: ({ targetModelId, targetModelName }) =>
       agentsApi.bulkUpdateModels(projectId!, targetModelId, targetModelName),
     onSuccess: () => {
