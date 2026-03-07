@@ -838,8 +838,6 @@ async def upload_file(
             },
         )
 
-    # For now, store files in a temporary upload directory and serve via a local URL.
-    # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
     safe_filename = f"{upload_id}-{_sanitize_uploaded_filename(file.filename)}"
 
@@ -849,7 +847,6 @@ async def upload_file(
 
     file_path.write_bytes(content)
 
-    # Generate a file URL — in production this would be a GitHub CDN URL
     file_url = f"/api/v1/chat/uploads/{safe_filename}"
 
     return FileUploadResponse(

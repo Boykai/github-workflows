@@ -24,8 +24,8 @@ POST /api/v1/chat/messages
   "message": "## Feature Request\n\nI want to add dark mode support with...",
   "ai_enhance": true,
   "file_urls": [
-    "https://user-images.githubusercontent.com/12345/abc123.png",
-    "https://gist.githubusercontent.com/user/def456/raw/document.pdf"
+    "/api/v1/chat/uploads/a1b2c3d4-screenshot.png",
+    "/api/v1/chat/uploads/e5f6g7h8-document.pdf"
   ]
 }
 ```
