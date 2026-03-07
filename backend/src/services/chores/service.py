@@ -636,7 +636,6 @@ class ChoresService:
         """
         from src.services.chores.template_builder import (
             build_template,
-            derive_template_path,
         )
 
         updates = body.model_dump(exclude_unset=True)
