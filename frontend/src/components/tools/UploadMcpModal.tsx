@@ -47,9 +47,19 @@ function validateMcpJson(content: string): string | null {
       return `Server '${name}' must be an object`;
     }
     const serverCfg = cfg as Record<string, unknown>;
-    const serverType = serverCfg.type;
+    let serverType = serverCfg.type as string | undefined;
+
+    // Infer type from fields when not explicitly specified
+    if (serverType === undefined || serverType === null) {
+      if (serverCfg.command) {
+        serverType = 'stdio';
+      } else if (serverCfg.url) {
+        serverType = 'http';
+      }
+    }
+
     if (serverType !== 'http' && serverType !== 'stdio') {
-      return `Server '${name}' must have 'type' of 'http' or 'stdio'`;
+      return `Server '${name}' must have 'type' of 'http' or 'stdio', or include a 'command' (stdio) or 'url' (http) field`;
     }
     if (serverType === 'http' && !serverCfg.url) {
       return `HTTP server '${name}' must have a 'url' field`;
@@ -77,6 +87,7 @@ export function UploadMcpModal({
   const [mode, setMode] = useState<'paste' | 'file'>('paste');
   const [validationError, setValidationError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [multiServerWarning, setMultiServerWarning] = useState<string | null>(null);
 
   const resetForm = useCallback(() => {
     setName('');
@@ -86,6 +97,7 @@ export function UploadMcpModal({
     setMode('paste');
     setValidationError(null);
     setDuplicateWarning(null);
+    setMultiServerWarning(null);
   }, []);
 
   const handleClose = useCallback(() => {
@@ -109,6 +121,40 @@ export function UploadMcpModal({
       setDuplicateWarning(null);
     }
   }, [name, existingNames]);
+
+  // Auto-populate name from mcpServers key when name is empty
+  useEffect(() => {
+    if (name.trim()) return; // Don't overwrite user-entered names
+    if (!configContent.trim()) {
+      setMultiServerWarning(null);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(configContent);
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        const servers = parsed.mcpServers;
+        if (typeof servers === 'object' && servers !== null && !Array.isArray(servers)) {
+          const keys = Object.keys(servers);
+          if (keys.length > 0) {
+            setName(keys[0]);
+          }
+          if (keys.length > 1) {
+            setMultiServerWarning(`Multiple servers detected (${keys.join(', ')}). Using "${keys[0]}" as the name.`);
+          } else {
+            setMultiServerWarning(null);
+          }
+        } else {
+          setMultiServerWarning(null);
+        }
+      } else {
+        setMultiServerWarning(null);
+      }
+    } catch {
+      setMultiServerWarning(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configContent]);
 
   if (!isOpen) return null;
 
@@ -172,6 +218,9 @@ export function UploadMcpModal({
             />
             {duplicateWarning && (
               <p className="mt-1 text-xs text-amber-600">{duplicateWarning}</p>
+            )}
+            {multiServerWarning && (
+              <p className="mt-1 text-xs text-amber-600">{multiServerWarning}</p>
             )}
           </div>
 
