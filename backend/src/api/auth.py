@@ -4,12 +4,14 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, HTTPException, Query, Response, status
+from fastapi import APIRouter, Cookie, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+from slowapi.util import get_remote_address
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AuthenticationError
+from src.middleware.rate_limit import limiter
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
 
@@ -102,7 +104,9 @@ async def initiate_github_oauth() -> RedirectResponse:
 
 
 @router.get("/github/callback")
+@limiter.limit("20/minute", key_func=get_remote_address)
 async def github_callback(
+    request: Request,
     code: Annotated[str, Query(description="Authorization code from GitHub")],
     state: Annotated[str, Query(description="OAuth state parameter")],
     response: Response,

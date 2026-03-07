@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
+from src.middleware.rate_limit import limiter
 from src.models.agents import (
     Agent,
     AgentChatMessage,
@@ -34,7 +36,7 @@ def _get_service() -> AgentsService:
 # ── List ──
 
 
-@router.get("/{project_id}", response_model=list[Agent])
+@router.get("/{project_id}", response_model=list[Agent], dependencies=[Depends(verify_project_access)])
 async def list_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -62,7 +64,7 @@ async def list_agents(
 # ── Create ──
 
 
-@router.post("/{project_id}", response_model=AgentCreateResult, status_code=201)
+@router.post("/{project_id}", response_model=AgentCreateResult, status_code=201, dependencies=[Depends(verify_project_access)])
 async def create_agent(
     project_id: str,
     body: AgentCreate,
@@ -99,7 +101,7 @@ async def create_agent(
 # ── Update (P3) ──
 
 
-@router.patch("/{project_id}/{agent_id}", response_model=AgentCreateResult)
+@router.patch("/{project_id}/{agent_id}", response_model=AgentCreateResult, dependencies=[Depends(verify_project_access)])
 async def update_agent(
     project_id: str,
     agent_id: str,
@@ -137,7 +139,7 @@ async def update_agent(
 # ── Delete ──
 
 
-@router.delete("/{project_id}/{agent_id}", response_model=AgentDeleteResult)
+@router.delete("/{project_id}/{agent_id}", response_model=AgentDeleteResult, dependencies=[Depends(verify_project_access)])
 async def delete_agent(
     project_id: str,
     agent_id: str,
@@ -176,8 +178,10 @@ async def delete_agent(
 # ── Chat ──
 
 
-@router.post("/{project_id}/chat", response_model=AgentChatResponse)
+@router.post("/{project_id}/chat", response_model=AgentChatResponse, dependencies=[Depends(verify_project_access)])
+@limiter.limit("5/minute")
 async def agent_chat(
+    request: Request,
     project_id: str,
     body: AgentChatMessage,
     session: Annotated[UserSession, Depends(get_session_dep)],
