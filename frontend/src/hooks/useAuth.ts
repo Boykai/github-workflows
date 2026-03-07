@@ -32,22 +32,22 @@ export function useAuth(): UseAuthReturn {
       setIsProcessingToken(true);
       
       // Exchange token for cookie via proxy
-      authApi.setSessionFromToken(sessionToken)
-        .then((user) => {
+      const exchangeToken = async () => {
+        try {
+          const user = await authApi.setSessionFromToken(sessionToken);
           // Update query cache with user data
           queryClient.setQueryData(['auth', 'me'], user);
-          
           // Clean up URL (remove session_token param)
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error('Failed to set session from token:', err);
           setError(err as Error);
-        })
-        .finally(() => {
+        } finally {
           setIsProcessingToken(false);
-        });
+        }
+      };
+      exchangeToken();
     }
   }, [queryClient, isProcessingToken]);
 
