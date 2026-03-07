@@ -805,16 +805,15 @@ class GitHubProjectsService:
                             )
 
                 # Parse labels from GraphQL response
-                content_labels: list[Label] = []
-                for label_node in content.get("labels", {}).get("nodes", []):
-                    if label_node:
-                        content_labels.append(
-                            Label(
-                                id=label_node.get("id", ""),
-                                name=label_node.get("name", ""),
-                                color=label_node.get("color", ""),
-                            )
-                        )
+                content_labels: list[Label] = [
+                    Label(
+                        id=label_node.get("id", ""),
+                        name=label_node.get("name", ""),
+                        color=label_node.get("color", ""),
+                    )
+                    for label_node in content.get("labels", {}).get("nodes", [])
+                    if label_node
+                ]
 
                 # Parse timestamps and milestone
                 created_at = content.get("createdAt")
