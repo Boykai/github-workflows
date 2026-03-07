@@ -15,7 +15,6 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
   const isUser = message.sender_type === 'user';
   const isSystem = message.sender_type === 'system';
   const isFailed = message.status === 'failed';
-  const isPending = message.status === 'pending';
 
   return (
     <div className={`flex gap-3 max-w-[80%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}>
@@ -33,9 +32,8 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
           <div className={cn(
             'px-4 py-3 rounded-2xl leading-relaxed whitespace-pre-wrap',
             isFailed && 'bg-primary text-primary-foreground border-2 border-destructive',
-            isPending && !isFailed && 'bg-primary/80 text-primary-foreground',
-            !isFailed && !isPending && isUser && 'bg-primary text-primary-foreground',
-            !isUser && !isFailed && !isPending && 'bg-muted text-foreground',
+            !isFailed && isUser && 'bg-primary text-primary-foreground',
+            !isUser && !isFailed && 'bg-muted text-foreground',
           )}>
             {message.content}
           </div>
