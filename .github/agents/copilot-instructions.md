@@ -138,6 +138,8 @@ npx playwright test
 - SQLite with WAL mode (aiosqlite) — existing `chat_messages`, `chat_proposals`, `chat_recommendations` tables; localStorage for toggle preference persistence (028-chat-ux-enhancements)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, react-router-dom v7, TanStack Query v5.90, @dnd-kit (core + sortable), Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (028-pipeline-mcp-config)
 - SQLite with WAL mode (aiosqlite) — extending `pipeline_configs` table with preset flags and `PipelineAgentNode` with `tool_ids`; adding `assigned_pipeline_id` column to `project_settings` (028-pipeline-mcp-config)
+- Python 3.12 (backend), TypeScript/Node.js 20 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
+- In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI
