@@ -15,7 +15,6 @@ from httpx import ASGITransport, AsyncClient
 from src.config import Settings
 from src.models.user import UserSession
 
-
 # Production-valid secrets for tests that need debug=False
 _PROD_SECRETS = {
     "session_secret_key": "a" * 64,
@@ -75,9 +74,7 @@ class TestWebhookVerification:
                     },
                 )
 
-        assert resp.status_code == 401, (
-            f"Expected 401 for unsigned webhook, got {resp.status_code}"
-        )
+        assert resp.status_code == 401, f"Expected 401 for unsigned webhook, got {resp.status_code}"
         app.dependency_overrides.clear()
 
     async def test_valid_signature_accepted(self):

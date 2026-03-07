@@ -60,10 +60,17 @@ class TestSettings:
     def test_defaults(self):
         s = self._make()
         assert s.ai_provider == "copilot"
-        assert s.debug is True  # Test default overrides to True for testing
         assert s.port == 8000
         assert s.session_expire_hours == 8
         assert s.cache_ttl_seconds == 300
+
+    def test_debug_default_is_false(self):
+        """The field-level default for debug is False.
+
+        _make() forces debug=True to bypass production validators, so
+        test_defaults cannot verify this.  Check the model field directly.
+        """
+        assert Settings.model_fields["debug"].default is False
 
     def test_cors_origins_list_single(self):
         s = self._make(cors_origins="http://localhost:5173")

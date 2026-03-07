@@ -17,11 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 def get_user_key(request: Request) -> str:
-    """Extract a per-user rate-limit key from request context.
+    """Extract a rate-limit key from request context.
 
-    Uses the session cookie value as a rate-limit identifier when present,
-    and falls back to the remote IP address for unauthenticated requests
-    (e.g. OAuth callback).
+    Uses the session cookie value when present, falling back to the remote
+    IP address for unauthenticated requests (e.g. OAuth callback).
+
+    Note: this produces a **per-session** key, not per-user.  A single user
+    with multiple sessions (different browsers/devices) accumulates separate
+    quotas.  Switching to a per-*user* key (GitHub user ID) would require an
+    async session-store lookup that slowapi's synchronous key_func cannot
+    perform.  The practical risk is low: "bypassing" by creating a fresh
+    session requires a full GitHub OAuth re-auth, and the auth endpoint
+    itself is independently rate-limited by IP.
     """
     session_id = request.cookies.get(SESSION_COOKIE_NAME)
     if session_id:
