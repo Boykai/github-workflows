@@ -18,7 +18,7 @@ interface UseChatReturn {
   pendingProposals: Map<string, AITaskProposal>;
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
-  sendMessage: (content: string, options?: { isCommand?: boolean }) => Promise<void>;
+  sendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[] }) => Promise<void>;
   retryMessage: (messageId: string) => Promise<void>;
   confirmProposal: (proposalId: string, edits?: ProposalConfirmRequest) => Promise<void>;
   confirmStatusChange: (proposalId: string) => Promise<void>;
@@ -165,7 +165,7 @@ export function useChat(): UseChatReturn {
   });
 
   const sendMessage = useCallback(
-    async (content: string, options?: { isCommand?: boolean }) => {
+    async (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[] }) => {
       // Evaluate command status fresh from the content parameter only —
       // no stored state or previous options are referenced.
       const isCmd = options?.isCommand || isCommand(content);
@@ -237,7 +237,11 @@ export function useChat(): UseChatReturn {
       setLocalMessages((prev) => [...prev, optimisticMsg]);
 
       try {
-        await sendMutation.mutateAsync({ content });
+        await sendMutation.mutateAsync({
+          content,
+          ai_enhance: options?.aiEnhance ?? true,
+          file_urls: options?.fileUrls ?? [],
+        });
         // On success, remove the optimistic message — server data will
         // replace it after invalidateQueries fires in the mutation's onSuccess.
         setLocalMessages((prev) => prev.filter((m) => m.message_id !== tempId));

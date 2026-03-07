@@ -96,22 +96,22 @@ describe('CommandRegistry', () => {
 });
 
 describe('parseCommand', () => {
-  it('parses #help as command with name "help" and no args', () => {
-    const result = parseCommand('#help');
+  it('parses /help as command with name "help" and no args', () => {
+    const result = parseCommand('/help');
     expect(result.isCommand).toBe(true);
     expect(result.name).toBe('help');
     expect(result.args).toBe('');
   });
 
-  it('parses #theme dark as command with name "theme" and args "dark"', () => {
-    const result = parseCommand('#theme dark');
+  it('parses /theme dark as command with name "theme" and args "dark"', () => {
+    const result = parseCommand('/theme dark');
     expect(result.isCommand).toBe(true);
     expect(result.name).toBe('theme');
     expect(result.args).toBe('dark');
   });
 
-  it('handles bare # as incomplete command', () => {
-    const result = parseCommand('#');
+  it('handles bare / as incomplete command', () => {
+    const result = parseCommand('/');
     expect(result.isCommand).toBe(true);
     expect(result.name).toBeNull();
   });
@@ -123,38 +123,68 @@ describe('parseCommand', () => {
     expect(parseCommand('Help').name).toBe('help');
   });
 
-  it('treats non-# non-help input as non-command', () => {
+  it('treats non-/ non-help input as non-command', () => {
     const result = parseCommand('hello world');
     expect(result.isCommand).toBe(false);
     expect(result.name).toBeNull();
   });
 
   it('is case-insensitive for command names', () => {
-    expect(parseCommand('#THEME dark').name).toBe('theme');
-    expect(parseCommand('#Theme Dark').name).toBe('theme');
-    expect(parseCommand('#Theme Dark').args).toBe('Dark');
+    expect(parseCommand('/THEME dark').name).toBe('theme');
+    expect(parseCommand('/Theme Dark').name).toBe('theme');
+    expect(parseCommand('/Theme Dark').args).toBe('Dark');
   });
 
   it('normalizes whitespace in arguments', () => {
-    const result = parseCommand('#theme   dark');
+    const result = parseCommand('/theme   dark');
     expect(result.args).toBe('dark');
   });
 
   it('trims leading/trailing whitespace', () => {
-    const result = parseCommand('  #help  ');
+    const result = parseCommand('  /help  ');
     expect(result.isCommand).toBe(true);
     expect(result.name).toBe('help');
   });
 
   it('preserves raw input', () => {
-    const input = '  #theme   dark  ';
+    const input = '  /theme   dark  ';
     const result = parseCommand(input);
     expect(result.raw).toBe(input);
   });
 
-  // Edge cases (US6)
-  it('# mid-sentence is NOT a command', () => {
-    const result = parseCommand('change #theme dark');
+  // Edge cases — Markdown characters are NOT commands
+  it('# (Markdown header) is NOT a command', () => {
+    const result = parseCommand('# Heading');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('## (Markdown header) is NOT a command', () => {
+    const result = parseCommand('## Sub-heading');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('* (Markdown bold/list) is NOT a command', () => {
+    const result = parseCommand('**bold text**');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('- (Markdown list) is NOT a command', () => {
+    const result = parseCommand('- list item');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('> (Markdown blockquote) is NOT a command', () => {
+    const result = parseCommand('> blockquote');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('` (Markdown code) is NOT a command', () => {
+    const result = parseCommand('`code`');
+    expect(result.isCommand).toBe(false);
+  });
+
+  it('/ mid-sentence is NOT a command', () => {
+    const result = parseCommand('change /theme dark');
     expect(result.isCommand).toBe(false);
   });
 
@@ -168,16 +198,16 @@ describe('parseCommand', () => {
     expect(result.isCommand).toBe(false);
   });
 
-  it('extra whitespace between # and command is handled', () => {
-    // '#  theme dark' — after '#', trim, first word is 'theme'
-    const result = parseCommand('#  theme dark');
+  it('extra whitespace between / and command is handled', () => {
+    // '/  theme dark' — after '/', trim, first word is 'theme'
+    const result = parseCommand('/  theme dark');
     expect(result.isCommand).toBe(true);
     expect(result.name).toBe('theme');
     expect(result.args).toBe('dark');
   });
 
-  it('mixed case #Theme Dark normalizes name but preserves args case', () => {
-    const result = parseCommand('#Theme Dark');
+  it('mixed case /Theme Dark normalizes name but preserves args case', () => {
+    const result = parseCommand('/Theme Dark');
     expect(result.name).toBe('theme');
     expect(result.args).toBe('Dark');
   });
@@ -195,7 +225,7 @@ describe('Single Source of Truth (US5)', () => {
     registerCommand({
       name: '_test_ssot',
       description: 'Test SSOT command',
-      syntax: '#_test_ssot',
+      syntax: '/_test_ssot',
       handler: () => ({ success: true, message: 'ok', clearInput: true }),
     });
     const after = getAllCommands().length;

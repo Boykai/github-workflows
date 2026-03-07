@@ -133,7 +133,7 @@ describe('useChat', () => {
     });
 
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Test message' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Test message', ai_enhance: true, file_urls: [] });
   });
 
   it('should remove a pending proposal after confirmProposal succeeds', async () => {
@@ -279,7 +279,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('#help');
+      await result.current.sendMessage('/help');
     });
 
     // The command should NOT reach the backend
@@ -303,7 +303,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('#help', { isCommand: true });
+      await result.current.sendMessage('/help', { isCommand: true });
     });
 
     expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
@@ -322,17 +322,17 @@ describe('useChat', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Send a bare '#' which doesn't map to any command but IS a command input —
+    // Send a bare '/' which doesn't map to any command but IS a command input —
     // the registry returns a failure result for unknown commands.
     await act(async () => {
-      await result.current.sendMessage('#');
+      await result.current.sendMessage('/');
     });
 
     expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
     const systemMsg = result.current.messages.find((m) => m.sender_type === 'system');
     expect(systemMsg).toBeDefined();
     // The message should indicate help is available
-    expect(systemMsg!.content).toContain('#help');
+    expect(systemMsg!.content).toContain('/help');
   });
 
   it('should NOT intercept regular chat messages as commands', async () => {
@@ -360,7 +360,7 @@ describe('useChat', () => {
     // Regular message should reach the backend (React Query's mutateAsync
     // passes additional internal args, so verify just the first argument).
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello world' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello world', ai_enhance: true, file_urls: [] });
   });
 
   // ── Passthrough command tests ────────────────────────────────────────────
@@ -386,12 +386,12 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('#agent Build a code reviewer');
+      await result.current.sendMessage('/agent Build a code reviewer');
     });
 
     // Passthrough command SHOULD reach the backend
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '#agent Build a code reviewer' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '/agent Build a code reviewer' });
   });
 
   it('should forward #agent via isCommand option to backend (passthrough)', async () => {
@@ -413,11 +413,11 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('#agent Create a tester', { isCommand: true });
+      await result.current.sendMessage('/agent Create a tester', { isCommand: true });
     });
 
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '#agent Create a tester' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '/agent Create a tester' });
     // Should NOT produce local system messages
     const systemMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
     expect(systemMsgs).toHaveLength(0);
@@ -445,7 +445,7 @@ describe('useChat', () => {
 
     // Step 1: Send #help command
     await act(async () => {
-      await result.current.sendMessage('#help');
+      await result.current.sendMessage('/help');
     });
 
     expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
@@ -457,7 +457,7 @@ describe('useChat', () => {
 
     // The normal message should reach the backend with NO command references
     expect(mockChatApi.sendMessage).toHaveBeenCalledTimes(1);
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello after help' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: 'Hello after help', ai_enhance: true, file_urls: [] });
   });
 
   it('should dispatch multiple different commands independently without cross-contamination', async () => {
@@ -471,18 +471,18 @@ describe('useChat', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Send #help
+    // Send /help
     await act(async () => {
-      await result.current.sendMessage('#help');
+      await result.current.sendMessage('/help');
     });
 
     const helpMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
     expect(helpMsgs).toHaveLength(1);
     expect(helpMsgs[0].content).toContain('Available Commands');
 
-    // Send #status (unknown command — should produce error/help text)
+    // Send /status (unknown command — should produce error/help text)
     await act(async () => {
-      await result.current.sendMessage('#status');
+      await result.current.sendMessage('/status');
     });
 
     const allSystemMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
@@ -504,7 +504,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('#help');
+      await result.current.sendMessage('/help');
     });
 
     // localMessages should only contain the user message + system response
@@ -512,7 +512,7 @@ describe('useChat', () => {
     const userMsgs = msgs.filter((m) => m.sender_type === 'user');
     const systemMsgs = msgs.filter((m) => m.sender_type === 'system');
     expect(userMsgs).toHaveLength(1);
-    expect(userMsgs[0].content).toBe('#help');
+    expect(userMsgs[0].content).toBe('/help');
     expect(systemMsgs).toHaveLength(1);
     // No pending/failed messages should exist
     const pendingOrFailed = msgs.filter((m) => m.status === 'pending' || m.status === 'failed');

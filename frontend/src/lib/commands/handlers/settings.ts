@@ -1,10 +1,10 @@
 /**
- * Handlers for settings commands (#theme, #language, #notifications, #view).
+ * Handlers for settings commands (/theme, /language, /notifications, /view).
  */
 
 import type { CommandResult, CommandContext } from '../types';
 
-// ── #theme ──────────────────────────────────────────────────────────────────
+// ── /theme ──────────────────────────────────────────────────────────────────
 
 const VALID_THEMES = ['light', 'dark', 'system'] as const;
 
@@ -14,7 +14,7 @@ export function themeHandler(args: string, context: CommandContext): CommandResu
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #theme. Usage: #theme <light|dark|system>',
+      message: 'Missing value for /theme. Usage: /theme <light|dark|system>',
       clearInput: false,
     };
   }
@@ -37,7 +37,7 @@ export function themeHandler(args: string, context: CommandContext): CommandResu
   };
 }
 
-// ── #language ───────────────────────────────────────────────────────────────
+// ── /language ───────────────────────────────────────────────────────────────
 
 const VALID_LANGUAGES = ['en', 'es', 'fr', 'de', 'ja', 'zh'] as const;
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -55,7 +55,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #language. Usage: #language <en|es|fr|de|ja|zh>',
+      message: 'Missing value for /language. Usage: /language <en|es|fr|de|ja|zh>',
       clearInput: false,
     };
   }
@@ -80,7 +80,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
   };
 }
 
-// ── #notifications ──────────────────────────────────────────────────────────
+// ── /notifications ──────────────────────────────────────────────────────────
 
 const VALID_NOTIFICATION_VALUES = ['on', 'off'] as const;
 
@@ -90,7 +90,7 @@ export async function notificationsHandler(args: string, context: CommandContext
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #notifications. Usage: #notifications <on|off>',
+      message: 'Missing value for /notifications. Usage: /notifications <on|off>',
       clearInput: false,
     };
   }
@@ -132,7 +132,7 @@ export async function notificationsHandler(args: string, context: CommandContext
   };
 }
 
-// ── #view ───────────────────────────────────────────────────────────────────
+// ── /view ───────────────────────────────────────────────────────────────────
 
 const VALID_VIEWS = ['chat', 'board', 'settings'] as const;
 
@@ -142,7 +142,7 @@ export async function viewHandler(args: string, context: CommandContext): Promis
   if (!value) {
     return {
       success: false,
-      message: 'Missing value for #view. Usage: #view <chat|board|settings>',
+      message: 'Missing value for /view. Usage: /view <chat|board|settings>',
       clearInput: false,
     };
   }

@@ -122,6 +122,69 @@ export interface ChatMessage {
 
 export interface ChatMessageRequest {
   content: string;
+  ai_enhance?: boolean;
+  file_urls?: string[];
+}
+
+// ============ Chat Enhancement Types ============
+
+/** State of a file pending upload or already uploaded */
+export interface FileAttachment {
+  id: string;
+  file: File;
+  filename: string;
+  fileSize: number;
+  contentType: string;
+  status: 'pending' | 'uploading' | 'uploaded' | 'error';
+  progress: number;
+  fileUrl: string | null;
+  error: string | null;
+}
+
+/** Voice input recording state */
+export interface VoiceInputState {
+  isSupported: boolean;
+  isRecording: boolean;
+  isProcessing: boolean;
+  interimTranscript: string;
+  finalTranscript: string;
+  error: string | null;
+}
+
+/** AI Enhance toggle state */
+export interface ChatPreferences {
+  aiEnhance: boolean;
+}
+
+/** File upload validation constants */
+export const FILE_VALIDATION = {
+  maxFileSize: 10 * 1024 * 1024, // 10 MB
+  maxFilesPerMessage: 5,
+  allowedImageTypes: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
+  allowedDocTypes: ['.pdf', '.txt', '.md', '.csv', '.json', '.yaml', '.yml'],
+  allowedArchiveTypes: ['.zip'],
+  blockedTypes: ['.exe', '.sh', '.bat', '.cmd', '.js', '.py', '.rb'],
+} as const;
+
+export const ALLOWED_TYPES = [
+  ...FILE_VALIDATION.allowedImageTypes,
+  ...FILE_VALIDATION.allowedDocTypes,
+  ...FILE_VALIDATION.allowedArchiveTypes,
+];
+
+/** File upload response from backend */
+export interface FileUploadResponse {
+  filename: string;
+  file_url: string;
+  file_size: number;
+  content_type: string;
+}
+
+/** File upload error response from backend */
+export interface FileUploadError {
+  filename: string;
+  error: string;
+  error_code: string;
 }
 
 export interface ChatMessagesResponse {

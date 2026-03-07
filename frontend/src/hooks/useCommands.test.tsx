@@ -40,10 +40,10 @@ function createWrapper() {
 
 describe('useCommands', () => {
   describe('isCommand', () => {
-    it('identifies # commands', () => {
+    it('identifies / commands', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      expect(result.current.isCommand('#help')).toBe(true);
-      expect(result.current.isCommand('#theme dark')).toBe(true);
+      expect(result.current.isCommand('/help')).toBe(true);
+      expect(result.current.isCommand('/theme dark')).toBe(true);
     });
 
     it('identifies help keyword as command', () => {
@@ -57,20 +57,28 @@ describe('useCommands', () => {
       expect(result.current.isCommand('hello world')).toBe(false);
       expect(result.current.isCommand('create a task')).toBe(false);
     });
+
+    it('does not treat Markdown characters as commands', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      expect(result.current.isCommand('# Heading')).toBe(false);
+      expect(result.current.isCommand('**bold**')).toBe(false);
+      expect(result.current.isCommand('- list item')).toBe(false);
+      expect(result.current.isCommand('> blockquote')).toBe(false);
+    });
   });
 
   describe('parseInput', () => {
-    it('returns correct ParsedCommand for #help', () => {
+    it('returns correct ParsedCommand for /help', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const parsed = result.current.parseInput('#help');
+      const parsed = result.current.parseInput('/help');
       expect(parsed.isCommand).toBe(true);
       expect(parsed.name).toBe('help');
       expect(parsed.args).toBe('');
     });
 
-    it('returns correct ParsedCommand for #theme dark', () => {
+    it('returns correct ParsedCommand for /theme dark', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const parsed = result.current.parseInput('#theme dark');
+      const parsed = result.current.parseInput('/theme dark');
       expect(parsed.isCommand).toBe(true);
       expect(parsed.name).toBe('theme');
       expect(parsed.args).toBe('dark');
@@ -78,9 +86,9 @@ describe('useCommands', () => {
   });
 
   describe('executeCommand', () => {
-    it('for #help returns formatted help output', () => {
+    it('for /help returns formatted help output', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const cmdResult = result.current.executeCommand('#help');
+      const cmdResult = result.current.executeCommand('/help');
       // executeCommand may return a Promise, so handle both cases
       if (cmdResult instanceof Promise) {
         return cmdResult.then((r) => {
@@ -94,7 +102,7 @@ describe('useCommands', () => {
 
     it('for unknown command returns error', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const cmdResult = result.current.executeCommand('#foobar');
+      const cmdResult = result.current.executeCommand('/foobar');
       if (cmdResult instanceof Promise) {
         return cmdResult.then((r) => {
           expect(r.success).toBe(false);
@@ -105,9 +113,9 @@ describe('useCommands', () => {
       expect(cmdResult.message).toContain('Unknown command');
     });
 
-    it('for passthrough command #agent returns passthrough flag', () => {
+    it('for passthrough command /agent returns passthrough flag', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const cmdResult = result.current.executeCommand('#agent Build a reviewer');
+      const cmdResult = result.current.executeCommand('/agent Build a reviewer');
       if (cmdResult instanceof Promise) {
         return cmdResult.then((r) => {
           expect(r.success).toBe(true);
@@ -118,17 +126,17 @@ describe('useCommands', () => {
       expect(cmdResult.passthrough).toBe(true);
     });
 
-    it('for bare # returns helpful message', () => {
+    it('for bare / returns helpful message', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
-      const cmdResult = result.current.executeCommand('#');
+      const cmdResult = result.current.executeCommand('/');
       if (cmdResult instanceof Promise) {
         return cmdResult.then((r) => {
           expect(r.success).toBe(false);
-          expect(r.message).toContain('#help');
+          expect(r.message).toContain('/help');
         });
       }
       expect(cmdResult.success).toBe(false);
-      expect(cmdResult.message).toContain('#help');
+      expect(cmdResult.message).toContain('/help');
     });
   });
 

@@ -63,6 +63,7 @@ import type {
   McpToolSyncResult,
   ToolChip,
   ToolDeleteResult,
+  FileUploadResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -316,6 +317,28 @@ export const chatApi = {
     return request<void>(`/chat/proposals/${proposalId}`, {
       method: 'DELETE',
     });
+  },
+
+  /**
+   * Upload a file for attachment to a future GitHub Issue.
+   */
+  async uploadFile(file: File): Promise<FileUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/chat/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new ApiError(response.status, { error: errorData.error || 'Upload failed' });
+    }
+
+    return response.json();
   },
 };
 
