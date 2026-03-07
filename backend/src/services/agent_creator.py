@@ -316,7 +316,9 @@ async def _handle_existing_session(
     if step == CreationStep.DONE:
         # Session is over — clean up and start fresh if it looks like a new command
         clear_session(session_key)
-        if message.strip().lower().startswith("/agent") or message.strip().lower().startswith("#agent"):
+        if message.strip().lower().startswith("/agent") or message.strip().lower().startswith(
+            "#agent"
+        ):
             return await handle_agent_command(
                 message=message,
                 session_key=session_key,
