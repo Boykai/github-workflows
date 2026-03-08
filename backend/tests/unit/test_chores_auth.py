@@ -59,9 +59,7 @@ class TestChoresEndpointAuthorization:
 
     def test_inline_update_has_project_access_check(self):
         """Regression: PUT /{project_id}/{chore_id}/inline-update was missing verify_project_access."""
-        assert self._has_verify_project_access(
-            "PUT", "/{project_id}/{chore_id}/inline-update"
-        )
+        assert self._has_verify_project_access("PUT", "/{project_id}/{chore_id}/inline-update")
 
     def test_create_with_merge_has_project_access_check(self):
         """Regression: POST /{project_id}/create-with-merge was missing verify_project_access."""
