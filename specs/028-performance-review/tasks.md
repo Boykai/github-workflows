@@ -25,8 +25,8 @@
 
 **Purpose**: Confirm current backend and frontend implementation state against Spec 022 acceptance criteria before making any changes. Prevents redoing completed work and identifies remaining gaps (FR-002).
 
-- [ ] T001 Audit Spec 022 backend implementation by reviewing backend/src/api/projects.py (WebSocket SHA256 hash-based change detection on 30-second cycle), backend/src/api/board.py (board cache TTL=300s, sub-issue cache clear on manual refresh), backend/src/services/cache.py (TTL constants, BoundedDict), backend/src/services/copilot_polling/polling_loop.py (adaptive backoff 60→120→240→300s cap, rate-limit pre-checks, sub-issue filtering), and backend/src/services/github_projects/service.py (sub-issue cache TTL=600s, per-issue cache lookup). Document confirmed items and remaining gaps per research.md findings.
-- [ ] T002 [P] Audit frontend refresh paths by reviewing frontend/src/hooks/useRealTimeSync.ts (WebSocket task-only invalidation targeting `['projects', projectId, 'tasks']`, reconnection 2-second debounce, exponential backoff 1s→30s cap, fallback polling scope), frontend/src/hooks/useBoardRefresh.ts (5-minute auto-refresh timer, manual refresh flow, timer reset on any update source), and frontend/src/hooks/useProjectBoard.ts (board query staleTime, invalidation configuration). Verify current behavior matches refresh-contract.md and identify any divergences.
+- [x] T001 Audit Spec 022 backend implementation by reviewing backend/src/api/projects.py (WebSocket SHA256 hash-based change detection on 30-second cycle), backend/src/api/board.py (board cache TTL=300s, sub-issue cache clear on manual refresh), backend/src/services/cache.py (TTL constants, BoundedDict), backend/src/services/copilot_polling/polling_loop.py (adaptive backoff 60→120→240→300s cap, rate-limit pre-checks, sub-issue filtering), and backend/src/services/github_projects/service.py (sub-issue cache TTL=600s, per-issue cache lookup). Document confirmed items and remaining gaps per research.md findings.
+- [x] T002 [P] Audit frontend refresh paths by reviewing frontend/src/hooks/useRealTimeSync.ts (WebSocket task-only invalidation targeting `['projects', projectId, 'tasks']`, reconnection 2-second debounce, exponential backoff 1s→30s cap, fallback polling scope), frontend/src/hooks/useBoardRefresh.ts (5-minute auto-refresh timer, manual refresh flow, timer reset on any update source), and frontend/src/hooks/useProjectBoard.ts (board query staleTime, invalidation configuration). Verify current behavior matches refresh-contract.md and identify any divergences.
 
 ---
 
@@ -36,8 +36,8 @@
 
 **⚠️ CRITICAL**: No optimization code changes can begin until this phase is complete
 
-- [ ] T003 Capture backend baseline measurements following specs/028-performance-review/quickstart.md: idle API call count over 5 minutes (Measurement 1), per-refresh API call count with warm and cold sub-issue cache (Measurement 2). Record results in the Post-Optimization Comparison Template in quickstart.md.
-- [ ] T004 [P] Capture frontend baseline measurements following specs/028-performance-review/quickstart.md: component render count for a single-card status change on a 100-card board (Measurement 3), chat popup drag frame rate (Measurement 4), and fallback polling network activity for board data requests (Measurement 5). Record results in the Post-Optimization Comparison Template in quickstart.md.
+- [x] T003 Capture backend baseline measurements following specs/028-performance-review/quickstart.md: idle API call count over 5 minutes (Measurement 1), per-refresh API call count with warm and cold sub-issue cache (Measurement 2). Record results in the Post-Optimization Comparison Template in quickstart.md.
+- [x] T004 [P] Capture frontend baseline measurements following specs/028-performance-review/quickstart.md: component render count for a single-card status change on a 100-card board (Measurement 3), chat popup drag frame rate (Measurement 4), and fallback polling network activity for board data requests (Measurement 5). Record results in the Post-Optimization Comparison Template in quickstart.md.
 
 **Checkpoint**: Baselines recorded — optimization implementation can now begin
 
@@ -51,9 +51,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Verify and tighten WebSocket subscription refresh logic in backend/src/api/projects.py to confirm no refresh message is sent when the SHA256 hash of task data is unchanged. Ensure `last_sent_hash` comparison gates all outbound refresh messages on each 30-second cycle. Address any remaining gap identified in Phase 1 audit.
-- [ ] T006 [P] [US2] Verify polling loop in backend/src/services/copilot_polling/polling_loop.py does not trigger downstream board endpoint calls when polled data is unchanged. Confirm adaptive backoff (60→120→240→300s cap) is respected during idle cycles, rate-limit pre-checks (RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD, RATE_LIMIT_SLOW_THRESHOLD) prevent unnecessary API calls, and sub-issues are filtered out upfront.
-- [ ] T007 [P] [US2] Add regression tests for idle WebSocket and polling behavior in backend/tests/unit/test_copilot_polling.py: verify no-change hash comparison suppresses refresh messages, verify adaptive backoff increases interval under idle conditions, verify rate-limit pre-checks gate expensive operations.
+- [x] T005 [US2] Verify and tighten WebSocket subscription refresh logic in backend/src/api/projects.py to confirm no refresh message is sent when the SHA256 hash of task data is unchanged. Ensure `last_sent_hash` comparison gates all outbound refresh messages on each 30-second cycle. Address any remaining gap identified in Phase 1 audit.
+- [x] T006 [P] [US2] Verify polling loop in backend/src/services/copilot_polling/polling_loop.py does not trigger downstream board endpoint calls when polled data is unchanged. Confirm adaptive backoff (60→120→240→300s cap) is respected during idle cycles, rate-limit pre-checks (RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD, RATE_LIMIT_SLOW_THRESHOLD) prevent unnecessary API calls, and sub-issues are filtered out upfront.
+- [x] T007 [P] [US2] Add regression tests for idle WebSocket and polling behavior in backend/tests/unit/test_copilot_polling.py: verify no-change hash comparison suppresses refresh messages, verify adaptive backoff increases interval under idle conditions, verify rate-limit pre-checks gate expensive operations.
 
 **Checkpoint**: Idle board API consumption meets ≤2 calls/5 min target
 
@@ -67,13 +67,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T008 [US3] Verify and enforce WebSocket task update decoupling in frontend/src/hooks/useRealTimeSync.ts: on receiving a `refresh` type message, confirm only `['projects', projectId, 'tasks']` is invalidated and `['board', 'data', projectId]` is NOT invalidated. Fix if any board data invalidation path exists.
-- [ ] T009 [US3] Verify reconnection debounce guard in frontend/src/hooks/useRealTimeSync.ts: on WebSocket reconnection (`initial_data` message), confirm debounce limits invalidation to at most once per 2-second reconnection cycle and targets only the tasks query. Fix if reconnection cascades board invalidation.
-- [ ] T010 [US3] Verify fallback polling path in frontend/src/hooks/useRealTimeSync.ts only invalidates `['projects', projectId, 'tasks']` and does NOT invalidate board data. Confirm auto-refresh timer reset is called on polling updates (same as WebSocket updates) per refresh-contract.md.
-- [ ] T011 [US3] Implement or verify manual refresh priority in frontend/src/hooks/useBoardRefresh.ts: call `queryClient.cancelQueries({ queryKey: ['board', 'data', projectId] })` before initiating manual fetch with `refresh=true`. Ensure auto-refresh timer resets after manual refresh completes per refresh-contract.md §5.
-- [ ] T012 [US3] Verify auto-refresh timer resets on any data update source (WebSocket, polling, manual) to maintain a consistent 5-minute window from the last update in frontend/src/hooks/useBoardRefresh.ts. Confirm timer pauses when tab is hidden and resumes with freshness check per data-model.md §6.
-- [ ] T013 [P] [US3] Extend WebSocket and polling invalidation tests in frontend/src/hooks/useRealTimeSync.test.tsx: verify task-only invalidation on `refresh` messages, verify no board data invalidation, verify reconnection debounce limits invalidation to once per 2-second cycle, verify fallback polling targets only tasks query.
-- [ ] T014 [P] [US3] Extend manual refresh and timer tests in frontend/src/hooks/useBoardRefresh.test.tsx: verify `cancelQueries` is called before manual fetch, verify timer resets on all update sources (WebSocket, polling, manual), verify manual refresh takes priority over in-progress auto-refresh.
+- [x] T008 [US3] Verify and enforce WebSocket task update decoupling in frontend/src/hooks/useRealTimeSync.ts: on receiving a `refresh` type message, confirm only `['projects', projectId, 'tasks']` is invalidated and `['board', 'data', projectId]` is NOT invalidated. Fix if any board data invalidation path exists.
+- [x] T009 [US3] Verify reconnection debounce guard in frontend/src/hooks/useRealTimeSync.ts: on WebSocket reconnection (`initial_data` message), confirm debounce limits invalidation to at most once per 2-second reconnection cycle and targets only the tasks query. Fix if reconnection cascades board invalidation.
+- [x] T010 [US3] Verify fallback polling path in frontend/src/hooks/useRealTimeSync.ts only invalidates `['projects', projectId, 'tasks']` and does NOT invalidate board data. Confirm auto-refresh timer reset is called on polling updates (same as WebSocket updates) per refresh-contract.md.
+- [x] T011 [US3] Implement or verify manual refresh priority in frontend/src/hooks/useBoardRefresh.ts: call `queryClient.cancelQueries({ queryKey: ['board', 'data', projectId] })` before initiating manual fetch with `refresh=true`. Ensure auto-refresh timer resets after manual refresh completes per refresh-contract.md §5.
+- [x] T012 [US3] Verify auto-refresh timer resets on any data update source (WebSocket, polling, manual) to maintain a consistent 5-minute window from the last update in frontend/src/hooks/useBoardRefresh.ts. Confirm timer pauses when tab is hidden and resumes with freshness check per data-model.md §6.
+- [x] T013 [P] [US3] Extend WebSocket and polling invalidation tests in frontend/src/hooks/useRealTimeSync.test.tsx: verify task-only invalidation on `refresh` messages, verify no board data invalidation, verify reconnection debounce limits invalidation to once per 2-second cycle, verify fallback polling targets only tasks query.
+- [x] T014 [P] [US3] Extend manual refresh and timer tests in frontend/src/hooks/useBoardRefresh.test.tsx: verify `cancelQueries` is called before manual fetch, verify timer resets on all update sources (WebSocket, polling, manual), verify manual refresh takes priority over in-progress auto-refresh.
 
 **Checkpoint**: Task updates are decoupled from board query; manual refresh has priority; reconnection is guarded; refresh policy is coherent across all sources
 
@@ -87,11 +87,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [P] [US4] Verify BoardColumn is already wrapped in React.memo() in frontend/src/components/board/BoardColumn.tsx (confirmed in research.md §4). No additional wrapping needed — focus shifts to stabilizing parent-supplied function props in T018.
-- [ ] T016 [P] [US4] Verify IssueCard is already wrapped in React.memo() in frontend/src/components/board/IssueCard.tsx (confirmed in research.md §4). No additional wrapping needed — focus shifts to stabilizing parent-supplied function props in T018.
-- [ ] T017 [US4] Verify `blockingIssueNumbers` and `assignedStageMap` are already memoized with useMemo in frontend/src/pages/ProjectsPage.tsx (confirmed in research.md §5). Confirm `getGroups` is also memoized. Identify any remaining inline derivations that warrant memoization — per research, `totalItems`, `projectsRateLimitError`, `boardRateLimitError`, and `pipelineGridStyle` are trivial and do NOT warrant useMemo.
-- [ ] T018 [US4] Stabilize event handler props with useCallback in frontend/src/pages/ProjectsPage.tsx: wrap `handleCardClick`, `handleCloseModal`, `handleProjectSwitch`, and any other callback props passed to BoardColumn or IssueCard components. Include appropriate dependency arrays. This makes the existing React.memo() on child components effective by ensuring referential equality of function props across renders.
-- [ ] T019 [US4] Review board query invalidation strategy in frontend/src/hooks/useProjectBoard.ts to confirm staleTime and invalidation behavior limit unnecessary refetches that would trigger full board re-renders. Verify query configuration aligns with cache-contract.md.
+- [x] T015 [P] [US4] Verify BoardColumn is already wrapped in React.memo() in frontend/src/components/board/BoardColumn.tsx (confirmed in research.md §4). No additional wrapping needed — focus shifts to stabilizing parent-supplied function props in T018.
+- [x] T016 [P] [US4] Verify IssueCard is already wrapped in React.memo() in frontend/src/components/board/IssueCard.tsx (confirmed in research.md §4). No additional wrapping needed — focus shifts to stabilizing parent-supplied function props in T018.
+- [x] T017 [US4] Verify `blockingIssueNumbers` and `assignedStageMap` are already memoized with useMemo in frontend/src/pages/ProjectsPage.tsx (confirmed in research.md §5). Confirm `getGroups` is also memoized. Identify any remaining inline derivations that warrant memoization — per research, `totalItems`, `projectsRateLimitError`, `boardRateLimitError`, and `pipelineGridStyle` are trivial and do NOT warrant useMemo.
+- [x] T018 [US4] Stabilize event handler props with useCallback in frontend/src/pages/ProjectsPage.tsx: wrap `handleCardClick`, `handleCloseModal`, `handleProjectSwitch`, and any other callback props passed to BoardColumn or IssueCard components. Include appropriate dependency arrays. This makes the existing React.memo() on child components effective by ensuring referential equality of function props across renders.
+- [x] T019 [US4] Review board query invalidation strategy in frontend/src/hooks/useProjectBoard.ts to confirm staleTime and invalidation behavior limit unnecessary refetches that would trigger full board re-renders. Verify query configuration aligns with cache-contract.md.
 
 **Checkpoint**: Single-card change re-renders ≤3 components; board interactions remain smooth; derived state is memoized
 
@@ -105,8 +105,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T020 [P] [US5] Verify ChatPopup drag listener already uses requestAnimationFrame (RAF) gating in frontend/src/components/chat/ChatPopup.tsx (confirmed in research.md §6 — `rafId` stored, position updates limited to once per animation frame). No further throttling changes needed.
-- [ ] T021 [P] [US5] Add requestAnimationFrame gating or debounce to scroll/resize position listeners in frontend/src/components/agents/AddAgentPopover.tsx. Wrap `updatePosition` in useCallback with appropriate dependencies and gate scroll/resize event handlers through RAF to prevent 100+ invocations per second during rapid scrolling per research.md §6.
+- [x] T020 [P] [US5] Verify ChatPopup drag listener already uses requestAnimationFrame (RAF) gating in frontend/src/components/chat/ChatPopup.tsx (confirmed in research.md §6 — `rafId` stored, position updates limited to once per animation frame). No further throttling changes needed.
+- [x] T021 [P] [US5] Add requestAnimationFrame gating or debounce to scroll/resize position listeners in frontend/src/components/agents/AddAgentPopover.tsx. Wrap `updatePosition` in useCallback with appropriate dependencies and gate scroll/resize event handlers through RAF to prevent 100+ invocations per second during rapid scrolling per research.md §6.
 
 **Checkpoint**: Drag and popover interactions are throttled and responsive
 
@@ -120,9 +120,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T022 [P] [US6] Extend cache TTL regression tests in backend/tests/unit/test_cache.py: verify board data cache TTL=300s, verify sub-issue cache TTL=600s, verify stale fallback serves expired data on upstream errors, verify cache.set stores data with correct TTL.
-- [ ] T023 [P] [US6] Extend board cache regression tests in backend/tests/unit/test_api_board.py: verify automatic refresh uses cached board data when TTL is valid (zero API calls), verify automatic refresh uses cached sub-issues (zero sub-issue API calls), verify manual refresh with `refresh=true` clears sub-issue cache and fetches fresh data.
-- [ ] T024 [P] [US6] Verify existing polling regression tests in backend/tests/unit/test_copilot_polling.py cover: polling-triggered refresh guard, adaptive backoff behavior, and rate-limit-aware skip logic. Extend coverage if gaps remain.
+- [x] T022 [P] [US6] Extend cache TTL regression tests in backend/tests/unit/test_cache.py: verify board data cache TTL=300s, verify sub-issue cache TTL=600s, verify stale fallback serves expired data on upstream errors, verify cache.set stores data with correct TTL.
+- [x] T023 [P] [US6] Extend board cache regression tests in backend/tests/unit/test_api_board.py: verify automatic refresh uses cached board data when TTL is valid (zero API calls), verify automatic refresh uses cached sub-issues (zero sub-issue API calls), verify manual refresh with `refresh=true` clears sub-issue cache and fetches fresh data.
+- [x] T024 [P] [US6] Verify existing polling regression tests in backend/tests/unit/test_copilot_polling.py cover: polling-triggered refresh guard, adaptive backoff behavior, and rate-limit-aware skip logic. Extend coverage if gaps remain.
 
 **Checkpoint**: All tests pass; post-optimization measurements validate improvements against baselines
 
@@ -132,11 +132,11 @@
 
 **Purpose**: Run full verification suites, capture post-optimization measurements, confirm zero regressions, and document before/after results.
 
-- [ ] T025 [P] Run backend verification suite per specs/028-performance-review/quickstart.md: `cd backend && ruff check src/`, `pyright src/`, `python -m pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --tb=short`
-- [ ] T026 [P] Run frontend verification suite per specs/028-performance-review/quickstart.md: `cd frontend && npx eslint src/`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`
-- [ ] T027 Run post-optimization measurements using the same baseline protocol from Phase 2 (specs/028-performance-review/quickstart.md). Complete the Post-Optimization Comparison Template with before/after values and improvement percentages for each metric.
-- [ ] T028 Perform manual end-to-end verification per specs/028-performance-review/quickstart.md §End-to-End Verification: confirm WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh bypasses caches, and board interactions remain responsive. Document pass/fail for each check.
-- [ ] T029 Validate zero test regressions: confirm all pre-existing backend and frontend tests pass after optimization changes. Document any test modifications and their justification.
+- [x] T025 [P] Run backend verification suite per specs/028-performance-review/quickstart.md: `cd backend && ruff check src/`, `pyright src/`, `python -m pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --tb=short`
+- [x] T026 [P] Run frontend verification suite per specs/028-performance-review/quickstart.md: `cd frontend && npx eslint src/`, `npx tsc --noEmit`, `npx vitest run`, `npm run build`
+- [x] T027 Run post-optimization measurements using the same baseline protocol from Phase 2 (specs/028-performance-review/quickstart.md). Complete the Post-Optimization Comparison Template with before/after values and improvement percentages for each metric.
+- [x] T028 Perform manual end-to-end verification per specs/028-performance-review/quickstart.md §End-to-End Verification: confirm WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh bypasses caches, and board interactions remain responsive. Document pass/fail for each check.
+- [x] T029 Validate zero test regressions: confirm all pre-existing backend and frontend tests pass after optimization changes. Document any test modifications and their justification.
 
 ---
 
