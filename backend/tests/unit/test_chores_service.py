@@ -617,3 +617,20 @@ class TestUpdateChoreFieldsColumnWhitelist:
         svc = ChoresService(mock_db)
         with pytest.raises(ValueError, match="Invalid update columns"):
             await svc.update_chore_fields("some-id", evil_column="DROP TABLE chores")
+
+    async def test_accepts_valid_columns_used_by_callers(self, mock_db):
+        """Columns actually passed by create_chore/inline_update must be accepted."""
+        from src.services.chores.service import ChoresService
+
+        svc = ChoresService(mock_db)
+        # These are the exact kwargs used by the API layer (chores.py create_chore)
+        # and by inline_update_chore in service.py. They must NOT be rejected.
+        await svc.update_chore_fields(
+            "some-id",
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            tracking_issue_number=7,
+        )
+        # Verify the SQL was called (not rejected by the whitelist)
+        mock_db.execute.assert_awaited()
+        mock_db.commit.assert_awaited()

@@ -16,24 +16,27 @@ logger = logging.getLogger(__name__)
 
 # Columns that may appear in dynamic UPDATE SET clauses.
 # Any column not in this set will be rejected to prevent SQL injection.
-_CHORE_UPDATABLE_COLUMNS = frozenset({
-    "name",
-    "template_path",
-    "template_content",
-    "status",
-    "schedule_type",
-    "schedule_value",
-    "last_triggered_at",
-    "last_triggered_count",
-    "current_pr_number",
-    "current_pr_url",
-    "current_issue_number",
-    "current_issue_node_id",
-    "execution_count",
-    "ai_enhance_enabled",
-    "agent_pipeline_id",
-    "updated_at",
-})
+_CHORE_UPDATABLE_COLUMNS = frozenset(
+    {
+        "name",
+        "template_path",
+        "template_content",
+        "status",
+        "schedule_type",
+        "schedule_value",
+        "last_triggered_at",
+        "last_triggered_count",
+        "pr_number",
+        "pr_url",
+        "tracking_issue_number",
+        "current_issue_number",
+        "current_issue_node_id",
+        "execution_count",
+        "ai_enhance_enabled",
+        "agent_pipeline_id",
+        "updated_at",
+    }
+)
 
 
 def _strip_front_matter(text: str) -> str:
