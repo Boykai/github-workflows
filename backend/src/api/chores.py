@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.exceptions import GitHubAPIError, NotFoundError, ValidationError
+from src.logging_utils import handle_service_error
 from src.models.chores import (
     Chore,
     ChoreChatMessage,
@@ -139,10 +141,7 @@ async def create_chore(
         logger.error(
             "Failed to resolve repository for project %s: %s", project_id, exc, exc_info=True
         )
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     # Commit template to repo via branch + PR + tracking issue
     try:
@@ -156,11 +155,7 @@ async def create_chore(
             template_content=template_content,
         )
     except RuntimeError as exc:
-        logger.error("Failed to commit template to repository: %s", exc, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to commit template to repository",
-        ) from exc
+        handle_service_error(exc, "commit template to repository", GitHubAPIError)
 
     # Create the chore record in the database
     try:
@@ -171,7 +166,7 @@ async def create_chore(
         )
     except ValueError as exc:
         logger.warning("Invalid chore creation request: %s", exc)
-        raise HTTPException(status_code=400, detail="Invalid chore configuration") from exc
+        raise ValidationError("Invalid chore configuration") from exc
 
     # Update chore with PR and tracking issue info
 
@@ -186,7 +181,7 @@ async def create_chore(
     # Re-fetch to include updated fields
     updated = await service.get_chore(chore.id)
     if updated is None:
-        raise HTTPException(status_code=500, detail="Failed to retrieve created chore")
+        raise GitHubAPIError("Failed to retrieve created chore")
     return updated
 
 
@@ -206,16 +201,16 @@ async def update_chore(
     # Verify the chore exists and belongs to this project
     existing = await service.get_chore(chore_id)
     if existing is None or existing.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Chore not found")
+        raise NotFoundError("Chore not found")
 
     try:
         updated = await service.update_chore(chore_id, body)
     except ValueError as exc:
         logger.warning("Invalid chore update request: %s", exc)
-        raise HTTPException(status_code=400, detail="Invalid chore configuration") from exc
+        raise ValidationError("Invalid chore configuration") from exc
 
     if updated is None:
-        raise HTTPException(status_code=404, detail="Chore not found after update")
+        raise NotFoundError("Chore not found after update")
     return updated
 
 
@@ -234,7 +229,7 @@ async def delete_chore(
     # Verify the chore exists and belongs to this project
     existing = await service.get_chore(chore_id)
     if existing is None or existing.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Chore not found")
+        raise NotFoundError("Chore not found")
 
     closed_issue_number = None
 
@@ -277,7 +272,7 @@ async def trigger_chore(
 
     chore = await service.get_chore(chore_id)
     if chore is None or chore.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Chore not found")
+        raise NotFoundError("Chore not found")
 
     owner, repo = await resolve_repository(session.access_token, project_id)
 
@@ -292,7 +287,7 @@ async def trigger_chore(
     )
 
     if not result.triggered:
-        raise HTTPException(status_code=409, detail=result.skip_reason)
+        raise ValidationError(result.skip_reason or "Chore trigger skipped")
 
     return result
 
@@ -317,8 +312,7 @@ async def chore_chat(
             ai_enhance=body.ai_enhance,
         )
     except Exception as exc:
-        logger.error("Chat completion failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Chat completion failed") from exc
+        handle_service_error(exc, "complete chat", GitHubAPIError)
 
     return ChoreChatResponse(
         message=response,
@@ -343,7 +337,7 @@ async def inline_update_chore(
 
     existing = await service.get_chore(chore_id)
     if existing is None or existing.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Chore not found")
+        raise NotFoundError("Chore not found")
 
     needs_pr = body.name is not None or body.template_content is not None
     owner = None
@@ -357,9 +351,8 @@ async def inline_update_chore(
                 project_id,
                 exc_info=True,
             )
-            raise HTTPException(
-                status_code=400,
-                detail="Could not resolve repository for project; inline update cannot create a pull request.",
+            raise ValidationError(
+                "Could not resolve repository for project; inline update cannot create a pull request."
             ) from exc
 
     try:
@@ -373,17 +366,16 @@ async def inline_update_chore(
             project_id=project_id,
         )
     except ChoreConflictError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "message": str(exc),
+        raise ValidationError(
+            str(exc),
+            details={
                 "current_sha": exc.current_sha,
                 "current_content": exc.current_content,
             },
         ) from exc
     except ValueError as exc:
         logger.warning("Invalid inline update: %s", exc)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
 
     return ChoreInlineUpdateResponse(
         chore=result["chore"],
@@ -410,10 +402,7 @@ async def create_chore_with_merge(
         logger.error(
             "Failed to resolve repository for project %s: %s", project_id, exc, exc_info=True
         )
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     try:
         result = await service.create_chore_with_auto_merge(
@@ -426,10 +415,9 @@ async def create_chore_with_merge(
         )
     except ValueError as exc:
         logger.warning("Invalid chore creation: %s", exc)
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.error("Chore creation failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to create chore") from exc
+        handle_service_error(exc, "create chore", GitHubAPIError)
 
     return ChoreCreateResponse(**result)
 
