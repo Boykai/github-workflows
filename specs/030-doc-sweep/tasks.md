@@ -17,9 +17,9 @@
 
 **Purpose**: Establish baseline by auditing existing `027-doc-sweep` artifacts against `030-doc-sweep` requirements (FR-001–FR-020)
 
-- [ ] T001 Run full gap analysis of existing documentation artifacts against FR-001–FR-020 requirements table in specs/030-doc-sweep/research.md
-- [ ] T002 [P] Verify all files referenced in specs/030-doc-sweep/plan.md Project Structure exist in the repository (docs/checklists/, docs/decisions/, docs/OWNERS.md, .github/pull_request_template.md, .markdownlint.json, .markdown-link-check.json)
-- [ ] T003 [P] Run `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` locally and capture any existing lint errors as baseline
+- [x] T001 Run full gap analysis of existing documentation artifacts against FR-001–FR-020 requirements table in specs/030-doc-sweep/research.md
+- [x] T002 [P] Verify all files referenced in specs/030-doc-sweep/plan.md Project Structure exist in the repository (docs/checklists/, docs/decisions/, docs/OWNERS.md, .github/pull_request_template.md, .markdownlint.json, .markdown-link-check.json)
+- [x] T003 [P] Run `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` locally and capture any existing lint errors as baseline
 
 ---
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No user story verification can begin until this phase confirms the foundational artifacts are in place
 
-- [ ] T004 Verify docs/ directory contains all 10 documentation files listed in data-model.md Current Instances table (docs/setup.md, docs/configuration.md, docs/api-reference.md, docs/architecture.md, docs/agent-pipeline.md, docs/custom-agents-best-practices.md, docs/signal-integration.md, docs/testing.md, docs/troubleshooting.md, docs/project-structure.md)
-- [ ] T005 [P] Verify docs/checklists/ directory contains all 3 checklist files (weekly-sweep.md, monthly-review.md, quarterly-audit.md)
-- [ ] T006 [P] Verify docs/decisions/ directory contains README.md with ADR template and existing ADRs (001–006)
-- [ ] T007 [P] Verify frontend/docs/findings-log.md exists as listed in data-model.md
+- [x] T004 Verify docs/ directory contains all 10 documentation files listed in data-model.md Current Instances table (docs/setup.md, docs/configuration.md, docs/api-reference.md, docs/architecture.md, docs/agent-pipeline.md, docs/custom-agents-best-practices.md, docs/signal-integration.md, docs/testing.md, docs/troubleshooting.md, docs/project-structure.md)
+- [x] T005 [P] Verify docs/checklists/ directory contains all 3 checklist files (weekly-sweep.md, monthly-review.md, quarterly-audit.md)
+- [x] T006 [P] Verify docs/decisions/ directory contains README.md with ADR template and existing ADRs (001–006)
+- [x] T007 [P] Verify frontend/docs/findings-log.md exists as listed in data-model.md
 
 **Checkpoint**: All foundational documentation artifacts confirmed present — user story verification can begin
 
@@ -46,10 +46,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Verify .github/pull_request_template.md contains all 6 documentation checklist items per contracts/pr-template.md: endpoint docs, config docs, setup docs, agent pipeline docs, schema/data model docs, and doc update confirmation
-- [ ] T009 [US1] Verify .github/pull_request_template.md includes rationale field matching format from contracts/pr-template.md: `**Doc files updated**: <!-- List files or write "None — no doc changes needed" with rationale -->`
-- [ ] T010 [US1] If any checklist items are missing or the rationale field format differs from the contract, update .github/pull_request_template.md to match the contract specification exactly
-- [ ] T011 [US1] Verify the PR template Documentation section is positioned after Type of Change and before Testing sections per contracts/pr-template.md Required Sections order
+- [x] T008 [US1] Verify .github/pull_request_template.md contains all 6 documentation checklist items per contracts/pr-template.md: endpoint docs, config docs, setup docs, agent pipeline docs, schema/data model docs, and doc update confirmation
+- [x] T009 [US1] Verify .github/pull_request_template.md includes rationale field matching format from contracts/pr-template.md: `**Doc files updated**: <!-- List files or write "None — no doc changes needed" with rationale -->`
+- [x] T010 [US1] If any checklist items are missing or the rationale field format differs from the contract, update .github/pull_request_template.md to match the contract specification exactly
+- [x] T011 [US1] Verify the PR template Documentation section is positioned after Type of Change and before Testing sections per contracts/pr-template.md Required Sections order
 
 **Checkpoint**: PR template is fully compliant with FR-001 and FR-002. Any PR opened will auto-populate with the documentation checklist.
 
@@ -63,11 +63,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Verify docs/checklists/weekly-sweep.md contains API Reference Validation section with items: scan backend/src/api/ against docs/api-reference.md, confirm path prefixes/methods/params accuracy, flag removed/deprecated endpoints (FR-004 per contracts/checklists.md)
-- [ ] T013 [US2] Verify docs/checklists/weekly-sweep.md contains Configuration Documentation Validation section with items: compare env vars against backend/src/config.py, confirm default values and required/optional status (FR-005 per contracts/checklists.md)
-- [ ] T014 [US2] Verify docs/checklists/weekly-sweep.md contains Setup Guide Validation section with items: confirm Docker Compose steps match project state, confirm prerequisite versions match pyproject.toml and package.json, confirm Codespaces badge works (FR-006 per contracts/checklists.md)
-- [ ] T015 [US2] If any required checklist items are missing from docs/checklists/weekly-sweep.md, add them following the exact wording from contracts/checklists.md Weekly Sweep Checklist section
-- [ ] T016 [US2] Verify docs/checklists/weekly-sweep.md uses GitHub-flavored markdown checkbox syntax (`- [ ]`) for all actionable items
+- [x] T012 [US2] Verify docs/checklists/weekly-sweep.md contains API Reference Validation section with items: scan backend/src/api/ against docs/api-reference.md, confirm path prefixes/methods/params accuracy, flag removed/deprecated endpoints (FR-004 per contracts/checklists.md)
+- [x] T013 [US2] Verify docs/checklists/weekly-sweep.md contains Configuration Documentation Validation section with items: compare env vars against backend/src/config.py, confirm default values and required/optional status (FR-005 per contracts/checklists.md)
+- [x] T014 [US2] Verify docs/checklists/weekly-sweep.md contains Setup Guide Validation section with items: confirm Docker Compose steps match project state, confirm prerequisite versions match pyproject.toml and package.json, confirm Codespaces badge works (FR-006 per contracts/checklists.md)
+- [x] T015 [US2] If any required checklist items are missing from docs/checklists/weekly-sweep.md, add them following the exact wording from contracts/checklists.md Weekly Sweep Checklist section
+- [x] T016 [US2] Verify docs/checklists/weekly-sweep.md uses GitHub-flavored markdown checkbox syntax (`- [ ]`) for all actionable items
 
 **Checkpoint**: Weekly sweep checklist is fully compliant with FR-003–FR-006. A developer on rotation can complete it in ~30 minutes with clear, specific instructions.
 
@@ -81,12 +81,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Verify docs/checklists/monthly-review.md contains Coverage Audit section with accuracy, completeness, and consistency checklist items for every docs/ file (FR-007 per contracts/checklists.md)
-- [ ] T018 [P] [US3] Verify docs/checklists/monthly-review.md contains file-by-file verification table listing each doc file, its ownership, and key things to verify (matching docs/OWNERS.md entries per contracts/checklists.md)
-- [ ] T019 [US3] Verify docs/checklists/monthly-review.md contains Cross-Reference Check section with items: internal link validation (FR-008), code snippet correctness (FR-009), README.md links, external link validity (per contracts/checklists.md)
-- [ ] T020 [US3] Verify docs/checklists/monthly-review.md contains Readability & Usability section with items: purpose statements, numbered lists for steps, config table format, API table format, and troubleshooting Symptom → Cause → Fix format (FR-010, FR-020 per contracts/checklists.md)
-- [ ] T021 [US3] If any required sections or items are missing from docs/checklists/monthly-review.md, add them following the exact structure from contracts/checklists.md Monthly Review Checklist section
-- [ ] T022 [US3] Verify docs/troubleshooting.md entries follow the Symptom → Cause → Fix format (FR-020); if any entries deviate, restructure them to match
+- [x] T017 [US3] Verify docs/checklists/monthly-review.md contains Coverage Audit section with accuracy, completeness, and consistency checklist items for every docs/ file (FR-007 per contracts/checklists.md)
+- [x] T018 [P] [US3] Verify docs/checklists/monthly-review.md contains file-by-file verification table listing each doc file, its ownership, and key things to verify (matching docs/OWNERS.md entries per contracts/checklists.md)
+- [x] T019 [US3] Verify docs/checklists/monthly-review.md contains Cross-Reference Check section with items: internal link validation (FR-008), code snippet correctness (FR-009), README.md links, external link validity (per contracts/checklists.md)
+- [x] T020 [US3] Verify docs/checklists/monthly-review.md contains Readability & Usability section with items: purpose statements, numbered lists for steps, config table format, API table format, and troubleshooting Symptom → Cause → Fix format (FR-010, FR-020 per contracts/checklists.md)
+- [x] T021 [US3] If any required sections or items are missing from docs/checklists/monthly-review.md, add them following the exact structure from contracts/checklists.md Monthly Review Checklist section
+- [x] T022 [US3] Verify docs/troubleshooting.md entries follow the Symptom → Cause → Fix format (FR-020); if any entries deviate, restructure them to match
 
 **Checkpoint**: Monthly review checklist is fully compliant with FR-007–FR-010 and FR-020. Tech lead can conduct a 2–3 hour review with clear, actionable items covering every docs/ file.
 
@@ -100,12 +100,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Verify docs/checklists/quarterly-audit.md contains Architecture Document Verification section with items: Docker Compose topology match, backend service module coverage, data flow accuracy, AI provider list currency (FR-011 per contracts/checklists.md)
-- [ ] T024 [US4] Verify docs/checklists/quarterly-audit.md contains Decision Records section with items: ADR completeness for quarter, ADR format follows Context → Decision → Consequences, ADR index in docs/decisions/README.md is current (FR-012 per contracts/checklists.md)
-- [ ] T025 [US4] Verify docs/checklists/quarterly-audit.md contains Developer Experience Audit section with items: fresh setup walkthrough, end-to-end setup timing, troubleshooting doc update for friction points (FR-013 per contracts/checklists.md)
-- [ ] T026 [US4] Verify docs/checklists/quarterly-audit.md contains Docs Gaps Analysis section with items: feature-to-doc coverage for quarter, unreferenced docs identification, CHANGELOG.md assessment (per contracts/checklists.md)
-- [ ] T027 [US4] If any required sections or items are missing from docs/checklists/quarterly-audit.md, add them following the exact structure from contracts/checklists.md Quarterly Audit Checklist section
-- [ ] T028 [P] [US4] Verify docs/decisions/README.md contains ADR template with Context → Decision → Consequences format and index of existing ADRs (001–006)
+- [x] T023 [US4] Verify docs/checklists/quarterly-audit.md contains Architecture Document Verification section with items: Docker Compose topology match, backend service module coverage, data flow accuracy, AI provider list currency (FR-011 per contracts/checklists.md)
+- [x] T024 [US4] Verify docs/checklists/quarterly-audit.md contains Decision Records section with items: ADR completeness for quarter, ADR format follows Context → Decision → Consequences, ADR index in docs/decisions/README.md is current (FR-012 per contracts/checklists.md)
+- [x] T025 [US4] Verify docs/checklists/quarterly-audit.md contains Developer Experience Audit section with items: fresh setup walkthrough, end-to-end setup timing, troubleshooting doc update for friction points (FR-013 per contracts/checklists.md)
+- [x] T026 [US4] Verify docs/checklists/quarterly-audit.md contains Docs Gaps Analysis section with items: feature-to-doc coverage for quarter, unreferenced docs identification, CHANGELOG.md assessment (per contracts/checklists.md)
+- [x] T027 [US4] If any required sections or items are missing from docs/checklists/quarterly-audit.md, add them following the exact structure from contracts/checklists.md Quarterly Audit Checklist section
+- [x] T028 [P] [US4] Verify docs/decisions/README.md contains ADR template with Context → Decision → Consequences format and index of existing ADRs (001–006)
 
 **Checkpoint**: Quarterly audit checklist is fully compliant with FR-011–FR-013. Tech lead can conduct a half-day audit with clear items covering architecture accuracy, decision records, DX testing, and gap analysis.
 
@@ -119,12 +119,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] Verify .markdownlint.json enforces ATX-style headings (MD003 default), dash-style lists (MD004), and language-specified code blocks (MD040 default) per contracts/ci-config.md Required Rules table
-- [ ] T030 [US5] Verify .github/workflows/ci.yml docs job runs `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` matching the scope in contracts/ci-config.md Step 1 (FR-015)
-- [ ] T031 [US5] Verify .github/workflows/ci.yml docs job runs `markdown-link-check` on all docs/**/*.md files and README.md matching contracts/ci-config.md Step 2 (FR-016)
-- [ ] T032 [P] [US5] Verify .markdown-link-check.json includes retry config for 429 status, timeout handling, and ignore patterns for Codespaces/localhost URLs per contracts/ci-config.md
-- [ ] T033 [P] [US5] Verify .pre-commit-config.yaml includes markdownlint hook targeting `docs/**/*.md` and root-level `*.md` files with `--config .markdownlint.json` per contracts/ci-config.md
-- [ ] T034 [US5] If any CI configuration gaps are found, update the relevant config file (.markdownlint.json, .github/workflows/ci.yml, .pre-commit-config.yaml) to match contracts/ci-config.md exactly
+- [x] T029 [US5] Verify .markdownlint.json enforces ATX-style headings (MD003 default), dash-style lists (MD004), and language-specified code blocks (MD040 default) per contracts/ci-config.md Required Rules table
+- [x] T030 [US5] Verify .github/workflows/ci.yml docs job runs `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` matching the scope in contracts/ci-config.md Step 1 (FR-015)
+- [x] T031 [US5] Verify .github/workflows/ci.yml docs job runs `markdown-link-check` on all docs/**/*.md files and README.md matching contracts/ci-config.md Step 2 (FR-016)
+- [x] T032 [P] [US5] Verify .markdown-link-check.json includes retry config for 429 status, timeout handling, and ignore patterns for Codespaces/localhost URLs per contracts/ci-config.md
+- [x] T033 [P] [US5] Verify .pre-commit-config.yaml includes markdownlint hook targeting `docs/**/*.md` and root-level `*.md` files with `--config .markdownlint.json` per contracts/ci-config.md
+- [x] T034 [US5] If any CI configuration gaps are found, update the relevant config file (.markdownlint.json, .github/workflows/ci.yml, .pre-commit-config.yaml) to match contracts/ci-config.md exactly
 
 **Checkpoint**: CI pipeline fully enforces formatting standards (FR-014–FR-016). All markdown violations and broken links are caught before merge (SC-006, SC-007).
 
@@ -138,11 +138,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T035 [US6] Verify docs/OWNERS.md contains ownership entries for all 15 files listed in data-model.md Current Instances table (FR-017) — cross-reference actual docs/ directory listing
-- [ ] T036 [US6] Verify each file in docs/OWNERS.md has exactly one designated owner or an explicitly marked rotation scheme (FR-018) — confirm troubleshooting.md and weekly-sweep.md show rotating ownership
-- [ ] T037 [US6] Verify docs/OWNERS.md contains Review Cadence table with entries for Every PR, Weekly, Monthly, and Quarterly review types including scope and responsible role (FR-019)
-- [ ] T038 [US6] If any documentation files exist in docs/ that are not listed in docs/OWNERS.md, add ownership entries for them following the format in data-model.md
-- [ ] T039 [US6] If any new documentation files were added by this feature, add corresponding ownership entries to docs/OWNERS.md
+- [x] T035 [US6] Verify docs/OWNERS.md contains ownership entries for all 15 files listed in data-model.md Current Instances table (FR-017) — cross-reference actual docs/ directory listing
+- [x] T036 [US6] Verify each file in docs/OWNERS.md has exactly one designated owner or an explicitly marked rotation scheme (FR-018) — confirm troubleshooting.md and weekly-sweep.md show rotating ownership
+- [x] T037 [US6] Verify docs/OWNERS.md contains Review Cadence table with entries for Every PR, Weekly, Monthly, and Quarterly review types including scope and responsible role (FR-019)
+- [x] T038 [US6] If any documentation files exist in docs/ that are not listed in docs/OWNERS.md, add ownership entries for them following the format in data-model.md
+- [x] T039 [US6] If any new documentation files were added by this feature, add corresponding ownership entries to docs/OWNERS.md
 
 **Checkpoint**: Documentation ownership is fully compliant with FR-017–FR-019. Every documentation file has a clear owner and the review cadence is defined (SC-005).
 
@@ -152,12 +152,12 @@
 
 **Purpose**: Final validation across all user stories, cross-reference checks, and quickstart verification
 
-- [ ] T040 [P] Run `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` to confirm all documentation passes formatting standards
-- [ ] T041 [P] Run `find docs -name "*.md" -print0 | xargs -0 -I {} markdown-link-check {} --config .markdown-link-check.json --quiet` to confirm all links resolve
-- [ ] T042 Verify all internal cross-references between docs/ files are valid (README.md links to docs/, docs/ files link to each other)
-- [ ] T043 Walk through specs/030-doc-sweep/quickstart.md Quick Verification steps (sections 1–4) and confirm each passes
-- [ ] T044 Validate FR-001–FR-020 requirements traceability: confirm each functional requirement maps to at least one completed task
-- [ ] T045 Validate SC-001–SC-010 success criteria: confirm each measurable outcome is achievable with the delivered artifacts
+- [x] T040 [P] Run `markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json` to confirm all documentation passes formatting standards
+- [x] T041 [P] Run `find docs -name "*.md" -print0 | xargs -0 -I {} markdown-link-check {} --config .markdown-link-check.json --quiet` to confirm all links resolve
+- [x] T042 Verify all internal cross-references between docs/ files are valid (README.md links to docs/, docs/ files link to each other)
+- [x] T043 Walk through specs/030-doc-sweep/quickstart.md Quick Verification steps (sections 1–4) and confirm each passes
+- [x] T044 Validate FR-001–FR-020 requirements traceability: confirm each functional requirement maps to at least one completed task
+- [x] T045 Validate SC-001–SC-010 success criteria: confirm each measurable outcome is achievable with the delivered artifacts
 
 ---
 
