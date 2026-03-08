@@ -18,8 +18,10 @@ import { ChatToolbar } from './ChatToolbar';
 import { FilePreviewChips } from './FilePreviewChips';
 import { PipelineWarningBanner } from './PipelineWarningBanner';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CHAT_PLACEHOLDERS, CYCLING_EXAMPLES } from '@/constants/chat-placeholders';
 import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
+import { useCyclingPlaceholder } from '@/hooks/useCyclingPlaceholder';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
@@ -96,6 +98,11 @@ export function ChatInterface({
     history: chatHistory,
     selectFromHistory,
   } = useChatHistory();
+
+  // Cycling placeholder for contextual prompt examples (stops when input has text)
+  const cyclingPlaceholder = useCyclingPlaceholder(CYCLING_EXAMPLES, {
+    enabled: !input.trim(),
+  });
 
   // File upload management
   const {
@@ -486,7 +493,10 @@ export function ChatInterface({
           <MentionInput
             ref={mentionInputRef}
             value={input}
-            placeholder="Describe a task, type / for commands, or @ for pipelines..."
+            placeholder={CHAT_PLACEHOLDERS.main.desktop}
+            placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}
+            cyclingPlaceholder={cyclingPlaceholder}
+            ariaLabel={CHAT_PLACEHOLDERS.main.ariaLabel}
             disabled={isSending}
             isNavigating={isNavigating}
             onTextChange={setInput}
