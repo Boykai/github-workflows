@@ -30,6 +30,20 @@ def _get_lock(repo_key: str) -> asyncio.Lock:
     return _repo_locks[repo_key]
 
 
+def _get_issue_branch(entry: BlockingQueueEntry) -> str | None:
+    """Resolve the best-known working branch for an open blocking issue."""
+    try:
+        from src.services.workflow_orchestrator import get_issue_main_branch
+
+        main_branch = get_issue_main_branch(entry.issue_number)
+        if main_branch and main_branch.get("branch"):
+            return str(main_branch["branch"])
+    except Exception:
+        logger.debug("Failed to resolve cached main branch for issue #%d", entry.issue_number)
+
+    return entry.parent_branch
+
+
 async def enqueue_issue(
     repo_key: str,
     issue_number: int,
@@ -149,6 +163,7 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
 
     # Determine base branch for activation
     base_branch, source_issue = _resolve_base_branch(open_blocking)
+    parent_branch_for_activation = base_branch
 
     # Activate each entry
     activated: list[BlockingQueueEntry] = []
@@ -156,7 +171,7 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
         updated = await _mark_active_unlocked(
             repo_key,
             entry.issue_number,
-            parent_branch=base_branch,
+            parent_branch=parent_branch_for_activation,
             blocking_source_issue=source_issue,
         )
         if updated:
@@ -184,8 +199,9 @@ def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> tuple[str, 
     warning log.
     """
     for entry in open_blocking:
-        if entry.parent_branch:
-            return entry.parent_branch, entry.issue_number
+        branch = _get_issue_branch(entry)
+        if branch:
+            return branch, entry.issue_number
     if open_blocking:
         logger.warning(
             "No open blocking issue has a valid parent_branch for repo %s "

@@ -34,6 +34,7 @@ interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
+  isBlocking?: boolean;
 }
 
 function SubIssueStateIcon({ state }: { state: string }) {
@@ -103,7 +104,7 @@ function isLightColor(hex: string): boolean {
   return L > 0.179;
 }
 
-export const IssueCard = memo(function IssueCard({ item, onClick, availableAgents }: IssueCardProps) {
+export const IssueCard = memo(function IssueCard({ item, onClick, availableAgents, isBlocking = false }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
   const subIssues = item.sub_issues ?? [];
   const labels = item.labels ?? [];
@@ -152,7 +153,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
       )}
 
       {/* Labels */}
-      {labels.length > 0 && (
+      {(labels.length > 0 || isBlocking) && (
         <div className="flex flex-wrap gap-1">
           {labels.map((label) => {
             const safeColor = sanitizeHexColor(label.color);
@@ -170,7 +171,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
               </span>
             );
           })}
-          {labels.some((l) => l.name.toLowerCase() === 'blocking') && (
+          {isBlocking && (
             <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
               🔒 Blocking
             </span>

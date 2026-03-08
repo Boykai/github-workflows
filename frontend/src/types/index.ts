@@ -228,6 +228,7 @@ export interface AITaskProposal {
   original_input: string;
   proposed_title: string;
   proposed_description: string;
+  is_blocking?: boolean;
   status: ProposalStatus;
   edited_title?: string;
   edited_description?: string;
@@ -1067,7 +1068,7 @@ export interface PipelineConfigSummary {
   is_preset: boolean;
   preset_id: string;
   stages: PipelineStage[];
-  blocking?: boolean;
+  blocking: boolean;
   updated_at: string;
 }
 

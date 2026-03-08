@@ -2069,6 +2069,21 @@ async def _activate_queued_issue(
 
         backlog_status = config.status_backlog
 
+        issue_node_id, item_id = await _cp.github_projects_service.get_issue_node_and_project_item(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            project_id=project_id,
+        )
+        if not issue_node_id or not item_id:
+            logger.warning(
+                "Could not resolve GitHub identifiers for queued issue #%d in project %s",
+                issue_number,
+                project_id,
+            )
+            return
+
         ctx = _cp.WorkflowContext(
             session_id="blocking-queue-activation",
             project_id=project_id,
@@ -2077,7 +2092,9 @@ async def _activate_queued_issue(
             repository_name=repo,
             config=config,
         )
+        ctx.issue_id = issue_node_id
         ctx.issue_number = issue_number
+        ctx.project_item_id = item_id
 
         orchestrator = _cp.get_workflow_orchestrator()
         await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)

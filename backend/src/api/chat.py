@@ -81,8 +81,6 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
-# Track blocking flag per proposal (parallel dict keyed by proposal_id)
-_proposal_blocking: dict[str, bool] = {}
 # Module-level compiled regex for #block detection (no \s* prefix — avoids ReDoS)
 _BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
@@ -485,9 +483,9 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 original_input=chat_request.content,
                 proposed_title=title,
                 proposed_description=chat_request.content,
+                is_blocking=is_blocking,
             )
             _proposals[str(proposal.proposal_id)] = proposal
-            _proposal_blocking[str(proposal.proposal_id)] = is_blocking
 
             description_preview = chat_request.content[:200]
             if len(chat_request.content) > 200:
@@ -537,9 +535,9 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             original_input=chat_request.content,
             proposed_title=generated.title,
             proposed_description=generated.description,
+            is_blocking=is_blocking,
         )
         _proposals[str(proposal.proposal_id)] = proposal
-        _proposal_blocking[str(proposal.proposal_id)] = is_blocking
 
         # Create assistant response with proposal
         assistant_message = ChatMessage(
@@ -706,7 +704,7 @@ async def confirm_proposal(
         # Step 3: Set up workflow config and assign agent for Backlog status
         try:
             # Resolve is_blocking from the proposal
-            proposal_is_blocking = _proposal_blocking.pop(proposal_id, False)
+            proposal_is_blocking = proposal.is_blocking
 
             from src.config import get_settings
 

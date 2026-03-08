@@ -72,6 +72,7 @@ class PipelineConfigSummary(BaseModel):
     is_preset: bool = False
     preset_id: str = ""
     stages: list[PipelineStage] = Field(default_factory=list)
+    blocking: bool = False
     updated_at: str
 
 

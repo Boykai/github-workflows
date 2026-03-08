@@ -4,10 +4,11 @@ import logging
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
 from src.models.board import (
     BoardDataResponse,
@@ -359,10 +360,9 @@ async def get_board_data(
     return board_data
 
 
-@router.get("/projects/{project_id}/blocking-queue")
+@router.get("/projects/{project_id}/blocking-queue", dependencies=[Depends(verify_project_access)])
 async def get_blocking_queue(
     project_id: str,
-    session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> list[dict]:
     """Get active blocking queue entries for a project.
 
@@ -374,6 +374,9 @@ async def get_blocking_queue(
 
         entries = await bq_store.get_by_project(project_id)
         return [entry.model_dump() for entry in entries]
-    except Exception:
-        logger.debug("Blocking queue data unavailable for project %s", project_id)
-        return []
+    except Exception as exc:
+        logger.warning("Failed to load blocking queue for project %s", project_id, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to load blocking queue",
+        ) from exc

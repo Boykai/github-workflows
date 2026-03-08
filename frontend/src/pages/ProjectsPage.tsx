@@ -73,6 +73,10 @@ export function ProjectsPage() {
 
   // Blocking queue state for the blocking chain panel
   const { data: blockingQueueEntries } = useBlockingQueue(selectedProjectId ?? undefined);
+  const blockingIssueNumbers = useMemo(
+    () => new Set((blockingQueueEntries ?? []).map((entry) => entry.issue_number)),
+    [blockingQueueEntries],
+  );
 
   const { data: savedPipelines } = useQuery({
     queryKey: ['pipelines', selectedProjectId],
@@ -404,7 +408,13 @@ export function ProjectsPage() {
                 )}
               </div>
             ) : (
-              <ProjectBoard boardData={transformedBoardData} onCardClick={handleCardClick} availableAgents={availableAgents} getGroups={boardControls.getGroups} />
+              <ProjectBoard
+                boardData={transformedBoardData}
+                onCardClick={handleCardClick}
+                availableAgents={availableAgents}
+                getGroups={boardControls.getGroups}
+                blockingIssueNumbers={blockingIssueNumbers}
+              />
             )}
           </div>
         </div>
