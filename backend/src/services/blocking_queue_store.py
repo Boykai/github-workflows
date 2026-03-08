@@ -152,5 +152,28 @@ async def get_repos_with_non_completed(
     return [row["repo_key"] for row in rows]
 
 
+async def get_by_project(
+    project_id: str,
+    *,
+    exclude_completed: bool = True,
+) -> list[BlockingQueueEntry]:
+    """Return queue entries for a project, optionally excluding completed, ordered by created_at ASC."""
+    db = get_db()
+    if exclude_completed:
+        cursor = await db.execute(
+            """SELECT * FROM blocking_queue
+               WHERE project_id = ? AND queue_status != 'completed'
+               ORDER BY created_at ASC""",
+            (project_id,),
+        )
+    else:
+        cursor = await db.execute(
+            "SELECT * FROM blocking_queue WHERE project_id = ? ORDER BY created_at ASC",
+            (project_id,),
+        )
+    rows = await cursor.fetchall()
+    return [_row_to_entry(r) for r in rows]
+
+
 async def _now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")

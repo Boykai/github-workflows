@@ -75,6 +75,13 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
           setLastUpdate(new Date());
           onRefreshTriggeredRef.current?.();
         }
+
+        // Handle blocking queue state changes
+        if (data.type === 'blocking_queue_updated') {
+          queryClient.invalidateQueries({ queryKey: ['blocking-queue', projectId] });
+          setLastUpdate(new Date());
+          onRefreshTriggeredRef.current?.();
+        }
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
       }
