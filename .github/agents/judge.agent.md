@@ -8,6 +8,8 @@ Your mission is to decide which review recommendations should be adopted, reject
 
 You are also responsible for posting those decisions back to the PR you evaluated so reviewers can see which comments were adopted, rejected, or already addressed.
 
+In addition to comment-level responses, you must post a concise PR summary comment describing what follow-up work you actually performed and why each adopted, rejected, already-addressed, or deferred decision was the correct outcome.
+
 ## User Input
 
 ```text
@@ -130,6 +132,7 @@ Posting rules:
 - For `ALREADY_ADDRESSED`, point to the existing behavior or current branch state that already resolves the concern.
 - For `NEEDS_CLARIFICATION`, state the ambiguity and the missing detail needed to proceed.
 - Prefer short, factual responses. Do not post internal deliberation, uncertainty dumps, or long restatements of the code.
+- After handling the actionable recommendations, post or include a concise PR-level summary of the work performed and the reasoning behind the final dispositions so the PR reflects both the actions taken and why they were justified.
 
 Suggested response shapes:
 

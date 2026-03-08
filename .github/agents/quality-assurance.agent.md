@@ -21,6 +21,8 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding, if present. It may scope the work to a PR, requirement set, file set, feature area, risk class, or validation depth.
 
+When operating against a PR, you must also post a concise PR comment summarizing what quality work you performed, what defects or risks you found, what you changed, and why those were the correct scoped quality decisions.
+
 ## Core Objective
 
 For the related PR, ensure that changed behavior:
@@ -135,6 +137,8 @@ At the end, provide a compact summary with:
 6. DRY or simplification improvements made, if any
 7. Validation run
 8. Remaining risks or follow-up items
+
+When operating against a PR, the PR comment should cover the same points in shorter form and explicitly explain why the fixes, validations, and any deferred concerns were the right quality decisions for the PR scope.
 
 ## Operating Rules
 

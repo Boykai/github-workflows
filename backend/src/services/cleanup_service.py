@@ -103,22 +103,27 @@ def _is_solune_owned_pr(pr: dict, app_issue_numbers: set[int]) -> bool:
     title = (pr.get("title") or "").strip().lower()
     body = pr.get("body") or ""
     body_lower = body.lower()
-
-    if head_branch.startswith(APP_OWNED_BRANCH_PREFIXES):
-        return True
-
-    if any(title.startswith(prefix) for prefix in APP_OWNED_PR_TITLE_PREFIXES):
-        return True
-
-    if any(marker in body_lower for marker in APP_OWNED_PR_BODY_MARKERS):
-        return True
-
-    if _references_app_created_issue(_extract_issue_numbers_from_text(body), app_issue_numbers):
-        return True
-
-    if _references_app_created_issue(
+    has_owned_branch = head_branch.startswith(APP_OWNED_BRANCH_PREFIXES)
+    has_owned_title = any(title.startswith(prefix) for prefix in APP_OWNED_PR_TITLE_PREFIXES)
+    has_owned_body_marker = any(marker in body_lower for marker in APP_OWNED_PR_BODY_MARKERS)
+    references_app_issue = _references_app_created_issue(
+        _extract_issue_numbers_from_text(body), app_issue_numbers
+    ) or _references_app_created_issue(
         _extract_issue_numbers_from_branch(head_branch), app_issue_numbers
-    ):
+    )
+
+    if has_owned_branch:
+        return True
+
+    if has_owned_body_marker:
+        return True
+
+    if references_app_issue:
+        return True
+
+    # Title prefixes are only a supporting signal. On their own they are too generic
+    # to safely classify a PR as Solune-generated.
+    if has_owned_title and (has_owned_branch or has_owned_body_marker or references_app_issue):
         return True
 
     return False

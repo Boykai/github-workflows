@@ -579,6 +579,31 @@ class TestIssueLinkage:
         assert 10 in preserved
         assert "solune-generated" in (preserved[10] or "").lower()
 
+    async def test_preflight_preserves_prs_with_generic_title_only_match(self):
+        """A generic title prefix alone is not enough to classify a PR as Solune-owned."""
+        prs_resp = MagicMock()
+        prs_resp.status_code = 200
+        prs_resp.json.return_value = [
+            _make_pr(
+                12,
+                "Chore: update dependencies",
+                "feature/dependency-refresh",
+                body="Manual maintenance follow-up",
+            ),
+        ]
+
+        service = _make_github_service(prs_response=prs_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        close_pr_nums = [p.number for p in result.prs_to_close]
+        preserved = {p.number: p.preservation_reason for p in result.prs_to_preserve}
+
+        assert 12 not in close_pr_nums
+        assert 12 in preserved
+        assert "solune-generated" in (preserved[12] or "").lower()
+
 
 # ── Orphaned Issues ────────────────────────────────────────────────
 

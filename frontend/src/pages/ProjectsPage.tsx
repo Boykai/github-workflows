@@ -278,7 +278,7 @@ export function ProjectsPage() {
         <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">📋</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>
+          <p className="text-muted-foreground">Choose a project from the sidebar to view its board</p>
         </div>
       )}
 
@@ -322,12 +322,16 @@ export function ProjectsPage() {
                           aria-checked={effectiveBlocking}
                           disabled={setBlockingOverrideMutation.isPending}
                           onClick={() =>
-                            setBlockingOverrideMutation.mutate(effectiveBlocking ? null : true)
+                            setBlockingOverrideMutation.mutate(
+                              hasBlockingOverride ? null : !effectiveBlocking,
+                            )
                           }
                           title={
                             hasBlockingOverride
-                              ? 'Blocking override set on this project — click to clear'
-                              : 'Using pipeline default — click to force blocking on'
+                              ? 'Blocking override set on this project — click to return to the pipeline default'
+                              : effectiveBlocking
+                                ? 'Using inherited blocking — click to force this project non-blocking'
+                                : 'Using inherited non-blocking — click to force this project blocking'
                           }
                           className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50 ${
                             effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
@@ -341,7 +345,7 @@ export function ProjectsPage() {
                         </button>
                         <span className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}>
                           <Lock className="h-3 w-3" />
-                          Blocking{hasBlockingOverride ? '' : ' (default)'}
+                          Blocking{hasBlockingOverride ? ' (override)' : ' (default)'}
                         </span>
                       </label>
                     )}
