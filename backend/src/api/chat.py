@@ -876,8 +876,10 @@ async def upload_file(
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
     # Sanitise the original filename to prevent path-traversal attacks:
-    # strip directory components so e.g. "../../etc/passwd" becomes "passwd".
-    basename = Path(file.filename).name.replace("\x00", "")
+    # strip null bytes first (could confuse Path parsing on some platforms),
+    # then strip directory components so e.g. "../../etc/passwd" becomes "passwd".
+    cleaned = file.filename.replace("\x00", "")
+    basename = Path(cleaned).name
     if not basename:
         basename = "upload"
     safe_filename = f"{upload_id}-{basename}"

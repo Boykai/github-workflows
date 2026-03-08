@@ -139,12 +139,10 @@ class InMemoryCache:
         Returns:
             True if key existed
         """
-        try:
-            del self._cache[key]
+        if self._cache.pop(key, None) is not None:
             logger.debug("Cache delete: %s", key)
             return True
-        except KeyError:
-            return False
+        return False
 
     def clear(self) -> None:
         """Clear all cached values."""
