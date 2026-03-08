@@ -24,7 +24,7 @@
 
 **Purpose**: Create the centralized placeholder copy constants that all subsequent phases depend on.
 
-- [ ] T001 Create `ChatPlaceholderConfig` interface, `CHAT_PLACEHOLDERS` registry, and `CYCLING_EXAMPLES` array in `frontend/src/constants/chat-placeholders.ts`
+- [x] T001 Create `ChatPlaceholderConfig` interface, `CHAT_PLACEHOLDERS` registry, and `CYCLING_EXAMPLES` array in `frontend/src/constants/chat-placeholders.ts`
 
 ---
 
@@ -34,9 +34,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T002 Add `placeholderMobile?: string` and `ariaLabel?: string` optional props to `MentionInputProps` interface in `frontend/src/components/chat/MentionInput.tsx`
-- [ ] T003 Update MentionInput placeholder overlay to render responsive dual-span layout with Tailwind `max-sm:hidden` / `hidden max-sm:inline` classes when `placeholderMobile` is provided in `frontend/src/components/chat/MentionInput.tsx`
-- [ ] T004 Update MentionInput contentEditable `aria-label` attribute to use the new `ariaLabel` prop with `"Chat input"` fallback in `frontend/src/components/chat/MentionInput.tsx`
+- [x] T002 Add `placeholderMobile?: string` and `ariaLabel?: string` optional props to `MentionInputProps` interface in `frontend/src/components/chat/MentionInput.tsx`
+- [x] T003 Update MentionInput placeholder overlay to render responsive dual-span layout with Tailwind `max-sm:hidden` / `hidden max-sm:inline` classes when `placeholderMobile` is provided in `frontend/src/components/chat/MentionInput.tsx`
+- [x] T004 Update MentionInput contentEditable `aria-label` attribute to use the new `ariaLabel` prop with `"Chat input"` fallback in `frontend/src/components/chat/MentionInput.tsx`
 
 **Checkpoint**: MentionInput now accepts `placeholderMobile` and `ariaLabel` props and renders responsive placeholder — user story implementation can begin.
 
@@ -50,7 +50,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Import `CHAT_PLACEHOLDERS` from `@/constants/chat-placeholders` and replace hardcoded placeholder string with `CHAT_PLACEHOLDERS.main.desktop` on the MentionInput component in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T005 [US1] Import `CHAT_PLACEHOLDERS` from `@/constants/chat-placeholders` and replace hardcoded placeholder string with `CHAT_PLACEHOLDERS.main.desktop` on the MentionInput component in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Desktop placeholder shows "Ask a question, describe a task, use / for commands, or @ to select a pipeline…" — User Story 1 is complete.
 
@@ -64,7 +64,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Pass `placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}` prop to MentionInput in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T006 [US2] Pass `placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}` prop to MentionInput in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Mobile viewport (<768px) shows "Ask anything or use / and @ for more…" — User Story 2 is complete.
 
@@ -78,8 +78,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Pass `ariaLabel={CHAT_PLACEHOLDERS.main.ariaLabel}` prop to MentionInput in `frontend/src/components/chat/ChatInterface.tsx`
-- [ ] T008 [US3] Verify `text-muted-foreground` contrast ratio meets WCAG AA 4.5:1 in both light and dark modes against `--background` (no code change needed — verification per research.md R3) in `frontend/src/index.css`
+- [x] T007 [US3] Pass `ariaLabel={CHAT_PLACEHOLDERS.main.ariaLabel}` prop to MentionInput in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T008 [US3] Verify `text-muted-foreground` contrast ratio meets WCAG AA 4.5:1 in both light and dark modes against `--background` (no code change needed — verification per research.md R3) in `frontend/src/index.css`
 
 **Checkpoint**: Screen reader announces "Chat input — ask questions, describe tasks, use slash commands, or mention pipelines"; contrast ratio confirmed ≥4.5:1 — User Story 3 is complete.
 
@@ -93,8 +93,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T009 [P] [US4] Import `CHAT_PLACEHOLDERS` and replace `placeholder="Type your response…"` with `placeholder={CHAT_PLACEHOLDERS.agentFlow.desktop}` and add `aria-label={CHAT_PLACEHOLDERS.agentFlow.ariaLabel}` on the input element in `frontend/src/components/agents/AgentChatFlow.tsx`
-- [ ] T010 [P] [US4] Import `CHAT_PLACEHOLDERS` and replace `placeholder="Type your response…"` with `placeholder={CHAT_PLACEHOLDERS.choreFlow.desktop}` and add `aria-label={CHAT_PLACEHOLDERS.choreFlow.ariaLabel}` on the input element in `frontend/src/components/chores/ChoreChatFlow.tsx`
+- [x] T009 [P] [US4] Import `CHAT_PLACEHOLDERS` and replace `placeholder="Type your response…"` with `placeholder={CHAT_PLACEHOLDERS.agentFlow.desktop}` and add `aria-label={CHAT_PLACEHOLDERS.agentFlow.ariaLabel}` on the input element in `frontend/src/components/agents/AgentChatFlow.tsx`
+- [x] T010 [P] [US4] Import `CHAT_PLACEHOLDERS` and replace `placeholder="Type your response…"` with `placeholder={CHAT_PLACEHOLDERS.choreFlow.desktop}` and add `aria-label={CHAT_PLACEHOLDERS.choreFlow.ariaLabel}` on the input element in `frontend/src/components/chores/ChoreChatFlow.tsx`
 
 **Checkpoint**: Agent chat shows "Describe what you'd like your agent to do…"; Chore chat shows "Add details or refine your request…" — all chat instances are consistent. User Story 4 is complete.
 
@@ -108,8 +108,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T011 [US5] Create `useCyclingPlaceholder` hook that cycles through an array of placeholder strings at a configurable interval with `prefers-reduced-motion` fallback and cleanup on unmount in `frontend/src/hooks/useCyclingPlaceholder.ts`
-- [ ] T012 [US5] Integrate `useCyclingPlaceholder` hook with `CYCLING_EXAMPLES` into the MentionInput placeholder overlay for the main chat context, adding CSS opacity transition for smooth fade between prompts in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T011 [US5] Create `useCyclingPlaceholder` hook that cycles through an array of placeholder strings at a configurable interval with `prefers-reduced-motion` fallback and cleanup on unmount in `frontend/src/hooks/useCyclingPlaceholder.ts`
+- [x] T012 [US5] Integrate `useCyclingPlaceholder` hook with `CYCLING_EXAMPLES` into the MentionInput placeholder overlay for the main chat context, adding CSS opacity transition for smooth fade between prompts in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Main chat cycles through 5 example prompts every 5 seconds; stops on focus; respects reduced motion — User Story 5 is complete.
 
@@ -119,9 +119,9 @@
 
 **Purpose**: Verification, regression testing, and final validation across all stories.
 
-- [ ] T013 [P] Run frontend build (`cd frontend && npm run build`) to verify no TypeScript errors
-- [ ] T014 [P] Run existing frontend tests (`cd frontend && npx vitest run`) to verify no regressions in MentionInput or other chat components
-- [ ] T015 Run quickstart.md manual verification checklist: desktop placeholder, mobile responsive, agent chat, chore chat, screen reader, type-and-clear, message submission
+- [x] T013 [P] Run frontend build (`cd frontend && npm run build`) to verify no TypeScript errors
+- [x] T014 [P] Run existing frontend tests (`cd frontend && npx vitest run`) to verify no regressions in MentionInput or other chat components
+- [x] T015 Run quickstart.md manual verification checklist: desktop placeholder, mobile responsive, agent chat, chore chat, screen reader, type-and-clear, message submission
 
 ---
 
