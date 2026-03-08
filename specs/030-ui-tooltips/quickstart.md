@@ -32,7 +32,7 @@ uvicorn src.main:app --reload --port 8000
 
 ## New Files to Create
 
-### Frontend
+### New Frontend Files
 
 | File | Purpose |
 |------|---------|
@@ -65,6 +65,7 @@ uvicorn src.main:app --reload --port 8000
 ### Phase 1: Foundation — Tooltip Component + Content Registry (FR-003, FR-004, FR-005, FR-006, FR-008, FR-009, FR-010, FR-012, FR-013)
 
 1. **Install dependency**
+
    ```bash
    cd frontend && npm install @radix-ui/react-tooltip
    ```
@@ -94,50 +95,50 @@ uvicorn src.main:app --reload --port 8000
 
 ### Phase 2: Board & Chat Tooltips (FR-001, FR-002)
 
-5. **RefreshButton.tsx** — Wrap with `<Tooltip contentKey="board.toolbar.refreshButton">`
-6. **CleanUpButton.tsx** — Wrap with `<Tooltip contentKey="board.toolbar.cleanUpButton">`
-7. **BoardToolbar.tsx** — Wrap filter, sort, and group buttons with `<Tooltip>`
-8. **ChatToolbar.tsx** — Wrap AI Enhance toggle, attach, voice, and send buttons with `<Tooltip>`
-9. **ChatInterface.tsx** — Wrap history toggle with `<Tooltip>`
+1. **RefreshButton.tsx** — Wrap with `<Tooltip contentKey="board.toolbar.refreshButton">`
+2. **CleanUpButton.tsx** — Wrap with `<Tooltip contentKey="board.toolbar.cleanUpButton">`
+3. **BoardToolbar.tsx** — Wrap filter, sort, and group buttons with `<Tooltip>`
+4. **ChatToolbar.tsx** — Wrap AI Enhance toggle, attach, voice, and send buttons with `<Tooltip>`
+5. **ChatInterface.tsx** — Wrap history toggle with `<Tooltip>`
 
 **Verify**: Hover over board refresh button → tooltip appears after ~300ms with "Refresh the board to show the latest project data from GitHub." Tab to button → same tooltip. Press Escape → tooltip dismisses. Verify tooltip flips when near viewport edge.
 
 ### Phase 3: Agent Tooltips (FR-001, FR-002, FR-007)
 
-10. **AgentCard.tsx** — Wrap edit, delete, and model selector with `<Tooltip>`
-11. **AgentsPanel.tsx** — Wrap search input, sort, bulk update, and add agent controls with `<Tooltip>`
-12. **AddAgentModal.tsx** — Wrap system prompt field, tools editor, and model field with `<Tooltip>` (these use the progressive disclosure pattern with `title` + `learnMoreUrl`)
+1. **AgentCard.tsx** — Wrap edit, delete, and model selector with `<Tooltip>`
+2. **AgentsPanel.tsx** — Wrap search input, sort, bulk update, and add agent controls with `<Tooltip>`
+3. **AddAgentModal.tsx** — Wrap system prompt field, tools editor, and model field with `<Tooltip>` (these use the progressive disclosure pattern with `title` + `learnMoreUrl`)
 
 **Verify**: Open Agents page → hover over delete button → tooltip shows "Permanently delete this agent configuration. This action cannot be undone." Hover over system prompt field → rich tooltip with bold title "System Prompt" and "Learn more →" link.
 
 ### Phase 4: Pipeline Tooltips (FR-001, FR-002, FR-007)
 
-13. **StageCard.tsx** — Wrap model selector and delete button with `<Tooltip>`
-14. **PipelineBoard.tsx** — Wrap add stage, save, and delete pipeline buttons with `<Tooltip>`
-15. **ModelSelector.tsx** — Wrap model dropdown with `<Tooltip>` (progressive disclosure)
+1. **StageCard.tsx** — Wrap model selector and delete button with `<Tooltip>`
+2. **PipelineBoard.tsx** — Wrap add stage, save, and delete pipeline buttons with `<Tooltip>`
+3. **ModelSelector.tsx** — Wrap model dropdown with `<Tooltip>` (progressive disclosure)
 
 **Verify**: Open Pipeline page → hover over model selector → rich tooltip with "Stage Model" title.
 
 ### Phase 5: Chores, Settings & Tools Tooltips (FR-001, FR-002)
 
-16. **ChoreCard.tsx** — Wrap execute, edit, and delete buttons with `<Tooltip>`
-17. **SettingsPage.tsx** — Wrap theme toggle and model management controls with `<Tooltip>`
-18. **ToolsPage.tsx** — Wrap configure and status toggle with `<Tooltip>`
+1. **ChoreCard.tsx** — Wrap execute, edit, and delete buttons with `<Tooltip>`
+2. **SettingsPage.tsx** — Wrap theme toggle and model management controls with `<Tooltip>`
+3. **ToolsPage.tsx** — Wrap configure and status toggle with `<Tooltip>`
 
 **Verify**: All pages have tooltips on interactive elements. No broken or empty tooltips.
 
 ### Phase 6: Accessibility & Polish (FR-008, FR-013)
 
-19. **Keyboard navigation audit**
+1. **Keyboard navigation audit**
     - Tab through every page → verify tooltips appear on focus
     - Escape key dismisses any visible tooltip
     - Screen reader announces tooltip content
 
-20. **Motion preferences**
+2. **Motion preferences**
     - Enable `prefers-reduced-motion` in browser dev tools
     - Verify tooltip animations are disabled/reduced
 
-21. **Viewport edge testing**
+3. **Viewport edge testing**
     - Trigger tooltips on elements near all viewport edges
     - Verify tooltips flip and shift to remain visible
 
@@ -168,6 +169,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 ### Progressive Disclosure Tooltip (Complex Features)
 
 Registry entry:
+
 ```typescript
 'agents.modal.systemPrompt': {
   title: 'System Prompt',
@@ -177,6 +179,7 @@ Registry entry:
 ```
 
 Component usage:
+
 ```tsx
 <Tooltip contentKey="agents.modal.systemPrompt">
   <label>System Prompt</label>
@@ -186,17 +189,21 @@ Component usage:
 ### Adding a New Tooltip
 
 1. Add entry to `frontend/src/constants/tooltip-content.ts`:
+
    ```typescript
    'area.section.element': {
      summary: 'Concise description of what this does and why it matters.',
    },
    ```
+
 2. Wrap the element in the component file:
+
    ```tsx
    <Tooltip contentKey="area.section.element">
      <ExistingElement />
    </Tooltip>
    ```
+
 3. No other changes needed — the Tooltip component handles all rendering, positioning, and accessibility.
 
 ## Verification

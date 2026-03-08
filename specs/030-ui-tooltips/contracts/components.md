@@ -23,6 +23,7 @@ interface TooltipProps {
 ```
 
 **Behavior**:
+
 - **Registry lookup**: When `contentKey` is provided, looks up `tooltipContent[contentKey]`. If not found, renders children without tooltip (FR-012 graceful fallback). Logs a `console.warn` in development mode.
 - **Direct content**: When `content` is provided (no `contentKey`), uses the string directly as the summary. Optional `title` and `learnMoreUrl` props augment the direct content.
 - **Neither provided**: Renders children without tooltip wrapper. Logs a `console.warn` in development.
@@ -35,7 +36,8 @@ interface TooltipProps {
 - **Animation**: Fade-in/zoom-in on appear, fade-out/zoom-out on dismiss. Respects `prefers-reduced-motion` via Tailwind's `motion-reduce:` variant (FR-013).
 
 **Styling**:
-```
+
+```text
 ┌───────────────────────────────────────┐
 │ ▲ (arrow pointing to trigger)         │
 │                                       │
@@ -58,6 +60,7 @@ z-index: 50
 ```
 
 **Exported Members**:
+
 ```typescript
 // High-level wrapper (primary usage)
 export function Tooltip(props: TooltipProps): JSX.Element;
@@ -88,6 +91,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 ```
 
 **Behavior**:
+
 - `delayDuration={300}`: Default 300ms hover delay for all tooltips (FR-005).
 - `skipDelayDuration={300}`: When moving between tooltip triggers within 300ms, the next tooltip appears instantly (no delay). Provides smooth scanning experience.
 - Single provider wraps the entire app — no per-page providers needed.
@@ -102,6 +106,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 **Purpose**: Application root — modified to wrap the app tree with `TooltipProvider`.
 
 **Changes**:
+
 1. Import `TooltipProvider` from `@/components/ui/tooltip`
 2. Wrap the outermost layer (around `QueryClientProvider`) with `<TooltipProvider delayDuration={300} skipDelayDuration={300}>`
 3. No structural changes to routing, error boundaries, or query client
