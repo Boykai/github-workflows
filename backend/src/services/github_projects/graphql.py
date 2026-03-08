@@ -767,6 +767,18 @@ query($projectId: ID!, $first: Int!, $after: String) {
               title
               body
               url
+              createdAt
+              updatedAt
+              milestone {
+                title
+              }
+              labels(first: 20) {
+                nodes {
+                  id
+                  name
+                  color
+                }
+              }
               assignees(first: 10) {
                 nodes {
                   login

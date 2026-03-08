@@ -647,6 +647,7 @@ class GitHubProjectsService:
             BoardProject,
             ContentType,
             CustomFieldValue,
+            Label,
             LinkedPR,
             PRState,
             Repository,
@@ -803,6 +804,23 @@ class GitHubProjectsService:
                                 )
                             )
 
+                # Parse labels from GraphQL response
+                content_labels: list[Label] = [
+                    Label(
+                        id=label_node.get("id", ""),
+                        name=label_node.get("name", ""),
+                        color=label_node.get("color", ""),
+                    )
+                    for label_node in content.get("labels", {}).get("nodes", [])
+                    if label_node
+                ]
+
+                # Parse timestamps and milestone
+                created_at = content.get("createdAt")
+                updated_at = content.get("updatedAt")
+                milestone_data = content.get("milestone")
+                milestone_name = milestone_data.get("title") if milestone_data else None
+
                 all_items.append(
                     BoardItem(
                         item_id=item["id"],
@@ -820,6 +838,10 @@ class GitHubProjectsService:
                         size=size_val,
                         estimate=estimate_val,
                         linked_prs=linked_prs,
+                        labels=content_labels,
+                        created_at=created_at,
+                        updated_at=updated_at,
+                        milestone=milestone_name,
                     )
                 )
 
@@ -969,9 +991,10 @@ class GitHubProjectsService:
                 )
             )
 
-        # ── Sub-issue filtering for Done/Closed columns ──
+        # ── Sub-issue filtering for ALL columns (FR-001) ──
         # Collect all sub-issue IDs across all parent items so we can
-        # exclude them from "Done"/"Closed"/"Completed" columns (FR-007).
+        # exclude them from every column. Only parent issues should appear
+        # as top-level cards on the board.
         all_sub_issue_ids: set[str] = set()
         for board_item in all_items:
             for si in board_item.sub_issues:
@@ -980,12 +1003,11 @@ class GitHubProjectsService:
 
         if all_sub_issue_ids:
             for col in columns:
-                if col.status.name.lower() in _DONE_STATUS_NAMES:
-                    original_count = len(col.items)
-                    col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
-                    if len(col.items) != original_count:
-                        col.item_count = len(col.items)
-                        col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
+                original_count = len(col.items)
+                col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
+                if len(col.items) != original_count:
+                    col.item_count = len(col.items)
+                    col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
 
         logger.info(
             "Board data for project %s: %d items across %d columns",
