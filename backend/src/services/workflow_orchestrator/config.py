@@ -28,6 +28,7 @@ class PipelineResolutionResult:
     pipeline_name: str | None = None
     pipeline_id: str | None = None
 
+
 logger = logging.getLogger(__name__)
 
 # In-memory storage for workflow transitions (audit log)
@@ -459,10 +460,7 @@ async def resolve_project_pipeline_mappings(
 
     # ── Tier 3: System defaults ──────────────────────────────────────
     default_mappings: dict[str, list[AgentAssignment]] = {
-        k: [
-            AgentAssignment(slug=s, display_name=AGENT_DISPLAY_NAMES.get(s))
-            for s in v
-        ]
+        k: [AgentAssignment(slug=s, display_name=AGENT_DISPLAY_NAMES.get(s)) for s in v]
         for k, v in DEFAULT_AGENT_MAPPINGS.items()
     }
     logger.info("Using default agent mappings for project %s", project_id)
