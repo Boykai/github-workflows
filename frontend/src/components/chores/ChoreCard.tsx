@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { Sparkles, Pencil, X, Save } from 'lucide-react';
+import { Sparkles, Pencil, X, Save, Lock } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
@@ -138,6 +138,18 @@ export function ChoreCard({
     });
   };
 
+  const currentBlocking = editState?.current.blocking ?? chore.blocking;
+  const handleToggleBlocking = () => {
+    if (isEditing && onEditChange) {
+      onEditChange({ blocking: !currentBlocking });
+      return;
+    }
+    updateMutation.mutate({
+      choreId: chore.id,
+      data: { blocking: !chore.blocking },
+    });
+  };
+
   // Get current values (edited or original)
   const currentName = editState?.current.name ?? chore.name;
   const currentContent = editState?.current.template_content ?? chore.template_content;
@@ -212,7 +224,7 @@ export function ChoreCard({
           </div>
         </div>
 
-        {/* AI Enhance & Pipeline indicators */}
+        {/* AI Enhance, Blocking & Pipeline indicators */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -228,6 +240,21 @@ export function ChoreCard({
           >
             <Sparkles className="h-3 w-3" />
             AI {currentAiEnhance ? 'ON' : 'OFF'}
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleBlocking}
+            disabled={updateMutation.isPending}
+            className={cn(
+              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
+              currentBlocking
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'border-border/60 bg-muted/40 text-muted-foreground'
+            )}
+            title={`Blocking: ${currentBlocking ? 'ON — issues serialize activation' : 'OFF'}`}
+          >
+            <Lock className="h-3 w-3" />
+            {currentBlocking ? 'Blocking' : 'Non-blocking'}
           </button>
           <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
             Agent Pipeline: {pipelineLabel}

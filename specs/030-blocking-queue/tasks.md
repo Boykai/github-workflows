@@ -21,8 +21,8 @@
 
 **Purpose**: Database migration and new model definitions required by all subsequent phases
 
-- [ ] T001 Create database migration in backend/src/migrations/017_blocking_queue.sql with blocking_queue table (id, repo_key, issue_number, project_id, is_blocking, queue_status with CHECK constraint, parent_branch, blocking_source_issue, created_at, activated_at, completed_at, UNIQUE(repo_key, issue_number)), indexes (idx_blocking_queue_repo_status, idx_blocking_queue_repo_blocking), and ALTER TABLE additions to add blocking INTEGER NOT NULL DEFAULT 0 to both pipeline_configs and chores tables
-- [ ] T002 [P] Create BlockingQueueStatus StrEnum (pending, active, in_review, completed) and BlockingQueueEntry Pydantic model mirroring all DB columns in backend/src/models/blocking.py
+- [x] T001 Create database migration in backend/src/migrations/017_blocking_queue.sql with blocking_queue table (id, repo_key, issue_number, project_id, is_blocking, queue_status with CHECK constraint, parent_branch, blocking_source_issue, created_at, activated_at, completed_at, UNIQUE(repo_key, issue_number)), indexes (idx_blocking_queue_repo_status, idx_blocking_queue_repo_blocking), and ALTER TABLE additions to add blocking INTEGER NOT NULL DEFAULT 0 to both pipeline_configs and chores tables
+- [x] T002 [P] Create BlockingQueueStatus StrEnum (pending, active, in_review, completed) and BlockingQueueEntry Pydantic model mirroring all DB columns in backend/src/models/blocking.py
 
 ---
 
@@ -32,11 +32,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Add blocking: bool = False to Chore, ChoreCreate, and ChoreUpdate models in backend/src/models/chores.py
-- [ ] T004 [P] Add blocking: bool = False to PipelineConfig and PipelineConfigUpdate models in backend/src/models/pipeline.py
-- [ ] T005 Create SQLite persistence layer in backend/src/services/blocking_queue_store.py using existing get_db() pattern with methods: insert, update_status, get_by_repo (with optional status filter, ordered by created_at ASC), get_by_issue, get_pending, get_open_blocking (active or in_review blocking entries ordered by created_at ASC)
-- [ ] T006 Create core blocking queue service in backend/src/services/blocking_queue.py with functions: enqueue_issue(repo_key, issue_number, project_id, is_blocking), try_activate_next(repo_key) implementing batch activation rules (non-blocking concurrent when no blocking open; serial when blocking open; non-blocking batch up to next blocking entry; blocking alone), mark_active(repo_key, issue_number, parent_branch), mark_in_review(repo_key, issue_number), mark_completed(repo_key, issue_number), get_base_ref_for_issue(repo_key, issue_number), get_current_base_branch(repo_key), has_open_blocking_issues(repo_key); include per-repo asyncio.Lock (dict[str, asyncio.Lock]) and SQLite BEGIN IMMEDIATE transactions for concurrency control
-- [ ] T007 [P] Add BlockingQueueEntry interface, BlockingQueueStatus type, BlockingQueueUpdatedEvent interface, and blocking boolean field to existing Chore, ChoreUpdate, PipelineConfig, and PipelineConfigUpdate types in frontend/src/types/index.ts
+- [x] T003 [P] Add blocking: bool = False to Chore, ChoreCreate, and ChoreUpdate models in backend/src/models/chores.py
+- [x] T004 [P] Add blocking: bool = False to PipelineConfig and PipelineConfigUpdate models in backend/src/models/pipeline.py
+- [x] T005 Create SQLite persistence layer in backend/src/services/blocking_queue_store.py using existing get_db() pattern with methods: insert, update_status, get_by_repo (with optional status filter, ordered by created_at ASC), get_by_issue, get_pending, get_open_blocking (active or in_review blocking entries ordered by created_at ASC)
+- [x] T006 Create core blocking queue service in backend/src/services/blocking_queue.py with functions: enqueue_issue(repo_key, issue_number, project_id, is_blocking), try_activate_next(repo_key) implementing batch activation rules (non-blocking concurrent when no blocking open; serial when blocking open; non-blocking batch up to next blocking entry; blocking alone), mark_active(repo_key, issue_number, parent_branch), mark_in_review(repo_key, issue_number), mark_completed(repo_key, issue_number), get_base_ref_for_issue(repo_key, issue_number), get_current_base_branch(repo_key), has_open_blocking_issues(repo_key); include per-repo asyncio.Lock (dict[str, asyncio.Lock]) and SQLite BEGIN IMMEDIATE transactions for concurrency control
+- [x] T007 [P] Add BlockingQueueEntry interface, BlockingQueueStatus type, BlockingQueueUpdatedEvent interface, and blocking boolean field to existing Chore, ChoreUpdate, PipelineConfig, and PipelineConfigUpdate types in frontend/src/types/index.ts
 
 **Checkpoint**: Foundation ready — core blocking queue engine and all model definitions are in place. User story implementation can now begin.
 
@@ -52,14 +52,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Create unit test for blocking queue state machine with 8-issue scenario (creation order, activation order, batch rules, completion cascades) in backend/tests/unit/test_blocking_queue.py — test enqueue_issue, try_activate_next, mark_in_review, mark_completed; verify: non-blocking immediate activation when no blocking open, serial activation with blocking open, batch activation rules (non-blocking together up to next blocking entry, blocking alone), activation cascade on in_review and completed transitions
+- [x] T008 [P] [US1] Create unit test for blocking queue state machine with 8-issue scenario (creation order, activation order, batch rules, completion cascades) in backend/tests/unit/test_blocking_queue.py — test enqueue_issue, try_activate_next, mark_in_review, mark_completed; verify: non-blocking immediate activation when no blocking open, serial activation with blocking open, batch activation rules (non-blocking together up to next blocking entry, blocking alone), activation cascade on in_review and completed transitions
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Modify execute_full_workflow() in backend/src/services/workflow_orchestrator/orchestrator.py to call blocking_queue.enqueue_issue() after issue creation; if issue is not immediately activated, return WorkflowResult with pending status and skip agent assignment; if activated, proceed with current flow
-- [ ] T010 [US1] Modify status transition handler in backend/src/services/copilot_polling/pipeline.py to call blocking_queue.mark_in_review() when issue moves to "In review" and trigger assign_agent_for_status() for each newly activated issue returned by try_activate_next()
-- [ ] T011 [US1] Modify completion handler in backend/src/services/copilot_polling/completion.py to call blocking_queue.mark_completed() when issue completes and trigger agent assignment for each newly activated issue returned by try_activate_next()
-- [ ] T012 [US1] Integrate WebSocket broadcast of blocking_queue_updated event (repo_key, activated_issues, completed_issues, current_base_branch) via connection_manager.broadcast_to_project() after activation cascades in backend/src/services/blocking_queue.py
+- [x] T009 [US1] Modify execute_full_workflow() in backend/src/services/workflow_orchestrator/orchestrator.py to call blocking_queue.enqueue_issue() after issue creation; if issue is not immediately activated, return WorkflowResult with pending status and skip agent assignment; if activated, proceed with current flow
+- [x] T010 [US1] Modify status transition handler in backend/src/services/copilot_polling/pipeline.py to call blocking_queue.mark_in_review() when issue moves to "In review" and trigger assign_agent_for_status() for each newly activated issue returned by try_activate_next()
+- [x] T011 [US1] Modify completion handler in backend/src/services/copilot_polling/completion.py to call blocking_queue.mark_completed() when issue completes and trigger agent assignment for each newly activated issue returned by try_activate_next()
+- [x] T012 [US1] Integrate WebSocket broadcast of blocking_queue_updated event (repo_key, activated_issues, completed_issues, current_base_branch) via connection_manager.broadcast_to_project() after activation cascades in backend/src/services/blocking_queue.py
 
 **Checkpoint**: Serial issue activation is fully functional. Issues queue correctly, activate in the right order, and cascade activations on transitions. The 8-issue scenario passes.
 
@@ -73,8 +73,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Modify base_ref resolution in backend/src/services/workflow_orchestrator/orchestrator.py to call blocking_queue.get_base_ref_for_issue(repo_key, issue_number) for first agent assignment instead of hardcoded 'main'; retain current behavior for subsequent agents on already-branched issues
-- [ ] T014 [US2] Record blocking_source_issue on activated entries when they branch from a blocking issue's branch via update in backend/src/services/blocking_queue.py (set blocking_source_issue in mark_active when parent_branch comes from a blocking issue)
+- [x] T013 [US2] Modify base_ref resolution in backend/src/services/workflow_orchestrator/orchestrator.py to call blocking_queue.get_base_ref_for_issue(repo_key, issue_number) for first agent assignment instead of hardcoded 'main'; retain current behavior for subsequent agents on already-branched issues
+- [x] T014 [US2] Record blocking_source_issue on activated entries when they branch from a blocking issue's branch via update in backend/src/services/blocking_queue.py (set blocking_source_issue in mark_active when parent_branch comes from a blocking issue)
 
 **Checkpoint**: Branch ancestry is controlled by the blocking queue. Issues branch from the correct source (oldest open blocking issue's branch or `main`). Combined with US1, the core blocking queue feature (activation + branching) is complete.
 
@@ -88,10 +88,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [P] [US3] Add 'blocking' to _CHORE_UPDATABLE_COLUMNS frozenset and update row-to-model conversion to include blocking field in backend/src/services/chores/service.py
-- [ ] T016 [US3] Implement blocking flag resolution in trigger_chore(): read chore.blocking OR pipeline.blocking (OR logic per R5) and pass is_blocking to execute_full_workflow() in backend/src/services/chores/service.py and backend/src/api/chores.py
-- [ ] T017 [P] [US3] Add blocking field to useChores hook types and include blocking in useUpdateChore mutation payload in frontend/src/hooks/useChores.ts
-- [ ] T018 [US3] Add "Blocking" toggle switch following ai_enhance_enabled pattern (Switch component with label and onCheckedChange calling updateChore) in frontend/src/components/chores/ChoreCard.tsx
+- [x] T015 [P] [US3] Add 'blocking' to _CHORE_UPDATABLE_COLUMNS frozenset and update row-to-model conversion to include blocking field in backend/src/services/chores/service.py
+- [x] T016 [US3] Implement blocking flag resolution in trigger_chore(): read chore.blocking OR pipeline.blocking (OR logic per R5) and pass is_blocking to execute_full_workflow() in backend/src/services/chores/service.py and backend/src/api/chores.py
+- [x] T017 [P] [US3] Add blocking field to useChores hook types and include blocking in useUpdateChore mutation payload in frontend/src/hooks/useChores.ts
+- [x] T018 [US3] Add "Blocking" toggle switch following ai_enhance_enabled pattern (Switch component with label and onCheckedChange calling updateChore) in frontend/src/components/chores/ChoreCard.tsx
 
 **Checkpoint**: Chores can be configured as blocking from the UI. Triggered blocking chores create issues that enter the blocking queue correctly. Pipeline inheritance works.
 
@@ -105,10 +105,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [P] [US4] Add 'blocking' to pipeline column allowlist and update row-to-model conversion to include blocking field in backend/src/services/pipelines/service.py
-- [ ] T020 [US4] Add blocking field to pipeline create/update/read endpoints in backend/src/api/pipelines.py
-- [ ] T021 [P] [US4] Add blocking field to usePipelineConfig hook types and include blocking in update mutation payload in frontend/src/hooks/usePipelineConfig.ts
-- [ ] T022 [US4] Add "Blocking" toggle switch with tooltip ("When enabled, every issue this pipeline creates will be blocking and serialize activation") to pipeline config form in frontend/src/components/pipeline/SavedWorkflowsList.tsx
+- [x] T019 [P] [US4] Add 'blocking' to pipeline column allowlist and update row-to-model conversion to include blocking field in backend/src/services/pipelines/service.py
+- [x] T020 [US4] Add blocking field to pipeline create/update/read endpoints in backend/src/api/pipelines.py
+- [x] T021 [P] [US4] Add blocking field to usePipelineConfig hook types and include blocking in update mutation payload in frontend/src/hooks/usePipelineConfig.ts
+- [x] T022 [US4] Add "Blocking" toggle switch with tooltip ("When enabled, every issue this pipeline creates will be blocking and serialize activation") to pipeline config form in frontend/src/components/pipeline/SavedWorkflowsList.tsx
 
 **Checkpoint**: Pipelines can be configured as blocking from the UI. All issues from blocking pipelines are enqueued as blocking. Toggle persists immediately.
 
@@ -124,14 +124,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T023 [P] [US5] Create unit test for #block detection and stripping in backend/tests/unit/test_chat_block.py — test cases: #block at end of message, #block at beginning, #block in middle, multiple #block occurrences, case-insensitive (#Block, #BLOCK), no #block present, #block as part of other word (e.g., #blockchain should NOT match)
+- [x] T023 [P] [US5] Create unit test for #block detection and stripping in backend/tests/unit/test_chat_block.py — test cases: #block at end of message, #block at beginning, #block in middle, multiple #block occurrences, case-insensitive (#Block, #BLOCK), no #block present, #block as part of other word (e.g., #blockchain should NOT match)
 
 ### Implementation for User Story 5
 
-- [ ] T024 [US5] Add #block detection using case-insensitive regex r'\s*#block\b' at Priority 0.5 (between #agent and feature request) in backend/src/api/chat.py; strip all occurrences from message content before downstream processing; set is_blocking=True flag
-- [ ] T025 [US5] Propagate is_blocking flag through confirm_proposal() to execute_full_workflow() in backend/src/api/chat.py ensuring the flag reaches enqueue_issue()
-- [ ] T026 [P] [US5] Add #block to command autocomplete suggestions list with description "Mark the resulting issue as blocking" and Lock icon in frontend/src/components/chat/ChatInterface.tsx
-- [ ] T027 [US5] Add reactive visual 🔒 badge indicator on message composer when #block is detected in typed text (using regex /\b#block\b/i) in frontend/src/components/chat/ChatInterface.tsx
+- [x] T024 [US5] Add #block detection using case-insensitive regex r'\s*#block\b' at Priority 0.5 (between #agent and feature request) in backend/src/api/chat.py; strip all occurrences from message content before downstream processing; set is_blocking=True flag
+- [x] T025 [US5] Propagate is_blocking flag through confirm_proposal() to execute_full_workflow() in backend/src/api/chat.py ensuring the flag reaches enqueue_issue()
+- [x] T026 [P] [US5] Add #block to command autocomplete suggestions list with description "Mark the resulting issue as blocking" and Lock icon in frontend/src/components/chat/ChatInterface.tsx
+- [x] T027 [US5] Add reactive visual 🔒 badge indicator on message composer when #block is detected in typed text (using regex /\b#block\b/i) in frontend/src/components/chat/ChatInterface.tsx
 
 **Checkpoint**: Chat `#block` command works end-to-end. Users see autocomplete suggestions and visual feedback, and resulting issues are correctly enqueued as blocking.
 
@@ -145,10 +145,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T028 [P] [US6] Add 🔒 "Blocking" badge (amber-colored, Lock icon from lucide-react) to issue cards that have is_blocking=true in frontend/src/components/board/
-- [ ] T029 [P] [US6] Add "Pending (blocked)" status label (gray-colored, Clock icon) to issue cards with queue_status='pending' in frontend/src/components/board/
+- [x] T028 [P] [US6] Add 🔒 "Blocking" badge (amber-colored, Lock icon from lucide-react) to issue cards that have is_blocking=true in frontend/src/components/board/
+- [x] T029 [P] [US6] Add "Pending (blocked)" status label (gray-colored, Clock icon) to issue cards with queue_status='pending' in frontend/src/components/board/
 - [ ] T030 [US6] Add blocking chain tooltip or collapsible sidebar showing ordered queue, current base branch, and next-in-line issue in frontend/src/components/board/
-- [ ] T031 [US6] Add WebSocket event handler for blocking_queue_updated events and display toast notification "Issue #X is now active — agents starting" for each newly activated issue in frontend
+- [x] T031 [US6] Add WebSocket event handler for blocking_queue_updated events and display toast notification "Issue #X is now active — agents starting" for each newly activated issue in frontend
 
 **Checkpoint**: Board displays correct visual indicators for all blocking queue states. Toast notifications fire when pending issues activate. Users can understand the queue at a glance.
 
@@ -162,7 +162,7 @@
 
 ### Implementation for User Story 7
 
-- [ ] T032 [US7] Add startup recovery in polling loop initialization in backend/src/services/copilot_polling/pipeline.py to query all repos with non-completed blocking queue entries and call try_activate_next(repo_key) for each to recover missed activations during downtime
+- [x] T032 [US7] Add startup recovery in polling loop initialization in backend/src/services/copilot_polling/pipeline.py to query all repos with non-completed blocking queue entries and call try_activate_next(repo_key) for each to recover missed activations during downtime
 
 **Checkpoint**: Blocking queue is resilient to infrastructure events. No issues are permanently stuck in "pending" after restarts.
 
