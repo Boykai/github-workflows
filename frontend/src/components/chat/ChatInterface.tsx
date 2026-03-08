@@ -99,9 +99,9 @@ export function ChatInterface({
     selectFromHistory,
   } = useChatHistory();
 
-  // Cycling placeholder for contextual prompt examples (stops when input has text)
+  // Cycling placeholder for contextual prompt examples (stops when input has text or sending)
   const cyclingPlaceholder = useCyclingPlaceholder(CYCLING_EXAMPLES, {
-    enabled: !input.trim(),
+    enabled: !input.trim() && !isSending,
   });
 
   // File upload management
