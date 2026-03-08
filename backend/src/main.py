@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -11,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from src.config import get_settings, setup_logging
 from src.exceptions import AppException, RateLimitError
+from src.middleware.request_id import request_id_var
 
 logger = logging.getLogger(__name__)
 
@@ -37,127 +39,131 @@ async def _auto_start_copilot_polling() -> bool:
     from src.services.session_store import get_session
     from src.utils import resolve_repository
 
-    polling_status = get_polling_status()
-    if polling_status["is_running"]:
-        return False
+    correlation_token = request_id_var.set(f"bg-copilot-{uuid.uuid4().hex[:8]}")
+    try:
+        polling_status = get_polling_status()
+        if polling_status["is_running"]:
+            return False
 
-    db = get_db()
+        db = get_db()
 
-    # ── Strategy 1: Use a persisted user session ──
-    cursor = await db.execute(
-        """
-        SELECT session_id FROM user_sessions
-        WHERE selected_project_id IS NOT NULL
-        ORDER BY updated_at DESC
-        LIMIT 1
-        """,
-    )
-    row = await cursor.fetchone()
-
-    if row is not None:
-        session = await get_session(db, row["session_id"])
-        if session and session.selected_project_id:
-            try:
-                owner, repo = await resolve_repository(
-                    session.access_token, session.selected_project_id
-                )
-            except Exception:
-                logger.warning(
-                    "Could not resolve repo for project %s — trying webhook token fallback",
-                    session.selected_project_id,
-                )
-            else:
-                started = await ensure_polling_started(
-                    access_token=session.access_token,
-                    project_id=session.selected_project_id,
-                    owner=owner,
-                    repo=repo,
-                    caller="lifespan_auto_start",
-                )
-                if started:
-                    logger.info(
-                        "Auto-started Copilot polling for project %s (%s/%s)",
-                        session.selected_project_id,
-                        owner,
-                        repo,
-                    )
-                return started
-
-    # ── Strategy 2: Webhook token + project_settings fallback ──
-    # When no UI session exists, use GITHUB_WEBHOOK_TOKEN and discover
-    # the project_id from the persisted workflow configuration.
-    settings = get_settings()
-    token = settings.github_webhook_token
-    owner_name = settings.default_repo_owner
-    repo_name = settings.default_repo_name
-
-    if not token or not owner_name or not repo_name:
-        logger.info(
-            "No active session and no GITHUB_WEBHOOK_TOKEN/DEFAULT_REPOSITORY "
-            "configured — polling not auto-started"
-        )
-        return False
-
-    # Prefer explicit DEFAULT_PROJECT_ID if configured.
-    project_id: str | None = settings.default_project_id
-
-    if not project_id:
-        # Find the most recently updated project_settings row whose
-        # workflow_config contains the default repository name.
-        import json
-
-        cursor2 = await db.execute(
+        # ── Strategy 1: Use a persisted user session ──
+        cursor = await db.execute(
             """
-            SELECT project_id, workflow_config FROM project_settings
-            WHERE workflow_config IS NOT NULL
+            SELECT session_id FROM user_sessions
+            WHERE selected_project_id IS NOT NULL
             ORDER BY updated_at DESC
+            LIMIT 1
             """,
         )
-        owner_only_fallback: str | None = None
-        for ps_row in await cursor2.fetchall():
-            try:
-                wf = json.loads(ps_row["workflow_config"])
-                wf_repo = wf.get("repository_name", "")
-                wf_owner = wf.get("repository_owner", "")
+        row = await cursor.fetchone()
 
-                # Exact match: both owner and repo name match
-                if wf_repo == repo_name and (not wf_owner or wf_owner == owner_name):
-                    project_id = ps_row["project_id"]
-                    break
+        if row is not None:
+            session = await get_session(db, row["session_id"])
+            if session and session.selected_project_id:
+                try:
+                    owner, repo = await resolve_repository(
+                        session.access_token, session.selected_project_id
+                    )
+                except Exception:
+                    logger.warning(
+                        "Could not resolve repo for project %s — trying webhook token fallback",
+                        session.selected_project_id,
+                    )
+                else:
+                    started = await ensure_polling_started(
+                        access_token=session.access_token,
+                        project_id=session.selected_project_id,
+                        owner=owner,
+                        repo=repo,
+                        caller="lifespan_auto_start",
+                    )
+                    if started:
+                        logger.info(
+                            "Auto-started Copilot polling for project %s (%s/%s)",
+                            session.selected_project_id,
+                            owner,
+                            repo,
+                        )
+                    return started
 
-                # Owner-only match: repo name is empty/unset but owner matches.
-                # Use as fallback if no exact match is found.
-                if not wf_repo and wf_owner == owner_name and not owner_only_fallback:
-                    owner_only_fallback = ps_row["project_id"]
-            except (json.JSONDecodeError, TypeError):
-                continue
+        # ── Strategy 2: Webhook token + project_settings fallback ──
+        # When no UI session exists, use GITHUB_WEBHOOK_TOKEN and discover
+        # the project_id from the persisted workflow configuration.
+        settings = get_settings()
+        token = settings.github_webhook_token
+        owner_name = settings.default_repo_owner
+        repo_name = settings.default_repo_name
+
+        if not token or not owner_name or not repo_name:
+            logger.info(
+                "No active session and no GITHUB_WEBHOOK_TOKEN/DEFAULT_REPOSITORY "
+                "configured — polling not auto-started"
+            )
+            return False
+
+        # Prefer explicit DEFAULT_PROJECT_ID if configured.
+        project_id: str | None = settings.default_project_id
 
         if not project_id:
-            project_id = owner_only_fallback
+            # Find the most recently updated project_settings row whose
+            # workflow_config contains the default repository name.
+            import json
 
-    if not project_id:
-        logger.info(
-            "No project_settings entry found for %s/%s — polling not auto-started",
-            owner_name,
-            repo_name,
-        )
-        return False
+            cursor2 = await db.execute(
+                """
+                SELECT project_id, workflow_config FROM project_settings
+                WHERE workflow_config IS NOT NULL
+                ORDER BY updated_at DESC
+                """,
+            )
+            owner_only_fallback: str | None = None
+            for ps_row in await cursor2.fetchall():
+                try:
+                    wf = json.loads(ps_row["workflow_config"])
+                    wf_repo = wf.get("repository_name", "")
+                    wf_owner = wf.get("repository_owner", "")
 
-    started = await ensure_polling_started(
-        access_token=token,
-        project_id=project_id,
-        owner=owner_name,
-        repo=repo_name,
-        caller="webhook_token_fallback",
-    )
-    if started:
-        logger.info(
-            "Auto-started Copilot polling via webhook token for project %s (%s/%s)",
-            project_id,
-            owner_name,
-            repo_name,
+                    # Exact match: both owner and repo name match
+                    if wf_repo == repo_name and (not wf_owner or wf_owner == owner_name):
+                        project_id = ps_row["project_id"]
+                        break
+
+                    # Owner-only match: repo name is empty/unset but owner matches.
+                    # Use as fallback if no exact match is found.
+                    if not wf_repo and wf_owner == owner_name and not owner_only_fallback:
+                        owner_only_fallback = ps_row["project_id"]
+                except (json.JSONDecodeError, TypeError):
+                    continue
+
+            if not project_id:
+                project_id = owner_only_fallback
+
+        if not project_id:
+            logger.info(
+                "No project_settings entry found for %s/%s — polling not auto-started",
+                owner_name,
+                repo_name,
+            )
+            return False
+
+        started = await ensure_polling_started(
+            access_token=token,
+            project_id=project_id,
+            owner=owner_name,
+            repo=repo_name,
+            caller="webhook_token_fallback",
         )
-    return started
+        if started:
+            logger.info(
+                "Auto-started Copilot polling via webhook token for project %s (%s/%s)",
+                project_id,
+                owner_name,
+                repo_name,
+            )
+        return started
+    finally:
+        request_id_var.reset(correlation_token)
 
 
 async def _polling_watchdog_loop() -> None:
@@ -176,6 +182,7 @@ async def _polling_watchdog_loop() -> None:
     consecutive_failures = 0
 
     while True:
+        token = request_id_var.set(f"bg-polling-{uuid.uuid4().hex[:8]}")
         try:
             await asyncio.sleep(30)
 
@@ -203,6 +210,8 @@ async def _polling_watchdog_loop() -> None:
             break
         except Exception:
             logger.exception("Unexpected error in polling watchdog")
+        finally:
+            request_id_var.reset(token)
 
 
 async def _session_cleanup_loop() -> None:
@@ -221,6 +230,7 @@ async def _session_cleanup_loop() -> None:
     consecutive_failures = 0
 
     while True:
+        token = request_id_var.set(f"bg-cleanup-{uuid.uuid4().hex[:8]}")
         try:
             # On the success path keep the configured cadence; only apply
             # capped exponential backoff when there have been failures.
@@ -246,6 +256,8 @@ async def _session_cleanup_loop() -> None:
                 "Error in session cleanup task (consecutive_failures=%d)",
                 consecutive_failures,
             )
+        finally:
+            request_id_var.reset(token)
 
 
 @asynccontextmanager

@@ -262,8 +262,8 @@ class TestUpdateChore:
             f"/api/v1/chores/PVT_1/{cid}",
             json={"schedule_type": "time"},
         )
-        assert resp.status_code == 400
-        assert "Invalid chore configuration" in resp.json()["detail"]
+        assert resp.status_code == 422
+        assert "Invalid chore configuration" in resp.json()["error"]
 
     @pytest.mark.anyio
     async def test_update_nonexistent_chore(self, client, mock_db):
@@ -342,8 +342,8 @@ class TestInlineUpdateChoreApi:
                 json={"name": "Renamed chore"},
             )
 
-        assert resp.status_code == 400
-        assert "Could not resolve repository" in resp.json()["detail"]
+        assert resp.status_code == 422
+        assert "Could not resolve repository" in resp.json()["error"]
 
 
 # =============================================================================
@@ -530,7 +530,7 @@ class TestChoreChat:
             )
 
         assert resp.status_code == 500
-        assert "Chat completion failed" in resp.json()["detail"]
+        assert "Failed to complete chat" in resp.json()["error"]
 
 
 # =============================================================================
@@ -579,7 +579,7 @@ class TestManualTrigger:
             resp = await client.post(f"/api/v1/chores/PVT_1/{cid}/trigger")
 
         assert resp.status_code == 409
-        assert "Open instance" in resp.json()["detail"]
+        assert "Open instance" in resp.json()["error"]
 
     @pytest.mark.anyio
     async def test_trigger_404_nonexistent(self, client, mock_db):

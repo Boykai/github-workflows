@@ -110,7 +110,7 @@ class TestGitHubCallback:
             params={"code": "abc", "state": "bad"},
             follow_redirects=False,
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 422
 
     async def test_callback_success(self, client, mock_session, mock_github_auth_service):
         mock_github_auth_service.validate_state = MagicMock(return_value=True)
@@ -133,7 +133,7 @@ class TestGitHubCallback:
             params={"code": "bad", "state": "ok"},
             follow_redirects=False,
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 422
 
 
 # ── POST /auth/dev-login ───────────────────────────────────────────────────
