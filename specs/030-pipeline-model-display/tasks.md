@@ -27,7 +27,7 @@
 
 **Purpose**: Verify baseline — all existing tests pass before making changes. No new project setup required; all infrastructure is already in place.
 
-- [ ] T001 Verify existing backend test suite baseline by running `python -m pytest backend/tests/unit/test_agent_tracking.py -v --tb=short` to confirm all current tests pass before modifications
+- [x] T001 Verify existing backend test suite baseline by running `python -m pytest backend/tests/unit/test_agent_tracking.py -v --tb=short` to confirm all current tests pass before modifications
 
 **Checkpoint**: Baseline confirmed. All existing agent tracking tests pass. Ready for implementation.
 
@@ -39,8 +39,8 @@
 
 **⚠️ CRITICAL**: The `model` field on `AgentStep` is required by US1 (model display) and US2 (TBD placeholder). No user story work can begin until this field exists.
 
-- [ ] T002 Add `model: str = ""` field to the `AgentStep` dataclass between `agent_name` and `state` fields in backend/src/services/agent_tracking.py — the empty string default ensures backward compatibility with all existing instantiations of `AgentStep` throughout the codebase
-- [ ] T003 Update the module-level docstring at the top of backend/src/services/agent_tracking.py to show the new 5-column table format (`| # | Status | Agent | Model | State |`) replacing the old 4-column example, so the documentation matches the new behavior
+- [x] T002 Add `model: str = ""` field to the `AgentStep` dataclass between `agent_name` and `state` fields in backend/src/services/agent_tracking.py — the empty string default ensures backward compatibility with all existing instantiations of `AgentStep` throughout the codebase
+- [x] T003 Update the module-level docstring at the top of backend/src/services/agent_tracking.py to show the new 5-column table format (`| # | Status | Agent | Model | State |`) replacing the old 4-column example, so the documentation matches the new behavior
 
 **Checkpoint**: `AgentStep` has a `model` field with default `""`. All existing tests still pass (the new field has a default value). Ready for US1 implementation.
 
@@ -54,14 +54,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Update `build_agent_pipeline_steps()` in backend/src/services/agent_tracking.py to extract `model_name` from each `AgentAssignment.config` dict — use logic: `model = agent.config.get("model_name", "") if isinstance(getattr(agent, "config", None), dict) else ""` — and pass it to the `AgentStep` constructor as `model=model`
-- [ ] T005 [US1] Update `render_tracking_markdown()` in backend/src/services/agent_tracking.py to render the new 5-column table: change header to `| # | Status | Agent | Model | State |`, update separator row to `|---|--------|-------|-------|-------|`, and update each row to include the model display value with pipe character escaping — use `model_display = (step.model or "TBD").replace("|", "\\|")` — placing Model between Agent and State columns
-- [ ] T006 [US1] Update `_ROW_RE` regex in backend/src/services/agent_tracking.py to match the new 5-column format: `r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*` `` `([^`]+)` `` `\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|"` — this regex captures index, status, agent_name, model, and state as groups 1–5
-- [ ] T007 [US1] Add a legacy fallback regex `_ROW_RE_OLD` in backend/src/services/agent_tracking.py matching the old 4-column format: `r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*` `` `([^`]+)` `` `\s*\|\s*([^|]+?)\s*\|"` — this preserves backward compatibility for parsing existing issues with the old table format
-- [ ] T008 [US1] Update `parse_tracking_from_body()` in backend/src/services/agent_tracking.py to first try matching rows with the new 5-column `_ROW_RE` (populating `AgentStep.model` from group 4, with state from group 5), and fall back to `_ROW_RE_OLD` for old 4-column rows (setting `model=""`, with state from group 4) — ensuring both old and new table formats are parsed correctly
-- [ ] T009 [US1] Update tests in backend/tests/unit/test_agent_tracking.py: modify `SAMPLE_BODY` to use the new 5-column format with Model column, add `SAMPLE_BODY_LEGACY` constant with the old 4-column format, update `TestRenderTrackingMarkdown` to verify Model column appears in output with correct model names, update `TestParseTrackingFromBody` to verify model field is populated from parsed rows
-- [ ] T010 [US1] Add test for backward-compatible parsing in backend/tests/unit/test_agent_tracking.py: parse `SAMPLE_BODY_LEGACY` (old 4-column format) and verify all `AgentStep.model` fields default to `""`, ensuring old issues continue to parse correctly
-- [ ] T011 [US1] Update `TestBuildAgentPipelineSteps` in backend/tests/unit/test_agent_tracking.py: extend `_FakeAgent` with an optional `config` attribute, add test case verifying that `build_agent_pipeline_steps()` extracts `model_name` from `agent.config` dict and populates `AgentStep.model`
+- [x] T004 [US1] Update `build_agent_pipeline_steps()` in backend/src/services/agent_tracking.py to extract `model_name` from each `AgentAssignment.config` dict — use logic: `model = agent.config.get("model_name", "") if isinstance(getattr(agent, "config", None), dict) else ""` — and pass it to the `AgentStep` constructor as `model=model`
+- [x] T005 [US1] Update `render_tracking_markdown()` in backend/src/services/agent_tracking.py to render the new 5-column table: change header to `| # | Status | Agent | Model | State |`, update separator row to `|---|--------|-------|-------|-------|`, and update each row to include the model display value with pipe character escaping — use `model_display = (step.model or "TBD").replace("|", "\\|")` — placing Model between Agent and State columns
+- [x] T006 [US1] Update `_ROW_RE` regex in backend/src/services/agent_tracking.py to match the new 5-column format: `r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*` `` `([^`]+)` `` `\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|"` — this regex captures index, status, agent_name, model, and state as groups 1–5
+- [x] T007 [US1] Add a legacy fallback regex `_ROW_RE_OLD` in backend/src/services/agent_tracking.py matching the old 4-column format: `r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*` `` `([^`]+)` `` `\s*\|\s*([^|]+?)\s*\|"` — this preserves backward compatibility for parsing existing issues with the old table format
+- [x] T008 [US1] Update `parse_tracking_from_body()` in backend/src/services/agent_tracking.py to first try matching rows with the new 5-column `_ROW_RE` (populating `AgentStep.model` from group 4, with state from group 5), and fall back to `_ROW_RE_OLD` for old 4-column rows (setting `model=""`, with state from group 4) — ensuring both old and new table formats are parsed correctly
+- [x] T009 [US1] Update tests in backend/tests/unit/test_agent_tracking.py: modify `SAMPLE_BODY` to use the new 5-column format with Model column, add `SAMPLE_BODY_LEGACY` constant with the old 4-column format, update `TestRenderTrackingMarkdown` to verify Model column appears in output with correct model names, update `TestParseTrackingFromBody` to verify model field is populated from parsed rows
+- [x] T010 [US1] Add test for backward-compatible parsing in backend/tests/unit/test_agent_tracking.py: parse `SAMPLE_BODY_LEGACY` (old 4-column format) and verify all `AgentStep.model` fields default to `""`, ensuring old issues continue to parse correctly
+- [x] T011 [US1] Update `TestBuildAgentPipelineSteps` in backend/tests/unit/test_agent_tracking.py: extend `_FakeAgent` with an optional `config` attribute, add test case verifying that `build_agent_pipeline_steps()` extracts `model_name` from `agent.config` dict and populates `AgentStep.model`
 
 **Checkpoint**: Agent Pipeline table renders with a "Model" column showing correct model names. Old 4-column tables parse correctly with model defaulting to empty string. This is the MVP — the core feature is functional.
 
@@ -75,8 +75,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Add test cases for TBD placeholder in backend/tests/unit/test_agent_tracking.py: verify `render_tracking_markdown()` outputs "TBD" when `AgentStep.model` is `""`, verify `build_agent_pipeline_steps()` sets `model=""` when `agent.config` is `None`, when `agent.config` is `{}`, and when `agent.config` has no `model_name` key
-- [ ] T013 [US2] Add test for mixed model/TBD rendering in backend/tests/unit/test_agent_tracking.py: create a list of `AgentStep` objects where some have model names and some have `model=""`, render with `render_tracking_markdown()`, and verify the output contains both model names and "TBD" placeholders in the correct rows
+- [x] T012 [US2] Add test cases for TBD placeholder in backend/tests/unit/test_agent_tracking.py: verify `render_tracking_markdown()` outputs "TBD" when `AgentStep.model` is `""`, verify `build_agent_pipeline_steps()` sets `model=""` when `agent.config` is `None`, when `agent.config` is `{}`, and when `agent.config` has no `model_name` key
+- [x] T013 [US2] Add test for mixed model/TBD rendering in backend/tests/unit/test_agent_tracking.py: create a list of `AgentStep` objects where some have model names and some have `model=""`, render with `render_tracking_markdown()`, and verify the output contains both model names and "TBD" placeholders in the correct rows
 
 **Checkpoint**: "TBD" placeholder appears consistently for all agents without model assignments. Mixed pipelines (some with models, some without) render correctly. Visual consistency is maintained.
 
@@ -90,9 +90,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add test for model preservation through state update cycle in backend/tests/unit/test_agent_tracking.py: create a body with a 5-column tracking table containing model names, call `mark_agent_active()` on one agent, parse the resulting body, and verify all `AgentStep.model` fields are preserved (not lost during the parse → modify → render cycle)
-- [ ] T015 [US3] Add test for natural migration of old tables in backend/tests/unit/test_agent_tracking.py: start with a body containing an old 4-column tracking table, call `update_agent_state()` to modify an agent's state, parse the resulting body, and verify it now has the new 5-column format with "TBD" in all Model columns (demonstrating automatic forward migration)
-- [ ] T016 [US3] Add test for `append_tracking_to_body()` idempotency in backend/tests/unit/test_agent_tracking.py: call `append_tracking_to_body()` on a body that already has a 5-column tracking table, and verify the result still has exactly one tracking section with the correct 5-column format (no duplicate Model columns or double tracking sections)
+- [x] T014 [US3] Add test for model preservation through state update cycle in backend/tests/unit/test_agent_tracking.py: create a body with a 5-column tracking table containing model names, call `mark_agent_active()` on one agent, parse the resulting body, and verify all `AgentStep.model` fields are preserved (not lost during the parse → modify → render cycle)
+- [x] T015 [US3] Add test for natural migration of old tables in backend/tests/unit/test_agent_tracking.py: start with a body containing an old 4-column tracking table, call `update_agent_state()` to modify an agent's state, parse the resulting body, and verify it now has the new 5-column format with "TBD" in all Model columns (demonstrating automatic forward migration)
+- [x] T016 [US3] Add test for `append_tracking_to_body()` idempotency in backend/tests/unit/test_agent_tracking.py: call `append_tracking_to_body()` on a body that already has a 5-column tracking table, and verify the result still has exactly one tracking section with the correct 5-column format (no duplicate Model columns or double tracking sections)
 
 **Checkpoint**: Model field is preserved through all state update cycles. Old 4-column tables are naturally migrated to 5-column format on first state update. `append_tracking_to_body()` is idempotent. Dynamic synchronization is verified.
 
@@ -102,11 +102,11 @@
 
 **Purpose**: Final validation, edge case testing, and regression verification across all user stories.
 
-- [ ] T017 [P] Add edge case test for special characters in model names in backend/tests/unit/test_agent_tracking.py: create an `AgentStep` with a model name containing pipe characters (e.g., "model|v2"), render with `render_tracking_markdown()`, and verify the pipe is escaped as `\|` so the Markdown table renders correctly
-- [ ] T018 [P] Add edge case test for very long model names in backend/tests/unit/test_agent_tracking.py: create an `AgentStep` with a long model name (e.g., "custom-fine-tuned-gpt-4o-2026-03-extended-context"), render and verify the table still contains the full name without truncation
-- [ ] T019 Run full agent tracking test suite: `python -m pytest backend/tests/unit/test_agent_tracking.py -v --tb=short` to verify all existing and new tests pass
-- [ ] T020 [P] Run backend linter: `ruff check backend/src/services/agent_tracking.py backend/tests/unit/test_agent_tracking.py` to verify code style compliance
-- [ ] T021 Run quickstart.md verification checklist from specs/030-pipeline-model-display/quickstart.md: model in table, TBD placeholder, mixed models, backward parsing, re-render migration, special characters, idempotent append, all existing tests pass
+- [x] T017 [P] Add edge case test for special characters in model names in backend/tests/unit/test_agent_tracking.py: create an `AgentStep` with a model name containing pipe characters (e.g., "model|v2"), render with `render_tracking_markdown()`, and verify the pipe is escaped as `\|` so the Markdown table renders correctly
+- [x] T018 [P] Add edge case test for very long model names in backend/tests/unit/test_agent_tracking.py: create an `AgentStep` with a long model name (e.g., "custom-fine-tuned-gpt-4o-2026-03-extended-context"), render and verify the table still contains the full name without truncation
+- [x] T019 Run full agent tracking test suite: `python -m pytest backend/tests/unit/test_agent_tracking.py -v --tb=short` to verify all existing and new tests pass
+- [x] T020 [P] Run backend linter: `ruff check backend/src/services/agent_tracking.py backend/tests/unit/test_agent_tracking.py` to verify code style compliance
+- [x] T021 Run quickstart.md verification checklist from specs/030-pipeline-model-display/quickstart.md: model in table, TBD placeholder, mixed models, backward parsing, re-render migration, special characters, idempotent append, all existing tests pass
 
 ---
 
