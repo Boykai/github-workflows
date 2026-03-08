@@ -106,7 +106,7 @@ Keys use hierarchical dot-notation: `{area}.{section}.{element}`
 
 ### Tooltip Display Lifecycle
 
-```
+```text
                     ┌────────────┐
                     │   HIDDEN    │  Tooltip not visible
                     └──────┬─────┘
@@ -148,7 +148,7 @@ Keys use hierarchical dot-notation: `{area}.{section}.{element}`
 
 ### Progressive Disclosure Flow
 
-```
+```text
 User triggers tooltip
     │
     ▼
@@ -175,7 +175,7 @@ User triggers tooltip
 
 ### Content Resolution Flow
 
-```
+```text
 Tooltip component receives props
     │
     ├── contentKey provided?
@@ -232,6 +232,7 @@ The following existing CSS variables are used for tooltip styling:
 | `--radius` | `1rem` | `1rem` | Border radius base |
 
 **Contrast ratios** (verified):
+
 - Light theme: `--popover-foreground` on `--popover` → ~10.2:1 (exceeds 4.5:1 AA)
 - Dark theme: `--popover-foreground` on `--popover` → ~12.8:1 (exceeds 4.5:1 AA)
 
@@ -263,6 +264,7 @@ Every tooltip instance generates the following ARIA structure:
 ```
 
 Radix UI automatically manages:
+
 - `aria-describedby` association between trigger and tooltip
 - `role="tooltip"` on the tooltip content
 - Focus management (tooltip triggers on Tab focus)
