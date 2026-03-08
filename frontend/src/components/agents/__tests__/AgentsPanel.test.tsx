@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
+import { within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { AgentsPanel } from '../AgentsPanel';
 import type { AgentConfig } from '@/services/api';
@@ -12,6 +13,20 @@ const mockUseClearPendingAgents = vi.fn();
 const mockUseDeleteAgent = vi.fn();
 const mockUseCreateAgent = vi.fn();
 const mockUseUpdateAgent = vi.fn();
+const mockUseBulkUpdateModels = vi.fn();
+const mockUseModels = vi.fn();
+
+vi.mock('@/hooks/useModels', () => ({
+  useModels: (...args: unknown[]) => mockUseModels(...args),
+}));
+
+vi.mock('@/components/pipeline/ModelSelector', () => ({
+  ModelSelector: ({ onSelect }: { onSelect?: (id: string, name: string) => void }) => (
+    <button type="button" onClick={() => onSelect?.('model-1', 'GPT-5')}>
+      Select model
+    </button>
+  ),
+}));
 
 vi.mock('@/hooks/useAgents', () => ({
   useAgentsList: (...args: unknown[]) => mockUseAgentsList(...args),
@@ -20,6 +35,7 @@ vi.mock('@/hooks/useAgents', () => ({
   useDeleteAgent: (...args: unknown[]) => mockUseDeleteAgent(...args),
   useCreateAgent: (...args: unknown[]) => mockUseCreateAgent(...args),
   useUpdateAgent: (...args: unknown[]) => mockUseUpdateAgent(...args),
+  useBulkUpdateModels: (...args: unknown[]) => mockUseBulkUpdateModels(...args),
 }));
 
 function createWrapper() {
@@ -87,6 +103,92 @@ describe('AgentsPanel', () => {
       mutateAsync: vi.fn().mockResolvedValue({ pr_url: 'https://example.test/pr/1' }),
       isPending: false,
     });
+    mockUseBulkUpdateModels.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      data: undefined,
+      error: null,
+    });
+    mockUseModels.mockReturnValue({
+      refreshModels: vi.fn(),
+      isRefreshing: false,
+    });
+  });
+
+  it('prioritizes the top three used agents in the featured section', () => {
+    const agents = [
+      createAgent({ id: 'a1', slug: 'alpha', name: 'Alpha', created_at: '2026-03-01T00:00:00Z' }),
+      createAgent({ id: 'a2', slug: 'beta', name: 'Beta', created_at: '2026-03-01T00:00:00Z' }),
+      createAgent({ id: 'a3', slug: 'gamma', name: 'Gamma', created_at: '2026-03-01T00:00:00Z' }),
+      createAgent({ id: 'a4', slug: 'delta', name: 'Delta', created_at: '2026-03-01T00:00:00Z' }),
+    ];
+    mockUseAgentsList.mockReturnValue({ data: agents, isLoading: false, error: null });
+
+    render(
+      <AgentsPanel
+        projectId="PVT_1"
+        agentUsageCounts={{ alpha: 7, beta: 5, gamma: 3, delta: 1 }}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const featuredHeading = screen.getByRole('heading', {
+      name: 'The agents setting the tone right now',
+    });
+    const featuredSection = featuredHeading.closest('section');
+    expect(featuredSection).not.toBeNull();
+
+    const featured = within(featuredSection as HTMLElement);
+    expect(featured.getByText('Alpha')).toBeInTheDocument();
+    expect(featured.getByText('Beta')).toBeInTheDocument();
+    expect(featured.getByText('Gamma')).toBeInTheDocument();
+    expect(featured.queryByText('Delta')).not.toBeInTheDocument();
+  });
+
+  it('supplements featured agents with recent agents when usage data has fewer than three matches', () => {
+    const now = new Date().toISOString();
+    const agents = [
+      createAgent({ id: 'a1', slug: 'alpha', name: 'Alpha', created_at: '2026-03-01T00:00:00Z' }),
+      createAgent({ id: 'a2', slug: 'beta', name: 'Beta', created_at: now }),
+      createAgent({ id: 'a3', slug: 'gamma', name: 'Gamma', created_at: now }),
+      createAgent({ id: 'a4', slug: 'delta', name: 'Delta', created_at: '2026-02-01T00:00:00Z' }),
+    ];
+    mockUseAgentsList.mockReturnValue({ data: agents, isLoading: false, error: null });
+
+    render(
+      <AgentsPanel
+        projectId="PVT_1"
+        agentUsageCounts={{ alpha: 4, beta: 0, gamma: 0, delta: 0 }}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const featuredHeading = screen.getByRole('heading', {
+      name: 'The agents setting the tone right now',
+    });
+    const featured = within(featuredHeading.closest('section') as HTMLElement);
+    expect(featured.getByText('Alpha')).toBeInTheDocument();
+    expect(featured.getByText('Beta')).toBeInTheDocument();
+    expect(featured.getByText('Gamma')).toBeInTheDocument();
+    expect(featured.queryByText('Delta')).not.toBeInTheDocument();
+  });
+
+  it('opens the bulk model update dialog from the catalog controls', async () => {
+    mockUseAgentsList.mockReturnValue({
+      data: [createAgent({ id: 'a1', slug: 'alpha', name: 'Alpha' })],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /update all models/i }));
+
+    expect(screen.getByRole('dialog', { name: 'Bulk model update dialog' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Update All Agent Models' })).toBeInTheDocument();
   });
 
   it('opens the edit modal for pending local agents', async () => {

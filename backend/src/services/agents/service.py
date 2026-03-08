@@ -28,6 +28,8 @@ from src.models.agents import (
     AgentSource,
     AgentStatus,
     AgentUpdate,
+    BulkModelUpdateRequest,
+    BulkModelUpdateResult,
 )
 from src.services.agent_creator import generate_config_files, generate_issue_body
 from src.services.cache import cache, get_repo_agents_cache_key
@@ -169,6 +171,53 @@ class AgentsService:
             await self._db.commit()
 
         return AgentPendingCleanupResult(deleted_count=len(deleted_ids))
+
+    async def bulk_update_models(
+        self,
+        *,
+        project_id: str,
+        owner: str,
+        repo: str,
+        github_user_id: str,
+        body: BulkModelUpdateRequest,
+        access_token: str,
+    ) -> BulkModelUpdateResult:
+        """Update the default model for all active agents in a project."""
+        agents = await self.list_agents(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+        )
+
+        updated_agents: list[str] = []
+        failed_agents: list[str] = []
+
+        for agent in agents:
+            try:
+                await self._save_runtime_model_selection(
+                    project_id=project_id,
+                    owner=owner,
+                    repo=repo,
+                    github_user_id=github_user_id,
+                    agent=agent,
+                    default_model_id=body.target_model_id,
+                    default_model_name=body.target_model_name,
+                )
+                updated_agents.append(agent.slug)
+            except Exception:
+                logger.exception("Failed to update model for agent %s", agent.slug)
+                failed_agents.append(agent.slug)
+
+        return BulkModelUpdateResult(
+            success=len(failed_agents) == 0,
+            updated_count=len(updated_agents),
+            failed_count=len(failed_agents),
+            updated_agents=updated_agents,
+            failed_agents=failed_agents,
+            target_model_id=body.target_model_id,
+            target_model_name=body.target_model_name,
+        )
 
     async def get_model_preferences(self, project_id: str) -> dict[str, tuple[str, str]]:
         """Return slug → (default_model_id, default_model_name) from local SQLite only."""

@@ -19,6 +19,8 @@ from src.models.agents import (
     AgentDeleteResult,
     AgentPendingCleanupResult,
     AgentUpdate,
+    BulkModelUpdateRequest,
+    BulkModelUpdateResult,
 )
 from src.models.tools import AgentToolsResponse, AgentToolsUpdate
 from src.models.user import UserSession
@@ -114,6 +116,41 @@ async def purge_pending_agents(
         repo,
     )
     return await service.purge_pending_agents(project_id=project_id)
+
+
+# ── Bulk Model Update ──
+
+
+@router.patch(
+    "/{project_id}/bulk-model",
+    response_model=BulkModelUpdateResult,
+    dependencies=[Depends(verify_project_access)],
+)
+async def bulk_update_models(
+    project_id: str,
+    body: BulkModelUpdateRequest,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> BulkModelUpdateResult:
+    """Update the default model for all active agents in a project."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
+        raise HTTPException(
+            status_code=400,
+            detail="Could not resolve repository for this project",
+        ) from exc
+
+    return await service.bulk_update_models(
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        github_user_id=session.github_user_id,
+        body=body,
+        access_token=session.access_token,
+    )
 
 
 # ── Create ──

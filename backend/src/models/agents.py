@@ -114,3 +114,22 @@ class AgentPreviewResponse(BaseModel):
     system_prompt: str
     status_column: str = ""
     tools: list[str] = Field(default_factory=list)
+
+
+class BulkModelUpdateRequest(BaseModel):
+    """Request body for bulk model update — applies a target model to all agents."""
+
+    target_model_id: str = Field(..., min_length=1, max_length=200)
+    target_model_name: str = Field(..., min_length=1, max_length=200)
+
+
+class BulkModelUpdateResult(BaseModel):
+    """Response from bulk model update endpoint."""
+
+    success: bool = True
+    updated_count: int
+    failed_count: int = 0
+    updated_agents: list[str] = Field(default_factory=list)
+    failed_agents: list[str] = Field(default_factory=list)
+    target_model_id: str
+    target_model_name: str
