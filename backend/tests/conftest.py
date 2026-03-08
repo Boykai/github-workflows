@@ -230,6 +230,7 @@ async def client(
         # get_db — patched for settings and MCP routes (direct call, not Depends)
         patch("src.api.settings.get_db", return_value=mock_db),
         patch("src.api.mcp.get_db", return_value=mock_db),
+        patch("src.api.tools.get_db", return_value=mock_db),
     ):
         transport = ASGITransport(app=app)
         async with AsyncClient(

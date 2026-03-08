@@ -1150,6 +1150,34 @@ export interface McpToolSyncResult {
   sync_status: McpToolSyncStatus;
   sync_error: string;
   synced_at: string | null;
+  synced_paths: string[];
+}
+
+export interface RepoMcpServerConfig {
+  name: string;
+  config: Record<string, unknown>;
+  source_paths: string[];
+}
+
+export interface RepoMcpConfigResponse {
+  paths_checked: string[];
+  available_paths: string[];
+  primary_path: string | null;
+  servers: RepoMcpServerConfig[];
+}
+
+export interface McpPreset {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  config_content: string;
+}
+
+export interface McpPresetListResponse {
+  presets: McpPreset[];
+  count: number;
 }
 
 export interface ToolChip {

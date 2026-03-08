@@ -14,6 +14,7 @@ interface UploadMcpModalProps {
   submitError: string | null;
   existingNames?: string[];
   editingTool?: McpToolConfig | null;
+  initialDraft?: Partial<McpToolConfigCreate> | null;
 }
 
 const MAX_CONFIG_SIZE = 262144; // 256 KB
@@ -60,14 +61,14 @@ function validateMcpJson(content: string): string | null {
       }
     }
 
-    if (serverType !== 'http' && serverType !== 'stdio') {
-      return `Server '${name}' must have 'type' of 'http' or 'stdio', or include a 'command' (stdio) or 'url' (http) field`;
+    if (serverType !== 'http' && serverType !== 'stdio' && serverType !== 'local' && serverType !== 'sse') {
+      return `Server '${name}' must have 'type' of 'http', 'stdio', 'local', or 'sse', or include a 'command' or 'url' field`;
     }
-    if (serverType === 'http' && !serverCfg.url) {
-      return `HTTP server '${name}' must have a 'url' field`;
+    if ((serverType === 'http' || serverType === 'sse') && !serverCfg.url) {
+      return `Server '${name}' must have a 'url' field`;
     }
-    if (serverType === 'stdio' && !serverCfg.command) {
-      return `Stdio server '${name}' must have a 'command' field`;
+    if ((serverType === 'stdio' || serverType === 'local') && !serverCfg.command) {
+      return `Server '${name}' must have a 'command' field`;
     }
   }
 
@@ -83,6 +84,7 @@ export function UploadMcpModal({
   submitError,
   existingNames = [],
   editingTool = null,
+  initialDraft = null,
 }: UploadMcpModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -136,8 +138,19 @@ export function UploadMcpModal({
       setMultiServerWarning(null);
       return;
     }
+    if (initialDraft) {
+      setName(initialDraft.name ?? '');
+      setDescription(initialDraft.description ?? '');
+      setConfigContent(initialDraft.config_content ?? '');
+      setGithubRepoTarget(initialDraft.github_repo_target ?? '');
+      setMode('paste');
+      setValidationError(null);
+      setDuplicateWarning(null);
+      setMultiServerWarning(null);
+      return;
+    }
     resetForm();
-  }, [editingTool, isOpen, resetForm]);
+  }, [editingTool, initialDraft, isOpen, resetForm]);
 
   useEffect(() => {
     if (name.trim() && reservedNames.includes(name.trim())) {
@@ -240,6 +253,10 @@ export function UploadMcpModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+            Saving a tool now syncs its configuration to both `.copilot/mcp.json` and `.vscode/mcp.json` for GitHub agents and local editors.
+          </div>
+
           {/* Name */}
           <div>
             <label htmlFor="tool-name" className="block text-sm font-medium mb-1">Name</label>
