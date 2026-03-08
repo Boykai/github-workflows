@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
+import { formatAgentName } from '@/utils/formatAgentName';
 import { pipelinesApi } from '@/services/api';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
@@ -35,7 +36,7 @@ function resolvePreset(
     if (actualCol) {
       // Deep-clone each assignment with fresh UUIDs
       result[actualCol] = assignments.map((a) =>
-        makeAssignment(a.slug, a.display_name ?? a.slug)
+        makeAssignment(a.slug, formatAgentName(a.slug, a.display_name))
       );
     }
   }
@@ -62,7 +63,7 @@ function pipelineConfigToMappings(
     const matchedCol = lowerMap.get(stage.name.toLowerCase());
     if (matchedCol) {
       result[matchedCol] = stage.agents.map((agent) =>
-        makeAssignment(agent.agent_slug, agent.agent_display_name || agent.agent_slug)
+        makeAssignment(agent.agent_slug, formatAgentName(agent.agent_slug, agent.agent_display_name))
       );
     }
   }

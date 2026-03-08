@@ -110,11 +110,6 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
         setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
         return false;
       }
-      if (selectedToolIds.length === 0) {
-        setToolsError('At least one tool must be assigned');
-        return false;
-      }
-
       try {
         const result = await updateMutation.mutateAsync({
           agentId: agent.id,

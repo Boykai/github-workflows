@@ -130,8 +130,14 @@ export function SavedWorkflowsList({
 
                 {/* Flow graph */}
                 {pipeline.stages && pipeline.stages.length > 0 && (
-                  <div className="flex justify-center py-1">
-                    <PipelineFlowGraph stages={pipeline.stages} width={236} height={118} className="max-w-full" />
+                  <div className="w-full py-1">
+                    <PipelineFlowGraph
+                      stages={pipeline.stages}
+                      width={420}
+                      height={96}
+                      responsive={true}
+                      className="w-full"
+                    />
                   </div>
                 )}
 

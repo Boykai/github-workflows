@@ -3,16 +3,18 @@
  * Uses themed agent icons connected in stage order for Saved Pipelines and Recent Activity cards.
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { cn } from '@/lib/utils';
 import type { PipelineStage } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface PipelineFlowGraphProps {
   stages: PipelineStage[];
   width?: number;
   height?: number;
   className?: string;
+  responsive?: boolean;
 }
 
 type FlowGraphIconSize = 'sm' | 'md';
@@ -22,7 +24,37 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
   width = 220,
   height = 112,
   className = '',
+  responsive = false,
 }: PipelineFlowGraphProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [responsiveWidth, setResponsiveWidth] = useState<number>(width);
+
+  useEffect(() => {
+    if (!responsive || !containerRef.current) {
+      return undefined;
+    }
+
+    const updateWidth = () => {
+      const nextWidth = Math.round(containerRef.current?.clientWidth ?? width);
+      if (nextWidth > 0) {
+        setResponsiveWidth(nextWidth);
+      }
+    };
+
+    updateWidth();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', updateWidth);
+      return () => window.removeEventListener('resize', updateWidth);
+    }
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [responsive, width]);
+
+  const graphWidth = responsive ? responsiveWidth : width;
+
   const layout = useMemo(() => {
     if (stages.length === 0) {
       return {
@@ -34,9 +66,9 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
       };
     }
 
-    const paddingX = Math.max(16, Math.round(width * 0.07));
+    const paddingX = Math.max(16, Math.round(graphWidth * 0.07));
     const maxAgentsInStage = Math.max(...stages.map((stage) => stage.agents.length), 1);
-    const iconSize: FlowGraphIconSize = width >= 220 && height >= 112 && maxAgentsInStage <= 2 ? 'md' : 'sm';
+    const iconSize: FlowGraphIconSize = graphWidth >= 220 && height >= 112 && maxAgentsInStage <= 2 ? 'md' : 'sm';
     const nodeDiameter = iconSize === 'md' ? 36 : 28;
     const nodeRadius = nodeDiameter / 2;
     const topInset = Math.max(14, nodeRadius + 4);
@@ -47,8 +79,8 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
     const stageAnchors = stages.map((stage, stageIndex) => {
       const x =
         stageCount === 1
-          ? width / 2
-          : paddingX + (stageIndex * (width - paddingX * 2)) / (stageCount - 1);
+          ? graphWidth / 2
+          : paddingX + (stageIndex * (graphWidth - paddingX * 2)) / (stageCount - 1);
 
       return {
         id: stage.id,
@@ -73,7 +105,7 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
       return stage.agents.map((agent, agentIndex) => ({
         id: agent.id,
         slug: agent.agent_slug,
-        displayName: agent.agent_display_name || agent.agent_slug,
+        displayName: formatAgentName(agent.agent_slug, agent.agent_display_name),
         stageLabel: stage.name,
         x: stageAnchors[stageIndex].x,
         y: rowPositions[agentIndex],
@@ -93,23 +125,24 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
 
     const stars = [
       { id: 's1', x: Math.max(10, paddingX - 10), y: topInset - 4, r: 1.2 },
-      { id: 's2', x: width * 0.31, y: height - 16, r: 1.4 },
-      { id: 's3', x: width * 0.56, y: Math.max(8, topInset - 10), r: 1.1 },
-      { id: 's4', x: width * 0.84, y: height * 0.42, r: 1.3 },
-      { id: 's5', x: width - paddingX + 8, y: height - 28, r: 1.1 },
+      { id: 's2', x: graphWidth * 0.31, y: height - 16, r: 1.4 },
+      { id: 's3', x: graphWidth * 0.56, y: Math.max(8, topInset - 10), r: 1.1 },
+      { id: 's4', x: graphWidth * 0.84, y: height * 0.42, r: 1.3 },
+      { id: 's5', x: graphWidth - paddingX + 8, y: height - 28, r: 1.1 },
     ];
 
     return { stageAnchors, nodes, edges, stars, iconSize };
-  }, [stages, width, height]);
+  }, [stages, graphWidth, height]);
 
   if (stages.length === 0) {
     return (
       <div
+        ref={containerRef}
         className={cn(
           'flex items-center justify-center rounded-[1.1rem] border border-dashed border-border/60 bg-background/20 text-[11px] text-muted-foreground',
           className,
         )}
-        style={{ width, height }}
+        style={responsive ? { width: '100%', height } : { width: graphWidth, height }}
       >
         No stages
       </div>
@@ -118,15 +151,16 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         'relative overflow-hidden rounded-[1.25rem] border border-border/60 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_58%),linear-gradient(180deg,hsl(var(--background)/0.72)_0%,hsl(var(--background)/0.92)_100%)]',
         className,
       )}
-      style={{ width, height }}
+      style={responsive ? { width: '100%', height } : { width: graphWidth, height }}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,hsl(var(--glow)/0.16),transparent_18%),radial-gradient(circle_at_82%_24%,hsl(var(--star)/0.08),transparent_16%),radial-gradient(circle_at_50%_78%,hsl(var(--gold)/0.08),transparent_18%)] opacity-90" />
 
-      <svg width={width} height={height} className="absolute inset-0 h-full w-full" aria-hidden="true">
+      <svg width={graphWidth} height={height} className="absolute inset-0 h-full w-full" aria-hidden="true">
         {layout.stageAnchors.map((anchor) => (
           <g key={`guide-${anchor.id}`}>
             <line

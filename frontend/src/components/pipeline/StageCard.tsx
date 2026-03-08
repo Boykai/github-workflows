@@ -10,6 +10,7 @@ import { AgentNode } from './AgentNode';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface StageCardProps {
   stage: PipelineStage;
@@ -223,21 +224,25 @@ export function StageCard({
                     No agents available
                   </div>
                 )}
-                {!agentsLoading && !agentsError && availableAgents.map((agent) => (
-                  <button
-                    key={agent.slug}
-                    type="button"
-                    onClick={() => {
-                      onAddAgent(agent.slug);
-                      setShowAgentPicker(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
-                  >
-                    <ThemedAgentIcon slug={agent.slug} name={agent.display_name} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
-                    <span className="font-medium">{agent.display_name}</span>
-                    <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
-                  </button>
-                ))}
+                {!agentsLoading && !agentsError && availableAgents.map((agent) => {
+                  const displayName = formatAgentName(agent.slug, agent.display_name);
+
+                  return (
+                    <button
+                      key={agent.slug}
+                      type="button"
+                      onClick={() => {
+                        onAddAgent(agent.slug);
+                        setShowAgentPicker(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
+                    >
+                      <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
+                      <span className="font-medium">{displayName}</span>
+                      <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>,

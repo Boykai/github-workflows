@@ -82,7 +82,7 @@ export function ProjectsPage() {
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
 
-  const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
   const refreshRateLimitError = refreshError?.type === 'rate_limit';

@@ -139,11 +139,6 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
       setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
       return false;
     }
-    if (isEditMode && selectedToolIds.length === 0) {
-      setToolsError('At least one tool must be assigned');
-      return false;
-    }
-
     try {
       if (isEditMode && editAgent) {
         const result = await updateMutation.mutateAsync({
