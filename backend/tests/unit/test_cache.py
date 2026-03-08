@@ -179,3 +179,77 @@ class TestCacheClearExpiredSafety:
 
         # Should return None, not raise
         assert cache.get("k1") is None
+
+
+class TestCacheTTLRegression:
+    """Regression tests: verify TTL behaviour aligns with cache-contract.md
+    targets (T022/FR-008, FR-009)."""
+
+    @patch("src.services.cache.get_settings")
+    def test_board_data_cache_default_ttl_300s(self, mock_settings):
+        """Board data cache should use config default (300s by default)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("board_data:PVT_123", {"columns": []})
+
+        entry = cache.get_entry("board_data:PVT_123")
+        assert entry is not None
+        # TTL should put expiry ~300s in the future
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 298 <= remaining <= 301
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_ttl_600s(self, mock_settings):
+        """Sub-issue cache should use 600s TTL per cache-contract.md."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("sub_issues:owner/repo#42", [{"id": 1}], ttl_seconds=600)
+
+        entry = cache.get_entry("sub_issues:owner/repo#42")
+        assert entry is not None
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 598 <= remaining <= 601
+
+    @patch("src.services.cache.get_settings")
+    def test_stale_fallback_serves_expired_data(self, mock_settings):
+        """get_stale() should return data even after TTL expiry."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("board_data:PVT_123", {"columns": ["todo"]}, ttl_seconds=60)
+
+        # Force the entry to be expired by backdating its expiry
+        entry = cache.get_entry("board_data:PVT_123")
+        entry.expires_at = utcnow() - timedelta(seconds=10)
+
+        # get_stale returns the value even when expired
+        assert cache.get_stale("board_data:PVT_123") == {"columns": ["todo"]}
+        # Normal get returns None for expired (and removes the entry)
+        assert cache.get("board_data:PVT_123") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_cache_set_stores_with_correct_custom_ttl(self, mock_settings):
+        """cache.set with explicit ttl_seconds should honour the override."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("key", "val", ttl_seconds=120)
+
+        entry = cache.get_entry("key")
+        assert entry is not None
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 118 <= remaining <= 121
+
+    @patch("src.services.cache.get_settings")
+    def test_refresh_ttl_extends_expiry(self, mock_settings):
+        """refresh_ttl should extend the TTL without changing the value."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("key", "original_value", ttl_seconds=10)
+
+        result = cache.refresh_ttl("key", ttl_seconds=600)
+        assert result is True
+
+        entry = cache.get_entry("key")
+        assert entry is not None
+        assert entry.value == "original_value"
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 598 <= remaining <= 601
