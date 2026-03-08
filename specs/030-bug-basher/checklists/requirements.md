@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
 **Created**: 2026-03-08  
+**Updated**: 2026-03-08  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -19,7 +20,7 @@
 - [x] Success criteria are technology-agnostic (no implementation details)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
-- [x] Scope is clearly bounded
+- [x] Scope is clearly bounded (in-scope and out-of-scope defined)
 - [x] Dependencies and assumptions identified
 
 ## Feature Readiness
@@ -35,5 +36,6 @@
 - The specification includes 5 user stories covering all 5 bug categories in priority order, plus ambiguous issue flagging.
 - 15 functional requirements are defined, each testable and unambiguous.
 - 9 measurable success criteria are defined, all technology-agnostic.
-- 5 edge cases are identified covering multi-category bugs, regressions, dependency constraints, buggy tests, and clean files.
+- 7 edge cases are identified covering multi-category bugs, regressions, dependency constraints, buggy tests, clean files, linting failures, and generated/vendored code.
 - Assumptions are documented in a dedicated section.
+- Explicit scope boundaries define what is in-scope and out-of-scope for the bug bash.

@@ -95,6 +95,8 @@ As a team lead, I want ambiguous or trade-off situations clearly documented in t
 - What happens when a bug fix requires adding a new dependency? The fix is not applied. A `TODO(bug-bash):` comment is added instead, since adding new dependencies is outside the scope of this feature.
 - What happens when a test is itself buggy (passes for the wrong reason) but fixing it reveals a production bug? Both the test fix and the production bug fix are applied and documented as separate entries in the summary.
 - What happens when a file has no bugs? The file is skipped entirely and does not appear in the summary.
+- What happens when a fix passes the test suite but fails linting or formatting checks? The fix must be adjusted to also pass linting and formatting before being committed.
+- What happens when a bug exists in generated or vendored code? Generated or vendored files are excluded from fixes; they may be flagged with a `TODO(bug-bash):` comment if the root cause is in a project-owned file.
 
 ## Requirements *(mandatory)*
 
@@ -108,7 +110,7 @@ As a team lead, I want ambiguous or trade-off situations clearly documented in t
 - **FR-006**: For ambiguous or trade-off situations, the reviewer MUST NOT make the change but MUST add a `TODO(bug-bash):` comment describing the issue, the options, and why it needs a human decision.
 - **FR-007**: After all fixes are applied, the full test suite MUST pass, including all new regression tests.
 - **FR-008**: After all fixes are applied, any existing linting and formatting checks MUST pass.
-- **FR-009**: No fix MUST be committed if the test suite fails — the reviewer MUST iterate on the fix until all tests are green.
+- **FR-009**: A fix MUST NOT be committed if the test suite fails — the reviewer MUST iterate on the fix until all tests are green.
 - **FR-010**: The review MUST NOT change the project's architecture or public API surface.
 - **FR-011**: The review MUST NOT add new dependencies.
 - **FR-012**: The review MUST preserve existing code style and patterns.
@@ -131,6 +133,25 @@ As a team lead, I want ambiguous or trade-off situations clearly documented in t
 - "Public API surface" refers to externally consumed endpoints, function signatures, and data models that downstream consumers depend on.
 - Bug categories are prioritized in the order listed (security > runtime > logic > test quality > code quality), meaning security issues are addressed first.
 - "Minimal and focused" means each fix addresses exactly one bug; unrelated improvements in the same file are not included.
+
+### Scope Boundaries
+
+**In scope:**
+
+- All source code files in the repository (application code, tests, configuration)
+- Bugs across all five categories: security, runtime, logic, test quality, code quality
+- Adding regression tests for each fix
+- Documenting ambiguous issues with TODO comments
+
+**Out of scope:**
+
+- Architectural changes or redesigns
+- Public API surface modifications
+- Adding new third-party dependencies
+- Performance optimization (unless a performance issue is itself a bug, e.g., resource leak)
+- Refactoring or code reorganization beyond what is needed to fix a specific bug
+- Documentation-only changes (unless documentation contains incorrect information that could lead to bugs)
+- Generated or vendored code (flag only if root cause is in project-owned code)
 
 ## Success Criteria *(mandatory)*
 
