@@ -119,6 +119,7 @@ export function AgentCard({
                 type="button"
                 className="rounded-[1rem] transition-transform hover:-translate-y-0.5"
                 onClick={() => setIsIconPickerOpen(true)}
+                aria-label="Choose icon"
               >
                 <ThemedAgentIcon
                   slug={agent.slug}

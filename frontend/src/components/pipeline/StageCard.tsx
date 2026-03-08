@@ -141,6 +141,7 @@ export function StageCard({
           <button
             type="button"
             onClick={onRemove}
+            aria-label="Remove stage"
             className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="h-3.5 w-3.5" />

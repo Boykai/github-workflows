@@ -81,6 +81,7 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
                 size="sm"
                 className="h-7 w-7 p-0 hover:bg-primary/10"
                 onClick={() => onEdit(tool)}
+                aria-label="Edit tool"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
@@ -92,6 +93,7 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
                 className="h-7 w-7 p-0 hover:bg-primary/10"
                 onClick={() => onSync(tool.id)}
                 disabled={isSyncing}
+                aria-label="Re-sync to GitHub"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               </Button>
@@ -103,6 +105,7 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
                 className="solar-action-danger h-7 w-7 p-0"
                 onClick={() => onDelete(tool.id)}
                 disabled={isDeleting}
+                aria-label="Delete tool"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
