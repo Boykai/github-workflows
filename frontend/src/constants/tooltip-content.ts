@@ -30,7 +30,7 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   'board.toolbar.cleanUpButton': {
     title: 'Repository Clean Up',
     summary:
-      "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board.",
+      "Remove stale Solune-generated branches, pull requests, and orphaned issues while preserving 'main', external assets, and items linked to open issues on the project board.",
   },
   'board.toolbar.filterButton': {
     summary:

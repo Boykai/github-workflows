@@ -22,10 +22,8 @@ import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
-import { useAuth } from '@/hooks/useAuth';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { cn } from '@/lib/utils';
 import { History, Lock } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -72,8 +70,6 @@ export function ChatInterface({
   onRejectRecommendation,
   onNewChat,
 }: ChatInterfaceProps) {
-  const { user } = useAuth();
-  const projectId = user?.selected_project_id ?? null;
   const [input, setInput] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);

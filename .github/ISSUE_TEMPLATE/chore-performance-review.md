@@ -1,6 +1,6 @@
 ---
 name: Performance Review
-about: Recurring chore — Performance Review
+about: Recurring chore for a custom GitHub agent to analyze and optimize the codebase
 title: '[CHORE] Performance Review'
 labels: chore
 assignees: ''
@@ -8,60 +8,98 @@ assignees: ''
 
 ## Performance Review
 
-Perform a balanced first pass focused on measurable, low-risk performance gains across backend and frontend. Start by capturing baselines and instrumentation, then fix the highest-value issues already surfaced by the codebase: backend GitHub API churn around board refreshes and polling, and frontend board responsiveness issues caused by broad query invalidation, full-list rerenders, and hot event listeners. Defer broader architectural refactors like virtualization and large service decomposition unless the first pass fails to meet targets.
+Use a custom GitHub coding agent to perform a deep performance, responsiveness, refresh-path, and maintainability review across the live #codebase, then apply the highest-value safe optimizations directly in code.
 
-### Steps
+This repository is actively evolving. Do not assume the stack, frameworks, languages, package managers, or dependency set are static. Start by discovering what exists today, then adapt the optimization plan to the actual implementation.
 
-1. Phase 1 — Baseline and guardrails. Capture current backend and frontend performance baselines before changing behavior. Measure idle API activity for an open board, board endpoint request cost, WebSocket/polling refresh behavior, and frontend render hot spots. Reuse existing tests around cache, polling, WebSocket fallback, and board refresh to define a before/after checklist. This phase blocks all optimization work because the success criteria and regression guardrails depend on it.
-2. Phase 1 — Confirm current backend state against Spec 022. Verify whether WebSocket change detection, board cache TTL alignment, and sub-issue cache invalidation are fully implemented or only partially landed. The current board endpoint already appears to set a 300-second TTL and clears sub-issue cache on manual refresh, so the remaining work should target any still-missing pieces rather than redoing completed items. This step can run in parallel with frontend baseline inspection once the measurement checklist is defined.
-3. Phase 2 — Backend API consumption fixes. Prioritize the highest-value remaining server-side issues: WebSocket subscription refresh logic in the projects API, sub-issue caching behavior for board data, and any remaining unnecessary GitHub calls in polling or repository resolution. Explicitly validate that idle board viewing no longer emits repeated refreshes when data is unchanged, that warm sub-issue caches materially reduce board refresh call count, and that fallback polling does not trigger expensive board refreshes unintentionally. This depends on Phase 1 baselines.
-4. Phase 2 — Frontend refresh-path fixes. Update the real-time and fallback refresh paths so lightweight task updates stay decoupled from the expensive board data query except on manual refresh. Review the interaction between WebSocket updates, fallback polling, auto-refresh, and manual refresh to ensure they use a single coherent policy and do not recreate the prior polling storm. This can proceed in parallel with backend API work once the desired refresh contract is confirmed.
-5. Phase 3 — Frontend render optimization. Target low-risk rendering costs in board and chat surfaces: reduce repeated derived-data work in page components and hooks, stabilize props where useful, memoize heavy card/list components when it actually reduces rerenders, and throttle or rationalize hot event listeners such as drag and popover positioning. Keep this phase intentionally low-risk; avoid introducing new dependencies or virtualization in the first pass unless baseline results show large boards still regress after the lighter fixes.
-6. Phase 3 — Verification and regression coverage. Extend or adjust unit/integration coverage around backend cache behavior, WebSocket change detection, fallback polling, and frontend board refresh logic. Validate with backend tests, frontend tests, and at least one manual network/profile pass to confirm the target improvements are real rather than inferred. This depends on Phases 2 and 3.
-7. Phase 4 — Optional second-wave work. If the first pass still leaves material UI lag on large boards or excessive backend complexity, prepare a follow-on plan for structural changes: board virtualization, deeper service decomposition around GitHub project fetching/polling, bounded cache policies, and stronger instrumentation around request budgets and render timings. This phase is explicitly out of scope for the first implementation unless measurements prove it is necessary.
+## Agent Objective
 
-### Relevant files
+Produce a practical optimization pass that:
 
-- `/root/repos/github-projects-chat/github-workflows/specs/022-api-rate-limit-protection/spec.md` — primary acceptance criteria for idle-rate-limit reduction, sub-issue caching, refresh behavior, and cache TTL alignment.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/projects.py` — projects tasks endpoints and WebSocket subscription flow; likely location for change-detection verification and refresh semantics.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/board.py` — board-data cache behavior, manual refresh semantics, and sub-issue cache invalidation path.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/copilot_polling/polling_loop.py` — polling hot path and expensive background work that can still consume rate limit budget.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/github_projects/service.py` — board/project fetching path and candidate reuse points for sub-issue caching or batching.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/cache.py` — cache TTLs, cache-key helpers, and any bounded-cache improvements if needed.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/utils.py` — shared repository resolution logic to reuse instead of duplicated fallback flows.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/workflow.py` — known duplicate repository-resolution path that may add inconsistency and avoidable work.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useRealTimeSync.ts` — current WebSocket/fallback polling behavior; today it still invalidates board data during polling fallback.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useBoardRefresh.ts` — board auto-refresh policy and manual refresh coordination.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useProjectBoard.ts` — board query ownership and invalidation/refetch strategy.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/board/BoardColumn.tsx` — full column list rendering without memoization or virtualization.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/board/IssueCard.tsx` — likely high-frequency rerender unit for board interactions.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/pages/ProjectsPage.tsx` — render-time sorting/aggregation and board-level derived state.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/chat/ChatPopup.tsx` — hot drag listener path worth throttling.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/agents/AddAgentPopover.tsx` — positioning listeners and update frequency.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_cache.py` — backend cache TTL and stale fallback coverage to extend.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_api_board.py` — board cache and board endpoint behavior to reuse for regression tests.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_copilot_polling.py` — polling behavior and rate-limit-aware logic to reuse.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useRealTimeSync.test.tsx` — refresh invalidation and WebSocket fallback coverage to extend.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useBoardRefresh.test.tsx` — refresh timer and deduplication behavior to reuse.
+1. Discovers the current stack, hot paths, refresh flows, and runtime surfaces.
+2. Measures or approximates current bottlenecks before changing behavior.
+3. Improves backend, frontend, data-fetching, refresh, rendering, and automation performance where the gains are real and safe.
+4. Looks for opportunities to simplify and DRY the codebase when duplication, branching, or fragmented logic is causing unnecessary work, stale behavior, or refresh churn.
+5. Adds or updates validation, regression coverage, instrumentation, or documentation where needed to preserve the gains.
+6. Leaves a concise summary describing what was measured, what was changed, what improved, what was deferred, and what should be reviewed by a human.
 
-### Verification
+## Required Review Scope
 
-1. Backend baseline: measure idle API activity for an open board over a fixed interval and compare against Spec 022 targets; confirm no repeated unchanged refreshes are sent.
-2. Backend automated checks: run Ruff, Pyright, and the targeted pytest files covering cache, board, projects/WebSocket, and polling behavior.
-3. Frontend baseline: profile board load and interaction on a representative project size, inspect network activity for WebSocket, fallback polling, and board query invalidation, and identify repeated rerender sources.
-4. Frontend automated checks: run ESLint, type-checking, Vitest coverage for real-time sync and board refresh hooks, and a build check.
-5. Manual end-to-end check: verify that WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh still bypasses caches when intended, and board interactions remain responsive.
+The agent must inspect the current repository rather than relying on assumptions. Review at least these areas when they exist:
 
-### Decisions
+- Request-heavy backend paths, polling loops, websocket update flows, scheduled/background work, and API endpoints with repeated or redundant upstream calls.
+- Frontend data-fetching, cache invalidation, refresh policies, state synchronization, render loops, repeated derived computations, and expensive list/card rendering.
+- Duplicate logic across services, hooks, pages, utilities, or API layers that increases maintenance cost or causes inconsistent refresh behavior.
+- Opportunities to consolidate shared code paths, centralize refresh contracts, reuse caching, or eliminate redundant transforms.
+- Database queries, cache usage, serialization cost, payload size, and expensive recomputation in read-heavy paths.
+- Container/runtime configuration, build steps, startup behavior, and asset delivery choices that affect developer or runtime performance.
+- CI or automation paths that are unnecessarily slow, duplicated, or doing avoidable work.
 
-- Selected approach: balanced pass across backend and frontend rather than a single-area optimization.
-- Recommended implementation scope for the first pass: low-risk optimizations first, even though the user left the aggressiveness undecided.
-- Included scope: measurement, idle API reduction, refresh-path cleanup, low-risk render optimization, and regression coverage.
-- Excluded from the first pass unless metrics justify it: board virtualization, major service decomposition, dependency changes, and larger architectural rewrites.
-- Baseline measurement is mandatory before code changes so the improvements can be proven and not just assumed.
+## Execution Rules
 
-### Further Considerations
+The agent should follow this workflow:
 
-1. If large boards still feel slow after the low-risk frontend fixes, the next recommended option is virtualization rather than additional scattered memoization.
-2. If backend API churn remains high after Spec 022-aligned fixes, the next recommended option is deeper consolidation in the GitHub projects service and polling pipeline rather than more cache-layer patching.
-3. If repeated performance work is expected in this repo, add lightweight instrumentation or logging around board refresh cost, sub-issue cache hit rate, and refresh-source attribution so regressions are visible earlier.
+1. Discover the current stack first.
+   Identify the active languages, frameworks, package managers, entrypoints, refresh flows, polling mechanisms, and high-traffic paths before proposing changes.
+2. Measure before optimizing.
+   Capture baselines where practical: API activity, request counts, refresh frequency, rerender hot spots, payload size, build time, or other relevant signals for the discovered stack.
+3. Prioritize by impact, safety, and repeat cost.
+   Focus first on optimizations that reduce redundant work, repeated refreshes, unnecessary queries, excess rerenders, duplicated logic, and maintainability drag.
+4. Prefer simplification over cleverness.
+   If the same performance gain can be achieved by removing duplication, unifying a code path, centralizing logic, or simplifying refresh orchestration, prefer that over adding complexity.
+5. Apply changes when the benefit is clear.
+   Do not stop at reporting bottlenecks if the fix is safe and belongs in this repository.
+6. Stay conservative with risky rewrites.
+   Avoid broad architectural churn unless measurement shows the existing design cannot meet reasonable performance targets without it.
+7. Validate the work.
+   Run the relevant tests, type checks, lint checks, builds, or targeted profiling/verification commands for the languages and tooling discovered in the repo.
+
+## Expected Deliverables
+
+The agent should leave behind:
+
+- Code changes for safe performance improvements that belong in this pass.
+- Simplification or DRY refactors where they directly improve performance, refresh correctness, or maintainability.
+- Regression coverage or focused checks for the optimized paths where practical.
+- Documentation or comments only when needed to explain a non-obvious performance contract.
+- A summary grouped by outcome: improved now; deferred and why; human follow-up needed.
+
+## Minimum Reporting Format
+
+In the final summary, include:
+
+1. Stack discovered
+2. Performance surfaces reviewed
+3. Baselines or observations captured
+4. Improvements implemented
+5. DRY or simplification changes made
+6. Validation performed
+7. Deferred opportunities and follow-up actions
+
+## Preferred Optimization Patterns
+
+When applicable, prefer changes like:
+
+- Removing duplicate or competing refresh logic.
+- Narrowing query invalidation and refetch scope.
+- Reusing shared derived data instead of recomputing it in multiple places.
+- Consolidating duplicated backend/service logic that causes repeated I/O or divergent behavior.
+- Reducing unnecessary network requests, polling, serialization, and payload size.
+- Stabilizing hot props/state only where it measurably reduces rerenders.
+- Using caching or memoization only when it simplifies or clearly outperforms the current path.
+- Moving from scattered one-off logic to a single coherent refresh/update contract.
+- Simplifying large conditional flows that obscure performance behavior.
+
+## Out of Scope
+
+Do not spend this pass on speculative micro-optimizations or broad rewrites unless measurement shows they are necessary. Prefer practical, explainable improvements that can be merged safely in an active codebase.
+
+## Success Criteria
+
+This issue is complete when:
+
+- The custom GitHub agent has reviewed the live #codebase rather than a stale assumed stack.
+- Meaningful performance and refresh-path improvements have been applied, not just reported.
+- The agent has considered simplification and DRY opportunities as part of the optimization pass.
+- Relevant validation has been run for the discovered stack.
+- Remaining bottlenecks are documented with rationale and next actions.

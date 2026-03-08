@@ -1083,6 +1083,7 @@ export interface PipelineConfigCreate {
   name: string;
   description?: string;
   stages: PipelineStage[];
+  blocking?: boolean;
 }
 
 export interface PipelineConfigUpdate {
@@ -1123,6 +1124,8 @@ export interface PipelineValidationErrors {
 export interface ProjectPipelineAssignment {
   project_id: string;
   pipeline_id: string;
+  /** Project-level blocking override. null/undefined = use pipeline default. */
+  blocking_override?: boolean | null;
 }
 
 export interface PresetPipelineDefinition {

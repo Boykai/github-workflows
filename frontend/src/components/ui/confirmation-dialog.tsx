@@ -132,6 +132,7 @@ export function ConfirmationDialog({
         className="absolute inset-0 bg-black/50"
         onClick={isLoading ? undefined : handleBackdropClick}
         role="presentation"
+        aria-hidden="true"
       />
 
       {/* Dialog */}

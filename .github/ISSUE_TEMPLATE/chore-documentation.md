@@ -1,196 +1,177 @@
 ---
 name: Documentation Sweep
-about: Recurring chore — Documentation Staleness Sweep
+about: Recurring chore — Deep documentation accuracy check and refresh
 title: '[CHORE] Documentation Sweep'
 labels: chore
 assignees: ''
 ---
 
-## Recurring Documentation Update Process
+## Documentation Accuracy Sweep
 
-## Overview
+### Objective
 
-A structured cadence for keeping all project documentation accurate, complete, and helpful across the full stack — backend API, frontend components, architecture, configuration, and developer guides.
+Perform a deep, codebase-driven documentation audit. Every claim in every doc file and in the custom instructions must be verified against the actual source code, configuration files, and dependency manifests — not memory or assumptions.
 
----
-
-## Cadence
-
-| Review Type            | Frequency     | Trigger                                              |
-|------------------------|---------------|------------------------------------------------------|
-| Inline doc check       | Every PR      | Author + reviewer responsibility                     |
-| Staleness sweep        | Weekly        | Dev rotation (same person as security spot check)    |
-| Full doc review        | Monthly       | Sprint planning item                                 |
-| Architecture audit     | Quarterly     | After major feature milestones                       |
-| New contributor review | On demand     | Before onboarding a new team member                  |
+The codebase evolves continuously. Package versions, Python/Node targets, service ports, API routes, environment variables, directory layouts, and architectural patterns may have changed since docs were last updated. This chore exists to close that gap.
 
 ---
 
-## Phase 1 — PR-Level Checks (Every Pull Request)
+### Sources of Truth (read these first)
 
-The PR author is responsible. Reviewers must not approve if these are unmet.
+Before touching any doc, read and internalize the ground truth:
 
-- [ ] Any new endpoint added to `api/` has a corresponding entry in `docs/api-reference.md`
-- [ ] Any new environment variable added to `config.py` is documented in `docs/configuration.md`
-- [ ] Any change to startup behavior, Docker setup, or prerequisites is reflected in `docs/setup.md`
-- [ ] Any new agent, workflow module, or AI provider change is reflected in `docs/agent-pipeline.md`
-- [ ] Any schema or data model change is reflected in relevant API or architecture docs
-- [ ] PR description references which doc files were updated (or explicitly states "no doc changes needed")
-
-**Add to PR template checklist:**
-
-```markdown
-- [ ] Documentation updated (or confirmed not needed)
-```
-
----
-
-## Phase 2 — Weekly Staleness Sweep (~30 minutes, dev rotation)
-
-A quick pass to catch docs that have drifted from the codebase.
-
-### API Reference (`docs/api-reference.md`)
-
-- [ ] Scan `backend/src/api/` — confirm every route file has matching API table entries
-- [ ] Confirm all path prefixes, methods, and path params are still accurate
-- [ ] Flag any endpoints removed or deprecated but still listed
-
-### Configuration (`docs/configuration.md`)
-
-- [ ] Compare documented env vars against `backend/src/config.py` — add any missing, remove any deleted
-- [ ] Confirm default values and required/optional status are still correct
-
-### Setup Guide (`docs/setup.md`)
-
-- [ ] Confirm Docker Compose and manual setup steps still match project state
-- [ ] Confirm prerequisite versions (Python, Node, Docker) still match `pyproject.toml` and `package.json`
-- [ ] Confirm Codespaces badge and quick start flow still work end-to-end
+| File | What it governs |
+|---|---|
+| `backend/pyproject.toml` | Python version floor, all backend dependencies and version bounds, ruff/pyright/pytest config |
+| `frontend/package.json` | All frontend dependencies and version bounds, npm scripts |
+| `docker-compose.yml` | Service names, container ports, host port bindings, volumes, health checks, env vars passed to containers |
+| `backend/src/config.py` | Every environment variable the backend accepts, types, defaults, required/optional, and validation rules |
+| `backend/src/main.py` | Startup behavior, middleware order, lifespan hooks |
+| `backend/src/migrations/` | Full schema history — tables, columns, constraints (newest migration = current schema) |
+| `backend/src/api/` | Every route file = every endpoint that exists |
+| `backend/src/services/` | Service module structure and responsibilities |
+| `frontend/src/pages/` | Current page/route inventory |
+| `frontend/src/components/` | Component domain breakdown |
+| `.github/agents/copilot-instructions.md` | Custom AI instructions — must stay aligned with all of the above |
 
 ---
 
-## Phase 3 — Monthly Full Documentation Review (~2–3 hours)
+### Scope — What to Check and Fix
 
-### Coverage Audit
+#### 1. Custom Instructions (`.github/agents/copilot-instructions.md`)
 
-Walk every file in `docs/` and verify it is:
+This file is the highest-priority target. An AI coding assistant reading stale instructions will make wrong decisions.
 
-- [ ] **Accurate** — reflects current code behavior, not aspirational or outdated state
-- [ ] **Complete** — no major features or workflows are undocumented
-- [ ] **Consistent** — terminology, naming, and formatting are uniform across files
+- [ ] **Stack versions** — compare every version pinned in this file against `pyproject.toml` and `package.json`. Update any that have drifted.
+- [ ] **Python/Node targets** — confirm runtime targets (e.g. `python:3.13-slim`, `node:22-alpine`) match the actual Docker images and CI setup actions.
+- [ ] **Backend dependencies** — verify listed packages and versions against `pyproject.toml` `[dependencies]` and `[optional-dependencies]`. Add missing packages; remove deleted ones.
+- [ ] **Frontend dependencies** — verify listed packages and versions against `package.json` `dependencies` and `devDependencies`. Add missing; remove deleted.
+- [ ] **Infrastructure section** — verify service names, port mappings, volume names, and health check paths against `docker-compose.yml`.
+- [ ] **Architecture notes** — verify service module names/paths against the actual `backend/src/services/` tree.
+- [ ] **Repo layout** — walk `backend/src/` and `frontend/src/` and reconcile the layout section against reality. Add new directories; remove deleted ones.
+- [ ] **Migration count** — update the migration range (e.g. `001–017`) to match actual files in `backend/src/migrations/`.
+- [ ] **Key tables list** — reconcile listed SQLite tables against actual migration SQL files.
+- [ ] **Commands** — verify every listed command still works with the current toolchain.
+- [ ] **"Do not recreate" list** — confirm deleted compatibility files are still absent and list is still accurate.
 
-| File | Ownership | Key Things to Verify |
-|------|-----------|----------------------|
-| `docs/setup.md` | Infra/DX | Prerequisites, Codespaces flow, env var list, Docker Compose steps |
-| `docs/configuration.md` | Backend | All env vars, types, defaults, and validation rules |
-| `docs/api-reference.md` | Backend | All routes, methods, params, auth requirements, and response shapes |
-| `docs/architecture.md` | Full stack | Service diagram, data flow, WebSocket flow, AI provider list |
-| `docs/agent-pipeline.md` | Backend | Workflow orchestrator modules, Copilot polling, task/issue generation |
-| `docs/custom-agents-best-practices.md` | Backend | Agent authoring patterns, extension points |
-| `docs/signal-integration.md` | Backend | Signal sidecar setup, webhook flow, delivery logic |
-| `docs/testing.md` | Full stack | Test commands, coverage targets, Playwright setup, CI behavior |
-| `docs/troubleshooting.md` | Full stack | Common errors and resolutions — remove fixed issues, add new ones |
-| `docs/project-structure.md` | Full stack | Directory layout — update after any structural refactor |
-| `frontend/docs/` | Frontend | Component patterns, findings log, any frontend-specific guides |
+#### 2. `docs/configuration.md`
 
-### Cross-Reference Check
+- [ ] Every env var in `backend/src/config.py` (`Settings` class fields) appears in the doc — including type, required/optional flag, default value, and description.
+- [ ] No env var in the doc has been removed from `config.py`.
+- [ ] Default values in the doc match the defaults in `config.py` exactly.
+- [ ] Required-in-production flags match the `_validate_production_secrets` validator logic.
 
-- [ ] All internal `docs/` links are valid and resolve to existing headings
-- [ ] Code snippets in docs compile or run without error against current codebase
-- [ ] README.md top-level links to correct doc files
-- [ ] Any external links (GitHub docs, library docs) still resolve to relevant pages
+#### 3. `docs/api-reference.md`
 
-### Readability & Usability
+- [ ] Every route file in `backend/src/api/` has matching entries. Walk each file and compare against the doc.
+- [ ] Path prefixes, methods, path parameters, and auth requirements are accurate.
+- [ ] Any endpoint that was removed or renamed is removed from the doc.
+- [ ] Response shapes described match the Pydantic models in `backend/src/models/`.
 
-- [ ] Each page has a clear purpose statement at the top
-- [ ] Step-by-step guides use numbered lists and include expected outcomes
-- [ ] Configuration tables include: variable name, type, required/optional, default, description
-- [ ] API tables include: method, path, auth required, brief description
-- [ ] Troubleshooting entries follow the format: **Symptom → Cause → Fix**
+#### 4. `docs/architecture.md`
 
----
+- [ ] Service diagram reflects the current Docker Compose topology (3 services: backend, frontend, signal-api) with correct port numbers.
+- [ ] All backend service modules listed match the actual `backend/src/services/` directory tree.
+- [ ] AI provider section reflects current providers: Copilot SDK (default), OpenAI, Azure AI Inference.
+- [ ] WebSocket and SSE flow descriptions match `backend/src/services/websocket.py` and actual usage in the projects API.
+- [ ] Data persistence section lists all current SQLite tables and notes WAL mode.
 
-## Phase 4 — Quarterly Architecture Audit (~half day)
+#### 5. `docs/setup.md`
 
-Run after major feature milestones (new integrations, significant refactors, new agent types).
+- [ ] Prerequisite versions (Python, Node, Docker) match `pyproject.toml` `requires-python`, `package.json` `engines` (if present), and Docker image tags.
+- [ ] Docker Compose steps and service names match `docker-compose.yml`.
+- [ ] Environment variable examples are consistent with `config.py` field names and defaults.
+- [ ] Any env var in setup examples that no longer exists in `config.py` must be removed.
 
-### Architecture Document (`docs/architecture.md`)
+#### 6. `docs/agent-pipeline.md`
 
-- [ ] Service diagram reflects current Docker Compose topology
-- [ ] All backend service modules are represented (Workflow Orchestrator, Copilot Polling, GitHub Projects Service, Signal Bridge, AI providers)
-- [ ] Data flow arrows are accurate — especially WebSocket paths and GitHub API interactions
-- [ ] AI provider list is current (Copilot SDK, OpenAI, Anthropic, etc.)
+- [ ] Module paths for the workflow orchestrator, copilot polling, and GitHub projects service match actual file paths under `backend/src/services/`.
+- [ ] Agent pipeline behavior descriptions are consistent with `backend/src/services/copilot_polling/` and `backend/src/services/workflow_orchestrator/`.
+- [ ] Blocking queue behavior is documented (added in migration 017).
 
-### Decision Records
+#### 7. `docs/project-structure.md`
 
-- [ ] Any significant architectural decision made this quarter is captured as an ADR (Architecture Decision Record) in `docs/decisions/` (create if it doesn't exist)
-- [ ] ADR format: **Context → Decision → Consequences**
+- [ ] Directory tree matches the actual repo layout. Walk the repo and reconcile.
+- [ ] New top-level service directories, component domains, and test subdirectories are included.
+- [ ] Deleted directories/files are removed from the tree.
 
-### Developer Experience Audit
+#### 8. `docs/testing.md`
 
-- [ ] Have a team member (or new contributor) follow `docs/setup.md` from scratch — note any friction
-- [ ] Time the full local setup end-to-end; document in setup guide
-- [ ] Review `docs/troubleshooting.md` — add any issues encountered during the audit
+- [ ] Test commands match the scripts defined in `package.json` and the pytest configuration in `pyproject.toml`.
+- [ ] CI behavior description matches `.github/workflows/ci.yml` (Python version used in CI, Node version used in CI, jobs defined).
+- [ ] Coverage targets and Playwright setup reflect current config files (`vitest.config.ts`, `playwright.config.ts`).
 
-### Docs Gaps Analysis
+#### 9. `docs/signal-integration.md`
 
-- [ ] List all features shipped in the last quarter — confirm each has adequate documentation
-- [ ] Identify docs that exist but no one references — consider consolidating or removing
-- [ ] Check if a public-facing changelog or `CHANGELOG.md` should be started or updated
+- [ ] Signal sidecar image name and configuration match `docker-compose.yml` (`signal-api` service).
+- [ ] Webhook flow description matches `backend/src/services/signal_bridge.py` and `signal_delivery.py`.
 
----
+#### 10. `docs/troubleshooting.md`
 
-## Phase 5 — Standards & Tooling
+- [ ] Remove any troubleshooting entries for issues that are no longer applicable (e.g. fixed bugs, removed features, outdated setup steps).
+- [ ] Confirm that Docker Compose service names and port numbers referenced in troubleshooting steps still match `docker-compose.yml`.
 
-### Formatting Standards
+#### 11. `README.md`
 
-- All docs use ATX-style headings (`#`, `##`, `###`)
-- Code blocks specify language for syntax highlighting (` ```python `, ` ```bash `, ` ```typescript `)
-- Tables used for: env vars, API endpoints, config options
-- Numbered lists for sequential steps; bullet lists for non-ordered items
-- Filenames referenced in docs use inline code formatting (e.g., `config.py`)
+- [ ] Links to `docs/` files are valid and point to existing files.
+- [ ] Tech stack badges or version callouts match `pyproject.toml` and `package.json`.
+- [ ] Quick-start commands match the current toolchain.
 
-### Linting & Automation
+#### 12. `frontend/docs/` (if present)
 
-- [ ] Add `markdownlint` to CI — enforce consistent formatting on all `docs/` and `*.md` files
-- [ ] Add `markdown-link-check` to CI — catch broken internal and external links automatically
-- [ ] Consider `vale` for prose style linting (consistent tone, no passive voice, etc.)
-
-### Doc Ownership
-
-Each doc file should have a designated owner listed in a `docs/OWNERS.md` file:
-
-```text
-docs/setup.md                   → infra/DX lead
-docs/api-reference.md           → backend lead
-docs/architecture.md            → tech lead
-docs/agent-pipeline.md          → backend lead
-docs/configuration.md           → backend lead
-docs/signal-integration.md      → backend lead
-docs/testing.md                 → QA / full stack lead
-docs/troubleshooting.md         → rotating (whoever fixes the bug documents the fix)
-docs/custom-agents-best-practices.md → backend lead
-```
+- [ ] Component pattern docs reflect the current component directory structure under `frontend/src/components/`.
+- [ ] Any hook or API pattern docs reflect hooks in `frontend/src/hooks/`.
 
 ---
 
-## Roles & Responsibilities
+### Actions Required
 
-| Role | Responsibility |
-|------|---------------|
-| PR author | Update docs for any code change that affects behavior, config, or APIs |
-| PR reviewer | Reject PRs that change behavior without updating relevant docs |
-| Dev (rotation) | Weekly staleness sweep |
-| Tech lead | Monthly review sign-off; quarterly architecture audit |
-| All contributors | Follow formatting standards; flag stale docs when encountered |
+**For clear inaccuracies** (wrong version, deleted env var, renamed path, wrong port):
+
+- Fix the doc directly.
+- No test needed, but re-read the source of truth after the edit to confirm the fix is precise.
+
+**For ambiguous or potentially breaking changes** (behavior descriptions that might conflict with undocumented design intent):
+
+- Do **not** guess. Add a `<!-- TODO(doc-sweep): ... -->` comment in the doc explaining the uncertainty.
+- Include these in the summary output.
+
+**For missing documentation** (a feature/module exists in code but has no doc coverage):
+
+- Add a concise, accurate entry. Match the existing format and tone of the surrounding doc.
+- Do not over-document — one accurate paragraph beats three inaccurate sections.
 
 ---
 
-## Definition of "Good Documentation"
+### Validation
 
-A doc is considered current and complete when:
+After all edits:
 
-1. **Accurate** — Every step, command, variable, and path matches the current codebase
-2. **Minimal** — No redundant content; each fact appears in exactly one place
-3. **Actionable** — Readers can accomplish the documented task without needing to read source code
-4. **Discoverable** — The correct doc is easy to find from the README or table of contents
-5. **Maintained** — Last-reviewed date is within the current quarter
+1. Run `npx markdownlint-cli docs/ README.md .github/agents/copilot-instructions.md` (if available) and fix any lint errors.
+2. Verify all internal cross-links in the changed files resolve to existing headings.
+3. Confirm no code block in a doc references a path, command, or variable that no longer exists.
+
+---
+
+### Output
+
+Provide a single summary table at the end:
+
+| # | File | Section | Change type | Description |
+|---|---|---|---|---|
+| 1 | `.github/agents/copilot-instructions.md` | Backend stack | Updated | `fastapi` version corrected to `>=0.135.0` |
+| 2 | `docs/configuration.md` | Env vars | Added | `BLOCKING_QUEUE_ENABLED` was missing |
+| 3 | `docs/api-reference.md` | Chores | Removed | `/api/v1/chores/{id}/run` no longer exists |
+| 4 | `docs/architecture.md` | Services | Flagged | Description of caching layer may be outdated — left TODO |
+
+Change types: **Updated** · **Added** · **Removed** · **Flagged**
+
+---
+
+### Constraints
+
+- Do not change source code. This chore is documentation-only.
+- Do not add aspirational or future-looking content — document only what the code currently does.
+- Do not consolidate or restructure doc files unless a file is genuinely broken (e.g. duplicate headings causing link failures).
+- Preserve existing doc tone and formatting style within each file.
+- Each edit must be traceable to a specific source-of-truth file.

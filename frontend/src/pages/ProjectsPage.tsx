@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -32,7 +33,6 @@ export function ProjectsPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const {
-    projects,
     selectedProject,
     selectProject,
   } = useProjects(user?.selected_project_id);
@@ -100,9 +100,14 @@ export function ProjectsPage() {
     },
   });
 
-  const handleProjectSwitch = useCallback((projectId: string) => {
-    selectBoardProject(projectId);
-  }, [selectBoardProject]);
+  const setBlockingOverrideMutation = useMutation({
+    mutationFn: (blockingOverride: boolean | null) =>
+      pipelinesApi.setBlockingOverride(selectedProjectId!, blockingOverride),
+    onSuccess: (assignment) => {
+      if (!selectedProjectId) return;
+      queryClient.setQueryData(['pipelines', 'assignment', selectedProjectId], assignment);
+    },
+  });
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
@@ -117,7 +122,10 @@ export function ProjectsPage() {
     [assignedPipeline],
   );
 
-  const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  // Effective blocking = project override (if set) otherwise pipeline default
+  const effectiveBlocking = pipelineAssignment?.blocking_override ?? assignedPipeline?.blocking ?? false;
+  const hasBlockingOverride = pipelineAssignment?.blocking_override != null;
+
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
   const refreshRateLimitError = refreshError?.type === 'rate_limit';
@@ -142,31 +150,7 @@ export function ProjectsPage() {
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
       {/* Page Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Celestial Board</p>
-            <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Projects</h2>
-          </div>
-
-          {/* Project Selector */}
-          <select
-            className="flex h-11 w-[280px] items-center justify-between rounded-full border border-input bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            value={selectedProjectId ?? ''}
-            onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
-            disabled={projectsLoading}
-          >
-            <option value="">
-              {projectsLoading ? 'Loading projects...' : 'Select a project'}
-            </option>
-            {projects.map((project) => (
-              <option key={project.project_id} value={project.project_id}>
-                {project.owner_login}/{project.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <div className="flex items-center justify-end shrink-0">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {selectedProjectId && (
             <span className="flex items-center gap-2">
@@ -197,21 +181,6 @@ export function ProjectsPage() {
           )}
         </div>
       </div>
-
-      {/* Project info header (when a project is selected and has data) */}
-      {selectedProjectId && boardData && (
-        <div className="celestial-panel flex items-center justify-between shrink-0 rounded-[1.25rem] border border-border/70 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-display font-medium tracking-[0.04em]">{boardData.project.name}</h3>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-secondary-foreground">
-              {boardData.project.owner_login}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {totalItems} items
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Toolbar */}
       {selectedProjectId && boardData && (
@@ -327,23 +296,56 @@ export function ProjectsPage() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold">Pipeline Stages</h3>
                 {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
-                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    <span>Agent Pipeline</span>
-                    <select
-                      value={pipelineAssignment?.pipeline_id ?? ''}
-                      onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
-                      disabled={assignPipelineMutation.isPending}
-                      className="moonwell h-9 min-w-[12rem] rounded-full border-border/60 px-4 text-xs font-medium text-foreground"
-                      aria-label="Agent Pipeline"
-                    >
-                      <option value="">No pipeline selected</option>
-                      {savedPipelines?.pipelines.map((pipeline) => (
-                        <option key={pipeline.id} value={pipeline.id}>
-                          {pipeline.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <span>Agent Pipeline</span>
+                      <select
+                        value={pipelineAssignment?.pipeline_id ?? ''}
+                        onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
+                        disabled={assignPipelineMutation.isPending}
+                        className="moonwell h-9 min-w-[12rem] rounded-full border-border/60 px-4 text-xs font-medium text-foreground"
+                        aria-label="Agent Pipeline"
+                      >
+                        <option value="">No pipeline selected</option>
+                        {savedPipelines?.pipelines.map((pipeline) => (
+                          <option key={pipeline.id} value={pipeline.id}>
+                            {pipeline.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {pipelineAssignment !== undefined && (
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={effectiveBlocking}
+                          disabled={setBlockingOverrideMutation.isPending}
+                          onClick={() =>
+                            setBlockingOverrideMutation.mutate(effectiveBlocking ? null : true)
+                          }
+                          title={
+                            hasBlockingOverride
+                              ? 'Blocking override set on this project — click to clear'
+                              : 'Using pipeline default — click to force blocking on'
+                          }
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50 ${
+                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                              effectiveBlocking ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                        <span className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                          <Lock className="h-3 w-3" />
+                          Blocking{hasBlockingOverride ? '' : ' (default)'}
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 ) : (
                   <Link
                     to="/pipeline"

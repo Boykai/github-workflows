@@ -105,7 +105,7 @@ export function StageCard({
 
   return (
     <div
-    className="flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 bg-card/92 p-3 shadow-sm backdrop-blur-sm"
+    className="pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function StageCard({
           ref={addButtonRef}
           type="button"
           onClick={() => setShowAgentPicker(!showAgentPicker)}
-          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 bg-background/24 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+          className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
         >
           <Plus className="h-3 w-3" />
           Add Agent

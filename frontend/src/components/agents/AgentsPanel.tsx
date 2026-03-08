@@ -186,8 +186,6 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
     ...(agents ?? []),
     ...unresolvedPendingAgents.filter((agent) => agent.status !== 'pending_deletion'),
   ];
-  const repoName = repo ?? '';
-  const fullRepoName = owner && repo ? `${owner}/${repo}` : '';
   const repositoryLabel = repo || 'Unlinked';
   const repositoryValueClass =
     repositoryLabel.length > 18
@@ -349,8 +347,6 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
                   onEdit={handleEditRequest}
                   variant="default"
-                  repoName={repoName}
-                  fullRepoName={fullRepoName}
                 />
               ))}
             </div>
@@ -398,7 +394,10 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                       <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                         Repository
                       </p>
-                      <p className={repositoryValueClass} title={fullRepoName || repositoryLabel}>
+                      <p
+                        className={repositoryValueClass}
+                        title={owner && repo ? `${owner}/${repo}` : repositoryLabel}
+                      >
                         {repositoryLabel}
                       </p>
                     </CardContent>
@@ -423,8 +422,6 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
                     onEdit={handleEditRequest}
                     variant="spotlight"
-                    repoName={repoName}
-                    fullRepoName={fullRepoName}
                   />
                 ))}
               </div>
@@ -499,8 +496,6 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
                     onEdit={handleEditRequest}
-                    repoName={repoName}
-                    fullRepoName={fullRepoName}
                   />
                 ))}
               </div>

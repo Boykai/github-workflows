@@ -101,6 +101,12 @@ class EvaluateChoreTriggersRequest(BaseModel):
     parent_issue_count: int | None = None
 
 
+class TriggerChoreRequest(BaseModel):
+    """Optional request body for the manual trigger endpoint."""
+
+    parent_issue_count: int | None = None
+
+
 # ── Template Models ──
 
 

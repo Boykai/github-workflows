@@ -1,0 +1,5 @@
+```prompt
+---
+agent: archivist
+---
+```

@@ -72,6 +72,7 @@ interface UsePipelineConfigReturn {
   // Board mutations
   setPipelineName: (name: string) => void;
   setPipelineDescription: (description: string) => void;
+  setPipelineBlocking: (blocking: boolean) => void;
   removeStage: (stageId: string) => void;
   updateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   reorderStages: (newOrder: PipelineStage[]) => void;
@@ -160,6 +161,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       name: pipeline.name,
       description: pipeline.description,
       stages: pipeline.stages,
+      blocking: pipeline.blocking,
     });
     return currentSnapshot !== savedSnapshotRef.current;
   }, [pipeline]);
@@ -182,6 +184,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       name: config.name,
       description: config.description,
       stages: config.stages,
+      blocking: config.blocking,
     });
   }, []);
 
@@ -259,6 +262,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       name: '',
       description: '',
       stages: seededStages,
+      blocking: false,
     });
   }, [buildStage, projectId]);
 
@@ -299,6 +303,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
           name: pipeline.name,
           description: pipeline.description,
           stages: pipeline.stages,
+          blocking: pipeline.blocking,
         });
       } else {
         // Create new
@@ -306,6 +311,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
           name: pipeline.name,
           description: pipeline.description,
           stages: pipeline.stages,
+          blocking: pipeline.blocking,
         });
       }
       setPipeline(saved);
@@ -333,6 +339,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         name: newName,
         description: pipeline.description,
         stages: pipeline.stages,
+        blocking: pipeline.blocking,
       });
       setPipeline(saved);
       setEditingPipelineId(saved.id);
@@ -370,7 +377,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       // Revert to saved state
       const saved = JSON.parse(savedSnapshotRef.current);
       setPipeline((prev) =>
-        prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages } : null,
+        prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages, blocking: saved.blocking ?? false } : null,
       );
     } else {
       // New pipeline — reset to empty
@@ -393,6 +400,10 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   const setPipelineDescription = useCallback((description: string) => {
     setPipeline((prev) => (prev ? { ...prev, description } : null));
+  }, []);
+
+  const setPipelineBlocking = useCallback((blocking: boolean) => {
+    setPipeline((prev) => (prev ? { ...prev, blocking } : null));
   }, []);
 
   const removeStage = useCallback((stageId: string) => {
@@ -550,6 +561,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     discardChanges,
     setPipelineName,
     setPipelineDescription,
+    setPipelineBlocking,
     removeStage,
     updateStage,
     reorderStages,

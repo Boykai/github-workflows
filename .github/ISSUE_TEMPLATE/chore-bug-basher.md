@@ -1,66 +1,104 @@
 ---
 name: Bug Basher
-about: Recurring chore — Bug Basher
+about: Recurring chore for a custom GitHub agent to inspect and fix bugs across the codebase
 title: '[CHORE] Bug Basher'
 labels: chore
 assignees: ''
 ---
 
-## Bug Bash: Full Codebase Review & Fix
+## Bug Basher
 
-### Objective
+Use a custom GitHub coding agent to perform a deep correctness, reliability, bug-risk, and coding-error review across the live #codebase, then apply the highest-value safe fixes directly in code.
 
-Perform a comprehensive bug bash code review of the **entire codebase**. Identify bugs, fix them, and ensure fixes are validated by tests.
+This repository is actively evolving. Do not assume the stack, frameworks, languages, package managers, or dependency set are static. Start by discovering what exists today, then adapt the bug-bash plan to the actual implementation.
 
-### Scope — Review Categories
+## Agent Objective
 
-Audit every file in the repository for the following bug categories, in priority order:
+Produce a practical bug-fix pass that:
 
-1. **Security vulnerabilities** — auth bypasses, injection risks, secrets/tokens exposed in code or config, insecure defaults, improper input validation
-2. **Runtime errors** — unhandled exceptions, race conditions, null/None references, missing imports, type errors, file handle leaks, database connection leaks
-3. **Logic bugs** — incorrect state transitions, wrong API calls, off-by-one errors, data inconsistencies, broken control flow, incorrect return values
-4. **Test gaps & test quality** — untested code paths, tests that pass for the wrong reason, mock leaks (e.g., `MagicMock` objects leaking into production paths like database file paths), assertions that never fail, missing edge case coverage
-5. **Code quality issues** — dead code, unreachable branches, duplicated logic, hardcoded values that should be configurable, missing error messages, silent failures
+1. Discovers the current stack, runtime surfaces, critical workflows, and error-prone code paths.
+2. Identifies real bugs, coding errors, reliability risks, edge-case failures, broken assumptions, and likely regressions.
+3. Applies safe fixes directly where the correct remediation is clear.
+4. Looks for opportunities to simplify and DRY the codebase when duplication, fragmented logic, or inconsistent implementations are contributing to bugs or unnecessary performance cost.
+5. Adds or updates tests, validation, guards, and documentation where needed to prevent the bugs from returning.
+6. Leaves a concise summary describing what was found, what was fixed, what was deferred, and what requires human judgment.
 
-### Actions Required
+## Required Review Scope
 
-**For obvious/clear bugs:**
+The agent must inspect the current repository rather than relying on assumptions. Review at least these areas when they exist:
 
-- Fix the bug directly in the source code.
-- Update any existing tests that are affected by the fix.
-- Add at least one new regression test per bug to ensure it does not reoccur.
-- Write a clear commit message explaining: what the bug was, why it's a bug, and how the fix resolves it.
+- Runtime errors, unhandled exceptions, invalid state transitions, race conditions, null/None or undefined access, incorrect async behavior, resource leaks, and broken control flow.
+- Logic bugs in APIs, UI state, workflows, orchestration, polling, scheduling, caching, data transforms, and persistence.
+- Mismatches between frontend and backend contracts, stale assumptions, shape drift, schema drift, and missing validation.
+- Test gaps, fragile tests, false-positive assertions, mock leakage into production paths, and missing regression coverage for known-risk behavior.
+- Duplicate logic across services, hooks, pages, or utilities that can drift apart and create inconsistent behavior.
+- Opportunities to simplify or centralize code paths where that reduces bug surface area and produces performance gains through less redundant work.
+- Dead code, unreachable branches, silent failures, misleading fallbacks, and swallowed errors that hide defects.
 
-**For ambiguous or trade-off situations:**
+## Execution Rules
 
-- Do NOT make the change.
-- Instead, add a `# TODO(bug-bash):` comment at the relevant location describing the issue, the options, and why it needs a human decision.
-- Include these in a summary (see Output below).
+The agent should follow this workflow:
 
-### Validation
+1. Discover the current stack first.
+   Identify the active languages, frameworks, package managers, entrypoints, runtime flows, and validation tools before proposing changes.
+2. Prioritize by correctness risk and user impact.
+   Fix bugs that can cause data loss, broken workflows, stale state, crashes, silent corruption, or recurring operator pain before lower-value cleanup.
+3. Apply changes when the correct remediation is clear.
+   Do not stop at reporting problems if the issue can be safely fixed in this repository.
+4. Prefer root-cause fixes.
+   Favor shared validation, centralized logic, simpler control flow, and removal of duplicate behavior over scattered point fixes.
+5. Use DRY and simplification deliberately.
+   If duplication or over-complex branching is creating bugs or wasting work, simplify it when the result is easier to reason about and safer to maintain.
+6. Stay conservative with ambiguous changes.
+   If a possible fix would alter intended product behavior, create migration risk, or depends on unclear business rules, document it clearly and defer rather than guessing.
+7. Validate the work.
+   Run the relevant tests, type checks, lint checks, builds, or targeted verification commands for the languages and tooling discovered in the repo.
 
-After all fixes are applied:
+## Expected Deliverables
 
-1. Run `pytest` and ensure the full test suite passes (including all new regression tests).
-2. Run any existing linting/formatting checks if configured (e.g., `flake8`, `black`, `ruff`).
-3. Do not commit if tests fail — iterate on the fix until green.
+The agent should leave behind:
 
-### Output
+- Code changes for the bugs and coding errors that are safe to fix now.
+- Regression coverage or focused validation for corrected behavior where practical.
+- Simplification or DRY refactors where they directly reduce bug surface area, inconsistent logic, or unnecessary performance cost.
+- Documentation or comments only when needed to clarify a non-obvious behavior contract.
+- A summary grouped by outcome: fixed in this pass; deferred and why; human follow-up needed.
 
-At the end, provide a single summary comment with:
+## Minimum Reporting Format
 
-| # | File | Line(s) | Category | Description | Status |
-|---|------|---------|----------|-------------|--------|
-| 1 | `path/to/file.py` | 42-45 | Security | Description of bug | ✅ Fixed |
-| 2 | `path/to/file.py` | 100 | Logic | Description of ambiguity | ⚠️ Flagged (TODO) |
+In the final summary, include:
 
-- **✅ Fixed** — bug was resolved, tests added, all passing
-- **⚠️ Flagged (TODO)** — ambiguous issue left as `TODO(bug-bash)` comment for human review
+1. Stack discovered
+2. Critical flows reviewed
+3. Bugs and coding errors fixed
+4. DRY or simplification changes made
+5. Validation performed
+6. Deferred findings and why
+7. Follow-up actions required
 
-### Constraints
+## Preferred Fix Patterns
 
-- Do not change the project's architecture or public API surface.
-- Do not add new dependencies.
-- Preserve existing code style and patterns.
-- Each fix should be minimal and focused — no drive-by refactors.
-- If a file has no bugs, skip it — don't mention it in the summary.
+When applicable, prefer changes like:
+
+- Centralizing duplicated logic that has drifted across files or layers.
+- Replacing silent fallbacks with explicit validation or error handling.
+- Tightening type or schema checks at boundaries.
+- Removing dead branches and unreachable code that obscure real behavior.
+- Narrowing refresh or recomputation paths when they cause stale state or repeated work.
+- Consolidating shared transforms or decision logic instead of maintaining multiple versions.
+- Adding regression tests around previously broken edge cases.
+- Simplifying conditionals and state transitions so failures are easier to reason about.
+
+## Out of Scope
+
+Do not spend this pass on broad speculative rewrites unless they are required to fix a concrete bug pattern. Prefer targeted, explainable fixes that can be merged safely in an active codebase.
+
+## Success Criteria
+
+This issue is complete when:
+
+- The custom GitHub agent has reviewed the live #codebase rather than a stale assumed stack.
+- Meaningful bug fixes or coding-error corrections have been applied, not just reported.
+- The agent has considered simplification and DRY opportunities where they reduce bugs or unnecessary performance cost.
+- Relevant validation has been run for the discovered stack.
+- Remaining ambiguous defects are documented with rationale and next actions.

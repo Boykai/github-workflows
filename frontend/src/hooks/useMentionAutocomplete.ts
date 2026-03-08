@@ -202,7 +202,13 @@ export function useMentionAutocomplete({
   const validateTokens = useCallback((): boolean => {
     if (tokens.length === 0) return true;
 
-    const pipelineIds = new Set(pipelineData?.pipelines?.map((p) => p.id) ?? []);
+    // If pipeline data hasn't loaded yet, trust the isValid state set at insertion time
+    // rather than re-validating against an empty set (which would incorrectly block submission).
+    if (!pipelineData) {
+      return validTokens.length > 0;
+    }
+
+    const pipelineIds = new Set(pipelineData.pipelines.map((p) => p.id));
     const updatedTokens = tokens.map((t) => ({
       ...t,
       isValid: pipelineIds.has(t.pipelineId),
@@ -225,7 +231,7 @@ export function useMentionAutocomplete({
     }
 
     return updatedTokens.some((t) => t.isValid);
-  }, [tokens, pipelineData, inputRef]);
+  }, [tokens, pipelineData, validTokens, inputRef]);
 
   const getSubmissionPipelineId = useCallback((): string | null => {
     // Scan the DOM for token spans to get the last valid one
@@ -233,17 +239,28 @@ export function useMentionAutocomplete({
     if (!el) return activePipelineId;
 
     const tokenSpans = el.querySelectorAll('[data-mention-token]');
-    const pipelineIds = new Set(pipelineData?.pipelines?.map((p) => p.id) ?? []);
-    let lastValidId: string | null = null;
 
+    // If pipeline data is available, restrict to IDs the server knows about
+    if (pipelineData?.pipelines) {
+      const pipelineIds = new Set(pipelineData.pipelines.map((p) => p.id));
+      let lastValidId: string | null = null;
+      tokenSpans.forEach((span) => {
+        const id = span.getAttribute('data-pipeline-id');
+        if (id && pipelineIds.has(id)) {
+          lastValidId = id;
+        }
+      });
+      return lastValidId ?? activePipelineId;
+    }
+
+    // Pipeline data not yet loaded — use the id stored in the DOM span (set at insertion time)
+    // and fall back to the last known valid token. The backend validates the final id anyway.
+    let lastId: string | null = null;
     tokenSpans.forEach((span) => {
       const id = span.getAttribute('data-pipeline-id');
-      if (id && pipelineIds.has(id)) {
-        lastValidId = id;
-      }
+      if (id) lastId = id;
     });
-
-    return lastValidId;
+    return lastId ?? activePipelineId;
   }, [inputRef, pipelineData, activePipelineId]);
 
   const getPlainTextContent = useCallback((): string => {

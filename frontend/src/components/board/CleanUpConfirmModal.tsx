@@ -62,7 +62,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         </div>
 
         <p className="text-sm text-muted-foreground mb-4">
-          Review the items below before confirming. This operation cannot be undone.
+          Review the Solune-generated items below before confirming. Assets created outside the app will be preserved. This operation cannot be undone.
         </p>
 
         {/* Items to delete */}
@@ -161,7 +161,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
         {!hasItemsToDelete && (
           <div className="mb-4 rounded-[1rem] border border-border bg-background/48 p-4 text-center text-sm text-muted-foreground">
-            No stale branches or pull requests found. Nothing to clean up.
+            No stale Solune-generated branches, pull requests, or orphaned issues found. Nothing to clean up.
           </div>
         )}
 

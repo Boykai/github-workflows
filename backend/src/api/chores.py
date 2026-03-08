@@ -29,6 +29,7 @@ from src.models.chores import (
     ChoreUpdate,
     EvaluateChoreTriggersRequest,
     EvaluateChoreTriggersResponse,
+    TriggerChoreRequest,
 )
 from src.models.user import UserSession
 from src.services.chores.service import ChoreConflictError, ChoresService
@@ -306,6 +307,7 @@ async def trigger_chore(
     project_id: str,
     chore_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
+    body: TriggerChoreRequest | None = None,
 ) -> ChoreTriggerResult:
     """Manually trigger a chore — creates a GitHub issue and runs agent pipeline."""
     service = _get_service()
@@ -323,6 +325,7 @@ async def trigger_chore(
         owner=owner,
         repo=repo,
         project_id=project_id,
+        parent_issue_count=body.parent_issue_count if body else None,
         github_user_id=session.github_user_id,
     )
 

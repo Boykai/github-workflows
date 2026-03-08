@@ -240,6 +240,8 @@ export function AgentsPipelinePage() {
                 onUpdateAgent={pipelineConfig.updateAgentInStage}
                 onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
                 onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}
+                pipelineBlocking={pipelineConfig.pipeline?.blocking ?? false}
+                onBlockingChange={pipelineConfig.setPipelineBlocking}
               />
             )}
 
@@ -350,18 +352,33 @@ export function AgentsPipelinePage() {
             <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
             <div className="celestial-panel rounded-[1.2rem] border border-border/75 p-4">
               {(pipelineConfig.pipelines?.pipelines ?? []).length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/40 p-2">
-                      <PipelineFlowGraph stages={p.stages ?? []} width={220} height={84} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {p.stage_count} stages · {p.agent_count} agents
-                        </p>
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex min-w-full flex-col gap-3">
+                    {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
+                      <div key={p.id} className="grid min-w-full gap-3" style={alignedGridStyle}>
+                        <div className="col-[1/-1] rounded-[1rem] border border-border/40 bg-background/12 p-3">
+                          <PipelineFlowGraph
+                            stages={p.stages ?? []}
+                            width={220}
+                            height={84}
+                            responsive={true}
+                            className="w-full"
+                          />
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {p.stage_count} stages · {p.agent_count} agents
+                              </p>
+                            </div>
+                            <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                              Recent pipeline
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">

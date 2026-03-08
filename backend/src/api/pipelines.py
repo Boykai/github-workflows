@@ -14,6 +14,7 @@ from src.models.pipeline import (
     PipelineConfigCreate,
     PipelineConfigListResponse,
     PipelineConfigUpdate,
+    ProjectAssignmentBlockingUpdate,
     ProjectPipelineAssignment,
     ProjectPipelineAssignmentUpdate,
 )
@@ -83,6 +84,17 @@ async def set_assignment(
         return await service.set_assignment(project_id, body.pipeline_id)
     except ValueError as exc:
         raise NotFoundError(str(exc)) from exc
+
+
+@router.patch("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
+async def set_assignment_blocking(
+    project_id: str,
+    body: ProjectAssignmentBlockingUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> ProjectPipelineAssignment:
+    """Set the project-level blocking override for the assigned pipeline."""
+    service = _get_service()
+    return await service.set_blocking_override(project_id, body.blocking_override)
 
 
 # ── Create Pipeline ──
