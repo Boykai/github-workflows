@@ -212,6 +212,71 @@ class TestSendMessageTaskGeneration:
         assert resp.status_code == 200
         assert "couldn't generate" in resp.json()["content"].lower()
 
+    async def test_ai_enhance_off_uses_raw_input(self, client, mock_session, mock_ai_agent_service):
+        """When ai_enhance=False, raw user input is used as description, title is AI-generated."""
+        mock_session.selected_project_id = "PVT_1"
+        mock_ai_agent_service.detect_feature_request_intent.return_value = False
+        mock_ai_agent_service.parse_status_change_request.return_value = None
+        mock_ai_agent_service.generate_title_from_description.return_value = "Fix login flow"
+
+        user_input = "The login page has a bug where users can't sign in"
+        resp = await client.post(
+            "/api/v1/chat/messages",
+            json={"content": user_input, "ai_enhance": False},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["action_type"] == "task_create"
+        assert data["action_data"]["proposed_title"] == "Fix login flow"
+        assert data["action_data"]["proposed_description"] == user_input
+        # generate_task_from_description must NOT be called
+        mock_ai_agent_service.generate_task_from_description.assert_not_called()
+
+    async def test_ai_enhance_off_metadata_error_returns_specific_message(
+        self, client, mock_session, mock_ai_agent_service
+    ):
+        """When the fallback branch fails after title generation, show a specific error."""
+        mock_session.selected_project_id = "PVT_1"
+        mock_ai_agent_service.detect_feature_request_intent.return_value = False
+        mock_ai_agent_service.parse_status_change_request.return_value = None
+        mock_ai_agent_service.generate_title_from_description.return_value = "Some task"
+
+        with patch("src.api.chat.AITaskProposal", side_effect=RuntimeError("storage failed")):
+            resp = await client.post(
+                "/api/v1/chat/messages",
+                json={"content": "some task", "ai_enhance": False},
+            )
+        assert resp.status_code == 200
+        content = resp.json()["content"]
+        assert "metadata" in content.lower()
+        assert "preserved" in content.lower()
+        # Must NOT show the generic error
+        assert "couldn't generate a task" not in content.lower()
+
+    async def test_ai_enhance_on_uses_full_pipeline(
+        self, client, mock_session, mock_ai_agent_service
+    ):
+        """When ai_enhance=True (default), the full AI pipeline is used."""
+        mock_session.selected_project_id = "PVT_1"
+        mock_ai_agent_service.detect_feature_request_intent.return_value = False
+        mock_ai_agent_service.parse_status_change_request.return_value = None
+
+        generated = MagicMock()
+        generated.title = "Enhanced Title"
+        generated.description = "AI-enhanced description of the task"
+        mock_ai_agent_service.generate_task_from_description.return_value = generated
+
+        resp = await client.post(
+            "/api/v1/chat/messages",
+            json={"content": "do something", "ai_enhance": True},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["action_data"]["proposed_title"] == "Enhanced Title"
+        assert data["action_data"]["proposed_description"] == "AI-enhanced description of the task"
+        # generate_title_from_description must NOT be called
+        mock_ai_agent_service.generate_title_from_description.assert_not_called()
+
 
 # ── POST /chat/proposals/{id}/confirm ───────────────────────────────────────
 
