@@ -74,7 +74,8 @@ class ConnectionManager:
         )
 
         disconnected = []
-        for websocket in connections:
+        # Snapshot the set to avoid RuntimeError if it is mutated during iteration
+        for websocket in list(connections):
             try:
                 await websocket.send_json(message)
             except Exception as e:

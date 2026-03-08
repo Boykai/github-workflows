@@ -601,3 +601,19 @@ class TestCommitTemplateExistingBranch:
         # commit_files should be called with the default branch HEAD
         commit_call = mock_github.commit_files.call_args
         assert commit_call[0][4] == "default-oid"
+
+
+# =============================================================================
+# Column whitelist regression (bug-bash)
+# =============================================================================
+
+
+class TestUpdateChoreFieldsColumnWhitelist:
+    """Regression test: update_chore_fields must reject unknown column names."""
+
+    async def test_rejects_unknown_columns(self, mock_db):
+        from src.services.chores.service import ChoresService
+
+        svc = ChoresService(mock_db)
+        with pytest.raises(ValueError, match="Invalid update columns"):
+            await svc.update_chore_fields("some-id", evil_column="DROP TABLE chores")

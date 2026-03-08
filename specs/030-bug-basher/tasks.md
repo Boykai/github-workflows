@@ -25,11 +25,11 @@
 
 **Purpose**: Establish the review environment, verify all tooling works, and confirm the test baseline is green before making any changes.
 
-- [ ] T001 Install backend dev dependencies and verify pytest baseline in `backend/` (`pip install -e ".[dev]" && python -m pytest tests/unit/ -v`)
-- [ ] T002 Install frontend dependencies and verify vitest baseline in `frontend/` (`npm install && npx vitest run`)
-- [ ] T003 [P] Verify backend linting baseline with ruff in `backend/` (`ruff check src/ tests/`)
-- [ ] T004 [P] Verify frontend linting and type-check baseline in `frontend/` (`npx eslint src/ && npx tsc --noEmit`)
-- [ ] T005 Document any pre-existing test failures or lint warnings as baseline (do not fix — these are out of scope unless they are bugs)
+- [x] T001 Install backend dev dependencies and verify pytest baseline in `backend/` (`pip install -e ".[dev]" && python -m pytest tests/unit/ -v`)
+- [x] T002 Install frontend dependencies and verify vitest baseline in `frontend/` (`npm install && npx vitest run`)
+- [x] T003 [P] Verify backend linting baseline with ruff in `backend/` (`ruff check src/ tests/`)
+- [x] T004 [P] Verify frontend linting and type-check baseline in `frontend/` (`npx eslint src/ && npx tsc --noEmit`)
+- [x] T005 Document any pre-existing test failures or lint warnings as baseline (do not fix — these are out of scope unless they are bugs)
 
 ---
 
@@ -58,43 +58,43 @@
 
 - [ ] T010 [P] [US1] Audit authentication and authorization logic in `backend/src/api/auth.py` — check for auth bypasses, token validation gaps, session fixation
 - [ ] T011 [P] [US1] Audit webhook signature verification in `backend/src/api/webhooks.py` — check for timing attacks, missing signature validation
-- [ ] T012 [P] [US1] Audit chat endpoint input handling in `backend/src/api/chat.py` — check for injection risks, file upload validation, path traversal in temp file handling
+- [x] T012 [P] [US1] Audit chat endpoint input handling in `backend/src/api/chat.py` — check for injection risks, file upload validation, path traversal in temp file handling
 - [ ] T013 [P] [US1] Audit agent endpoints in `backend/src/api/agents.py` — check for input validation, authorization on bulk operations
 - [ ] T014 [P] [US1] Audit workflow endpoints in `backend/src/api/workflow.py` — check for input validation, auth checks on workflow actions
 - [ ] T015 [P] [US1] Audit settings endpoints in `backend/src/api/settings.py` — check for sensitive data exposure, authorization on settings changes
 - [ ] T016 [P] [US1] Audit signal endpoints in `backend/src/api/signal.py` — check for input validation, phone number handling
-- [ ] T017 [P] [US1] Audit board, projects, tasks, tools, mcp, pipelines, chores, cleanup, health, metadata endpoints in `backend/src/api/board.py`, `backend/src/api/projects.py`, `backend/src/api/tasks.py`, `backend/src/api/tools.py`, `backend/src/api/mcp.py`, `backend/src/api/pipelines.py`, `backend/src/api/chores.py`, `backend/src/api/cleanup.py`, `backend/src/api/health.py`, `backend/src/api/metadata.py`
+- [x] T017 [P] [US1] Audit board, projects, tasks, tools, mcp, pipelines, chores, cleanup, health, metadata endpoints in `backend/src/api/board.py`, `backend/src/api/projects.py`, `backend/src/api/tasks.py`, `backend/src/api/tools.py`, `backend/src/api/mcp.py`, `backend/src/api/pipelines.py`, `backend/src/api/chores.py`, `backend/src/api/cleanup.py`, `backend/src/api/health.py`, `backend/src/api/metadata.py`
 
 ### Backend Core & Config Security Audit
 
-- [ ] T018 [P] [US1] Audit application configuration and secrets management in `backend/src/config.py` — check for hardcoded secrets, insecure defaults, missing validation
-- [ ] T019 [P] [US1] Audit encryption service in `backend/src/services/encryption.py` — check for weak algorithms, key management issues, padding oracle risks
-- [ ] T020 [P] [US1] Audit GitHub authentication service in `backend/src/services/github_auth.py` — check for token handling, OAuth flow security, state parameter validation
-- [ ] T021 [P] [US1] Audit session management in `backend/src/services/session_store.py` — check for session fixation, insecure session storage, missing expiry
-- [ ] T022 [P] [US1] Audit main application setup in `backend/src/main.py` — check CORS configuration, middleware order, error handler information leakage
+- [x] T018 [P] [US1] Audit application configuration and secrets management in `backend/src/config.py` — check for hardcoded secrets, insecure defaults, missing validation
+- [x] T019 [P] [US1] Audit encryption service in `backend/src/services/encryption.py` — check for weak algorithms, key management issues, padding oracle risks
+- [x] T020 [P] [US1] Audit GitHub authentication service in `backend/src/services/github_auth.py` — check for token handling, OAuth flow security, state parameter validation
+- [x] T021 [P] [US1] Audit session management in `backend/src/services/session_store.py` — check for session fixation, insecure session storage, missing expiry
+- [x] T022 [P] [US1] Audit main application setup in `backend/src/main.py` — check CORS configuration, middleware order, error handler information leakage
 
 ### Backend Service Security Audit
 
 - [ ] T023 [P] [US1] Audit AI agent service for prompt injection and input sanitization in `backend/src/services/ai_agent.py`
-- [ ] T024 [P] [US1] Audit database service for SQL injection risks in `backend/src/services/database.py` — check parameterized queries, migration runner safety
+- [x] T024 [P] [US1] Audit database service for SQL injection risks in `backend/src/services/database.py` — check parameterized queries, migration runner safety
 - [ ] T025 [P] [US1] Audit signal chat and bridge services for input validation in `backend/src/services/signal_chat.py` and `backend/src/services/signal_bridge.py`
-- [ ] T026 [P] [US1] Audit settings store for sensitive data handling in `backend/src/services/settings_store.py`
-- [ ] T027 [P] [US1] Audit MCP store for input validation in `backend/src/services/mcp_store.py`
+- [x] T026 [P] [US1] Audit settings store for sensitive data handling in `backend/src/services/settings_store.py`
+- [x] T027 [P] [US1] Audit MCP store for input validation in `backend/src/services/mcp_store.py`
 
 ### Frontend Security Audit
 
-- [ ] T028 [P] [US1] Audit API client for token handling and request security in `frontend/src/services/api.ts` — check for token exposure in URLs, missing auth headers, insecure storage
+- [x] T028 [P] [US1] Audit API client for token handling and request security in `frontend/src/services/api.ts` — check for token exposure in URLs, missing auth headers, insecure storage
 - [ ] T029 [P] [US1] Audit auth hook and login flow in `frontend/src/hooks/useAuth.ts` and `frontend/src/components/auth/LoginButton.tsx` — check for OAuth state validation, token storage security
 - [ ] T030 [P] [US1] Audit chat interface for XSS risks in rendered content in `frontend/src/components/chat/MessageBubble.tsx`, `frontend/src/components/chat/ChatInterface.tsx` — check for unsafe HTML rendering, markdown injection
 
 ### Security Regression Tests
 
-- [ ] T031 [US1] Add regression tests for each security fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
+- [x] T031 [US1] Add regression tests for each security fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
 - [ ] T032 [US1] Add regression tests for each security fix found in frontend — create test cases in appropriate co-located test files under `frontend/src/`
-- [ ] T033 [US1] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new security regression tests
-- [ ] T034 [US1] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new security regression tests
-- [ ] T035 [US1] Run backend linting (`ruff check src/ tests/`) and verify zero errors after security fixes
-- [ ] T036 [US1] Run frontend linting and type-check (`npx eslint src/ && npx tsc --noEmit`) and verify zero errors after security fixes
+- [x] T033 [US1] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new security regression tests
+- [x] T034 [US1] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new security regression tests
+- [x] T035 [US1] Run backend linting (`ruff check src/ tests/`) and verify zero errors after security fixes
+- [x] T036 [US1] Run frontend linting and type-check (`npx eslint src/ && npx tsc --noEmit`) and verify zero errors after security fixes
 
 **Checkpoint**: All security vulnerabilities identified and fixed. Each fix has a regression test. Full test suite passes. This is the MVP deliverable.
 
@@ -108,32 +108,32 @@
 
 ### Backend Runtime Error Audit
 
-- [ ] T037 [P] [US2] Audit exception handling and resource management in `backend/src/services/database.py` — check for connection leaks, unclosed cursors, migration runner error paths
+- [x] T037 [P] [US2] Audit exception handling and resource management in `backend/src/services/database.py` — check for connection leaks, unclosed cursors, migration runner error paths
 - [ ] T038 [P] [US2] Audit GitHub Projects service for unhandled exceptions and resource management in `backend/src/services/github_projects/service.py` and `backend/src/services/github_projects/graphql.py` — check for uncaught GraphQL errors, pagination edge cases, null field access
-- [ ] T039 [P] [US2] Audit agent service for method naming mismatches and incorrect calls in `backend/src/services/agents/service.py` — check `get_model_preferences()` vs `get_agent_preferences()` naming, `_save_runtime_model_selection()` vs `_save_runtime_preferences()` calls, `bulk_update_models()` method references
+- [x] T039 [P] [US2] Audit agent service for method naming mismatches and incorrect calls in `backend/src/services/agents/service.py` — check `get_model_preferences()` vs `get_agent_preferences()` naming, `_save_runtime_model_selection()` vs `_save_runtime_preferences()` calls, `bulk_update_models()` method references
 - [ ] T040 [P] [US2] Audit copilot polling services for race conditions and error handling in `backend/src/services/copilot_polling/polling_loop.py`, `backend/src/services/copilot_polling/state.py`, `backend/src/services/copilot_polling/recovery.py`
-- [ ] T041 [P] [US2] Audit websocket service for connection management and error handling in `backend/src/services/websocket.py`
-- [ ] T042 [P] [US2] Audit cache service for expiry handling and concurrent access in `backend/src/services/cache.py`
+- [x] T041 [P] [US2] Audit websocket service for connection management and error handling in `backend/src/services/websocket.py`
+- [x] T042 [P] [US2] Audit cache service for expiry handling and concurrent access in `backend/src/services/cache.py`
 - [ ] T043 [P] [US2] Audit signal delivery service for error handling and retry logic in `backend/src/services/signal_delivery.py`
 
 ### Backend Logic Bug Audit
 
 - [ ] T044 [P] [US2] Audit workflow orchestrator for incorrect state transitions in `backend/src/services/workflow_orchestrator/orchestrator.py` and `backend/src/services/workflow_orchestrator/transitions.py`
 - [ ] T045 [P] [US2] Audit chores scheduler for timing logic bugs in `backend/src/services/chores/scheduler.py` and `backend/src/services/chores/counter.py`
-- [ ] T046 [P] [US2] Audit chores service for SQLite boolean handling and data consistency in `backend/src/services/chores/service.py`
-- [ ] T047 [P] [US2] Audit completion providers for incorrect return values and edge cases in `backend/src/services/completion_providers.py`
+- [x] T046 [P] [US2] Audit chores service for SQLite boolean handling and data consistency in `backend/src/services/chores/service.py`
+- [x] T047 [P] [US2] Audit completion providers for incorrect return values and edge cases in `backend/src/services/completion_providers.py`
 - [ ] T048 [P] [US2] Audit model fetcher for API call correctness in `backend/src/services/model_fetcher.py`
 - [ ] T049 [P] [US2] Audit cleanup service for logic correctness in `backend/src/services/cleanup_service.py`
 - [ ] T050 [P] [US2] Audit GitHub commit workflow for control flow correctness in `backend/src/services/github_commit_workflow.py`
 - [ ] T051 [P] [US2] Audit agent creator, agent tracking, and metadata services for logic correctness in `backend/src/services/agent_creator.py`, `backend/src/services/agent_tracking.py`, `backend/src/services/metadata_service.py`
-- [ ] T052 [P] [US2] Audit pipeline service for logic bugs in `backend/src/services/pipelines/service.py`
+- [x] T052 [P] [US2] Audit pipeline service for logic bugs in `backend/src/services/pipelines/service.py`
 - [ ] T053 [P] [US2] Audit tools service for logic bugs in `backend/src/services/tools/service.py`
 
 ### Backend API Logic Audit
 
-- [ ] T054 [P] [US2] Audit chat API for fallback path logic (ai_enhance=True vs ai_enhance=False branches) in `backend/src/api/chat.py` — verify both branches handle errors independently per recent fix
-- [ ] T055 [P] [US2] Audit workflow API for incorrect method calls in `backend/src/api/workflow.py` — check `get_agent_preferences()` call matches service method name
-- [ ] T056 [P] [US2] Audit chores API for inline-update and create-with-merge logic in `backend/src/api/chores.py`
+- [x] T054 [P] [US2] Audit chat API for fallback path logic (ai_enhance=True vs ai_enhance=False branches) in `backend/src/api/chat.py` — verify both branches handle errors independently per recent fix
+- [x] T055 [P] [US2] Audit workflow API for incorrect method calls in `backend/src/api/workflow.py` — check `get_agent_preferences()` call matches service method name
+- [x] T056 [P] [US2] Audit chores API for inline-update and create-with-merge logic in `backend/src/api/chores.py`
 
 ### Backend Model Validation Audit
 
@@ -144,7 +144,7 @@
 - [ ] T058 [P] [US2] Audit error boundary implementation in `frontend/src/components/common/ErrorBoundary.tsx` — check for uncaught promise rejections, missing error boundaries in page components
 - [ ] T059 [P] [US2] Audit null/undefined access patterns in board components in `frontend/src/components/board/ProjectBoard.tsx`, `frontend/src/components/board/BoardColumn.tsx`, `frontend/src/components/board/IssueCard.tsx`, `frontend/src/components/board/IssueDetailModal.tsx`
 - [ ] T060 [P] [US2] Audit hooks for stale closures and race conditions in `frontend/src/hooks/useProjectBoard.ts`, `frontend/src/hooks/useChat.ts`, `frontend/src/hooks/useRealTimeSync.ts`, `frontend/src/hooks/useBoardRefresh.ts`
-- [ ] T061 [P] [US2] Audit pipeline components for runtime errors in `frontend/src/components/pipeline/PipelineBoard.tsx`, `frontend/src/components/pipeline/PipelineFlowGraph.tsx`, `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T061 [P] [US2] Audit pipeline components for runtime errors in `frontend/src/components/pipeline/PipelineBoard.tsx`, `frontend/src/components/pipeline/PipelineFlowGraph.tsx`, `frontend/src/components/pipeline/StageCard.tsx`
 - [ ] T062 [P] [US2] Audit chores components for runtime errors in `frontend/src/components/chores/ChoresPanel.tsx`, `frontend/src/components/chores/ChoreCard.tsx`, `frontend/src/components/chores/ChoreInlineEditor.tsx`
 
 ### Frontend Logic Bug Audit
@@ -157,11 +157,11 @@
 
 ### Runtime & Logic Regression Tests
 
-- [ ] T068 [US2] Add regression tests for each runtime error and logic bug fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
+- [x] T068 [US2] Add regression tests for each runtime error and logic bug fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
 - [ ] T069 [US2] Add regression tests for each runtime error and logic bug fix found in frontend — create test cases in appropriate co-located test files
-- [ ] T070 [US2] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new regression tests
-- [ ] T071 [US2] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new regression tests
-- [ ] T072 [US2] Run all linting checks (`ruff check src/ tests/` backend, `npx eslint src/ && npx tsc --noEmit` frontend) and verify zero errors
+- [x] T070 [US2] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new regression tests
+- [x] T071 [US2] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new regression tests
+- [x] T072 [US2] Run all linting checks (`ruff check src/ tests/` backend, `npx eslint src/ && npx tsc --noEmit` frontend) and verify zero errors
 
 **Checkpoint**: All runtime errors and logic bugs identified and fixed. Each fix has a regression test. Full test suite passes.
 
@@ -250,9 +250,9 @@
 
 ### Known Ambiguous Issues (from research.md)
 
-- [ ] T110 [P] [US5] Add or verify `TODO(bug-bash):` comment for migration numbering conflicts (R-001) at `backend/src/services/database.py` near migration discovery logic — document the duplicate prefix issue (013, 014, 015), the deployment impact, and the options for resolution
-- [ ] T111 [P] [US5] Verify existing `TODO(bug-bash):` comments for Signal error message leakage (R-002) in `backend/src/services/signal_chat.py` — confirm comments describe the trade-off between sanitized vs. detailed error messages
-- [ ] T112 [P] [US5] Add or verify `TODO(bug-bash):` comment for CORS configuration permissiveness (R-004) at `backend/src/main.py` near CORS middleware setup — document `allow_methods=["*"]` and `allow_headers=["*"]` with options and rationale
+- [x] T110 [P] [US5] Add or verify `TODO(bug-bash):` comment for migration numbering conflicts (R-001) at `backend/src/services/database.py` near migration discovery logic — document the duplicate prefix issue (013, 014, 015), the deployment impact, and the options for resolution
+- [x] T111 [P] [US5] Verify existing `TODO(bug-bash):` comments for Signal error message leakage (R-002) in `backend/src/services/signal_chat.py` — confirm comments describe the trade-off between sanitized vs. detailed error messages
+- [x] T112 [P] [US5] Add or verify `TODO(bug-bash):` comment for CORS configuration permissiveness (R-004) at `backend/src/main.py` near CORS middleware setup — document `allow_methods=["*"]` and `allow_headers=["*"]` with options and rationale
 
 ### Discovered Ambiguous Issues
 
@@ -272,10 +272,10 @@
 
 **Purpose**: Final validation, summary generation, and documentation.
 
-- [ ] T117 Run full backend test suite one final time (`cd backend && python -m pytest tests/unit/ -v`) — must be zero failures
-- [ ] T118 Run full frontend test suite one final time (`cd frontend && npx vitest run`) — must be zero failures
-- [ ] T119 [P] Run backend linting one final time (`cd backend && ruff check src/ tests/`) — must be zero errors
-- [ ] T120 [P] Run frontend linting and type-check one final time (`cd frontend && npx eslint src/ && npx tsc --noEmit`) — must be zero errors
+- [x] T117 Run full backend test suite one final time (`cd backend && python -m pytest tests/unit/ -v`) — must be zero failures
+- [x] T118 Run full frontend test suite one final time (`cd frontend && npx vitest run`) — must be zero failures
+- [x] T119 [P] Run backend linting one final time (`cd backend && ruff check src/ tests/`) — must be zero errors
+- [x] T120 [P] Run frontend linting and type-check one final time (`cd frontend && npx eslint src/ && npx tsc --noEmit`) — must be zero errors
 - [ ] T121 Generate the Bug Bash Summary Table following the format in `specs/030-bug-basher/contracts/summary-table.md` — list every bug found with file, line(s), category, description, and status (✅ Fixed or ⚠️ Flagged)
 - [ ] T122 Verify summary table ordering: entries grouped by category (Security → Runtime → Logic → Test Quality → Code Quality), within category by file path (alphabetical), within file by line number (ascending)
 - [ ] T123 Verify every `✅ Fixed` entry in summary has a corresponding regression test
