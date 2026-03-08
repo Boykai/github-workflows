@@ -359,6 +359,69 @@ class TestEightIssueScenario:
         assert await bq.has_open_blocking_issues(REPO) is False
 
 
+class TestEdgeCases:
+    """Tests for edge case handling."""
+
+    @pytest.mark.asyncio
+    async def test_mark_completed_unknown_issue(self, db):
+        """Completing an issue not in the queue returns empty list."""
+        activated = await bq.mark_completed(REPO, 999)
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_mark_completed_already_completed(self, db):
+        """Completing an already-completed issue is idempotent."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        await bq.mark_in_review(REPO, 1)
+        await bq.mark_completed(REPO, 1)
+
+        # Second call should be idempotent
+        activated = await bq.mark_completed(REPO, 1)
+        assert activated == []
+        assert await _status(1) == BlockingQueueStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_mark_completed_from_pending(self, db):
+        """Completing a pending issue (manually closed) transitions correctly."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        await store.insert(REPO, 2, PROJECT, is_blocking=False)  # pending
+
+        # Manually close #2 while it's still pending
+        activated = await bq.mark_completed(REPO, 2)
+        assert await _status(2) == BlockingQueueStatus.COMPLETED
+        # #1 is still active, so no new activations triggered
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_mark_in_review_unknown_issue(self, db):
+        """Reviewing an issue not in the queue returns empty list."""
+        activated = await bq.mark_in_review(REPO, 999)
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_mark_in_review_pending_issue(self, db):
+        """Reviewing a pending issue (not yet active) returns empty list."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        await store.insert(REPO, 2, PROJECT, is_blocking=False)  # pending
+
+        activated = await bq.mark_in_review(REPO, 2)
+        assert activated == []
+        # #2 should still be pending (not transitioned)
+        assert await _status(2) == BlockingQueueStatus.PENDING
+
+    @pytest.mark.asyncio
+    async def test_deleted_branch_fallback(self, db):
+        """When a blocking issue's branch is None, fall back to 'main'."""
+        # Create a blocking issue but don't set its branch (simulates deleted branch)
+        await _enqueue(1, blocking=True, db_conn=db)
+        # Note: entry is active with parent_branch='main' from activation
+        # Clear the parent_branch to simulate deletion
+        await store.update_status(REPO, 1, queue_status="active", parent_branch=None)
+
+        ref = await bq.get_base_ref_for_issue(REPO, 2)
+        assert ref == "main"
+
+
 class TestRecovery:
     """Tests for startup recovery."""
 

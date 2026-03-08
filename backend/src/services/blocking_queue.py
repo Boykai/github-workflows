@@ -171,11 +171,23 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
 
 
 def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> str:
-    """Return the oldest open blocking issue's branch, or 'main'."""
+    """Return the oldest open blocking issue's branch, or 'main'.
+
+    Iterates through open blocking entries in order to find one with a valid
+    parent_branch set. If the oldest entry's branch is None (e.g. branch was
+    deleted or not yet created), falls through to subsequent entries. If no
+    open blocking entry has a valid branch, falls back to 'main' with a
+    warning log.
+    """
+    for entry in open_blocking:
+        if entry.parent_branch:
+            return entry.parent_branch
     if open_blocking:
-        branch = open_blocking[0].parent_branch
-        if branch:
-            return branch
+        logger.warning(
+            "No open blocking issue has a valid parent_branch for repo "
+            "(oldest blocking issue #%d) — falling back to 'main'",
+            open_blocking[0].issue_number,
+        )
     return "main"
 
 
@@ -214,17 +226,29 @@ async def mark_active(
 async def mark_in_review(repo_key: str, issue_number: int) -> list[BlockingQueueEntry]:
     """Mark an entry as in_review and activate next pending issues.
 
+    Handles edge cases:
+    - Issues not in the queue (returns empty list)
+    - Issues not in active state (logs debug, returns empty list)
+
     Returns list of newly activated entries for agent assignment.
     """
     lock = _get_lock(repo_key)
     async with lock:
         entry = await store.get_by_issue(repo_key, issue_number)
-        if not entry or entry.queue_status != BlockingQueueStatus.ACTIVE:
+        if not entry:
+            logger.debug(
+                "Issue #%d not in blocking queue for %s, skipping mark_in_review",
+                issue_number,
+                repo_key,
+            )
+            return []
+
+        if entry.queue_status != BlockingQueueStatus.ACTIVE:
             logger.debug(
                 "Issue #%d not active in %s queue (status=%s), skipping mark_in_review",
                 issue_number,
                 repo_key,
-                entry.queue_status if entry else "not_found",
+                entry.queue_status,
             )
             return []
 
@@ -236,7 +260,7 @@ async def mark_in_review(repo_key: str, issue_number: int) -> list[BlockingQueue
         activated = await _try_activate_next_unlocked(repo_key)
 
         # Broadcast WebSocket event for queue state change
-        if activated and entry:
+        if activated:
             await _broadcast_queue_update(
                 entry.project_id, repo_key,
                 activated_issues=[e.issue_number for e in activated],
@@ -249,14 +273,28 @@ async def mark_in_review(repo_key: str, issue_number: int) -> list[BlockingQueue
 async def mark_completed(repo_key: str, issue_number: int) -> list[BlockingQueueEntry]:
     """Mark an entry as completed and activate next pending issues.
 
+    Handles edge cases:
+    - Issues not in the queue (returns empty list)
+    - Issues already completed (idempotent — returns empty list)
+    - Issues in any non-completed state (pending, active, in_review) are all
+      transitioned to completed (supports manually closed issues detected during polling)
+
     Returns list of newly activated entries for agent assignment.
     """
     lock = _get_lock(repo_key)
     async with lock:
         entry = await store.get_by_issue(repo_key, issue_number)
-        if not entry or entry.queue_status == BlockingQueueStatus.COMPLETED:
+        if not entry:
             logger.debug(
-                "Issue #%d not in queue or already completed for %s",
+                "Issue #%d not in blocking queue for %s — ignoring mark_completed",
+                issue_number,
+                repo_key,
+            )
+            return []
+
+        if entry.queue_status == BlockingQueueStatus.COMPLETED:
+            logger.debug(
+                "Issue #%d already completed for %s — idempotent skip",
                 issue_number,
                 repo_key,
             )
@@ -274,12 +312,11 @@ async def mark_completed(repo_key: str, issue_number: int) -> list[BlockingQueue
         activated = await _try_activate_next_unlocked(repo_key)
 
         # Broadcast WebSocket event for queue state change
-        if entry:
-            await _broadcast_queue_update(
-                entry.project_id, repo_key,
-                activated_issues=[e.issue_number for e in activated],
-                completed_issues=[issue_number],
-            )
+        await _broadcast_queue_update(
+            entry.project_id, repo_key,
+            activated_issues=[e.issue_number for e in activated],
+            completed_issues=[issue_number],
+        )
 
         return activated
 
