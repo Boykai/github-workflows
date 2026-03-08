@@ -1201,6 +1201,11 @@ export interface RepoMcpServerConfig {
   source_paths: string[];
 }
 
+export interface RepoMcpServerUpdate {
+  name: string;
+  config_content: string;
+}
+
 export interface RepoMcpConfigResponse {
   paths_checked: string[];
   available_paths: string[];

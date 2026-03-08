@@ -29,6 +29,7 @@ interface AgentsPanelProps {
   owner?: string;
   repo?: string;
   agentUsageCounts?: Record<string, number>;
+  pipelineConfigCounts?: Record<string, number>;
   pendingSubIssueCounts?: Record<string, number>;
 }
 
@@ -43,6 +44,7 @@ export function AgentsPanel({
   owner,
   repo,
   agentUsageCounts = {},
+  pipelineConfigCounts = {},
   pendingSubIssueCounts = {},
 }: AgentsPanelProps) {
   const { data: agents, isLoading, error } = useAgentsList(projectId);
@@ -360,6 +362,7 @@ export function AgentsPanel({
                   agent={agent}
                   projectId={projectId}
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
+                  pipelineConfigCount={pipelineConfigCounts[agent.slug] ?? 0}
                   pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                   onEdit={handleEditRequest}
                   variant="default"
@@ -436,6 +439,7 @@ export function AgentsPanel({
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
+                    pipelineConfigCount={pipelineConfigCounts[agent.slug] ?? 0}
                     pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                     onEdit={handleEditRequest}
                     variant="spotlight"
@@ -512,6 +516,7 @@ export function AgentsPanel({
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
+                    pipelineConfigCount={pipelineConfigCounts[agent.slug] ?? 0}
                     pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                     onEdit={handleEditRequest}
                   />

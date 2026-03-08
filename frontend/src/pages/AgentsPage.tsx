@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { useQuery } from '@tanstack/react-query';
+import { pipelinesApi } from '@/services/api';
 import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
@@ -27,6 +29,12 @@ export function AgentsPage() {
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
+  const { data: pipelineList } = useQuery({
+    queryKey: ['pipelines', 'list', projectId ?? ''],
+    queryFn: () => pipelinesApi.list(projectId!),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
 
   const columns = boardData?.columns ?? [];
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
@@ -34,6 +42,15 @@ export function AgentsPage() {
   const agentUsageCounts = Object.values(agentConfig.localMappings).reduce<Record<string, number>>((counts, mapped) => {
     mapped.forEach((assignment) => {
       counts[assignment.slug] = (counts[assignment.slug] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+  const pipelineConfigCounts = (pipelineList?.pipelines ?? []).reduce<Record<string, number>>((counts, pipeline) => {
+    const pipelineAgentSlugs = new Set(
+      pipeline.stages.flatMap((stage) => stage.agents.map((agent) => agent.agent_slug))
+    );
+    pipelineAgentSlugs.forEach((slug) => {
+      counts[slug] = (counts[slug] ?? 0) + 1;
     });
     return counts;
   }, {});
@@ -85,6 +102,7 @@ export function AgentsPage() {
               owner={repo?.owner}
               repo={repo?.name}
               agentUsageCounts={agentUsageCounts}
+              pipelineConfigCounts={pipelineConfigCounts}
               pendingSubIssueCounts={pendingSubIssueCounts}
             />
           </div>

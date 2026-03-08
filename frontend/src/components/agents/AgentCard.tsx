@@ -20,6 +20,7 @@ interface AgentCardProps {
   agent: AgentConfig;
   projectId: string;
   usageCount?: number;
+  pipelineConfigCount?: number;
   pendingSubIssueCount?: number;
   onEdit?: (agent: AgentConfig) => void;
   variant?: 'default' | 'spotlight';
@@ -43,7 +44,8 @@ const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = 
 export function AgentCard({
   agent,
   projectId,
-  usageCount = 0,
+  usageCount: _usageCount = 0,
+  pipelineConfigCount = 0,
   pendingSubIssueCount = 0,
   onEdit,
   variant = 'default',
@@ -76,7 +78,7 @@ export function AgentCard({
   const sourceLabel =
     agent.source === 'both' ? 'Shared' : agent.source === 'repo' ? 'Repository' : 'Local';
   const createdLabel = formatAgentCreatedLabel(agent.created_at);
-  const usageLabel = `${usageCount} config${usageCount === 1 ? '' : 's'}`;
+  const pipelineConfigLabel = `${pipelineConfigCount} config${pipelineConfigCount === 1 ? '' : 's'}`;
 
   const handleIconSave = async (iconName: string | null) => {
     await updateMutation.mutateAsync({
@@ -139,7 +141,7 @@ export function AgentCard({
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
             <span className="solar-chip rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
-              {usageLabel}
+              {pipelineConfigLabel}
             </span>
             <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
               {agent.tools.length} tools

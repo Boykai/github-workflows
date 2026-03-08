@@ -2,7 +2,12 @@ import base64
 import json
 from unittest.mock import AsyncMock, patch
 
-from src.models.tools import McpToolConfigCreate, McpToolConfigSyncResult, McpToolConfigUpdate
+from src.models.tools import (
+    McpToolConfigCreate,
+    McpToolConfigSyncResult,
+    McpToolConfigUpdate,
+    RepoMcpServerUpdate,
+)
 from src.services.tools.service import DuplicateToolServerNameError, ToolsService
 
 PROJECT_ID = "project-123"
@@ -500,3 +505,137 @@ class TestToolsServiceMcpSync:
             )
 
         assert fake_client.put_calls == []
+
+    async def test_update_repo_mcp_server_updates_existing_server_in_each_present_path(
+        self, mock_db
+    ):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "other": {
+                                        "type": "stdio",
+                                        "command": "npx",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            result = await service.update_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+                data=RepoMcpServerUpdate(
+                    name="modern",
+                    config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                ),
+            )
+
+        assert result.name == "modern"
+        assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
+        put_by_url = dict(fake_client.put_calls)
+        copilot_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+        )
+        vscode_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+        )
+        assert set(copilot_content["mcpServers"].keys()) == {"modern"}
+        assert set(vscode_content["mcpServers"].keys()) == {"modern", "other"}
+
+    async def test_delete_repo_mcp_server_removes_server_from_present_paths(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "other": {
+                                        "type": "http",
+                                        "url": "https://other.example/mcp",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            result = await service.delete_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+            )
+
+        assert result.name == "legacy"
+        assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
+        put_by_url = dict(fake_client.put_calls)
+        copilot_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+        )
+        vscode_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+        )
+        assert copilot_content["mcpServers"] == {}
+        assert set(vscode_content["mcpServers"].keys()) == {"other"}

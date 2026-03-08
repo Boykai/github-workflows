@@ -19,7 +19,7 @@ interface UploadMcpModalProps {
 
 const MAX_CONFIG_SIZE = 262144; // 256 KB
 
-function validateMcpJson(content: string): string | null {
+export function validateMcpJson(content: string): string | null {
   if (!content.trim()) return 'Configuration content is required';
   if (new Blob([content]).size > MAX_CONFIG_SIZE) return 'Configuration exceeds 256 KB limit';
 

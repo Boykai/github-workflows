@@ -5,25 +5,28 @@
  * Mirrors AgentsPanel pattern.
  */
 
-import { useDeferredValue, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Search, Wrench } from 'lucide-react';
 import { useToolsList } from '@/hooks/useTools';
 import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
 import { useMcpPresets } from '@/hooks/useMcpPresets';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { ToolCard } from './ToolCard';
+import { EditRepoMcpModal } from './EditRepoMcpModal';
 import { UploadMcpModal } from './UploadMcpModal';
 import { RepoConfigPanel } from './RepoConfigPanel';
 import { McpPresetsGallery } from './McpPresetsGallery';
 import { GitHubToolsetSelector } from './GitHubToolsetSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { McpPreset, McpToolConfig, McpToolConfigCreate } from '@/types';
+import type { McpPreset, McpToolConfig, McpToolConfigCreate, RepoMcpServerConfig } from '@/types';
 
 interface ToolsPanelProps {
   projectId: string;
 }
 
 export function ToolsPanel({ projectId }: ToolsPanelProps) {
+  const { confirm } = useConfirmation();
   const {
     tools,
     isLoading,
@@ -45,17 +48,52 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTool, setEditingTool] = useState<McpToolConfig | null>(null);
+  const [editingRepoServer, setEditingRepoServer] = useState<RepoMcpServerConfig | null>(null);
   const [draftTool, setDraftTool] = useState<Partial<McpToolConfigCreate> | null>(null);
   const [search, setSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
-  const { repoConfig, isLoading: isRepoConfigLoading, error: repoConfigError, refetch: refetchRepoConfig } = useRepoMcpConfig(projectId);
+  const {
+    repoConfig,
+    isLoading: isRepoConfigLoading,
+    error: repoConfigError,
+    refetch: refetchRepoConfig,
+    updateRepoServer,
+    isUpdating: isRepoServerUpdating,
+    updatingServerName,
+    updateError: repoServerUpdateError,
+    resetUpdateError: resetRepoServerUpdateError,
+    deleteRepoServer,
+    isDeleting: isRepoServerDeleting,
+    deletingServerName,
+    deleteError: repoServerDeleteError,
+    resetDeleteError: resetRepoServerDeleteError,
+  } = useRepoMcpConfig(projectId);
   const { presets, isLoading: arePresetsLoading, error: presetsError } = useMcpPresets();
+
+  const managedToolByServerName = useMemo(() => {
+    const index = new Map<string, McpToolConfig>();
+
+    tools.forEach((tool) => {
+      try {
+        const parsed = JSON.parse(tool.config_content) as { mcpServers?: Record<string, unknown> };
+        Object.keys(parsed.mcpServers ?? {}).forEach((serverName) => {
+          index.set(serverName, tool);
+        });
+      } catch {
+        // Ignore invalid tool payloads and keep rendering the page.
+      }
+    });
+
+    return index;
+  }, [tools]);
 
   const handleOpenCreate = () => {
     resetUploadError();
     resetUpdateError();
+    resetRepoServerUpdateError();
     setEditingTool(null);
+    setEditingRepoServer(null);
     setDraftTool(null);
     setShowUploadModal(true);
   };
@@ -63,7 +101,9 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   const handleOpenEdit = (tool: McpToolConfig) => {
     resetUploadError();
     resetUpdateError();
+    resetRepoServerUpdateError();
     setEditingTool(tool);
+    setEditingRepoServer(null);
     setDraftTool(null);
     setShowUploadModal(true);
   };
@@ -71,7 +111,9 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   const handlePresetSelect = (preset: McpPreset) => {
     resetUploadError();
     resetUpdateError();
+    resetRepoServerUpdateError();
     setEditingTool(null);
+    setEditingRepoServer(null);
     setDraftTool({
       name: preset.name,
       description: preset.description,
@@ -104,6 +146,40 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     setDeleteConfirmId(null);
   };
 
+  const handleEditRepoServer = (server: RepoMcpServerConfig) => {
+    const managedTool = managedToolByServerName.get(server.name);
+    if (managedTool) {
+      handleOpenEdit(managedTool);
+      return;
+    }
+
+    resetRepoServerUpdateError();
+    setEditingTool(null);
+    setDraftTool(null);
+    setEditingRepoServer(server);
+  };
+
+  const handleDeleteRepoServer = async (server: RepoMcpServerConfig) => {
+    const managedTool = managedToolByServerName.get(server.name);
+    if (managedTool) {
+      await handleDelete(managedTool.id);
+      return;
+    }
+
+    resetRepoServerDeleteError();
+    const confirmed = await confirm({
+      title: 'Delete Repository MCP',
+      description: `Remove MCP server "${server.name}" from the repository config files?`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    await deleteRepoServer(server.name);
+  };
+
   return (
     <div className="flex min-w-0 flex-col gap-6">
       <RepoConfigPanel
@@ -113,7 +189,20 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         onRefresh={() => {
           void refetchRepoConfig();
         }}
+        onEdit={handleEditRepoServer}
+        onDelete={(server) => {
+          void handleDeleteRepoServer(server);
+        }}
+        editingServerName={isRepoServerUpdating ? updatingServerName : editingRepoServer?.name}
+        deletingServerName={isRepoServerDeleting ? deletingServerName : null}
+        managedServerNames={[...managedToolByServerName.keys()]}
       />
+
+      {repoServerDeleteError && (
+        <div className="rounded-[1.25rem] border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {repoServerDeleteError}
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <McpPresetsGallery
@@ -260,6 +349,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         onClose={() => {
           setShowUploadModal(false);
           setEditingTool(null);
+          setEditingRepoServer(null);
           setDraftTool(null);
         }}
         onUpload={uploadTool}
@@ -269,6 +359,17 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         existingNames={tools.map((t) => t.name)}
         editingTool={editingTool}
         initialDraft={draftTool}
+      />
+
+      <EditRepoMcpModal
+        isOpen={editingRepoServer !== null}
+        server={editingRepoServer}
+        isSubmitting={isRepoServerUpdating}
+        submitError={repoServerUpdateError}
+        onClose={() => {
+          setEditingRepoServer(null);
+        }}
+        onSave={(serverName, data) => updateRepoServer({ serverName, data })}
       />
     </div>
   );

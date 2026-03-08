@@ -74,6 +74,13 @@ class McpToolConfigSyncResult(BaseModel):
     synced_paths: list[str] = Field(default_factory=list)
 
 
+class RepoMcpServerUpdate(BaseModel):
+    """Request body for updating a repository MCP server entry directly."""
+
+    name: str = Field(min_length=1, max_length=100)
+    config_content: str = Field(min_length=2, max_length=262144)
+
+
 class RepoMcpServerConfig(BaseModel):
     """A normalized MCP server entry discovered in the repository."""
 

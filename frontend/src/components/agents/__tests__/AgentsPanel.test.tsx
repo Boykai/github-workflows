@@ -309,6 +309,34 @@ describe('AgentsPanel', () => {
     vi.useRealTimers();
   });
 
+  it('shows config pill counts from saved pipeline usage', () => {
+    mockUseAgentsList.mockReturnValue({
+      data: [
+        createAgent({
+          id: 'repo:alpha',
+          slug: 'alpha',
+          name: 'Alpha',
+          source: 'repo',
+          status: 'active',
+        }),
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <AgentsPanel
+        projectId="PVT_1"
+        agentUsageCounts={{ alpha: 9 }}
+        pipelineConfigCounts={{ alpha: 2 }}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(screen.getAllByText('2 configs').length).toBeGreaterThan(0);
+    expect(screen.queryByText('9 configs')).not.toBeInTheDocument();
+  });
+
   it('shows the creation timestamp after the recent window expires', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-08T12:00:00Z'));

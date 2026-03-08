@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 
 const mockList = vi.fn();
 const mockListTemplates = vi.fn();
+const mockUpdate = vi.fn();
 const mockInlineUpdate = vi.fn();
 const mockPipelinesList = vi.fn();
 
@@ -24,6 +25,7 @@ vi.mock('@/services/api', () => ({
   choresApi: {
     list: (...args: unknown[]) => mockList(...args),
     listTemplates: (...args: unknown[]) => mockListTemplates(...args),
+    update: (...args: unknown[]) => mockUpdate(...args),
     inlineUpdate: (...args: unknown[]) => mockInlineUpdate(...args),
   },
   pipelinesApi: {
@@ -86,6 +88,7 @@ describe('ChoresPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListTemplates.mockResolvedValue([]);
+    mockUpdate.mockResolvedValue(createChore());
     mockInlineUpdate.mockResolvedValue({
       chore: createChore(),
       pr_number: 101,
@@ -207,6 +210,39 @@ describe('ChoresPanel', () => {
     await waitFor(() => {
       expect(mockInlineUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
         agent_pipeline_id: 'pipe-1',
+      });
+    });
+  });
+
+  it('updates the pipeline directly from the pipeline pill pop-out', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    const pipelinePills = await screen.findAllByRole('button', { name: 'Agent Pipeline' });
+    await user.click(pipelinePills[0]);
+    await user.click(await screen.findByRole('option', { name: 'Advanced Pipeline' }));
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
+        agent_pipeline_id: 'pipe-1',
+      });
+    });
+  });
+
+  it('toggles blocking directly from the blocking pill', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', blocking: false })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    const blockingPills = await screen.findAllByRole('button', { name: 'Non-blocking' });
+    await user.click(blockingPills[0]);
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
+        blocking: true,
       });
     });
   });

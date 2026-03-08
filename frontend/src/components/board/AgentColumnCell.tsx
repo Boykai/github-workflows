@@ -121,7 +121,7 @@ export function AgentColumnCell({
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex h-full min-w-0 flex-col transition-colors duration-150 ${isCompact ? 'pipeline-column-surface gap-1.5 rounded-[1rem] border p-1.5' : 'gap-2 rounded-[1.2rem] border p-2'} ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
+      className={`flex h-full min-w-0 flex-col transition-colors duration-150 ${isCompact ? 'pipeline-column-surface pipeline-stage-card gap-1.5 rounded-[1rem] border p-1.5' : 'gap-2 rounded-[1.2rem] border p-2'} ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
     >
       {isCompact && (
         <div className="flex items-center justify-between px-1 pb-0.5">

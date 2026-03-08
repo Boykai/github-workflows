@@ -18,6 +18,8 @@ from src.models.tools import (
     McpToolConfigSyncResult,
     McpToolConfigUpdate,
     RepoMcpConfigResponse,
+    RepoMcpServerConfig,
+    RepoMcpServerUpdate,
     ToolDeleteResult,
 )
 from src.models.user import UserSession
@@ -99,6 +101,70 @@ async def get_repo_config(
             repo,
         )
         raise GitHubAPIError("Failed to fetch repository MCP config") from exc
+
+
+@router.put(
+    "/{project_id}/repo-config/{server_name}",
+    response_model=RepoMcpServerConfig,
+    dependencies=[Depends(verify_project_access)],
+)
+async def update_repo_server(
+    project_id: str,
+    server_name: str,
+    data: RepoMcpServerUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> RepoMcpServerConfig:
+    """Update an existing repository MCP server directly in repo config files."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
+
+    try:
+        return await service.update_repo_mcp_server(
+            owner=owner,
+            repo=repo,
+            access_token=session.access_token,
+            server_name=server_name,
+            data=data,
+        )
+    except LookupError as exc:
+        raise NotFoundError(str(exc)) from exc
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+
+
+@router.delete(
+    "/{project_id}/repo-config/{server_name}",
+    response_model=RepoMcpServerConfig,
+    dependencies=[Depends(verify_project_access)],
+)
+async def delete_repo_server(
+    project_id: str,
+    server_name: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> RepoMcpServerConfig:
+    """Delete an existing repository MCP server directly from repo config files."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
+
+    try:
+        return await service.delete_repo_mcp_server(
+            owner=owner,
+            repo=repo,
+            access_token=session.access_token,
+            server_name=server_name,
+        )
+    except LookupError as exc:
+        raise NotFoundError(str(exc)) from exc
 
 
 # ── Create Tool ──
