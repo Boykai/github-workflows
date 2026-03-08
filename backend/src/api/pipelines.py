@@ -1,4 +1,4 @@
-"""Pipeline API endpoints — CRUD for Agent Pipeline configurations and model listing."""
+"""Pipeline API endpoints — CRUD for Agent Pipeline configurations."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.auth import get_session_dep
 from src.models.pipeline import (
-    AIModel,
     PipelineConfig,
     PipelineConfigCreate,
     PipelineConfigListResponse,
@@ -28,19 +27,6 @@ router = APIRouter()
 def _get_service() -> PipelineService:
     """Instantiate PipelineService with the current DB connection."""
     return PipelineService(get_db())
-
-
-# ── List Models ──
-# NOTE: This static route must be defined BEFORE dynamic /{project_id}
-# routes to avoid being shadowed by /{project_id}/{pipeline_id}.
-
-
-@router.get("/models/available", response_model=list[AIModel])
-async def list_models(
-    session: Annotated[UserSession, Depends(get_session_dep)],
-) -> list[AIModel]:
-    """List available AI models for agent assignment."""
-    return PipelineService.list_models()
 
 
 # ── List Pipelines ──

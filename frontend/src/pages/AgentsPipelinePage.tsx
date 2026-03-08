@@ -5,13 +5,14 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
+import { useModels } from '@/hooks/useModels';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
@@ -22,17 +23,6 @@ import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
-import type { AIModel } from '@/types';
-
-function usePipelineModels(): AIModel[] {
-  const { data } = useQuery<AIModel[]>({
-    queryKey: [...pipelineKeys.all, 'models', 'available'],
-    queryFn: () => pipelinesApi.listModels(),
-    staleTime: Infinity,
-  });
-
-  return data ?? [];
-}
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -45,7 +35,7 @@ export function AgentsPipelinePage() {
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(projectId);
   const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
-  const availableModels = usePipelineModels();
+  const { models: availableModels } = useModels();
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
   const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
@@ -213,11 +203,9 @@ export function AgentsPipelinePage() {
               projectId={projectId}
               modelOverride={pipelineConfig.modelOverride}
               validationErrors={pipelineConfig.validationErrors}
-              onStagesChange={pipelineConfig.reorderStages}
               onNameChange={pipelineConfig.setPipelineName}
               onModelOverrideChange={pipelineConfig.setModelOverride}
               onClearValidationError={pipelineConfig.clearValidationError}
-              onAddStage={() => pipelineConfig.addStage()}
               onRemoveStage={pipelineConfig.removeStage}
               onAddAgent={(stageId, slug) => {
                 const agent = availableAgents.find((a) => a.slug === slug);
@@ -226,6 +214,7 @@ export function AgentsPipelinePage() {
               onRemoveAgent={pipelineConfig.removeAgentFromStage}
               onUpdateAgent={pipelineConfig.updateAgentInStage}
               onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
+              onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}
             />
           )}
 

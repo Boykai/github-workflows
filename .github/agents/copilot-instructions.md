@@ -138,6 +138,8 @@ npx playwright test
 - SQLite with WAL mode (aiosqlite) — existing `chat_messages`, `chat_proposals`, `chat_recommendations` tables; localStorage for toggle preference persistence (028-chat-ux-enhancements)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, react-router-dom v7, TanStack Query v5.90, @dnd-kit (core + sortable), Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (028-pipeline-mcp-config)
 - SQLite with WAL mode (aiosqlite) — extending `pipeline_configs` table with preset flags and `PipelineAgentNode` with `tool_ids`; adding `assigned_pipeline_id` column to `project_settings` (028-pipeline-mcp-config)
+- TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, react-router-dom v7, TanStack Query v5.90, @dnd-kit (core@6.3 + sortable@10.0), Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (029-pipeline-ux-fixes)
+- SQLite with WAL mode (aiosqlite) — no schema changes needed (029-pipeline-ux-fixes)
 - Python 3.13 (type-check target, backend runtime requires 3.12+), TypeScript 5.9, React 19.2, Node.js 20 + FastAPI, TanStack Query, @dnd-kit/core, Tailwind CSS v4, Vite 7.3 (029-board-hierarchy-filters)
 - GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence) (029-board-hierarchy-filters)
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
