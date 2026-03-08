@@ -8,6 +8,16 @@
         "-i",
         "markitdown-mcp:latest"
       ]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/readonly",
+      "tools": [
+        "*"
+      ],
+      "headers": {
+        "X-MCP-Toolsets": "repos,issues,users,pull_requests,actions"
+      }
     }
   }
 }
