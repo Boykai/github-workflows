@@ -143,11 +143,11 @@ export function ModelSelector({
 
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
 
     return () => {
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('scroll', updatePosition, { capture: true });
     };
   }, [isOpen]);
 

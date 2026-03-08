@@ -72,10 +72,10 @@ export function AddAgentPopover({
     updatePosition();
 
     const onReposition = () => updatePosition();
-    window.addEventListener('scroll', onReposition, true);
+    window.addEventListener('scroll', onReposition, { capture: true, passive: true });
     window.addEventListener('resize', onReposition);
     return () => {
-      window.removeEventListener('scroll', onReposition, true);
+      window.removeEventListener('scroll', onReposition, { capture: true });
       window.removeEventListener('resize', onReposition);
     };
   }, [isOpen, updatePosition]);

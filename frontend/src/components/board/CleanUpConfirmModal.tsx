@@ -6,6 +6,7 @@
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { CleanupPreflightResponse } from '@/types';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface CleanUpConfirmModalProps {
   data: CleanupPreflightResponse;
@@ -21,12 +22,12 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
     [onCancel]
   );
 
+  useScrollLock(true);
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
 
