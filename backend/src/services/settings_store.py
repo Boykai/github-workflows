@@ -437,7 +437,8 @@ def _build_project_section(
             raw = json.loads(project_row["agent_pipeline_mappings"])
             # raw is dict[str, list[dict]] — convert inner dicts to ProjectAgentMapping
             agent_mappings = {
-                status: [ProjectAgentMapping(**m) for m in mappings] for status, mappings in raw.items()
+                status: [ProjectAgentMapping(**m) for m in mappings]
+                for status, mappings in raw.items()
             }
         except (json.JSONDecodeError, TypeError):
             agent_mappings = None
