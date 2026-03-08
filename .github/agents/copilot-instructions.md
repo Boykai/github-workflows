@@ -148,6 +148,8 @@ npx playwright test
 - GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence) (029-board-hierarchy-filters)
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
+- Python 3.13 (backend) + FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (030-pipeline-model-display)
+- SQLite with WAL mode (aiosqlite) — existing schema, no changes needed (030-pipeline-model-display)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI
