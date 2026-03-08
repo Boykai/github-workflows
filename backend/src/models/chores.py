@@ -44,6 +44,9 @@ class Chore(BaseModel):
     pr_number: int | None = None
     pr_url: str | None = None
     tracking_issue_number: int | None = None
+    execution_count: int = 0
+    ai_enhance_enabled: bool = True
+    agent_pipeline_id: str = ""
     created_at: str
     updated_at: str
 
@@ -61,6 +64,8 @@ class ChoreUpdate(BaseModel):
     schedule_type: ScheduleType | None = None
     schedule_value: int | None = Field(default=None, gt=0)
     status: ChoreStatus | None = None
+    ai_enhance_enabled: bool | None = None
+    agent_pipeline_id: str | None = None
 
 
 # ── Trigger Models ──
@@ -112,6 +117,7 @@ class ChoreChatMessage(BaseModel):
 
     content: str
     conversation_id: str | None = None
+    ai_enhance: bool = True
 
 
 class ChoreChatResponse(BaseModel):
@@ -122,3 +128,52 @@ class ChoreChatResponse(BaseModel):
     template_ready: bool = False
     template_content: str | None = None
     template_name: str | None = None
+
+
+# ── Inline Editing Models ──
+
+
+class ChoreInlineUpdate(BaseModel):
+    """Request body for inline editing of a Chore definition. Creates a PR on save."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    template_content: str | None = Field(default=None, min_length=1)
+    schedule_type: ScheduleType | None = None
+    schedule_value: int | None = Field(default=None, gt=0)
+    ai_enhance_enabled: bool | None = None
+    agent_pipeline_id: str | None = None
+    expected_sha: str | None = None
+
+
+class ChoreInlineUpdateResponse(BaseModel):
+    """Response from inline Chore update with PR creation result."""
+
+    chore: Chore
+    pr_number: int | None = None
+    pr_url: str | None = None
+    pr_merged: bool = False
+    merge_error: str | None = None
+
+
+# ── Creation with Auto-Merge Models ──
+
+
+class ChoreCreateWithConfirmation(BaseModel):
+    """Request body for creating a new Chore with the full auto-merge flow."""
+
+    name: str = Field(..., min_length=1, max_length=200)
+    template_content: str = Field(..., min_length=1)
+    ai_enhance_enabled: bool = True
+    agent_pipeline_id: str = ""
+    auto_merge: bool = True
+
+
+class ChoreCreateResponse(BaseModel):
+    """Response from Chore creation with full flow result."""
+
+    chore: Chore
+    issue_number: int | None = None
+    pr_number: int | None = None
+    pr_url: str | None = None
+    pr_merged: bool = False
+    merge_error: str | None = None

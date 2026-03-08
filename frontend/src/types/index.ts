@@ -834,6 +834,9 @@ export interface Chore {
   pr_number: number | null;
   pr_url: string | null;
   tracking_issue_number: number | null;
+  execution_count: number;
+  ai_enhance_enabled: boolean;
+  agent_pipeline_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -854,6 +857,8 @@ export interface ChoreUpdate {
   schedule_type?: ScheduleType | null;
   schedule_value?: number | null;
   status?: ChoreStatus;
+  ai_enhance_enabled?: boolean;
+  agent_pipeline_id?: string;
 }
 
 export interface ChoreTriggerResult {
@@ -875,6 +880,7 @@ export interface EvaluateChoreTriggersResponse {
 export interface ChoreChatMessage {
   content: string;
   conversation_id?: string | null;
+  ai_enhance?: boolean;
 }
 
 export interface ChoreChatResponse {
@@ -883,6 +889,72 @@ export interface ChoreChatResponse {
   template_ready: boolean;
   template_content: string | null;
   template_name: string | null;
+}
+
+// ── Inline Editing Types ──
+
+export interface ChoreInlineUpdate {
+  name?: string;
+  template_content?: string;
+  schedule_type?: ScheduleType | null;
+  schedule_value?: number | null;
+  ai_enhance_enabled?: boolean;
+  agent_pipeline_id?: string;
+  expected_sha?: string;
+}
+
+export interface ChoreInlineUpdateResponse {
+  chore: Chore;
+  pr_number: number | null;
+  pr_url: string | null;
+  pr_merged: boolean;
+  merge_error: string | null;
+}
+
+export interface ChoreCreateWithConfirmation {
+  name: string;
+  template_content: string;
+  ai_enhance_enabled: boolean;
+  agent_pipeline_id: string;
+  auto_merge: boolean;
+}
+
+export interface ChoreCreateResponse {
+  chore: Chore;
+  issue_number: number | null;
+  pr_number: number | null;
+  pr_url: string | null;
+  pr_merged: boolean;
+  merge_error: string | null;
+}
+
+// ── Featured Rituals Types ──
+
+export interface FeaturedRitualCard {
+  choreId: string;
+  choreName: string;
+  stat: string;
+  statValue: number;
+}
+
+export interface FeaturedRituals {
+  nextRun: FeaturedRitualCard | null;
+  mostRecentlyRun: FeaturedRitualCard | null;
+  mostRun: FeaturedRitualCard | null;
+}
+
+export interface ChoreEditState {
+  original: Chore;
+  current: Partial<ChoreInlineUpdate>;
+  isDirty: boolean;
+  fileSha: string | null;
+}
+
+export interface ChoreCounterData {
+  choreId: string;
+  remaining: number;
+  totalThreshold: number;
+  issuesSinceLastRun: number;
 }
 
 // ============ Solune UI Redesign Types (025) ============

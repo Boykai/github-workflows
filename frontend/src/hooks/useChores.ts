@@ -15,6 +15,10 @@ import type {
   ChoreTriggerResult,
   ChoreChatMessage,
   ChoreChatResponse,
+  ChoreInlineUpdate,
+  ChoreInlineUpdateResponse,
+  ChoreCreateWithConfirmation,
+  ChoreCreateResponse,
 } from '@/types';
 
 // ── Query Keys ──
@@ -116,5 +120,39 @@ export function useTriggerChore(projectId: string | null | undefined) {
 export function useChoreChat(projectId: string | null | undefined) {
   return useMutation<ChoreChatResponse, ApiError, ChoreChatMessage>({
     mutationFn: (data) => choresApi.chat(projectId!, data),
+  });
+}
+
+// ── Inline Update Mutation ──
+
+export function useInlineUpdateChore(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ChoreInlineUpdateResponse,
+    ApiError,
+    { choreId: string; data: ChoreInlineUpdate }
+  >({
+    mutationFn: ({ choreId, data }) => choresApi.inlineUpdate(projectId!, choreId, data),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  });
+}
+
+// ── Create with Auto-Merge Mutation ──
+
+export function useCreateChoreWithAutoMerge(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ChoreCreateResponse, ApiError, ChoreCreateWithConfirmation>({
+    mutationFn: (data) => choresApi.createWithAutoMerge(projectId!, data),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
   });
 }

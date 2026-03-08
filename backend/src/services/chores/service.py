@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from base64 import b64decode
 from datetime import UTC, datetime
 
 import aiosqlite
@@ -17,6 +18,21 @@ logger = logging.getLogger(__name__)
 def _strip_front_matter(text: str) -> str:
     """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
     return re.sub(r"\A---\n.*?\n---\n?", "", text, count=1, flags=re.DOTALL).strip()
+
+
+class ChoreConflictError(RuntimeError):
+    """Raised when an inline chore edit conflicts with newer repo content."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        current_sha: str | None = None,
+        current_content: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.current_sha = current_sha
+        self.current_content = current_content
 
 
 class ChoresService:
@@ -130,6 +146,11 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        # Convert booleans to SQLite integers
+        for key, val in list(updates.items()):
+            if isinstance(val, bool):
+                updates[key] = 1 if val else 0
+
         set_clause = ", ".join(f"{col} = ?" for col in updates)
         values = [*list(updates.values()), chore_id]
 
@@ -178,6 +199,7 @@ class ChoresService:
         """CAS-style update after triggering a chore.
 
         Uses WHERE last_triggered_at = old_value to prevent double-fire.
+        Also atomically increments execution_count.
         Returns True if the update was applied.
         """
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -190,6 +212,7 @@ class ChoresService:
                     current_issue_node_id = ?,
                     last_triggered_at = ?,
                     last_triggered_count = ?,
+                    execution_count = execution_count + 1,
                     updated_at = ?
                 WHERE id = ? AND last_triggered_at IS NULL
                 """,
@@ -210,6 +233,7 @@ class ChoresService:
                     current_issue_node_id = ?,
                     last_triggered_at = ?,
                     last_triggered_count = ?,
+                    execution_count = execution_count + 1,
                     updated_at = ?
                 WHERE id = ? AND last_triggered_at = ?
                 """,
@@ -245,11 +269,17 @@ class ChoresService:
         """Update arbitrary fields on a chore by keyword arguments.
 
         Used internally to set PR/tracking-issue metadata after creation.
+        Converts Python bools to SQLite integers (0/1) automatically.
         """
         if not kwargs:
             return
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         kwargs["updated_at"] = now
+
+        # Convert booleans to SQLite integers
+        for key, val in kwargs.items():
+            if isinstance(val, bool):
+                kwargs[key] = 1 if val else 0
 
         set_clause = ", ".join(f"{col} = ?" for col in kwargs)
         values = [*list(kwargs.values()), chore_id]
@@ -601,4 +631,200 @@ class ChoresService:
             "triggered": triggered,
             "skipped": skipped,
             "results": results,
+        }
+
+    # ── Inline Update (Phase 5) ──
+
+    async def inline_update_chore(
+        self,
+        chore_id: str,
+        body,
+        *,
+        github_service=None,
+        access_token: str | None = None,
+        owner: str | None = None,
+        repo: str | None = None,
+        project_id: str | None = None,
+    ) -> dict:
+        """Apply an inline edit to a chore and optionally create a PR.
+
+        Returns dict with 'chore', 'pr_number', 'pr_url' keys.
+        """
+        from src.services.chores.template_builder import (
+            build_template,
+        )
+
+        expected_sha = body.expected_sha
+        updates = body.model_dump(exclude_unset=True)
+        updates.pop("expected_sha", None)
+
+        chore = await self.get_chore(chore_id)
+        if chore is None:
+            raise ValueError(f"Chore {chore_id} not found")
+
+        if not updates:
+            return {"chore": chore, "pr_number": None, "pr_url": None}
+
+        needs_pr = "template_content" in updates or "name" in updates
+
+        if expected_sha and needs_pr and github_service and access_token and owner and repo:
+            response = await github_service.rest_request(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/contents/{chore.template_path}",
+            )
+            if response.status_code == 200:
+                payload = response.json()
+                current_sha = payload.get("sha") if isinstance(payload, dict) else None
+                if current_sha and current_sha != expected_sha:
+                    current_content = None
+                    encoded_content = payload.get("content") if isinstance(payload, dict) else None
+                    if isinstance(encoded_content, str):
+                        try:
+                            current_content = b64decode(encoded_content).decode("utf-8")
+                        except Exception:
+                            current_content = None
+                    raise ChoreConflictError(
+                        "File has been modified since page load",
+                        current_sha=current_sha,
+                        current_content=current_content,
+                    )
+
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        updates["updated_at"] = now
+
+        # Convert booleans to SQLite integers
+        for key, val in list(updates.items()):
+            if isinstance(val, bool):
+                updates[key] = 1 if val else 0
+
+        set_clause = ", ".join(f"{col} = ?" for col in updates)
+        values = [*list(updates.values()), chore_id]
+
+        await self._db.execute(
+            f"UPDATE chores SET {set_clause} WHERE id = ?",
+            values,
+        )
+        await self._db.commit()
+
+        chore = await self.get_chore(chore_id)
+        if chore is None:
+            raise ValueError(f"Chore {chore_id} not found after update")
+
+        pr_number = None
+        pr_url = None
+
+        if needs_pr and github_service and access_token and owner and repo:
+            try:
+                from src.services.chores.template_builder import (
+                    update_template_in_repo,
+                )
+
+                result = await update_template_in_repo(
+                    github_service=github_service,
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    chore_name=chore.name,
+                    template_path=chore.template_path,
+                    template_content=build_template(chore.name, chore.template_content),
+                )
+                pr_number = result.get("pr_number")
+                pr_url = result.get("pr_url")
+
+                if pr_number:
+                    await self.update_chore_fields(chore_id, pr_number=pr_number, pr_url=pr_url)
+                    chore = await self.get_chore(chore_id)
+            except Exception:
+                logger.exception("Failed to create PR for inline update of chore %s", chore_id)
+
+        return {"chore": chore, "pr_number": pr_number, "pr_url": pr_url}
+
+    # ── Create with Auto-Merge (Phase 8) ──
+
+    async def create_chore_with_auto_merge(
+        self,
+        project_id: str,
+        body,
+        *,
+        github_service,
+        access_token: str,
+        owner: str,
+        repo: str,
+    ) -> dict:
+        """Create a chore, commit template via PR, and auto-merge.
+
+        Returns dict with chore, issue_number, pr_number, pr_url,
+        pr_merged, merge_error.
+        """
+        from src.models.chores import ChoreCreate
+        from src.services.chores.template_builder import (
+            build_template,
+            commit_template_to_repo,
+        )
+
+        template_content = build_template(body.name, body.template_content)
+
+        # Commit template to repo via branch + PR + tracking issue
+        result = await commit_template_to_repo(
+            github_service=github_service,
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            project_id=project_id,
+            name=body.name,
+            template_content=template_content,
+        )
+
+        # Create chore record in database
+        create_body = ChoreCreate(name=body.name, template_content=body.template_content)
+        chore = await self.create_chore(
+            project_id,
+            create_body,
+            template_path=result["template_path"],
+        )
+
+        # Update chore with additional fields
+        await self.update_chore_fields(
+            chore.id,
+            pr_number=result.get("pr_number"),
+            pr_url=result.get("pr_url"),
+            tracking_issue_number=result.get("tracking_issue_number"),
+            template_content=template_content,
+            ai_enhance_enabled=body.ai_enhance_enabled,
+            agent_pipeline_id=body.agent_pipeline_id,
+        )
+
+        chore = await self.get_chore(chore.id)
+        pr_number = result.get("pr_number")
+        pr_url = result.get("pr_url")
+        tracking_issue_number = result.get("tracking_issue_number")
+        pr_merged = False
+        merge_error = None
+
+        # Auto-merge the PR if requested
+        if body.auto_merge and pr_number:
+            try:
+                from src.services.chores.template_builder import merge_chore_pr
+
+                merged, error = await merge_chore_pr(
+                    github_service=github_service,
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_number,
+                )
+                pr_merged = merged
+                merge_error = error
+            except Exception as exc:
+                logger.exception("Auto-merge failed for chore PR #%s", pr_number)
+                merge_error = str(exc)
+
+        return {
+            "chore": chore,
+            "issue_number": tracking_issue_number,
+            "pr_number": pr_number,
+            "pr_url": pr_url,
+            "pr_merged": pr_merged,
+            "merge_error": merge_error,
         }

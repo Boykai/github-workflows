@@ -13,6 +13,10 @@ from src.models.chores import (
     ChoreChatMessage,
     ChoreChatResponse,
     ChoreCreate,
+    ChoreCreateResponse,
+    ChoreCreateWithConfirmation,
+    ChoreInlineUpdate,
+    ChoreInlineUpdateResponse,
     ChoreTemplate,
     ChoreTriggerResult,
     ChoreUpdate,
@@ -20,7 +24,7 @@ from src.models.chores import (
     EvaluateChoreTriggersResponse,
 )
 from src.models.user import UserSession
-from src.services.chores.service import ChoresService
+from src.services.chores.service import ChoreConflictError, ChoresService
 from src.services.chores.template_builder import (
     build_template,
     commit_template_to_repo,
@@ -310,6 +314,7 @@ async def chore_chat(
             body.conversation_id,
             body.content,
             github_token=session.access_token,
+            ai_enhance=body.ai_enhance,
         )
     except Exception as exc:
         logger.error("Chat completion failed: %s", exc, exc_info=True)
@@ -321,6 +326,112 @@ async def chore_chat(
         template_ready=template_ready,
         template_content=template_content,
     )
+
+
+# ── Inline Update ──
+
+
+@router.put("/{project_id}/{chore_id}/inline-update", response_model=ChoreInlineUpdateResponse)
+async def inline_update_chore(
+    project_id: str,
+    chore_id: str,
+    body: ChoreInlineUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> ChoreInlineUpdateResponse:
+    """Inline update a chore definition and create a PR with changes."""
+    service = _get_service()
+
+    existing = await service.get_chore(chore_id)
+    if existing is None or existing.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Chore not found")
+
+    needs_pr = body.name is not None or body.template_content is not None
+    owner = None
+    repo = None
+    if needs_pr:
+        try:
+            owner, repo = await resolve_repository(session.access_token, project_id)
+        except Exception as exc:
+            logger.warning(
+                "Failed to resolve repository for project %s when performing inline chore update",
+                project_id,
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Could not resolve repository for project; inline update cannot create a pull request.",
+            ) from exc
+
+    try:
+        result = await service.inline_update_chore(
+            chore_id,
+            body,
+            github_service=github_projects_service,
+            access_token=session.access_token,
+            owner=owner,
+            repo=repo,
+            project_id=project_id,
+        )
+    except ChoreConflictError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "current_sha": exc.current_sha,
+                "current_content": exc.current_content,
+            },
+        ) from exc
+    except ValueError as exc:
+        logger.warning("Invalid inline update: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return ChoreInlineUpdateResponse(
+        chore=result["chore"],
+        pr_number=result.get("pr_number"),
+        pr_url=result.get("pr_url"),
+    )
+
+
+# ── Create with Auto-Merge ──
+
+
+@router.post("/{project_id}/create-with-merge", response_model=ChoreCreateResponse, status_code=201)
+async def create_chore_with_merge(
+    project_id: str,
+    body: ChoreCreateWithConfirmation,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> ChoreCreateResponse:
+    """Create a new chore with branch + PR + auto-merge flow."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        logger.error(
+            "Failed to resolve repository for project %s: %s", project_id, exc, exc_info=True
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Could not resolve repository for this project",
+        ) from exc
+
+    try:
+        result = await service.create_chore_with_auto_merge(
+            project_id,
+            body,
+            github_service=github_projects_service,
+            access_token=session.access_token,
+            owner=owner,
+            repo=repo,
+        )
+    except ValueError as exc:
+        logger.warning("Invalid chore creation: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        logger.error("Chore creation failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to create chore") from exc
+
+    return ChoreCreateResponse(**result)
 
 
 # ── Evaluate Triggers (Cron) ──

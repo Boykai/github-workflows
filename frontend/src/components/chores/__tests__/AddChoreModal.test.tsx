@@ -14,13 +14,16 @@ import type { ReactNode } from 'react';
 // ── Mock API ──
 
 const mockCreate = vi.fn();
+const mockCreateWithAutoMerge = vi.fn();
 const mockChat = vi.fn();
 
 vi.mock('@/services/api', () => ({
   choresApi: {
     create: (...args: unknown[]) => mockCreate(...args),
+    createWithAutoMerge: (...args: unknown[]) => mockCreateWithAutoMerge(...args),
     chat: (...args: unknown[]) => mockChat(...args),
     list: vi.fn().mockResolvedValue([]),
+    listTemplates: vi.fn().mockResolvedValue([]),
   },
   ApiError: class ApiError extends Error {
     constructor(public status: number, public error: { error: string }) {
@@ -102,10 +105,9 @@ describe('AddChoreModal', () => {
 
   it('submits form with valid data', async () => {
     const user = userEvent.setup();
-    mockCreate.mockResolvedValue({
-      id: 'chore-1',
-      name: 'Bug Bash',
-      project_id: 'PVT_1',
+    mockCreateWithAutoMerge.mockResolvedValue({
+      chore: { id: 'chore-1', name: 'Bug Bash', project_id: 'PVT_1' },
+      pr_merged: true,
     });
 
     render(
@@ -117,10 +119,25 @@ describe('AddChoreModal', () => {
     await user.type(screen.getByLabelText('Template Content'), '## Overview\nRun a bug bash');
     await user.click(screen.getByText('Create Chore'));
 
+    // Step 1: Confirmation modal appears
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledWith('PVT_1', {
+      expect(screen.getByText('I Understand, Continue')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('I Understand, Continue'));
+
+    // Step 2: Final confirmation
+    await waitFor(() => {
+      expect(screen.getByText('Yes, Create Chore')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Yes, Create Chore'));
+
+    await waitFor(() => {
+      expect(mockCreateWithAutoMerge).toHaveBeenCalledWith('PVT_1', {
         name: 'Bug Bash',
         template_content: '## Overview\nRun a bug bash',
+        ai_enhance_enabled: true,
+        agent_pipeline_id: '',
+        auto_merge: true,
       });
     });
   });
@@ -140,7 +157,7 @@ describe('AddChoreModal', () => {
 
   it('shows API error on submission failure', async () => {
     const user = userEvent.setup();
-    mockCreate.mockRejectedValue(new Error('Duplicate chore name'));
+    mockCreateWithAutoMerge.mockRejectedValue(new Error('Duplicate chore name'));
 
     render(
       <AddChoreModal projectId="PVT_1" isOpen={true} onClose={onClose} />,
@@ -153,6 +170,17 @@ describe('AddChoreModal', () => {
       '## Overview\n\n- Step one\n- Step two\n- Step three\n\nDetailed content here',
     );
     await user.click(screen.getByText('Create Chore'));
+
+    // Walk through double-confirmation
+    await waitFor(() => {
+      expect(screen.getByText('I Understand, Continue')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('I Understand, Continue'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Yes, Create Chore')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Yes, Create Chore'));
 
     await waitFor(() => {
       expect(screen.getByText('Duplicate chore name')).toBeInTheDocument();
@@ -186,10 +214,9 @@ describe('AddChoreModal', () => {
 
   it('submits rich input directly without chat flow', async () => {
     const user = userEvent.setup();
-    mockCreate.mockResolvedValue({
-      id: 'chore-1',
-      name: 'Dep Update',
-      project_id: 'PVT_1',
+    mockCreateWithAutoMerge.mockResolvedValue({
+      chore: { id: 'chore-1', name: 'Dep Update', project_id: 'PVT_1' },
+      pr_merged: true,
     });
 
     const richContent = '## Dependency Update\n\n- Check outdated packages\n- Run npm audit\n- Update major versions';
@@ -203,10 +230,25 @@ describe('AddChoreModal', () => {
     await user.type(screen.getByLabelText('Template Content'), richContent);
     await user.click(screen.getByText('Create Chore'));
 
+    // Step 1: Confirmation modal appears
     await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalledWith('PVT_1', {
+      expect(screen.getByText('I Understand, Continue')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('I Understand, Continue'));
+
+    // Step 2: Final confirmation
+    await waitFor(() => {
+      expect(screen.getByText('Yes, Create Chore')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Yes, Create Chore'));
+
+    await waitFor(() => {
+      expect(mockCreateWithAutoMerge).toHaveBeenCalledWith('PVT_1', {
         name: 'Dep Update',
         template_content: richContent,
+        ai_enhance_enabled: true,
+        agent_pipeline_id: '',
+        auto_merge: true,
       });
     });
     // Should NOT show chat flow

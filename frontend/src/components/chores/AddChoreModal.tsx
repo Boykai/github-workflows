@@ -1,13 +1,16 @@
 /**
  * AddChoreModal — modal dialog for creating a new chore.
  *
- * Provides name input and text area for template content.
- * Sparse vs. rich input detection routes sparse submissions to chat flow (US3).
+ * Provides name input, text area for template content, AI Enhance toggle,
+ * Pipeline selector, sparse vs. rich input detection, and double-confirmation flow.
  */
 
 import { useEffect, useState } from 'react';
-import { useCreateChore, useChoreTemplates } from '@/hooks/useChores';
+import { Sparkles } from 'lucide-react';
+import { useCreateChoreWithAutoMerge, useChoreTemplates } from '@/hooks/useChores';
 import { ChoreChatFlow } from './ChoreChatFlow';
+import { ConfirmChoreModal } from './ConfirmChoreModal';
+import { PipelineSelector } from './PipelineSelector';
 import type { ChoreTemplate } from '@/types';
 
 interface AddChoreModalProps {
@@ -50,8 +53,12 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
   const [error, setError] = useState<string | null>(null);
   const [showChatFlow, setShowChatFlow] = useState(false);
   const [sparseContent, setSparseContent] = useState('');
+  const [aiEnhance, setAiEnhance] = useState(true);
+  const [agentPipelineId, setAgentPipelineId] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingContent, setPendingContent] = useState('');
 
-  const createMutation = useCreateChore(projectId);
+  const createMutation = useCreateChoreWithAutoMerge(projectId);
   const { data: repoTemplates } = useChoreTemplates(isOpen ? projectId : null);
 
   const handleSelectTemplate = (template: ChoreTemplate) => {
@@ -72,30 +79,37 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setName('');
-        setTemplateContent('');
-        setError(null);
-        setShowChatFlow(false);
-        setSparseContent('');
-        onClose();
+        resetAndClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   const createChore = async (choreName: string, content: string) => {
+    // Show double-confirmation modal
+    setPendingContent(content);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmCreate = async () => {
     try {
       await createMutation.mutateAsync({
-        name: choreName,
-        template_content: content,
+        name: name.trim(),
+        template_content: pendingContent,
+        ai_enhance_enabled: aiEnhance,
+        agent_pipeline_id: agentPipelineId,
+        auto_merge: true,
       });
+      setShowConfirm(false);
       resetAndClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create chore';
       setError(message);
+      setShowConfirm(false);
     }
   };
 
@@ -105,6 +119,10 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     setError(null);
     setShowChatFlow(false);
     setSparseContent('');
+    setAiEnhance(true);
+    setAgentPipelineId('');
+    setShowConfirm(false);
+    setPendingContent('');
     onClose();
   };
 
@@ -151,6 +169,19 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     resetAndClose();
   };
 
+  // --- Confirmation Modal ---
+  if (showConfirm) {
+    return (
+      <ConfirmChoreModal
+        isOpen={showConfirm}
+        choreName={name.trim()}
+        isLoading={createMutation.isPending}
+        onConfirm={handleConfirmCreate}
+        onCancel={() => setShowConfirm(false)}
+      />
+    );
+  }
+
   // --- Chat flow view ---
   if (showChatFlow) {
     return (
@@ -178,6 +209,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               choreName={name.trim()}
               onTemplateReady={handleTemplateReady}
               onCancel={handleChatCancel}
+              aiEnhance={aiEnhance}
             />
           </div>
         </div>
@@ -269,6 +301,43 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               Brief descriptions start a guided chat; detailed markdown creates the chore directly
             </p>
           </div>
+
+          {/* AI Enhance Toggle */}
+          <div className="flex items-center justify-between gap-3 rounded-md border border-input bg-muted/20 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-sm font-medium text-foreground">AI Enhance</p>
+                <p className="text-xs text-muted-foreground">
+                  {aiEnhance
+                    ? 'AI generates full template content and metadata'
+                    : 'Your exact input as body + AI-generated metadata only'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAiEnhance(!aiEnhance)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                aiEnhance ? 'bg-primary' : 'bg-muted-foreground/30'
+              }`}
+              role="switch"
+              aria-checked={aiEnhance}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  aiEnhance ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Pipeline Selector */}
+          <PipelineSelector
+            projectId={projectId}
+            value={agentPipelineId}
+            onChange={setAgentPipelineId}
+          />
 
           {/* Error */}
           {error && (
