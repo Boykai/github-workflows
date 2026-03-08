@@ -23,9 +23,9 @@
 
 **Purpose**: Verify the development environment and existing behaviour before making changes.
 
-- [ ] T001 Verify frontend builds cleanly by running `cd frontend && npx tsc --noEmit`
-- [ ] T002 [P] Verify existing backend counter tests pass by running `cd backend && python -m pytest tests/unit/test_chores_counter.py -v`
-- [ ] T003 [P] Verify existing frontend tests pass by running `cd frontend && npx vitest run`
+- [x] T001 Verify frontend builds cleanly by running `cd frontend && npx tsc --noEmit`
+- [x] T002 [P] Verify existing backend counter tests pass by running `cd backend && python -m pytest tests/unit/test_chores_counter.py -v`
+- [x] T003 [P] Verify existing frontend tests pass by running `cd frontend && npx vitest run`
 
 ---
 
@@ -53,7 +53,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Add chore-label exclusion filter to `parentIssueCount` useMemo in `frontend/src/pages/ChoresPage.tsx` — insert `if (item.labels?.some(l => l.name === 'chore')) continue;` after the sub-issue exclusion check (line ~49) so that items with the `"chore"` label are skipped from the count
+- [x] T004 [US1] Add chore-label exclusion filter to `parentIssueCount` useMemo in `frontend/src/pages/ChoresPage.tsx` — insert `if (item.labels?.some(l => l.name === 'chore')) continue;` after the sub-issue exclusion check (line ~49) so that items with the `"chore"` label are skipped from the count
 
 **Checkpoint**: At this point, the `parentIssueCount` correctly excludes Chore-labelled issues, Sub-Issues, and non-issue content types. The tile counter on every `ChoreCard` and the `FeaturedRitualsPanel` ranking both receive the corrected count.
 
@@ -72,7 +72,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Clarify docstring in `backend/src/services/chores/counter.py` for `evaluate_count_trigger()` to specify that `current_count` must be the count of qualifying Parent Issues (excluding Chore-labelled issues and Sub-Issues) to ensure callers pass the correct filtered value
+- [x] T005 [US2] Clarify docstring in `backend/src/services/chores/counter.py` for `evaluate_count_trigger()` to specify that `current_count` must be the count of qualifying Parent Issues (excluding Chore-labelled issues and Sub-Issues) to ensure callers pass the correct filtered value
 
 **Checkpoint**: The backend docstring now explicitly documents that `current_count` must exclude Chore-labelled issues and Sub-Issues. The corrected `parentIssueCount` from T004 flows through to the trigger evaluation via the existing `evaluate_triggers` call path.
 
@@ -120,9 +120,9 @@ No code changes needed — counter reset is already correctly implemented in `se
 
 **Purpose**: Validation, verification, and documentation.
 
-- [ ] T006 [P] Run frontend type check (`cd frontend && npx tsc --noEmit`) to verify the chore-label filter addition compiles without errors
-- [ ] T007 [P] Run existing backend counter tests (`cd backend && python -m pytest tests/unit/test_chores_counter.py -v`) to verify no regressions
-- [ ] T008 [P] Run full frontend test suite (`cd frontend && npx vitest run`) to verify no regressions from the filter change
+- [x] T006 [P] Run frontend type check (`cd frontend && npx tsc --noEmit`) to verify the chore-label filter addition compiles without errors
+- [x] T007 [P] Run existing backend counter tests (`cd backend && python -m pytest tests/unit/test_chores_counter.py -v`) to verify no regressions
+- [x] T008 [P] Run full frontend test suite (`cd frontend && npx vitest run`) to verify no regressions from the filter change
 - [ ] T009 Manual verification: Start frontend and backend, navigate to Chores page, verify counter excludes Chore-labelled issues per `quickstart.md` verification steps
 
 ---
