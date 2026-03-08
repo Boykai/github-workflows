@@ -341,7 +341,10 @@ async def _get_global_row(db: aiosqlite.Connection) -> aiosqlite.Row:
 
 def _row_to_global_response(row: aiosqlite.Row) -> GlobalSettingsResponse:
     """Convert a global_settings row to the API response model."""
-    allowed_models = json.loads(row["allowed_models"]) if row["allowed_models"] else []
+    try:
+        allowed_models = json.loads(row["allowed_models"]) if row["allowed_models"] else []
+    except (json.JSONDecodeError, TypeError):
+        allowed_models = []
 
     return GlobalSettingsResponse(
         ai=AIPreferences(
