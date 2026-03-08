@@ -38,6 +38,65 @@ describe('MentionInput', () => {
     expect(screen.getByRole('textbox')).toHaveTextContent('Updated from history');
   });
 
+  it('renders the placeholder when value is empty', () => {
+    renderMentionInput({ value: '', placeholder: 'Ask anything' });
+    expect(screen.getByText('Ask anything')).toBeInTheDocument();
+  });
+
+  it('uses custom ariaLabel when provided', () => {
+    renderMentionInput({ ariaLabel: 'Custom chat label' });
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-label', 'Custom chat label');
+  });
+
+  it('falls back to default aria-label when ariaLabel is not provided', () => {
+    renderMentionInput();
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-label', 'Chat input');
+  });
+
+  it('renders mobile placeholder variant when placeholderMobile is provided', () => {
+    const { container } = renderMentionInput({
+      placeholder: 'Desktop placeholder',
+      placeholderMobile: 'Mobile placeholder',
+    });
+
+    expect(screen.getByText('Desktop placeholder')).toBeInTheDocument();
+    expect(screen.getByText('Mobile placeholder')).toBeInTheDocument();
+
+    // Desktop span should have max-sm:hidden class
+    const desktopSpan = container.querySelector('.max-sm\\:hidden');
+    expect(desktopSpan).toHaveTextContent('Desktop placeholder');
+
+    // Mobile span should have hidden max-sm:inline classes
+    const mobileSpan = screen.getByText('Mobile placeholder');
+    expect(mobileSpan.className).toContain('max-sm:inline');
+  });
+
+  it('renders cycling placeholder when provided', () => {
+    renderMentionInput({
+      placeholder: 'Static text',
+      placeholderMobile: 'Mobile text',
+      cyclingPlaceholder: 'Try: summarize issues',
+    });
+
+    expect(screen.getByText('Try: summarize issues')).toBeInTheDocument();
+  });
+
+  it('applies motion-reduce:animate-none class to cycling placeholder span', () => {
+    renderMentionInput({
+      placeholder: 'Static text',
+      placeholderMobile: 'Mobile text',
+      cyclingPlaceholder: 'Try: summarize issues',
+    });
+
+    const cyclingSpan = screen.getByText('Try: summarize issues');
+    expect(cyclingSpan.className).toContain('motion-reduce:animate-none');
+  });
+
+  it('does not render placeholder when disabled', () => {
+    renderMentionInput({ placeholder: 'Type here', disabled: true });
+    expect(screen.queryByText('Type here')).not.toBeInTheDocument();
+  });
+
   it('removes mention tokens from hook state when backspacing over a token', () => {
     const onTextChange = vi.fn();
     const onTokenRemove = vi.fn();

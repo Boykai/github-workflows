@@ -25,10 +25,10 @@ The spec requires descriptive placeholder copy on desktop (≥1024px) and a shor
 
 ### Decision: Placeholder Copy
 
-**Desktop (main chat, ≥768px):**
+**Desktop (main chat, ≥640px / Tailwind `sm` breakpoint):**
 > "Ask a question, describe a task, use / for commands, or @ to select a pipeline…"
 
-**Mobile (main chat, <768px):**
+**Mobile (main chat, <640px / Tailwind `max-sm` breakpoint):**
 > "Ask anything or use / and @ for more…"
 
 **AgentChatFlow (all viewports — small modal input):**
