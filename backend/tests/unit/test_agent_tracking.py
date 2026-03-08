@@ -41,16 +41,41 @@ class _FakeAgent:
     """Minimal stand-in for AgentAssignment (has a ``slug`` attr)."""
 
     slug: str
+    config: dict | None = None
 
 
 def _make_mappings(
-    statuses_and_agents: dict[str, list[str]],
+    statuses_and_agents: dict[str, list[str | tuple[str, dict | None]]],
 ) -> dict[str, list[_FakeAgent]]:
-    return {s: [_FakeAgent(slug=a) for a in agents] for s, agents in statuses_and_agents.items()}
+    result: dict[str, list[_FakeAgent]] = {}
+    for s, agents in statuses_and_agents.items():
+        fake_agents: list[_FakeAgent] = []
+        for a in agents:
+            if isinstance(a, tuple):
+                fake_agents.append(_FakeAgent(slug=a[0], config=a[1]))
+            else:
+                fake_agents.append(_FakeAgent(slug=a))
+        result[s] = fake_agents
+    return result
 
 
-# Sample markdown body with a tracking section
+# Sample markdown body with a 5-column tracking section (new format with Model column)
 SAMPLE_BODY = """\
+Issue description here.
+
+---
+
+## 🤖 Agent Pipeline
+
+| # | Status | Agent | Model | State |
+|---|--------|-------|-------|-------|
+| 1 | Backlog | `speckit.specify` | gpt-4o | ✅ Done |
+| 2 | Ready | `speckit.plan` | claude-3-5-sonnet | 🔄 Active |
+| 3 | In Progress | `speckit.implement` | TBD | ⏳ Pending |
+"""
+
+# Legacy markdown body with old 4-column tracking section (no Model column)
+SAMPLE_BODY_LEGACY = """\
 Issue description here.
 
 ---
@@ -113,6 +138,37 @@ class TestBuildAgentPipelineSteps:
         assert len(steps) == 1
         assert steps[0].status == "Ready"
 
+    def test_model_extracted_from_config(self):
+        mappings = _make_mappings(
+            {
+                "Backlog": [("a1", {"model_name": "gpt-4o"})],
+            }
+        )
+        steps = build_agent_pipeline_steps(mappings, ["Backlog"])
+        assert len(steps) == 1
+        assert steps[0].model == "gpt-4o"
+
+    def test_model_empty_when_config_none(self):
+        mappings = _make_mappings({"Backlog": [("a1", None)]})
+        steps = build_agent_pipeline_steps(mappings, ["Backlog"])
+        assert steps[0].model == ""
+
+    def test_model_empty_when_config_empty_dict(self):
+        mappings = _make_mappings({"Backlog": [("a1", {})]})
+        steps = build_agent_pipeline_steps(mappings, ["Backlog"])
+        assert steps[0].model == ""
+
+    def test_model_empty_when_config_has_no_model_name(self):
+        mappings = _make_mappings({"Backlog": [("a1", {"other_key": "value"})]})
+        steps = build_agent_pipeline_steps(mappings, ["Backlog"])
+        assert steps[0].model == ""
+
+    def test_model_empty_when_no_config_attr(self):
+        """Plain string agents (via _FakeAgent default) have model=''."""
+        mappings = _make_mappings({"Backlog": ["a1"]})
+        steps = build_agent_pipeline_steps(mappings, ["Backlog"])
+        assert steps[0].model == ""
+
 
 # =============================================================================
 # render_tracking_markdown
@@ -121,24 +177,24 @@ class TestBuildAgentPipelineSteps:
 
 class TestRenderTrackingMarkdown:
     def test_contains_header(self):
-        steps = [AgentStep(1, "Backlog", "a1", STATE_PENDING)]
+        steps = [AgentStep(1, "Backlog", "a1", state=STATE_PENDING)]
         md = render_tracking_markdown(steps)
         assert TRACKING_HEADER in md
 
     def test_contains_agent_name(self):
-        steps = [AgentStep(1, "Backlog", "my.agent", STATE_PENDING)]
+        steps = [AgentStep(1, "Backlog", "my.agent", state=STATE_PENDING)]
         md = render_tracking_markdown(steps)
         assert "`my.agent`" in md
 
     def test_contains_state(self):
-        steps = [AgentStep(1, "Backlog", "a1", STATE_ACTIVE)]
+        steps = [AgentStep(1, "Backlog", "a1", state=STATE_ACTIVE)]
         md = render_tracking_markdown(steps)
         assert STATE_ACTIVE in md
 
     def test_multiple_rows(self):
         steps = [
-            AgentStep(1, "Backlog", "a1", STATE_DONE),
-            AgentStep(2, "Ready", "a2", STATE_PENDING),
+            AgentStep(1, "Backlog", "a1", state=STATE_DONE),
+            AgentStep(2, "Ready", "a2", state=STATE_PENDING),
         ]
         md = render_tracking_markdown(steps)
         assert "| 1 |" in md
@@ -151,6 +207,43 @@ class TestRenderTrackingMarkdown:
         lines = [line for line in md.split("\n") if line.startswith("|")]
         # header row + separator row = 2
         assert len(lines) == 2
+
+    def test_model_column_header(self):
+        steps = [AgentStep(1, "Backlog", "a1", model="gpt-4o", state=STATE_PENDING)]
+        md = render_tracking_markdown(steps)
+        assert "| # | Status | Agent | Model | State |" in md
+
+    def test_model_displayed_in_row(self):
+        steps = [AgentStep(1, "Backlog", "a1", model="gpt-4o", state=STATE_PENDING)]
+        md = render_tracking_markdown(steps)
+        assert "| gpt-4o |" in md
+
+    def test_empty_model_renders_as_tbd(self):
+        steps = [AgentStep(1, "Backlog", "a1", model="", state=STATE_PENDING)]
+        md = render_tracking_markdown(steps)
+        assert "| TBD |" in md
+
+    def test_mixed_model_and_tbd(self):
+        steps = [
+            AgentStep(1, "Backlog", "a1", model="gpt-4o", state=STATE_DONE),
+            AgentStep(2, "Ready", "a2", model="", state=STATE_PENDING),
+            AgentStep(3, "In Progress", "a3", model="claude-3-5-sonnet", state=STATE_PENDING),
+        ]
+        md = render_tracking_markdown(steps)
+        assert "| gpt-4o |" in md
+        assert "| TBD |" in md
+        assert "| claude-3-5-sonnet |" in md
+
+    def test_pipe_in_model_name_escaped(self):
+        steps = [AgentStep(1, "Backlog", "a1", model="model|v2", state=STATE_PENDING)]
+        md = render_tracking_markdown(steps)
+        assert "model\\|v2" in md
+
+    def test_long_model_name_preserved(self):
+        long_name = "custom-fine-tuned-gpt-4o-2026-03-extended-context"
+        steps = [AgentStep(1, "Backlog", "a1", model=long_name, state=STATE_PENDING)]
+        md = render_tracking_markdown(steps)
+        assert long_name in md
 
 
 # =============================================================================
@@ -165,16 +258,34 @@ class TestParseTrackingFromBody:
         assert len(steps) == 3
         assert steps[0].agent_name == "speckit.specify"
         assert STATE_DONE in steps[0].state
+        assert steps[0].model == "gpt-4o"
         assert steps[1].agent_name == "speckit.plan"
         assert STATE_ACTIVE in steps[1].state
+        assert steps[1].model == "claude-3-5-sonnet"
         assert steps[2].agent_name == "speckit.implement"
         assert STATE_PENDING in steps[2].state
+        assert steps[2].model == ""
 
     def test_no_tracking_returns_none(self):
         assert parse_tracking_from_body("Just a normal issue body.") is None
 
     def test_empty_body(self):
         assert parse_tracking_from_body("") is None
+
+    def test_parse_legacy_4_column_body(self):
+        """Old 4-column tables parse with model defaulting to empty string."""
+        steps = parse_tracking_from_body(SAMPLE_BODY_LEGACY)
+        assert steps is not None
+        assert len(steps) == 3
+        assert steps[0].agent_name == "speckit.specify"
+        assert steps[0].model == ""
+        assert STATE_DONE in steps[0].state
+        assert steps[1].agent_name == "speckit.plan"
+        assert steps[1].model == ""
+        assert STATE_ACTIVE in steps[1].state
+        assert steps[2].agent_name == "speckit.implement"
+        assert steps[2].model == ""
+        assert STATE_PENDING in steps[2].state
 
 
 # =============================================================================
@@ -363,3 +474,47 @@ class TestDetermineNextAction:
         comments = [{"body": "other.agent: Done!"}]
         action = determine_next_action(SAMPLE_BODY, comments)
         assert action.action == "wait"
+
+
+# =============================================================================
+# Model preservation through state update cycle (US3)
+# =============================================================================
+
+
+class TestModelPreservation:
+    def test_model_preserved_through_mark_active(self):
+        """Models are preserved when an agent state changes."""
+        new_body = mark_agent_active(SAMPLE_BODY, "speckit.implement")
+        steps = parse_tracking_from_body(new_body)
+        assert steps is not None
+        specify = next(s for s in steps if s.agent_name == "speckit.specify")
+        plan = next(s for s in steps if s.agent_name == "speckit.plan")
+        impl = next(s for s in steps if s.agent_name == "speckit.implement")
+        assert specify.model == "gpt-4o"
+        assert plan.model == "claude-3-5-sonnet"
+        assert impl.model == ""
+        assert STATE_ACTIVE in impl.state
+
+    def test_legacy_table_migrates_on_state_update(self):
+        """Old 4-column tables are naturally migrated to 5-column on state update."""
+        new_body = update_agent_state(SAMPLE_BODY_LEGACY, "speckit.implement", STATE_ACTIVE)
+        steps = parse_tracking_from_body(new_body)
+        assert steps is not None
+        # All models should be "TBD" after migration (empty → TBD in rendering)
+        for step in steps:
+            assert step.model == "TBD"
+        # Verify the table now has the Model column header
+        assert "| # | Status | Agent | Model | State |" in new_body
+
+    def test_append_tracking_idempotent_with_model(self):
+        """append_tracking_to_body is idempotent with 5-column tracking tables."""
+        mappings = _make_mappings(
+            {
+                "Ready": [("a1", {"model_name": "gpt-4o"})],
+            }
+        )
+        first = append_tracking_to_body("body", mappings, ["Ready"])
+        second = append_tracking_to_body(first, mappings, ["Ready"])
+        assert first == second
+        # Verify exactly one tracking section
+        assert first.count(TRACKING_HEADER) == 1

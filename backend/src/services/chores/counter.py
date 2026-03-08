@@ -10,8 +10,11 @@ def evaluate_count_trigger(chore: Chore, current_count: int) -> bool:
 
     Args:
         chore: The chore to evaluate.
-        current_count: Number of qualifying parent issues created since
-            the chore's last trigger count.
+        current_count: Number of qualifying GitHub Parent Issues in the
+            project.  This value **must** exclude Chore-labeled issues
+            (issues with the ``"chore"`` label) and Sub-Issues (issues
+            that appear as children under another issue) so that the
+            trigger fires at the correct cadence.
 
     Returns:
         True if `current_count` meets or exceeds `schedule_value`.

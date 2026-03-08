@@ -275,3 +275,25 @@ class TestCreateCompletionProvider:
         with patch("src.services.completion_providers.get_settings", return_value=s):
             with pytest.raises(ValueError, match="Unknown AI provider"):
                 create_completion_provider()
+
+
+class TestAzureEmptyChoices:
+    """Regression test: empty choices list should return '' not IndexError (bug-bash)."""
+
+    async def test_empty_choices_returns_empty_string(self):
+        with patch.object(AzureOpenAICompletionProvider, "__init__", lambda self_: None):
+            p = AzureOpenAICompletionProvider.__new__(AzureOpenAICompletionProvider)
+            p._deployment = "gpt-4"
+            p._use_azure_inference = False
+            p._client = MagicMock()
+
+        mock_response = MagicMock()
+        mock_response.choices = []  # empty
+
+        with patch("asyncio.to_thread", new_callable=AsyncMock, return_value=mock_response):
+            result = await p.complete(
+                [{"role": "user", "content": "hello"}],
+                temperature=0.5,
+                max_tokens=500,
+            )
+        assert result == ""

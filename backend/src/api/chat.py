@@ -875,12 +875,30 @@ async def upload_file(
     # For now, store files in a temporary upload directory and serve via a local URL.
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
-    safe_filename = f"{upload_id}-{file.filename}"
+    # Sanitise the original filename to prevent path-traversal attacks:
+    # strip null bytes first (could confuse Path parsing on some platforms),
+    # then strip directory components so e.g. "../../etc/passwd" becomes "passwd".
+    cleaned = file.filename.replace("\x00", "")
+    basename = Path(cleaned).name
+    if not basename:
+        basename = "upload"
+    safe_filename = f"{upload_id}-{basename}"
 
     # Store in a temporary directory
     upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
     file_path = upload_dir / safe_filename
+
+    # Verify resolved path stays inside upload_dir (defense-in-depth)
+    if not file_path.resolve().is_relative_to(upload_dir.resolve()):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "filename": file.filename,
+                "error": "Invalid filename",
+                "error_code": "invalid_filename",
+            },
+        )
 
     file_path.write_bytes(content)
 
