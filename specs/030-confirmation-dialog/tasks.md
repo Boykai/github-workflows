@@ -22,8 +22,8 @@
 
 **Purpose**: Project initialization — no new dependencies, no new configuration; verify existing tooling
 
-- [ ] T001 Verify existing frontend dependencies (React 19.2, Tailwind CSS v4, lucide-react 0.577, class-variance-authority 0.7) are present in frontend/package.json
-- [ ] T002 [P] Verify existing UI primitives pattern in frontend/src/components/ui/ (button.tsx, card.tsx, input.tsx) to ensure new component follows conventions
+- [x] T001 Verify existing frontend dependencies (React 19.2, Tailwind CSS v4, lucide-react 0.577, class-variance-authority 0.7) are present in frontend/package.json
+- [x] T002 [P] Verify existing UI primitives pattern in frontend/src/components/ui/ (button.tsx, card.tsx, input.tsx) to ensure new component follows conventions
 
 ---
 
@@ -33,16 +33,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create ConfirmationDialog presentational component in frontend/src/components/ui/confirmation-dialog.tsx with ConfirmationDialogProps interface (isOpen, title, description, confirmLabel, cancelLabel, variant, onConfirm, onCancel)
-- [ ] T004 Implement three visual severity variants (danger, warning, info) in frontend/src/components/ui/confirmation-dialog.tsx using VARIANT_CONFIG map with AlertTriangle icon for danger/warning and Info icon for info from lucide-react
-- [ ] T005 Implement portal-based rendering via createPortal() in frontend/src/components/ui/confirmation-dialog.tsx with fixed-position overlay, semi-transparent backdrop (bg-black/50 backdrop-blur-sm), and centered dialog card
-- [ ] T006 Implement backdrop click-to-cancel and Escape key handler in frontend/src/components/ui/confirmation-dialog.tsx calling onCancel() for both interactions
-- [ ] T007 Add WCAG 2.1 AA accessibility attributes to frontend/src/components/ui/confirmation-dialog.tsx: role="alertdialog", aria-modal="true", aria-labelledby pointing to title h2 element, aria-describedby pointing to description p element
-- [ ] T008 Implement focus trap in frontend/src/components/ui/confirmation-dialog.tsx: Tab cycles between Cancel and Confirm buttons only, Shift+Tab reverses direction, focus moves to Cancel button on open
-- [ ] T009 Create ConfirmationContext, ConfirmationProvider, and useConfirmation hook in frontend/src/hooks/useConfirmation.ts with Promise-based confirm() API returning Promise<boolean>
-- [ ] T010 Implement confirmation request queue in frontend/src/hooks/useConfirmation.ts to prevent overlapping dialogs (FR-009): queue pending requests when dialog is already open, dequeue next on resolve
-- [ ] T011 Implement focus restoration in frontend/src/hooks/useConfirmation.ts: capture document.activeElement before opening dialog, restore focus to trigger element after dialog closes
-- [ ] T012 Wrap application tree with ConfirmationProvider in frontend/src/App.tsx inside QueryClientProvider and wrapping all routes/providers
+- [x] T003 Create ConfirmationDialog presentational component in frontend/src/components/ui/confirmation-dialog.tsx with ConfirmationDialogProps interface (isOpen, title, description, confirmLabel, cancelLabel, variant, onConfirm, onCancel)
+- [x] T004 Implement three visual severity variants (danger, warning, info) in frontend/src/components/ui/confirmation-dialog.tsx using VARIANT_CONFIG map with AlertTriangle icon for danger/warning and Info icon for info from lucide-react
+- [x] T005 Implement portal-based rendering via createPortal() in frontend/src/components/ui/confirmation-dialog.tsx with fixed-position overlay, semi-transparent backdrop (bg-black/50 backdrop-blur-sm), and centered dialog card
+- [x] T006 Implement backdrop click-to-cancel and Escape key handler in frontend/src/components/ui/confirmation-dialog.tsx calling onCancel() for both interactions
+- [x] T007 Add WCAG 2.1 AA accessibility attributes to frontend/src/components/ui/confirmation-dialog.tsx: role="alertdialog", aria-modal="true", aria-labelledby pointing to title h2 element, aria-describedby pointing to description p element
+- [x] T008 Implement focus trap in frontend/src/components/ui/confirmation-dialog.tsx: Tab cycles between Cancel and Confirm buttons only, Shift+Tab reverses direction, focus moves to Cancel button on open
+- [x] T009 Create ConfirmationContext, ConfirmationProvider, and useConfirmation hook in frontend/src/hooks/useConfirmation.tsx with Promise-based confirm() API returning Promise<boolean>
+- [x] T010 Implement confirmation request queue in frontend/src/hooks/useConfirmation.tsx to prevent overlapping dialogs (FR-009): queue pending requests when dialog is already open, dequeue next on resolve
+- [x] T011 Implement focus restoration in frontend/src/hooks/useConfirmation.tsx: capture document.activeElement before opening dialog, restore focus to trigger element after dialog closes
+- [x] T012 Wrap application tree with ConfirmationProvider in frontend/src/App.tsx inside QueryClientProvider and wrapping all routes/providers
 
 **Checkpoint**: Foundation ready — ConfirmationDialog renders correctly, useConfirmation() hook works, focus trap and accessibility attributes in place. User story migrations can now begin in parallel.
 
@@ -56,9 +56,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/components/agents/AgentCard.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Remove', description includes agent name and PR consequence
-- [ ] T014 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/components/chores/ChoreCard.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Remove', description includes chore name and irreversibility warning
-- [ ] T015 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/pages/AgentsPipelinePage.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Delete', description warns action cannot be undone
+- [x] T013 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/components/agents/AgentCard.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Remove', description includes agent name and PR consequence
+- [x] T014 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/components/chores/ChoreCard.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Remove', description includes chore name and irreversibility warning
+- [x] T015 [P] [US1] Replace window.confirm() in handleDelete() in frontend/src/pages/AgentsPipelinePage.tsx with useConfirmation() hook: variant 'danger', confirmLabel 'Delete', description warns action cannot be undone
 
 **Checkpoint**: All destructive delete actions (3 call sites) now show the styled ConfirmationDialog with danger variant instead of browser-native confirm. Each dialog displays a clear description of what will be deleted and its consequences. Cancel aborts with no side effects.
 
@@ -72,7 +72,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Replace window.confirm() in handleClearPending() in frontend/src/components/agents/AgentsPanel.tsx with useConfirmation() hook: variant 'warning', confirmLabel 'Clear Records', description explains scope (stale SQLite rows only, no repository changes)
+- [x] T016 [US2] Replace window.confirm() in handleClearPending() in frontend/src/components/agents/AgentsPanel.tsx with useConfirmation() hook: variant 'warning', confirmLabel 'Clear Records', description explains scope (stale SQLite rows only, no repository changes)
 
 **Checkpoint**: The bulk cleanup action now shows a styled ConfirmationDialog with warning variant. User Story 2 is independently testable — triggering the clear pending action shows the dialog with appropriate messaging.
 
@@ -86,8 +86,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Validate reusability by reviewing all 4 integration points (AgentCard.tsx, AgentsPanel.tsx, ChoreCard.tsx, AgentsPipelinePage.tsx) use the same useConfirmation() hook with different ConfirmationOptions and verify consistent dialog rendering
-- [ ] T018 [US3] Ensure ConfirmationDialog component in frontend/src/components/ui/confirmation-dialog.tsx handles edge cases: missing optional props default correctly (confirmLabel defaults to "Confirm", cancelLabel defaults to "Cancel", variant defaults to "info"), long description text overflows gracefully with scrollable content
+- [x] T017 [US3] Validate reusability by reviewing all 4 integration points (AgentCard.tsx, AgentsPanel.tsx, ChoreCard.tsx, AgentsPipelinePage.tsx) use the same useConfirmation() hook with different ConfirmationOptions and verify consistent dialog rendering
+- [x] T018 [US3] Ensure ConfirmationDialog component in frontend/src/components/ui/confirmation-dialog.tsx handles edge cases: missing optional props default correctly (confirmLabel defaults to "Confirm", cancelLabel defaults to "Cancel", variant defaults to "info"), long description text overflows gracefully with scrollable content
 
 **Checkpoint**: The reusable component is proven across 4 different call sites with 2 different variants (danger, warning), different labels, and different descriptions. Default props work correctly for edge cases.
 
@@ -101,9 +101,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Verify focus trap implementation in frontend/src/components/ui/confirmation-dialog.tsx works across all 4 call sites: Tab cycles between Cancel and Confirm buttons, Shift+Tab reverses, focus cannot escape to background content
-- [ ] T020 [US4] Verify focus restoration in frontend/src/hooks/useConfirmation.ts: after dialog closes (confirm or cancel), focus returns to the button element that originally triggered the dialog across all 4 call sites
-- [ ] T021 [US4] Verify screen reader compatibility: role="alertdialog" causes announcement, aria-labelledby reads title text, aria-describedby reads description text, aria-modal="true" marks background as inert
+- [x] T019 [US4] Verify focus trap implementation in frontend/src/components/ui/confirmation-dialog.tsx works across all 4 call sites: Tab cycles between Cancel and Confirm buttons, Shift+Tab reverses, focus cannot escape to background content
+- [x] T020 [US4] Verify focus restoration in frontend/src/hooks/useConfirmation.tsx: after dialog closes (confirm or cancel), focus returns to the button element that originally triggered the dialog across all 4 call sites
+- [x] T021 [US4] Verify screen reader compatibility: role="alertdialog" causes announcement, aria-labelledby reads title text, aria-describedby reads description text, aria-modal="true" marks background as inert
 
 **Checkpoint**: All WCAG 2.1 AA requirements verified — keyboard-only users and screen reader users can fully interact with the confirmation dialog.
 
@@ -113,11 +113,11 @@
 
 **Purpose**: Final validation and cleanup across all user stories
 
-- [ ] T022 Verify no regressions in existing custom dialogs (BulkModelUpdateDialog, CleanUpConfirmModal, ConfirmChoreModal, UnsavedChangesDialog) — they must continue to work unchanged
-- [ ] T023 [P] Verify single-dialog enforcement: rapidly trigger two destructive actions and confirm only one dialog appears at a time (queue behavior from T010)
-- [ ] T024 [P] Run TypeScript type check (npx tsc --noEmit) from frontend/ to confirm no type errors introduced
-- [ ] T025 [P] Run existing frontend test suite (npx vitest run) from frontend/ to confirm no test regressions
-- [ ] T026 Run quickstart.md verification checklist: dialog appears, cancel aborts, confirm executes, Escape cancels, backdrop cancels, severity variants display correctly, focus trap works, focus restoration works, screen reader attributes present, single dialog enforcement
+- [x] T022 Verify no regressions in existing custom dialogs (BulkModelUpdateDialog, CleanUpConfirmModal, ConfirmChoreModal, UnsavedChangesDialog) — they must continue to work unchanged
+- [x] T023 [P] Verify single-dialog enforcement: rapidly trigger two destructive actions and confirm only one dialog appears at a time (queue behavior from T010)
+- [x] T024 [P] Run TypeScript type check (npx tsc --noEmit) from frontend/ to confirm no type errors introduced
+- [x] T025 [P] Run existing frontend test suite (npx vitest run) from frontend/ to confirm no test regressions
+- [x] T026 Run quickstart.md verification checklist: dialog appears, cancel aborts, confirm executes, Escape cancels, backdrop cancels, severity variants display correctly, focus trap works, focus restoration works, screen reader attributes present, single dialog enforcement
 
 ---
 
