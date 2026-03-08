@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 import tempfile
 from pathlib import Path
 from typing import Annotated
@@ -80,6 +81,8 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
+# Module-level compiled regex for #block detection (no \s* prefix — avoids ReDoS)
+_BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
@@ -167,6 +170,27 @@ async def send_message(
 
     selected_project_id = session.selected_project_id
 
+    # Validate pipeline_id if provided
+    if chat_request.pipeline_id:
+        from src.services.database import get_db
+        from src.services.pipelines.service import PipelineService
+
+        try:
+            db = get_db()
+            pipeline_svc = PipelineService(db)
+            pipeline = await pipeline_svc.get_pipeline(
+                selected_project_id, chat_request.pipeline_id
+            )
+            if pipeline is None:
+                raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}")
+        except ValidationError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "Pipeline validation failed for pipeline_id=%s: %s", chat_request.pipeline_id, exc
+            )
+            raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}") from exc
+
     # Try to get AI service (optional)
     try:
         ai_service = get_ai_agent_service()
@@ -250,6 +274,15 @@ async def send_message(
         return agent_msg
 
     # ──────────────────────────────────────────────────────────────────
+    # PRIORITY 0.5: #block detection — mark resulting issue as blocking
+    # ──────────────────────────────────────────────────────────────────
+    is_blocking = bool(_BLOCK_PATTERN.search(chat_request.content))
+    if is_blocking:
+        # Strip #block and normalise whitespace (avoids ReDoS from \s* prefix)
+        chat_request.content = " ".join(_BLOCK_PATTERN.sub("", chat_request.content).split())
+        logger.info("Detected #block in message — is_blocking=True, stripped content")
+
+    # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
     # ──────────────────────────────────────────────────────────────────
     ai_service = get_ai_agent_service()
@@ -284,6 +317,8 @@ async def send_message(
                 github_token=session.access_token,
                 metadata_context=metadata_context,
             )
+
+            recommendation.selected_pipeline_id = chat_request.pipeline_id or None
 
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
@@ -328,6 +363,8 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "status": RecommendationStatus.PENDING.value,
                     "ai_enhance": chat_request.ai_enhance,
                     "file_urls": chat_request.file_urls,
+                    "is_blocking": is_blocking,
+                    "pipeline_id": chat_request.pipeline_id,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -446,6 +483,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 original_input=chat_request.content,
                 proposed_title=title,
                 proposed_description=chat_request.content,
+                is_blocking=is_blocking,
             )
             _proposals[str(proposal.proposal_id)] = proposal
 
@@ -463,6 +501,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "proposed_title": title,
                     "proposed_description": chat_request.content,
                     "status": ProposalStatus.PENDING.value,
+                    "is_blocking": is_blocking,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -496,6 +535,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             original_input=chat_request.content,
             proposed_title=generated.title,
             proposed_description=generated.description,
+            is_blocking=is_blocking,
         )
         _proposals[str(proposal.proposal_id)] = proposal
 
@@ -515,6 +555,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 "proposed_title": generated.title,
                 "proposed_description": generated.description,
                 "status": ProposalStatus.PENDING.value,
+                "is_blocking": is_blocking,
             },
         )
         add_message(session.session_id, assistant_message)
@@ -662,6 +703,9 @@ async def confirm_proposal(
 
         # Step 3: Set up workflow config and assign agent for Backlog status
         try:
+            # Resolve is_blocking from the proposal
+            proposal_is_blocking = proposal.is_blocking
+
             from src.config import get_settings
 
             settings = get_settings()
@@ -684,18 +728,27 @@ async def confirm_proposal(
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
 
-            # Apply user-specific agent pipeline mappings if available
-            from src.services.workflow_orchestrator.config import load_user_agent_mappings
+            # Apply project-level or user-specific agent pipeline mappings
+            from src.services.workflow_orchestrator.config import (
+                resolve_project_pipeline_mappings,
+            )
 
-            user_mappings = await load_user_agent_mappings(session.github_user_id, project_id)
-            if user_mappings:
+            pipeline_result = await resolve_project_pipeline_mappings(
+                project_id, session.github_user_id
+            )
+            if pipeline_result.agent_mappings:
                 logger.info(
-                    "Applying user-specific agent pipeline mappings for user=%s project=%s",
-                    session.github_user_id,
+                    "Applying %s agent pipeline mappings for project=%s (pipeline=%s)",
+                    pipeline_result.source,
                     project_id,
+                    pipeline_result.pipeline_name or "N/A",
                 )
-                config.agent_mappings = user_mappings
+                config.agent_mappings = pipeline_result.agent_mappings
                 await set_workflow_config(project_id, config)
+
+            # Populate pipeline metadata on the proposal response
+            proposal.pipeline_name = pipeline_result.pipeline_name
+            proposal.pipeline_source = pipeline_result.source
 
             # Set issue status to Backlog on the project
             backlog_status = config.status_backlog
@@ -725,6 +778,24 @@ async def confirm_proposal(
             ctx.project_item_id = item_id
 
             orchestrator = get_workflow_orchestrator()
+
+            # Blocking queue: enqueue issue and check if it should activate
+            issue_activated = True
+            try:
+                from src.services import blocking_queue as bq_service
+
+                repo_key = f"{owner}/{repo}"
+                _bq_entry, issue_activated = await bq_service.enqueue_issue(
+                    repo_key, issue_number, project_id, proposal_is_blocking
+                )
+                if not issue_activated:
+                    logger.info(
+                        "Issue #%d is pending in blocking queue — skipping agent assignment",
+                        issue_number,
+                    )
+                    return proposal
+            except Exception:
+                logger.debug("Blocking queue enqueue skipped in confirm_proposal")
 
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
@@ -875,12 +946,30 @@ async def upload_file(
     # For now, store files in a temporary upload directory and serve via a local URL.
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
-    safe_filename = f"{upload_id}-{file.filename}"
+    # Sanitise the original filename to prevent path-traversal attacks:
+    # strip null bytes first (could confuse Path parsing on some platforms),
+    # then strip directory components so e.g. "../../etc/passwd" becomes "passwd".
+    cleaned = file.filename.replace("\x00", "")
+    basename = Path(cleaned).name
+    if not basename:
+        basename = "upload"
+    safe_filename = f"{upload_id}-{basename}"
 
     # Store in a temporary directory
     upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
     file_path = upload_dir / safe_filename
+
+    # Verify resolved path stays inside upload_dir (defense-in-depth)
+    if not file_path.resolve().is_relative_to(upload_dir.resolve()):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "filename": file.filename,
+                "error": "Invalid filename",
+                "error_code": "invalid_filename",
+            },
+        )
 
     file_path.write_bytes(content)
 

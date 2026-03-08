@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 const SAFE_MARKDOWN_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel']);
 
@@ -48,13 +49,12 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
     [onClose]
   );
 
+  useScrollLock(true);
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
 

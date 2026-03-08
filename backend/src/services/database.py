@@ -210,6 +210,15 @@ def _discover_migrations() -> list[tuple[int, Path]]:
     Files must match pattern: NNN_*.sql (e.g., 001_initial_schema.sql)
     Returns list of (version_number, file_path) sorted by version.
     """
+    # TODO(bug-bash): Duplicate migration prefixes exist (013, 014, 015 each
+    # have two files). _run_migrations() tracks progress by version number, so
+    # the second file sharing a prefix is silently skipped once the first is
+    # applied. Renumbering requires a migration reconciliation strategy for
+    # existing deployments whose schema_version already reflects the old
+    # numbering.  Options: (1) renumber the "B" files to 017-019 and add a
+    # reconciliation migration, (2) add duplicate-detection with a startup
+    # warning.  Human decision needed: pick a strategy that accounts for
+    # databases already in production.
     if not MIGRATIONS_DIR.exists():
         return []
 

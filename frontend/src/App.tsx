@@ -7,6 +7,8 @@ import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
 import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiError } from '@/services/api';
 import { AuthGate } from '@/layout/AuthGate';
 import { AppLayout } from '@/layout/AppLayout';
@@ -73,13 +75,17 @@ const router = createBrowserRouter(
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <QueryErrorResetBoundary>
-        {({ reset }) => (
-          <ErrorBoundary onReset={reset}>
-            <RouterProvider router={router} />
-          </ErrorBoundary>
-        )}
-      </QueryErrorResetBoundary>
+      <ConfirmationDialogProvider>
+      <TooltipProvider delayDuration={300} skipDelayDuration={300}>
+        <QueryErrorResetBoundary>
+          {({ reset }) => (
+            <ErrorBoundary onReset={reset}>
+              <RouterProvider router={router} />
+            </ErrorBoundary>
+          )}
+        </QueryErrorResetBoundary>
+      </ConfirmationDialogProvider>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

@@ -88,8 +88,8 @@ class TestAuthEndpoints:
             "/api/v1/auth/github/callback",
             params={"code": "test_code", "state": "invalid_state"},
         )
-        # Should reject invalid state
-        assert response.status_code == 400
+        # Should reject invalid state (ValidationError → 422)
+        assert response.status_code == 422
 
     @pytest.mark.asyncio
     async def test_dev_login_requires_token(self, client):

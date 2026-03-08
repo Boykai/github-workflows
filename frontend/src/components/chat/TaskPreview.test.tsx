@@ -58,4 +58,61 @@ describe('TaskPreview', () => {
     );
     expect(screen.getByText(/\.\.\.$/)).toBeInTheDocument();
   });
+
+  it('does not render a pipeline badge before confirmation', () => {
+    render(
+      <TaskPreview
+        proposal={createProposal({ pipeline_name: 'Full Review Pipeline' })}
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/Agent Pipeline:/)).not.toBeInTheDocument();
+  });
+
+  it('renders the pipeline name when the proposal is confirmed', () => {
+    render(
+      <TaskPreview
+        proposal={createProposal({
+          status: 'confirmed',
+          pipeline_name: 'Full Review Pipeline',
+        })}
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Agent Pipeline: Full Review Pipeline')).toBeInTheDocument();
+  });
+
+  it('renders the default pipeline badge when default mappings were used', () => {
+    render(
+      <TaskPreview
+        proposal={createProposal({
+          status: 'confirmed',
+          pipeline_source: 'default',
+        })}
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Agent Pipeline: Default')).toBeInTheDocument();
+  });
+
+  it('renders the custom mappings badge when user mappings were used', () => {
+    render(
+      <TaskPreview
+        proposal={createProposal({
+          status: 'confirmed',
+          pipeline_source: 'user',
+        })}
+        onConfirm={vi.fn()}
+        onReject={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Agent Pipeline: Custom Mappings')).toBeInTheDocument();
+  });
 });

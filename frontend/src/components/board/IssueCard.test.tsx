@@ -125,4 +125,12 @@ describe('IssueCard', () => {
       color: '#000',
     });
   });
+
+  it('renders the blocking badge when blocking queue state marks the issue as blocking', () => {
+    const item = createBoardItem();
+
+    render(<IssueCard item={item} onClick={vi.fn()} isBlocking />);
+
+    expect(screen.getByText('🔒 Blocking')).toBeInTheDocument();
+  });
 });

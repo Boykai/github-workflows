@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
 import { AgentIconCatalog } from './AgentIconCatalog';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface AgentIconPickerModalProps {
   isOpen: boolean;
@@ -20,18 +21,7 @@ export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName,
     setSelectedIconName(isCelestialIconName(currentIconName) ? currentIconName : null);
   }, [currentIconName, isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isOpen]);
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 

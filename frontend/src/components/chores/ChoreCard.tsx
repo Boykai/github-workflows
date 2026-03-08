@@ -7,14 +7,16 @@
  */
 
 import { useState } from 'react';
-import { Sparkles, Pencil, X, Save } from 'lucide-react';
+import { Sparkles, Pencil, X, Save, Lock } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
 import { ChoreInlineEditor } from './ChoreInlineEditor';
 import { PipelineSelector, useProjectPipelineOptions } from './PipelineSelector';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ChoreCardProps {
@@ -107,6 +109,7 @@ export function ChoreCard({
   const updateMutation = useUpdateChore(projectId);
   const deleteMutation = useDeleteChore(projectId);
   const triggerMutation = useTriggerChore(projectId);
+  const { confirm } = useConfirmation();
   const isSpotlight = variant === 'spotlight';
   const isEditing = !!editState;
   const isDirty = editState?.isDirty ?? false;
@@ -116,8 +119,14 @@ export function ChoreCard({
     updateMutation.mutate({ choreId: chore.id, data: { status: newStatus } });
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Remove chore "${chore.name}"? This cannot be undone.`)) {
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Chore',
+      description: `Remove chore "${chore.name}"? This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (confirmed) {
       deleteMutation.mutate(chore.id);
     }
   };
@@ -135,6 +144,18 @@ export function ChoreCard({
     updateMutation.mutate({
       choreId: chore.id,
       data: { ai_enhance_enabled: !chore.ai_enhance_enabled },
+    });
+  };
+
+  const currentBlocking = editState?.current.blocking ?? chore.blocking;
+  const handleToggleBlocking = () => {
+    if (isEditing && onEditChange) {
+      onEditChange({ blocking: !currentBlocking });
+      return;
+    }
+    updateMutation.mutate({
+      choreId: chore.id,
+      data: { blocking: !chore.blocking },
     });
   };
 
@@ -167,19 +188,21 @@ export function ChoreCard({
               <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
                 {chore.schedule_type ? `${chore.schedule_type} cadence` : 'No cadence'}
               </span>
-              <button
-                type="button"
-                onClick={handleToggleStatus}
-                disabled={updateMutation.isPending}
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
-                  chore.status === 'active'
-                    ? 'solar-chip-success'
-                    : 'solar-chip-violet'
-                } disabled:opacity-50`}
-                title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
-              >
-                {chore.status === 'active' ? 'Active' : 'Paused'}
-              </button>
+              <Tooltip contentKey="chores.card.statusToggle">
+                <button
+                  type="button"
+                  onClick={handleToggleStatus}
+                  disabled={updateMutation.isPending}
+                  aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
+                    chore.status === 'active'
+                      ? 'solar-chip-success'
+                      : 'solar-chip-violet'
+                  } disabled:opacity-50`}
+                >
+                  {chore.status === 'active' ? 'Active' : 'Paused'}
+                </button>
+              </Tooltip>
               {chore.execution_count > 0 && (
                 <span className="rounded-full border border-border/50 bg-muted/50 px-2 py-0.5 text-[9px] text-muted-foreground">
                   {chore.execution_count} run{chore.execution_count !== 1 ? 's' : ''}
@@ -200,19 +223,21 @@ export function ChoreCard({
             )}
             {/* Edit toggle button */}
             {!isEditing && onEditStart && (
-              <button
-                type="button"
-                onClick={onEditStart}
-                className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
-                title="Edit chore"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip contentKey="chores.card.editButton">
+                <button
+                  type="button"
+                  onClick={onEditStart}
+                  aria-label="Edit chore"
+                  className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
 
-        {/* AI Enhance & Pipeline indicators */}
+        {/* AI Enhance, Blocking & Pipeline indicators */}
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -228,6 +253,21 @@ export function ChoreCard({
           >
             <Sparkles className="h-3 w-3" />
             AI {currentAiEnhance ? 'ON' : 'OFF'}
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleBlocking}
+            disabled={updateMutation.isPending}
+            className={cn(
+              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
+              currentBlocking
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'border-border/60 bg-muted/40 text-muted-foreground'
+            )}
+            title={`Blocking: ${currentBlocking ? 'ON — issues serialize activation' : 'OFF'}`}
+          >
+            <Lock className="h-3 w-3" />
+            {currentBlocking ? 'Blocking' : 'Non-blocking'}
           </button>
           <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
             Agent Pipeline: {pipelineLabel}
@@ -357,24 +397,28 @@ export function ChoreCard({
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-          <Button
-            type="button"
-            onClick={handleTrigger}
-            disabled={triggerMutation.isPending}
-            size="sm"
-          >
-            {triggerMutation.isPending ? 'Triggering…' : 'Trigger'}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            variant="ghost"
-            size="sm"
-            className="solar-action-danger"
-          >
-            {deleteMutation.isPending ? 'Removing…' : 'Remove'}
-          </Button>
+          <Tooltip contentKey="chores.card.executeButton">
+            <Button
+              type="button"
+              onClick={handleTrigger}
+              disabled={triggerMutation.isPending}
+              size="sm"
+            >
+              {triggerMutation.isPending ? 'Triggering…' : 'Trigger'}
+            </Button>
+          </Tooltip>
+          <Tooltip contentKey="chores.card.deleteButton">
+            <Button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              variant="ghost"
+              size="sm"
+              className="solar-action-danger"
+            >
+              {deleteMutation.isPending ? 'Removing…' : 'Remove'}
+            </Button>
+          </Tooltip>
         </div>
       </CardContent>
     </Card>

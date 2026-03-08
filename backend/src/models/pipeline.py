@@ -37,6 +37,7 @@ class PipelineConfig(BaseModel):
     stages: list[PipelineStage] = Field(default_factory=list)
     is_preset: bool = False
     preset_id: str = ""
+    blocking: bool = False
     created_at: str
     updated_at: str
 
@@ -47,6 +48,7 @@ class PipelineConfigCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
     stages: list[PipelineStage] = Field(default_factory=list)
+    blocking: bool = False
 
 
 class PipelineConfigUpdate(BaseModel):
@@ -55,6 +57,7 @@ class PipelineConfigUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=500)
     stages: list[PipelineStage] | None = None
+    blocking: bool | None = None
 
 
 class PipelineConfigSummary(BaseModel):
@@ -69,6 +72,7 @@ class PipelineConfigSummary(BaseModel):
     is_preset: bool = False
     preset_id: str = ""
     stages: list[PipelineStage] = Field(default_factory=list)
+    blocking: bool = False
     updated_at: str
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
@@ -117,10 +117,8 @@ async def create_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot resolve repository: {exc}",
-        ) from exc
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
 
     try:
         return await service.create_tool(
@@ -132,9 +130,9 @@ async def create_tool(
             access_token=session.access_token,
         )
     except DuplicateToolNameError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
 
 
 # ── Get Tool ──
@@ -158,7 +156,7 @@ async def get_tool(
         github_user_id=session.github_user_id,
     )
     if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise NotFoundError("Tool not found")
     return tool
 
 
@@ -179,10 +177,8 @@ async def update_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot resolve repository: {exc}",
-        ) from exc
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
 
     try:
         return await service.update_tool(
@@ -195,11 +191,11 @@ async def update_tool(
             access_token=session.access_token,
         )
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise NotFoundError(str(exc)) from exc
     except DuplicateToolNameError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
 
 
 # ── Sync Tool ──
@@ -224,15 +220,13 @@ async def sync_tool(
         github_user_id=session.github_user_id,
     )
     if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise NotFoundError("Tool not found")
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot resolve repository: {exc}",
-        ) from exc
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
 
     return await service.sync_tool_to_github(
         tool_id=tool_id,
@@ -267,15 +261,13 @@ async def delete_tool(
         github_user_id=session.github_user_id,
     )
     if not tool:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise NotFoundError("Tool not found")
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot resolve repository: {exc}",
-        ) from exc
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
 
     return await service.delete_tool(
         project_id=project_id,

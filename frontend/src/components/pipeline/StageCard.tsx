@@ -9,6 +9,7 @@ import { Lock, Plus, Trash2 } from 'lucide-react';
 import { AgentNode } from './AgentNode';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 
@@ -76,11 +77,11 @@ export function StageCard({
 
     updatePickerPosition();
     window.addEventListener('resize', updatePickerPosition);
-    window.addEventListener('scroll', updatePickerPosition, true);
+    window.addEventListener('scroll', updatePickerPosition, { capture: true, passive: true });
 
     return () => {
       window.removeEventListener('resize', updatePickerPosition);
-      window.removeEventListener('scroll', updatePickerPosition, true);
+      window.removeEventListener('scroll', updatePickerPosition, { capture: true });
     };
   }, [showAgentPicker]);
 
@@ -108,9 +109,11 @@ export function StageCard({
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
-        <span title="Stage position is locked" aria-label="Stage position is locked">
-          <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-        </span>
+        <Tooltip contentKey="pipeline.stage.lockIcon">
+          <span role="img" aria-label="Stage position is locked">
+            <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+          </span>
+        </Tooltip>
 
         {isEditing ? (
           <input
@@ -134,14 +137,16 @@ export function StageCard({
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={onRemove}
-          className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
-          title="Remove stage"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <Tooltip contentKey="pipeline.stage.deleteButton">
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label="Remove stage"
+            className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Agent nodes */}

@@ -14,6 +14,30 @@ from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdat
 
 logger = logging.getLogger(__name__)
 
+# Columns that may appear in dynamic UPDATE SET clauses.
+# Any column not in this set will be rejected to prevent SQL injection.
+_CHORE_UPDATABLE_COLUMNS = frozenset(
+    {
+        "name",
+        "template_path",
+        "template_content",
+        "status",
+        "schedule_type",
+        "schedule_value",
+        "last_triggered_at",
+        "last_triggered_count",
+        "pr_number",
+        "pr_url",
+        "tracking_issue_number",
+        "current_issue_number",
+        "current_issue_node_id",
+        "execution_count",
+        "ai_enhance_enabled",
+        "agent_pipeline_id",
+        "updated_at",
+    }
+)
+
 
 def _strip_front_matter(text: str) -> str:
     """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
@@ -33,6 +57,10 @@ class ChoreConflictError(RuntimeError):
         super().__init__(message)
         self.current_sha = current_sha
         self.current_content = current_content
+
+
+class _BlockedIssueSkip(Exception):
+    """Internal sentinel: issue is blocked in the blocking queue, skip agent assignment."""
 
 
 class ChoresService:
@@ -145,6 +173,11 @@ class ChoresService:
 
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
+
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(updates) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
 
         # Convert booleans to SQLite integers
         for key, val in list(updates.items()):
@@ -275,6 +308,11 @@ class ChoresService:
             return
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         kwargs["updated_at"] = now
+
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(kwargs) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
 
         # Convert booleans to SQLite integers
         for key, val in kwargs.items():
@@ -444,6 +482,51 @@ class ChoresService:
 
                 orchestrator = get_workflow_orchestrator()
 
+                # Blocking queue: resolve effective blocking flag
+                # Chore's own flag OR assigned pipeline's blocking flag (R5)
+                is_blocking = chore.blocking
+                if not is_blocking and chore.agent_pipeline_id:
+                    try:
+                        from src.services.pipelines.service import PipelineService
+
+                        pipeline_svc = PipelineService(self._db)
+                        pipeline_cfg = await pipeline_svc.get_pipeline(
+                            project_id, chore.agent_pipeline_id
+                        )
+                        if pipeline_cfg and pipeline_cfg.blocking:
+                            is_blocking = True
+                    except Exception:
+                        logger.debug("Pipeline blocking check failed for chore %s", chore.id)
+
+                # Enqueue in blocking queue and check activation
+                issue_activated = True
+                try:
+                    from src.services import blocking_queue as bq_service
+
+                    repo_key = f"{owner}/{repo}"
+                    _bq_entry, issue_activated = await bq_service.enqueue_issue(
+                        repo_key, issue_number, project_id, is_blocking
+                    )
+                    if not issue_activated:
+                        logger.info(
+                            "Chore issue #%d pending in blocking queue — skipping agent assignment",
+                            issue_number,
+                        )
+                        # Skip agent assignment; issue will be activated by the queue later
+                        await ensure_polling_started(
+                            access_token=access_token,
+                            project_id=project_id,
+                            owner=owner,
+                            repo=repo,
+                            caller="chore_trigger_blocked",
+                        )
+                        # Fall through to CAS update below
+                        raise _BlockedIssueSkip()
+                except _BlockedIssueSkip:
+                    raise
+                except Exception:
+                    logger.debug("Blocking queue enqueue skipped in chore trigger")
+
                 # Create all sub-issues upfront
                 agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
                 if agent_sub_issues:
@@ -474,6 +557,8 @@ class ChoresService:
                     repo=repo,
                     caller="chore_trigger",
                 )
+        except _BlockedIssueSkip:
+            pass  # Issue is queued — skip agent assignment, continue to CAS update
         except Exception:
             logger.exception(
                 "Agent pipeline failed for chore %s (issue #%s)",
@@ -692,6 +777,11 @@ class ChoresService:
 
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
+
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(updates) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
 
         # Convert booleans to SQLite integers
         for key, val in list(updates.items()):

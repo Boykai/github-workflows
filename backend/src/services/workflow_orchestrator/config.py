@@ -2,6 +2,7 @@
 
 import json
 import logging
+from dataclasses import dataclass, field
 
 import aiosqlite
 
@@ -11,6 +12,22 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.utils import BoundedDict, utcnow
+
+
+@dataclass
+class PipelineResolutionResult:
+    """Result of pipeline resolution for issue creation.
+
+    Carries both the resolved agent mappings and metadata about which
+    tier in the fallback chain was used — used by ``confirm_proposal``
+    to populate the response and for logging/observability.
+    """
+
+    agent_mappings: dict[str, list[AgentAssignment]] = field(default_factory=dict)
+    source: str = "default"  # "pipeline" | "user" | "default"
+    pipeline_name: str | None = None
+    pipeline_id: str | None = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -305,6 +322,152 @@ async def _persist_workflow_config_to_db(
         logger.warning(
             "Failed to persist workflow config to DB for project %s", project_id, exc_info=True
         )
+
+
+async def load_pipeline_as_agent_mappings(
+    project_id: str,
+    pipeline_id: str,
+) -> tuple[dict[str, list[AgentAssignment]], str] | None:
+    """Load a pipeline config and convert its stages to agent_mappings.
+
+    Returns ``(agent_mappings, pipeline_name)`` or ``None`` if the
+    pipeline does not exist (e.g. was deleted).
+    """
+    try:
+        from src.services.database import get_db
+        from src.services.pipelines.service import PipelineService
+
+        db = get_db()
+        service = PipelineService(db)
+        config = await service.get_pipeline(project_id, pipeline_id)
+        if config is None:
+            return None
+
+        agent_mappings: dict[str, list[AgentAssignment]] = {}
+        for stage in sorted(config.stages, key=lambda s: s.order):
+            agent_mappings[stage.name] = [
+                AgentAssignment(
+                    slug=node.agent_slug,
+                    display_name=node.agent_display_name or None,
+                    config={
+                        "model_id": node.model_id,
+                        "model_name": node.model_name,
+                    }
+                    if node.model_id
+                    else None,
+                )
+                for node in stage.agents
+            ]
+
+        return agent_mappings, config.name
+    except Exception:
+        logger.warning(
+            "Failed to load pipeline %s for project %s",
+            pipeline_id,
+            project_id,
+            exc_info=True,
+        )
+        return None
+
+
+async def resolve_project_pipeline_mappings(
+    project_id: str,
+    github_user_id: str,
+) -> PipelineResolutionResult:
+    """Resolve agent pipeline mappings for issue creation.
+
+    Three-tier fallback:
+    1. Project-level pipeline assignment (``assigned_pipeline_id``)
+    2. User-specific agent mappings (``agent_pipeline_mappings``)
+    3. System default agent mappings
+
+    Returns a `PipelineResolutionResult` with the resolved mappings
+    and metadata about which resolution tier was used.
+    """
+    from src.constants import AGENT_DISPLAY_NAMES, DEFAULT_AGENT_MAPPINGS
+
+    # ── Tier 1: Project-level pipeline assignment ────────────────────
+    try:
+        from src.config import get_settings
+
+        db_path = get_settings().database_path
+        async with aiosqlite.connect(db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute(
+                "SELECT assigned_pipeline_id FROM project_settings "
+                "WHERE github_user_id = ? AND project_id = ? LIMIT 1",
+                ("__workflow__", project_id),
+            )
+            row = await cursor.fetchone()
+            assigned_id = (row["assigned_pipeline_id"] or "") if row else ""
+
+        if assigned_id:
+            result = await load_pipeline_as_agent_mappings(project_id, assigned_id)
+            if result is not None:
+                mappings, pipeline_name = result
+                logger.info(
+                    "Resolved pipeline '%s' (%s) for project %s",
+                    pipeline_name,
+                    assigned_id,
+                    project_id,
+                )
+                return PipelineResolutionResult(
+                    agent_mappings=mappings,
+                    source="pipeline",
+                    pipeline_name=pipeline_name,
+                    pipeline_id=assigned_id,
+                )
+            # Pipeline was deleted — auto-cleanup stale reference (T012/R5)
+            logger.warning(
+                "Assigned pipeline %s not found for project %s — clearing stale reference",
+                assigned_id,
+                project_id,
+            )
+            try:
+                async with aiosqlite.connect(db_path) as db:
+                    await db.execute("PRAGMA busy_timeout=5000;")
+                    await db.execute(
+                        "UPDATE project_settings SET assigned_pipeline_id = '' "
+                        "WHERE github_user_id = ? AND project_id = ?",
+                        ("__workflow__", project_id),
+                    )
+                    await db.commit()
+            except Exception:
+                logger.warning(
+                    "Failed to clear stale pipeline assignment for project %s",
+                    project_id,
+                    exc_info=True,
+                )
+    except Exception:
+        logger.warning(
+            "Failed to check project pipeline assignment for project %s",
+            project_id,
+            exc_info=True,
+        )
+
+    # ── Tier 2: User-specific agent mappings ─────────────────────────
+    user_mappings = await load_user_agent_mappings(github_user_id, project_id)
+    if user_mappings:
+        logger.info(
+            "Resolved user-specific agent mappings for user=%s project=%s",
+            github_user_id,
+            project_id,
+        )
+        return PipelineResolutionResult(
+            agent_mappings=user_mappings,
+            source="user",
+        )
+
+    # ── Tier 3: System defaults ──────────────────────────────────────
+    default_mappings: dict[str, list[AgentAssignment]] = {
+        k: [AgentAssignment(slug=s, display_name=AGENT_DISPLAY_NAMES.get(s)) for s in v]
+        for k, v in DEFAULT_AGENT_MAPPINGS.items()
+    }
+    logger.info("Using default agent mappings for project %s", project_id)
+    return PipelineResolutionResult(
+        agent_mappings=default_mappings,
+        source="default",
+    )
 
 
 def get_transitions(issue_id: str | None = None, limit: int = 50) -> list[WorkflowTransition]:

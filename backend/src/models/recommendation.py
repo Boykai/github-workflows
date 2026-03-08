@@ -37,6 +37,10 @@ class AITaskProposal(BaseModel):
     proposed_description: str = Field(
         ..., max_length=65536, description="AI-generated task description"
     )
+    is_blocking: bool = Field(
+        default=False,
+        description="Whether the confirmed issue should enter the blocking queue",
+    )
     status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(default=None, description="User-modified title")
     edited_description: str | None = Field(default=None, description="User-modified description")
@@ -44,6 +48,12 @@ class AITaskProposal(BaseModel):
     expires_at: datetime = Field(
         default_factory=lambda: utcnow() + timedelta(minutes=10),
         description="Auto-expiration time",
+    )
+    pipeline_name: str | None = Field(
+        default=None, description="Name of the applied Agent Pipeline (after confirm)"
+    )
+    pipeline_source: str | None = Field(
+        default=None, description="Pipeline resolution source: pipeline, user, or default"
     )
 
     @property
@@ -69,6 +79,7 @@ class AITaskProposal(BaseModel):
                 "original_input": "Add authentication so users can log in with their GitHub accounts",
                 "proposed_title": "Add OAuth2 authentication flow",
                 "proposed_description": "## Overview\\nImplement GitHub OAuth2...",
+                "is_blocking": False,
                 "status": "pending",
                 "edited_title": None,
                 "edited_description": None,
@@ -199,6 +210,10 @@ class IssueRecommendation(BaseModel):
     technical_notes: str = Field(
         default="", description="Implementation hints and architecture considerations"
     )
+    selected_pipeline_id: str | None = Field(
+        default=None,
+        description="Optional saved pipeline selected when the recommendation was created",
+    )
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
         description="AI-generated issue metadata (priority, size, dates, labels)",
@@ -224,6 +239,7 @@ class IssueRecommendation(BaseModel):
                     "System MUST include timestamps in ISO 8601 format",
                 ],
                 "technical_notes": "Use streaming CSV response for large datasets. Rate-limit exports to 5 per minute per user.",
+                "selected_pipeline_id": "pipeline-123",
                 "metadata": {
                     "priority": "P2",
                     "size": "M",

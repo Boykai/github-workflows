@@ -71,6 +71,7 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
+  BlockingQueueEntry,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -365,6 +366,13 @@ export const boardApi = {
   getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
     const params = refresh ? '?refresh=true' : '';
     return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
+  },
+
+  /**
+   * Get active blocking queue entries for a project.
+   */
+  getBlockingQueue(projectId: string): Promise<BlockingQueueEntry[]> {
+    return request<BlockingQueueEntry[]>(`/board/projects/${projectId}/blocking-queue`);
   },
 };
 
@@ -728,10 +736,22 @@ export const choresApi = {
   /**
    * Evaluate all active chore triggers.
    */
-  evaluateTriggers(projectId?: string): Promise<EvaluateChoreTriggersResponse> {
+  evaluateTriggers(
+    projectId?: string,
+    parentIssueCount?: number,
+  ): Promise<EvaluateChoreTriggersResponse> {
     return request<EvaluateChoreTriggersResponse>('/chores/evaluate-triggers', {
       method: 'POST',
-      body: JSON.stringify(projectId ? { project_id: projectId } : {}),
+      body: JSON.stringify(
+        projectId
+          ? {
+              project_id: projectId,
+              ...(parentIssueCount !== undefined
+                ? { parent_issue_count: parentIssueCount }
+                : {}),
+            }
+          : {},
+      ),
     });
   },
 };
