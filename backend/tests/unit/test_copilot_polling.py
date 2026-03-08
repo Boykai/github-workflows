@@ -4601,6 +4601,71 @@ class TestRateLimitAwarePolling:
             assert status["rate_limit"]["remaining"] == 3000
             assert status["rate_limit"]["limit"] == 5000
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
+    @patch(
+        "src.services.copilot_polling.check_in_review_issues",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "src.services.copilot_polling.check_in_review_issues_for_copilot_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.check_in_progress_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.check_ready_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.check_backlog_issues", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.post_agent_outputs_from_pr", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    async def test_poll_loop_does_not_invalidate_board_cache(
+        self,
+        mock_sleep,
+        mock_service,
+        mock_output,
+        mock_backlog,
+        mock_ready,
+        mock_progress,
+        mock_review_copilot,
+        mock_review,
+        mock_recover,
+    ):
+        """Polling loop must NOT directly invalidate the board data cache.
+
+        Board cache invalidation is managed by the board API endpoint, not
+        by the polling loop. This regression test ensures the polling hot path
+        does not introduce unintended board refresh triggers (FR-015).
+        """
+        from src.services.copilot_polling import _polling_state
+
+        _polling_state.is_running = True
+        mock_service.get_project_items = AsyncMock(return_value=[])
+        mock_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 4000,
+            "reset_at": int(utcnow().timestamp()) + 3600,
+            "used": 1000,
+        }
+        mock_output.return_value = []
+        mock_backlog.return_value = []
+        mock_ready.return_value = []
+        mock_progress.return_value = []
+        mock_review_copilot.return_value = []
+        mock_review.return_value = []
+        mock_recover.return_value = []
+
+        async def stop_after_one(*a, **kw):
+            _polling_state.is_running = False
+
+        mock_sleep.side_effect = stop_after_one
+
+        with patch("src.services.copilot_polling.polling_loop.cache", create=True) as mock_cache:
+            await _poll_loop("tok", "P1", "o", "r", 60)
+            # The polling loop must not call cache.delete on board_data keys
+            for call in mock_cache.delete.call_args_list:
+                assert "board_data" not in str(call), (
+                    "Polling loop should not invalidate board cache directly"
+                )
+
 
 # ────────────────────────────────────────────────────────────────────
 # stop_polling

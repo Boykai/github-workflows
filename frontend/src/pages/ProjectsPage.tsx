@@ -107,7 +107,10 @@ export function ProjectsPage() {
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
-  const pipelineGridStyle = { gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` };
+  const pipelineGridStyle = useMemo(
+    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` }),
+    [pipelineColumnCount],
+  );
   const assignedPipeline = useMemo(
     () => savedPipelines?.pipelines.find((pipeline) => pipeline.id === (pipelineAssignment?.pipeline_id ?? '')) ?? null,
     [pipelineAssignment?.pipeline_id, savedPipelines],
@@ -117,7 +120,10 @@ export function ProjectsPage() {
     [assignedPipeline],
   );
 
-  const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  const totalItems = useMemo(
+    () => transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0,
+    [transformedBoardData],
+  );
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
   const refreshRateLimitError = refreshError?.type === 'rate_limit';

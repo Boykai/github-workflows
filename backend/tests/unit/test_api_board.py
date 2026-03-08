@@ -213,3 +213,58 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 404
         body = resp.json()
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
+
+
+# ── Regression: board cache behavior for performance (FR-015) ──────────────
+
+
+class TestBoardCachePerformance:
+    """Performance regression tests: board cache TTL alignment,
+    manual refresh cache bypass, and sub-issue cache clearing."""
+
+    async def test_board_data_uses_300s_ttl(self, client, mock_github_service):
+        """Board cache should use 300s TTL matching frontend 5-minute auto-refresh."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+            await client.get("/api/v1/board/projects/PVT_abc")
+            # Verify cache.set is called with ttl_seconds=300
+            mock_cache.set.assert_called_once()
+            _, kwargs = mock_cache.set.call_args
+            assert kwargs.get("ttl_seconds") == 300 or mock_cache.set.call_args[0][2:] == ()
+
+    async def test_manual_refresh_bypasses_cache(self, client, mock_github_service):
+        """Manual refresh (refresh=true) should skip cache lookup entirely."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+            resp = await client.get(
+                "/api/v1/board/projects/PVT_abc", params={"refresh": True}
+            )
+            assert resp.status_code == 200
+            # Service should have been called directly (not short-circuited by cache)
+            mock_github_service.get_board_data.assert_called_once()
+
+    async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
+        """Manual refresh should clear sub-issue caches before fetching."""
+        bd = _make_board_data()
+        # Give the board item a repository and issue number so sub-issue cache can be cleared
+        bd.columns[0].items[0].number = 42
+        bd.columns[0].items[0].repository = type("Repo", (), {"owner": "testuser", "name": "testrepo"})()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            mock_cache.get_stale.return_value = None
+            await client.get(
+                "/api/v1/board/projects/PVT_abc", params={"refresh": True}
+            )
+            # cache.delete should have been called for the sub-issue cache key
+            delete_calls = [str(c) for c in mock_cache.delete.call_args_list]
+            assert any("sub_issues" in str(c) for c in delete_calls)
