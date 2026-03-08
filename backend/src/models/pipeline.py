@@ -99,9 +99,18 @@ class ProjectPipelineAssignment(BaseModel):
 
     project_id: str
     pipeline_id: str = ""
+    blocking_override: bool | None = None
+    """Project-level blocking override. None = use pipeline default."""
 
 
 class ProjectPipelineAssignmentUpdate(BaseModel):
     """Request body for setting/clearing pipeline assignment."""
 
     pipeline_id: str = ""
+
+
+class ProjectAssignmentBlockingUpdate(BaseModel):
+    """Request body for setting the project-level blocking override."""
+
+    blocking_override: bool | None = None
+    """None = inherit from pipeline default; True/False = explicit override."""

@@ -697,9 +697,12 @@ export const choresApi = {
   /**
    * Manually trigger a chore.
    */
-  trigger(projectId: string, choreId: string): Promise<ChoreTriggerResult> {
+  trigger(projectId: string, choreId: string, parentIssueCount?: number): Promise<ChoreTriggerResult> {
     return request<ChoreTriggerResult>(`/chores/${projectId}/${choreId}/trigger`, {
       method: 'POST',
+      ...(parentIssueCount !== undefined
+        ? { body: JSON.stringify({ parent_issue_count: parentIssueCount }) }
+        : {}),
     });
   },
 
@@ -965,6 +968,13 @@ export const pipelinesApi = {
       body: JSON.stringify({ pipeline_id: pipelineId }),
     });
   },
+
+  setBlockingOverride(projectId: string, blockingOverride: boolean | null): Promise<ProjectPipelineAssignment> {
+    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
+      method: 'PATCH',
+      body: JSON.stringify({ blocking_override: blockingOverride }),
+    });
+  },
 };
 
 // ============ Models API ============
@@ -972,6 +982,11 @@ export const pipelinesApi = {
 export const modelsApi = {
   async list(forceRefresh = false): Promise<AIModel[]> {
     const response = await settingsApi.fetchModels('copilot', forceRefresh);
+    // Treat non-success responses with no models as an error so TanStack Query
+    // retries on subsequent mounts rather than permanently caching an empty list.
+    if (response.status !== 'success' && !response.models?.length) {
+      throw new Error(response.message ?? `Unable to load models: ${response.status}`);
+    }
     return (response.models ?? []).map((model) => ({
       id: model.id,
       name: model.name,

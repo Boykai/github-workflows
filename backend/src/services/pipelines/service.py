@@ -381,6 +381,7 @@ class PipelineService:
 
         for preset in _PRESET_DEFINITIONS:
             preset_id = preset["preset_id"]
+            blocking = int(bool(preset.get("blocking", False)))
             # Check if already seeded
             cursor = await self._db.execute(
                 "SELECT id FROM pipeline_configs WHERE preset_id = ? AND project_id = ?",
@@ -397,8 +398,8 @@ class PipelineService:
                 await self._db.execute(
                     """
                     INSERT INTO pipeline_configs
-                        (id, project_id, name, description, stages, is_preset, preset_id, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+                        (id, project_id, name, description, stages, is_preset, preset_id, blocking, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                     """,
                     (
                         pipeline_id,
@@ -407,6 +408,7 @@ class PipelineService:
                         preset["description"],
                         stages_json,
                         preset_id,
+                        blocking,
                         now,
                         now,
                     ),
@@ -429,7 +431,7 @@ class PipelineService:
         """Get the current pipeline assignment for a project."""
         cursor = await self._db.execute(
             """
-            SELECT assigned_pipeline_id
+            SELECT assigned_pipeline_id, pipeline_blocking_override
             FROM project_settings
             WHERE github_user_id = ? AND project_id = ?
             LIMIT 1
@@ -437,8 +439,21 @@ class PipelineService:
             (_CANONICAL_PROJECT_SETTINGS_USER, project_id),
         )
         row = await cursor.fetchone()
-        pipeline_id = dict(row).get("assigned_pipeline_id", "") if row else ""
-        return ProjectPipelineAssignment(project_id=project_id, pipeline_id=pipeline_id)
+        if row:
+            row_dict = dict(row)
+            pipeline_id = row_dict.get("assigned_pipeline_id", "") or ""
+            raw_override = row_dict.get("pipeline_blocking_override")
+            blocking_override: bool | None = (
+                bool(raw_override) if raw_override is not None else None
+            )
+        else:
+            pipeline_id = ""
+            blocking_override = None
+        return ProjectPipelineAssignment(
+            project_id=project_id,
+            pipeline_id=pipeline_id,
+            blocking_override=blocking_override,
+        )
 
     async def set_assignment(
         self,
@@ -448,6 +463,7 @@ class PipelineService:
         """Set the pipeline assignment for a project.
 
         Raises ValueError if pipeline_id is non-empty and doesn't exist.
+        Preserves any existing project-level blocking_override.
         """
         if pipeline_id:
             existing = await self.get_pipeline(project_id, pipeline_id)
@@ -467,4 +483,31 @@ class PipelineService:
         )
         await self._db.commit()
 
-        return ProjectPipelineAssignment(project_id=project_id, pipeline_id=pipeline_id)
+        return await self.get_assignment(project_id)
+
+    async def set_blocking_override(
+        self,
+        project_id: str,
+        blocking_override: bool | None,
+    ) -> ProjectPipelineAssignment:
+        """Set the project-level blocking override for the assigned pipeline.
+
+        None   = inherit blocking behaviour from the assigned pipeline (no override).
+        True   = force blocking ON for all issues in this project.
+        False  = force blocking OFF for all issues in this project.
+        """
+        raw: int | None = int(blocking_override) if blocking_override is not None else None
+        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        await self._db.execute(
+            """
+            INSERT INTO project_settings (github_user_id, project_id, updated_at, pipeline_blocking_override)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(github_user_id, project_id) DO UPDATE SET
+                pipeline_blocking_override = excluded.pipeline_blocking_override,
+                updated_at = excluded.updated_at
+            """,
+            (_CANONICAL_PROJECT_SETTINGS_USER, project_id, now, raw),
+        )
+        await self._db.commit()
+
+        return await self.get_assignment(project_id)

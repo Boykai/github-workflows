@@ -104,7 +104,6 @@ export function ChoreCard({
   isSaving,
 }: ChoreCardProps) {
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
-  const nextTriggerInfo = getNextTriggerInfo(chore, parentIssueCount);
   const triggerLabel = getTopRightTriggerLabel(chore, parentIssueCount);
   const updateMutation = useUpdateChore(projectId);
   const deleteMutation = useDeleteChore(projectId);
@@ -132,7 +131,7 @@ export function ChoreCard({
   };
 
   const handleTrigger = () => {
-    triggerMutation.mutate(chore.id);
+    triggerMutation.mutate({ choreId: chore.id, parentIssueCount });
   };
 
   const currentAiEnhance = editState?.current.ai_enhance_enabled ?? chore.ai_enhance_enabled;
@@ -275,35 +274,13 @@ export function ChoreCard({
         </div>
 
         <div className="moonwell rounded-[1.3rem] p-3">
-          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>Next checkpoint</span>
-            <span>{nextTriggerInfo ?? 'Awaiting schedule'}</span>
           </div>
           {chore.last_triggered_at && (
             <p className="mt-2 text-sm text-foreground">
               Last triggered {new Date(chore.last_triggered_at).toLocaleDateString()}
             </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {chore.schedule_type ? (
-            <button
-              type="button"
-              onClick={() => setShowScheduleEditor(!showScheduleEditor)}
-              className="solar-chip-soft rounded-full px-3 py-1.5 font-medium transition-colors hover:bg-primary/10 hover:text-foreground"
-            >
-              Every {chore.schedule_value} {chore.schedule_type === 'time' ? 'day' : 'issue'}
-              {chore.schedule_value !== 1 ? 's' : ''}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowScheduleEditor(true)}
-              className="solar-chip-soft rounded-full border-dashed px-3 py-1.5 italic transition-colors hover:bg-primary/10 hover:text-foreground"
-            >
-              Configure schedule…
-            </button>
           )}
         </div>
         {/* Inline Editor */}
@@ -315,6 +292,7 @@ export function ChoreCard({
               templateContent={currentContent}
               scheduleType={currentScheduleType}
               scheduleValue={currentScheduleValue}
+              blocking={currentBlocking}
               disabled={isSaving}
               onChange={onEditChange}
             />

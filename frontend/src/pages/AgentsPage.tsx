@@ -10,12 +10,18 @@ import { useAgentConfig } from '@/hooks/useAgentConfig';
 import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
+import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
 import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPage() {
   const { user } = useAuth();
-  const { selectedProject } = useProjects(user?.selected_project_id);
+  const {
+    selectedProject,
+    projects,
+    isLoading: projectsLoading,
+    selectProject,
+  } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
@@ -59,11 +65,13 @@ export function AgentsPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
-          <div className="text-4xl mb-2">🤖</div>
-          <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the sidebar to manage its agents</p>
-        </div>
+        <ProjectSelectionEmptyState
+          projects={projects}
+          isLoading={projectsLoading}
+          selectedProjectId={projectId}
+          onSelectProject={selectProject}
+          description="Choose a GitHub Project to manage its agent catalog, ownership patterns, and column assignments from one place."
+        />
       )}
 
       {projectId && (

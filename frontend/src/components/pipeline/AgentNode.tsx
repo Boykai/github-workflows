@@ -22,7 +22,7 @@ export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, on
   const displayName = formatAgentName(agentNode.agent_slug, agentNode.agent_display_name);
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/48 px-2.5 py-2 transition-colors hover:bg-primary/10">
+    <div className="pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-colors hover:border-primary/30">
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
 
       {/* Agent info */}

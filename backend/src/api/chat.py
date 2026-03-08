@@ -275,12 +275,33 @@ async def send_message(
 
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 0.5: #block detection — mark resulting issue as blocking
+    # Hierarchy: chat command (#block) > project override > pipeline default
     # ──────────────────────────────────────────────────────────────────
     is_blocking = bool(_BLOCK_PATTERN.search(chat_request.content))
     if is_blocking:
         # Strip #block and normalise whitespace (avoids ReDoS from \s* prefix)
         chat_request.content = " ".join(_BLOCK_PATTERN.sub("", chat_request.content).split())
         logger.info("Detected #block in message — is_blocking=True, stripped content")
+    else:
+        # Fall through to project-level override, then pipeline default
+        try:
+            from src.services.database import get_db
+            from src.services.pipelines.service import PipelineService
+
+            _pipeline_svc = PipelineService(get_db())
+            _assignment = await _pipeline_svc.get_assignment(selected_project_id)
+            if _assignment.blocking_override is not None:
+                is_blocking = _assignment.blocking_override
+                logger.debug("is_blocking resolved from project override: %s", is_blocking)
+            elif _assignment.pipeline_id:
+                _pipeline_cfg = await _pipeline_svc.get_pipeline(
+                    selected_project_id, _assignment.pipeline_id
+                )
+                if _pipeline_cfg and _pipeline_cfg.blocking:
+                    is_blocking = True
+                    logger.debug("is_blocking resolved from pipeline default: True")
+        except Exception:
+            logger.debug("Pipeline blocking resolution failed for chat request")
 
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)

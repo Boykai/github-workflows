@@ -4,6 +4,7 @@
  * Provides queries for listing chores and mutations for CRUD + trigger + chat.
  */
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { choresApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
@@ -105,14 +106,51 @@ export function useDeleteChore(projectId: string | null | undefined) {
 export function useTriggerChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<ChoreTriggerResult, ApiError, string>({
-    mutationFn: (choreId) => choresApi.trigger(projectId!, choreId),
+  return useMutation<ChoreTriggerResult, ApiError, { choreId: string; parentIssueCount?: number }>({
+    mutationFn: ({ choreId, parentIssueCount }) =>
+      choresApi.trigger(projectId!, choreId, parentIssueCount),
     onSuccess: () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
     },
   });
+}
+
+// ── Evaluate Triggers Polling ──
+
+/**
+ * Poll the evaluate-triggers endpoint every 60 s while the Chores page is mounted.
+ * Automatically invalidates the chores list when at least one chore is triggered.
+ * Only starts polling once `boardLoaded` is true (i.e. boardData has columns).
+ */
+export function useEvaluateChoresTriggers(
+  projectId: string | null | undefined,
+  parentIssueCount: number,
+  boardLoaded: boolean,
+) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!projectId || !boardLoaded) return;
+
+    const run = () => {
+      choresApi
+        .evaluateTriggers(projectId, parentIssueCount)
+        .then(({ triggered }) => {
+          if (triggered > 0 && projectId) {
+            queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+          }
+        })
+        .catch(() => {
+          // Polling failures are non-critical; silent ignore
+        });
+    };
+
+    run(); // immediate first run now that board data is ready
+    const id = window.setInterval(run, 60_000);
+    return () => window.clearInterval(id);
+  }, [projectId, parentIssueCount, boardLoaded, queryClient]);
 }
 
 // ── Chat Mutation ──

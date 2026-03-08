@@ -23,13 +23,19 @@ import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
+import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
-  const { selectedProject } = useProjects(user?.selected_project_id);
+  const {
+    selectedProject,
+    projects,
+    isLoading: projectsLoading,
+    selectProject,
+  } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
   const queryClient = useQueryClient();
 
@@ -169,24 +175,17 @@ export function AgentsPipelinePage() {
             Configure how agents process items across board columns
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {workflowConfig && (
-            <span className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] shadow-sm ${
-              workflowConfig.enabled ? 'solar-chip-success' : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-            }`}>
-              {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
-            </span>
-          )}
-        </div>
       </div>
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
-          <div className="text-4xl mb-2">🔗</div>
-          <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the sidebar to configure its pipelines</p>
-        </div>
+        <ProjectSelectionEmptyState
+          projects={projects}
+          isLoading={projectsLoading}
+          selectedProjectId={projectId}
+          onSelectProject={selectProject}
+          description="Choose a GitHub Project to configure its agent pipeline stages, saved workflows, and stage-to-agent routing."
+        />
       )}
 
       {projectId && boardLoading && (
@@ -212,6 +211,22 @@ export function AgentsPipelinePage() {
               onDelete={handleDelete}
               onDiscard={pipelineConfig.discardChanges}
             />
+
+            {workflowConfig && (
+              <div className="celestial-panel flex items-center justify-between rounded-[1rem] border border-border/70 bg-background/28 px-4 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-primary/70" />
+                  Current Pipeline
+                </div>
+                <span className={`rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
+                  workflowConfig.enabled
+                    ? 'solar-chip-success'
+                    : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
+                }`}>
+                  {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
+                </span>
+              </div>
+            )}
 
             {/* Pipeline Board */}
             {pipelineConfig.boardState !== 'empty' && pipelineConfig.pipeline && (
@@ -240,6 +255,8 @@ export function AgentsPipelinePage() {
                 onUpdateAgent={pipelineConfig.updateAgentInStage}
                 onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
                 onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}
+                pipelineBlocking={pipelineConfig.pipeline?.blocking ?? false}
+                onBlockingChange={pipelineConfig.setPipelineBlocking}
               />
             )}
 
@@ -350,18 +367,33 @@ export function AgentsPipelinePage() {
             <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
             <div className="celestial-panel rounded-[1.2rem] border border-border/75 p-4">
               {(pipelineConfig.pipelines?.pipelines ?? []).length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/40 p-2">
-                      <PipelineFlowGraph stages={p.stages ?? []} width={220} height={84} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {p.stage_count} stages · {p.agent_count} agents
-                        </p>
+                <div className="overflow-x-auto pb-2">
+                  <div className="flex min-w-full flex-col gap-3">
+                    {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
+                      <div key={p.id} className="grid min-w-full gap-3" style={alignedGridStyle}>
+                        <div className="col-[1/-1] rounded-[1rem] border border-border/40 bg-background/12 p-3">
+                          <PipelineFlowGraph
+                            stages={p.stages ?? []}
+                            width={220}
+                            height={84}
+                            responsive={true}
+                            className="w-full"
+                          />
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {p.stage_count} stages · {p.agent_count} agents
+                              </p>
+                            </div>
+                            <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
+                              Recent pipeline
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">

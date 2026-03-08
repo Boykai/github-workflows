@@ -84,8 +84,8 @@ export default function App() {
             </ErrorBoundary>
           )}
         </QueryErrorResetBoundary>
-      </ConfirmationDialogProvider>
       </TooltipProvider>
+      </ConfirmationDialogProvider>
     </QueryClientProvider>
   );
 }

@@ -483,18 +483,22 @@ class ChoresService:
                 orchestrator = get_workflow_orchestrator()
 
                 # Blocking queue: resolve effective blocking flag
-                # Chore's own flag OR assigned pipeline's blocking flag (R5)
+                # Hierarchy: chore > project override > assigned pipeline (R5)
                 is_blocking = chore.blocking
-                if not is_blocking and chore.agent_pipeline_id:
+                if not is_blocking:
                     try:
                         from src.services.pipelines.service import PipelineService
 
                         pipeline_svc = PipelineService(self._db)
-                        pipeline_cfg = await pipeline_svc.get_pipeline(
-                            project_id, chore.agent_pipeline_id
-                        )
-                        if pipeline_cfg and pipeline_cfg.blocking:
-                            is_blocking = True
+                        assignment = await pipeline_svc.get_assignment(project_id)
+                        if assignment.blocking_override is not None:
+                            is_blocking = assignment.blocking_override
+                        elif chore.agent_pipeline_id:
+                            pipeline_cfg = await pipeline_svc.get_pipeline(
+                                project_id, chore.agent_pipeline_id
+                            )
+                            if pipeline_cfg and pipeline_cfg.blocking:
+                                is_blocking = True
                     except Exception:
                         logger.debug("Pipeline blocking check failed for chore %s", chore.id)
 

@@ -232,6 +232,146 @@
     backdrop-filter: blur(10px);
   }
 
+  .pipeline-stage-card {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 14% 16%, hsl(var(--glow) / 0.34) 0%, transparent 16%),
+      radial-gradient(circle at 84% 18%, hsl(var(--gold) / 0.18) 0%, transparent 18%),
+      radial-gradient(ellipse at 18% 82%, hsl(var(--background) / 0.96) 0%, hsl(var(--background) / 0.92) 12%, transparent 13%),
+      radial-gradient(ellipse at 34% 86%, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.88) 11%, transparent 12%),
+      radial-gradient(ellipse at 52% 84%, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.84) 13%, transparent 14%),
+      radial-gradient(ellipse at 78% 80%, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.82) 12%, transparent 13%),
+      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%, hsl(var(--panel) / 0.9) 44%, color-mix(in srgb, hsl(var(--panel)) 88%, hsl(var(--gold)) 12%) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.22), 0 16px 30px hsl(var(--night) / 0.08);
+    isolation: isolate;
+  }
+
+  .pipeline-stage-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 16% 16%, hsl(var(--glow) / 0.98) 0 8px, transparent 9px),
+      radial-gradient(circle at 16% 16%, hsl(var(--gold) / 0.22) 0 20px, transparent 21px),
+      radial-gradient(ellipse at 20% 82%, hsl(var(--background) / 0.88) 0%, hsl(var(--background) / 0.78) 9%, transparent 10%),
+      radial-gradient(ellipse at 36% 88%, hsl(var(--background) / 0.8) 0%, hsl(var(--background) / 0.66) 8%, transparent 9%),
+      linear-gradient(180deg, transparent 0%, hsl(var(--gold) / 0.05) 100%);
+    opacity: 0.96;
+  }
+
+  .pipeline-stage-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 70% 24%, hsl(var(--gold) / 0.16) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 78% 16%, hsl(var(--glow) / 0.14) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 86% 22%, hsl(var(--gold) / 0.12) 0 1px, transparent 1.7px);
+    opacity: 0.72;
+  }
+
+  .pipeline-agent-node {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.5) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12);
+  }
+
+  .pipeline-agent-node::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 18% 86%, hsl(var(--background) / 0.78) 0%, hsl(var(--background) / 0.74) 10%, transparent 11%),
+      radial-gradient(ellipse at 34% 88%, hsl(var(--background) / 0.74) 0%, hsl(var(--background) / 0.68) 9%, transparent 10%),
+      radial-gradient(circle at 88% 18%, hsl(var(--glow) / 0.08) 0%, transparent 18%);
+    opacity: 0.75;
+  }
+
+  .pipeline-stage-add {
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, hsl(var(--background) / 0.36) 0%, hsl(var(--background) / 0.2) 100%);
+  }
+
+  .pipeline-stage-add::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 82% 24%, hsl(var(--gold) / 0.12) 0%, transparent 16%),
+      radial-gradient(ellipse at 24% 88%, hsl(var(--background) / 0.5) 0%, hsl(var(--background) / 0.42) 10%, transparent 11%);
+    opacity: 0.8;
+  }
+
+  .dark .pipeline-stage-card {
+    background:
+      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.16) 0%, transparent 18%),
+      radial-gradient(circle at 84% 16%, hsl(var(--gold) / 0.12) 0%, transparent 18%),
+      radial-gradient(circle at 58% 18%, hsl(var(--accent) / 0.1) 0%, transparent 24%),
+      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 88%, hsl(var(--night)) 12%) 0%, hsl(var(--night) / 0.98) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12), 0 18px 34px hsl(var(--night) / 0.3);
+  }
+
+  .dark .pipeline-stage-card::before {
+    background:
+      radial-gradient(circle at 14% 14%, hsl(var(--star-soft) / 0.96) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 24% 22%, hsl(var(--star) / 0.82) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 38% 12%, hsl(var(--star-soft) / 0.72) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 56% 18%, hsl(var(--gold) / 0.88) 0 1.1px, transparent 1.9px),
+      radial-gradient(circle at 74% 24%, hsl(var(--star) / 0.8) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 86% 14%, hsl(var(--star-soft) / 0.92) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 18% 74%, hsl(var(--star) / 0.36) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 84% 72%, hsl(var(--star-soft) / 0.34) 0 1px, transparent 1.8px);
+    opacity: 0.98;
+  }
+
+  .dark .pipeline-stage-card::after {
+    background:
+      linear-gradient(114deg, transparent 0 16%, hsl(var(--gold) / 0.18) 16.3%, transparent 17%),
+      linear-gradient(18deg, transparent 0 41%, hsl(var(--star-soft) / 0.12) 41.2%, transparent 41.9%),
+      linear-gradient(156deg, transparent 0 61%, hsl(var(--gold) / 0.12) 61.3%, transparent 62%),
+      linear-gradient(136deg, transparent 0 72%, hsl(var(--star-soft) / 0.08) 72.2%, transparent 72.9%),
+      radial-gradient(circle at 28% 30%, hsl(var(--gold) / 0.18) 0%, transparent 18%),
+      radial-gradient(circle at 74% 18%, hsl(var(--glow) / 0.12) 0%, transparent 16%);
+    opacity: 0.76;
+  }
+
+  .dark .pipeline-agent-node {
+    background:
+      linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.74) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--star-soft) / 0.08), 0 8px 18px hsl(var(--night) / 0.16);
+  }
+
+  .dark .pipeline-agent-node::before {
+    background:
+      radial-gradient(circle at 12% 22%, hsl(var(--star-soft) / 0.76) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 26% 72%, hsl(var(--star) / 0.42) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.78) 0 1px, transparent 1.8px),
+      linear-gradient(120deg, transparent 0 64%, hsl(var(--gold) / 0.08) 64.4%, transparent 65%);
+    opacity: 0.9;
+  }
+
+  .dark .pipeline-stage-add {
+    background:
+      linear-gradient(180deg, hsl(var(--night) / 0.56) 0%, hsl(var(--panel) / 0.52) 100%);
+  }
+
+  .dark .pipeline-stage-add::before {
+    background:
+      radial-gradient(circle at 18% 22%, hsl(var(--star-soft) / 0.52) 0 1px, transparent 1.8px),
+      radial-gradient(circle at 84% 24%, hsl(var(--gold) / 0.48) 0 1px, transparent 1.8px),
+      linear-gradient(102deg, transparent 0 52%, hsl(var(--gold) / 0.08) 52.2%, transparent 52.8%);
+    opacity: 0.82;
+  }
+
   .constellation-grid {
     position: relative;
   }
@@ -321,6 +461,83 @@
     border-color: rgb(239 68 68 / 0.4);
     background: linear-gradient(180deg, rgb(239 68 68 / 0.16) 0%, rgb(239 68 68 / 0.12) 100%);
     color: rgb(153 27 27);
+  }
+
+  .project-pipeline-select {
+    appearance: none;
+    border: 1px solid hsl(var(--border) / 0.7);
+    background:
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.14), transparent 42%),
+      linear-gradient(180deg, hsl(var(--background) / 0.88) 0%, hsl(var(--background) / 0.72) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.16), 0 8px 20px hsl(var(--night) / 0.05);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background 180ms ease;
+  }
+
+  .project-pipeline-select:hover {
+    border-color: hsl(var(--primary) / 0.38);
+    background:
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.18), transparent 42%),
+      linear-gradient(180deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.78) 100%);
+  }
+
+  .project-pipeline-select:focus-visible {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow:
+      0 0 0 2px hsl(var(--primary) / 0.2),
+      inset 0 1px 0 hsl(var(--glow) / 0.2),
+      0 10px 24px hsl(var(--night) / 0.08);
+  }
+
+  .project-pipeline-select-active {
+    border-color: hsl(var(--gold) / 0.82);
+    background:
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.22), transparent 44%),
+      radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.14), transparent 24%),
+      linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%, hsl(var(--background) / 0.78) 100%);
+    box-shadow:
+      0 0 0 1px hsl(var(--gold) / 0.3),
+      inset 0 1px 0 hsl(var(--glow) / 0.28),
+      0 14px 28px hsl(var(--gold) / 0.12);
+  }
+
+  .dark .project-pipeline-select {
+    border-color: hsl(var(--border) / 0.72);
+    background:
+      radial-gradient(circle at 16% 0%, hsl(var(--glow) / 0.12), transparent 42%),
+      linear-gradient(180deg, hsl(var(--panel) / 0.92) 0%, hsl(var(--night) / 0.84) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12), 0 10px 24px hsl(var(--night) / 0.18);
+  }
+
+  .dark .project-pipeline-select:hover {
+    border-color: hsl(var(--primary) / 0.42);
+    background:
+      radial-gradient(circle at 16% 0%, hsl(var(--glow) / 0.16), transparent 44%),
+      linear-gradient(180deg, hsl(var(--panel) / 0.96) 0%, hsl(var(--night) / 0.88) 100%);
+  }
+
+  .dark .project-pipeline-select:focus-visible {
+    border-color: hsl(var(--primary) / 0.56);
+    box-shadow:
+      0 0 0 2px hsl(var(--primary) / 0.18),
+      inset 0 1px 0 hsl(var(--glow) / 0.16),
+      0 12px 28px hsl(var(--night) / 0.26);
+  }
+
+  .dark .project-pipeline-select-active {
+    border-color: hsl(var(--gold) / 0.9);
+    background:
+      radial-gradient(circle at 14% 0%, hsl(var(--glow) / 0.2), transparent 44%),
+      radial-gradient(circle at 84% 16%, hsl(var(--gold) / 0.12), transparent 22%),
+      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 90%, hsl(var(--gold)) 10%) 0%, hsl(var(--night) / 0.9) 100%);
+    box-shadow:
+      0 0 0 1px hsl(var(--gold) / 0.38),
+      0 0 0 4px hsl(var(--glow) / 0.05),
+      inset 0 1px 0 hsl(var(--glow) / 0.22),
+      0 16px 34px hsl(var(--gold) / 0.12);
   }
 
   .orbit-divider {

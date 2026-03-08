@@ -23,6 +23,7 @@ export function useModels() {
     queryFn: () => fetchCopilotModels(false),
     staleTime: Infinity,
     gcTime: Infinity,
+    retry: 2,
   });
 
   const refreshMutation = useMutation({

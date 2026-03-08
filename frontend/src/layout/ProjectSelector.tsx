@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 import type { Project } from '@/types';
 
 interface ProjectSelectorProps {
@@ -12,6 +13,7 @@ interface ProjectSelectorProps {
   selectedProjectId: string | null;
   isLoading: boolean;
   onSelectProject: (projectId: string) => void;
+  className?: string;
 }
 
 export function ProjectSelector({
@@ -21,6 +23,7 @@ export function ProjectSelector({
   selectedProjectId,
   isLoading,
   onSelectProject,
+  className,
 }: ProjectSelectorProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -51,7 +54,10 @@ export function ProjectSelector({
   return (
     <div
       ref={ref}
-      className="celestial-panel absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
+      className={cn(
+        'celestial-panel absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md',
+        className,
+      )}
     >
       <div className="border-b border-border/70 bg-background/25 px-3 py-3">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Projects</p>

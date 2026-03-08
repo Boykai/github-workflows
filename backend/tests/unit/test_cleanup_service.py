@@ -482,7 +482,8 @@ class TestIssueLinkage:
         preserved_names = [b.name for b in result.branches_to_preserve]
         delete_names = [b.name for b in result.branches_to_delete]
         assert "issue-42" in preserved_names
-        assert "stale-experiment" in delete_names
+        assert "stale-experiment" not in delete_names
+        assert "stale-experiment" in preserved_names
         assert result.open_issues_on_board == 1
 
     async def test_pr_linked_by_body_reference_preserved(self):
@@ -528,7 +529,80 @@ class TestIssueLinkage:
         preserved_pr_nums = [p.number for p in result.prs_to_preserve]
         close_pr_nums = [p.number for p in result.prs_to_close]
         assert 10 in preserved_pr_nums
+        assert 11 not in close_pr_nums
+        assert 11 in preserved_pr_nums
+
+    async def test_preflight_only_deletes_solune_owned_branches(self):
+        """Unlinked external branches must be preserved while Solune-owned ones can be deleted."""
+        branches_resp = MagicMock()
+        branches_resp.status_code = 200
+        branches_resp.json.return_value = [
+            _make_branch("main"),
+            _make_branch("feature/manual-experiment"),
+            _make_branch("agent/stale-helper"),
+        ]
+
+        service = _make_github_service(branches_response=branches_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        delete_names = [b.name for b in result.branches_to_delete]
+        preserved = {b.name: b.preservation_reason for b in result.branches_to_preserve}
+
+        assert "agent/stale-helper" in delete_names
+        assert "feature/manual-experiment" in preserved
+        assert "solune-generated" in (preserved["feature/manual-experiment"] or "").lower()
+
+    async def test_preflight_only_closes_solune_owned_prs(self):
+        """Unlinked external PRs must be preserved while Solune-owned PRs can be closed."""
+        prs_resp = MagicMock()
+        prs_resp.status_code = 200
+        prs_resp.json.return_value = [
+            _make_pr(
+                10, "Manual cleanup candidate", "feature/manual-experiment", body="No issue link"
+            ),
+            _make_pr(
+                11, "Update agent: Judge", "agent/update-judge", body="## Update Agent: Judge"
+            ),
+        ]
+
+        service = _make_github_service(prs_response=prs_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        close_pr_nums = [p.number for p in result.prs_to_close]
+        preserved = {p.number: p.preservation_reason for p in result.prs_to_preserve}
+
         assert 11 in close_pr_nums
+        assert 10 in preserved
+        assert "solune-generated" in (preserved[10] or "").lower()
+
+    async def test_preflight_preserves_prs_with_generic_title_only_match(self):
+        """A generic title prefix alone is not enough to classify a PR as Solune-owned."""
+        prs_resp = MagicMock()
+        prs_resp.status_code = 200
+        prs_resp.json.return_value = [
+            _make_pr(
+                12,
+                "Chore: update dependencies",
+                "feature/dependency-refresh",
+                body="Manual maintenance follow-up",
+            ),
+        ]
+
+        service = _make_github_service(prs_response=prs_resp)
+        request = CleanupPreflightRequest(owner="test", repo="repo", project_id="PVT_123")
+
+        result = await cleanup_service.preflight(service, "token", "testuser", request)
+
+        close_pr_nums = [p.number for p in result.prs_to_close]
+        preserved = {p.number: p.preservation_reason for p in result.prs_to_preserve}
+
+        assert 12 not in close_pr_nums
+        assert 12 in preserved
+        assert "solune-generated" in (preserved[12] or "").lower()
 
 
 # ── Orphaned Issues ────────────────────────────────────────────────

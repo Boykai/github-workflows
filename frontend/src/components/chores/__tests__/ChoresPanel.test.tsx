@@ -73,6 +73,7 @@ function createChore(overrides: Partial<Chore> = {}): Chore {
     execution_count: 0,
     ai_enhance_enabled: true,
     agent_pipeline_id: '',
+    blocking: false,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -206,6 +207,27 @@ describe('ChoresPanel', () => {
     await waitFor(() => {
       expect(mockInlineUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
         agent_pipeline_id: 'pipe-1',
+      });
+    });
+  });
+
+  it('saves blocking changes from the chore edit panel', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', blocking: false })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: 'Edit chore' }).length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit chore' })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Non-blocking' })[0]);
+    await user.click(screen.getAllByRole('button', { name: /Save & Create PR/i })[0]);
+
+    await waitFor(() => {
+      expect(mockInlineUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
+        blocking: true,
       });
     });
   });

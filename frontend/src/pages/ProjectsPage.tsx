@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, Lock } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -18,12 +19,15 @@ import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { BlockingChainPanel } from '@/components/board/BlockingChainPanel';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
+import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
+import { ProjectSelector } from '@/layout/ProjectSelector';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { useBlockingQueue } from '@/hooks/useBlockingQueue';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { formatAgentName } from '@/utils/formatAgentName';
+import { cn } from '@/lib/utils';
 import type { BoardItem } from '@/types';
 import { ApiError, pipelinesApi } from '@/services/api';
 
@@ -32,8 +36,9 @@ export function ProjectsPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const {
-    projects,
     selectedProject,
+    projects,
+    isLoading: projectsListLoading,
     selectProject,
   } = useProjects(user?.selected_project_id);
 
@@ -64,6 +69,7 @@ export function ProjectsPage() {
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
+  const [projectSelectorOpen, setProjectSelectorOpen] = useState(false);
 
   const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
 
@@ -100,9 +106,14 @@ export function ProjectsPage() {
     },
   });
 
-  const handleProjectSwitch = useCallback((projectId: string) => {
-    selectBoardProject(projectId);
-  }, [selectBoardProject]);
+  const setBlockingOverrideMutation = useMutation({
+    mutationFn: (blockingOverride: boolean | null) =>
+      pipelinesApi.setBlockingOverride(selectedProjectId!, blockingOverride),
+    onSuccess: (assignment) => {
+      if (!selectedProjectId) return;
+      queryClient.setQueryData(['pipelines', 'assignment', selectedProjectId], assignment);
+    },
+  });
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
@@ -117,7 +128,10 @@ export function ProjectsPage() {
     [assignedPipeline],
   );
 
-  const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
+  // Effective blocking = project override (if set) otherwise pipeline default
+  const effectiveBlocking = pipelineAssignment?.blocking_override ?? assignedPipeline?.blocking ?? false;
+  const hasBlockingOverride = pipelineAssignment?.blocking_override != null;
+
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
   const refreshRateLimitError = refreshError?.type === 'rate_limit';
@@ -142,29 +156,41 @@ export function ProjectsPage() {
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
       {/* Page Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Celestial Board</p>
-            <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Projects</h2>
-          </div>
-
-          {/* Project Selector */}
-          <select
-            className="flex h-11 w-[280px] items-center justify-between rounded-full border border-input bg-background/70 px-4 py-2 text-sm text-foreground shadow-sm ring-offset-background placeholder:text-muted-foreground backdrop-blur-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            value={selectedProjectId ?? ''}
-            onChange={(e) => e.target.value && handleProjectSwitch(e.target.value)}
-            disabled={projectsLoading}
+      <div className="flex items-start justify-between gap-4 shrink-0">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setProjectSelectorOpen((current) => !current)}
+            className="moonwell flex min-w-[12rem] items-center gap-3 rounded-[1.05rem] border border-border/70 px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/35 hover:bg-background/60"
+            aria-haspopup="listbox"
+            aria-expanded={projectSelectorOpen}
+            aria-label="Select project"
           >
-            <option value="">
-              {projectsLoading ? 'Loading projects...' : 'Select a project'}
-            </option>
-            {projects.map((project) => (
-              <option key={project.project_id} value={project.project_id}>
-                {project.owner_login}/{project.name}
-              </option>
-            ))}
-          </select>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary shadow-[inset_0_1px_0_hsl(var(--glow)/0.18)]">
+              {selectedProject?.name?.charAt(0).toUpperCase() ?? '?'}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-foreground">
+                {selectedProject?.name ?? 'Select project'}
+              </span>
+              <span className="block truncate text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+                {selectedProject?.owner_login ?? 'GitHub Projects'}
+              </span>
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${projectSelectorOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          <ProjectSelector
+            isOpen={projectSelectorOpen}
+            onClose={() => setProjectSelectorOpen(false)}
+            projects={projects}
+            selectedProjectId={selectedProjectId}
+            isLoading={projectsListLoading}
+            onSelectProject={(projectId) => {
+              void selectProject(projectId);
+            }}
+            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[20rem]"
+          />
         </div>
 
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -197,21 +223,6 @@ export function ProjectsPage() {
           )}
         </div>
       </div>
-
-      {/* Project info header (when a project is selected and has data) */}
-      {selectedProjectId && boardData && (
-        <div className="celestial-panel flex items-center justify-between shrink-0 rounded-[1.25rem] border border-border/70 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-xl font-display font-medium tracking-[0.04em]">{boardData.project.name}</h3>
-            <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-secondary-foreground">
-              {boardData.project.owner_login}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {totalItems} items
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Toolbar */}
       {selectedProjectId && boardData && (
@@ -306,11 +317,13 @@ export function ProjectsPage() {
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
-          <div className="text-4xl mb-2">📋</div>
-          <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the dropdown above to view its board</p>
-        </div>
+        <ProjectSelectionEmptyState
+          projects={projects}
+          isLoading={projectsListLoading}
+          selectedProjectId={selectedProjectId}
+          onSelectProject={selectProject}
+          description="Open one of your GitHub Projects to review its board, column flow, and current delivery state."
+        />
       )}
 
       {selectedProjectId && boardLoading && (
@@ -327,23 +340,63 @@ export function ProjectsPage() {
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold">Pipeline Stages</h3>
                 {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
-                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    <span>Agent Pipeline</span>
-                    <select
-                      value={pipelineAssignment?.pipeline_id ?? ''}
-                      onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
-                      disabled={assignPipelineMutation.isPending}
-                      className="moonwell h-9 min-w-[12rem] rounded-full border-border/60 px-4 text-xs font-medium text-foreground"
-                      aria-label="Agent Pipeline"
-                    >
-                      <option value="">No pipeline selected</option>
-                      {savedPipelines?.pipelines.map((pipeline) => (
-                        <option key={pipeline.id} value={pipeline.id}>
-                          {pipeline.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <span>Agent Pipeline</span>
+                      <select
+                        value={pipelineAssignment?.pipeline_id ?? ''}
+                        onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
+                        disabled={assignPipelineMutation.isPending}
+                        className={cn(
+                          'project-pipeline-select h-9 min-w-[12rem] rounded-full px-4 text-xs font-medium text-foreground',
+                          pipelineAssignment?.pipeline_id && 'project-pipeline-select-active',
+                        )}
+                        aria-label="Agent Pipeline"
+                      >
+                        <option value="">No pipeline selected</option>
+                        {savedPipelines?.pipelines.map((pipeline) => (
+                          <option key={pipeline.id} value={pipeline.id}>
+                            {pipeline.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {pipelineAssignment !== undefined && (
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={effectiveBlocking}
+                          disabled={setBlockingOverrideMutation.isPending}
+                          onClick={() =>
+                            setBlockingOverrideMutation.mutate(
+                              hasBlockingOverride ? null : !effectiveBlocking,
+                            )
+                          }
+                          title={
+                            hasBlockingOverride
+                              ? `Project override is forcing blocking ${effectiveBlocking ? 'on' : 'off'} — click to return to the pipeline default`
+                              : effectiveBlocking
+                                ? 'Blocking is currently on from the assigned pipeline — click to force this project off'
+                                : 'Blocking is currently off from the assigned pipeline — click to force this project on'
+                          }
+                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50 ${
+                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                              effectiveBlocking ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                        <span className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                          <Lock className="h-3 w-3" />
+                          {effectiveBlocking ? 'BLOCKING(ON)' : 'BLOCKING(OFF)'}
+                        </span>
+                      </label>
+                    )}
+                  </div>
                 ) : (
                   <Link
                     to="/pipeline"

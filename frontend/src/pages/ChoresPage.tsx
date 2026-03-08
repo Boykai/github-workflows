@@ -7,53 +7,36 @@ import { useMemo, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
-import { useChoresList } from '@/hooks/useChores';
+import { useChoresList, useEvaluateChoresTriggers } from '@/hooks/useChores';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
+import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { workflowApi } from '@/services/api';
+import { countParentIssues } from '@/utils/parentIssueCount';
 
 export function ChoresPage() {
   const { user } = useAuth();
-  const { selectedProject } = useProjects(user?.selected_project_id);
+  const {
+    selectedProject,
+    projects,
+    isLoading: projectsLoading,
+    selectProject,
+  } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
   const { data: chores } = useChoresList(projectId);
   const [isAnyDirty, setIsAnyDirty] = useState(false);
 
-  // Mirror the recent-parent-issues filter so counters only include unique parent issues.
-  const parentIssueCount = useMemo(() => {
-    if (!boardData?.columns) return 0;
+  const parentIssueCount = useMemo(() => countParentIssues(boardData), [boardData]);
 
-    const subIssueNumbers = new Set<number>();
-    const seenItemIds = new Set<string>();
-    let count = 0;
-
-    for (const column of boardData.columns) {
-      for (const item of column.items ?? []) {
-        for (const subIssue of item.sub_issues ?? []) {
-          subIssueNumbers.add(subIssue.number);
-        }
-      }
-    }
-
-    for (const column of boardData.columns) {
-      for (const item of column.items ?? []) {
-        if (item.content_type !== 'issue') continue;
-        if (seenItemIds.has(item.item_id)) continue;
-        seenItemIds.add(item.item_id);
-        if (item.number != null && subIssueNumbers.has(item.number)) continue;
-        if (item.labels?.some(l => l.name === 'chore')) continue;
-        count += 1;
-      }
-    }
-
-    return count;
-  }, [boardData]);
+  // Poll evaluate-triggers while this page is mounted so count-based chores
+  // fire automatically when parentIssueCount crosses the threshold.
+  useEvaluateChoresTriggers(projectId, parentIssueCount, !!boardData?.columns);
 
   // Unsaved changes navigation guard
   const { isBlocked, blocker } = useUnsavedChanges({ isDirty: isAnyDirty });
@@ -116,11 +99,13 @@ export function ChoresPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
-          <div className="text-4xl mb-2">🧹</div>
-          <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the sidebar to manage its chores</p>
-        </div>
+        <ProjectSelectionEmptyState
+          projects={projects}
+          isLoading={projectsLoading}
+          selectedProjectId={projectId}
+          onSelectProject={selectProject}
+          description="Choose a GitHub Project to manage its recurring chores, automation cadence, and cleanup routines."
+        />
       )}
 
       {projectId && (
