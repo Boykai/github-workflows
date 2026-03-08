@@ -79,7 +79,7 @@ specs/030-doc-sweep/
 docs/
 ├── OWNERS.md                      # EXISTS: Documentation ownership mapping (FR-017, FR-018) — verify all files listed
 ├── checklists/
-│   ├── weekly-sweep.md            # EXISTS: Weekly staleness sweep (FR-003–FR-006) — verify FR-020 compliance
+│   ├── weekly-sweep.md            # EXISTS: Weekly staleness sweep (FR-003–FR-006) — verify completeness
 │   ├── monthly-review.md          # EXISTS: Monthly full review (FR-007–FR-010) — verify completeness
 │   └── quarterly-audit.md         # EXISTS: Quarterly audit (FR-011–FR-013) — verify ADR and DX audit items
 ├── decisions/                     # EXISTS: ADR directory with 6 records + README — no changes needed

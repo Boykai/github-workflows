@@ -13,7 +13,7 @@ A developer finishes a code change that introduces a new endpoint, adds an envir
 
 **Why this priority**: PR-level checks are the earliest and most cost-effective gate against documentation drift. Every behavioral, configuration, or API change caught at PR time prevents stale documentation from reaching the main branch. Without this gate, all downstream review activities inherit inaccurate documentation.
 
-**Independent Test**: Can be fully tested by opening a pull request that adds a new endpoint, verifying the PR template includes a documentation checklist, confirming the reviewer can see checklist status, and verifying the PR cannot be approved when documentation items are unaddressed.
+**Independent Test**: Can be fully tested by opening a pull request that adds a new endpoint, verifying the PR template includes a documentation checklist, confirming the reviewer can see checklist status, and verifying that reviewers do not approve the PR while documentation checklist items remain unaddressed.
 
 **Acceptance Scenarios**:
 

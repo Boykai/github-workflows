@@ -46,7 +46,7 @@ The CI pipeline must enforce documentation formatting standards and validate lin
 
 | Rule | Setting | Purpose |
 |------|---------|---------|
-| MD003 | `style: "atx"` (default) | Enforce ATX-style headings (`#`, `##`, `###`) |
+| MD003 | `style: "consistent"` (default via `"default": true`) | Enforce consistent heading style (`#`, `##`, `###` — ATX in practice) |
 | MD004 | `style: "dash"` | Enforce dash-style unordered lists |
 | MD013 | `false` (disabled) | No line length limit (project convention) |
 | MD032 | `true` (default) | Require blank lines around lists |
@@ -58,6 +58,7 @@ The CI pipeline must enforce documentation formatting standards and validate lin
 
 ```json
 {
+  "default": true,
   "MD004": { "style": "dash" },
   "MD006": true,
   "MD013": false,
@@ -71,7 +72,7 @@ The CI pipeline must enforce documentation formatting standards and validate lin
 
 ### Assessment
 
-The current config enforces the key formatting standards. ATX headings are enforced by default (MD003). Code block language tags are enforced by default (MD040). The config is permissive where appropriate (no line length, allow inline HTML).
+The current config enforces the key formatting standards via `"default": true`. Consistent heading style is enforced by default (MD003 — ATX in practice since all docs use ATX). Code block language tags are enforced by default (MD040). The config is permissive where appropriate (no line length, allow inline HTML).
 
 ## Link Check Config (`.markdown-link-check.json`)
 
