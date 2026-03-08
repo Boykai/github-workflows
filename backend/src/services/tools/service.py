@@ -134,6 +134,98 @@ class ToolsService:
             pass
         return ""
 
+    @staticmethod
+    def _extract_server_names(config_content: str) -> set[str]:
+        """Extract normalized MCP server keys from a config blob."""
+        try:
+            data = json.loads(config_content)
+        except json.JSONDecodeError:
+            return set()
+
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        if not isinstance(servers, dict):
+            return set()
+
+        return {str(name).strip() for name in servers if str(name).strip()}
+
+    async def _find_server_name_conflicts(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        config_content: str,
+        exclude_tool_id: str | None = None,
+    ) -> dict[str, list[str]]:
+        """Return conflicting MCP server keys already claimed by other tools."""
+        server_names = self._extract_server_names(config_content)
+        if not server_names:
+            return {}
+
+        sql = (
+            "SELECT id, name, config_content FROM mcp_configurations "
+            "WHERE project_id = ? AND github_user_id = ?"
+        )
+        params: list[str] = [project_id, github_user_id]
+        if exclude_tool_id:
+            sql += " AND id != ?"
+            params.append(exclude_tool_id)
+
+        cursor = await self.db.execute(sql, tuple(params))
+        rows = await cursor.fetchall()
+
+        conflicts: dict[str, list[str]] = {}
+        for row in rows:
+            overlapping = server_names & self._extract_server_names(row["config_content"])
+            for server_name in overlapping:
+                conflicts.setdefault(server_name, []).append(row["name"])
+
+        return conflicts
+
+    async def _ensure_no_server_name_conflicts(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        config_content: str,
+        exclude_tool_id: str | None = None,
+    ) -> None:
+        """Reject configs whose MCP server keys overlap with other saved tools."""
+        conflicts = await self._find_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=config_content,
+            exclude_tool_id=exclude_tool_id,
+        )
+        if not conflicts:
+            return
+
+        details = ", ".join(
+            f"'{server_name}' already used by {', '.join(sorted(tool_names))}"
+            for server_name, tool_names in sorted(conflicts.items())
+        )
+        raise DuplicateToolServerNameError(
+            "MCP server names must be unique per project because repository sync stores them under "
+            f"`mcpServers` keys. Conflicts: {details}."
+        )
+
+    async def _get_protected_server_names(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        exclude_tool_id: str,
+    ) -> set[str]:
+        """Server keys still referenced by other tools and therefore not safe to remove."""
+        cursor = await self.db.execute(
+            "SELECT config_content FROM mcp_configurations WHERE project_id = ? AND github_user_id = ? AND id != ?",
+            (project_id, github_user_id, exclude_tool_id),
+        )
+        rows = await cursor.fetchall()
+        protected_names: set[str] = set()
+        for row in rows:
+            protected_names.update(self._extract_server_names(row["config_content"]))
+        return protected_names
+
     # ── CRUD ──
 
     async def list_tools(self, project_id: str, github_user_id: str) -> McpToolConfigListResponse:
@@ -225,6 +317,12 @@ class ToolsService:
             raise DuplicateToolNameError(
                 f"An MCP tool named '{data.name}' already exists in this project"
             )
+
+        await self._ensure_no_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=data.config_content,
+        )
 
         # Check per-project limit
         cursor = await self.db.execute(
@@ -337,6 +435,19 @@ class ToolsService:
                 f"An MCP tool named '{next_name}' already exists in this project"
             )
 
+        await self._ensure_no_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=next_config_content,
+            exclude_tool_id=tool_id,
+        )
+
+        protected_server_names = await self._get_protected_server_names(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            exclude_tool_id=tool_id,
+        )
+
         old_sync_owner, old_sync_repo = owner, repo
         if existing_tool.github_repo_target and "/" in existing_tool.github_repo_target:
             target_owner, target_repo = existing_tool.github_repo_target.split("/", 1)
@@ -345,7 +456,11 @@ class ToolsService:
 
         try:
             await self._remove_from_github(
-                existing_tool, old_sync_owner, old_sync_repo, access_token
+                existing_tool,
+                old_sync_owner,
+                old_sync_repo,
+                access_token,
+                protected_server_names=protected_server_names,
             )
         except Exception:
             logger.exception("Failed to remove old GitHub config for tool %s", tool_id)
@@ -422,7 +537,18 @@ class ToolsService:
 
         # Remove from GitHub
         try:
-            await self._remove_from_github(tool, owner, repo, access_token)
+            protected_server_names = await self._get_protected_server_names(
+                project_id=project_id,
+                github_user_id=github_user_id,
+                exclude_tool_id=tool_id,
+            )
+            await self._remove_from_github(
+                tool,
+                owner,
+                repo,
+                access_token,
+                protected_server_names=protected_server_names,
+            )
         except Exception:
             logger.exception("Failed to remove tool %s from GitHub", tool_id)
 
@@ -523,6 +649,21 @@ class ToolsService:
         await self.db.commit()
 
         try:
+            conflicts = await self._find_server_name_conflicts(
+                project_id=project_id,
+                github_user_id=github_user_id,
+                config_content=tool.config_content,
+                exclude_tool_id=tool_id,
+            )
+            if conflicts:
+                details = ", ".join(
+                    f"'{server_name}' also exists in {', '.join(sorted(tool_names))}"
+                    for server_name, tool_names in sorted(conflicts.items())
+                )
+                raise RuntimeError(
+                    f"MCP server-name collision detected during sync. Conflicts: {details}"
+                )
+
             headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Accept": "application/vnd.github+json",
@@ -612,6 +753,8 @@ class ToolsService:
         owner: str,
         repo: str,
         access_token: str,
+        *,
+        protected_server_names: set[str] | None = None,
     ) -> None:
         """Remove an MCP server entry from all supported GitHub MCP config files."""
         import httpx
@@ -640,10 +783,17 @@ class ToolsService:
                 except (json.JSONDecodeError, AttributeError):
                     tool_server_names = []
 
+                protected_names = protected_server_names or set()
+                removable_names = [
+                    name for name in tool_server_names if name not in protected_names
+                ]
+                if not removable_names:
+                    continue
+
                 mcp_servers = existing_content.get("mcpServers", {})
                 if not isinstance(mcp_servers, dict):
                     mcp_servers = {}
-                for name in tool_server_names:
+                for name in removable_names:
                     mcp_servers.pop(name, None)
                 existing_content["mcpServers"] = mcp_servers
 
@@ -751,3 +901,7 @@ class ToolsService:
 
 class DuplicateToolNameError(Exception):
     """Raised when a tool with the same name already exists."""
+
+
+class DuplicateToolServerNameError(Exception):
+    """Raised when a tool config reuses an existing mcpServers key in the project."""

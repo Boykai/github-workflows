@@ -32,7 +32,7 @@ export function themeHandler(args: string, context: CommandContext): CommandResu
 
   return {
     success: true,
-    message: `✓ Theme changed from ${oldTheme} to ${value}`,
+    message: `Theme changed from ${oldTheme} to ${value}`,
     clearInput: true,
   };
 }
@@ -75,7 +75,7 @@ export function languageHandler(args: string, _context: CommandContext): Command
 
   return {
     success: true,
-    message: `✓ Language changed to ${label} (${value})`,
+    message: `Language changed to ${label} (${value})`,
     clearInput: true,
   };
 }
@@ -127,7 +127,7 @@ export async function notificationsHandler(args: string, context: CommandContext
 
   return {
     success: true,
-    message: `✓ Notifications changed from ${oldValue} to ${value}`,
+    message: `Notifications changed from ${oldValue} to ${value}`,
     clearInput: true,
   };
 }
@@ -171,7 +171,7 @@ export async function viewHandler(args: string, context: CommandContext): Promis
 
   return {
     success: true,
-    message: `✓ Default view changed from ${oldView} to ${value}`,
+    message: `Default view changed from ${oldView} to ${value}`,
     clearInput: true,
   };
 }

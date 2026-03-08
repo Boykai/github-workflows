@@ -5,6 +5,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Shield, Trash2, X } from 'lucide-react';
 import type { CleanupPreflightResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -57,7 +58,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
             aria-label="Close"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -69,7 +70,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.branches_to_delete.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              🗑️ Branches to Delete ({data.branches_to_delete.length})
+              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Branches to Delete ({data.branches_to_delete.length})</span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => (
@@ -84,7 +85,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.prs_to_close.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              🗑️ Pull Requests to Close ({data.prs_to_close.length})
+              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Pull Requests to Close ({data.prs_to_close.length})</span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => (
@@ -100,7 +101,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {(data.orphaned_issues ?? []).length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              🗑️ Orphaned Issues to Close ({data.orphaned_issues.length})
+              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Orphaned Issues to Close ({data.orphaned_issues.length})</span>
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               App-created issues no longer attached to the project board.
@@ -125,7 +126,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.branches_to_preserve.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              🛡️ Branches to Preserve ({data.branches_to_preserve.length})
+              <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Branches to Preserve ({data.branches_to_preserve.length})</span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => (
@@ -143,7 +144,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.prs_to_preserve.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              🛡️ Pull Requests to Preserve ({data.prs_to_preserve.length})
+              <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Pull Requests to Preserve ({data.prs_to_preserve.length})</span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => (

@@ -3,9 +3,9 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Lock } from 'lucide-react';
+import { ChevronDown, Inbox, Lock, Search, TriangleAlert } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -70,6 +70,8 @@ export function ProjectsPage() {
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
   const [projectSelectorOpen, setProjectSelectorOpen] = useState(false);
+  const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
+  const pipelineSelectorRef = useRef<HTMLDivElement>(null);
 
   const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
 
@@ -102,6 +104,7 @@ export function ProjectsPage() {
     mutationFn: (pipelineId: string) => pipelinesApi.setAssignment(selectedProjectId!, pipelineId),
     onSuccess: (assignment) => {
       if (!selectedProjectId) return;
+      setPipelineSelectorOpen(false);
       queryClient.setQueryData(['pipelines', 'assignment', selectedProjectId], assignment);
     },
   });
@@ -148,6 +151,34 @@ export function ProjectsPage() {
   useEffect(() => {
     updateRateLimit({ info: effectiveRateLimitInfo ?? null, hasError: hasActiveRateLimitError });
   }, [effectiveRateLimitInfo, hasActiveRateLimitError, updateRateLimit]);
+
+  useEffect(() => {
+    if (!pipelineSelectorOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (pipelineSelectorRef.current && !pipelineSelectorRef.current.contains(event.target as Node)) {
+        setPipelineSelectorOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setPipelineSelectorOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [pipelineSelectorOpen]);
+
+  useEffect(() => {
+    setPipelineSelectorOpen(false);
+  }, [selectedProjectId]);
 
   const rateLimitRetryAfter = refreshError?.retryAfter
     ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
@@ -266,7 +297,7 @@ export function ProjectsPage() {
 
       {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
-          <span className="text-lg">⚠️</span>
+          <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>
             <p>Only {rateLimitInfo.remaining} API requests remaining.</p>
@@ -276,7 +307,7 @@ export function ProjectsPage() {
 
       {refreshError && refreshError.type !== 'rate_limit' && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          <span className="text-lg">⚠️</span>
+          <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
             <p>{refreshError.message}</p>
@@ -286,7 +317,7 @@ export function ProjectsPage() {
 
       {projectsError && !projectsRateLimitError && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          <span className="text-lg">⚠️</span>
+          <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
@@ -301,7 +332,7 @@ export function ProjectsPage() {
 
       {boardError && !boardLoading && !boardRateLimitError && (
         <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
-          <span className="text-lg">⚠️</span>
+          <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
@@ -341,26 +372,75 @@ export function ProjectsPage() {
                 <h3 className="text-lg font-semibold">Pipeline Stages</h3>
                 {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap items-center gap-3">
-                    <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       <span>Agent Pipeline</span>
-                      <select
-                        value={pipelineAssignment?.pipeline_id ?? ''}
-                        onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
-                        disabled={assignPipelineMutation.isPending}
-                        className={cn(
-                          'project-pipeline-select h-9 min-w-[12rem] rounded-full px-4 text-xs font-medium text-foreground',
-                          pipelineAssignment?.pipeline_id && 'project-pipeline-select-active',
+                      <div ref={pipelineSelectorRef} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setPipelineSelectorOpen((current) => !current)}
+                          disabled={assignPipelineMutation.isPending}
+                          className={cn(
+                            'project-pipeline-select project-pipeline-trigger flex h-9 min-w-[12rem] items-center justify-between gap-3 rounded-full px-4 text-xs font-medium text-foreground',
+                            pipelineAssignment?.pipeline_id && 'project-pipeline-select-active',
+                            pipelineSelectorOpen && 'project-pipeline-select-open',
+                          )}
+                          aria-haspopup="listbox"
+                          aria-expanded={pipelineSelectorOpen}
+                          aria-label="Agent Pipeline"
+                        >
+                          <span className="truncate">{assignedPipeline?.name ?? 'No pipeline selected'}</span>
+                          <ChevronDown
+                            className={cn(
+                              'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                              pipelineSelectorOpen && 'rotate-180',
+                            )}
+                          />
+                        </button>
+
+                        {pipelineSelectorOpen && (
+                          <div className="project-pipeline-menu absolute right-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-3rem))] overflow-hidden rounded-[1.1rem] border border-border/80">
+                            <div className="border-b border-border/65 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/90">
+                              Select pipeline
+                            </div>
+                            <div className="max-h-72 overflow-y-auto p-1.5" role="listbox" aria-label="Agent Pipeline options">
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={!pipelineAssignment?.pipeline_id}
+                                onClick={() => assignPipelineMutation.mutate('')}
+                                className={cn(
+                                  'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm',
+                                  !pipelineAssignment?.pipeline_id && 'project-pipeline-option-active',
+                                )}
+                              >
+                                <span className="truncate">No pipeline selected</span>
+                                {!pipelineAssignment?.pipeline_id && <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Current</span>}
+                              </button>
+                              {savedPipelines?.pipelines.map((pipeline) => {
+                                const isSelected = pipeline.id === (pipelineAssignment?.pipeline_id ?? '');
+
+                                return (
+                                  <button
+                                    key={pipeline.id}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={isSelected}
+                                    onClick={() => assignPipelineMutation.mutate(pipeline.id)}
+                                    className={cn(
+                                      'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm',
+                                      isSelected && 'project-pipeline-option-active',
+                                    )}
+                                  >
+                                    <span className="truncate">{pipeline.name}</span>
+                                    {isSelected && <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Current</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
-                        aria-label="Agent Pipeline"
-                      >
-                        <option value="">No pipeline selected</option>
-                        {savedPipelines?.pipelines.map((pipeline) => (
-                          <option key={pipeline.id} value={pipeline.id}>
-                            {pipeline.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                      </div>
+                    </div>
                     {pipelineAssignment !== undefined && (
                       <label className="flex cursor-pointer items-center gap-2">
                         <button
@@ -441,7 +521,7 @@ export function ProjectsPage() {
               <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
                 {boardControls.hasActiveControls ? (
                   <>
-                    <div className="text-4xl mb-2">🔍</div>
+                    <Search className="mb-2 h-10 w-10 text-primary/80" />
                     <h3 className="text-xl font-semibold">No issues match the current view</h3>
                     <p className="text-muted-foreground">Try adjusting your filter, sort, or group settings.</p>
                     <button
@@ -454,7 +534,7 @@ export function ProjectsPage() {
                   </>
                 ) : (
                   <>
-                    <div className="text-4xl mb-2">📭</div>
+                    <Inbox className="mb-2 h-10 w-10 text-primary/70" />
                     <h3 className="text-xl font-semibold">No items yet</h3>
                     <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
                   </>

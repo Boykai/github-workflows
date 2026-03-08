@@ -2206,18 +2206,22 @@ class GitHubProjectsService:
         Returns:
             True if assignment succeeded
         """
+        # The built-in GitHub Copilot agent is the default assignment path,
+        # not a repository custom agent defined under .github/agents/.
+        normalized_custom_agent = "" if custom_agent == "copilot" else custom_agent
+
         logger.info(
             "Assigning Copilot to issue #%s (node=%s) with custom_agent='%s'",
             issue_number,
             issue_node_id,
-            custom_agent,
+            normalized_custom_agent,
         )
 
         # If this is a custom agent assignment, unassign Copilot first — but
         # ONLY if Copilot is currently assigned. Skipping this for new issues
         # avoids a race condition where the recovery loop sees "Copilot NOT
         # assigned" between the unassign and re-assign steps.
-        if custom_agent and issue_number:
+        if normalized_custom_agent and issue_number:
             is_assigned = await self.is_copilot_assigned_to_issue(
                 access_token=access_token,
                 owner=owner,
@@ -2239,7 +2243,7 @@ class GitHubProjectsService:
             repo,
             issue_node_id,
             base_ref,
-            custom_agent,
+            normalized_custom_agent,
             custom_instructions,
             model=model,
         )
@@ -2260,7 +2264,7 @@ class GitHubProjectsService:
             repo,
             issue_number,
             base_ref,
-            custom_agent,
+            normalized_custom_agent,
             custom_instructions,
         )
 

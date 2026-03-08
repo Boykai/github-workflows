@@ -213,18 +213,18 @@ export function AgentsPipelinePage() {
             />
 
             {workflowConfig && (
-              <div className="celestial-panel flex items-center justify-between rounded-[1rem] border border-border/70 bg-background/28 px-4 py-2.5 shadow-sm">
-                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="celestial-panel flex items-center rounded-[1rem] border border-border/70 bg-background/28 px-4 py-2.5 shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   <span className="h-2 w-2 rounded-full bg-primary/70" />
                   Current Pipeline
+                  <span className={`rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
+                    workflowConfig.enabled
+                      ? 'solar-chip-success'
+                      : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
+                  }`}>
+                    {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
+                  </span>
                 </div>
-                <span className={`rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
-                  workflowConfig.enabled
-                    ? 'solar-chip-success'
-                    : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-                }`}>
-                  {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
-                </span>
               </div>
             )}
 

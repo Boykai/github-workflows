@@ -4,6 +4,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import type { CleanupHistoryResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -60,7 +61,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Close"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 

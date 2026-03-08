@@ -105,7 +105,7 @@ export function StageCard({
 
   return (
     <div
-    className="pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
+    className="pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">

@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react';
+
 /**
  * Signal Connection settings component.
  *
@@ -103,7 +105,7 @@ function ConflictBanners() {
           key={banner.id}
           className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
         >
-          <span className="text-base leading-none mt-0.5">⚠️</span>
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-yellow-700 dark:text-yellow-300" />
           <span className="flex-1 text-sm text-yellow-700 dark:text-yellow-300">{banner.message}</span>
           <button
             className="shrink-0 text-xs font-medium text-yellow-700 dark:text-yellow-300 underline underline-offset-2 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors disabled:opacity-50"

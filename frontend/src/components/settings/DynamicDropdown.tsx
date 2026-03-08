@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react';
+
 /**
  * Dynamic dropdown component for model selection.
  *
@@ -140,7 +142,7 @@ export function DynamicDropdown({
           className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 p-3 text-sm text-foreground"
           role="status"
         >
-          <span className="shrink-0">⚠️</span>
+          <TriangleAlert className="h-4 w-4 shrink-0 text-primary" />
           <span>{message || 'Authentication required to fetch models'}</span>
         </div>
       </div>
@@ -214,7 +216,7 @@ export function DynamicDropdown({
           className="flex items-center gap-2 rounded-md bg-primary/10 p-2 text-xs text-foreground"
           role="status"
         >
-          <span>⚠️ {message || 'Rate limit reached. Using cached values.'}</span>
+          <span className="inline-flex items-center gap-2"><TriangleAlert className="h-3.5 w-3.5" />{message || 'Rate limit reached. Using cached values.'}</span>
         </div>
       </div>
     );
@@ -259,8 +261,9 @@ export function DynamicDropdown({
           </span>
         )}
         {rateLimitWarning && (
-          <span className="text-xs text-accent-foreground">
-            ⚠️ API rate limit approaching
+          <span className="inline-flex items-center gap-1 text-xs text-accent-foreground">
+            <TriangleAlert className="h-3.5 w-3.5" />
+            API rate limit approaching
           </span>
         )}
         {isLoading && (

@@ -21,7 +21,7 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
         config_content=_dump_config(
             {
                 "mcpServers": {
-                    "github": {
+                    "github-readonly": {
                         "type": "http",
                         "url": "https://api.githubcopilot.com/mcp/readonly",
                         "tools": ["*"],
@@ -40,7 +40,7 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
         config_content=_dump_config(
             {
                 "mcpServers": {
-                    "github": {
+                    "github-full-access": {
                         "type": "http",
                         "url": "https://api.githubcopilot.com/mcp/",
                         "tools": ["*"],

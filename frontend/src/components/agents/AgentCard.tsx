@@ -13,11 +13,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { formatAgentName } from '@/utils/formatAgentName';
+import { formatAgentCreatedLabel } from '@/utils/agentCardMeta';
 
 interface AgentCardProps {
   agent: AgentConfig;
   projectId: string;
   usageCount?: number;
+  pendingSubIssueCount?: number;
   onEdit?: (agent: AgentConfig) => void;
   variant?: 'default' | 'spotlight';
 }
@@ -41,6 +44,7 @@ export function AgentCard({
   agent,
   projectId,
   usageCount = 0,
+  pendingSubIssueCount = 0,
   onEdit,
   variant = 'default',
 }: AgentCardProps) {
@@ -54,11 +58,12 @@ export function AgentCard({
   const isPendingDeletion = agent.status === 'pending_deletion';
   const isPendingCreation = agent.status === 'pending_pr' && agent.source === 'local';
   const canDelete = !isPendingDeletion && !isPendingCreation;
+  const displayName = formatAgentName(agent.slug, agent.name, { specKitStyle: 'suffix' });
 
   const handleDelete = async () => {
     const confirmed = await confirm({
       title: 'Delete Agent',
-      description: `Remove agent "${agent.name}"? This opens a PR to delete the repo files. The catalog only updates after that PR is merged into main.`,
+      description: `Remove agent "${displayName}"? This opens a PR to delete the repo files. The catalog only updates after that PR is merged into main.`,
       variant: 'danger',
       confirmLabel: 'Delete',
     });
@@ -70,9 +75,7 @@ export function AgentCard({
   const isSpotlight = variant === 'spotlight';
   const sourceLabel =
     agent.source === 'both' ? 'Shared' : agent.source === 'repo' ? 'Repository' : 'Local';
-  const createdLabel = agent.created_at
-    ? new Date(agent.created_at).toLocaleDateString()
-    : 'Recently added';
+  const createdLabel = formatAgentCreatedLabel(agent.created_at);
   const usageLabel = `${usageCount} config${usageCount === 1 ? '' : 's'}`;
 
   const handleIconSave = async (iconName: string | null) => {
@@ -111,7 +114,7 @@ export function AgentCard({
                 <ThemedAgentIcon
                   slug={agent.slug}
                   iconName={agent.icon_name}
-                  name={agent.name}
+                  name={displayName}
                   size="lg"
                   className="mt-0.5"
                 />
@@ -128,9 +131,9 @@ export function AgentCard({
               </div>
               <h4
                 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]"
-                title={agent.name}
+                title={displayName}
               >
-                {agent.name}
+                {displayName}
               </h4>
             </div>
           </div>
@@ -177,11 +180,9 @@ export function AgentCard({
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Pull request
+              Pull Requests
             </p>
-            <p className="mt-1 text-sm text-foreground">
-              {agent.github_pr_number ? `#${agent.github_pr_number}` : 'No PR linked'}
-            </p>
+            <p className="mt-1 text-sm text-foreground">{pendingSubIssueCount} pending</p>
           </div>
         </div>
 
@@ -239,7 +240,7 @@ export function AgentCard({
 
       <AgentIconPickerModal
         isOpen={isIconPickerOpen}
-        agentName={agent.name}
+      agentName={displayName}
         slug={agent.slug}
         currentIconName={agent.icon_name}
         isSaving={updateMutation.isPending}

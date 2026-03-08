@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { ScrollText, Search, Sparkles } from 'lucide-react';
 import { useChoresList, useChoreTemplates, useInlineUpdateChore } from '@/hooks/useChores';
 import { ChoreCard } from './ChoreCard';
 import { AddChoreModal } from './AddChoreModal';
@@ -234,7 +234,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
       {/* Empty state */}
       {!isLoading && !error && chores && chores.length === 0 && (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
         <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
-          <span className="text-2xl">📋</span>
+          <ScrollText className="h-8 w-8 text-primary/80" />
           <p className="text-lg font-medium text-foreground">No chores yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
             Add a chore to set up recurring maintenance tasks
@@ -302,7 +302,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
                             <span className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-primary">
                               Repo template
                             </span>
-                            <span className="text-sm">📋</span>
+                            <ScrollText className="h-4 w-4 text-primary/70" />
                           </div>
                           <div>
                             <h5 className="text-lg font-semibold text-foreground">{tpl.name}</h5>
@@ -455,7 +455,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
                     title={tpl.about || tpl.name}
                     type="button"
                   >
-                    <span className="text-sm shrink-0">📋</span>
+                    <ScrollText className="h-4 w-4 shrink-0 text-primary/70" />
                     <div className="flex min-w-0 flex-col gap-1">
                       <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
                       {tpl.about && (

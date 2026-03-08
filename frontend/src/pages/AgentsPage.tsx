@@ -13,6 +13,7 @@ import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
 import { formatAgentName } from '@/utils/formatAgentName';
+import { countPendingAssignedSubIssues } from '@/utils/agentCardMeta';
 
 export function AgentsPage() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export function AgentsPage() {
     });
     return counts;
   }, {});
+  const pendingSubIssueCounts = countPendingAssignedSubIssues(boardData);
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
@@ -83,6 +85,7 @@ export function AgentsPage() {
               owner={repo?.owner}
               repo={repo?.name}
               agentUsageCounts={agentUsageCounts}
+              pendingSubIssueCounts={pendingSubIssueCounts}
             />
           </div>
 

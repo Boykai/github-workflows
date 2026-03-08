@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/types';
 
@@ -93,7 +94,7 @@ export function ProjectSelector({
                 <span className="text-xs text-muted-foreground truncate">{project.owner_login}</span>
               </div>
               {project.project_id === selectedProjectId && (
-                <span className="ml-auto text-primary text-xs">✓</span>
+                <Check className="ml-auto h-3.5 w-3.5 text-primary" />
               )}
             </button>
           ))}

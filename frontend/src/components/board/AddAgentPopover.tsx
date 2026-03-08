@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react';
+
 /**
  * AddAgentPopover component - dropdown popover for adding agents to a column.
  * Displays available agents with slug, display_name, and description.
@@ -170,7 +172,7 @@ export function AddAgentPopover({
       {/* Error */}
       {error && !isLoading && (
         <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
-          <span>⚠ {error}</span>
+          <span className="inline-flex items-center gap-2"><TriangleAlert className="h-4 w-4" />{error}</span>
           <button
             className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
             onClick={onRetry}

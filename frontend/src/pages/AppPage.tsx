@@ -3,7 +3,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { Kanban, GitBranch, Bot, ListChecks } from 'lucide-react';
+import { Kanban, GitBranch, Bot, ListChecks, Sparkles } from 'lucide-react';
 
 const quickLinks = [
   { path: '/projects', label: 'Projects', description: 'View and manage your Kanban board', icon: Kanban },
@@ -72,7 +72,7 @@ export function AppPage() {
             <div className="absolute left-1/2 top-16 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-primary" />
             <div className="mb-8 text-center">
               <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-5xl text-primary">
-                ✦
+                <Sparkles className="h-10 w-10" />
               </div>
               <p className="text-xs uppercase tracking-[0.28em] text-primary/80">Navigate the cosmos</p>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">

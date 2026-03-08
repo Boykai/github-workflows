@@ -1,3 +1,5 @@
+import { Sparkles } from 'lucide-react';
+
 /**
  * ChoreChatFlow — embedded mini-chat UI for sparse input template building.
  *
@@ -136,7 +138,7 @@ export function ChoreChatFlow({
 
       {!aiEnhance && (
         <p className="text-xs text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/50">
-          ✨ Your input will be used as the template body — AI will generate metadata only
+          <span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" />Your input will be used as the template body — AI will generate metadata only</span>
         </p>
       )}
 

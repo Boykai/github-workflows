@@ -7,6 +7,7 @@
 
 import { useId, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { TriangleAlert } from 'lucide-react';
 import { pipelinesApi } from '@/services/api';
 import type { PipelineConfigSummary } from '@/types';
 
@@ -66,8 +67,9 @@ export function PipelineSelector({ projectId, value, onChange, disabled, inputId
           : 'This chore will use the selected saved agent pipeline configuration.'}
       </p>
       {!selectedExists && value && (
-        <p className="text-[10px] text-yellow-600 dark:text-yellow-400">
-          ⚠ Selected pipeline no longer available — will use Auto
+        <p className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400">
+          <TriangleAlert className="h-3 w-3" />
+          Selected pipeline no longer available — will use Auto
         </p>
       )}
     </div>

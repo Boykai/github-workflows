@@ -45,4 +45,16 @@ describe('formatAgentName', () => {
   it('returns displayName when displayName is provided even for empty slug', () => {
     expect(formatAgentName('', 'Custom Name')).toBe('Custom Name');
   });
+
+  it('formats spec kit agents with suffix style when requested', () => {
+    expect(formatAgentName('speckit.clarify', 'Speckit.Clarify', { specKitStyle: 'suffix' })).toBe(
+      'Clarify (Spec Kit)',
+    );
+  });
+
+  it('formats hyphenated spec kit agents with suffix style when requested', () => {
+    expect(formatAgentName('speckit-taskstoissues', undefined, { specKitStyle: 'suffix' })).toBe(
+      'Tasks To Issues (Spec Kit)',
+    );
+  });
 });

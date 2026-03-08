@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
 import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
 import { ToolChips } from '@/components/tools/ToolChips';
@@ -301,9 +302,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-3xl" aria-hidden="true">
-              ✓
-            </span>
+            <CheckCircle2 className="h-8 w-8 text-primary" aria-hidden="true" />
             <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
             <p className="text-sm text-muted-foreground">
               A pull request has been opened with the agent configuration files. It will appear in

@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
-from src.exceptions import GitHubAPIError
+from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
 from src.models.tools import (
     McpPresetListResponse,
     McpToolConfigCreate,
@@ -23,7 +23,11 @@ from src.models.tools import (
 from src.models.user import UserSession
 from src.services.database import get_db
 from src.services.tools.presets import list_mcp_presets
-from src.services.tools.service import DuplicateToolNameError, ToolsService
+from src.services.tools.service import (
+    DuplicateToolNameError,
+    DuplicateToolServerNameError,
+    ToolsService,
+)
 from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
@@ -129,7 +133,7 @@ async def create_tool(
             repo=repo,
             access_token=session.access_token,
         )
-    except DuplicateToolNameError as exc:
+    except (DuplicateToolNameError, DuplicateToolServerNameError) as exc:
         raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
@@ -192,7 +196,7 @@ async def update_tool(
         )
     except LookupError as exc:
         raise NotFoundError(str(exc)) from exc
-    except DuplicateToolNameError as exc:
+    except (DuplicateToolNameError, DuplicateToolServerNameError) as exc:
         raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc

@@ -131,6 +131,6 @@ describe('IssueCard', () => {
 
     render(<IssueCard item={item} onClick={vi.fn()} isBlocking />);
 
-    expect(screen.getByText('🔒 Blocking')).toBeInTheDocument();
+    expect(screen.getByText('Blocking')).toBeInTheDocument();
   });
 });

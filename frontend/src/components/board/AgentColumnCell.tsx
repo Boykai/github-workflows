@@ -6,6 +6,7 @@
  */
 
 import { useCallback } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -120,7 +121,7 @@ export function AgentColumnCell({
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex h-full min-w-0 flex-col transition-colors duration-150 ${isCompact ? 'gap-1.5 rounded-[1rem] border p-1.5 bg-[radial-gradient(circle_at_50%_12%,hsl(var(--glow)/0.12),transparent_30%),linear-gradient(180deg,hsl(var(--background)/0.7),hsl(var(--background)/0.92))]' : 'gap-2 rounded-[1.2rem] border p-2'} ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
+      className={`flex h-full min-w-0 flex-col transition-colors duration-150 ${isCompact ? 'pipeline-column-surface gap-1.5 rounded-[1rem] border p-1.5' : 'gap-2 rounded-[1.2rem] border p-2'} ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
     >
       {isCompact && (
         <div className="flex items-center justify-between px-1 pb-0.5">
@@ -156,7 +157,10 @@ export function AgentColumnCell({
       {/* Soft limit warning (T021) */}
       {agentCount > 10 && !isCompact && (
         <div className="mt-1 rounded-md border border-amber-400/40 bg-amber-500/12 px-2 py-1 text-center text-xs font-medium text-amber-800 dark:text-amber-300">
-          ⚠ {agentCount} agents assigned — consider reducing
+          <span className="inline-flex items-center gap-1">
+            <TriangleAlert className="h-3.5 w-3.5" />
+            {agentCount} agents assigned — consider reducing
+          </span>
         </div>
       )}
     </div>

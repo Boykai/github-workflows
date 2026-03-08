@@ -21,17 +21,30 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface AgentsPanelProps {
   projectId: string;
   owner?: string;
   repo?: string;
   agentUsageCounts?: Record<string, number>;
+  pendingSubIssueCounts?: Record<string, number>;
 }
 
 type AgentSortMode = 'name' | 'usage';
 
-export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: AgentsPanelProps) {
+function getCatalogAgentName(agent: AgentConfig): string {
+  return formatAgentName(agent.slug, agent.name, { specKitStyle: 'suffix' });
+}
+
+export function AgentsPanel({
+  projectId,
+  owner,
+  repo,
+  agentUsageCounts = {},
+  pendingSubIssueCounts = {},
+}: AgentsPanelProps) {
   const { data: agents, isLoading, error } = useAgentsList(projectId);
   const { data: pendingAgents, isLoading: pendingLoading } = usePendingAgentsList(projectId);
   const { refreshModels, isRefreshing: isRefreshingModels } = useModels();
@@ -138,8 +151,10 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
   const filteredAgents = (agents ?? [])
     .filter((agent) => {
       const query = deferredSearch.trim().toLowerCase();
+      const catalogName = getCatalogAgentName(agent).toLowerCase();
       const matchesSearch =
         query.length === 0 ||
+        catalogName.includes(query) ||
         agent.name.toLowerCase().includes(query) ||
         agent.slug.toLowerCase().includes(query) ||
         agent.description.toLowerCase().includes(query) ||
@@ -152,7 +167,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
         return (agentUsageCounts[right.slug] ?? 0) - (agentUsageCounts[left.slug] ?? 0);
       }
 
-      return left.name.localeCompare(right.name);
+      return getCatalogAgentName(left).localeCompare(getCatalogAgentName(right));
     });
 
   // Two-pass Featured Agents algorithm:
@@ -273,7 +288,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
       {/* Empty state */}
       {!isLoading && !error && agents && agents.length === 0 && (
         <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
-          <span className="text-2xl">🤖</span>
+          <ThemedAgentIcon name="Agents" iconName="constellation" size="lg" className="h-12 w-12" />
           <p className="text-lg font-medium text-foreground">No agents yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
             No agent files are currently present in .github/agents on the repository default branch.
@@ -345,6 +360,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   agent={agent}
                   projectId={projectId}
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
+                  pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                   onEdit={handleEditRequest}
                   variant="default"
                 />
@@ -420,6 +436,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
+                    pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                     onEdit={handleEditRequest}
                     variant="spotlight"
                   />
@@ -495,6 +512,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
+                    pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
                     onEdit={handleEditRequest}
                   />
                 ))}
