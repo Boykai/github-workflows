@@ -167,6 +167,23 @@ async def send_message(
 
     selected_project_id = session.selected_project_id
 
+    # Validate pipeline_id if provided
+    if chat_request.pipeline_id:
+        from src.services.database import get_db as _get_db
+        from src.services.pipelines.service import PipelineService
+
+        try:
+            _db = _get_db()
+            pipeline_svc = PipelineService(_db)
+            _pipeline = await pipeline_svc.get_pipeline(selected_project_id, chat_request.pipeline_id)
+            if _pipeline is None:
+                raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}")
+        except ValidationError:
+            raise
+        except Exception as exc:
+            logger.warning("Pipeline validation failed: %s", exc)
+            raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}") from exc
+
     # Try to get AI service (optional)
     try:
         ai_service = get_ai_agent_service()
@@ -328,6 +345,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "status": RecommendationStatus.PENDING.value,
                     "ai_enhance": chat_request.ai_enhance,
                     "file_urls": chat_request.file_urls,
+                    "pipeline_id": chat_request.pipeline_id,
                 },
             )
             add_message(session.session_id, assistant_message)
