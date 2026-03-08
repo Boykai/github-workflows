@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from base64 import b64decode
 from datetime import UTC, datetime
 
 import aiosqlite
@@ -17,6 +18,21 @@ logger = logging.getLogger(__name__)
 def _strip_front_matter(text: str) -> str:
     """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
     return re.sub(r"\A---\n.*?\n---\n?", "", text, count=1, flags=re.DOTALL).strip()
+
+
+class ChoreConflictError(RuntimeError):
+    """Raised when an inline chore edit conflicts with newer repo content."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        current_sha: str | None = None,
+        current_content: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.current_sha = current_sha
+        self.current_content = current_content
 
 
 class ChoresService:
@@ -638,12 +654,41 @@ class ChoresService:
             build_template,
         )
 
+        expected_sha = body.expected_sha
         updates = body.model_dump(exclude_unset=True)
         updates.pop("expected_sha", None)
 
+        chore = await self.get_chore(chore_id)
+        if chore is None:
+            raise ValueError(f"Chore {chore_id} not found")
+
         if not updates:
-            chore = await self.get_chore(chore_id)
             return {"chore": chore, "pr_number": None, "pr_url": None}
+
+        needs_pr = "template_content" in updates or "name" in updates
+
+        if expected_sha and needs_pr and github_service and access_token and owner and repo:
+            response = await github_service.rest_request(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/contents/{chore.template_path}",
+            )
+            if response.status_code == 200:
+                payload = response.json()
+                current_sha = payload.get("sha") if isinstance(payload, dict) else None
+                if current_sha and current_sha != expected_sha:
+                    current_content = None
+                    encoded_content = payload.get("content") if isinstance(payload, dict) else None
+                    if isinstance(encoded_content, str):
+                        try:
+                            current_content = b64decode(encoded_content).decode("utf-8")
+                        except Exception:
+                            current_content = None
+                    raise ChoreConflictError(
+                        "File has been modified since page load",
+                        current_sha=current_sha,
+                        current_content=current_content,
+                    )
 
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
@@ -669,8 +714,6 @@ class ChoresService:
         pr_number = None
         pr_url = None
 
-        # Create PR if template content or name changed
-        needs_pr = "template_content" in updates or "name" in updates
         if needs_pr and github_service and access_token and owner and repo:
             try:
                 from src.services.chores.template_builder import (

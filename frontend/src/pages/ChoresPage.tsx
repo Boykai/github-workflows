@@ -25,12 +25,33 @@ export function ChoresPage() {
   const { data: chores } = useChoresList(projectId);
   const [isAnyDirty, setIsAnyDirty] = useState(false);
 
-  // Compute parentIssueCount from board data: count items that are parent issues
+  // Mirror the recent-parent-issues filter so counters only include unique parent issues.
   const parentIssueCount = useMemo(() => {
     if (!boardData?.columns) return 0;
-    const allItems = boardData.columns.flatMap(c => c.items);
-    // Count items that are issues (not sub-issues) — parent issues
-    return allItems.filter(item => item.content_type === 'issue').length;
+
+    const subIssueNumbers = new Set<number>();
+    const seenItemIds = new Set<string>();
+    let count = 0;
+
+    for (const column of boardData.columns) {
+      for (const item of column.items ?? []) {
+        for (const subIssue of item.sub_issues ?? []) {
+          subIssueNumbers.add(subIssue.number);
+        }
+      }
+    }
+
+    for (const column of boardData.columns) {
+      for (const item of column.items ?? []) {
+        if (item.content_type !== 'issue') continue;
+        if (seenItemIds.has(item.item_id)) continue;
+        seenItemIds.add(item.item_id);
+        if (item.number != null && subIssueNumbers.has(item.number)) continue;
+        count += 1;
+      }
+    }
+
+    return count;
   }, [boardData]);
 
   // Unsaved changes navigation guard
@@ -79,14 +100,14 @@ export function ChoresPage() {
       />
 
       {/* Featured Rituals Panel */}
-      {projectId && chores && chores.length > 0 && (
+      {projectId && (
         <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
           <div className="mb-4">
             <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Featured Rituals</p>
             <h4 className="mt-1 text-[1.15rem] font-display font-medium leading-tight">Key chore highlights</h4>
           </div>
           <FeaturedRitualsPanel
-            chores={chores}
+            chores={chores ?? []}
             parentIssueCount={parentIssueCount}
           />
         </section>

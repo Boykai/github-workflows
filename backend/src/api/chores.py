@@ -24,7 +24,7 @@ from src.models.chores import (
     EvaluateChoreTriggersResponse,
 )
 from src.models.user import UserSession
-from src.services.chores.service import ChoresService
+from src.services.chores.service import ChoreConflictError, ChoresService
 from src.services.chores.template_builder import (
     build_template,
     commit_template_to_repo,
@@ -345,10 +345,22 @@ async def inline_update_chore(
     if existing is None or existing.project_id != project_id:
         raise HTTPException(status_code=404, detail="Chore not found")
 
-    try:
-        owner, repo = await resolve_repository(session.access_token, project_id)
-    except Exception:
-        owner, repo = None, None
+    needs_pr = body.name is not None or body.template_content is not None
+    owner = None
+    repo = None
+    if needs_pr:
+        try:
+            owner, repo = await resolve_repository(session.access_token, project_id)
+        except Exception as exc:
+            logger.warning(
+                "Failed to resolve repository for project %s when performing inline chore update",
+                project_id,
+                exc_info=True,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Could not resolve repository for project; inline update cannot create a pull request.",
+            ) from exc
 
     try:
         result = await service.inline_update_chore(
@@ -360,6 +372,15 @@ async def inline_update_chore(
             repo=repo,
             project_id=project_id,
         )
+    except ChoreConflictError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "current_sha": exc.current_sha,
+                "current_content": exc.current_content,
+            },
+        ) from exc
     except ValueError as exc:
         logger.warning("Invalid inline update: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc

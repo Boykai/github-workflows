@@ -319,7 +319,7 @@ async def merge_chore_pr(
         if not pr_info:
             return False, f"PR #{pr_number} not found"
 
-        pr_node_id = pr_info.get("node_id")
+        pr_node_id = pr_info.get("id")
         if not pr_node_id:
             return False, f"PR #{pr_number} missing node_id"
 

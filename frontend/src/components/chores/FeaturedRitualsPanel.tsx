@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from 'react';
-import { Clock, PlayCircle, Trophy } from 'lucide-react';
+import { Clock, PlayCircle, Trophy, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Chore } from '@/types';
 
@@ -16,11 +16,12 @@ interface FeaturedRitualsPanelProps {
 }
 
 interface RitualCard {
-  choreId: string;
+  choreId: string | null;
   choreName: string;
   stat: string;
-  icon: typeof Clock;
+  icon: LucideIcon;
   label: string;
+  isEmpty?: boolean;
 }
 
 function computeRemaining(chore: Chore, parentIssueCount: number): number {
@@ -29,42 +30,68 @@ function computeRemaining(chore: Chore, parentIssueCount: number): number {
   return Math.max(0, chore.schedule_value - issuesSince);
 }
 
+function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
+  if (!chore.schedule_type || !chore.schedule_value || chore.status !== 'active') {
+    return null;
+  }
+
+  if (chore.schedule_type === 'count') {
+    const remaining = computeRemaining(chore, parentIssueCount);
+    const threshold = chore.schedule_value;
+    const progress = threshold > 0 ? (threshold - remaining) / threshold : 0;
+    return {
+      stat: remaining === 0 ? 'Ready to trigger' : `${remaining} issue${remaining !== 1 ? 's' : ''} remaining`,
+      isDue: remaining === 0,
+      progress,
+    };
+  }
+
+  const thresholdMs = chore.schedule_value * 24 * 60 * 60 * 1000;
+  const baseDate = chore.last_triggered_at ?? chore.created_at;
+  const elapsedMs = Math.max(0, Date.now() - new Date(baseDate).getTime());
+  const remainingMs = Math.max(0, thresholdMs - elapsedMs);
+  const progress = thresholdMs > 0 ? Math.min(1, elapsedMs / thresholdMs) : 0;
+  const days = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((remainingMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+
+  return {
+    stat: remainingMs === 0 ? 'Due now' : days > 0 ? `${days}d ${hours}h remaining` : `${hours}h remaining`,
+    isDue: remainingMs === 0,
+    progress,
+  };
+}
+
 export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }: FeaturedRitualsPanelProps) {
   const rituals = useMemo(() => {
-    if (chores.length === 0) return null;
+    if (chores.length === 0) {
+      return [];
+    }
 
     const activeChores = chores.filter(c => c.status === 'active');
 
-    // Next Run — lowest remaining count for count-based chores, soonest time for time-based
+    // Next Run — compare normalized progress toward the next trigger across schedule types.
     let nextRun: RitualCard | null = null;
-    let bestNextValue = Infinity;
+    let bestNextIsDue = false;
+    let bestNextProgress = -1;
 
     for (const chore of activeChores) {
-      if (!chore.schedule_type || !chore.schedule_value) continue;
+      const candidate = computeNextRunCandidate(chore, parentIssueCount);
+      if (!candidate) continue;
 
-      let value: number;
-      let stat: string;
+      const outranksCurrent =
+        (candidate.isDue && !bestNextIsDue) ||
+        (candidate.isDue === bestNextIsDue && candidate.progress > bestNextProgress);
 
-      if (chore.schedule_type === 'count') {
-        value = computeRemaining(chore, parentIssueCount);
-        stat = value === 0 ? 'Ready to trigger' : `${value} issue${value !== 1 ? 's' : ''} remaining`;
-      } else {
-        const baseDate = chore.last_triggered_at ?? chore.created_at;
-        const base = new Date(baseDate).getTime();
-        const nextTrigger = base + chore.schedule_value * 24 * 60 * 60 * 1000;
-        value = Math.max(0, nextTrigger - Date.now());
-        if (value <= 0) {
-          stat = 'Due now';
-        } else {
-          const days = Math.floor(value / (24 * 60 * 60 * 1000));
-          const hours = Math.floor((value % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-          stat = days > 0 ? `${days}d ${hours}h remaining` : `${hours}h remaining`;
-        }
-      }
-
-      if (value < bestNextValue) {
-        bestNextValue = value;
-        nextRun = { choreId: chore.id, choreName: chore.name, stat, icon: Clock, label: 'Next Run' };
+      if (outranksCurrent) {
+        bestNextIsDue = candidate.isDue;
+        bestNextProgress = candidate.progress;
+        nextRun = {
+          choreId: chore.id,
+          choreName: chore.name,
+          stat: candidate.stat,
+          icon: Clock,
+          label: 'Next Run',
+        };
       }
     }
 
@@ -102,12 +129,43 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
       }
     }
 
-    const cards = [nextRun, mostRecentlyRun, mostRun].filter(Boolean) as RitualCard[];
-    return cards.length > 0 ? cards : null;
+    return [
+      nextRun ?? {
+        choreId: null,
+        choreName: 'No active schedule yet',
+        stat: 'Add or resume a chore cadence to see the next run.',
+        icon: Clock,
+        label: 'Next Run',
+        isEmpty: true,
+      },
+      mostRecentlyRun ?? {
+        choreId: null,
+        choreName: 'Nothing has run yet',
+        stat: 'Trigger a chore to start a recent-run history.',
+        icon: PlayCircle,
+        label: 'Most Recently Run',
+        isEmpty: true,
+      },
+      mostRun ?? {
+        choreId: null,
+        choreName: 'No execution data yet',
+        stat: 'Execution counts will appear after chores start running.',
+        icon: Trophy,
+        label: 'Most Run',
+        isEmpty: true,
+      },
+    ];
   }, [chores, parentIssueCount]);
 
-  if (!rituals) {
-    return null;
+  if (chores.length === 0) {
+    return (
+      <div className="rounded-[1.3rem] border border-dashed border-border/70 bg-background/35 p-6 text-center">
+        <p className="text-sm font-medium text-foreground">No rituals yet</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Create your first chore to surface upcoming runs, recent activity, and execution leaders here.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -116,8 +174,9 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
         <button
           key={card.label}
           type="button"
-          onClick={() => onChoreClick?.(card.choreId)}
-          className="text-left"
+          onClick={() => card.choreId && onChoreClick?.(card.choreId)}
+          className="text-left disabled:cursor-default"
+          disabled={!card.choreId}
         >
           <Card className="moonwell h-full rounded-[1.35rem] border-primary/15 shadow-none transition-colors hover:border-primary/30">
             <CardContent className="flex flex-col gap-3 p-4">

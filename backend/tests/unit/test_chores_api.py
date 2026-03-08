@@ -322,6 +322,30 @@ class TestUpdateChore:
         assert "Paused" not in names
 
 
+class TestInlineUpdateChoreApi:
+    """Tests for the inline chore edit endpoint."""
+
+    @pytest.mark.anyio
+    async def test_returns_400_when_repository_cannot_be_resolved_for_pr_changes(
+        self,
+        client,
+        mock_db,
+    ):
+        """Name/content edits should fail clearly when no repository can be resolved."""
+        chore_id = await _insert_chore(mock_db, project_id="PVT_1", name="Inline Edit")
+
+        with patch(
+            "src.api.chores.resolve_repository", AsyncMock(side_effect=RuntimeError("boom"))
+        ):
+            resp = await client.put(
+                f"/api/v1/chores/PVT_1/{chore_id}/inline-update",
+                json={"name": "Renamed chore"},
+            )
+
+        assert resp.status_code == 400
+        assert "Could not resolve repository" in resp.json()["detail"]
+
+
 # =============================================================================
 # DELETE /chores/{project_id}/{chore_id}
 # =============================================================================

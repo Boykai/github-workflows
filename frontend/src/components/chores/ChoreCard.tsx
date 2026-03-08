@@ -126,7 +126,12 @@ export function ChoreCard({
     triggerMutation.mutate(chore.id);
   };
 
+  const currentAiEnhance = editState?.current.ai_enhance_enabled ?? chore.ai_enhance_enabled;
   const handleToggleAiEnhance = () => {
+    if (isEditing && onEditChange) {
+      onEditChange({ ai_enhance_enabled: !currentAiEnhance });
+      return;
+    }
     updateMutation.mutate({
       choreId: chore.id,
       data: { ai_enhance_enabled: !chore.ai_enhance_enabled },
@@ -137,6 +142,8 @@ export function ChoreCard({
   const currentName = editState?.current.name ?? chore.name;
   const currentContent = editState?.current.template_content ?? chore.template_content;
   const currentPipelineId = editState?.current.agent_pipeline_id ?? chore.agent_pipeline_id;
+  const currentScheduleType = editState?.current.schedule_type ?? chore.schedule_type;
+  const currentScheduleValue = editState?.current.schedule_value ?? chore.schedule_value;
 
   return (
     <Card
@@ -210,16 +217,16 @@ export function ChoreCard({
             disabled={updateMutation.isPending}
             className={cn(
               'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
-              chore.ai_enhance_enabled
+              currentAiEnhance
                 ? 'border-primary/30 bg-primary/10 text-primary'
                 : 'border-border/60 bg-muted/40 text-muted-foreground'
             )}
-            title={`AI Enhance: ${chore.ai_enhance_enabled ? 'ON' : 'OFF'}`}
+            title={`AI Enhance: ${currentAiEnhance ? 'ON' : 'OFF'}`}
           >
             <Sparkles className="h-3 w-3" />
-            AI {chore.ai_enhance_enabled ? 'ON' : 'OFF'}
+            AI {currentAiEnhance ? 'ON' : 'OFF'}
           </button>
-          {chore.agent_pipeline_id && (
+          {currentPipelineId && (
             <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
               Custom Pipeline
             </span>
@@ -242,8 +249,11 @@ export function ChoreCard({
         {isEditing && onEditChange && (
           <div className="flex flex-col gap-3 rounded-[1.1rem] border border-dashed border-primary/20 bg-muted/20 p-3">
             <ChoreInlineEditor
+              choreId={chore.id}
               name={currentName}
               templateContent={currentContent}
+              scheduleType={currentScheduleType}
+              scheduleValue={currentScheduleValue}
               disabled={isSaving}
               onChange={onEditChange}
             />
@@ -252,6 +262,7 @@ export function ChoreCard({
               value={currentPipelineId}
               onChange={(id) => onEditChange({ agent_pipeline_id: id })}
               disabled={isSaving}
+              inputId={`chore-pipeline-${chore.id}`}
             />
             <div className="flex items-center justify-end gap-2">
               {onEditDiscard && (

@@ -5,7 +5,7 @@
  * Warns if the selected pipeline no longer exists.
  */
 
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { pipelinesApi } from '@/services/api';
 import type { PipelineConfigSummary } from '@/types';
@@ -15,9 +15,12 @@ interface PipelineSelectorProps {
   value: string; // "" = Auto, UUID = specific pipeline
   onChange: (pipelineId: string) => void;
   disabled?: boolean;
+  inputId?: string;
 }
 
-export function PipelineSelector({ projectId, value, onChange, disabled }: PipelineSelectorProps) {
+export function PipelineSelector({ projectId, value, onChange, disabled, inputId }: PipelineSelectorProps) {
+  const generatedId = useId();
+  const selectId = inputId ?? `pipeline-select-${projectId}-${generatedId}`;
   const { data: pipelineList, isLoading } = useQuery({
     queryKey: ['pipelines', 'list', projectId],
     queryFn: () => pipelinesApi.list(projectId),
@@ -34,11 +37,11 @@ export function PipelineSelector({ projectId, value, onChange, disabled }: Pipel
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={`pipeline-select-${projectId}`} className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+      <label htmlFor={selectId} className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
         Agent Pipeline
       </label>
       <select
-        id={`pipeline-select-${projectId}`}
+        id={selectId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || isLoading}
