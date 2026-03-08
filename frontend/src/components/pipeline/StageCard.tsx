@@ -100,8 +100,8 @@ export function StageCard({
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
-        <span title="Stage position is locked">
-          <Lock className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+        <span title="Stage position is locked" aria-label="Stage position is locked">
+          <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
         </span>
 
         {isEditing ? (
