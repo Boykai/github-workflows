@@ -14,8 +14,15 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header
 
 from src.api.auth import get_session_dep
-from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, ValidationError
 from src.config import get_settings
+from src.exceptions import (
+    AppException,
+    AuthorizationError,
+    ConflictError,
+    GitHubAPIError,
+    NotFoundError,
+    ValidationError,
+)
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -89,7 +96,7 @@ async def initiate_signal_link(
     # Check for existing active connection
     existing = await get_connection_by_user(session.github_user_id)
     if existing and existing.status == SignalConnectionStatus.CONNECTED:
-        raise ValidationError("User already has an active Signal connection")
+        raise ConflictError("User already has an active Signal connection")
 
     try:
         qr_base64 = await request_qr_code_base64(body.device_name)
@@ -134,7 +141,7 @@ async def check_signal_link_status(
         phone_hash = _hash_phone(phone)
         existing_for_phone = await get_connection_by_phone_hash(phone_hash)
         if existing_for_phone and existing_for_phone.github_user_id != session.github_user_id:
-            raise ValidationError("This Signal number is already linked to another account")
+            raise ConflictError("This Signal number is already linked to another account")
 
         # Create the connection record
         await create_connection(session.github_user_id, phone)
@@ -261,11 +268,11 @@ async def handle_inbound_signal_message(
     """
     settings = get_settings()
     if not settings.signal_webhook_secret:
-        raise GitHubAPIError("Signal webhook not configured")
+        raise AppException("Signal webhook not configured", status_code=503)
     if x_signal_secret is None or not hmac.compare_digest(
         x_signal_secret, settings.signal_webhook_secret
     ):
-        raise AuthenticationError("Invalid webhook secret")
+        raise AuthorizationError("Invalid webhook secret")
 
     source = body.source_number
     phone_hash = _hash_phone(source)

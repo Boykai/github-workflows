@@ -147,7 +147,7 @@ As a developer, I want unhandled promise rejections and uncaught errors in the b
 
 ### Key Entities
 
-- **AppException**: Base exception class for all application errors; carries `status_code`, `detail`, and correlation ID. Existing subclasses: `ValidationError` (400), `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `GitHubAPIError` (500).
+- **AppException**: Base exception class for all application errors; carries `status_code`, `detail`, and correlation ID. Existing subclasses: `ValidationError` (422), `AuthenticationError` (401), `AuthorizationError` (403), `NotFoundError` (404), `GitHubAPIError` (502).
 - **ConflictError**: New subclass of `AppException` with `status_code=409`, representing resource-conflict scenarios (e.g., duplicate creation, concurrent modification).
 - **ErrorAlert**: Shared frontend component for displaying errors in the UI with optional retry and dismiss callbacks.
 - **Logger Utility**: Frontend module wrapping browser console methods, gated by an environment flag, serving as the single logging entry point for the entire frontend.

@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
-from src.exceptions import GitHubAPIError, NotFoundError, ValidationError
+from src.exceptions import AppException, ConflictError, GitHubAPIError, NotFoundError, ValidationError
 from src.logging_utils import handle_service_error
 from src.models.chores import (
     Chore,
@@ -181,7 +181,7 @@ async def create_chore(
     # Re-fetch to include updated fields
     updated = await service.get_chore(chore.id)
     if updated is None:
-        raise GitHubAPIError("Failed to retrieve created chore")
+        raise AppException("Failed to retrieve created chore", status_code=500)
     return updated
 
 
@@ -287,7 +287,7 @@ async def trigger_chore(
     )
 
     if not result.triggered:
-        raise ValidationError(result.skip_reason or "Chore trigger skipped")
+        raise ConflictError(result.skip_reason or "Chore trigger skipped")
 
     return result
 
@@ -366,7 +366,7 @@ async def inline_update_chore(
             project_id=project_id,
         )
     except ChoreConflictError as exc:
-        raise ValidationError(
+        raise ConflictError(
             str(exc),
             details={
                 "current_sha": exc.current_sha,

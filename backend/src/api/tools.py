@@ -8,8 +8,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
-from src.exceptions import McpLimitExceededError, NotFoundError, ValidationError
 from src.dependencies import verify_project_access
+from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.models.tools import (
     McpToolConfigCreate,
     McpToolConfigListResponse,
@@ -84,7 +84,7 @@ async def create_tool(
             access_token=session.access_token,
         )
     except DuplicateToolNameError as exc:
-        raise McpLimitExceededError(str(exc)) from exc
+        raise ConflictError(str(exc)) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
 
@@ -146,7 +146,7 @@ async def update_tool(
     except LookupError as exc:
         raise NotFoundError(str(exc)) from exc
     except DuplicateToolNameError as exc:
-        raise McpLimitExceededError(str(exc)) from exc
+        raise ConflictError(str(exc)) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
 
