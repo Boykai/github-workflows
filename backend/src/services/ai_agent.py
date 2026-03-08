@@ -443,8 +443,9 @@ class AIAgentService:
             github_token: GitHub OAuth token (required for Copilot provider)
 
         Returns:
-            A concise issue title string. Falls back to truncated user
-            input (first 80 characters + "...") if the AI call fails.
+            A concise issue title string capped at 80 characters total.
+            Falls back to truncated user input with an ellipsis if the
+            AI call fails.
         """
         try:
             messages = [
@@ -467,15 +468,19 @@ class AIAgentService:
             title = title.strip().strip('"').strip("'")
 
             if title:
-                return title[:80]
+                return self._truncate_title(title)
 
         except Exception as e:
             logger.warning("Failed to generate title from description: %s", e)
 
-        # Fallback: truncate user input to 80 characters
-        if len(user_input) > 80:
-            return user_input[:80] + "..."
-        return user_input
+        return self._truncate_title(user_input)
+
+    @staticmethod
+    def _truncate_title(title: str) -> str:
+        """Truncate a title to 80 characters total, adding an ellipsis when needed."""
+        if len(title) > 80:
+            return title[:77] + "..."
+        return title
 
     # ──────────────────────────────────────────────────────────────────
     # Existing Task Generation Methods

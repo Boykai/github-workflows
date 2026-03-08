@@ -503,7 +503,12 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
         assistant_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content=f"I've created a task proposal:\n\n**{generated.title}**\n\n{generated.description[:200]}...\n\nClick confirm to create this task.",
+            content=(
+                f"I've created a task proposal:\n\n**{generated.title}**\n\n"
+                f"{generated.description[:200]}"
+                f"{'...' if len(generated.description) > 200 else ''}"
+                "\n\nClick confirm to create this task."
+            ),
             action_type=ActionType.TASK_CREATE,
             action_data={
                 "proposal_id": str(proposal.proposal_id),

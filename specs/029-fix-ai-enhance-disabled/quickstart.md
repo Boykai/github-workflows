@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Python 3.12+
-- Node.js 20+ and npm
+- Python 3.13+
+- Node.js 22+ and npm
 - Feature branch: `git checkout 029-fix-ai-enhance-disabled`
 
 ## Setup
@@ -29,15 +29,15 @@ npm run dev
 
 | File | Change Type | Description |
 |------|------------|-------------|
-| `backend/src/api/chat.py` | **Modify** | Add `ai_enhance` check in fallback task generation path (lines 430–476) |
+| `backend/src/api/chat.py` | **Modify** | Add `ai_enhance` check in the fallback task generation path |
 | `backend/src/services/ai_agent.py` | **Modify** | Add `generate_title_from_description()` method for lightweight title-only generation |
 
 ## Files That May Need Test Updates
 
 | File | Change Type | Description |
 |------|------------|-------------|
-| `backend/tests/test_chat_api.py` | **Modify** | Add test case for `send_message` with `ai_enhance=False` in fallback path |
-| `backend/tests/test_ai_agent.py` | **Modify** | Add test case for `generate_title_from_description()` method |
+| `backend/tests/unit/test_api_chat.py` | **Modify** | Add test case for `send_message` with `ai_enhance=False` in fallback path |
+| `backend/tests/unit/test_ai_agent.py` | **Modify** | Add test case for `generate_title_from_description()` method |
 
 ## Implementation Order
 
@@ -49,9 +49,9 @@ Add a new method `generate_title_from_description()` that:
 1. Takes `user_input`, `project_name`, and optional `github_token`
 2. Calls the completion provider with a focused prompt asking only for a title
 3. Returns a string title
-4. Falls back to truncating the user input (first 80 characters + "...") if the AI call fails
+4. Falls back to truncating the user input with an ellipsis when the AI call fails
 
-**Verification**: Run `pytest backend/tests/test_ai_agent.py -v` to ensure existing tests pass.
+**Verification**: Run `pytest backend/tests/unit/test_ai_agent.py -v` to ensure existing tests pass.
 
 ### Step 2: Add Pipeline Branching in send_message()
 
@@ -60,7 +60,7 @@ Add a new method `generate_title_from_description()` that:
 Before the existing `generate_task_from_description()` call at line 432, add:
 ```python
 if not chat_request.ai_enhance:
-    # Metadata-only path: use raw input as description, generate title only
+    # Title-only fallback path: use raw input as description and generate the proposal title
     try:
         title = await ai_service.generate_title_from_description(
             user_input=chat_request.content,

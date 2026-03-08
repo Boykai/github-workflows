@@ -75,7 +75,7 @@ class GeneratedTask:
     description: str
 ```
 
-**Behavioral Change**: When AI Enhance is disabled, this dataclass is still used in the fallback path but with `description` set to the raw user input instead of AI-generated content. The `title` is still AI-generated from a lightweight Chat Agent call.
+**Behavioral Change**: This dataclass continues to be used only in the `ai_enhance = true` fallback path via `generate_task_from_description()`, where both `title` and `description` are AI-generated. When AI Enhance is disabled, the fallback path bypasses `GeneratedTask` entirely and creates an `AITaskProposal` directly, using the raw user input as `proposed_description` and an AI-generated title.
 
 ## Frontend Types (TypeScript)
 

@@ -724,7 +724,7 @@ class TestGenerateTitleFromDescription:
 
     @pytest.mark.asyncio
     async def test_truncates_long_title_to_80_chars(self, service, mock_provider):
-        """Should truncate titles longer than 80 characters."""
+        """Should truncate titles longer than 80 characters total with ellipsis."""
         long_title = "A" * 100
         mock_provider.set_response(long_title)
 
@@ -733,6 +733,7 @@ class TestGenerateTitleFromDescription:
         )
 
         assert len(result) == 80
+        assert result.endswith("...")
 
     @pytest.mark.asyncio
     async def test_fallback_on_ai_error(self, service, mock_provider):
@@ -747,7 +748,7 @@ class TestGenerateTitleFromDescription:
 
     @pytest.mark.asyncio
     async def test_fallback_truncates_long_input(self, service, mock_provider):
-        """Fallback should truncate long user input to 80 chars + '...'."""
+        """Fallback should truncate long user input to 80 characters total with ellipsis."""
         mock_provider.set_error(RuntimeError("API unavailable"))
         long_input = "x" * 200
 
@@ -755,7 +756,7 @@ class TestGenerateTitleFromDescription:
             long_input, "Project", github_token="tok"
         )
 
-        assert result == "x" * 80 + "..."
+        assert result == "x" * 77 + "..."
 
     @pytest.mark.asyncio
     async def test_fallback_on_empty_ai_response(self, service, mock_provider):

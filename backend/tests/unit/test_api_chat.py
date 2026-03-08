@@ -235,18 +235,17 @@ class TestSendMessageTaskGeneration:
     async def test_ai_enhance_off_metadata_error_returns_specific_message(
         self, client, mock_session, mock_ai_agent_service
     ):
-        """When ai_enhance=False and metadata generation fails, show a specific error."""
+        """When the fallback branch fails after title generation, show a specific error."""
         mock_session.selected_project_id = "PVT_1"
         mock_ai_agent_service.detect_feature_request_intent.return_value = False
         mock_ai_agent_service.parse_status_change_request.return_value = None
-        mock_ai_agent_service.generate_title_from_description.side_effect = RuntimeError(
-            "AI unavailable"
-        )
+        mock_ai_agent_service.generate_title_from_description.return_value = "Some task"
 
-        resp = await client.post(
-            "/api/v1/chat/messages",
-            json={"content": "some task", "ai_enhance": False},
-        )
+        with patch("src.api.chat.AITaskProposal", side_effect=RuntimeError("storage failed")):
+            resp = await client.post(
+                "/api/v1/chat/messages",
+                json={"content": "some task", "ai_enhance": False},
+            )
         assert resp.status_code == 200
         content = resp.json()["content"]
         assert "metadata" in content.lower()

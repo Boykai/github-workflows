@@ -5,13 +5,13 @@
 
 ## Summary
 
-When users disable the AI Enhance toggle and submit a chat message, the system throws a generic error ("I couldn't generate a task from your description. Please try again with more detail.") because the issue creation pipeline unconditionally calls the AI enhancement step. The fix requires branching the pipeline into two explicit paths: (1) full AI pipeline when AI Enhance is enabled, and (2) metadata-only fallback when AI Enhance is disabled — using the user's verbatim chat input as the GitHub issue description while still invoking the Chat Agent to generate metadata (title, labels, estimates, priority, assignees) and appending Agent Pipeline configuration.
+When users disable the AI Enhance toggle and submit a chat message, the system throws a generic error ("I couldn't generate a task from your description. Please try again with more detail.") because the issue creation pipeline unconditionally calls the AI enhancement step. The fix requires branching the pipeline into two explicit paths: (1) full AI pipeline when AI Enhance is enabled, and (2) a title-only fallback when AI Enhance is disabled — using the user's verbatim chat input as the GitHub issue description while still invoking the Chat Agent to generate a concise proposal title and appending Agent Pipeline configuration when the issue is confirmed.
 
 **Root Cause**: `backend/src/api/chat.py` line 432 — `generate_task_from_description()` is called unconditionally for non-feature-request, non-status-change messages. When AI Enhance is disabled, this call either fails or produces unwanted results, and the catch-all exception handler at line 465 returns the generic error message. The `ai_enhance` flag from the request is only passed through to `action_data` for feature requests (line 329) but never checked in the task generation fallback path (lines 430–476).
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (backend), TypeScript/Node.js 20 (frontend)
+**Language/Version**: Python 3.13 (backend), TypeScript/Node.js 22 (frontend)
 **Primary Dependencies**: FastAPI (backend API), React (frontend UI), Pydantic (models)
 **Storage**: In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart
 **Testing**: pytest (backend), Vitest (frontend)
@@ -33,7 +33,7 @@ When users disable the AI Enhance toggle and submit a chat message, the system t
 | II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates |
 | III. Agent-Orchestrated Execution | ✅ PASS | This is a bug fix within the existing agent pipeline; no new agents needed |
 | IV. Test Optionality with Clarity | ✅ PASS | Tests not explicitly requested in spec; will be included only if existing test infrastructure covers the modified paths |
-| V. Simplicity and DRY | ✅ PASS | Fix adds a conditional branch, not a new abstraction; reuses existing `generate_issue_recommendation()` for metadata |
+| V. Simplicity and DRY | ✅ PASS | Fix adds a conditional branch and a focused title-generation helper without duplicating the full recommendation flow |
 
 **Gate result**: ✅ PASS — No violations. Proceed to Phase 0.
 
@@ -45,7 +45,7 @@ When users disable the AI Enhance toggle and submit a chat message, the system t
 | II. Template-Driven Workflow | ✅ PASS | All artifacts generated from canonical templates |
 | III. Agent-Orchestrated Execution | ✅ PASS | No new agents; existing pipeline preserved |
 | IV. Test Optionality with Clarity | ✅ PASS | Existing pytest tests for `send_message` and `ai_agent` should be extended to cover the new branch |
-| V. Simplicity and DRY | ✅ PASS | Reuses existing metadata generation; single conditional branch in `send_message()` |
+| V. Simplicity and DRY | ✅ PASS | Uses a focused title-generation helper plus a single conditional branch in `send_message()` |
 
 **Gate result**: ✅ PASS — No violations post-design.
 
@@ -96,7 +96,7 @@ frontend/
 └── tests/
 ```
 
-**Structure Decision**: Web application structure (Option 2). Changes are primarily in `backend/src/api/chat.py` (the `send_message()` function, lines 430–476) with potential minor adjustments to `backend/src/services/ai_agent.py` for a metadata-only generation method. Frontend changes are minimal — only error handling adjustments if needed.
+**Structure Decision**: Web application structure (Option 2). Changes are primarily in `backend/src/api/chat.py` (the `send_message()` function, lines 430–476) with potential minor adjustments to `backend/src/services/ai_agent.py` for a focused title-generation method. Frontend changes are minimal — only error handling adjustments if needed.
 
 ## Complexity Tracking
 

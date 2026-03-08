@@ -54,7 +54,7 @@
 
 ### Implementation for User Story 1
 
-- [x] T003 [US1] Add `ai_enhance=False` conditional check at the start of the fallback task generation block (before the existing `generate_task_from_description()` call at ~line 432) in `send_message()` in backend/src/api/chat.py — when `chat_request.ai_enhance is False`, enter the new metadata-only branch instead of calling `generate_task_from_description()`
+- [x] T003 [US1] Add `ai_enhance=False` conditional check at the start of the fallback task generation block (before the existing `generate_task_from_description()` call at ~line 432) in `send_message()` in backend/src/api/chat.py — when `chat_request.ai_enhance is False`, enter the new title-only branch instead of calling `generate_task_from_description()`
 - [x] T004 [US1] In the new ai_enhance=False branch, call `ai_service.generate_title_from_description(user_input=chat_request.content, project_name=project_name, github_token=session.access_token)` to generate a title from the raw user input in backend/src/api/chat.py
 - [x] T005 [US1] Create an `AITaskProposal` instance with `session_id=session.session_id`, `original_input=chat_request.content`, `proposed_title=title` (from T004), and `proposed_description=chat_request.content` (user's exact raw input, verbatim) — `proposal_id` is auto-generated as a UUID by the Pydantic model default — then store it in `_proposals[str(proposal.proposal_id)]` in backend/src/api/chat.py
 - [x] T006 [US1] Construct and return an assistant `ChatMessage` with `action_type=ActionType.TASK_CREATE`, `action_data` containing `proposal_id`, `proposed_title`, `proposed_description` (raw input), and `status=ProposalStatus.PENDING.value` — call `add_message()` and `_trigger_signal_delivery()` before returning, in backend/src/api/chat.py
@@ -80,16 +80,16 @@
 
 ## Phase 5: User Story 3 — Structural Parity Between Enhanced and Non-Enhanced Issues (Priority: P2)
 
-**Goal**: Verify that GitHub issues created with AI Enhance disabled are structurally identical to those created with AI Enhance enabled — same metadata fields, same Agent Pipeline config section, same label taxonomy — differing only in that the description body is raw user input.
+**Goal**: Verify that proposals created with AI Enhance disabled reuse the same downstream confirmation and Agent Pipeline configuration flow as proposals created with AI Enhance enabled, while preserving the raw user input description.
 
-**Independent Test**: Create two issues — one with AI Enhance ON and one with AI Enhance OFF — from the same chat input. Compare: both should have the same metadata field types (title, labels, size estimate, priority, assignees), the same Agent Pipeline configuration section, and the same structural format.
+**Independent Test**: Create two proposals — one with AI Enhance ON and one with AI Enhance OFF — from the same chat input. Confirm both and verify they share the same confirm-proposal behavior and Agent Pipeline configuration section.
 
 ### Implementation for User Story 3
 
 - [x] T009 [US3] Audit `confirm_proposal()` in backend/src/api/chat.py (lines 603–696) to verify it processes `AITaskProposal` instances identically regardless of whether `proposed_description` contains raw user input or AI-enhanced content — specifically verify: (1) no conditional logic branches on description source, (2) same GitHub Issue creation via `github_service.create_issue()`, (3) same `WorkflowOrchestrator.create_all_sub_issues()` call, (4) same `assign_agent_for_status()` call
 - [x] T010 [P] [US3] Audit `append_tracking_to_body()` in backend/src/services/agent_tracking.py to verify the Agent Pipeline configuration block (horizontal rule + "## 🤖 Agent Pipeline" heading + tracking table) is appended identically for both enhanced and non-enhanced issue descriptions — confirm no ai_enhance flag checks in the tracking logic
 
-**Checkpoint**: Structural parity confirmed. Issues from both paths have identical structure: title, labels, estimates, assignees, Agent Pipeline config block. Only the description body content differs (raw vs. AI-enhanced).
+**Checkpoint**: Structural parity confirmed for the shared confirmation flow. Issues from both paths use the same Agent Pipeline config block and downstream issue-creation behavior. The proposal-generation inputs still differ as intended (raw vs. AI-enhanced description).
 
 ---
 

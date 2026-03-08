@@ -13,22 +13,22 @@
 - **Always-skip task generation (rejected)**: Removing the fallback entirely would break the existing flow when AI Enhance is enabled.
 - **Retry with different prompt (rejected)**: The problem isn't a transient failure — it's a logic gap in the pipeline.
 
-## R2: Metadata Generation Strategy When AI Enhance Is Disabled
+## R2: Title Generation Strategy When AI Enhance Is Disabled
 
-**Task**: Determine how to generate metadata (title, labels, estimates, priority, assignees) when the user's input is used verbatim as the description.
+**Task**: Determine how to generate a useful fallback title when the user's input is used verbatim as the description.
 
-**Decision**: Reuse the existing `generate_issue_recommendation()` method in `AIAgentService` (lines 146–200 of `ai_agent.py`). This method already generates all structured metadata from raw user input. For the task fallback path, extract a lightweight metadata-only call that generates at minimum a title from the user input, allowing the proposal to be created with a meaningful title and the raw input as description.
+**Decision**: Add a lightweight `generate_title_from_description()` helper in `AIAgentService` for the task fallback path while continuing to reuse `generate_issue_recommendation()` for the feature-request path. The fallback task proposal only needs a meaningful title plus the raw input body, so a focused title-generation helper keeps the branch simple and aligned with the existing proposal UX.
 
-**Rationale**: `generate_issue_recommendation()` is already decoupled from content enhancement — it takes raw `user_input` and generates title, labels, estimates, etc. The Chat Agent's metadata generation is independent of whether the description is AI-enhanced. This avoids creating a new AI method and reuses battle-tested prompt engineering.
+**Rationale**: The feature-request path and the generic task-proposal fallback path have different output contracts. `generate_issue_recommendation()` remains the right choice when the system is creating a full issue recommendation with structured metadata. The task fallback path only needs a concise proposal title, so a dedicated helper avoids over-generating unused fields and keeps the fallback branch explicit.
 
 **Alternatives Considered**:
-- **New dedicated metadata-only method (rejected)**: Would duplicate logic already in `generate_issue_recommendation()` and violate DRY (Constitution V).
+- **Reuse `generate_issue_recommendation()` everywhere (rejected)**: The fallback task proposal does not use labels, estimates, priority, or assignees, so generating the full recommendation payload would add complexity without improving the user-visible proposal flow.
 - **Simple title extraction without AI (rejected)**: Using the first sentence or truncation would produce low-quality titles. The Chat Agent can generate a meaningful title from raw input.
-- **Skip metadata entirely (rejected)**: Would violate FR-003 and FR-008 — issues must have metadata populated.
+- **Skip title generation entirely (rejected)**: The fallback proposal still needs a meaningful title to keep the confirmation UX usable.
 
 ## R3: Pipeline Branching Architecture
 
-**Task**: Determine the best way to implement the two-track pipeline (full AI pipeline vs. metadata-only fallback).
+**Task**: Determine the best way to implement the two-track pipeline (full AI pipeline vs. title-only fallback).
 
 **Decision**: Add a conditional check at the top of the fallback task generation block in `send_message()` (line 430). When `chat_request.ai_enhance` is `False`:
 1. Call a lightweight method to generate a title from the raw input (using the existing AI service).
