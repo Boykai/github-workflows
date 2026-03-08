@@ -43,6 +43,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>([]);
   const [showToolSelector, setShowToolSelector] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [showEditToolSelector, setShowEditToolSelector] = useState(false);
 
   const createMutation = useCreateAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
@@ -81,8 +82,74 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     setSelectedToolIds([]);
     setSnapshot(null);
     setShowCloseConfirm(false);
+    setShowToolSelector(false);
+    setShowEditToolSelector(false);
     onClose();
   }, [onClose]);
+
+  const handleSave = useCallback(async () => {
+    setError(null);
+
+    const trimmedName = name.trim();
+    const trimmedPrompt = systemPrompt.trim();
+
+    if (!trimmedName) {
+      setError('Name is required');
+      return false;
+    }
+    if (trimmedName.length > 100) {
+      setError('Name must be 100 characters or fewer');
+      return false;
+    }
+    if (!trimmedPrompt) {
+      setError('System prompt is required');
+      return false;
+    }
+    if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
+      setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
+      return false;
+    }
+    if (isEditMode && selectedToolIds.length === 0) {
+      setToolsError('At least one tool must be assigned');
+      return false;
+    }
+
+    try {
+      if (isEditMode && editAgent) {
+        const result = await updateMutation.mutateAsync({
+          agentId: editAgent.id,
+          data: {
+            name: trimmedName,
+            system_prompt: trimmedPrompt,
+            tools: selectedToolIds,
+          },
+        });
+        setSuccessPrUrl(result.pr_url);
+      } else {
+        const result = await createMutation.mutateAsync({
+          name: trimmedName,
+          system_prompt: trimmedPrompt,
+          tools: selectedToolIds,
+          raw: !aiEnhance,
+        });
+        setSuccessPrUrl(result.pr_url);
+      }
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save agent';
+      setError(message);
+      return false;
+    }
+  }, [
+    aiEnhance,
+    createMutation,
+    editAgent,
+    isEditMode,
+    name,
+    selectedToolIds,
+    systemPrompt,
+    updateMutation,
+  ]);
 
   // Pre-populate fields in edit mode + snapshot
   useEffect(() => {
@@ -112,19 +179,22 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (showToolSelector || showCloseConfirm) return;
+        if (e.defaultPrevented || showToolSelector || showEditToolSelector || showCloseConfirm) {
+          return;
+        }
         handleRequestClose();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleRequestClose, showToolSelector, showCloseConfirm]);
+  }, [isOpen, handleRequestClose, showToolSelector, showEditToolSelector, showCloseConfirm]);
 
   // beforeunload guard
   useEffect(() => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
+      e.returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -134,56 +204,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    const trimmedName = name.trim();
-    const trimmedPrompt = systemPrompt.trim();
-
-    if (!trimmedName) {
-      setError('Name is required');
-      return;
-    }
-    if (trimmedName.length > 100) {
-      setError('Name must be 100 characters or fewer');
-      return;
-    }
-    if (!trimmedPrompt) {
-      setError('System prompt is required');
-      return;
-    }
-    if (trimmedPrompt.length > MAX_PROMPT_LENGTH) {
-      setError(`System prompt must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer`);
-      return;
-    }
-    if (isEditMode && selectedToolIds.length === 0) {
-      setToolsError('At least one tool must be assigned');
-      return;
-    }
-
-    try {
-      if (isEditMode && editAgent) {
-        const result = await updateMutation.mutateAsync({
-          agentId: editAgent.id,
-          data: {
-            name: trimmedName,
-            system_prompt: trimmedPrompt,
-            tools: selectedToolIds,
-          },
-        });
-        setSuccessPrUrl(result.pr_url);
-      } else {
-        const result = await createMutation.mutateAsync({
-          name: trimmedName,
-          system_prompt: trimmedPrompt,
-          tools: selectedToolIds,
-          raw: !aiEnhance,
-        });
-        setSuccessPrUrl(result.pr_url);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save agent';
-      setError(message);
-    }
+    await handleSave();
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -195,6 +216,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
         role="dialog"
         aria-modal="true"
+        aria-label="Unsaved changes confirmation"
       >
         <div
           className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-sm"
@@ -223,10 +245,9 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             <button
               type="button"
               className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => {
+              onClick={async () => {
                 setShowCloseConfirm(false);
-                const form = document.getElementById('agent-form') as HTMLFormElement;
-                form?.requestSubmit();
+                await handleSave();
               }}
             >
               Save
@@ -344,6 +365,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
                 onToolsChange={setSelectedToolIds}
                 error={toolsError ?? undefined}
                 projectId={projectId}
+                onSelectorOpenChange={setShowEditToolSelector}
               />
             ) : (
               <ToolChips

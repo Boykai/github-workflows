@@ -55,15 +55,18 @@ export function BulkModelUpdateDialog({
   if (!open) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      role="presentation"
-      onClick={handleClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation">
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        aria-label="Close bulk model update dialog"
+        onClick={handleClose}
+      />
       <div
-        className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
-        role="presentation"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Bulk model update dialog"
       >
         {step === 1 && (
           <>

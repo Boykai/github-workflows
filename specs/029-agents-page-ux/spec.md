@@ -90,7 +90,7 @@ As a user managing multiple agents, I want a single action to update the model u
 2. **Given** the user has selected a target model, **When** the confirmation dialog appears, **Then** it lists all agents that will be affected along with the target model name.
 3. **Given** the user reviews the confirmation dialog, **When** they click "Confirm," **Then** all listed agents are updated to the selected model and a success notification is shown.
 4. **Given** the user reviews the confirmation dialog, **When** they click "Cancel," **Then** no changes are made and the dialog closes.
-5. **Given** the bulk update is triggered, **When** the update completes, **Then** a PR is created with all the model changes (consistent with the PR-based save flow).
+5. **Given** the bulk update is triggered, **When** the update completes, **Then** all affected agents immediately use the selected model via runtime configuration updates, and no GitHub Pull Request is created for that bulk action.
 
 ---
 
@@ -172,6 +172,6 @@ As a user viewing agent cards, I want the repository field to show only the repo
 - **SC-003**: The Featured Agents section correctly displays up to 3 agents, with zero duplicates and correct prioritization by usage count and recency.
 - **SC-004**: Users can add, remove, and reorder tools in an agent's configuration with all changes reflected in the unsaved-changes state within 1 second of each interaction.
 - **SC-005**: The unsaved-changes modal successfully prevents unintended data loss in 100% of navigation-away attempts when changes are pending.
-- **SC-006**: The bulk "Update All Models" action updates all agent configurations and creates a corresponding PR, completing within 60 seconds for up to 50 agents.
+- **SC-006**: The bulk "Update All Models" action updates the stored runtime model configuration for all applicable agents, with 100% of targeted agents reflecting the new model on subsequent reads, completing within 60 seconds for up to 50 agents.
 - **SC-007**: Repository names display correctly (owner prefix stripped) and fit within the background bubble on 100% of agent cards, with ellipsis applied for names exceeding the available width.
 - **SC-008**: 90% of users can complete an agent configuration edit (including tools changes) and save on their first attempt without external guidance.

@@ -131,7 +131,7 @@ const ICONS: ((s: number) => React.ReactNode)[] = [
   (s) => (
     <g>
       <circle cx={s / 2} cy={s / 2} r={s * 0.28} fill="#94a3b8" />
-      <circle cx={s * 0.6} cy={s * 0.42} r={s * 0.24} fill="var(--background, #0f172a)" />
+      <circle cx={s * 0.6} cy={s * 0.42} r={s * 0.24} fill="hsl(var(--background))" />
     </g>
   ),
   // 8: Half Moon
@@ -148,14 +148,14 @@ const ICONS: ((s: number) => React.ReactNode)[] = [
   (s) => (
     <g>
       <circle cx={s / 2} cy={s / 2} r={s * 0.28} fill="#818cf8" />
-      <circle cx={s * 0.4} cy={s * 0.48} r={s * 0.22} fill="var(--background, #0f172a)" />
+      <circle cx={s * 0.4} cy={s * 0.48} r={s * 0.22} fill="hsl(var(--background))" />
     </g>
   ),
   // 10: Moon + Stars
   (s) => (
     <g>
       <circle cx={s * 0.45} cy={s / 2} r={s * 0.22} fill="#93c5fd" />
-      <circle cx={s * 0.56} cy={s * 0.42} r={s * 0.18} fill="var(--background, #0f172a)" />
+      <circle cx={s * 0.56} cy={s * 0.42} r={s * 0.18} fill="hsl(var(--background))" />
       <circle cx={s * 0.78} cy={s * 0.25} r={s * 0.025} fill="#fcd34d" />
       <circle cx={s * 0.7} cy={s * 0.7} r={s * 0.02} fill="#fcd34d" />
       <circle cx={s * 0.85} cy={s * 0.5} r={s * 0.015} fill="#fcd34d" />

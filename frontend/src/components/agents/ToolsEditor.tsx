@@ -5,7 +5,7 @@
  * Every change fires onToolsChange with the updated array.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 
@@ -14,10 +14,21 @@ interface ToolsEditorProps {
   onToolsChange: (tools: string[]) => void;
   error?: string;
   projectId: string;
+  onSelectorOpenChange?: (open: boolean) => void;
 }
 
-export function ToolsEditor({ tools, onToolsChange, error, projectId }: ToolsEditorProps) {
+export function ToolsEditor({
+  tools,
+  onToolsChange,
+  error,
+  projectId,
+  onSelectorOpenChange,
+}: ToolsEditorProps) {
   const [showSelector, setShowSelector] = useState(false);
+
+  useEffect(() => {
+    onSelectorOpenChange?.(showSelector);
+  }, [onSelectorOpenChange, showSelector]);
 
   const moveUp = (index: number) => {
     if (index <= 0) return;
