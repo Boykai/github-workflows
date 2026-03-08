@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 
 /**
  * Create a fresh QueryClient configured for tests:
@@ -51,7 +52,11 @@ export function renderWithProviders(
   { queryClient = createTestQueryClient(), ...options }: ExtendedRenderOptions = {},
 ) {
   function Wrapper({ children }: WrapperProps) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
+      </QueryClientProvider>
+    );
   }
 
   return {
