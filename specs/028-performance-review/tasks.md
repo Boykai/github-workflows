@@ -256,7 +256,7 @@ With two developers (Backend + Frontend):
 
 - [P] tasks = different files, no dependencies — safe to execute in parallel
 - [Story] label maps each task to its specific user story for traceability
-- US1 (Baseline Measurement) is woven into Setup (Phase 1) and Foundational (Phase 2) rather than being a standalone implementation phase — it is a measurement activity, not a code change
+- US1 (Baseline Measurement) is implemented in Foundational (Phase 2) as T003 and T004 rather than being a standalone implementation phase — it is a measurement activity, not a code change. Phase 1 (Setup) addresses FR-002 (Spec 022 audit) which is a prerequisite for knowing what to measure
 - Existing Spec 022 implementation is substantially complete per research.md — tasks focus on verifying, tightening remaining gaps, and documenting contracts rather than reimplementation
 - All optimization improvements must be validated with before/after measurements using the protocol in quickstart.md
 - Board virtualization, major service decomposition, and new dependencies are explicitly out of scope for the first pass (deferred to potential second-wave work per plan.md)
