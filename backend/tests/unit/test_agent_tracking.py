@@ -139,9 +139,11 @@ class TestBuildAgentPipelineSteps:
         assert steps[0].status == "Ready"
 
     def test_model_extracted_from_config(self):
-        mappings = _make_mappings({
-            "Backlog": [("a1", {"model_name": "gpt-4o"})],
-        })
+        mappings = _make_mappings(
+            {
+                "Backlog": [("a1", {"model_name": "gpt-4o"})],
+            }
+        )
         steps = build_agent_pipeline_steps(mappings, ["Backlog"])
         assert len(steps) == 1
         assert steps[0].model == "gpt-4o"
@@ -506,9 +508,11 @@ class TestModelPreservation:
 
     def test_append_tracking_idempotent_with_model(self):
         """append_tracking_to_body is idempotent with 5-column tracking tables."""
-        mappings = _make_mappings({
-            "Ready": [("a1", {"model_name": "gpt-4o"})],
-        })
+        mappings = _make_mappings(
+            {
+                "Ready": [("a1", {"model_name": "gpt-4o"})],
+            }
+        )
         first = append_tracking_to_body("body", mappings, ["Ready"])
         second = append_tracking_to_body(first, mappings, ["Ready"])
         assert first == second

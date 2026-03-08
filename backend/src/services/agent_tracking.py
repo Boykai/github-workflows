@@ -58,9 +58,7 @@ _ROW_RE = re.compile(
 )
 
 # Legacy regex for old 4-column format: | 1 | Backlog | `speckit.specify` | ⏳ Pending |
-_ROW_RE_OLD = re.compile(
-    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|"
-)
+_ROW_RE_OLD = re.compile(r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|")
 
 
 # ── Data types ───────────────────────────────────────────────────────────────

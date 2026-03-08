@@ -19,6 +19,7 @@ The `AgentStep` dataclass in `backend/src/services/agent_tracking.py` represents
 **Source**: `backend/src/services/agent_tracking.py` lines 62–69
 
 **Validation**:
+
 - `model` is a free-form string. Empty string `""` indicates no model assigned.
 - When rendered, empty `model` displays as "TBD" in the Markdown table.
 - Pipe characters (`|`) in model names are escaped to `\|` to prevent Markdown table breakage.
@@ -126,7 +127,7 @@ def update_agent_state(body: str, agent_name: str, new_state: str) -> str:
 
 ### Model Display Lifecycle
 
-```
+```text
 Agent assigned to pipeline (no model)
     │
     │  AgentAssignment.config = None
@@ -157,7 +158,7 @@ User removes model assignment
 
 ### Backward Compatibility Flow
 
-```
+```text
 Existing issue with old 4-column table
     │
     │  parse_tracking_from_body() → AgentStep(model="")
