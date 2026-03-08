@@ -40,8 +40,24 @@ const DEFAULT_FILTERS: BoardFilterState = { labels: [], assignees: [], milestone
 const DEFAULT_SORT: BoardSortState = { field: null, direction: 'asc' };
 const DEFAULT_GROUP: BoardGroupState = { field: null };
 
+const VALID_SORT_FIELDS: Array<BoardSortState['field']> = ['created', 'updated', 'priority', 'title', null];
+const VALID_SORT_DIRECTIONS: Array<BoardSortState['direction']> = ['asc', 'desc'];
+const VALID_GROUP_FIELDS: Array<BoardGroupState['field']> = ['label', 'assignee', 'milestone', null];
+
+function cloneFilters(filters: BoardFilterState = DEFAULT_FILTERS): BoardFilterState {
+  return {
+    labels: [...filters.labels],
+    assignees: [...filters.assignees],
+    milestones: [...filters.milestones],
+  };
+}
+
 function defaultControls(): BoardControlsState {
-  return { filters: DEFAULT_FILTERS, sort: DEFAULT_SORT, group: DEFAULT_GROUP };
+  return {
+    filters: cloneFilters(),
+    sort: { ...DEFAULT_SORT },
+    group: { ...DEFAULT_GROUP },
+  };
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -50,12 +66,47 @@ function storageKey(projectId: string) {
   return `board-controls-${projectId}`;
 }
 
+function mergeStoredControlsWithDefaults(value: unknown): BoardControlsState {
+  const base = defaultControls();
+
+  if (!value || typeof value !== 'object') {
+    return base;
+  }
+
+  const parsed = value as {
+    filters?: Partial<BoardFilterState>;
+    sort?: Partial<BoardSortState>;
+    group?: Partial<BoardGroupState>;
+  };
+
+  const filters = parsed.filters ?? {};
+  const sort = parsed.sort ?? {};
+  const group = parsed.group ?? {};
+
+  return {
+    filters: {
+      labels: Array.isArray(filters.labels) ? [...filters.labels] : base.filters.labels,
+      assignees: Array.isArray(filters.assignees) ? [...filters.assignees] : base.filters.assignees,
+      milestones: Array.isArray(filters.milestones) ? [...filters.milestones] : base.filters.milestones,
+    },
+    sort: {
+      field: VALID_SORT_FIELDS.includes(sort.field ?? null) ? (sort.field ?? null) : base.sort.field,
+      direction: VALID_SORT_DIRECTIONS.includes(sort.direction ?? 'asc')
+        ? (sort.direction ?? 'asc')
+        : base.sort.direction,
+    },
+    group: {
+      field: VALID_GROUP_FIELDS.includes(group.field ?? null) ? (group.field ?? null) : base.group.field,
+    },
+  };
+}
+
 function loadControls(projectId: string | null): BoardControlsState {
   if (!projectId) return defaultControls();
   try {
     const raw = localStorage.getItem(storageKey(projectId));
     if (!raw) return defaultControls();
-    return { ...defaultControls(), ...JSON.parse(raw) };
+    return mergeStoredControlsWithDefaults(JSON.parse(raw));
   } catch {
     return defaultControls();
   }
@@ -63,7 +114,11 @@ function loadControls(projectId: string | null): BoardControlsState {
 
 function saveControls(projectId: string | null, state: BoardControlsState) {
   if (!projectId) return;
-  localStorage.setItem(storageKey(projectId), JSON.stringify(state));
+  try {
+    localStorage.setItem(storageKey(projectId), JSON.stringify(state));
+  } catch {
+    // Ignore storage errors so board rendering stays functional.
+  }
 }
 
 // ─── Priority mapping ─────────────────────────────────────────────────────────
@@ -74,16 +129,21 @@ const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
 
 export function useBoardControls(projectId: string | null, boardData: BoardDataResponse | undefined) {
   const [controls, setControlsState] = useState<BoardControlsState>(() => loadControls(projectId));
+  const [hydratedProjectId, setHydratedProjectId] = useState<string | null>(projectId);
 
   // Reload controls when projectId changes
   useEffect(() => {
     setControlsState(loadControls(projectId));
+    setHydratedProjectId(projectId);
   }, [projectId]);
 
   // Persist on change
   useEffect(() => {
+    if (!projectId || hydratedProjectId !== projectId) {
+      return;
+    }
     saveControls(projectId, controls);
-  }, [projectId, controls]);
+  }, [projectId, hydratedProjectId, controls]);
 
   // ── Setters ───────────────────────────────────────────────────────────────
 

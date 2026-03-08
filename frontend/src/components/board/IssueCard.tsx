@@ -74,14 +74,30 @@ function SubIssueRow({ subIssue, availableAgents }: { subIssue: SubIssue; availa
   );
 }
 
+const FALLBACK_LABEL_COLOR = 'd1d5db';
+
+function sanitizeHexColor(hex: string | null | undefined): string {
+  if (!hex) {
+    return FALLBACK_LABEL_COLOR;
+  }
+
+  const normalized = hex.replace(/^#/, '').toLowerCase();
+  if (normalized.length !== 6 || !/^[0-9a-f]{6}$/.test(normalized)) {
+    return FALLBACK_LABEL_COLOR;
+  }
+
+  return normalized;
+}
+
 /**
  * Compute WCAG relative luminance from a hex color string.
  * Returns true if text should be black (light background), false if white (dark background).
  */
 function isLightColor(hex: string): boolean {
-  const r = parseInt(hex.slice(0, 2), 16) / 255;
-  const g = parseInt(hex.slice(2, 4), 16) / 255;
-  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  const safeHex = sanitizeHexColor(hex);
+  const r = parseInt(safeHex.slice(0, 2), 16) / 255;
+  const g = parseInt(safeHex.slice(2, 4), 16) / 255;
+  const b = parseInt(safeHex.slice(4, 6), 16) / 255;
   const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
   return L > 0.179;
@@ -138,19 +154,22 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
       {/* Labels */}
       {labels.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {labels.map((label) => (
-            <span
-              key={label.id}
-              className="rounded-full px-2 py-0.5 text-[10px] font-medium truncate max-w-[120px]"
-              style={{
-                backgroundColor: `#${label.color}`,
-                color: isLightColor(label.color) ? '#000' : '#fff',
-              }}
-              title={label.name}
-            >
-              {label.name}
-            </span>
-          ))}
+          {labels.map((label) => {
+            const safeColor = sanitizeHexColor(label.color);
+            return (
+              <span
+                key={label.id}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium truncate max-w-[120px]"
+                style={{
+                  backgroundColor: `#${safeColor}`,
+                  color: isLightColor(safeColor) ? '#000' : '#fff',
+                }}
+                title={label.name}
+              >
+                {label.name}
+              </span>
+            );
+          })}
         </div>
       )}
 
@@ -168,7 +187,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
             <span className="text-[10px]">{isSubIssuesExpanded ? '▼' : '▶'}</span>
             <SubIssuesIcon />
             <span>
-              {subIssues.filter((s) => s.state === 'closed').length}/{subIssues.length} sub-issue{subIssues.length !== 1 ? 's' : ''}
+              {subIssues.length} sub-issue{subIssues.length !== 1 ? 's' : ''}
             </span>
           </button>
           {isSubIssuesExpanded && (

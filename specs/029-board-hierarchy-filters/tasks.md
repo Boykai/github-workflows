@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/029-board-hierarchy-filters/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/ (api.md, components.md), quickstart.md
 
-**Tests**: Not explicitly requested in the feature specification. Existing tests must continue to pass (Constitution Check IV). No new test tasks are included.
+**Tests**: Not explicitly requested in the feature specification. Existing tests must continue to pass (Constitution Check IV), and targeted test coverage SHOULD be added for new filter/sort/group behavior, saved-pipeline display state, and parent-card rendering changes.
 
 **Organization**: Tasks grouped by user story (P1–P3) for independent implementation and testing. Each story can be delivered as an independently testable increment. User Stories 1, 2, and 3 are P1 and form the MVP. User Stories 4–7 are P2 incremental enhancements. User Story 8 is P3.
 
@@ -115,7 +115,7 @@
 
 ## Phase 7: User Story 5 — Custom Pipeline Label Updates to Saved Configuration Name (Priority: P2)
 
-**Goal**: Dynamically replace the "Custom" label in the Agent Pipeline with the name of the active saved pipeline configuration when selected, reverting to "Custom" when no named configuration is active.
+**Goal**: Surface the name of the active saved pipeline configuration in the selector when the current mappings still match it, reverting to the generic selector label when no named configuration is active.
 
 **Independent Test**: Load a project with saved pipeline configurations. Select a saved configuration and confirm the header label updates from "Custom" to the configuration name. Deselect or modify the configuration and confirm revert to "Custom". Refresh the page and confirm persistence.
 
@@ -181,7 +181,7 @@
 **Purpose**: Visual polish, edge case handling, and validation across all user stories.
 
 - [x] T028 [P] Add active state indicators (colored dot badge and accent background) on Filter, Sort, and Group By toolbar buttons when any non-default configuration is active — use `hasActiveControls` and per-control checks from `useBoardControls` per FR-013 in frontend/src/components/board/BoardToolbar.tsx
-- [x] T029 [P] Add empty state message ("No issues match the current filters") when filtering results in zero parent issues across all columns — render centered message in `ProjectBoard` when `transformedData` columns all have zero items and filters are active in frontend/src/components/board/ProjectBoard.tsx
+- [x] T029 [P] Add empty state messaging when active board controls result in zero parent issues across all columns — render centered message in `ProjectBoard` when `transformedData` columns all have zero items in frontend/src/components/board/ProjectBoard.tsx
 - [x] T030 Run quickstart.md manual verification checklist (sections 1–11) to validate all features against acceptance scenarios
 
 ---

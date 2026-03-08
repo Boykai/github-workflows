@@ -329,14 +329,14 @@ export function ProjectsPage() {
                 {boardControls.hasActiveControls ? (
                   <>
                     <div className="text-4xl mb-2">🔍</div>
-                    <h3 className="text-xl font-semibold">No issues match the current filters</h3>
+                    <h3 className="text-xl font-semibold">No issues match the current view</h3>
                     <p className="text-muted-foreground">Try adjusting your filter, sort, or group settings.</p>
                     <button
                       onClick={boardControls.clearAll}
                       className="mt-2 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
                       type="button"
                     >
-                      Clear All Filters
+                      Clear All
                     </button>
                   </>
                 ) : (

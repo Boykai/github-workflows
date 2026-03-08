@@ -53,7 +53,7 @@
 
 ## R7: Filter Controls — Client-Side Predicate Architecture
 
-- **Decision**: Implement a `useBoardControls` hook that manages filter state (`{ labels: string[], assignees: string[], statuses: string[], milestones: string[] }`), sort state (`{ field: string, direction: 'asc' | 'desc' }`), and group-by state (`{ field: string | null }`). The hook applies transforms to the board data using `useMemo` — filters narrow the item set, sort reorders within columns, group-by reorganizes into named sections. State is persisted to localStorage keyed by project ID.
+- **Decision**: Implement a `useBoardControls` hook that manages filter state (`{ labels: string[], assignees: string[], milestones: string[] }`), sort state (`{ field: string, direction: 'asc' | 'desc' }`), and group-by state (`{ field: string | null }`). The hook applies transforms to the board data using `useMemo` — filters narrow the item set, sort reorders within columns, group-by reorganizes into named sections. State is persisted to localStorage keyed by project ID.
 - **Rationale**: All data needed for filtering, sorting, and grouping is already present in the in-memory `BoardDataResponse`. No additional API calls are needed. A single hook centralizes the logic, preventing scattered state management across the page. `useMemo` ensures transforms are only recomputed when inputs change. localStorage persistence satisfies FR-012.
 - **Alternatives considered**:
   - *URL query parameters*: Would make filter state shareable via URL. Rejected because the spec says "local storage or URL query params" and localStorage is simpler to implement without URL serialization complexity.

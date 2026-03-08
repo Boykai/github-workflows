@@ -94,7 +94,6 @@ export interface BoardLabel {
 export interface BoardFilterState {
   labels: string[];                    // Filter by label names
   assignees: string[];                 // Filter by assignee logins
-  statuses: string[];                  // Filter by status names (within columns)
   milestones: string[];                // Filter by milestone names
 }
 ```
@@ -240,7 +239,7 @@ Frontend API Response (BoardDataResponse)
   ▼
 useBoardControls Hook
   │
-  ├─ Apply filters: labels, assignees, statuses, milestones
+  ├─ Apply filters: labels, assignees, milestones
   ├─ Apply sort: created, updated, priority, title
   ├─ Apply group: label, assignee, milestone
   └─ Persist state to localStorage

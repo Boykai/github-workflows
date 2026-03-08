@@ -16,10 +16,10 @@
 cd backend
 
 # Install dependencies
-pip install -r requirements.txt
+python -m pip install -e ".[dev]"
 
 # Type check
-python -m mypy src/ --ignore-missing-imports
+pyright
 
 # Lint
 python -m ruff check src/
@@ -56,7 +56,7 @@ npm run dev
 
 ```bash
 # From repository root
-docker-compose up --build
+docker compose up --build
 ```
 
 ## Manual Verification Checklist
@@ -110,11 +110,11 @@ docker-compose up --build
 
 ### 6. Custom Pipeline Label (FR-008)
 
-- [ ] With no saved pipeline selected, confirm label shows "Custom"
-- [ ] Select a saved pipeline configuration → confirm label updates to the configuration name
-- [ ] Make a manual change to the pipeline (add/remove agent) → confirm label reverts to "Custom"
-- [ ] Select a saved pipeline, refresh the page → confirm label still shows the configuration name
-- [ ] If the saved pipeline is deleted while active → confirm label reverts to "Custom"
+- [ ] With no saved pipeline selected, confirm the saved-pipeline selector shows its generic label
+- [ ] Select a saved pipeline configuration → confirm the selector surfaces the configuration name
+- [ ] Make a manual change to the pipeline (add/remove agent) → confirm the selector reverts to its generic label
+- [ ] Select a saved pipeline, refresh the page → confirm the selector still surfaces the configuration name
+- [ ] If the saved pipeline is deleted while active → confirm the selector reverts to its generic label
 
 ### 7. Filter Controls (FR-009)
 
@@ -170,5 +170,5 @@ docker-compose up --build
 | Backend model tests | `backend/tests/` | Label model, BoardItem with labels, milestone, timestamps |
 | Backend service tests | `backend/tests/` | Sub-issue filtering from all columns, label parsing |
 | Frontend component tests | `frontend/src/components/board/__tests__/` | IssueCard collapse toggle, label chip rendering |
-| Frontend hook tests | `frontend/src/hooks/__tests__/` | useBoardControls filter/sort/group transforms |
+| Frontend hook tests | `frontend/src/hooks/` | useBoardControls filter/sort/group transforms and persistence guards |
 | E2E tests | Optional | Full board interaction with filter/sort/group |

@@ -74,26 +74,26 @@ A project manager views the Agent Pipeline panel and every agent tile correctly 
 
 ---
 
-### User Story 5 — Custom Pipeline Label Updates to Saved Configuration Name (Priority: P2)
+### User Story 5 — Active Saved Pipeline Name Appears in the Selector (Priority: P2)
 
-A project manager views the Agent Pipeline section and sees the label "Custom" displayed when no saved pipeline configuration is active. When the user selects a saved pipeline configuration (e.g., "Frontend Review Pipeline"), the "Custom" label dynamically updates to display the selected configuration's name. If the user deselects or modifies the configuration such that it no longer matches a saved configuration, the label reverts to "Custom."
+A project manager views the Agent Pipeline section and sees generic selector labels when no saved pipeline configuration is active. When the user selects a saved pipeline configuration (e.g., "Frontend Review Pipeline"), the selector surfaces the selected configuration's name in a non-destructive control. If the user modifies the configuration such that it no longer matches a saved configuration, the selector reverts to its generic state.
 
-**Why this priority**: Clearly displaying the active pipeline configuration name helps users understand which configuration is in effect. The static "Custom" label is misleading when a named configuration is active.
+**Why this priority**: Clearly displaying the active pipeline configuration name helps users understand which configuration is in effect. Showing the name on the saved-pipeline selector keeps that feedback visible without making the destructive "Custom" action ambiguous.
 
-**Independent Test**: Can be fully tested by loading a project with saved pipeline configurations, selecting one, and confirming the label updates from "Custom" to the configuration name — then deselecting to confirm it reverts.
+**Independent Test**: Can be fully tested by loading a project with saved pipeline configurations, selecting one, and confirming the selector surfaces the configuration name — then making a manual edit to confirm it reverts to the generic state.
 
 **Acceptance Scenarios**:
 
-1. **Given** no saved pipeline configuration is selected, **When** the Agent Pipeline section renders, **Then** the pipeline label displays "Custom."
-2. **Given** the user selects a saved configuration named "Frontend Review Pipeline," **When** the selection is applied, **Then** the pipeline label updates to "Frontend Review Pipeline."
-3. **Given** a saved configuration is active and the user deselects it or makes manual changes that diverge from the saved configuration, **When** the pipeline renders, **Then** the label reverts to "Custom."
-4. **Given** the user selects a saved configuration and refreshes the page, **When** the page reloads, **Then** the pipeline label still displays the saved configuration name (selection persists).
+1. **Given** no saved pipeline configuration is selected, **When** the Agent Pipeline section renders, **Then** the saved-pipeline selector displays its generic label.
+2. **Given** the user selects a saved configuration named "Frontend Review Pipeline," **When** the selection is applied, **Then** the saved-pipeline selector surfaces "Frontend Review Pipeline" as the active configuration name.
+3. **Given** a saved configuration is active and the user makes manual changes that diverge from the saved configuration, **When** the pipeline renders, **Then** the selector reverts to its generic label rather than implying the saved configuration is still active.
+4. **Given** the user selects a saved configuration and refreshes the page, **When** the page reloads, **Then** the saved-pipeline selector still surfaces the saved configuration name while the restored mappings continue to match it.
 
 ---
 
 ### User Story 6 — Functional Filter Controls on the Project Board (Priority: P2)
 
-A project manager clicks the "Filter" button on the Project Board toolbar. A filter panel opens, allowing the user to filter the displayed parent issue cards by one or more criteria: label, assignee, status, or milestone. Selecting filter criteria immediately updates the board to show only matching parent issue cards. The filter state is indicated visually on the Filter button (e.g., a highlight or badge showing active filters). Clearing filters restores the full board view.
+A project manager clicks the "Filter" button on the Project Board toolbar. A filter panel opens, allowing the user to filter the displayed parent issue cards by one or more criteria: label, assignee, or milestone. Selecting filter criteria immediately updates the board to show only matching parent issue cards. The filter state is indicated visually on the Filter button (e.g., a highlight or badge showing active filters). Clearing filters restores the full board view.
 
 **Why this priority**: Filtering is the most common board interaction for project managers who need to focus on specific subsets of work. Without functional filters, the board lacks basic project management capability.
 
@@ -149,11 +149,11 @@ A project manager clicks the "Group By" button on the Project Board toolbar. A g
 - What happens when all issues on the board are sub-issues (no parent issues exist)? The board should display an empty state message indicating no parent issues are available.
 - What happens when a sub-issue has no agent or model assigned? The sub-issue tile should display gracefully with "Unassigned" or omit the fields without layout breakage.
 - What happens when a parent issue has a very large number of sub-issues (e.g., 50+)? The expanded sub-issue list within the card should be scrollable to prevent the parent card from growing excessively tall.
-- What happens when the user applies a filter that matches no parent issues? The board should show an empty state message (e.g., "No issues match the current filters") rather than a blank board with no explanation.
+- What happens when the user applies controls that match no parent issues? The board should show an empty state message (e.g., "No issues match the current view") rather than a blank board with no explanation.
 - What happens when the user applies a sort and then adds a new parent issue? The new card should be inserted in the correct sort position within its column.
 - What happens when a label has a very long name (100+ characters)? The label chip should truncate with an ellipsis and show the full name on hover.
 - What happens when the user rapidly toggles expand/collapse on a parent card? The toggle should debounce or queue state changes to prevent visual flickering.
-- What happens when the saved pipeline configuration is deleted while it is the active selection? The label should revert to "Custom" and the user should be notified that the configuration is no longer available.
+- What happens when the saved pipeline configuration is deleted while it is the active selection? The selector should revert to its generic saved-pipeline state and the user should be notified that the configuration is no longer available.
 - What happens when the user filters, sorts, and groups simultaneously? All three operations should compose correctly — filters narrow the set, sort orders within groups, and grouping organizes the filtered and sorted results.
 
 ## Requirements *(mandatory)*
@@ -167,8 +167,8 @@ A project manager clicks the "Group By" button on the Project Board toolbar. A g
 - **FR-005**: System MUST make each Project Board column independently vertically scrollable so that cards in tall columns remain accessible without triggering page-level scrolling.
 - **FR-006**: System MUST ensure all available model names are correctly displayed on every agent tile in the Agent Pipeline, with no models missing from the UI.
 - **FR-007**: System MUST ensure accurate tool counts are displayed on every agent tile in the Agent Pipeline, resolving any missing or zero-count rendering bugs.
-- **FR-008**: System MUST dynamically replace the "Custom" label in the Agent Pipeline with the name of the currently active saved pipeline configuration when the user selects one, and revert to "Custom" only when no named configuration is selected.
-- **FR-009**: System MUST implement functional Filter controls on the Project Board that filter displayed parent issue cards by label, assignee, status, and milestone — supporting multiple simultaneous filter criteria.
+- **FR-008**: System MUST surface the name of the currently active saved pipeline configuration in the Agent Pipeline selector when the current mappings still match that saved configuration, and revert to the generic selector state when no named configuration is active.
+- **FR-009**: System MUST implement functional Filter controls on the Project Board that filter displayed parent issue cards by label, assignee, and milestone — supporting multiple simultaneous filter criteria.
 - **FR-010**: System MUST implement functional Sort controls on the Project Board that reorder parent issue cards within each column by created date, updated date, priority, or title — in ascending or descending order.
 - **FR-011**: System MUST implement functional Group By controls on the Project Board that reorganize parent issue cards into named groups by label, assignee, or milestone.
 - **FR-012**: System SHOULD persist the user's active Filter, Sort, and Group By selections across page refreshes.
@@ -178,16 +178,16 @@ A project manager clicks the "Group By" button on the Project Board toolbar. A g
 
 - **Parent Issue**: A top-level GitHub Issue that may have child sub-issues. Parent issues are the primary unit of display on the Project Board. Attributes: title, status, assignee(s), labels, milestone, creation date, update date, priority, sub-issue list.
 - **Sub-Issue**: A GitHub Issue linked to a parent issue via GitHub's parent/child relationship. Sub-issues are displayed only within the expanded panel of their parent card. Attributes: title, status, assigned Agent name, assigned Model name.
-- **Agent Pipeline Configuration**: A saved, named configuration defining which agents are assigned to pipeline stages. The "Custom" label in the pipeline header reflects whether a named configuration is active. Attributes: name, project association, per-stage agent assignments.
+- **Agent Pipeline Configuration**: A saved, named configuration defining which agents are assigned to pipeline stages. The selector surfaces the active configuration name only while the current mappings still match the saved configuration. Attributes: name, project association, per-stage agent assignments.
 - **Agent Tile**: A visual representation of an agent within the pipeline. Attributes: agent identifier, display name, model name, tool count, pipeline stage assignment.
-- **Board Filter State**: The set of active filter, sort, and group-by criteria applied to the Project Board. Attributes: filter criteria (label, assignee, status, milestone), sort field and direction, group-by field. Persisted across page refreshes.
+- **Board Filter State**: The set of active filter, sort, and group-by criteria applied to the Project Board. Attributes: filter criteria (label, assignee, milestone), sort field and direction, group-by field. Persisted across page refreshes.
 
 ## Assumptions
 
 - GitHub parent/child issue relationships are already available through the GitHub API (sub_issues or tracked-in metadata) and the existing backend data pipeline surfaces this relationship to the frontend.
 - Agent and model assignment data for sub-issues is already available in the existing data model — the sub-issue tiles simply need to bind to and display this data.
 - GitHub label color and name data is already fetched as part of the issue data pipeline and available to the frontend for rendering.
-- The existing Agent Pipeline already has a mechanism for selecting saved pipeline configurations; the "Custom" label rename is a display-only change driven by the selection state.
+- The existing Agent Pipeline already has a mechanism for selecting saved pipeline configurations; surfacing the active saved configuration name is a display-state change driven by the selection and current mapping state.
 - Filter, Sort, and Group By operations can be performed entirely on the client side using the in-memory parent issue array — no additional API calls are needed for these operations.
 - Priority for sorting purposes is derived from issue labels (e.g., "p1", "p2", "p3") using a conventional mapping since GitHub does not have a native priority field.
 - The current Project Board columns correspond to GitHub project status fields and this structure is not changed by this feature.
@@ -202,7 +202,7 @@ A project manager clicks the "Group By" button on the Project Board toolbar. A g
 - **SC-004**: All GitHub labels on parent issues render as colored chips on the corresponding board cards, with correct colors matching the GitHub label configuration.
 - **SC-005**: Each Project Board column scrolls independently — scrolling within one column does not affect other columns or the page scroll position, verified with columns containing 15+ cards.
 - **SC-006**: 100% of agent tiles in the Agent Pipeline display their configured model name and tool count with no omissions, verified against the pipeline configuration data.
-- **SC-007**: The Agent Pipeline label updates from "Custom" to the saved configuration name within 1 second of selection, and reverts to "Custom" when deselected.
+- **SC-007**: The saved-pipeline selector surfaces the saved configuration name within 1 second of selection, and reverts to its generic label when the current mappings no longer match that saved configuration.
 - **SC-008**: Users can filter the board by label and see only matching parent issues within 1 second of applying the filter.
 - **SC-009**: Users can sort board cards by title and see cards reorder within each column within 1 second.
 - **SC-010**: Users can group board cards by assignee and see cards reorganized into named groups within 1 second.

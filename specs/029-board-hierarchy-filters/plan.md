@@ -5,11 +5,11 @@
 
 ## Summary
 
-Restructure the Project Board to show only parent GitHub Issues as top-level cards with collapsible sub-issue panels (displaying agent/model metadata), add label chips to parent cards, make columns independently scrollable, fix Agent Pipeline model name and tool count data-binding bugs, dynamically rename the "Custom" pipeline label to the active saved configuration name, and implement functional Filter, Sort, and Group By controls operating on the parent-issue-only view. The backend GraphQL query must be extended to fetch labels, and the frontend adds client-side filtering/sorting/grouping with localStorage persistence.
+Restructure the Project Board to show only parent GitHub Issues as top-level cards with collapsible sub-issue panels (displaying agent/model metadata), add label chips to parent cards, make columns independently scrollable, fix Agent Pipeline model name and tool count data-binding bugs, surface the active saved pipeline configuration name in the selector, and implement functional Filter, Sort, and Group By controls operating on the parent-issue-only view. The backend GraphQL query must be extended to fetch labels, and the frontend adds client-side filtering/sorting/grouping with localStorage persistence.
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (backend), TypeScript/React 18 (frontend), Node.js 20  
+**Language/Version**: Python 3.13 (type-check target; backend runtime requires 3.12+), TypeScript 5.9 / React 19.2 / Vite 7.3 (frontend), Node.js 20  
 **Primary Dependencies**: FastAPI, TanStack Query, @dnd-kit/core, Tailwind CSS v4  
 **Storage**: GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence)  
 **Testing**: pytest (backend), Vitest (frontend)  
