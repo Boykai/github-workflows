@@ -869,9 +869,7 @@ class WorkflowOrchestrator:
                 from src.services import blocking_queue as bq_service
 
                 repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
-                blocking_base = await bq_service.get_base_ref_for_issue(
-                    repo_key, ctx.issue_number
-                )
+                blocking_base = await bq_service.get_base_ref_for_issue(repo_key, ctx.issue_number)
                 if blocking_base != "main":
                     base_ref = blocking_base
                     logger.info(
@@ -2019,8 +2017,11 @@ class WorkflowOrchestrator:
     # FULL WORKFLOW: Execute from confirmation to Ready (T022+T023+T031)
     # ──────────────────────────────────────────────────────────────────
     async def execute_full_workflow(
-        self, ctx: WorkflowContext, recommendation: IssueRecommendation,
-        *, is_blocking: bool = False,
+        self,
+        ctx: WorkflowContext,
+        recommendation: IssueRecommendation,
+        *,
+        is_blocking: bool = False,
     ) -> WorkflowResult:
         """
         Execute the workflow from confirmation to Backlog status with first agent assigned.

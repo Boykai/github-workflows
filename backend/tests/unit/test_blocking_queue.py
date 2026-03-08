@@ -228,7 +228,7 @@ class TestBaseRef:
     @pytest.mark.asyncio
     async def test_blocking_returns_branch(self, db):
         """With an open blocking issue, base ref is that issue's branch."""
-        entry, _ = await _enqueue(1, blocking=True, db_conn=db)
+        _entry, _ = await _enqueue(1, blocking=True, db_conn=db)
         # Simulate the branch being set (orchestrator would do this)
         await store.update_status(REPO, 1, queue_status="active", parent_branch="copilot/issue-1")
 
@@ -283,8 +283,13 @@ class TestEightIssueScenario:
 
         # Step 2: Issues #2-#8 created while #1 is active → all pending
         for issue_num, blocking in [
-            (2, False), (3, False), (4, True),
-            (5, False), (6, True), (7, False), (8, False),
+            (2, False),
+            (3, False),
+            (4, True),
+            (5, False),
+            (6, True),
+            (7, False),
+            (8, False),
         ]:
             entry, activated = await _enqueue(issue_num, blocking, db_conn=db)
             assert activated is False, f"Issue #{issue_num} should be pending"

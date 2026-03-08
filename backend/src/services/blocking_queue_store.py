@@ -141,8 +141,7 @@ async def get_active_or_in_review(repo_key: str) -> list[BlockingQueueEntry]:
     return [_row_to_entry(r) for r in rows]
 
 
-async def get_repos_with_non_completed(
-) -> list[str]:
+async def get_repos_with_non_completed() -> list[str]:
     """Return distinct repo_keys that have non-completed queue entries."""
     db = get_db()
     cursor = await db.execute(
