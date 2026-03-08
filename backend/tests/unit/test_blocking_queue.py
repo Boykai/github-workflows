@@ -115,6 +115,23 @@ class TestEnqueue:
         assert entry.issue_number == 1
         assert activated is True
 
+    @pytest.mark.asyncio
+    async def test_enqueue_concurrent_non_blocking(self, db):
+        """Non-blocking issues activate concurrently when no blocking issues exist."""
+        entry1, act1 = await _enqueue(1, blocking=False, db_conn=db)
+        assert act1 is True
+        assert entry1.queue_status == BlockingQueueStatus.ACTIVE
+
+        # Second non-blocking should also activate (concurrent mode)
+        entry2, act2 = await _enqueue(2, blocking=False, db_conn=db)
+        assert act2 is True
+        assert entry2.queue_status == BlockingQueueStatus.ACTIVE
+
+        # Third non-blocking should also activate
+        entry3, act3 = await _enqueue(3, blocking=False, db_conn=db)
+        assert act3 is True
+        assert entry3.queue_status == BlockingQueueStatus.ACTIVE
+
 
 class TestActivation:
     """Tests for try_activate_next."""
@@ -415,8 +432,12 @@ class TestEdgeCases:
         # Create a blocking issue but don't set its branch (simulates deleted branch)
         await _enqueue(1, blocking=True, db_conn=db)
         # Note: entry is active with parent_branch='main' from activation
-        # Clear the parent_branch to simulate deletion
-        await store.update_status(REPO, 1, queue_status="active", parent_branch=None)
+        # Clear the parent_branch directly via SQL to simulate branch deletion
+        await db.execute(
+            "UPDATE blocking_queue SET parent_branch = NULL WHERE repo_key = ? AND issue_number = ?",
+            (REPO, 1),
+        )
+        await db.commit()
 
         ref = await bq.get_base_ref_for_issue(REPO, 2)
         assert ref == "main"

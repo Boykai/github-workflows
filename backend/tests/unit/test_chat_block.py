@@ -6,15 +6,15 @@ import re
 
 import pytest
 
-# The regex pattern used in chat.py for #block detection
-_BLOCK_PATTERN = re.compile(r"\s*#block\b", re.IGNORECASE)
+# The regex pattern used in chat.py for #block detection (no \s* — avoids ReDoS)
+_BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 
 def _detect_and_strip(content: str) -> tuple[bool, str]:
     """Detect and strip #block from content, matching chat.py logic."""
     is_blocking = bool(_BLOCK_PATTERN.search(content))
     if is_blocking:
-        content = _BLOCK_PATTERN.sub("", content).strip()
+        content = " ".join(_BLOCK_PATTERN.sub("", content).split())
     return is_blocking, content
 
 

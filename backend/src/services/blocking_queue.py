@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sqlite3
 from datetime import UTC, datetime
 
 from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
@@ -45,9 +46,16 @@ async def enqueue_issue(
     async with lock:
         try:
             entry = await store.insert(repo_key, issue_number, project_id, is_blocking)
-        except Exception:
-            # UNIQUE constraint — issue already enqueued
-            existing = await store.get_by_issue(repo_key, issue_number)
+        except (sqlite3.IntegrityError, Exception) as exc:
+            # Only treat IntegrityError (UNIQUE constraint) as a duplicate;
+            # aiosqlite may wrap it, so also accept generic Exception when
+            # the entry actually exists — but re-raise otherwise.
+            if not isinstance(exc, sqlite3.IntegrityError):
+                existing = await store.get_by_issue(repo_key, issue_number)
+                if not existing:
+                    raise  # Not a UNIQUE conflict — propagate the real error
+            else:
+                existing = await store.get_by_issue(repo_key, issue_number)
             if existing:
                 logger.warning(
                     "Issue #%d already in blocking queue for %s (status=%s)",
@@ -85,28 +93,19 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     """Internal activation logic — must be called under the repo lock.
 
     Activation rules:
-    1. If any entry is 'active' (not in_review), wait — nothing to activate.
-    2. Gather pending entries (ordered by created_at ASC).
-    3. If no pending → nothing to do.
-    4. Check if any open blocking issues exist (active or in_review).
-    5a. If open blocking exists → serial mode:
-        - Next pending is blocking → activate alone
-        - Next pending is non-blocking → activate consecutive non-blocking up to next blocking
-    5b. If no open blocking → concurrent mode:
-        - Next pending is non-blocking → activate all consecutive non-blocking up to next blocking
-        - Next pending is blocking → activate alone (starts serial mode)
-    6. For each activated entry: determine base branch, call mark_active.
+    1. Gather pending entries (ordered by created_at ASC).
+    2. If no pending → nothing to do.
+    3. Check if any open blocking issues exist (active or in_review).
+    4. Determine mode:
+       a. Blocking mode (open blocking exists OR next pending is blocking):
+          - If any entry is currently 'active', wait — serial activation.
+          - Next pending is blocking → activate alone
+          - Next pending is non-blocking → batch consecutive non-blocking up to next blocking
+       b. Concurrent mode (no blocking issues at all):
+          - Activate all consecutive non-blocking up to next blocking entry
+          - Active non-blocking entries don't block new non-blocking activation
+    5. For each activated entry: determine base branch, call mark_active.
     """
-    # Check for any currently active (not yet in_review) entries
-    active_or_review = await store.get_active_or_in_review(repo_key)
-    has_active = any(
-        e.queue_status == BlockingQueueStatus.ACTIVE for e in active_or_review
-    )
-
-    if has_active:
-        logger.debug("Repo %s has active entries — skipping activation", repo_key)
-        return []
-
     pending = await store.get_pending(repo_key)
     if not pending:
         return []
@@ -114,11 +113,20 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     open_blocking = await store.get_open_blocking(repo_key)
     has_open_blocking = len(open_blocking) > 0
 
+    active_or_review = await store.get_active_or_in_review(repo_key)
+    has_active = any(
+        e.queue_status == BlockingQueueStatus.ACTIVE for e in active_or_review
+    )
+
     # Determine which pending entries to activate
     to_activate: list[BlockingQueueEntry] = []
 
-    if has_open_blocking:
-        # Serial mode — open blocking issues exist
+    if has_open_blocking or pending[0].is_blocking:
+        # Blocking mode — serial activation: only one active batch at a time
+        if has_active:
+            logger.debug("Repo %s has active entries in blocking mode — skipping activation", repo_key)
+            return []
+
         first = pending[0]
         if first.is_blocking:
             to_activate = [first]
@@ -129,22 +137,18 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
                     break
                 to_activate.append(entry)
     else:
-        # Concurrent mode — no open blocking issues
-        first = pending[0]
-        if first.is_blocking:
-            to_activate = [first]
-        else:
-            for entry in pending:
-                if entry.is_blocking:
-                    break
-                to_activate.append(entry)
+        # Concurrent mode — no blocking issues exist
+        # Non-blocking issues can run concurrently; activate all pending non-blocking
+        for entry in pending:
+            if entry.is_blocking:
+                break
+            to_activate.append(entry)
 
     if not to_activate:
         return []
 
     # Determine base branch for activation
-    base_branch = _resolve_base_branch(open_blocking)
-    source_issue = open_blocking[0].issue_number if open_blocking else None
+    base_branch, source_issue = _resolve_base_branch(open_blocking)
 
     # Activate each entry
     activated: list[BlockingQueueEntry] = []
@@ -170,8 +174,8 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     return activated
 
 
-def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> str:
-    """Return the oldest open blocking issue's branch, or 'main'.
+def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> tuple[str, int | None]:
+    """Return the oldest open blocking issue's branch and its issue number, or ('main', None).
 
     Iterates through open blocking entries in order to find one with a valid
     parent_branch set. If the oldest entry's branch is None (e.g. branch was
@@ -181,7 +185,7 @@ def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> str:
     """
     for entry in open_blocking:
         if entry.parent_branch:
-            return entry.parent_branch
+            return entry.parent_branch, entry.issue_number
     if open_blocking:
         logger.warning(
             "No open blocking issue has a valid parent_branch for repo %s "
@@ -189,7 +193,7 @@ def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> str:
             open_blocking[0].repo_key,
             open_blocking[0].issue_number,
         )
-    return "main"
+    return "main", None
 
 
 async def _mark_active_unlocked(
@@ -329,13 +333,15 @@ async def get_base_ref_for_issue(repo_key: str, issue_number: int) -> str:
     Otherwise return 'main'.
     """
     open_blocking = await store.get_open_blocking(repo_key)
-    return _resolve_base_branch(open_blocking)
+    base_branch, _source = _resolve_base_branch(open_blocking)
+    return base_branch
 
 
 async def get_current_base_branch(repo_key: str) -> str:
     """Return the current base branch for the repo's blocking queue."""
     open_blocking = await store.get_open_blocking(repo_key)
-    return _resolve_base_branch(open_blocking)
+    base_branch, _source = _resolve_base_branch(open_blocking)
+    return base_branch
 
 
 async def has_open_blocking_issues(repo_key: str) -> bool:

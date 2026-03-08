@@ -83,6 +83,8 @@ _proposals: dict[str, AITaskProposal] = {}
 _recommendations: dict[str, IssueRecommendation] = {}
 # Track blocking flag per proposal (parallel dict keyed by proposal_id)
 _proposal_blocking: dict[str, bool] = {}
+# Module-level compiled regex for #block detection (no \s* prefix — avoids ReDoS)
+_BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
@@ -255,11 +257,10 @@ async def send_message(
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 0.5: #block detection — mark resulting issue as blocking
     # ──────────────────────────────────────────────────────────────────
-    _BLOCK_PATTERN = re.compile(r"\s*#block\b", re.IGNORECASE)
     is_blocking = bool(_BLOCK_PATTERN.search(chat_request.content))
     if is_blocking:
-        # Strip #block from content before downstream processing
-        chat_request.content = _BLOCK_PATTERN.sub("", chat_request.content).strip()
+        # Strip #block and normalise whitespace (avoids ReDoS from \s* prefix)
+        chat_request.content = " ".join(_BLOCK_PATTERN.sub("", chat_request.content).split())
         logger.info("Detected #block in message — is_blocking=True, stripped content")
 
     # ──────────────────────────────────────────────────────────────────
