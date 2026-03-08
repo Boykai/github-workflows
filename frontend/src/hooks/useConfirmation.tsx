@@ -92,9 +92,7 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
       resolve?.(result);
 
       // Process next queued request after closing
-      requestAnimationFrame(() => {
-        processQueue();
-      });
+      processQueue();
     },
     [processQueue],
   );
