@@ -280,7 +280,7 @@ async def list_board_projects(
 
         logger.error("Failed to fetch board projects: %s", e, exc_info=True)
         raise GitHubAPIError(
-            message="Failed to fetch projects from GitHub",
+            message="Failed to fetch board projects from GitHub.",
             details={"reason": _classify_github_error(e)},
         ) from e
 

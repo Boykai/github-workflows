@@ -98,6 +98,7 @@ class EvaluateChoreTriggersRequest(BaseModel):
     """Optional request body for the evaluate-triggers endpoint."""
 
     project_id: str | None = None
+    parent_issue_count: int | None = None
 
 
 # ── Template Models ──
