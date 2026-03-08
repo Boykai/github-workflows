@@ -727,6 +727,11 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(updates) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
+
         # Convert booleans to SQLite integers
         for key, val in list(updates.items()):
             if isinstance(val, bool):
