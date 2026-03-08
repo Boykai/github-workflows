@@ -152,12 +152,15 @@ class TestCacheClearExpiredSafety:
 
         time.sleep(0.01)
 
-        # Manually remove the key before clear_expired processes it
-        del cache._cache["k1"]
+        class _DelRaisesDict(dict):
+            def __delitem__(self, key):
+                raise KeyError(key)
 
-        # Should NOT raise KeyError
+        cache._cache = _DelRaisesDict(cache._cache)
+
+        # Should NOT raise KeyError even if __delitem__ would fail.
         removed = cache.clear_expired()
-        assert removed == 0
+        assert removed == 1
 
     @patch("src.services.cache.get_settings")
     def test_get_expired_entry_uses_pop(self, mock_settings):

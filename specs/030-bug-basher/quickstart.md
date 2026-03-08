@@ -62,10 +62,10 @@ npx tsc --noEmit
 Review files in this order:
 
 1. **Security** (P1): Focus on `backend/src/api/` (auth, input validation), `backend/src/config.py` (secrets), `backend/src/services/encryption.py`
-2. **Runtime** (P2): Focus on `backend/src/services/` (exception handling, resource management), `backend/src/main.py` (lifespan, middleware)
-3. **Logic** (P3): Focus on `backend/src/services/database.py` (migrations), `backend/src/services/agents/service.py` (method calls), business logic in all services
-4. **Test Quality** (P4): Focus on `backend/tests/unit/` (mock leaks, assertion quality), `frontend/src/**/*.test.*` (coverage gaps)
-5. **Code Quality** (P5): Focus on dead imports, unreachable branches, silent failures across all files
+2. **Runtime + Logic** (P2): Focus on `backend/src/services/` (exception handling, resource management), `backend/src/main.py` (lifespan, middleware), `backend/src/services/database.py` (migrations), `backend/src/services/agents/service.py` (method calls), and business logic across services
+3. **Test Quality** (P3): Focus on `backend/tests/unit/` (mock leaks, assertion quality), `frontend/src/**/*.test.*` (coverage gaps)
+4. **Code Quality** (P4): Focus on dead imports, unreachable branches, silent failures across all files
+5. **Ambiguous Flagging** (P5): Record `TODO(bug-bash):` comments for issues that require a human trade-off decision instead of an immediate code change
 
 ### Step 2: For Each Bug Found
 

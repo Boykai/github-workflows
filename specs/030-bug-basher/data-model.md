@@ -55,8 +55,8 @@ Represents a structured code comment placed for ambiguous issues.
 ## Relationships
 
 ```text
-Bug Report Entry (1) ←→ (0..1) Regression Test
-  A fixed bug has exactly one regression test.
+Bug Report Entry (1) ←→ (1..N) Regression Test
+  A fixed bug has one or more regression tests.
   A flagged bug has no regression test.
 
 Bug Report Entry (1) ←→ (0..1) TODO Flag

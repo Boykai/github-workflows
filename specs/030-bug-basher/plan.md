@@ -17,7 +17,7 @@ Perform a comprehensive bug bash code review of the entire codebase across five 
 **Project Type**: Web application (backend + frontend)
 **Performance Goals**: N/A — this feature is a code review, not a performance change
 **Constraints**: No new dependencies; no architecture or public API changes; minimal focused fixes; preserve existing code style
-**Scale/Scope**: ~18 backend API modules, ~19 backend service modules, ~18 model files, 16 migrations, full React frontend with components/pages/hooks/services
+**Scale/Scope**: ~18 backend API modules, ~19 backend service modules, ~18 model files, 19 SQL migration files (001-016 plus duplicate 013-015), full React frontend with components/pages/hooks/services
 
 ## Constitution Check
 
@@ -73,7 +73,7 @@ backend/
 │   │   ├── github_projects/  # GraphQL client, service (187 KB) — exception handling, resource mgmt
 │   │   ├── database.py  # Migration runner — numbering conflicts, SQL safety
 │   │   └── ...          # encryption, auth, caching, signal, websocket, etc.
-│   ├── migrations/      # 16 SQL migration files — duplicate prefix conflicts (013, 014, 015)
+│   ├── migrations/      # 19 SQL migration files — duplicate prefix conflicts (013, 014, 015)
 │   ├── config.py        # Settings validation — secret enforcement, CORS config
 │   └── main.py          # App factory, lifespan, middleware — startup/shutdown, error handlers
 └── tests/

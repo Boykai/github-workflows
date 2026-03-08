@@ -6,7 +6,7 @@
 
 ### R-001: Migration Numbering Conflicts
 
-**Decision**: Fix duplicate migration prefixes (013, 014, 015) by renumbering to unique sequential prefixes.
+**Decision**: Flag duplicate migration prefixes (013, 014, 015) as `TODO(bug-bash)` until a deployment reconciliation strategy is defined.
 
 **Rationale**: The migration runner (`database.py:_discover_migrations()`) uses regex `^(\d{3})_.*\.sql$` to parse migration files and sorts by the numeric prefix. When two files share the same prefix (e.g., `015_agent_icon_name.sql` and `015_pipeline_mcp_presets.sql`), both are discovered and appended to the list, but since the `_run_migrations()` function updates `schema_version` to the version number after executing each file, the second file with the same version number will be skipped on subsequent runs (version is already >= that number). This means only the first alphabetically-sorted file at each duplicate version is reliably applied.
 
@@ -21,7 +21,7 @@
 **Alternatives considered**:
 - *Renumber the "B" files to 016, 017, 018*: Would conflict with existing `016_chores_enhancements.sql`. Requires cascading renumber.
 - *Add duplicate-detection logic to migration runner*: More defensive, but doesn't fix the data issue for existing deployments.
-- *Flag as TODO*: Not appropriate since this is a clear logic bug with a deterministic fix.
+- *Renumber immediately*: Unsafe for existing deployments without a reconciliation plan.
 
 **Recommended approach**: This is a **TODO(bug-bash)** candidate because renumbering migrations changes the applied-version tracking for all existing database deployments. Existing databases that have already applied some migrations under the old numbering would see version mismatches. A safe fix requires a migration reconciliation strategy that accounts for existing deployments. This is an architectural decision, not a simple bug fix.
 
@@ -113,8 +113,8 @@
 
 ## Summary of Resolutions
 
-| ID | Unknown | Resolution | Status |
-|----|---------|------------|--------|
+| ID | Issue | Resolution | Status |
+|----|-------|------------|--------|
 | R-001 | Migration numbering conflicts | Flag as TODO — requires deployment strategy | ⚠️ Flagged |
 | R-002 | Signal error leakage | Already flagged — no action needed | ✅ Resolved |
 | R-003 | Temp file accumulation | Fix with cleanup after file processing | ✅ Resolved |
