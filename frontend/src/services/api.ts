@@ -66,6 +66,8 @@ import type {
   McpToolConfigUpdate,
   McpToolConfigListResponse,
   McpToolSyncResult,
+  RepoMcpConfigResponse,
+  McpPresetListResponse,
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
@@ -981,6 +983,14 @@ export const modelsApi = {
 // ============ Tools API (027-mcp-tools-page) ============
 
 export const toolsApi = {
+  getRepoConfig(projectId: string): Promise<RepoMcpConfigResponse> {
+    return request<RepoMcpConfigResponse>(`/tools/${projectId}/repo-config`);
+  },
+
+  listPresets(): Promise<McpPresetListResponse> {
+    return request<McpPresetListResponse>('/tools/presets');
+  },
+
   list(projectId: string): Promise<McpToolConfigListResponse> {
     return request<McpToolConfigListResponse>(`/tools/${projectId}`);
   },

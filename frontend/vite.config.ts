@@ -23,5 +23,32 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          if (id.includes('@tanstack/react-query')) {
+            return 'query-vendor';
+          }
+
+          if (id.includes('@dnd-kit')) {
+            return 'dnd-vendor';
+          }
+
+          if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+            return 'markdown-vendor';
+          }
+
+          if (id.includes('lucide-react')) {
+            return 'icons-vendor';
+          }
+
+          return undefined;
+        },
+      },
+    },
   },
 });

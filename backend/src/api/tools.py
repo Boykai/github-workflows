@@ -9,17 +9,20 @@ from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
-from src.exceptions import AppException, NotFoundError, ValidationError
+from src.exceptions import GitHubAPIError
 from src.models.tools import (
+    McpPresetListResponse,
     McpToolConfigCreate,
     McpToolConfigListResponse,
     McpToolConfigResponse,
     McpToolConfigSyncResult,
     McpToolConfigUpdate,
+    RepoMcpConfigResponse,
     ToolDeleteResult,
 )
 from src.models.user import UserSession
 from src.services.database import get_db
+from src.services.tools.presets import list_mcp_presets
 from src.services.tools.service import DuplicateToolNameError, ToolsService
 from src.utils import resolve_repository
 
@@ -30,6 +33,12 @@ router = APIRouter()
 def _get_service() -> ToolsService:
     """Instantiate ToolsService with the current DB connection."""
     return ToolsService(get_db())
+
+
+@router.get("/presets", response_model=McpPresetListResponse)
+async def list_presets() -> McpPresetListResponse:
+    """List static MCP presets for quick tool creation."""
+    return list_mcp_presets()
 
 
 # ── List Tools ──
@@ -50,6 +59,42 @@ async def list_tools(
         project_id=project_id,
         github_user_id=session.github_user_id,
     )
+
+
+@router.get(
+    "/{project_id}/repo-config",
+    response_model=RepoMcpConfigResponse,
+    dependencies=[Depends(verify_project_access)],
+)
+async def get_repo_config(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> RepoMcpConfigResponse:
+    """Read repository MCP configuration from supported GitHub paths."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot resolve repository: {exc}",
+        ) from exc
+
+    try:
+        return await service.get_repo_mcp_config(
+            owner=owner,
+            repo=repo,
+            access_token=session.access_token,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Failed to fetch repository MCP config for project %s (%s/%s)",
+            project_id,
+            owner,
+            repo,
+        )
+        raise GitHubAPIError("Failed to fetch repository MCP config") from exc
 
 
 # ── Create Tool ──

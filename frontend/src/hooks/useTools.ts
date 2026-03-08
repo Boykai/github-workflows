@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toolsApi, ApiError } from '@/services/api';
+import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
@@ -38,7 +39,10 @@ export function useToolsList(projectId: string | null | undefined) {
   const uploadMutation = useMutation<McpToolConfig, ApiError, McpToolConfigCreate>({
     mutationFn: (data) => toolsApi.create(projectId!, data),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
+      }
     },
   });
 
@@ -48,7 +52,10 @@ export function useToolsList(projectId: string | null | undefined) {
       return toolsApi.sync(projectId!, toolId);
     },
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
+      }
     },
     onSettled: () => setSyncingId(null),
   });
@@ -60,7 +67,10 @@ export function useToolsList(projectId: string | null | undefined) {
   >({
     mutationFn: ({ toolId, data }) => toolsApi.update(projectId!, toolId, data),
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
+      }
     },
   });
 
@@ -76,6 +86,7 @@ export function useToolsList(projectId: string | null | undefined) {
     onSuccess: (result) => {
       if (result.success && projectId) {
         queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
       }
     },
     onSettled: () => setDeletingId(null),

@@ -8,11 +8,16 @@
 import { useDeferredValue, useState } from 'react';
 import { Search, Wrench } from 'lucide-react';
 import { useToolsList } from '@/hooks/useTools';
+import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
+import { useMcpPresets } from '@/hooks/useMcpPresets';
 import { ToolCard } from './ToolCard';
 import { UploadMcpModal } from './UploadMcpModal';
+import { RepoConfigPanel } from './RepoConfigPanel';
+import { McpPresetsGallery } from './McpPresetsGallery';
+import { GitHubToolsetSelector } from './GitHubToolsetSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { McpToolConfig } from '@/types';
+import type { McpPreset, McpToolConfig, McpToolConfigCreate } from '@/types';
 
 interface ToolsPanelProps {
   projectId: string;
@@ -40,14 +45,18 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTool, setEditingTool] = useState<McpToolConfig | null>(null);
+  const [draftTool, setDraftTool] = useState<Partial<McpToolConfigCreate> | null>(null);
   const [search, setSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
+  const { repoConfig, isLoading: isRepoConfigLoading, error: repoConfigError, refetch: refetchRepoConfig } = useRepoMcpConfig(projectId);
+  const { presets, isLoading: arePresetsLoading, error: presetsError } = useMcpPresets();
 
   const handleOpenCreate = () => {
     resetUploadError();
     resetUpdateError();
     setEditingTool(null);
+    setDraftTool(null);
     setShowUploadModal(true);
   };
 
@@ -55,6 +64,20 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     resetUploadError();
     resetUpdateError();
     setEditingTool(tool);
+    setDraftTool(null);
+    setShowUploadModal(true);
+  };
+
+  const handlePresetSelect = (preset: McpPreset) => {
+    resetUploadError();
+    resetUpdateError();
+    setEditingTool(null);
+    setDraftTool({
+      name: preset.name,
+      description: preset.description,
+      config_content: preset.config_content,
+      github_repo_target: '',
+    });
     setShowUploadModal(true);
   };
 
@@ -83,6 +106,25 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      <RepoConfigPanel
+        repoConfig={repoConfig}
+        isLoading={isRepoConfigLoading}
+        error={repoConfigError}
+        onRefresh={() => {
+          void refetchRepoConfig();
+        }}
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <McpPresetsGallery
+          presets={presets}
+          isLoading={arePresetsLoading}
+          error={presetsError}
+          onSelectPreset={handlePresetSelect}
+        />
+        <GitHubToolsetSelector onCreate={uploadTool} isSubmitting={isUploading || isUpdating} />
+      </div>
+
       <div className="ritual-stage flex flex-col gap-4 rounded-[1.55rem] p-4 sm:rounded-[1.8rem] sm:p-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Tool archive</p>
@@ -218,6 +260,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         onClose={() => {
           setShowUploadModal(false);
           setEditingTool(null);
+          setDraftTool(null);
         }}
         onUpload={uploadTool}
         onUpdate={(toolId, data) => updateTool({ toolId, data })}
@@ -225,6 +268,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         submitError={uploadError ?? updateError}
         existingNames={tools.map((t) => t.name)}
         editingTool={editingTool}
+        initialDraft={draftTool}
       />
     </div>
   );

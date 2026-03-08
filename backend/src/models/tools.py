@@ -71,6 +71,42 @@ class McpToolConfigSyncResult(BaseModel):
     sync_status: str
     sync_error: str
     synced_at: str | None
+    synced_paths: list[str] = Field(default_factory=list)
+
+
+class RepoMcpServerConfig(BaseModel):
+    """A normalized MCP server entry discovered in the repository."""
+
+    name: str
+    config: dict[str, object]
+    source_paths: list[str] = Field(default_factory=list)
+
+
+class RepoMcpConfigResponse(BaseModel):
+    """Repository MCP configuration discovered from known GitHub paths."""
+
+    paths_checked: list[str] = Field(default_factory=list)
+    available_paths: list[str] = Field(default_factory=list)
+    primary_path: str | None = None
+    servers: list[RepoMcpServerConfig] = Field(default_factory=list)
+
+
+class McpPresetResponse(BaseModel):
+    """Static MCP preset returned to the frontend."""
+
+    id: str
+    name: str
+    description: str
+    category: str
+    icon: str
+    config_content: str
+
+
+class McpPresetListResponse(BaseModel):
+    """Response for listing available MCP presets."""
+
+    presets: list[McpPresetResponse]
+    count: int
 
 
 class AgentToolAssociation(BaseModel):

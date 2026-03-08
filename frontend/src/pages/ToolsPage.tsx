@@ -24,7 +24,7 @@ export function ToolsPage() {
         title="Equip your agents with MCP tools."
         description="Upload and manage MCP configurations that sync to your repository and can be embedded into GitHub Custom Agent definitions. Assign tools to agents during creation for enhanced capabilities."
         badge={repo ? repo.name : 'Awaiting repository'}
-        note="Uploaded MCP configs are stored in .vscode/mcp.json and embedded into assigned .github/agents/*.agent.md files when you save an agent."
+        note="Uploaded MCP configs are stored in both .copilot/mcp.json and .vscode/mcp.json, then embedded into assigned .github/agents/*.agent.md files when you save an agent."
         stats={[
           { label: 'Repository', value: repo ? repo.name : 'Unlinked' },
           { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
