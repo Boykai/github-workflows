@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@/test/test-utils';
+import { render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 
 import { RepoConfigPanel } from './RepoConfigPanel';
@@ -84,5 +84,24 @@ describe('GitHubToolsetSelector', () => {
       }),
     );
     expect(onCreate.mock.calls[0][0].config_content).toContain('users');
+  });
+
+  it('marks toolset buttons with pressed state', () => {
+    render(<GitHubToolsetSelector onCreate={vi.fn().mockResolvedValue(undefined)} isSubmitting={false} />);
+
+    expect(screen.getByRole('button', { name: 'repos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'users' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows a local error when create fails', async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn().mockRejectedValue(new Error('Create failed'));
+    render(<GitHubToolsetSelector onCreate={onCreate} isSubmitting={false} />);
+
+    await user.click(screen.getByRole('button', { name: 'Create GitHub MCP tool' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Create failed')).toBeInTheDocument();
+    });
   });
 });

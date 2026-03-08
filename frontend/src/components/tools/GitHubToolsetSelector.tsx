@@ -54,14 +54,18 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
       return;
     }
     setError(null);
-    await onCreate({
-      name: fullAccess ? 'GitHub MCP Server (Full Access)' : 'GitHub MCP Server',
-      description: fullAccess
-        ? 'GitHub MCP server with full access for custom agents.'
-        : 'Read-only GitHub MCP server with selected toolsets for custom agents.',
-      config_content: `${previewConfig}\n`,
-      github_repo_target: '',
-    });
+    try {
+      await onCreate({
+        name: fullAccess ? 'GitHub MCP Server (Full Access)' : 'GitHub MCP Server',
+        description: fullAccess
+          ? 'GitHub MCP server with full access for custom agents.'
+          : 'Read-only GitHub MCP server with selected toolsets for custom agents.',
+        config_content: `${previewConfig}\n`,
+        github_repo_target: '',
+      });
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Failed to create GitHub MCP tool.');
+    }
   };
 
   return (
@@ -87,6 +91,7 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
               key={toolset}
               type="button"
               onClick={() => toggleToolset(toolset)}
+              aria-pressed={selected}
               className={`rounded-[1rem] border px-4 py-3 text-left text-sm transition-colors ${selected ? 'border-primary/60 bg-primary/10 text-foreground' : 'border-border/70 bg-background/40 text-muted-foreground'}`}
             >
               {toolset}

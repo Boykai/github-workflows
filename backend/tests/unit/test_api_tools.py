@@ -63,3 +63,20 @@ class TestRepoMcpConfigApi:
         data = resp.json()
         assert "detail" in data
         assert "Cannot resolve repository" in data["detail"]
+
+    async def test_repo_config_returns_502_when_service_fetch_fails(
+        self,
+        client,
+        mock_github_service,
+    ):
+        mock_github_service.get_project_repository.return_value = ("octo", "widgets")
+
+        with patch(
+            "src.api.tools.ToolsService.get_repo_mcp_config",
+            AsyncMock(side_effect=RuntimeError("GitHub API error: 500 boom")),
+        ):
+            resp = await client.get("/api/v1/tools/PVT_123/repo-config")
+
+        assert resp.status_code == 502
+        data = resp.json()
+        assert data["error"] == "Failed to fetch repository MCP config"

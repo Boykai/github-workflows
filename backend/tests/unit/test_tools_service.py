@@ -213,6 +213,40 @@ class TestToolsServiceMcpSync:
         assert is_valid is True
         assert error == ""
 
+    async def test_extract_endpoint_url_supports_sse_and_local(self, mock_db):
+        service = ToolsService(mock_db)
+
+        assert (
+            service._extract_endpoint_url(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "cloudflare": {
+                                "type": "sse",
+                                "url": "https://docs.mcp.cloudflare.com/sse",
+                            }
+                        }
+                    }
+                )
+            )
+            == "https://docs.mcp.cloudflare.com/sse"
+        )
+        assert (
+            service._extract_endpoint_url(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "azure": {
+                                "type": "local",
+                                "command": "npx",
+                            }
+                        }
+                    }
+                )
+            )
+            == "npx"
+        )
+
     async def test_sync_tool_to_github_writes_both_supported_paths(self, mock_db):
         await _insert_tool(mock_db)
         service = ToolsService(mock_db)

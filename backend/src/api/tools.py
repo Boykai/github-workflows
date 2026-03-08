@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
+from src.exceptions import GitHubAPIError
 from src.models.tools import (
     McpPresetListResponse,
     McpToolConfigCreate,
@@ -80,11 +81,20 @@ async def get_repo_config(
             detail=f"Cannot resolve repository: {exc}",
         ) from exc
 
-    return await service.get_repo_mcp_config(
-        owner=owner,
-        repo=repo,
-        access_token=session.access_token,
-    )
+    try:
+        return await service.get_repo_mcp_config(
+            owner=owner,
+            repo=repo,
+            access_token=session.access_token,
+        )
+    except Exception as exc:
+        logger.exception(
+            "Failed to fetch repository MCP config for project %s (%s/%s)",
+            project_id,
+            owner,
+            repo,
+        )
+        raise GitHubAPIError("Failed to fetch repository MCP config") from exc
 
 
 # ── Create Tool ──

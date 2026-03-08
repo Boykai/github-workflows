@@ -91,7 +91,7 @@ class ToolsService:
                 return False, f"Server '{server_name}' must have a 'url' field"
 
             if server_type in {"stdio", "local"} and not server_config.get("command"):
-                return False, f"Stdio server '{server_name}' must have a 'command' field"
+                return False, f"Server '{server_name}' must have a 'command' field"
 
             headers = server_config.get("headers")
             if headers is not None and not isinstance(headers, dict):
@@ -126,9 +126,9 @@ class ToolsService:
                         server_type = "stdio"
                     elif cfg.get("url"):
                         server_type = "http"
-                if server_type == "http":
+                if server_type in {"http", "sse"}:
                     return cfg.get("url", "")
-                if server_type == "stdio":
+                if server_type in {"stdio", "local"}:
                     return cfg.get("command", "")
         except (json.JSONDecodeError, AttributeError):
             pass
