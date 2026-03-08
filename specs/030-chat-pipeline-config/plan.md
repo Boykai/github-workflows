@@ -84,8 +84,6 @@ frontend/
 │   │   └── useSelectedPipeline.ts           # NEW: Shared hook for reading project pipeline assignment
 │   ├── pages/
 │   │   └── ProjectsPage.tsx                 # MODIFIED: Use useSelectedPipeline hook (optional refactor for DRY)
-│   ├── services/
-│   │   └── api.ts                           # MODIFIED: Extend ProposalConfirmRequest type (if pipeline_id passed)
 │   └── types/
 │       └── index.ts                         # MODIFIED: Extend AITaskProposal with pipeline_name field
 ```
