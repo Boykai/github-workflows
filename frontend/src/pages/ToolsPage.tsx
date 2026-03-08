@@ -7,11 +7,17 @@ import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { ToolsPanel } from '@/components/tools/ToolsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
+import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
 
 export function ToolsPage() {
   const { user } = useAuth();
-  const { selectedProject } = useProjects(user?.selected_project_id);
+  const {
+    selectedProject,
+    projects,
+    isLoading: projectsLoading,
+    selectProject,
+  } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
@@ -50,11 +56,13 @@ export function ToolsPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
-          <div className="text-4xl mb-2">🔧</div>
-          <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the sidebar to manage its MCP tools</p>
-        </div>
+        <ProjectSelectionEmptyState
+          projects={projects}
+          isLoading={projectsLoading}
+          selectedProjectId={projectId}
+          onSelectProject={selectProject}
+          description="Choose a GitHub Project to manage its MCP tools, repository-linked configs, and agent tool attachments."
+        />
       )}
 
       {projectId && (

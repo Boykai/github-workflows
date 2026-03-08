@@ -381,6 +381,7 @@ class PipelineService:
 
         for preset in _PRESET_DEFINITIONS:
             preset_id = preset["preset_id"]
+            blocking = int(bool(preset.get("blocking", False)))
             # Check if already seeded
             cursor = await self._db.execute(
                 "SELECT id FROM pipeline_configs WHERE preset_id = ? AND project_id = ?",
@@ -397,8 +398,8 @@ class PipelineService:
                 await self._db.execute(
                     """
                     INSERT INTO pipeline_configs
-                        (id, project_id, name, description, stages, is_preset, preset_id, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+                        (id, project_id, name, description, stages, is_preset, preset_id, blocking, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
                     """,
                     (
                         pipeline_id,
@@ -407,6 +408,7 @@ class PipelineService:
                         preset["description"],
                         stages_json,
                         preset_id,
+                        blocking,
                         now,
                         now,
                     ),
