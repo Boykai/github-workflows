@@ -1,0 +1,132 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { useBoardControls } from './useBoardControls';
+import type { BoardDataResponse, BoardItem } from '@/types';
+
+function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
+  return {
+    item_id: 'item-1',
+    content_type: 'issue',
+    title: 'Alpha issue',
+    status: 'Todo',
+    status_option_id: 'todo',
+    assignees: [],
+    linked_prs: [],
+    sub_issues: [],
+    labels: [],
+    ...overrides,
+  };
+}
+
+function createBoardData(): BoardDataResponse {
+  return {
+    project: {
+      project_id: 'PVT_1',
+      name: 'Test Project',
+      url: 'https://github.com/orgs/test/projects/1',
+      owner_login: 'test',
+      status_field: {
+        field_id: 'status-field',
+        options: [{ option_id: 'todo', name: 'Todo', color: 'GRAY' }],
+      },
+    },
+    columns: [
+      {
+        status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+        items: [
+          createBoardItem({
+            item_id: 'item-1',
+            title: 'Alpha issue',
+            assignees: [{ login: 'octocat', avatar_url: 'https://avatars.githubusercontent.com/u/1' }],
+            labels: [{ id: 'label-1', name: 'bug', color: 'ff0000' }],
+            milestone: 'Sprint 1',
+            created_at: '2026-03-01T00:00:00Z',
+          }),
+          createBoardItem({
+            item_id: 'item-2',
+            title: 'Beta issue',
+            assignees: [{ login: 'hubot', avatar_url: 'https://avatars.githubusercontent.com/u/2' }],
+            labels: [{ id: 'label-2', name: 'feature', color: '00ff00' }],
+            milestone: 'Sprint 2',
+            created_at: '2026-03-02T00:00:00Z',
+          }),
+        ],
+        item_count: 2,
+        estimate_total: 0,
+      },
+    ],
+  };
+}
+
+describe('useBoardControls', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it('deep-merges persisted controls with safe defaults', () => {
+    localStorage.setItem(
+      'board-controls-PVT_1',
+      JSON.stringify({
+        filters: { labels: ['bug'] },
+        sort: { field: 'title' },
+      })
+    );
+
+    const { result } = renderHook(() => useBoardControls('PVT_1', createBoardData()));
+
+    expect(result.current.controls.filters).toEqual({
+      labels: ['bug'],
+      assignees: [],
+      milestones: [],
+    });
+    expect(result.current.controls.sort).toEqual({ field: 'title', direction: 'asc' });
+    expect(result.current.controls.group).toEqual({ field: null });
+  });
+
+  it('filters, sorts, and groups parent issues from the current board data', () => {
+    const { result } = renderHook(() => useBoardControls('PVT_1', createBoardData()));
+
+    act(() => {
+      result.current.setFilters({ labels: ['feature'], assignees: [], milestones: [] });
+      result.current.setSort({ field: 'title', direction: 'desc' });
+      result.current.setGroup({ field: 'assignee' });
+    });
+
+    const transformedColumn = result.current.transformedData?.columns[0];
+    expect(transformedColumn?.items).toHaveLength(1);
+    expect(transformedColumn?.items[0].title).toBe('Beta issue');
+
+    const groups = result.current.getGroups(transformedColumn?.items ?? []);
+    expect(groups).toEqual([{ name: 'hubot', items: transformedColumn?.items ?? [] }]);
+  });
+
+  it('loads per-project controls before persisting on project switch', async () => {
+    localStorage.setItem(
+      'board-controls-PVT_1',
+      JSON.stringify({ filters: { labels: ['bug'], assignees: [], milestones: [] } })
+    );
+    localStorage.setItem(
+      'board-controls-PVT_2',
+      JSON.stringify({ filters: { labels: ['feature'], assignees: [], milestones: [] } })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ projectId }) => useBoardControls(projectId, createBoardData()),
+      { initialProps: { projectId: 'PVT_1' } }
+    );
+
+    expect(result.current.controls.filters.labels).toEqual(['bug']);
+
+    rerender({ projectId: 'PVT_2' });
+
+    await waitFor(() => {
+      expect(result.current.controls.filters.labels).toEqual(['feature']);
+    });
+
+    expect(JSON.parse(localStorage.getItem('board-controls-PVT_2') ?? '{}')).toMatchObject({
+      filters: { labels: ['feature'] },
+    });
+  });
+});

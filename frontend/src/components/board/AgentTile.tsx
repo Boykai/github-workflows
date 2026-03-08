@@ -30,14 +30,14 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
   const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = formatAgentName(agent.slug, agent.display_name);
-  const metadata = availableAgents?.find((a) => a.slug === agent.slug);
+  const metadata = availableAgents?.find((a) => a.slug.toLowerCase() === agent.slug.toLowerCase());
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const isHuman = agent.slug === 'human';
 
   // Build metadata line: model · N tools
   const metaParts: string[] = [];
   if (metadata?.default_model_name) metaParts.push(metadata.default_model_name);
-  if (metadata?.tools_count && metadata.tools_count > 0) metaParts.push(`${metadata.tools_count} tools`);
+  if (metadata && metadata.tools_count != null) metaParts.push(`${metadata.tools_count} tool${metadata.tools_count !== 1 ? 's' : ''}`);
   const metaLine = metaParts.join(' · ');
 
   const handleRemove = (e: React.MouseEvent) => {
