@@ -17,7 +17,7 @@ Users experience intermittent scroll freezing across the application. Investigat
 **Project Type**: Web application (frontend + backend)
 **Performance Goals**: 60 fps scrolling; zero perceptible lag during scroll
 **Constraints**: Must not break existing scroll-dependent UI (dropdowns, drag-and-drop, infinite scroll, modals); must work across Chrome, Firefox, Safari, and mobile touch devices
-**Scale/Scope**: ~6 frontend files modified (modal components + new shared hook), 0 new dependencies, 0 backend changes
+**Scale/Scope**: ~11 frontend files modified (new shared hook + 6 modal components + 4 scroll-listener components) plus associated test files, 0 new dependencies, 0 backend changes
 
 ## Constitution Check
 
@@ -76,11 +76,14 @@ frontend/
 │   │   │   ├── IssueDetailModal.tsx   # MODIFY: Replace manual scroll lock with useScrollLock
 │   │   │   ├── CleanUpConfirmModal.tsx # MODIFY: Replace manual scroll lock with useScrollLock
 │   │   │   ├── CleanUpSummary.tsx      # MODIFY: Replace manual scroll lock with useScrollLock
-│   │   │   └── CleanUpAuditHistory.tsx # MODIFY: Replace manual scroll lock with useScrollLock
+│   │   │   ├── CleanUpAuditHistory.tsx # MODIFY: Replace manual scroll lock with useScrollLock
+│   │   │   └── AddAgentPopover.tsx     # MODIFY: Add passive option to scroll listener
 │   │   ├── agents/
 │   │   │   └── AgentIconPickerModal.tsx # MODIFY: Replace manual scroll lock with useScrollLock
 │   │   └── pipeline/
-│   │       └── PipelineToolbar.tsx      # MODIFY: Replace manual scroll lock with useScrollLock
+│   │       ├── PipelineToolbar.tsx      # MODIFY: Replace manual scroll lock with useScrollLock
+│   │       ├── ModelSelector.tsx        # MODIFY: Add passive option to scroll listener
+│   │       └── StageCard.tsx            # MODIFY: Add passive option to scroll listener
 │   └── layout/
 │       └── NotificationBell.tsx         # MODIFY: Add passive option to scroll listener
 └── tests/
