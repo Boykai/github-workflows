@@ -133,6 +133,7 @@ export function AppLayout() {
         pendingStatusChanges={pendingStatusChanges}
         pendingRecommendations={pendingRecommendations}
         isSending={isSending}
+        projectId={selectedProject?.project_id}
         onSendMessage={sendMessage}
         onRetryMessage={retryMessage}
         onConfirmProposal={async (proposalId) => {

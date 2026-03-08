@@ -24,6 +24,7 @@ export function MentionAutocomplete({
   isVisible,
   error,
   onSelect,
+  // onDismiss is handled by the parent component
   onHighlightChange,
 }: MentionAutocompleteProps) {
   const listRef = useRef<HTMLUListElement>(null);
