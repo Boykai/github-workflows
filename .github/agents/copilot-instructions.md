@@ -148,6 +148,8 @@ npx playwright test
 - GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence) (029-board-hierarchy-filters)
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
+- TypeScript ~5.9 (frontend), Python 3.13 (backend — no changes needed) + React 19.2, TanStack Query v5.90, Tailwind CSS v4.2, lucide-react 0.577, class-variance-authority 0.7 (frontend) (001-confirmation-flow)
+- N/A — no storage changes; confirmation is a pure UI concern (001-confirmation-flow)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI
