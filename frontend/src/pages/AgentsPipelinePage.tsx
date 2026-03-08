@@ -137,7 +137,7 @@ export function AgentsPipelinePage() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-auto">
+    <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm overflow-auto">
       {/* Page Header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
@@ -149,8 +149,8 @@ export function AgentsPipelinePage() {
         </div>
         <div className="flex items-center gap-3">
           {workflowConfig && (
-            <span className={`rounded-full px-4 py-1.5 text-xs font-medium uppercase tracking-[0.16em] ${
-              workflowConfig.enabled ? 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100/90 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
+            <span className={`rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] shadow-sm ${
+              workflowConfig.enabled ? 'solar-chip-success' : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
             }`}>
               {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
             </span>
@@ -160,7 +160,7 @@ export function AgentsPipelinePage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">🔗</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the sidebar to configure its agent pipeline</p>
@@ -220,7 +220,7 @@ export function AgentsPipelinePage() {
 
           {/* Empty board state */}
           {pipelineConfig.boardState === 'empty' && (
-            <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 p-8 text-center">
+            <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
               <div className="text-3xl mb-1">🚀</div>
               <h3 className="text-sm font-semibold text-foreground">Create your first pipeline</h3>
               <p className="text-xs text-muted-foreground max-w-md">
@@ -272,14 +272,14 @@ export function AgentsPipelinePage() {
                 const assigned = agentConfig.localMappings[col.status.name] ?? [];
                 const dotColor = statusColorToCSS(col.status.color);
                 return (
-                  <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 p-4 text-center">
+                  <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dotColor }} />
                       <span className="text-sm font-medium">{col.status.name}</span>
                       <span className="text-xs text-muted-foreground">{col.item_count} items</span>
                       {assigned.length > 0 ? (
                         <div className="flex flex-wrap gap-1 justify-center mt-1">
                           {assigned.map((a) => (
-                            <span key={a.id} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-primary">
+                            <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
                               {a.display_name ?? a.slug}
                             </span>
                           ))}

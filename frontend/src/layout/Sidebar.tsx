@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
-import { PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
@@ -14,6 +14,8 @@ import type { Project } from '@/types';
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
   selectedProject?: { project_id: string; name: string; owner_login: string };
   recentInteractions: RecentInteraction[];
   projects: Project[];
@@ -24,6 +26,8 @@ interface SidebarProps {
 export function Sidebar({
   isCollapsed,
   onToggle,
+  isDarkMode,
+  onToggleTheme,
   selectedProject,
   recentInteractions,
   projects,
@@ -38,28 +42,37 @@ export function Sidebar({
         isCollapsed ? 'w-16' : 'w-60'
       }`}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.16),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.22),transparent_70%)]" />
+      <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl" />
       <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20" />
 
       {/* Brand */}
       <div className="relative flex items-center justify-between border-b border-border/70 px-4 py-4">
-        {!isCollapsed && (
-          <div className="flex items-center gap-3">
-            <span className="celestial-sigil flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-lg text-primary golden-ring">
-              <span className="relative z-10">☾</span>
-            </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className={`celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14 ${
+              isDarkMode ? 'text-primary' : 'text-gold'
+            }`}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          </button>
+          {!isCollapsed && (
             <div>
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
                 Solune
               </span>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/80">Sun & Moon</span>
-              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">Guided project orbit</span>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/85">Sun & Moon</span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">Guided solar orbit</span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         <button
           onClick={onToggle}
-          className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-accent/70 hover:text-foreground"
+          className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
@@ -76,8 +89,8 @@ export function Sidebar({
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-primary/12 text-primary shadow-sm ring-1 ring-primary/20'
-                  : 'text-muted-foreground hover:bg-accent/45 hover:text-foreground'
+                  ? 'bg-primary/14 text-primary shadow-sm ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:bg-accent/14 hover:text-foreground'
               } ${isCollapsed ? 'justify-center' : ''}`
             }
             title={isCollapsed ? route.label : undefined}
@@ -98,7 +111,7 @@ export function Sidebar({
                 {recentInteractions.slice(0, 8).map((item) => (
                   <button
                     key={item.item_id}
-                    className="flex w-full items-center gap-2 rounded-2xl border-l-2 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground"
+                    className="flex w-full items-center gap-2 rounded-2xl border-l-2 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent/14 hover:text-foreground"
                     style={{ borderLeftColor: statusColorToCSS(item.statusColor) }}
                     title={`${item.title} — ${item.status}`}
                     onClick={() => navigate('/projects')}
@@ -122,7 +135,7 @@ export function Sidebar({
         {!isCollapsed && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
-          className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/45 ${
+          className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14 ${
             isCollapsed ? 'justify-center' : ''
           }`}
           title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}

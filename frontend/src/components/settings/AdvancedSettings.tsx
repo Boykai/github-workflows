@@ -41,9 +41,9 @@ export function AdvancedSettings({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="flex flex-col bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+    <div className="celestial-panel flex flex-col rounded-[1.25rem] border border-border/80 shadow-sm overflow-hidden">
       <button
-        className="flex items-center gap-3 p-5 w-full text-left bg-transparent hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+        className="flex w-full items-center gap-3 bg-transparent p-5 text-left transition-colors hover:bg-background/28 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
         onClick={() => setExpanded((e) => !e)}
         type="button"
         aria-expanded={expanded}

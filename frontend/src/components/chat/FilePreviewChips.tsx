@@ -49,14 +49,14 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
   if (files.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto border-b border-border bg-muted/30">
+    <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-background/44 px-4 py-2">
       {files.map((file) => (
         <div
           key={file.id}
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border shrink-0 ${
             file.status === 'error'
               ? 'border-destructive/50 bg-destructive/5'
-              : 'border-border bg-background'
+                : 'border-border bg-background/76'
           }`}
           title={file.error || file.filename}
         >
@@ -75,7 +75,7 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
           <button
             type="button"
             onClick={() => onRemove(file.id)}
-            className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground shrink-0"
+            className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
             aria-label={`Remove ${file.filename}`}
           >
             <X className="w-3 h-3" />

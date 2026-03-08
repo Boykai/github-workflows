@@ -5,6 +5,7 @@
 
 import { X, Wrench, Copy } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { PipelineAgentNode } from '@/types';
 
 interface AgentNodeProps {
@@ -17,13 +18,16 @@ interface AgentNodeProps {
 
 export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, onClone }: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
+  const displayName = agentNode.agent_display_name || agentNode.agent_slug;
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/40 px-2.5 py-2 transition-colors hover:bg-accent/30">
+    <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/48 px-2.5 py-2 transition-colors hover:bg-primary/10">
+      <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
+
       {/* Agent info */}
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-foreground truncate">
-          {agentNode.agent_display_name || agentNode.agent_slug}
+          {displayName}
         </div>
         <div className="mt-1 flex items-center gap-2">
           <ModelSelector

@@ -306,7 +306,7 @@ export function AgentPresetSelector({
     const storedSelection = localStorage.getItem(`pipeline-config:${projectId}`);
     if (!storedSelection || storedSelection.startsWith('builtin:')) return null;
     return storedSelection;
-  }, [projectId, currentMappings]);
+  }, [projectId]);
 
   const { data: activeSavedPipelineConfig } = useQuery({
     queryKey: ['pipeline', projectId, selectedSavedPipelineId],
@@ -334,13 +334,13 @@ export function AgentPresetSelector({
 
   return (
     <>
-      <div className="flex items-center gap-1 ml-auto bg-muted/50 p-1 rounded-md border border-border/50">
+      <div className="ml-auto flex items-center gap-1 rounded-xl border border-border/60 bg-background/56 p-1 shadow-sm">
         {PRESETS.map((preset) => {
           const isActive = matchesPreset(preset, currentMappings, columnNames);
           return (
             <button
               key={preset.id}
-              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${isActive ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'}`}
               onClick={() => handlePresetClick(preset)}
               title={preset.description}
               type="button"
@@ -354,7 +354,11 @@ export function AgentPresetSelector({
         {hasSavedPipelines && (
           <div className="relative">
             <button
-              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${activePipelineName ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                activePipelineName
+                  ? 'solar-chip-soft'
+                  : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
+              }`}
               onClick={() => setShowDropdown(!showDropdown)}
               title={activePipelineName ? `Active saved pipeline: ${activePipelineName}` : 'Saved pipeline configurations'}
               type="button"
@@ -365,11 +369,11 @@ export function AgentPresetSelector({
               <>
                 {/* Backdrop to close dropdown */}
                 <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} role="presentation" />
-                <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border border-border bg-card shadow-lg py-1">
+                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-popover shadow-lg backdrop-blur-sm py-1">
                   {savedPipelines?.pipelines.map((pipeline) => (
                     <button
                       key={pipeline.id}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+                      className="w-full px-3 py-2 text-left text-xs transition-colors hover:bg-primary/10"
                       onClick={() => handlePipelineClick(pipeline)}
                       type="button"
                     >
@@ -389,7 +393,7 @@ export function AgentPresetSelector({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
-            className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
+            className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -404,7 +408,7 @@ export function AgentPresetSelector({
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button
-                className="px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                 onClick={handleCancel}
                 type="button"
               >
@@ -427,7 +431,7 @@ export function AgentPresetSelector({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
-            className="bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 flex flex-col gap-4"
+            className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -447,7 +451,7 @@ export function AgentPresetSelector({
             )}
             <div className="flex justify-end gap-3 mt-2">
               <button
-                className="px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                 onClick={handleCancel}
                 type="button"
               >

@@ -7,7 +7,7 @@ function Card({ className, ref, ...props }: React.HTMLAttributes<HTMLDivElement>
     <div
       ref={ref}
       className={cn(
-        "celestial-panel rounded-[1.25rem] border border-border/80 bg-card/85 text-card-foreground shadow-sm backdrop-blur-sm hover:shadow-md transition-all duration-200",
+        "celestial-panel rounded-[1.25rem] border border-border/80 bg-card/88 text-card-foreground shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md",
         className
       )}
       {...props}

@@ -116,7 +116,7 @@ export function AgentColumnCell({
 
       {/* Soft limit warning (T021) */}
       {agentCount > 10 && (
-        <div className="text-xs text-accent-foreground bg-accent/10 px-2 py-1 rounded-md text-center mt-1">
+        <div className="mt-1 rounded-md border border-amber-400/40 bg-amber-500/12 px-2 py-1 text-center text-xs font-medium text-amber-800 dark:text-amber-300">
           ⚠ {agentCount} agents assigned — consider reducing
         </div>
       )}

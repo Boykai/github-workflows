@@ -91,12 +91,12 @@ export function SavedWorkflowsList({
                     onSelect(pipeline.id);
                   }
                 }}
-                className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:shadow-md ${
+                className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
                   isActive
-                    ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20 shadow-sm'
+                    ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/20 shadow-sm'
                     : pipeline.is_preset
-                      ? 'border-border/60 bg-card/80 hover:border-primary/30'
-                      : 'border-border/60 bg-card/70 hover:border-primary/30'
+                      ? 'border-border/60 bg-card/88 hover:border-primary/30'
+                      : 'border-border/60 bg-card/82 hover:border-primary/30'
                 }`}
               >
                 {/* Header: name + badges */}
@@ -106,13 +106,13 @@ export function SavedWorkflowsList({
                   </h4>
                   <div className="flex items-center gap-1 shrink-0">
                     {isAssigned && (
-                      <span className="rounded-full bg-emerald-100/80 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 flex items-center gap-0.5">
+                      <span className="solar-chip-success inline-flex items-center gap-0.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
                         <CheckCircle2 className="h-2.5 w-2.5" />
                         Assigned
                       </span>
                     )}
                     {isActive && (
-                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary">
+                      <span className="solar-chip rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
                         Active
                       </span>
                     )}
@@ -139,7 +139,7 @@ export function SavedWorkflowsList({
                     {pipeline.stages.map((stage) => (
                       <span
                         key={stage.id}
-                        className="inline-flex items-center gap-1 rounded-md bg-muted/40 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                        className="solar-chip-soft inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium"
                       >
                         {stage.name}
                         <span className="font-medium text-foreground/70">
@@ -177,7 +177,7 @@ export function SavedWorkflowsList({
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onAssign(pipeline.id); }}
-                    className="mt-1 text-[10px] text-primary/70 hover:text-primary transition-colors"
+                    className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 transition-colors hover:text-primary"
                   >
                     Assign to Project
                   </button>

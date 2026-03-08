@@ -55,7 +55,7 @@ export function PipelineModelDropdown({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/30 disabled:opacity-50"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/68 px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
       >
         <span className="flex items-center gap-2 truncate">
           <Sparkles className="h-3.5 w-3.5 text-primary/60" />
@@ -65,7 +65,7 @@ export function PipelineModelDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-card/95 shadow-lg backdrop-blur-sm">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm">
           <div className="max-h-60 overflow-y-auto p-1">
             {/* Auto option */}
             <button
@@ -74,7 +74,7 @@ export function PipelineModelDropdown({
                 onModelChange({ mode: 'auto', modelId: '', modelName: '' });
                 setIsOpen(false);
               }}
-              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50 ${
+              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10 ${
                 currentOverride.mode === 'auto' ? 'bg-primary/10 text-primary' : ''
               }`}
             >
@@ -98,7 +98,7 @@ export function PipelineModelDropdown({
                       onModelChange({ mode: 'specific', modelId: model.id, modelName: model.name });
                       setIsOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent/50 ${
+                    className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10 ${
                       currentOverride.mode === 'specific' && currentOverride.modelId === model.id
                         ? 'bg-primary/10 text-primary'
                         : ''

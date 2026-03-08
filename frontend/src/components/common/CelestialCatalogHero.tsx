@@ -35,6 +35,7 @@ export function CelestialCatalogHero({
       )}
     >
       <div className="pointer-events-none absolute inset-0 opacity-90">
+        <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl" />
         <div className="celestial-orbit left-[54%] top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 border-primary/20" />
         <div className="celestial-orbit left-[54%] top-1/2 h-[17rem] w-[17rem] -translate-x-1/2 -translate-y-1/2 border-border/35" />
         <div className="celestial-orbit left-[54%] top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2 border-primary/25" />
@@ -87,7 +88,7 @@ export function CelestialCatalogHero({
 
         <div className="relative hidden min-h-[20rem] lg:block">
           <div className="hanging-stars absolute inset-x-6 top-0 h-28" />
-          <div className="absolute inset-x-3 bottom-0 top-12 rounded-[2rem] border border-border/70 bg-background/35 p-6 backdrop-blur-md">
+          <div className="absolute inset-x-3 bottom-0 top-12 rounded-[2rem] border border-border/70 bg-background/42 p-6 backdrop-blur-md">
             <div className="absolute inset-x-8 top-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <div className="absolute left-1/2 top-10 h-3 w-3 -translate-x-1/2 rounded-full bg-primary" />
             <div className="absolute left-10 top-16 h-14 w-14 rounded-full solar-halo" />

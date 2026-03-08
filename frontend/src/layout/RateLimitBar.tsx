@@ -45,14 +45,14 @@ export function RateLimitBar() {
 
   return (
     <div
-      className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/45 px-3 py-2 backdrop-blur-sm md:flex"
+      className="hidden items-center gap-2 rounded-full border border-border/70 bg-background/58 px-3 py-2 backdrop-blur-sm md:flex"
       title={tooltip ?? undefined}
       aria-label="GitHub API rate limit"
     >
       <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted-foreground/80">
         GitHub API
       </span>
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/80">
+      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/70">
         <div
           className={`h-full rounded-full transition-all duration-300 ${getRateLimitFillClass(usagePercent)}`}
           style={{ width: `${usagePercent}%` }}

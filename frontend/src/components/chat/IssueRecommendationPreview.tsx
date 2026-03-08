@@ -61,7 +61,7 @@ export function IssueRecommendationPreview({
   // Show success result
   if (result?.success) {
     return (
-      <div className="bg-green-100/80 border border-green-200 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400 rounded-lg p-4 mt-3 max-w-[600px]">
+      <div className="mt-3 max-w-[600px] rounded-lg border border-green-200 bg-green-100/80 p-4 text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl">✓</span>
           <h4 className="m-0 font-semibold">Issue Created Successfully</h4>
@@ -89,7 +89,7 @@ export function IssueRecommendationPreview({
   // Show partial success: issue created but workflow had errors (e.g., agent assignment failed)
   if (result && !result.success && result.issue_number) {
     return (
-      <div className="bg-accent/10 border border-accent/50 text-accent-foreground rounded-lg p-4 mt-3 max-w-[600px]">
+      <div className="mt-3 max-w-[600px] rounded-lg border border-primary/25 bg-primary/10 p-4 text-foreground">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl">⚠</span>
           <h4 className="m-0 font-semibold">Issue Created with Warnings</h4>
@@ -121,7 +121,7 @@ export function IssueRecommendationPreview({
   // Show rejected state
   if (recommendation.status === 'rejected') {
     return (
-      <div className="bg-destructive/10 text-destructive border border-destructive rounded-lg p-4 mt-3 max-w-[600px] opacity-70">
+      <div className="mt-3 max-w-[600px] rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive opacity-70">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xl ">✗</span>
           <h4 className="m-0 font-semibold">Recommendation Rejected</h4>
@@ -132,7 +132,7 @@ export function IssueRecommendationPreview({
   }
 
   return (
-    <div className="bg-muted/50 border border-border rounded-lg p-4 mt-3 max-w-[600px]">
+    <div className="mt-3 max-w-[600px] rounded-lg border border-border bg-background/58 p-4 shadow-sm">
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-border">
         <h4 className="m-0 text-base font-semibold text-foreground">📝 Issue Recommendation</h4>
         <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground capitalize">{recommendation.status}</span>
@@ -172,7 +172,7 @@ export function IssueRecommendationPreview({
       </div>
 
       {recommendation.metadata && (
-        <div className="bg-background rounded-lg p-3 mb-3">
+        <div className="mb-3 rounded-lg border border-border bg-background/72 p-3">
           <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">📊 Metadata</h5>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
@@ -183,7 +183,7 @@ export function IssueRecommendationPreview({
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Size</span>
-              <span className="inline-block px-2 py-0.5 bg-muted rounded text-xs font-medium w-fit">
+              <span className="inline-block w-fit rounded border border-border/60 bg-background/82 px-2 py-0.5 text-xs font-medium">
                 {recommendation.metadata.size || 'M'}
               </span>
             </div>

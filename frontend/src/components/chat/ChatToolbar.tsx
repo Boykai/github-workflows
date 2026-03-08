@@ -44,7 +44,7 @@ export function ChatToolbar({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
+    <div className="flex items-center justify-between border-b border-border bg-background/62 px-4 py-2">
       {/* Left section: AI Enhance toggle */}
       <button
         type="button"
@@ -52,7 +52,7 @@ export function ChatToolbar({
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border ${
           aiEnhance
             ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
-            : 'bg-muted text-muted-foreground border-border/50 hover:bg-muted/80 hover:border-border'
+            : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground'
         }`}
         aria-pressed={aiEnhance}
         aria-label={`AI Enhance ${aiEnhance ? 'on' : 'off'}`}
@@ -74,7 +74,7 @@ export function ChatToolbar({
         <button
           type="button"
           onClick={handleFileClick}
-          className="relative w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
           aria-label="Attach file"
         >
           <Paperclip className="w-4 h-4" />

@@ -33,7 +33,7 @@ function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
       Active
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted/50 text-muted-foreground">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/62 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
       <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
       Inactive
     </span>
@@ -52,7 +52,7 @@ function McpListItem({
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
+    <div className="flex items-center justify-between gap-4 rounded-[1rem] border border-border bg-background/46 p-4">
       <div className="flex flex-col gap-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">{mcp.name}</span>
@@ -90,7 +90,7 @@ function McpListItem({
           <button
             className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
               border border-border text-muted-foreground
-              hover:bg-muted hover:text-foreground transition-colors"
+              hover:bg-primary/10 hover:text-foreground transition-colors"
             onClick={() => setShowConfirm(false)}
             type="button"
           >
@@ -207,7 +207,7 @@ function AddMcpForm({
           }}
           placeholder="My MCP Server"
           maxLength={100}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
+          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
             focus:outline-none focus:ring-2 focus:ring-primary
             ${nameError ? 'border-destructive' : 'border-border'}`}
@@ -232,7 +232,7 @@ function AddMcpForm({
           }}
           placeholder="https://example.com/mcp"
           maxLength={2048}
-          className={`px-3 py-2 text-sm rounded-md border bg-background text-foreground
+          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
             focus:outline-none focus:ring-2 focus:ring-primary
             ${urlError ? 'border-destructive' : 'border-border'}`}
@@ -351,12 +351,12 @@ export function McpSettings() {
         description="Manage Model Context Protocol servers for your GitHub agents."
         hideSave
       >
-        <div className="flex flex-col gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-4">
+        <div className="flex flex-col gap-3 rounded-[1rem] border border-primary/20 bg-primary/10 p-4">
           <p className="text-sm text-yellow-700 dark:text-yellow-300">
             Your session has expired. Please sign in again.
           </p>
           <button
-            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md
+            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-full
               bg-primary text-primary-foreground shadow-sm
               hover:bg-primary/90 transition-colors w-fit"
             onClick={handleLogin}
@@ -411,14 +411,14 @@ export function McpSettings() {
     >
       {/* Success Message */}
       {successMessage && (
-        <div className="rounded-md border border-green-500/30 bg-green-500/10 p-3">
+        <div className="rounded-[1rem] border border-green-500/30 bg-green-500/10 p-3">
           <p className="text-sm text-green-700 dark:text-green-400">{successMessage}</p>
         </div>
       )}
 
       {/* Delete Error */}
       {deleteError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
+        <div className="rounded-[1rem] border border-destructive/30 bg-destructive/10 p-3">
           <p className="text-sm text-destructive">
             {getDeleteErrorMessage()}
           </p>
@@ -427,7 +427,7 @@ export function McpSettings() {
 
       {/* MCP List */}
       {mcps.length === 0 ? (
-        <div className="rounded-md border border-border bg-muted/30 p-6 text-center">
+        <div className="rounded-[1rem] border border-border bg-background/40 p-6 text-center">
           <p className="text-sm text-muted-foreground">
             No MCPs configured yet. Add one to get started.
           </p>

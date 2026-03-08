@@ -49,7 +49,7 @@ export function VoiceInputButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-muted ${
+      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-primary/10 ${
         error ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'
       }`}
       aria-label="Start voice input"

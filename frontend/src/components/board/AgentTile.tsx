@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { User } from 'lucide-react';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 
@@ -30,9 +30,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
   const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = formatAgentName(agent.slug, agent.display_name);
-  const metadata = availableAgents?.find((a) => a.slug.toLowerCase() === agent.slug.toLowerCase());
-  const avatarLetter = displayName.charAt(0).toUpperCase();
-  const isHuman = agent.slug === 'human';
+  const metadata = availableAgents?.find((a) => a.slug === agent.slug);
 
   // Build metadata line: model · N tools
   const metaParts: string[] = [];
@@ -53,7 +51,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`flex flex-col bg-card border rounded-md shadow-sm transition-all ${isWarning ? 'border-accent/50 bg-accent/5' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
+      className={`flex flex-col rounded-md border bg-card shadow-sm transition-all ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
       aria-roledescription="sortable agent"
@@ -67,15 +65,7 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
         )}
 
         {/* Avatar */}
-        <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium shrink-0 overflow-hidden ${isHuman ? 'bg-violet-500/15 text-violet-600 dark:text-violet-400' : 'bg-primary/10 text-primary'}`} title={agent.slug}>
-          {isHuman ? (
-            <User className="w-3.5 h-3.5" />
-          ) : metadata?.avatar_url ? (
-            <img src={metadata.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-          ) : (
-            avatarLetter
-          )}
-        </span>
+        <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={metadata?.avatar_url} iconName={metadata?.icon_name} size="sm" title={agent.slug} />
 
         {/* Name and metadata */}
         <div className="flex-1 min-w-0">
@@ -89,14 +79,14 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
 
         {/* Warning badge (T032) */}
         {isWarning && (
-          <span className="text-accent-foreground text-xs font-bold px-1" title="Agent not found in available agents">
+          <span className="rounded-md border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300" title="Agent not found in available agents">
             ⚠
           </span>
         )}
 
         {/* Expand toggle (T029) */}
         <button
-          className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse' : 'Expand'}
           type="button"
@@ -119,10 +109,10 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
 
       {/* Expanded detail (T029) */}
       {isExpanded && (
-        <div className="flex flex-col gap-1.5 p-3 pt-0 text-xs border-t border-border/50 mt-1 bg-muted/30 rounded-b-md">
+        <div className="mt-1 flex flex-col gap-1.5 rounded-b-md border-t border-border/50 bg-background/46 p-3 pt-0 text-xs">
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-muted-foreground font-medium min-w-[70px]">Slug:</span>
-            <code className="px-1.5 py-0.5 bg-background rounded border border-border text-[10px] font-mono break-all">{agent.slug}</code>
+            <code className="solar-chip-soft rounded border px-1.5 py-0.5 text-[10px] font-mono break-all">{agent.slug}</code>
           </div>
           {metadata?.source && (
             <div className="flex items-baseline gap-2">

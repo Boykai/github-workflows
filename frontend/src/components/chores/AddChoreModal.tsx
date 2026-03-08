@@ -191,11 +191,11 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           onClick={handleCancel}
           role="presentation"
         />
-        <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl">
+        <div className="celestial-panel relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
             <button
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
               onClick={handleCancel}
               aria-label="Close"
             >
@@ -228,11 +228,11 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
       />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-lg mx-4 rounded-lg border border-border bg-background shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="celestial-panel relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">Add Chore</h3>
           <button
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
             onClick={handleCancel}
             aria-label="Close"
           >
@@ -253,7 +253,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
                     key={tpl.path}
                     type="button"
                     onClick={() => handleSelectTemplate(tpl)}
-                    className="px-2.5 py-1.5 text-xs font-medium rounded-md border border-input bg-muted/30 hover:bg-accent hover:border-primary/40 transition-colors text-left"
+                    className="rounded-md border border-input bg-background/56 px-2.5 py-1.5 text-left text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/10"
                     title={tpl.about || tpl.name}
                   >
                     📋 {tpl.name}
@@ -277,7 +277,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Bug Bash, Dependency Update"
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               maxLength={200}
               // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
@@ -295,7 +295,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               onChange={(e) => setTemplateContent(e.target.value)}
               placeholder="Enter detailed markdown content or a brief description to start a guided chat..."
               rows={10}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[120px]"
+              className="flex w-full rounded-md border border-input bg-background/72 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-y min-h-[120px]"
             />
             <p className="text-xs text-muted-foreground">
               Brief descriptions start a guided chat; detailed markdown creates the chore directly
@@ -349,7 +349,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
             <button
               type="button"
               onClick={handleCancel}
-              className="px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent transition-colors"
+              className="rounded-full border border-input bg-background/72 px-3 py-1.5 text-sm font-medium transition-colors hover:bg-primary/10"
             >
               Cancel
             </button>

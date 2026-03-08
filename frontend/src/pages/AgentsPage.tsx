@@ -31,7 +31,7 @@ export function AgentsPage() {
   }, {});
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
       <CelestialCatalogHero
         eyebrow="Celestial Catalog"
         title="Shape your agent constellation."
@@ -58,7 +58,7 @@ export function AgentsPage() {
 
       {/* No project selected */}
       {!projectId && (
-        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+        <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">🤖</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
           <p className="text-muted-foreground">Choose a project from the sidebar to manage its agents</p>
@@ -105,14 +105,14 @@ export function AgentsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                           <span className="text-sm font-medium">{col.status.name}</span>
-                          <span className="rounded-full bg-background/60 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                          <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
                             {assigned.length} mapped
                           </span>
                         </div>
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {assigned.map((a) => (
-                              <span key={a.id} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-primary">
+                              <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
                                 {a.display_name ?? a.slug}
                               </span>
                             ))}

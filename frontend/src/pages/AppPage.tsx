@@ -29,7 +29,7 @@ export function AppPage() {
               Change your project mindset.
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
-              Move across projects, pipelines, chores, and agent operations inside a shell that feels more like a ritual workspace than a utility dashboard.
+              Move across projects, pipelines, chores, and agent operations inside a shell that feels sunlit by day, lunar by night, and quieter than a typical utility dashboard.
             </p>
           </div>
 
@@ -48,7 +48,7 @@ export function AppPage() {
                     Keep the active path bright and let the rest of the board fall quiet.
                   </p>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                    The shell, navigation, and calls to action now carry more of the illustrated Sun & Moon tension without crowding the app’s real work.
+                    The shell, navigation, and calls to action now carry more solar lift in light mode without crowding the app’s real work.
                   </p>
                 </div>
                 <div className="hidden shrink-0 rounded-full border border-primary/25 bg-primary/10 px-4 py-2 text-[11px] uppercase tracking-[0.28em] text-primary md:block">
@@ -60,6 +60,7 @@ export function AppPage() {
         </section>
 
         <div className="relative mx-auto flex h-[32rem] w-full max-w-[32rem] items-center justify-center">
+          <div className="absolute inset-x-10 top-10 h-24 rounded-full bg-primary/10 blur-3xl" />
           <div className="hanging-stars absolute inset-x-8 top-0 hidden h-28 lg:block" />
           <div className="celestial-orbit inset-5" />
           <div className="celestial-orbit inset-14 border-primary/20" />
@@ -84,7 +85,7 @@ export function AppPage() {
                 <button
                   key={link.path}
                   onClick={() => navigate(link.path)}
-                  className="rounded-[1.25rem] border border-border/70 bg-background/50 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/35 hover:shadow-md"
+                  className="rounded-[1.25rem] border border-border/70 bg-background/55 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/10 hover:shadow-md"
                 >
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/12 text-primary">
                     <link.icon className="h-5 w-5" />

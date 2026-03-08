@@ -82,7 +82,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-40 rounded-[1.4rem] border border-border bg-muted/30 animate-pulse"
+              className="h-40 rounded-[1.4rem] border border-border bg-background/40 animate-pulse"
             />
           ))}
         </div>
@@ -98,7 +98,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
 
       {/* Empty state */}
       {!isLoading && !error && tools.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-muted/10 p-8 text-center">
+        <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
           <Wrench className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-lg font-medium text-foreground">No MCP tools configured yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
@@ -134,7 +134,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           </div>
 
           {filteredTools.length === 0 ? (
-            <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/35 p-8 text-center">
+            <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-8 text-center">
               <p className="text-sm text-muted-foreground">No tools match the current filters.</p>
               <Button variant="ghost" className="mt-3" onClick={() => setSearch('')}>
                 Reset filters
@@ -175,7 +175,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
             </p>
             <div className="flex justify-end gap-2">
               <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+                className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 onClick={() => setDeleteConfirmId(null)}
               >
                 Cancel

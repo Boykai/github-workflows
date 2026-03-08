@@ -13,7 +13,7 @@ export function SystemMessage({ message }: SystemMessageProps) {
   return (
     <div className="flex max-w-[90%] self-start">
       <div className="flex flex-col gap-1 w-full">
-        <div className="px-4 py-3 rounded-xl bg-muted/50 border border-border text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+        <div className="rounded-xl border border-border bg-background/56 px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed">
           {message.content}
         </div>
         <time className="text-[11px] text-muted-foreground px-1">

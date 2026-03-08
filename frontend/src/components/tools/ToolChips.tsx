@@ -17,7 +17,7 @@ export function ToolChips({ tools, onRemove, onAddClick }: ToolChipsProps) {
       {tools.map((tool) => (
         <span
           key={tool.id}
-          className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+          className="solar-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
           title={tool.description}
         >
           <Wrench className="h-3 w-3" />
@@ -35,7 +35,7 @@ export function ToolChips({ tools, onRemove, onAddClick }: ToolChipsProps) {
       <button
         type="button"
         onClick={onAddClick}
-        className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+        className="inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-background/72 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
       >
         <Wrench className="h-3 w-3" />
         {tools.length === 0 ? 'Add Tools' : '+ Add more'}

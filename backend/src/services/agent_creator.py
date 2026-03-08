@@ -1008,7 +1008,9 @@ def generate_config_files(preview: AgentPreview) -> list[dict]:
     # Build YAML frontmatter using yaml.dump for safe serialization —
     # avoids breakage when description/tool IDs contain YAML-special
     # characters like ':', '#', quotes, or newlines.
-    frontmatter_data: dict[str, object] = {"description": preview.description}
+    frontmatter_data: dict[str, object] = {"name": preview.name, "description": preview.description}
+    if preview.icon_name:
+        frontmatter_data["icon"] = preview.icon_name
     if preview.tools:
         frontmatter_data["tools"] = list(preview.tools)
     frontmatter = yaml.dump(frontmatter_data, default_flow_style=False, sort_keys=False).rstrip(

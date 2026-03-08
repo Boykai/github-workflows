@@ -43,7 +43,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
+        className="celestial-panel relative m-4 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
         role="dialog"
         aria-modal="true"
         aria-label="Confirm Repository Cleanup"
@@ -53,7 +53,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
           <h2 className="text-lg font-semibold">Confirm Repository Cleanup</h2>
           <button
             onClick={onCancel}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
             aria-label="Close"
           >
             ✕
@@ -159,7 +159,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         )}
 
         {!hasItemsToDelete && (
-          <div className="p-4 rounded bg-muted/50 text-center text-sm text-muted-foreground mb-4">
+          <div className="mb-4 rounded-[1rem] border border-border bg-background/48 p-4 text-center text-sm text-muted-foreground">
             No stale branches or pull requests found. Nothing to clean up.
           </div>
         )}
@@ -173,7 +173,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="rounded-full border border-input bg-background/72 px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/10"
           >
             Cancel
           </button>

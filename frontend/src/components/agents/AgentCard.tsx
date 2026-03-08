@@ -3,12 +3,14 @@
  * status badge, and action buttons (delete, edit).
  */
 
+import { useState } from 'react';
 import type { AgentConfig, AgentStatus } from '@/services/api';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { AgentIconPickerModal } from '@/components/agents/AgentIconPickerModal';
 import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ModelSelector } from '@/components/pipeline/ModelSelector';
-import { AgentAvatar } from './AgentAvatar';
 import { cn } from '@/lib/utils';
 
 interface AgentCardProps {
@@ -24,16 +26,15 @@ interface AgentCardProps {
 const STATUS_BADGE: Record<AgentStatus, { label: string; className: string }> = {
   active: {
     label: 'Active',
-    className: 'bg-green-100/80 text-green-800 dark:bg-green-900/40 dark:text-green-400',
+    className: 'solar-chip-success',
   },
   pending_pr: {
     label: 'Pending PR',
-    className: 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground',
+    className: 'solar-chip-violet',
   },
   pending_deletion: {
     label: 'Pending Deletion',
-    className:
-      'bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive-foreground',
+    className: 'solar-chip-danger',
   },
 };
 
@@ -46,6 +47,7 @@ export function AgentCard({
   repoName,
   fullRepoName,
 }: AgentCardProps) {
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const deleteMutation = useDeleteAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
@@ -86,14 +88,24 @@ export function AgentCard({
     });
   };
 
+  const handleIconSave = async (iconName: string | null) => {
+    await updateMutation.mutateAsync({
+      agentId: agent.id,
+      data: {
+        icon_name: iconName,
+      },
+    });
+    setIsIconPickerOpen(false);
+  };
+
   return (
     <Card
       className={cn(
         'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
-        isSpotlight && 'border-primary/20 bg-background/55'
+        isSpotlight && 'border-primary/20 bg-background/62'
       )}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.18),_transparent_72%)] opacity-90" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.22),_transparent_72%)] opacity-90" />
       <CardContent
         className={cn(
           'relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5',
@@ -101,16 +113,27 @@ export function AgentCard({
         )}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <AgentAvatar slug={agent.slug} size={isSpotlight ? 'lg' : 'md'} />
+          <div className="flex min-w-0 items-start gap-3">
+            <button
+              type="button"
+              className="rounded-[1rem] transition-transform hover:-translate-y-0.5"
+              onClick={() => setIsIconPickerOpen(true)}
+              title="Choose icon"
+            >
+              <ThemedAgentIcon
+                slug={agent.slug}
+                iconName={agent.icon_name}
+                name={agent.name}
+                size="lg"
+                className="mt-0.5"
+              />
+            </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-border/70 bg-background/60 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
                   {sourceLabel}
                 </span>
-                <span
-                  className={`px-2 py-1 text-[10px] font-medium rounded-full shrink-0 ${badge.className}`}
-                >
+                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shrink-0 shadow-sm ${badge.className}`}>
                   {badge.label}
                 </span>
                 {repoName && (
@@ -134,10 +157,10 @@ export function AgentCard({
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <span className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
+            <span className="solar-chip rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
               {usageLabel}
             </span>
-            <span className="rounded-full border border-border/70 bg-background/55 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
               {agent.tools.length} tools
             </span>
           </div>
@@ -157,15 +180,12 @@ export function AgentCard({
         {agent.tools.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {agent.tools.slice(0, isSpotlight ? 5 : 4).map((tool) => (
-              <span
-                key={tool}
-                className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground"
-              >
+              <span key={tool} className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-medium">
                 {tool}
               </span>
             ))}
             {agent.tools.length > (isSpotlight ? 5 : 4) && (
-              <span className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] text-muted-foreground">
+              <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-medium">
                 +{agent.tools.length - (isSpotlight ? 5 : 4)} more
               </span>
             )}
@@ -211,6 +231,9 @@ export function AgentCard({
         </div>
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => setIsIconPickerOpen(true)} disabled={updateMutation.isPending}>
+            Icon
+          </Button>
           {onEdit && !isRepoOnly && !isPendingDeletion && (
             <Button variant="outline" size="sm" onClick={() => onEdit(agent)}>
               Edit
@@ -220,7 +243,7 @@ export function AgentCard({
             <Button
               variant="ghost"
               size="sm"
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="solar-action-danger"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
@@ -257,6 +280,16 @@ export function AgentCard({
           </div>
         )}
       </CardContent>
+
+      <AgentIconPickerModal
+        isOpen={isIconPickerOpen}
+        agentName={agent.name}
+        slug={agent.slug}
+        currentIconName={agent.icon_name}
+        isSaving={updateMutation.isPending}
+        onClose={() => setIsIconPickerOpen(false)}
+        onSave={handleIconSave}
+      />
     </Card>
   );
 }

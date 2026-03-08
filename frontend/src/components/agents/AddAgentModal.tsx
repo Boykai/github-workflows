@@ -4,23 +4,17 @@
  * Simplified UX: only Name + System Prompt fields.
  * AI auto-generates description and tools from the prompt content.
  * "Raw content" toggle bypasses AI and uses exact text as-is.
- *
- * Enhanced with:
- * - Dirty-state tracking (isDirty) in edit mode
- * - Persistent unsaved-changes banner
- * - Close guard (confirmation dialog on close/Escape when dirty)
- * - beforeunload guard
- * - PR link notification on successful save
- * - Integrated ToolsEditor for add/remove/reorder
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
-import { useToolsList } from '@/hooks/useTools';
+import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
+import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
 import { ToolChips } from '@/components/tools/ToolChips';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
-import { ToolsEditor } from './ToolsEditor';
+import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
+import { useToolsList } from '@/hooks/useTools';
 import type { AgentConfig } from '@/services/api';
+import { ToolsEditor } from './ToolsEditor';
 
 interface AddAgentModalProps {
   projectId: string;
@@ -41,6 +35,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   const [toolsError, setToolsError] = useState<string | null>(null);
   const [successPrUrl, setSuccessPrUrl] = useState<string | null>(null);
   const [selectedToolIds, setSelectedToolIds] = useState<string[]>([]);
+  const [selectedIconName, setSelectedIconName] = useState<CelestialIconName | null>(null);
   const [showToolSelector, setShowToolSelector] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showEditToolSelector, setShowEditToolSelector] = useState(false);
@@ -49,23 +44,22 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
   const updateMutation = useUpdateAgent(projectId);
   const { tools: availableTools } = useToolsList(projectId);
 
-  // Snapshot of original values for dirty comparison (edit mode only)
   const [snapshot, setSnapshot] = useState<{
     name: string;
     systemPrompt: string;
     tools: string[];
+    iconName: CelestialIconName | null;
   } | null>(null);
 
-  // Compute dirty state
   const isDirty = useMemo(() => {
     if (!isEditMode || !snapshot) return false;
     if (name !== snapshot.name) return true;
     if (systemPrompt !== snapshot.systemPrompt) return true;
+    if (selectedIconName !== snapshot.iconName) return true;
     if (selectedToolIds.length !== snapshot.tools.length) return true;
-    return selectedToolIds.some((id, i) => id !== snapshot.tools[i]);
-  }, [isEditMode, snapshot, name, systemPrompt, selectedToolIds]);
+    return selectedToolIds.some((id, index) => id !== snapshot.tools[index]);
+  }, [isEditMode, name, selectedIconName, selectedToolIds, snapshot, systemPrompt]);
 
-  // Clear tools error when tools become non-empty
   useEffect(() => {
     if (selectedToolIds.length > 0 && toolsError) {
       setToolsError(null);
@@ -80,6 +74,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     setToolsError(null);
     setSuccessPrUrl(null);
     setSelectedToolIds([]);
+    setSelectedIconName(null);
     setSnapshot(null);
     setShowCloseConfirm(false);
     setShowToolSelector(false);
@@ -87,8 +82,43 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     onClose();
   }, [onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setError(null);
+    setToolsError(null);
+    setSuccessPrUrl(null);
+    setShowCloseConfirm(false);
+    setShowToolSelector(false);
+    setShowEditToolSelector(false);
+
+    if (editAgent) {
+      const nextIcon = isCelestialIconName(editAgent.icon_name) ? editAgent.icon_name : null;
+      const nextTools = [...(editAgent.tools ?? [])];
+      setName(editAgent.name);
+      setSystemPrompt(editAgent.system_prompt || '');
+      setSelectedToolIds(nextTools);
+      setSelectedIconName(nextIcon);
+      setSnapshot({
+        name: editAgent.name,
+        systemPrompt: editAgent.system_prompt || '',
+        tools: nextTools,
+        iconName: nextIcon,
+      });
+      return;
+    }
+
+    setName('');
+    setSystemPrompt('');
+    setAiEnhance(true);
+    setSelectedToolIds([]);
+    setSelectedIconName(null);
+    setSnapshot(null);
+  }, [editAgent, isOpen]);
+
   const handleSave = useCallback(async () => {
     setError(null);
+    setToolsError(null);
 
     const trimmedName = name.trim();
     const trimmedPrompt = systemPrompt.trim();
@@ -122,22 +152,31 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             name: trimmedName,
             system_prompt: trimmedPrompt,
             tools: selectedToolIds,
+            ...(selectedIconName !== null || editAgent.icon_name != null
+              ? { icon_name: selectedIconName }
+              : {}),
           },
         });
         setSuccessPrUrl(result.pr_url);
+        setSnapshot({
+          name: trimmedName,
+          systemPrompt: trimmedPrompt,
+          tools: [...selectedToolIds],
+          iconName: selectedIconName,
+        });
       } else {
         const result = await createMutation.mutateAsync({
           name: trimmedName,
           system_prompt: trimmedPrompt,
           tools: selectedToolIds,
+          icon_name: selectedIconName,
           raw: !aiEnhance,
         });
         setSuccessPrUrl(result.pr_url);
       }
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save agent';
-      setError(message);
+      setError(err instanceof Error ? err.message : 'Failed to save agent');
       return false;
     }
   }, [
@@ -146,105 +185,100 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     editAgent,
     isEditMode,
     name,
+    selectedIconName,
     selectedToolIds,
     systemPrompt,
     updateMutation,
   ]);
 
-  // Pre-populate fields in edit mode + snapshot
-  useEffect(() => {
-    if (isOpen && editAgent) {
-      setName(editAgent.name);
-      setSystemPrompt(editAgent.system_prompt || '');
-      setSelectedToolIds(editAgent.tools ?? []);
-      setSnapshot({
-        name: editAgent.name,
-        systemPrompt: editAgent.system_prompt || '',
-        tools: [...(editAgent.tools ?? [])],
-      });
-    }
-  }, [isOpen, editAgent]);
-
-  // Close guard — intercept close when dirty
   const handleRequestClose = useCallback(() => {
     if (isDirty) {
       setShowCloseConfirm(true);
-    } else {
-      resetAndClose();
+      return;
     }
+    resetAndClose();
   }, [isDirty, resetAndClose]);
 
-  // Escape key handler
   useEffect(() => {
     if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (e.defaultPrevented || showToolSelector || showEditToolSelector || showCloseConfirm) {
-          return;
-        }
-        handleRequestClose();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (event.defaultPrevented || showToolSelector || showEditToolSelector || showCloseConfirm) {
+        return;
       }
+      handleRequestClose();
     };
+
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleRequestClose, showToolSelector, showEditToolSelector, showCloseConfirm]);
+  }, [handleRequestClose, isOpen, showCloseConfirm, showEditToolSelector, showToolSelector]);
 
-  // beforeunload guard
   useEffect(() => {
     if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
     };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  const selectedTools = selectedToolIds.map((id) => {
+    const tool = availableTools.find((availableTool) => availableTool.id === id);
+    return {
+      id,
+      name: tool?.name ?? id,
+      description: tool?.description ?? '',
+    };
+  });
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     await handleSave();
   };
 
-  const isPending = createMutation.isPending || updateMutation.isPending;
-
-  // Close confirmation dialog
   if (showCloseConfirm) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4"
         role="dialog"
         aria-modal="true"
         aria-label="Unsaved changes confirmation"
       >
         <div
-          className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-sm"
+          className="celestial-panel w-full max-w-sm rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
-          <h3 className="text-lg font-semibold mb-2">Unsaved Changes</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+          <h3 className="text-lg font-semibold">Unsaved Changes</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
             You have unsaved changes. What would you like to do?
           </p>
-          <div className="flex justify-end gap-2">
+          <div className="mt-6 flex justify-end gap-2">
             <button
               type="button"
-              className="px-3 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+              className="solar-action rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setShowCloseConfirm(false)}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="px-3 py-2 text-sm font-medium rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20"
+              className="rounded-full bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
               onClick={resetAndClose}
             >
               Discard
             </button>
             <button
               type="button"
-              className="px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              className="rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               onClick={async () => {
                 setShowCloseConfirm(false);
                 await handleSave();
@@ -258,24 +292,23 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     );
   }
 
-  // Success state
   if (successPrUrl) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4"
         role="presentation"
         onClick={resetAndClose}
       >
         <div
-          className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md"
+          className="celestial-panel w-full max-w-md rounded-[1.6rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
           <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-3xl">✅</span>
-            <h3 className="text-lg font-semibold">
-              {isEditMode ? 'Agent Updated' : 'Agent Created'}
-            </h3>
+            <span className="text-3xl" aria-hidden="true">
+              ✓
+            </span>
+            <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
             <p className="text-sm text-muted-foreground">
               A pull request has been opened with the agent configuration files. It will appear in
               the catalog after merge to main.
@@ -284,12 +317,13 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
               href={successPrUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline"
+              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
             >
               View Pull Request →
             </a>
             <button
-              className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+              type="button"
+              className="mt-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               onClick={resetAndClose}
             >
               Close
@@ -300,147 +334,177 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     );
   }
 
-  // Form
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 px-4 py-6"
       role="presentation"
       onClick={handleRequestClose}
     >
       <div
-        className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto"
+        className="celestial-panel relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
         role="presentation"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold mb-4">{isEditMode ? 'Edit Agent' : 'Add Agent'}</h2>
-
-        {/* Unsaved changes banner */}
-        {isDirty && (
-          <div className="mb-4 rounded-md border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
-            ⚠️ You have unsaved changes
-          </div>
-        )}
-
-        <form id="agent-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Name */}
-          <div>
-            <label htmlFor="agent-name" className="block text-sm font-medium mb-1">
-              Name
-            </label>
-            <input
-              id="agent-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Security Reviewer"
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background"
-              maxLength={100}
-            />
-          </div>
-
-          {/* System Prompt */}
-          <div>
-            <label htmlFor="agent-system-prompt" className="block text-sm font-medium mb-1">
-              System Prompt
-              <span className="text-muted-foreground font-normal ml-2">
-                {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
-              </span>
-            </label>
-            <textarea
-              id="agent-system-prompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Detailed instructions for the agent's behavior..."
-              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background min-h-[200px] resize-y font-mono text-xs leading-relaxed"
-              maxLength={MAX_PROMPT_LENGTH}
-            />
-          </div>
-
-          {/* Tools section */}
-          <div>
-            <span className="block text-sm font-medium mb-1">MCP Tools</span>
-            {isEditMode ? (
-              <ToolsEditor
-                tools={selectedToolIds}
-                onToolsChange={setSelectedToolIds}
-                error={toolsError ?? undefined}
-                projectId={projectId}
-                onSelectorOpenChange={setShowEditToolSelector}
-              />
-            ) : (
-              <ToolChips
-                tools={selectedToolIds.map((id) => {
-                  const t = availableTools.find((tool) => tool.id === id);
-                  return { id, name: t?.name ?? id, description: t?.description ?? '' };
-                })}
-                onRemove={(id) => setSelectedToolIds((prev) => prev.filter((tid) => tid !== id))}
-                onAddClick={() => setShowToolSelector(true)}
-              />
-            )}
-          </div>
-
-          {/* Raw content toggle */}
-          {!isEditMode && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={aiEnhance}
-                onClick={() => setAiEnhance(!aiEnhance)}
-                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                  aiEnhance ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
-                    aiEnhance ? 'translate-x-4' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-              <span className="text-xs text-muted-foreground">
-                AI Enhance
-                <span className="ml-1 text-[10px]">
-                  {aiEnhance
-                    ? '— AI generates description, tools & enhances your prompt'
-                    : '— uses exact text as-is, no AI enhancement'}
-                </span>
-              </span>
+        <div className="border-b border-border/70 px-6 py-5">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+            {isEditMode ? 'Refine Agent' : 'Create Agent'}
+          </p>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl font-medium">
+                {isEditMode ? 'Edit Agent' : 'Add Agent'}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Define the agent prompt, assign tools, and optionally choose a dedicated celestial
+                icon.
+              </p>
             </div>
-          )}
-
-          {/* Status indicator */}
-          {isPending && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              {aiEnhance ? 'AI is enhancing & creating files...' : 'Creating agent files...'}
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-2">{error}</div>
-          )}
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2">
             <button
               type="button"
-              className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
               onClick={handleRequestClose}
+              className="rounded-full border border-border/70 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              aria-label="Close"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              disabled={isPending}
-            >
-              {isPending ? 'Saving…' : isEditMode ? 'Update Agent' : 'Create Agent'}
+              Close
             </button>
           </div>
-        </form>
+        </div>
 
-        {/* Tool Selector Modal (create mode only) */}
+        <div className="overflow-y-auto px-6 py-5">
+          {isDirty && (
+            <div className="mb-4 rounded-[1rem] border border-amber-300/60 bg-amber-50/80 p-3 text-sm text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-200">
+              You have unsaved changes.
+            </div>
+          )}
+
+          <form id="agent-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div>
+              <label htmlFor="agent-name" className="mb-1.5 block text-sm font-medium">
+                Name
+              </label>
+              <input
+                id="agent-name"
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="e.g., Security Reviewer"
+                className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
+                maxLength={100}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="agent-system-prompt" className="mb-1.5 block text-sm font-medium">
+                System Prompt
+                <span className="ml-2 font-normal text-muted-foreground">
+                  {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
+                </span>
+              </label>
+              <textarea
+                id="agent-system-prompt"
+                value={systemPrompt}
+                onChange={(event) => setSystemPrompt(event.target.value)}
+                placeholder="Detailed instructions for the agent's behavior..."
+                className="min-h-[220px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
+                maxLength={MAX_PROMPT_LENGTH}
+              />
+            </div>
+
+            <div>
+              <span className="mb-2 block text-sm font-medium">Celestial Icon</span>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Choose a specific celestial icon, or leave it on automatic to use the diversified
+                slug-based mapping for this agent.
+              </p>
+              <AgentIconCatalog
+                slug={isEditMode ? editAgent?.slug : name}
+                agentName={name || 'New Agent'}
+                selectedIconName={selectedIconName}
+                onSelect={setSelectedIconName}
+              />
+            </div>
+
+            <div>
+              <span className="mb-1 block text-sm font-medium">MCP Tools</span>
+              {isEditMode ? (
+                <ToolsEditor
+                  tools={selectedToolIds}
+                  onToolsChange={setSelectedToolIds}
+                  error={toolsError ?? undefined}
+                  projectId={projectId}
+                  onSelectorOpenChange={setShowEditToolSelector}
+                />
+              ) : (
+                <ToolChips
+                  tools={selectedTools}
+                  onRemove={(id) =>
+                    setSelectedToolIds((previous) => previous.filter((toolId) => toolId !== id))
+                  }
+                  onAddClick={() => setShowToolSelector(true)}
+                />
+              )}
+            </div>
+
+            {!isEditMode && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={aiEnhance}
+                  onClick={() => setAiEnhance((previous) => !previous)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                    aiEnhance ? 'bg-primary' : 'bg-muted'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
+                      aiEnhance ? 'translate-x-4' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  AI Enhance
+                  <span className="ml-1 text-[10px]">
+                    {aiEnhance
+                      ? '— AI generates description, tools & enhances your prompt'
+                      : '— uses exact text as-is, no AI enhancement'}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            {isPending && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                {aiEnhance ? 'AI is enhancing and creating files...' : 'Creating agent files...'}
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-[1rem] bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                onClick={handleRequestClose}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                disabled={isPending}
+              >
+                {isPending ? 'Saving…' : isEditMode ? 'Update Agent' : 'Create Agent'}
+              </button>
+            </div>
+          </form>
+        </div>
+
         {!isEditMode && (
           <ToolSelectorModal
             isOpen={showToolSelector}

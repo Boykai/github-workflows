@@ -193,13 +193,20 @@ class TestListAgents:
             mock_agents_service.list_agents = AsyncMock(
                 return_value=[MagicMock(slug="repo-agent", tools=["tool-a", "tool-b"])]
             )
-            mock_agents_service.get_model_preferences = AsyncMock(
-                return_value={"repo-agent": ("model-1", "GPT-5.4")}
+            mock_agents_service.get_agent_preferences = AsyncMock(
+                return_value={
+                    "repo-agent": {
+                        "default_model_id": "model-1",
+                        "default_model_name": "GPT-5.4",
+                        "icon_name": "nova",
+                    }
+                }
             )
             resp = await client.get("/api/v1/workflow/agents")
         assert resp.status_code == 200
         assert "agents" in resp.json()
         assert resp.json()["agents"][0]["default_model_name"] == "GPT-5.4"
+        assert resp.json()["agents"][0]["icon_name"] == "nova"
         assert resp.json()["agents"][0]["tools_count"] == 2
 
     async def test_no_project(self, client, mock_session):

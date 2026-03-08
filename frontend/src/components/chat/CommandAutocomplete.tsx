@@ -46,7 +46,7 @@ export function CommandAutocomplete({
         aria-label="Command suggestions"
         aria-activedescendant={activeId}
         tabIndex={-1}
-        className="bg-background border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto py-1"
+        className="max-h-60 overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-lg backdrop-blur-sm"
       >
         {commands.map((cmd, index) => (
           <li
@@ -57,7 +57,7 @@ export function CommandAutocomplete({
             className={`px-3 py-2 cursor-pointer flex items-center gap-2 text-sm transition-colors ${
               index === highlightedIndex
                 ? 'bg-primary/10 text-foreground'
-                : 'text-foreground hover:bg-muted'
+                : 'text-foreground hover:bg-primary/10'
             }`}
             onMouseDown={(e) => {
               e.preventDefault();
