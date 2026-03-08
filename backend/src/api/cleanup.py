@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query
 from src.api.auth import get_session_dep
 from src.dependencies import get_database, get_github_service
 from src.exceptions import AppException, GitHubAPIError
+from src.logging_utils import handle_service_error
 from src.models.cleanup import (
     CleanupExecuteRequest,
     CleanupExecuteResponse,
@@ -46,10 +47,7 @@ async def cleanup_preflight(
             request,
         )
     except Exception as e:
-        logger.error("Cleanup preflight failed: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to perform cleanup preflight",
-        ) from e
+        handle_service_error(e, "perform cleanup preflight", GitHubAPIError)
 
 
 @router.post("/execute", response_model=CleanupExecuteResponse)
@@ -97,10 +95,7 @@ async def cleanup_execute(
     except AppException:
         raise
     except Exception as e:
-        logger.error("Cleanup execution failed: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Cleanup operation failed",
-        ) from e
+        handle_service_error(e, "execute cleanup operation", GitHubAPIError)
 
 
 @router.get("/history", response_model=CleanupHistoryResponse)
@@ -117,7 +112,4 @@ async def cleanup_history(
             db, session.github_user_id, owner, repo, limit
         )
     except Exception as e:
-        logger.error("Failed to fetch cleanup history: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to fetch cleanup history",
-        ) from e
+        handle_service_error(e, "fetch cleanup history", GitHubAPIError)

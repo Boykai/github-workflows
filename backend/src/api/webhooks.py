@@ -6,9 +6,10 @@ import logging
 import re
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi import APIRouter, Header, Request
 
 from src.config import get_settings
+from src.exceptions import AuthenticationError, ValidationError
 from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
@@ -219,16 +220,10 @@ async def github_webhook(
     if settings.github_webhook_secret:
         if not verify_webhook_signature(body, x_hub_signature_256, settings.github_webhook_secret):
             logger.warning("Invalid webhook signature")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or missing webhook signature",
-            )
+            raise AuthenticationError("Invalid or missing webhook signature")
     else:
         logger.warning("Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or missing webhook signature",
-        )
+        raise AuthenticationError("Invalid or missing webhook signature")
 
     # Deduplicate by delivery ID
     if x_github_delivery:
@@ -243,10 +238,7 @@ async def github_webhook(
         payload = await request.json()
     except Exception as e:
         logger.error("Failed to parse webhook payload: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON payload",
-        ) from e
+        raise ValidationError("Invalid JSON payload") from e
 
     logger.info(
         "Received GitHub webhook: event=%s, delivery=%s",

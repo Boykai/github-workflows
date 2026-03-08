@@ -9,6 +9,7 @@ from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.logging_utils import handle_service_error
 from src.models.board import (
     BoardDataResponse,
     BoardProject,
@@ -278,11 +279,7 @@ async def list_board_projects(
                         rate_limit=_get_rate_limit_info(),
                     )
 
-        logger.error("Failed to fetch board projects: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to fetch projects from GitHub",
-            details={"reason": _classify_github_error(e)},
-        ) from e
+        handle_service_error(e, "fetch board projects", GitHubAPIError)
 
     cache.set(cache_key, projects)
     return BoardProjectListResponse(projects=projects, rate_limit=_get_rate_limit_info())
@@ -345,11 +342,7 @@ async def get_board_data(
             raise AuthenticationError(
                 "Your GitHub session has expired. Please log in again."
             ) from e
-        logger.error("Failed to fetch board data: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to fetch board data from GitHub",
-            details={"reason": _classify_github_error(e)},
-        ) from e
+        handle_service_error(e, "fetch board data", GitHubAPIError)
 
     board_data.rate_limit = _get_rate_limit_info()
 
