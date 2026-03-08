@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 
@@ -258,6 +259,51 @@ class TestCreateChoreValidation:
 
         assert c1.project_id == "PVT_1"
         assert c2.project_id == "PVT_2"
+
+
+class TestInlineUpdateChore:
+    """Tests for inline chore updates that create PRs."""
+
+    @pytest.mark.anyio
+    async def test_conflict_detected_when_expected_sha_mismatches(self, mock_db):
+        """Inline edits should reject when the repository file SHA changed."""
+        from unittest.mock import AsyncMock
+
+        from src.models.chores import ChoreCreate, ChoreInlineUpdate
+        from src.services.chores.service import ChoreConflictError, ChoresService
+
+        service = ChoresService(mock_db)
+        chore = await service.create_chore(
+            "PVT_1",
+            ChoreCreate(name="Conflict Test", template_content="Original content"),
+            template_path=".github/ISSUE_TEMPLATE/chore-conflict-test.md",
+        )
+
+        mock_github = AsyncMock()
+        mock_github.rest_request.return_value = SimpleNamespace(
+            status_code=200,
+            json=lambda: {
+                "sha": "current-sha",
+                "content": "VXBkYXRlZCBjb250ZW50",
+            },
+        )
+
+        with pytest.raises(ChoreConflictError) as exc_info:
+            await service.inline_update_chore(
+                chore.id,
+                ChoreInlineUpdate(
+                    template_content="Updated content",
+                    expected_sha="stale-sha",
+                ),
+                github_service=mock_github,
+                access_token="token",
+                owner="test",
+                repo="repo",
+                project_id="PVT_1",
+            )
+
+        assert exc_info.value.current_sha == "current-sha"
+        assert exc_info.value.current_content == "Updated content"
 
 
 # =============================================================================

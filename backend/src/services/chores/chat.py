@@ -116,17 +116,49 @@ def is_template_ready(response: str) -> tuple[bool, str | None]:
     return _is_template_ready(response)
 
 
+METADATA_ONLY_SYSTEM_PROMPT = """\
+You are a helpful assistant that generates ONLY GitHub Issue Template metadata for recurring \
+maintenance tasks (called "chores"). The user will provide the body content for the template \
+themselves — you must NOT modify, summarize, or rewrite their body content.
+
+Your job:
+1. Read the user's body content to understand the chore's purpose.
+2. Generate ONLY the YAML front matter metadata: name, about, title, labels, and assignees.
+3. Return the complete template with your generated front matter and the user's EXACT body content.
+
+When ready, include the template in your response wrapped in a code block with the marker: \
+```template ... ```
+
+Rules:
+- Generate concise, descriptive metadata based on the user's content.
+- The body section MUST be the user's exact input, unchanged.
+- Always include: name, about, title (prefixed with [CHORE]), labels (include 'chore'), assignees.
+- Respond with the template immediately — no questions needed.
+"""
+
+
 async def generate_chat_response(
     conversation_id: str | None,
     user_content: str,
     *,
     github_token: str,
+    ai_enhance: bool = True,
 ) -> tuple[str, str, bool, str | None]:
     """Run a full chat turn: add user message, call AI, add response, detect template.
+
+    Args:
+        conversation_id: Existing conversation ID or None for new.
+        user_content: User's message content.
+        github_token: GitHub OAuth token for AI service.
+        ai_enhance: When False, use metadata-only generation path.
 
     Returns (conversation_id, response_text, template_ready, template_content).
     """
     from src.services.ai_agent import get_ai_agent_service
+
+    if not ai_enhance:
+        # Metadata-only path: generate front matter, preserve user body verbatim
+        return await _generate_metadata_only(user_content, github_token=github_token)
 
     conv_id, messages = get_or_create_conversation(conversation_id)
     add_user_message(conv_id, user_content)
@@ -145,4 +177,54 @@ async def generate_chat_response(
     if ready:
         cleanup_conversation(conv_id)
 
+    return conv_id, response, ready, content
+
+
+async def _generate_metadata_only(
+    user_content: str,
+    *,
+    github_token: str,
+) -> tuple[str, str, bool, str | None]:
+    """Generate metadata-only template: AI front matter + user's verbatim body.
+
+    Returns (conversation_id, response_text, template_ready, template_content).
+    """
+    from src.services.ai_agent import get_ai_agent_service
+
+    messages = [
+        {"role": "system", "content": METADATA_ONLY_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                "Generate the YAML front matter for this chore template. "
+                "Use my exact text below as the body content without any changes:\n\n"
+                f"{user_content}"
+            ),
+        },
+    ]
+
+    ai_service = get_ai_agent_service()
+    response = await ai_service._call_completion(
+        messages=messages,
+        temperature=0.3,
+        max_tokens=2000,
+        github_token=github_token,
+    )
+
+    ready, content = is_template_ready(response)
+
+    # If AI didn't wrap in template markers, construct the template ourselves
+    if not ready:
+        content = (
+            "---\n"
+            "name: Chore\n"
+            "about: Recurring maintenance task\n"
+            "title: '[CHORE] '\n"
+            "labels: chore\n"
+            "assignees: ''\n"
+            "---\n\n" + user_content.strip() + "\n"
+        )
+        ready = True
+
+    conv_id = str(uuid.uuid4())
     return conv_id, response, ready, content
