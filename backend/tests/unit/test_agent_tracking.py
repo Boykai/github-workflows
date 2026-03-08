@@ -492,7 +492,7 @@ class TestModelPreservation:
         impl = next(s for s in steps if s.agent_name == "speckit.implement")
         assert specify.model == "gpt-4o"
         assert plan.model == "claude-3-5-sonnet"
-        assert impl.model == "TBD"
+        assert impl.model == ""
         assert STATE_ACTIVE in impl.state
 
     def test_legacy_table_migrates_on_state_update(self):
