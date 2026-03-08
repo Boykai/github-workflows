@@ -14,6 +14,9 @@ import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 interface StageCardProps {
   stage: PipelineStage;
   availableAgents: AvailableAgent[];
+  agentsLoading?: boolean;
+  agentsError?: string | null;
+  onRetryAgents?: () => void;
   projectId: string;
   onUpdate: (updatedStage: PipelineStage) => void;
   onRemove: () => void;
@@ -26,6 +29,9 @@ interface StageCardProps {
 export function StageCard({
   stage,
   availableAgents,
+  agentsLoading = false,
+  agentsError = null,
+  onRetryAgents,
   projectId,
   onUpdate,
   onRemove,
@@ -192,12 +198,32 @@ export function StageCard({
               style={{ top: pickerPosition.top, left: pickerPosition.left, width: pickerPosition.width }}
             >
               <div className="max-h-40 overflow-y-auto p-1">
-                {availableAgents.length === 0 && (
+                {agentsLoading && (
+                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+                    <span className="h-3.5 w-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    Loading agents...
+                  </div>
+                )}
+                {!agentsLoading && agentsError && (
+                  <div className="flex flex-col gap-2 p-2 text-xs text-destructive">
+                    <span>Failed to load agents</span>
+                    {onRetryAgents && (
+                      <button
+                        type="button"
+                        className="rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10"
+                        onClick={onRetryAgents}
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!agentsLoading && !agentsError && availableAgents.length === 0 && (
                   <div className="py-2 text-center text-xs text-muted-foreground">
                     No agents available
                   </div>
                 )}
-                {availableAgents.map((agent) => (
+                {!agentsLoading && !agentsError && availableAgents.map((agent) => (
                   <button
                     key={agent.slug}
                     type="button"

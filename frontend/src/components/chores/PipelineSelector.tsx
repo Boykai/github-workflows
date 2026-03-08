@@ -38,7 +38,7 @@ export function PipelineSelector({ projectId, value, onChange, disabled, inputId
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={selectId} className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        Agent Pipeline
+        Pipelines
       </label>
       <select
         id={selectId}

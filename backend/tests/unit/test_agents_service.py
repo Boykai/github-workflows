@@ -24,6 +24,34 @@ Review pull requests carefully.
 """
 
 
+async def _insert_mcp_tool(
+    db,
+    *,
+    tool_id: str,
+    project_id: str = PROJECT_ID,
+    github_user_id: str = GITHUB_USER_ID,
+    name: str = "Context7",
+    config_content: str = '{"mcpServers":{"context7":{"type":"http","url":"https://example.com/mcp","tools":["*"]}}}',
+) -> None:
+    await db.execute(
+        """INSERT INTO mcp_configurations
+           (id, github_user_id, project_id, name, description, endpoint_url, config_content,
+            sync_status, sync_error, synced_at, github_repo_target, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'synced', '', NULL, ?, 1, datetime('now'), datetime('now'))""",
+        (
+            tool_id,
+            github_user_id,
+            project_id,
+            name,
+            "Shared MCP server",
+            "https://example.com/mcp",
+            config_content,
+            f"{OWNER}/{REPO}",
+        ),
+    )
+    await db.commit()
+
+
 async def _insert_agent_row(
     db,
     *,
@@ -318,3 +346,166 @@ class TestAgentsServiceDeletion:
         assert len(rows) == 1
         assert rows[0]["id"] == "active-local"
         assert rows[0]["lifecycle_status"] == AgentStatus.ACTIVE.value
+
+
+class TestAgentsServiceBulkModelUpdate:
+    @pytest.fixture(autouse=True)
+    def clear_cache(self):
+        cache.clear()
+        yield
+        cache.clear()
+
+    async def test_bulk_update_models_includes_pending_pr_agents_and_skips_pending_deletions(
+        self,
+        mock_db,
+    ):
+        service = AgentsService(mock_db)
+        active_agent = SimpleNamespace(
+            id="repo:reviewer",
+            slug="reviewer",
+            icon_name=None,
+            default_model_id="old-model",
+            default_model_name="Old Model",
+            status=AgentStatus.ACTIVE,
+        )
+        pending_agent = SimpleNamespace(
+            id="pending-1",
+            slug="writer",
+            icon_name=None,
+            default_model_id="old-model",
+            default_model_name="Old Model",
+            status=AgentStatus.PENDING_PR,
+        )
+        deleting_agent = SimpleNamespace(
+            id="pending-2",
+            slug="legacy",
+            icon_name=None,
+            default_model_id="old-model",
+            default_model_name="Old Model",
+            status=AgentStatus.PENDING_DELETION,
+        )
+        body = SimpleNamespace(target_model_id="model-1", target_model_name="GPT-5")
+
+        with (
+            patch.object(service, "list_agents", AsyncMock(return_value=[active_agent])),
+            patch.object(
+                service,
+                "list_pending_agents",
+                AsyncMock(return_value=[pending_agent, deleting_agent]),
+            ),
+            patch.object(service, "_save_runtime_preferences", AsyncMock()) as save_preferences,
+        ):
+            result = await service.bulk_update_models(
+                project_id=PROJECT_ID,
+                owner=OWNER,
+                repo=REPO,
+                github_user_id=GITHUB_USER_ID,
+                body=body,
+                access_token=ACCESS_TOKEN,
+            )
+
+        assert result.success is True
+        assert result.updated_count == 2
+        assert result.failed_count == 0
+        assert result.updated_agents == ["reviewer", "writer"]
+        assert result.failed_agents == []
+        assert save_preferences.await_count == 2
+        awaited_agents = [call.kwargs["agent"].slug for call in save_preferences.await_args_list]
+        assert awaited_agents == ["reviewer", "writer"]
+
+
+class TestAgentsServiceUpdate:
+    @pytest.fixture(autouse=True)
+    def clear_cache(self):
+        cache.clear()
+        yield
+        cache.clear()
+
+    async def test_update_agent_allows_repo_only_agent_and_persists_pending_row(self, mock_db):
+        service = AgentsService(mock_db)
+        mock_github_service = AsyncMock()
+        mock_github_service.get_directory_contents.return_value = [_repo_entry("reviewer")]
+
+        with (
+            patch("src.services.agents.service.github_projects_service", mock_github_service),
+            patch(
+                "src.services.agents.service.commit_files_workflow",
+                AsyncMock(return_value=_workflow_result(pr_number=88, issue_number=66)),
+            ),
+        ):
+            result = await service.update_agent(
+                project_id=PROJECT_ID,
+                owner=OWNER,
+                repo=REPO,
+                agent_id="repo:reviewer",
+                body=SimpleNamespace(
+                    name="Reviewer",
+                    description=None,
+                    icon_name=None,
+                    system_prompt="Review pull requests carefully.",
+                    tools=["read", "comment", "write"],
+                    default_model_id=None,
+                    default_model_name=None,
+                ),
+                access_token=ACCESS_TOKEN,
+                github_user_id=GITHUB_USER_ID,
+            )
+
+        assert result.pr_number == 88
+        assert result.agent.status == AgentStatus.PENDING_PR
+        assert result.agent.source == AgentSource.LOCAL
+        assert result.agent.tools == ["read", "comment", "write"]
+
+        cursor = await mock_db.execute(
+            "SELECT slug, tools, lifecycle_status, github_pr_number FROM agent_configs WHERE slug = ?",
+            ("reviewer",),
+        )
+        row = await cursor.fetchone()
+        assert row is not None
+        assert row["slug"] == "reviewer"
+        assert row["tools"] == '["read", "comment", "write"]'
+        assert row["lifecycle_status"] == AgentStatus.PENDING_PR.value
+        assert row["github_pr_number"] == 88
+
+    async def test_update_agent_embeds_selected_mcp_servers_into_agent_frontmatter(self, mock_db):
+        await _insert_mcp_tool(mock_db, tool_id="tool-123")
+
+        service = AgentsService(mock_db)
+        mock_github_service = AsyncMock()
+        mock_github_service.get_directory_contents.return_value = [_repo_entry("reviewer")]
+        workflow = AsyncMock(return_value=_workflow_result(pr_number=89, issue_number=67))
+
+        with (
+            patch("src.services.agents.service.github_projects_service", mock_github_service),
+            patch("src.services.agents.service.commit_files_workflow", workflow),
+        ):
+            result = await service.update_agent(
+                project_id=PROJECT_ID,
+                owner=OWNER,
+                repo=REPO,
+                agent_id="repo:reviewer",
+                body=SimpleNamespace(
+                    name="Reviewer",
+                    description=None,
+                    icon_name=None,
+                    system_prompt="Review pull requests carefully.",
+                    tools=["tool-123"],
+                    default_model_id=None,
+                    default_model_name=None,
+                ),
+                access_token=ACCESS_TOKEN,
+                github_user_id=GITHUB_USER_ID,
+            )
+
+        assert result.pr_number == 89
+        assert result.agent.tools == ["tool-123"]
+
+        files = workflow.await_args.kwargs["files"]
+        agent_file = next(file for file in files if file["path"].endswith(".agent.md"))
+        content = agent_file["content"]
+
+        assert "mcp-servers:" in content
+        assert "context7:" in content
+        assert "url: https://example.com/mcp" in content
+        assert "github-workflows-tool-ids: tool-123" in content
+        assert "tool-123" not in content.split("mcp-servers:", 1)[0]

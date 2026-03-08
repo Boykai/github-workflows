@@ -8,12 +8,17 @@ import { createPortal } from 'react-dom';
 import { useModels } from '@/hooks/useModels';
 import { ChevronDown, Search, Check, Zap, DollarSign, Crown } from 'lucide-react';
 import type { AIModel } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface ModelSelectorProps {
   selectedModelId: string | null;
+  selectedModelName?: string | null;
   onSelect: (modelId: string, modelName: string) => void;
   trigger?: React.ReactNode;
   disabled?: boolean;
+  allowAuto?: boolean;
+  autoLabel?: string;
+  triggerClassName?: string;
 }
 
 // Session-level recently used tracking
@@ -60,7 +65,16 @@ function formatContextWindow(size: number): string {
   return `${size} tokens`;
 }
 
-export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = false }: ModelSelectorProps) {
+export function ModelSelector({
+  selectedModelId,
+  selectedModelName,
+  onSelect,
+  trigger,
+  disabled = false,
+  allowAuto = false,
+  autoLabel = 'Agent default',
+  triggerClassName,
+}: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -103,6 +117,7 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
   );
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
+  const triggerLabel = selectedModel?.name ?? selectedModelName ?? (allowAuto ? autoLabel : 'Select model');
 
   useEffect(() => {
     if (!isOpen) {
@@ -146,14 +161,17 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
           setIsOpen(!isOpen);
         }}
         disabled={disabled}
-        className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
+        className={cn(
+          'flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60',
+          triggerClassName,
+        )}
       >
         {trigger || (
           <>
-            <span className={selectedModel ? 'text-foreground' : 'text-muted-foreground'}>
-              {selectedModel ? selectedModel.name : 'Select model'}
+            <span className={selectedModelId || selectedModelName ? 'text-foreground truncate' : 'text-muted-foreground truncate'}>
+              {triggerLabel}
             </span>
-            <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
           </>
         )}
       </button>
@@ -187,6 +205,33 @@ export function ModelSelector({ selectedModelId, onSelect, trigger, disabled = f
               {isLoading && (
                 <div className="flex items-center justify-center py-4">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-primary" />
+                </div>
+              )}
+
+              {!isLoading && allowAuto && (
+                <div className="mb-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelect('', '');
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10 ${
+                      !selectedModelId ? 'bg-primary/10' : ''
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium text-foreground">{autoLabel}</span>
+                        {!selectedModelId && <Check className="h-3 w-3 text-primary" />}
+                      </div>
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        Use the agent&apos;s configured default model
+                      </div>
+                    </div>
+                  </button>
+                  <div className="my-1 border-b border-border/30" />
                 </div>
               )}
 

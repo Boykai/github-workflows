@@ -12,6 +12,7 @@ import { ToolCard } from './ToolCard';
 import { UploadMcpModal } from './UploadMcpModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { McpToolConfig } from '@/types';
 
 interface ToolsPanelProps {
   projectId: string;
@@ -26,6 +27,10 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     isUploading,
     uploadError,
     resetUploadError,
+    updateTool,
+    isUpdating,
+    updateError,
+    resetUpdateError,
     syncTool,
     syncingId,
     deleteTool,
@@ -34,9 +39,24 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   } = useToolsList(projectId);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [editingTool, setEditingTool] = useState<McpToolConfig | null>(null);
   const [search, setSearch] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
+
+  const handleOpenCreate = () => {
+    resetUploadError();
+    resetUpdateError();
+    setEditingTool(null);
+    setShowUploadModal(true);
+  };
+
+  const handleOpenEdit = (tool: McpToolConfig) => {
+    resetUploadError();
+    resetUpdateError();
+    setEditingTool(tool);
+    setShowUploadModal(true);
+  };
 
   const filteredTools = tools.filter((tool) => {
     const query = deferredSearch.trim().toLowerCase();
@@ -68,10 +88,10 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Tool archive</p>
           <h3 className="mt-2 text-[1.55rem] font-display font-medium leading-tight sm:text-[1.9rem]">MCP Tools</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Manage MCP configurations that sync to your GitHub repository for use by Custom Agents.
+            Manage MCP configurations that sync to your repository and can be attached to Custom Agents.
           </p>
         </div>
-        <Button onClick={() => { resetUploadError(); setShowUploadModal(true); }} size="lg">
+        <Button onClick={handleOpenCreate} size="lg">
           + Upload MCP Config
         </Button>
       </div>
@@ -102,9 +122,9 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           <Wrench className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-lg font-medium text-foreground">No MCP tools configured yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
-            Upload your first MCP configuration to get started. Configurations will be synced to your GitHub repository for use by Custom Agents.
+            Upload your first MCP configuration to get started. Configurations will sync to your repository and become available when attached to a Custom Agent.
           </p>
-          <Button onClick={() => { resetUploadError(); setShowUploadModal(true); }}>
+          <Button onClick={handleOpenCreate}>
             Upload your first MCP config
           </Button>
         </div>
@@ -146,6 +166,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
                 <ToolCard
                   key={tool.id}
                   tool={tool}
+                  onEdit={handleOpenEdit}
                   onSync={(id) => syncTool(id)}
                   onDelete={handleDelete}
                   isSyncing={syncingId === tool.id}
@@ -194,11 +215,16 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
       {/* Upload Modal */}
       <UploadMcpModal
         isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
+        onClose={() => {
+          setShowUploadModal(false);
+          setEditingTool(null);
+        }}
         onUpload={uploadTool}
-        isUploading={isUploading}
-        uploadError={uploadError}
+        onUpdate={(toolId, data) => updateTool({ toolId, data })}
+        isSubmitting={isUploading || isUpdating}
+        submitError={uploadError ?? updateError}
         existingNames={tools.map((t) => t.name)}
+        editingTool={editingTool}
       />
     </div>
   );

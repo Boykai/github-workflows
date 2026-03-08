@@ -1011,8 +1011,14 @@ def generate_config_files(preview: AgentPreview) -> list[dict]:
     frontmatter_data: dict[str, object] = {"name": preview.name, "description": preview.description}
     if preview.icon_name:
         frontmatter_data["icon"] = preview.icon_name
-    if preview.tools:
+    if preview.tool_allowlist:
+        frontmatter_data["tools"] = list(preview.tool_allowlist)
+    elif preview.tools and not preview.mcp_servers:
         frontmatter_data["tools"] = list(preview.tools)
+    if preview.mcp_servers:
+        frontmatter_data["mcp-servers"] = preview.mcp_servers
+    if preview.tool_ids:
+        frontmatter_data["metadata"] = {"github-workflows-tool-ids": ",".join(preview.tool_ids)}
     frontmatter = yaml.dump(frontmatter_data, default_flow_style=False, sort_keys=False).rstrip(
         "\n"
     )

@@ -23,6 +23,7 @@ import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
+import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -142,7 +143,7 @@ export function AgentsPipelinePage() {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Constellation Flow</p>
-          <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Agents Pipeline</h2>
+          <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Agents Pipelines</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Configure how agents process items across board columns
           </p>
@@ -163,14 +164,14 @@ export function AgentsPipelinePage() {
         <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
           <div className="text-4xl mb-2">🔗</div>
           <h3 className="text-xl font-semibold">Select a project</h3>
-          <p className="text-muted-foreground">Choose a project from the sidebar to configure its agent pipeline</p>
+          <p className="text-muted-foreground">Choose a project from the sidebar to configure its pipelines</p>
         </div>
       )}
 
       {projectId && boardLoading && (
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
           <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading pipeline...</p>
+          <p className="text-muted-foreground">Loading pipelines...</p>
         </div>
       )}
 
@@ -197,6 +198,9 @@ export function AgentsPipelinePage() {
               columnCount={alignedColumnCount}
               stages={pipelineConfig.pipeline.stages}
               availableAgents={availableAgents}
+              agentsLoading={agentsLoading}
+              agentsError={agentsError}
+              onRetryAgents={refetchAgents}
               availableModels={availableModels}
               isEditMode={pipelineConfig.boardState === 'editing'}
               pipelineName={pipelineConfig.pipeline.name}
@@ -221,7 +225,19 @@ export function AgentsPipelinePage() {
           {/* Empty board state */}
           {pipelineConfig.boardState === 'empty' && (
             <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
-              <div className="text-3xl mb-1">🚀</div>
+              <div className="relative mb-2 flex h-24 w-24 items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-border/40 bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.22)_0%,transparent_62%)]" />
+                <div className="absolute inset-[10px] rounded-full border border-primary/18" />
+                <span className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[hsl(var(--glow))] shadow-[0_0_12px_hsl(var(--glow)/0.8)]" />
+                <span className="absolute bottom-4 right-2 h-2.5 w-2.5 rounded-full bg-[hsl(var(--gold))] shadow-[0_0_18px_hsl(var(--gold)/0.45)]" />
+                <span className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[hsl(var(--gold)/0.55)]" />
+                <ThemedAgentIcon
+                  name="Pipeline constellation"
+                  iconName="constellation"
+                  size="lg"
+                  className="h-14 w-14 border-primary/30 shadow-[0_12px_30px_hsl(var(--night)/0.3)]"
+                />
+              </div>
               <h3 className="text-sm font-semibold text-foreground">Create your first pipeline</h3>
               <p className="text-xs text-muted-foreground max-w-md">
                 Build custom agent workflows by creating a pipeline with stages and agents.
@@ -243,6 +259,8 @@ export function AgentsPipelinePage() {
             columns={columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}
+            variant="compact"
+            title="Current Pipeline"
             renderPresetSelector={
               <AgentPresetSelector
                 columnNames={columns.map((c) => c.status.name)}
@@ -259,6 +277,7 @@ export function AgentsPipelinePage() {
                 error={agentsError}
                 onRetry={refetchAgents}
                 onAddAgent={agentConfig.addAgent}
+                compact={true}
               />
             )}
           />
@@ -312,7 +331,7 @@ export function AgentsPipelinePage() {
                 <div className="flex flex-col gap-3">
                   {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
                     <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/40 p-2">
-                      <PipelineFlowGraph stages={p.stages ?? []} width={120} height={32} />
+                      <PipelineFlowGraph stages={p.stages ?? []} width={156} height={92} />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
                         <p className="text-[10px] text-muted-foreground">

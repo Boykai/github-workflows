@@ -48,7 +48,7 @@ export function SavedWorkflowsList({
     <div>
       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Workflow className="h-5 w-5 text-primary/70" />
-        Saved Workflows
+        Saved Pipelines
       </h3>
 
       {/* Loading skeleton */}
@@ -130,7 +130,9 @@ export function SavedWorkflowsList({
 
                 {/* Flow graph */}
                 {pipeline.stages && pipeline.stages.length > 0 && (
-                  <PipelineFlowGraph stages={pipeline.stages} width={200} height={36} />
+                  <div className="flex justify-center py-1">
+                    <PipelineFlowGraph stages={pipeline.stages} width={236} height={118} className="max-w-full" />
+                  </div>
                 )}
 
                 {/* Stage details */}

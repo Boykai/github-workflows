@@ -7,7 +7,7 @@ import { Kanban, GitBranch, Bot, ListChecks } from 'lucide-react';
 
 const quickLinks = [
   { path: '/projects', label: 'Projects', description: 'View and manage your Kanban board', icon: Kanban },
-  { path: '/pipeline', label: 'Agents Pipeline', description: 'Visualize your agent workflow', icon: GitBranch },
+  { path: '/pipeline', label: 'Agents Pipelines', description: 'Visualize and manage your agent workflows', icon: GitBranch },
   { path: '/agents', label: 'Agents', description: 'Configure and manage agents', icon: Bot },
   { path: '/chores', label: 'Chores', description: 'Schedule and track chores', icon: ListChecks },
 ];

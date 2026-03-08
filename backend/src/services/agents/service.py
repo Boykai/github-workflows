@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 # ── YAML frontmatter regex ──────────────────────────────────────────────
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)", re.DOTALL)
+_TOOL_METADATA_KEY = "github-workflows-tool-ids"
 
 # ── Chat sessions (bounded) ─────────────────────────────────────────────
 _MAX_CHAT_SESSIONS = 200
@@ -187,13 +188,24 @@ class AgentsService:
         body: BulkModelUpdateRequest,
         access_token: str,
     ) -> BulkModelUpdateResult:
-        """Update the default model for all active agents in a project."""
-        agents = await self.list_agents(
+        """Update the default model for all editable agent configurations in a project."""
+        visible_agents = await self.list_agents(
             project_id=project_id,
             owner=owner,
             repo=repo,
             access_token=access_token,
         )
+        pending_agents = await self.list_pending_agents(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            access_token=access_token,
+        )
+
+        agents = [
+            *visible_agents,
+            *(agent for agent in pending_agents if agent.status != AgentStatus.PENDING_DELETION),
+        ]
 
         updated_agents: list[str] = []
         failed_agents: list[str] = []
@@ -298,6 +310,99 @@ class AgentsService:
             )
         return agents
 
+    @staticmethod
+    def _normalize_mcp_server_config(server_config: object) -> dict[str, object] | None:
+        """Normalize uploaded MCP JSON into GitHub custom-agent YAML shape."""
+        if not isinstance(server_config, dict):
+            return None
+
+        normalized = dict(server_config)
+        server_type = normalized.get("type")
+        if not server_type:
+            if normalized.get("command"):
+                server_type = "local"
+            elif normalized.get("url"):
+                server_type = "http"
+
+        if server_type == "stdio":
+            server_type = "local"
+
+        if server_type:
+            normalized["type"] = server_type
+
+        tools = normalized.get("tools")
+        if not isinstance(tools, list) or len(tools) == 0:
+            normalized["tools"] = ["*"]
+
+        return normalized
+
+    async def _resolve_agent_tool_selection(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        requested_tools: list[str],
+    ) -> tuple[list[str], list[str], list[str], dict[str, object]]:
+        """Split raw agent tool selections into display tools, allowlist items, stored IDs, and MCP servers."""
+        if not requested_tools:
+            return [], [], [], {}
+
+        requested_ids = [tool for tool in requested_tools if tool]
+        tool_rows_by_id: dict[str, aiosqlite.Row] = {}
+
+        if requested_ids:
+            placeholders = ",".join("?" for _ in requested_ids)
+            cursor = await self._db.execute(
+                f"SELECT id, name, config_content FROM mcp_configurations WHERE project_id = ? AND github_user_id = ? AND id IN ({placeholders})",
+                (project_id, github_user_id, *requested_ids),
+            )
+            rows = await cursor.fetchall()
+            tool_rows_by_id = {row["id"]: row for row in rows}
+
+        display_tools: list[str] = []
+        explicit_allowlist: list[str] = []
+        selected_tool_ids: list[str] = []
+        mcp_servers: dict[str, object] = {}
+        seen_display: set[str] = set()
+        seen_allowlist: set[str] = set()
+
+        for tool in requested_tools:
+            row = tool_rows_by_id.get(tool)
+            if row is None:
+                if tool not in seen_display:
+                    display_tools.append(tool)
+                    seen_display.add(tool)
+                if tool not in seen_allowlist:
+                    explicit_allowlist.append(tool)
+                    seen_allowlist.add(tool)
+                continue
+
+            selected_tool_ids.append(row["id"])
+            if row["name"] not in seen_display:
+                display_tools.append(row["name"])
+                seen_display.add(row["name"])
+
+            try:
+                config_data = json.loads(row["config_content"] or "{}")
+            except json.JSONDecodeError:
+                continue
+
+            raw_servers = config_data.get("mcpServers", {})
+            if not isinstance(raw_servers, dict):
+                continue
+
+            for server_name, server_config in raw_servers.items():
+                normalized = self._normalize_mcp_server_config(server_config)
+                if normalized is not None:
+                    mcp_servers[str(server_name)] = normalized
+
+        if explicit_allowlist:
+            allowlist = [*explicit_allowlist, *(f"{name}/*" for name in mcp_servers)]
+        else:
+            allowlist = []
+
+        return display_tools, allowlist, selected_tool_ids, mcp_servers
+
     async def _list_repo_agents(
         self,
         *,
@@ -355,8 +460,20 @@ class AgentsService:
                         raw_icon_name = fm.get("icon") or fm.get("icon_name")
                         if raw_icon_name is not None:
                             icon_name = str(raw_icon_name)
+                        metadata = fm.get("metadata")
+                        metadata_tool_ids: list[str] = []
+                        if isinstance(metadata, dict):
+                            metadata_value = metadata.get(_TOOL_METADATA_KEY)
+                            if isinstance(metadata_value, str) and metadata_value.strip():
+                                metadata_tool_ids = [
+                                    value.strip()
+                                    for value in metadata_value.split(",")
+                                    if value.strip()
+                                ]
                         raw_tools = fm.get("tools", [])
-                        if isinstance(raw_tools, list):
+                        if metadata_tool_ids:
+                            tools = metadata_tool_ids
+                        elif isinstance(raw_tools, list):
                             tools = [str(t) for t in raw_tools]
                 except yaml.YAMLError:
                     pass
@@ -437,7 +554,7 @@ class AgentsService:
             pass  # File not found or API error — safe to proceed
 
         description = body.description
-        tools = list(body.tools)
+        requested_tools = list(body.tools)
         system_prompt = body.system_prompt
 
         # When raw mode is OFF, use AI to:
@@ -455,15 +572,15 @@ class AgentsService:
                 system_prompt = enhanced.get("system_prompt", body.system_prompt)
                 if not description:
                     description = enhanced.get("description", body.name)
-                if not tools:
-                    tools = enhanced.get("tools", [])
+                if not requested_tools:
+                    requested_tools = enhanced.get("tools", [])
             except Exception as exc:
                 logger.warning("AI content enhancement failed, using original input: %s", exc)
                 system_prompt = body.system_prompt
                 if not description:
                     description = body.name
-                if not tools:
-                    tools = []
+                if not requested_tools:
+                    requested_tools = []
         else:
             # Raw mode — use content exactly as provided
             if not description:
@@ -473,6 +590,17 @@ class AgentsService:
         if not description:
             description = body.name
 
+        (
+            display_tools,
+            tool_allowlist,
+            selected_tool_ids,
+            mcp_servers,
+        ) = await self._resolve_agent_tool_selection(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            requested_tools=requested_tools,
+        )
+
         # Build preview
         preview = AgentPreview(
             name=body.name,
@@ -481,7 +609,10 @@ class AgentsService:
             icon_name=body.icon_name,
             system_prompt=system_prompt,
             status_column=body.status_column,
-            tools=tools,
+            tools=display_tools,
+            tool_allowlist=tool_allowlist,
+            tool_ids=selected_tool_ids,
+            mcp_servers=mcp_servers,
         )
 
         # Generate files
@@ -495,7 +626,7 @@ class AgentsService:
                     slug=slug,
                     description=description,
                     system_prompt=system_prompt,
-                    tools=tools,
+                    tools=display_tools,
                     access_token=access_token,
                 )
                 issue_body_md = rich["issue_body"]
@@ -532,7 +663,7 @@ class AgentsService:
 
         # Save to SQLite
         agent_id = str(uuid.uuid4())
-        tools_json = json.dumps(tools)
+        tools_json = json.dumps(requested_tools)
         now = utcnow().isoformat()
 
         await self._db.execute(
@@ -574,7 +705,7 @@ class AgentsService:
             default_model_id=body.default_model_id,
             default_model_name=body.default_model_name,
             status=AgentStatus.PENDING_PR,
-            tools=tools,
+            tools=requested_tools,
             status_column=body.status_column or None,
             github_issue_number=result.issue_number,
             github_pr_number=result.pr_number,
@@ -721,13 +852,6 @@ class AgentsService:
             and body.tools is None
         )
 
-        # Repo-only agents cannot be updated via the API, except for local runtime model preferences.
-        if agent.id.startswith("repo:") and not only_runtime_preference_update:
-            raise ValueError(
-                "Repo-only agents cannot be updated through the API. "
-                "Edit the .agent.md file directly in the repository."
-            )
-
         if agent.status == AgentStatus.PENDING_DELETION:
             raise ValueError(
                 "Agents pending deletion cannot be updated until the deletion PR is resolved."
@@ -756,7 +880,7 @@ class AgentsService:
         name = body.name or agent.name
         description = body.description or agent.description
         system_prompt = body.system_prompt or agent.system_prompt
-        tools = body.tools if body.tools is not None else agent.tools
+        requested_tools = body.tools if body.tools is not None else agent.tools
         icon_name = body.icon_name if body.icon_name is not None else agent.icon_name
         default_model_id = (
             body.default_model_id if body.default_model_id is not None else agent.default_model_id
@@ -768,6 +892,7 @@ class AgentsService:
         )
 
         slug = AgentPreview.name_to_slug(name)
+        current_local_agent = await self._resolve_agent(project_id, agent.slug)
 
         # Validate slug: non-empty and filename-safe
         if not slug or not re.match(r"^[a-z0-9][a-z0-9._-]*$", slug):
@@ -775,11 +900,27 @@ class AgentsService:
 
         # Ensure no other agent in SQLite uses this slug (conflict check)
         async with self._db.execute(
-            "SELECT id FROM agent_configs WHERE project_id = ? AND slug = ? AND id != ?",
-            (project_id, slug, agent.id),
+            "SELECT id FROM agent_configs WHERE project_id = ? AND slug = ?",
+            (project_id, slug),
         ) as cursor:
-            if await cursor.fetchone():
+            conflict_row = await cursor.fetchone()
+            conflict_id = conflict_row["id"] if conflict_row else None
+            allowed_ids = {agent.id}
+            if current_local_agent:
+                allowed_ids.add(current_local_agent.id)
+            if conflict_id and conflict_id not in allowed_ids:
                 raise ValueError(f"An agent with slug '{slug}' already exists for this project.")
+
+        (
+            display_tools,
+            tool_allowlist,
+            selected_tool_ids,
+            mcp_servers,
+        ) = await self._resolve_agent_tool_selection(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            requested_tools=list(requested_tools),
+        )
 
         preview = AgentPreview(
             name=name,
@@ -788,7 +929,10 @@ class AgentsService:
             icon_name=icon_name,
             system_prompt=system_prompt,
             status_column=agent.status_column or "",
-            tools=tools,
+            tools=display_tools,
+            tool_allowlist=tool_allowlist,
+            tool_ids=selected_tool_ids,
+            mcp_servers=mcp_servers,
         )
 
         files = generate_config_files(preview)
@@ -816,9 +960,12 @@ class AgentsService:
         if not result.success:
             raise RuntimeError(f"Agent update pipeline failed: {'; '.join(result.errors)}")
 
-        # Update SQLite if exists
+        persisted_id = agent.id
+        created_at = agent.created_at
+
+        # Persist pending PR state locally so the updated definition is visible before merge.
         if not agent.id.startswith("repo:"):
-            tools_json = json.dumps(tools)
+            tools_json = json.dumps(list(requested_tools))
             await self._db.execute(
                 """UPDATE agent_configs
                    SET name = ?, slug = ?, description = ?, system_prompt = ?,
@@ -839,9 +986,74 @@ class AgentsService:
                 ),
             )
             await self._db.commit()
+        else:
+            existing_local_agent = current_local_agent
+            tools_json = json.dumps(list(requested_tools))
+            now = utcnow().isoformat()
+
+            if existing_local_agent and not existing_local_agent.id.startswith("repo:"):
+                persisted_id = existing_local_agent.id
+                created_at = existing_local_agent.created_at
+                await self._db.execute(
+                    """UPDATE agent_configs
+                       SET name = ?, slug = ?, description = ?, system_prompt = ?,
+                           tools = ?, icon_name = ?, default_model_id = ?, default_model_name = ?, github_pr_number = ?, branch_name = ?,
+                           owner = ?, repo = ?, created_by = ?, lifecycle_status = ?
+                       WHERE id = ?""",
+                    (
+                        name,
+                        slug,
+                        description,
+                        system_prompt,
+                        tools_json,
+                        icon_name,
+                        default_model_id,
+                        default_model_name,
+                        result.pr_number,
+                        branch_name,
+                        owner,
+                        repo,
+                        github_user_id,
+                        AgentStatus.PENDING_PR.value,
+                        existing_local_agent.id,
+                    ),
+                )
+            else:
+                persisted_id = str(uuid.uuid4())
+                created_at = now
+                await self._db.execute(
+                    """INSERT INTO agent_configs
+                       (id, name, slug, description, system_prompt, status_column,
+                        tools, icon_name, default_model_id, default_model_name, project_id, owner, repo, created_by,
+                        github_issue_number, github_pr_number, branch_name, created_at, lifecycle_status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        persisted_id,
+                        name,
+                        slug,
+                        description,
+                        system_prompt,
+                        agent.status_column or "",
+                        tools_json,
+                        icon_name,
+                        default_model_id,
+                        default_model_name,
+                        project_id,
+                        owner,
+                        repo,
+                        github_user_id,
+                        agent.github_issue_number,
+                        result.pr_number,
+                        branch_name,
+                        now,
+                        AgentStatus.PENDING_PR.value,
+                    ),
+                )
+
+            await self._db.commit()
 
         updated_agent = Agent(
-            id=agent.id,
+            id=agent.id if not agent.id.startswith("repo:") else persisted_id,
             name=name,
             slug=slug,
             description=description,
@@ -849,14 +1061,14 @@ class AgentsService:
             system_prompt=system_prompt,
             default_model_id=default_model_id,
             default_model_name=default_model_name,
-            status=agent.status,
-            tools=tools,
+            status=agent.status if not agent.id.startswith("repo:") else AgentStatus.PENDING_PR,
+            tools=list(requested_tools),
             status_column=agent.status_column,
             github_issue_number=agent.github_issue_number,
             github_pr_number=result.pr_number,
             branch_name=branch_name,
-            source=agent.source,
-            created_at=agent.created_at,
+            source=agent.source if not agent.id.startswith("repo:") else AgentSource.LOCAL,
+            created_at=agent.created_at if not agent.id.startswith("repo:") else created_at,
         )
 
         return AgentCreateResult(

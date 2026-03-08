@@ -7,6 +7,16 @@ import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 
+function getAssignmentModelName(agent: AgentAssignment): string {
+  const config = agent.config;
+  if (!config || typeof config !== 'object') {
+    return '';
+  }
+
+  const modelName = config.model_name;
+  return typeof modelName === 'string' ? modelName : '';
+}
+
 interface AgentDragOverlayProps {
   agent: AgentAssignment;
   availableAgents?: AvailableAgent[];
@@ -16,10 +26,13 @@ interface AgentDragOverlayProps {
 export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOverlayProps) {
   const displayName = formatAgentName(agent.slug, agent.display_name);
   const metadata = availableAgents?.find((a) => a.slug === agent.slug);
+  const assignedModelName = getAssignmentModelName(agent);
 
   // Build metadata line
   const metaParts: string[] = [];
-  if (metadata?.default_model_name) metaParts.push(metadata.default_model_name);
+  if (assignedModelName || metadata?.default_model_name) {
+    metaParts.push(assignedModelName || metadata?.default_model_name || '');
+  }
   if (metadata?.tools_count && metadata.tools_count > 0) metaParts.push(`${metadata.tools_count} tools`);
   const metaLine = metaParts.join(' · ');
 

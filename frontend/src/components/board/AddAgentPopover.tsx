@@ -27,6 +27,7 @@ interface AddAgentPopoverProps {
   onRetry: () => void;
   /** Called when user selects an agent */
   onAddAgent: (status: string, agent: AvailableAgent) => void;
+  compact?: boolean;
 }
 
 export function AddAgentPopover({
@@ -37,6 +38,7 @@ export function AddAgentPopover({
   error,
   onRetry,
   onAddAgent,
+  compact = false,
 }: AddAgentPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -226,7 +228,9 @@ export function AddAgentPopover({
     <div className="relative">
       <button
         ref={triggerRef}
-        className="w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground"
+        className={compact
+          ? 'w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
+          : 'w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'}
         onClick={() => setIsOpen(!isOpen)}
         title={`Add agent to ${status}`}
         type="button"

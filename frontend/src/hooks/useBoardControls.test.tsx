@@ -102,6 +102,39 @@ describe('useBoardControls', () => {
     expect(groups).toEqual([{ name: 'hubot', items: transformedColumn?.items ?? [] }]);
   });
 
+  it('excludes sub-issue cards from the transformed board data', () => {
+    const boardData = createBoardData();
+    boardData.columns[0].items = [
+      createBoardItem({
+        item_id: 'parent-1',
+        number: 101,
+        title: 'Parent issue',
+        sub_issues: [
+          {
+            id: 'sub-1',
+            number: 202,
+            title: 'Agent sub-issue',
+            url: 'https://github.com/test/repo/issues/202',
+            state: 'open',
+            assignees: [],
+            linked_prs: [],
+          },
+        ],
+      }),
+      createBoardItem({
+        item_id: 'sub-item-1',
+        number: 202,
+        title: 'Agent sub-issue',
+      }),
+    ];
+    boardData.columns[0].item_count = 2;
+
+    const { result } = renderHook(() => useBoardControls('PVT_1', boardData));
+
+    expect(result.current.transformedData?.columns[0].items.map((item) => item.number)).toEqual([101]);
+    expect(result.current.transformedData?.columns[0].item_count).toBe(1);
+  });
+
   it('loads per-project controls before persisting on project switch', async () => {
     localStorage.setItem(
       'board-controls-PVT_1',

@@ -104,7 +104,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
   return (
     <SettingsSection
       title="Project Settings"
-      description="Per-project board configuration and agent pipeline mappings."
+      description="Per-project board configuration and pipeline mappings."
       isDirty={!!projectId}
       onSave={handleSave}
     >
@@ -167,7 +167,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             </label>
           </div>
 
-          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Agent Pipeline Mappings</h4>
+          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Pipeline Mappings</h4>
 
           <div className="flex flex-col gap-2">
             <label htmlFor="proj-agents" className="text-sm font-medium text-foreground">JSON (status → agent list)</label>

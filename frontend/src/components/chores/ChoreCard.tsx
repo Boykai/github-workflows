@@ -183,14 +183,8 @@ export function ChoreCard({
             <h4 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]" title={chore.name}>
               {currentName}{isDirty ? ' *' : ''}
             </h4>
-            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/75">
-              {chore.template_path.replace('.github/ISSUE_TEMPLATE/', '')}
-            </p>
           </div>
 
-          {triggerLabel && (
-            <span className="solar-chip shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
-              {triggerLabel}
           <div className="flex flex-col items-end gap-2">
             {triggerLabel && (
               <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">

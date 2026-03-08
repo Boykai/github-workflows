@@ -82,12 +82,7 @@ export function ProjectsPage() {
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
 
-  // Calculate progress
   const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-  const doneItems = boardData?.columns
-    .filter((col) => col.status.name.toLowerCase().includes('done') || col.status.name.toLowerCase().includes('closed'))
-    .reduce((sum, col) => sum + col.item_count, 0) ?? 0;
-  const progressPercent = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
   const refreshRateLimitError = refreshError?.type === 'rate_limit';
@@ -179,16 +174,6 @@ export function ProjectsPage() {
             <span className="text-xs text-muted-foreground">
               {totalItems} items
             </span>
-          </div>
-          {/* Progress bar */}
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-32 overflow-hidden rounded-full bg-muted/80">
-              <div
-                className="h-full rounded-full bg-primary shadow-sm transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">{progressPercent}%</span>
           </div>
         </div>
       )}
@@ -302,6 +287,7 @@ export function ProjectsPage() {
             columns={transformedBoardData.columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}
+            variant="compact"
             renderPresetSelector={
               <AgentPresetSelector
                 columnNames={transformedBoardData.columns.map((c) => c.status.name)}
@@ -319,6 +305,7 @@ export function ProjectsPage() {
                 error={agentsError}
                 onRetry={refetchAgents}
                 onAddAgent={agentConfig.addAgent}
+                compact={true}
               />
             )}
           />

@@ -208,9 +208,20 @@ export function useBoardControls(projectId: string | null, boardData: BoardDataR
     if (!boardData) return undefined;
 
     const { filters, sort } = controls;
+    const subIssueNumbers = new Set<number>();
+
+    for (const column of boardData.columns) {
+      for (const item of column.items) {
+        for (const subIssue of item.sub_issues) {
+          subIssueNumbers.add(subIssue.number);
+        }
+      }
+    }
 
     const transformColumn = (col: BoardColumn): BoardColumn => {
-      let items = col.items;
+      let items = col.items.filter(
+        (item) => item.number == null || !subIssueNumbers.has(item.number)
+      );
 
       // Filter
       if (filters.labels.length > 0) {

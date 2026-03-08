@@ -5,17 +5,20 @@
  * and loading / error states. Mirrors ChoresPanel pattern.
  */
 
-import { useDeferredValue, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { Search, Sparkles, RefreshCw } from 'lucide-react';
 import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
 import { AgentCard } from './AgentCard';
 import { AddAgentModal } from './AddAgentModal';
 import { BulkModelUpdateDialog } from './BulkModelUpdateDialog';
+import { AgentInlineEditor, type AgentInlineEditorHandle } from './AgentInlineEditor';
 import type { AgentConfig } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 
 interface AgentsPanelProps {
   projectId: string;
@@ -33,10 +36,22 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
   const clearPendingMutation = useClearPendingAgents(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAgent, setEditAgent] = useState<AgentConfig | null>(null);
+  const [isEditorDirty, setIsEditorDirty] = useState(false);
+  const [unsavedDialog, setUnsavedDialog] = useState<{
+    isOpen: boolean;
+    pendingAction: (() => void) | null;
+    description: string;
+  }>({ isOpen: false, pendingAction: null, description: '' });
+  const [saveResult, setSaveResult] = useState<{ agentName: string; prUrl: string } | null>(null);
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<AgentSortMode>('name');
   const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
+  const editorRef = useRef<AgentInlineEditorHandle | null>(null);
+  const { blocker, isBlocked } = useUnsavedChanges({
+    isDirty: isEditorDirty,
+    message: 'You have unsaved agent changes. Save or discard them before leaving this page.',
+  });
 
   const handleClearPending = () => {
     const confirmed = window.confirm(
@@ -45,6 +60,74 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
     if (!confirmed) return;
     clearPendingMutation.mutate();
   };
+
+  const queueUnsavedAction = useCallback((pendingAction: () => void, description: string) => {
+    setUnsavedDialog({ isOpen: true, pendingAction, description });
+  }, []);
+
+  useEffect(() => {
+    if (!isBlocked) return;
+    setUnsavedDialog({
+      isOpen: true,
+      pendingAction: () => blocker.proceed?.(),
+      description: 'Leave the Agents page',
+    });
+  }, [blocker, isBlocked]);
+
+  const handleEditRequest = useCallback(
+    (agent: AgentConfig) => {
+      setSaveResult(null);
+      if (!isEditorDirty) {
+        setEditAgent(agent);
+        return;
+      }
+
+      queueUnsavedAction(() => setEditAgent(agent), 'Switch to another agent definition');
+    },
+    [isEditorDirty, queueUnsavedAction],
+  );
+
+  const handleCloseEditor = useCallback(() => {
+    if (!isEditorDirty) {
+      setEditAgent(null);
+      return;
+    }
+
+    queueUnsavedAction(() => setEditAgent(null), 'Close the current agent editor');
+  }, [isEditorDirty, queueUnsavedAction]);
+
+  const handleOpenAddModal = useCallback(() => {
+    setSaveResult(null);
+    if (!isEditorDirty) {
+      setShowAddModal(true);
+      return;
+    }
+
+    queueUnsavedAction(() => setShowAddModal(true), 'Open the add-agent flow');
+  }, [isEditorDirty, queueUnsavedAction]);
+
+  const handleUnsavedSave = useCallback(async () => {
+    const action = unsavedDialog.pendingAction;
+    const saved = await editorRef.current?.save();
+    if (!saved) return;
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+    action?.();
+  }, [unsavedDialog.pendingAction]);
+
+  const handleUnsavedDiscard = useCallback(() => {
+    const action = unsavedDialog.pendingAction;
+    editorRef.current?.discard();
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+    setIsEditorDirty(false);
+    action?.();
+  }, [unsavedDialog.pendingAction]);
+
+  const handleUnsavedCancel = useCallback(() => {
+    if (isBlocked) {
+      blocker.reset?.();
+    }
+    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
+  }, [blocker, isBlocked]);
 
   const filteredAgents = (agents ?? [])
     .filter((agent) => {
@@ -93,8 +176,17 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
   const totalAgents = agents?.length ?? 0;
   const usedAgents = agents?.filter((agent) => (agentUsageCounts[agent.slug] ?? 0) > 0).length ?? 0;
   const unresolvedPendingAgents = pendingAgents ?? [];
+  const bulkTargetAgents = [
+    ...(agents ?? []),
+    ...unresolvedPendingAgents.filter((agent) => agent.status !== 'pending_deletion'),
+  ];
   const repoName = repo ?? '';
   const fullRepoName = owner && repo ? `${owner}/${repo}` : '';
+  const repositoryLabel = repo || 'Unlinked';
+  const repositoryValueClass =
+    repositoryLabel.length > 18
+      ? 'mt-2 break-all text-xs font-semibold leading-5 text-foreground'
+      : 'mt-2 text-sm font-semibold text-foreground';
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
@@ -118,11 +210,41 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
           >
             {isRefreshingModels ? 'Refreshing models…' : 'Refresh models'}
           </Button>
-          <Button onClick={() => setShowAddModal(true)} size="lg">
+          <Button onClick={handleOpenAddModal} size="lg">
             + Add Agent
           </Button>
         </div>
       </div>
+
+      {saveResult && (
+        <div className="rounded-[1.25rem] border border-emerald-300/40 bg-emerald-50/80 p-4 text-sm text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-200">
+          Saved changes for <span className="font-semibold">{saveResult.agentName}</span>. A pull request was opened with the updated agent files.
+          {' '}
+          <a
+            href={saveResult.prUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium underline underline-offset-4"
+          >
+            View Pull Request
+          </a>
+        </div>
+      )}
+
+      {editAgent && (
+        <AgentInlineEditor
+          ref={editorRef}
+          agent={editAgent}
+          projectId={projectId}
+          onDirtyChange={setIsEditorDirty}
+          onCancel={handleCloseEditor}
+          onSaved={(prUrl, agentName) => {
+            setSaveResult({ agentName, prUrl });
+            setEditAgent(null);
+            setIsEditorDirty(false);
+          }}
+        />
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -219,7 +341,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                   agent={agent}
                   projectId={projectId}
                   usageCount={agentUsageCounts[agent.slug] ?? 0}
-                  onEdit={(currentAgent) => setEditAgent(currentAgent)}
+                  onEdit={handleEditRequest}
                   variant="default"
                   repoName={repoName}
                   fullRepoName={fullRepoName}
@@ -270,8 +392,8 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                       <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                         Repository
                       </p>
-                      <p className="mt-2 truncate text-sm font-semibold text-foreground">
-                        {repo ? `${owner}/${repo}` : 'Unlinked'}
+                      <p className={repositoryValueClass} title={fullRepoName || repositoryLabel}>
+                        {repositoryLabel}
                       </p>
                     </CardContent>
                   </Card>
@@ -293,7 +415,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
-                    onEdit={(a) => setEditAgent(a)}
+                    onEdit={handleEditRequest}
                     variant="spotlight"
                     repoName={repoName}
                     fullRepoName={fullRepoName}
@@ -368,7 +490,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     agent={agent}
                     projectId={projectId}
                     usageCount={agentUsageCounts[agent.slug] ?? 0}
-                    onEdit={(a) => setEditAgent(a)}
+                    onEdit={handleEditRequest}
                     repoName={repoName}
                     fullRepoName={fullRepoName}
                   />
@@ -386,23 +508,21 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
         onClose={() => setShowAddModal(false)}
       />
 
-      {/* Edit Agent Modal */}
-      {editAgent && (
-        <AddAgentModal
-          projectId={projectId}
-          isOpen={true}
-          onClose={() => setEditAgent(null)}
-          editAgent={editAgent}
-        />
-      )}
-
       {/* Bulk Model Update Dialog */}
       <BulkModelUpdateDialog
         open={bulkUpdateOpen}
         onOpenChange={setBulkUpdateOpen}
-        agents={agents ?? []}
+        agents={bulkTargetAgents}
         projectId={projectId}
         onSuccess={() => setBulkUpdateOpen(false)}
+      />
+
+      <UnsavedChangesDialog
+        isOpen={unsavedDialog.isOpen}
+        onSave={handleUnsavedSave}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
+        actionDescription={unsavedDialog.description}
       />
     </div>
   );

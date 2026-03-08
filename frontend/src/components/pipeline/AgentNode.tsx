@@ -29,11 +29,20 @@ export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, on
         <div className="text-xs font-medium text-foreground truncate">
           {displayName}
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          <ModelSelector
-            selectedModelId={agentNode.model_id || null}
-            onSelect={onModelSelect}
-          />
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Model
+            </span>
+            <ModelSelector
+              selectedModelId={agentNode.model_id || null}
+              selectedModelName={agentNode.model_name || null}
+              onSelect={onModelSelect}
+              allowAuto={true}
+              autoLabel="Agent default"
+              triggerClassName="min-w-0 flex-1 justify-between"
+            />
+          </div>
           <button
             type="button"
             onClick={onToolsClick}

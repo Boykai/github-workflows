@@ -52,7 +52,6 @@ export function AgentCard({
   const updateMutation = useUpdateAgent(projectId);
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
 
-  // Repo-only agents cannot be edited through the API, but they can be deleted via PR.
   const isRepoOnly = agent.source === 'repo';
   const isPendingDeletion = agent.status === 'pending_deletion';
   const isPendingCreation = agent.status === 'pending_pr' && agent.source === 'local';
@@ -151,9 +150,6 @@ export function AgentCard({
               >
                 {agent.name}
               </h4>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/75">
-                {agent.slug}
-              </p>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
@@ -231,10 +227,7 @@ export function AgentCard({
         </div>
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={() => setIsIconPickerOpen(true)} disabled={updateMutation.isPending}>
-            Icon
-          </Button>
-          {onEdit && !isRepoOnly && !isPendingDeletion && (
+          {onEdit && !isPendingDeletion && (
             <Button variant="outline" size="sm" onClick={() => onEdit(agent)}>
               Edit
             </Button>

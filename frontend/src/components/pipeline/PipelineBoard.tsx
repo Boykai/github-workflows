@@ -14,6 +14,9 @@ interface PipelineBoardProps {
   columnCount: number;
   stages: PipelineStage[];
   availableAgents: AvailableAgent[];
+  agentsLoading?: boolean;
+  agentsError?: string | null;
+  onRetryAgents?: () => void;
   availableModels: AIModel[];
   isEditMode: boolean;
   pipelineName: string;
@@ -35,6 +38,9 @@ export function PipelineBoard({
   columnCount,
   stages,
   availableAgents,
+  agentsLoading = false,
+  agentsError = null,
+  onRetryAgents,
   availableModels,
   isEditMode,
   pipelineName,
@@ -207,6 +213,9 @@ export function PipelineBoard({
               key={stage.id}
               stage={stage}
               availableAgents={availableAgents}
+              agentsLoading={agentsLoading}
+              agentsError={agentsError}
+              onRetryAgents={onRetryAgents}
               projectId={projectId}
               onUpdate={(updated) => onUpdateStage(stage.id, updated)}
               onRemove={() => onRemoveStage(stage.id)}

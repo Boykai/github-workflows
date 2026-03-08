@@ -1,6 +1,6 @@
 /**
  * AgentPresetSelector component - renders preset buttons
- * (Custom, GitHub Copilot, Spec Kit) plus saved pipeline configurations
+ * (Clear, GitHub Copilot, Spec Kit) plus saved pipeline configurations
  * with confirmation dialog before replacing current agent configuration.
  */
 
@@ -98,7 +98,7 @@ function mappingsMatch(
 const PRESETS: AgentPreset[] = [
   {
     id: 'custom',
-    label: 'Custom',
+    label: 'Clear',
     description: 'Clear all agent assignments',
     mappings: {},
   },
@@ -150,7 +150,7 @@ function matchesPreset(
   columnNames: string[]
 ): boolean {
   if (preset.id === 'custom') {
-    // Custom matches when all columns are empty
+    // Clear matches when all columns are empty
     return columnNames.every((col) => (currentMappings[col] ?? []).length === 0);
   }
 
@@ -299,6 +299,8 @@ export function AgentPresetSelector({
     setConfirmPipeline(null);
   }, []);
 
+  const isClearingPreset = confirmPreset?.id === 'custom';
+
   const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
   const selectedSavedPipelineId = useMemo(() => {
@@ -400,11 +402,14 @@ export function AgentPresetSelector({
             aria-label="Confirm preset"
           >
             <h4 className="text-lg font-semibold text-foreground m-0">
-              Apply &ldquo;{confirmPreset.label}&rdquo; preset?
+              {isClearingPreset
+                ? 'Clear pipeline assignments?'
+                : `Apply “${confirmPreset.label}” preset?`}
             </h4>
             <p className="text-sm text-muted-foreground m-0">
-              This will replace your current agent configuration. Unsaved changes will be reflected
-              in the save bar.
+              {isClearingPreset
+                ? 'This will remove all agents from the pipeline board. Unsaved changes will be reflected in the save bar.'
+                : 'This will replace your current agent configuration. Unsaved changes will be reflected in the save bar.'}
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button
@@ -419,7 +424,7 @@ export function AgentPresetSelector({
                 onClick={handleConfirmPreset}
                 type="button"
               >
-                Apply Preset
+                {isClearingPreset ? 'Clear' : 'Apply Preset'}
               </button>
             </div>
           </div>

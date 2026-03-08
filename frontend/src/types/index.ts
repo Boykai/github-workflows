@@ -1133,6 +1133,13 @@ export interface McpToolConfigCreate {
   github_repo_target: string;
 }
 
+export interface McpToolConfigUpdate {
+  name?: string;
+  description?: string;
+  config_content?: string;
+  github_repo_target?: string;
+}
+
 export interface McpToolConfigListResponse {
   tools: McpToolConfig[];
   count: number;

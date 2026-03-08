@@ -315,6 +315,8 @@ class TestAppendTrackingToBody:
         result = append_tracking_to_body(SAMPLE_BODY, mappings, ["Ready"])
         # Old agents should be gone
         assert "speckit.specify" not in result
+        assert "## 🤖 Agent Pipeline" not in result
+        assert TRACKING_HEADER in result
         assert "`newagent`" in result
 
     def test_idempotent(self):

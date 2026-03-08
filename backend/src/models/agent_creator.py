@@ -32,7 +32,19 @@ class AgentPreview(BaseModel):
     icon_name: str | None = Field(default=None, description="Celestial icon identifier")
     system_prompt: str = Field(..., description="Full system prompt text")
     status_column: str = Field(..., description="Assigned status column")
-    tools: list[str] = Field(default_factory=list, description="All available tool identifiers")
+    tools: list[str] = Field(default_factory=list, description="Human-readable selected tools")
+    tool_allowlist: list[str] = Field(
+        default_factory=list,
+        description="Exact GitHub tool allowlist written to agent frontmatter",
+    )
+    tool_ids: list[str] = Field(
+        default_factory=list,
+        description="Persisted MCP tool identifiers selected in the app",
+    )
+    mcp_servers: dict[str, object] = Field(
+        default_factory=dict,
+        description="GitHub custom-agent MCP server configuration written to frontmatter",
+    )
 
     @staticmethod
     def name_to_slug(name: str) -> str:

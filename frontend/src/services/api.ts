@@ -63,6 +63,7 @@ import type {
   ProjectPipelineAssignment,
   McpToolConfig,
   McpToolConfigCreate,
+  McpToolConfigUpdate,
   McpToolConfigListResponse,
   McpToolSyncResult,
   ToolChip,
@@ -971,6 +972,13 @@ export const toolsApi = {
   create(projectId: string, data: McpToolConfigCreate): Promise<McpToolConfig> {
     return request<McpToolConfig>(`/tools/${projectId}`, {
       method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update(projectId: string, toolId: string, data: McpToolConfigUpdate): Promise<McpToolConfig> {
+    return request<McpToolConfig>(`/tools/${projectId}/${toolId}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   },

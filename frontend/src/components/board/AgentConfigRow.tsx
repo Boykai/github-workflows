@@ -5,7 +5,7 @@
  * Wraps all columns in a single DndContext for cross-column drag-and-drop.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -29,6 +29,33 @@ import { AgentDragOverlay } from './AgentDragOverlay';
 import { AgentSaveBar } from './AgentSaveBar';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 
+function AgentPipelineSigil() {
+  return (
+    <span className="celestial-sigil golden-ring relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-[radial-gradient(circle_at_34%_28%,hsl(var(--glow)/0.26),hsl(var(--background)/0.94)_48%,hsl(var(--night)/0.96)_100%)] shadow-[0_0_30px_hsl(var(--night)/0.2)]">
+      <span className="celestial-orbit inset-[3px] border-primary/20" />
+      <svg viewBox="0 0 24 24" className="relative z-10 h-5 w-5" aria-hidden="true">
+        <circle cx="8.1" cy="8.3" r="3.15" fill="hsl(var(--gold))" opacity="0.94" />
+        <circle cx="8.1" cy="8.3" r="1.55" fill="hsl(var(--glow))" opacity="0.92" />
+        <g stroke="hsl(var(--gold))" strokeWidth="0.9" strokeLinecap="round" opacity="0.88">
+          <path d="M8.1 3.1v1.6" />
+          <path d="M8.1 12.1v1.6" />
+          <path d="M2.9 8.3h1.6" />
+          <path d="M11.9 8.3h1.6" />
+          <path d="m4.4 4.6 1.15 1.15" />
+          <path d="m10.65 10.85 1.15 1.15" />
+          <path d="m4.4 12 1.15-1.15" />
+          <path d="m10.65 5.75 1.15-1.15" />
+        </g>
+        <path d="M15.6 5.8a4.7 4.7 0 1 0 0 9.4c.92-.78 1.45-2.12 1.45-4.7 0-2.22-.56-3.88-1.45-4.7Z" fill="hsl(var(--foreground))" opacity="0.96" />
+        <path d="M5.2 16.55c1.9-2.1 4.9-3.38 8.1-3.38 2.08 0 3.96.46 5.58 1.34" stroke="hsl(var(--border))" strokeWidth="1.05" strokeLinecap="round" fill="none" opacity="0.9" />
+        <circle cx="18.1" cy="16.55" r="1.05" fill="hsl(var(--gold))" opacity="0.92" />
+        <path d="M18.35 3.9 18.9 5.35 20.35 5.9 18.9 6.45 18.35 7.9 17.8 6.45 16.35 5.9 17.8 5.35 18.35 3.9Z" fill="hsl(var(--star))" />
+      </svg>
+      <span className="absolute -bottom-0.5 -right-0.5 z-10 h-2.5 w-2.5 rounded-full border border-background/85 bg-primary/85 shadow-[0_0_12px_hsl(var(--glow)/0.3)]" />
+    </span>
+  );
+}
+
 interface AgentConfigRowProps {
   columnCount: number;
   columns: BoardColumn[];
@@ -36,6 +63,8 @@ interface AgentConfigRowProps {
   availableAgents?: AvailableAgent[];
   renderPresetSelector?: React.ReactNode;
   renderAddButton?: (status: string) => React.ReactNode;
+  variant?: 'default' | 'compact';
+  title?: string;
 }
 
 /** Find which column an agent ID belongs to */
@@ -58,17 +87,21 @@ export function AgentConfigRow({
   availableAgents,
   renderPresetSelector,
   renderAddButton,
+  variant = 'default',
+  title = 'Agents Pipelines',
 }: AgentConfigRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeAgent, setActiveAgent] = useState<AgentAssignment | null>(null);
   const [activeAgentWidth, setActiveAgentWidth] = useState<number | null>(null);
   const snapshotRef = useRef<Record<string, AgentAssignment[]> | null>(null);
+  const isCompact = variant === 'compact';
 
   const {
     localMappings,
     isDirty,
     isColumnDirty,
     removeAgent,
+    cloneAgent,
     reorderAgents,
     moveAgentToColumn,
     save,
@@ -77,6 +110,58 @@ export function AgentConfigRow({
     saveError,
     isLoaded,
   } = agentConfig;
+
+  const compactConstellation = useMemo(() => {
+    if (!isCompact || columns.length === 0) {
+      return { nodes: [], edges: [], stars: [] };
+    }
+
+    const visibleColumns = columns.slice(0, Math.max(columnCount, 1));
+    const leftInset = visibleColumns.length === 1 ? 50 : 8;
+    const rightInset = visibleColumns.length === 1 ? 50 : 8;
+    const topInset = 24;
+    const bottomInset = 16;
+    const usableHeight = Math.max(24, 100 - topInset - bottomInset);
+
+    const nodes = visibleColumns.flatMap((column, columnIndex) => {
+      const agents = localMappings[column.status.name] ?? [];
+      if (agents.length === 0) return [];
+
+      const x = visibleColumns.length === 1
+        ? 50
+        : leftInset + (columnIndex * (100 - leftInset - rightInset)) / (visibleColumns.length - 1);
+
+      const rows = agents.length === 1
+        ? [topInset + usableHeight / 2]
+        : agents.map((_, agentIndex) => topInset + (agentIndex * usableHeight) / (agents.length - 1));
+
+      return agents.map((agent, agentIndex) => ({
+        id: agent.id,
+        x,
+        y: rows[agentIndex],
+      }));
+    });
+
+    const edges = nodes.slice(0, -1).map((node, index) => {
+      const next = nodes[index + 1];
+      const controlX = (node.x + next.x) / 2;
+      const controlY = Math.min(node.y, next.y) - (Math.abs(node.x - next.x) > 1 ? 8 : 0);
+      return {
+        id: `${node.id}-${next.id}`,
+        path: `M ${node.x} ${node.y} Q ${controlX} ${controlY} ${next.x} ${next.y}`,
+      };
+    });
+
+    const stars = [
+      { id: 'c1', x: 6, y: 18, r: 1.1 },
+      { id: 'c2', x: 26, y: 82, r: 1.2 },
+      { id: 'c3', x: 54, y: 10, r: 1 },
+      { id: 'c4', x: 78, y: 74, r: 1.15 },
+      { id: 'c5', x: 94, y: 22, r: 1.05 },
+    ];
+
+    return { nodes, edges, stars };
+  }, [columnCount, columns, isCompact, localMappings]);
 
   // Sensors: PointerSensor (mouse), TouchSensor (mobile), KeyboardSensor (a11y)
   const sensors = useSensors(
@@ -199,14 +284,17 @@ export function AgentConfigRow({
   // Loading skeleton (T030)
   if (!isLoaded) {
     return (
-      <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60">
-        <div className="flex items-center gap-2 rounded-t-[1.2rem] border-b border-border/40 bg-background/38 p-2">
-          <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
+      <div className={`celestial-panel flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem]' : 'rounded-[1.2rem]'}`}>
+        <div className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}>
+          <span className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm'}`}>
+            <AgentPipelineSigil />
+            {title}
+          </span>
         </div>
-        <div className="p-2">
-          <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className={isCompact ? 'p-1.5' : 'p-2'}>
+          <div className={`flex overflow-x-auto ${isCompact ? 'gap-2 pb-1' : 'gap-4 pb-2'}`}>
             {columns.map((col) => (
-              <div key={col.status.option_id} className="flex-1 min-w-[300px] max-w-[350px] flex flex-col gap-2 p-2 rounded-[1.2rem] border border-border/60 animate-pulse">
+              <div key={col.status.option_id} className={`flex flex-1 flex-col border border-border/60 animate-pulse ${isCompact ? 'min-w-[220px] max-w-[280px] gap-1.5 rounded-[1rem] p-1.5' : 'min-w-[300px] max-w-[350px] gap-2 rounded-[1.2rem] p-2'}`}>
                 <div className="h-10 bg-muted rounded-md w-full" />
               </div>
             ))}
@@ -217,24 +305,27 @@ export function AgentConfigRow({
   }
 
   return (
-    <div className="celestial-panel flex flex-col rounded-[1.2rem] border border-border/60 relative">
+    <div className={`celestial-panel relative flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]'}`}>
       {/* Header with toggle and presets */}
-      <div className="flex items-center gap-2 rounded-t-[1.2rem] border-b border-border/40 bg-background/38 p-2">
+      <div className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}>
         <button
-          className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          className={`solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground ${isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6'}`}
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"
         >
           {isExpanded ? '▾' : '▸'}
         </button>
-        <span className="text-sm font-semibold text-foreground flex items-center gap-2">🤖 Agent Pipeline</span>
+        <span className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-[11px] uppercase tracking-[0.18em]' : 'text-sm'}`}>
+          <AgentPipelineSigil />
+          {title}
+        </span>
         {renderPresetSelector}
       </div>
 
       {/* Collapsible body */}
       {isExpanded && (
-        <div className="py-2">
+        <div className={isCompact ? 'py-1.5' : 'py-2'}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -244,7 +335,32 @@ export function AgentConfigRow({
             onDragCancel={handleDragCancel}
           >
            <div className="overflow-x-auto">
-            <div className="grid min-w-full items-start gap-3 pb-2 px-2" style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))` }}>
+            <div className={`relative grid min-w-full items-start ${isCompact ? 'gap-2 px-2 pb-1' : 'gap-3 px-2 pb-2'}`} style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${isCompact ? '12rem' : '14rem'}, 1fr))` }}>
+              {isCompact && compactConstellation.nodes.length > 1 && (
+                <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  {compactConstellation.edges.map((edge, index) => (
+                    <g key={edge.id}>
+                      <path
+                        d={edge.path}
+                        fill="none"
+                        stroke="hsl(var(--border) / 0.24)"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d={edge.path}
+                        fill="none"
+                        stroke={index % 2 === 0 ? 'hsl(var(--gold) / 0.5)' : 'hsl(var(--primary) / 0.46)'}
+                        strokeWidth="0.72"
+                        strokeLinecap="round"
+                      />
+                    </g>
+                  ))}
+                  {compactConstellation.stars.map((star) => (
+                    <circle key={star.id} cx={star.x} cy={star.y} r={star.r} fill="hsl(var(--star) / 0.8)" />
+                  ))}
+                </svg>
+              )}
               {columns.map((col) => {
                 const status = col.status.name;
                 const agents = localMappings[status] ?? [];
@@ -256,9 +372,11 @@ export function AgentConfigRow({
                     agents={agents}
                     isModified={isColumnDirty(status)}
                     onRemoveAgent={removeAgent}
+                    onCloneAgent={cloneAgent}
                     onReorderAgents={reorderAgents}
                     renderAddButton={renderAddButton?.(status)}
                     availableAgents={availableAgents}
+                    variant={variant}
                   />
                 );
               })}

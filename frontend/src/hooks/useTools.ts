@@ -8,6 +8,7 @@ import { toolsApi, ApiError } from '@/services/api';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
+  McpToolConfigUpdate,
   McpToolConfigListResponse,
   McpToolSyncResult,
   ToolDeleteResult,
@@ -52,6 +53,17 @@ export function useToolsList(projectId: string | null | undefined) {
     onSettled: () => setSyncingId(null),
   });
 
+  const updateMutation = useMutation<
+    McpToolConfig,
+    ApiError,
+    { toolId: string; data: McpToolConfigUpdate }
+  >({
+    mutationFn: ({ toolId, data }) => toolsApi.update(projectId!, toolId, data),
+    onSuccess: () => {
+      if (projectId) queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+    },
+  });
+
   const deleteMutation = useMutation<
     ToolDeleteResult,
     ApiError,
@@ -85,6 +97,11 @@ export function useToolsList(projectId: string | null | undefined) {
     syncTool: syncMutation.mutateAsync,
     syncingId,
     syncError: syncMutation.error?.message ?? null,
+
+    updateTool: updateMutation.mutateAsync,
+    isUpdating: updateMutation.isPending,
+    updateError: updateMutation.error?.message ?? null,
+    resetUpdateError: updateMutation.reset,
 
     deleteTool: deleteMutation.mutateAsync,
     deletingId,

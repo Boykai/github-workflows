@@ -8,6 +8,7 @@ Covers:
 - get_db() / close_database()
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import aiosqlite
@@ -110,6 +111,34 @@ class TestRunMigrations:
         await raw_db.commit()
         with pytest.raises(RuntimeError, match="ahead of"):
             await _run_migrations(raw_db)
+
+    async def test_repairs_missing_icon_name_column_when_schema_version_is_current(self, raw_db):
+        """Startup should self-heal older agent_configs schemas on persisted volumes."""
+        migrations = _discover_migrations()
+        max_ver = max(v for v, _ in migrations)
+
+        await raw_db.execute(
+            "CREATE TABLE schema_version (version INTEGER NOT NULL, applied_at TEXT NOT NULL)"
+        )
+        await raw_db.execute(
+            "INSERT INTO schema_version (version, applied_at) VALUES (?, datetime('now'))",
+            (max_ver,),
+        )
+
+        old_agent_migrations = [
+            path
+            for _, path in migrations
+            if path.name in {"007_agent_configs.sql", "014_agent_default_models.sql"}
+        ]
+        for migration_path in old_agent_migrations:
+            await raw_db.executescript(Path(migration_path).read_text(encoding="utf-8"))
+        await raw_db.commit()
+
+        await _run_migrations(raw_db)
+
+        cur = await raw_db.execute("PRAGMA table_info(agent_configs)")
+        columns = [row[1] for row in await cur.fetchall()]
+        assert "icon_name" in columns
 
 
 # =============================================================================

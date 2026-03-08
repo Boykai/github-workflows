@@ -2,13 +2,14 @@
  * ToolCard — displays a single MCP tool configuration with sync status and actions.
  */
 
-import { RefreshCw, Trash2, Wrench } from 'lucide-react';
+import { Pencil, RefreshCw, Trash2, Wrench } from 'lucide-react';
 import type { McpToolConfig } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 interface ToolCardProps {
   tool: McpToolConfig;
+  onEdit: (tool: McpToolConfig) => void;
   onSync: (toolId: string) => void;
   onDelete: (toolId: string) => void;
   isSyncing?: boolean;
@@ -35,7 +36,7 @@ function SyncStatusBadge({ status, error }: { status: string; error?: string }) 
   );
 }
 
-export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: ToolCardProps) {
+export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting }: ToolCardProps) {
   return (
     <Card className="moonwell rounded-[1.35rem] border-border/75 shadow-none transition-colors hover:border-primary/20">
       <CardContent className="p-4 sm:p-5">
@@ -73,6 +74,15 @@ export function ToolCard({ tool, onSync, onDelete, isSyncing, isDeleting }: Tool
               : `Created ${new Date(tool.created_at).toLocaleDateString()}`}
           </span>
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-primary/10"
+              onClick={() => onEdit(tool)}
+              title="Edit tool"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
