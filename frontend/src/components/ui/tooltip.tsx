@@ -49,7 +49,6 @@ function resolveEntry(props: TooltipProps): TooltipEntry | null {
     const entry = tooltipContent[props.contentKey];
     if (!entry) {
       if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
         console.warn(`[Tooltip] No registry entry for key "${props.contentKey}"`);
       }
       return null;

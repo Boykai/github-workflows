@@ -206,6 +206,7 @@ export function ChoreCard({
                 <button
                   type="button"
                   onClick={onEditStart}
+                  aria-label="Edit chore"
                   className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
                 >
                   <Pencil className="h-3.5 w-3.5" />

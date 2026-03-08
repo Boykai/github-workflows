@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ChoresPanel } from '../ChoresPanel';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
@@ -43,7 +44,9 @@ function createWrapper() {
   });
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+      </QueryClientProvider>
     );
   };
 }
@@ -160,7 +163,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Click to pause').some((element) => element.textContent?.includes('Active'))).toBe(true);
+      expect(screen.getAllByRole('button').some((element) => element.textContent?.includes('Active'))).toBe(true);
     });
   });
 
@@ -170,7 +173,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Click to activate').some((element) => element.textContent?.includes('Paused'))).toBe(true);
+      expect(screen.getAllByRole('button').some((element) => element.textContent?.includes('Paused'))).toBe(true);
     });
   });
 
@@ -181,10 +184,10 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Edit chore').length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: 'Edit chore' }).length).toBeGreaterThan(0);
     });
 
-    await user.click(screen.getAllByTitle('Edit chore')[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Edit chore' })[0]);
 
     const pipelineSelectors = await screen.findAllByLabelText('Agent Pipeline');
     await user.selectOptions(pipelineSelectors[0], 'pipe-1');
