@@ -41,7 +41,7 @@ The tracking section is preceded by a `---` horizontal rule separator.
 | `AgentAssignment.config` is `{}` (empty dict) | `TBD` |
 | `AgentAssignment.config.model_name` is `""` (empty string) | `TBD` |
 | `AgentAssignment.config.model_name` is `"gpt-4o"` | `gpt-4o` |
-| `AgentAssignment.config.model_name` contains `\|` | Escaped: `\|` → `\\\|` |
+| `AgentAssignment.config.model_name` contains `|` | Escaped: `|` → `\|` |
 
 ### Complete Example
 
@@ -104,7 +104,7 @@ The tracking section is preceded by a `---` horizontal rule separator.
 ```python
 # Matches: | 1 | Backlog | `speckit.specify` | gpt-4o | ⏳ Pending |
 _ROW_RE = re.compile(
-    r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|"
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
 )
 ```
 
@@ -117,7 +117,7 @@ _ROW_RE = re.compile(
 
 ### Backward Compatibility (Old Format — 4 Columns)
 
-Old tables without the Model column are still parseable. The regex uses an optional group or a fallback pattern to handle the old format:
+Old tables without the Model column are still parseable. The parser uses a fallback regex (`_ROW_RE_OLD`) for the old 4-column format when the primary 5-column regex (`_ROW_RE`) finds no matches:
 
 ```python
 # Old format: | 1 | Backlog | `speckit.specify` | ⏳ Pending |
