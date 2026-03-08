@@ -246,6 +246,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       stages: seededStages,
       is_preset: false,
       preset_id: '',
+      blocking: false,
       created_at: now,
       updated_at: now,
     };

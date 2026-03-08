@@ -4,10 +4,11 @@ import logging
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
 from src.models.board import (
     BoardDataResponse,
@@ -357,3 +358,25 @@ async def get_board_data(
     # Manual refresh (refresh=true) bypasses this cache entirely.
     cache.set(cache_key, board_data, ttl_seconds=300)
     return board_data
+
+
+@router.get("/projects/{project_id}/blocking-queue", dependencies=[Depends(verify_project_access)])
+async def get_blocking_queue(
+    project_id: str,
+) -> list[dict]:
+    """Get active blocking queue entries for a project.
+
+    Returns non-completed entries ordered by created_at ASC, providing
+    data for the blocking chain tooltip/sidebar on the board.
+    """
+    try:
+        from src.services import blocking_queue_store as bq_store
+
+        entries = await bq_store.get_by_project(project_id)
+        return [entry.model_dump() for entry in entries]
+    except Exception as exc:
+        logger.warning("Failed to load blocking queue for project %s", project_id, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to load blocking queue",
+        ) from exc

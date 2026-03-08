@@ -13,9 +13,10 @@ interface ProjectBoardProps {
   onCardClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
+  blockingIssueNumbers?: Set<number>;
 }
 
-export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroups }: ProjectBoardProps) {
+export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroups, blockingIssueNumbers }: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
 
   return (
@@ -31,6 +32,7 @@ export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroup
             onCardClick={onCardClick}
             availableAgents={availableAgents}
             getGroups={getGroups}
+            blockingIssueNumbers={blockingIssueNumbers}
           />
         ))}
       </div>

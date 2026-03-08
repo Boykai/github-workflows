@@ -228,6 +228,7 @@ export interface AITaskProposal {
   original_input: string;
   proposed_title: string;
   proposed_description: string;
+  is_blocking?: boolean;
   status: ProposalStatus;
   edited_title?: string;
   edited_description?: string;
@@ -866,6 +867,7 @@ export interface Chore {
   execution_count: number;
   ai_enhance_enabled: boolean;
   agent_pipeline_id: string;
+  blocking: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -873,6 +875,7 @@ export interface Chore {
 export interface ChoreCreate {
   name: string;
   template_content: string;
+  blocking?: boolean;
 }
 
 export interface ChoreTemplate {
@@ -888,6 +891,7 @@ export interface ChoreUpdate {
   status?: ChoreStatus;
   ai_enhance_enabled?: boolean;
   agent_pipeline_id?: string;
+  blocking?: boolean;
 }
 
 export interface ChoreTriggerResult {
@@ -929,6 +933,7 @@ export interface ChoreInlineUpdate {
   schedule_value?: number | null;
   ai_enhance_enabled?: boolean;
   agent_pipeline_id?: string;
+  blocking?: boolean;
   expected_sha?: string;
 }
 
@@ -1048,6 +1053,7 @@ export interface PipelineConfig {
   stages: PipelineStage[];
   is_preset: boolean;
   preset_id: string;
+  blocking: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1062,6 +1068,7 @@ export interface PipelineConfigSummary {
   is_preset: boolean;
   preset_id: string;
   stages: PipelineStage[];
+  blocking: boolean;
   updated_at: string;
 }
 
@@ -1080,6 +1087,7 @@ export interface PipelineConfigUpdate {
   name?: string;
   description?: string;
   stages?: PipelineStage[];
+  blocking?: boolean;
 }
 
 export interface AIModel {
@@ -1191,4 +1199,30 @@ export interface ToolDeleteResult {
   success: boolean;
   deleted_id: string | null;
   affected_agents: ToolChip[];
+}
+
+// ── Blocking Queue Types ──
+
+export type BlockingQueueStatus = 'pending' | 'active' | 'in_review' | 'completed';
+
+export interface BlockingQueueEntry {
+  id: number;
+  repo_key: string;
+  issue_number: number;
+  project_id: string;
+  is_blocking: boolean;
+  queue_status: BlockingQueueStatus;
+  parent_branch: string | null;
+  blocking_source_issue: number | null;
+  created_at: string;
+  activated_at: string | null;
+  completed_at: string | null;
+}
+
+export interface BlockingQueueUpdatedEvent {
+  type: 'blocking_queue_updated';
+  repo_key: string;
+  activated_issues: number[];
+  completed_issues: number[];
+  current_base_branch: string;
 }

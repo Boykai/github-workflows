@@ -59,6 +59,10 @@ class ChoreConflictError(RuntimeError):
         self.current_content = current_content
 
 
+class _BlockedIssueSkip(Exception):
+    """Internal sentinel: issue is blocked in the blocking queue, skip agent assignment."""
+
+
 class ChoresService:
     """Manages chore records in the SQLite database."""
 
@@ -478,6 +482,51 @@ class ChoresService:
 
                 orchestrator = get_workflow_orchestrator()
 
+                # Blocking queue: resolve effective blocking flag
+                # Chore's own flag OR assigned pipeline's blocking flag (R5)
+                is_blocking = chore.blocking
+                if not is_blocking and chore.agent_pipeline_id:
+                    try:
+                        from src.services.pipelines.service import PipelineService
+
+                        pipeline_svc = PipelineService(self._db)
+                        pipeline_cfg = await pipeline_svc.get_pipeline(
+                            project_id, chore.agent_pipeline_id
+                        )
+                        if pipeline_cfg and pipeline_cfg.blocking:
+                            is_blocking = True
+                    except Exception:
+                        logger.debug("Pipeline blocking check failed for chore %s", chore.id)
+
+                # Enqueue in blocking queue and check activation
+                issue_activated = True
+                try:
+                    from src.services import blocking_queue as bq_service
+
+                    repo_key = f"{owner}/{repo}"
+                    _bq_entry, issue_activated = await bq_service.enqueue_issue(
+                        repo_key, issue_number, project_id, is_blocking
+                    )
+                    if not issue_activated:
+                        logger.info(
+                            "Chore issue #%d pending in blocking queue — skipping agent assignment",
+                            issue_number,
+                        )
+                        # Skip agent assignment; issue will be activated by the queue later
+                        await ensure_polling_started(
+                            access_token=access_token,
+                            project_id=project_id,
+                            owner=owner,
+                            repo=repo,
+                            caller="chore_trigger_blocked",
+                        )
+                        # Fall through to CAS update below
+                        raise _BlockedIssueSkip()
+                except _BlockedIssueSkip:
+                    raise
+                except Exception:
+                    logger.debug("Blocking queue enqueue skipped in chore trigger")
+
                 # Create all sub-issues upfront
                 agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
                 if agent_sub_issues:
@@ -508,6 +557,8 @@ class ChoresService:
                     repo=repo,
                     caller="chore_trigger",
                 )
+        except _BlockedIssueSkip:
+            pass  # Issue is queued — skip agent assignment, continue to CAS update
         except Exception:
             logger.exception(
                 "Agent pipeline failed for chore %s (issue #%s)",

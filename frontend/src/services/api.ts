@@ -69,6 +69,7 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
+  BlockingQueueEntry,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -363,6 +364,13 @@ export const boardApi = {
   getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
     const params = refresh ? '?refresh=true' : '';
     return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
+  },
+
+  /**
+   * Get active blocking queue entries for a project.
+   */
+  getBlockingQueue(projectId: string): Promise<BlockingQueueEntry[]> {
+    return request<BlockingQueueEntry[]>(`/board/projects/${projectId}/blocking-queue`);
   },
 };
 
