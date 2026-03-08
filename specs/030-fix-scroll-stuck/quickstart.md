@@ -49,7 +49,7 @@ uvicorn src.main:app --reload --port 8000
 
 | File | Change Type | Description |
 |------|------------|-------------|
-| `frontend/src/hooks/__tests__/useScrollLock.test.ts` | **Create** | Unit tests for `useScrollLock` hook — reference counting, nested modals, cleanup |
+| `frontend/src/hooks/useScrollLock.test.ts` | **Create** | Unit tests for `useScrollLock` hook — reference counting, nested modals, cleanup |
 
 ## Implementation Order
 
@@ -76,7 +76,7 @@ export function useScrollLock(isLocked: boolean): void {
     document.body.style.overflow = 'hidden';
 
     return () => {
-      lockCount--;
+      lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0) {
         document.body.style.overflow = originalOverflow;
       }
