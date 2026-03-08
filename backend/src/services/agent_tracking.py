@@ -115,7 +115,10 @@ def build_agent_pipeline_steps(
             model = config.get("model_name", "") if isinstance(config, dict) else ""
             steps.append(
                 AgentStep(
-                    index=idx, status=status, agent_name=agent_slug, model=model,
+                    index=idx,
+                    status=status,
+                    agent_name=agent_slug,
+                    model=model,
                     state=STATE_PENDING,
                 )
             )
@@ -139,11 +142,11 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
         "| # | Status | Agent | Model | State |",
         "|---|--------|-------|-------|-------|",
     ]
-    lines.extend(
-        f"| {step.index} | {step.status} | `{step.agent_name}` "
-        f"| {(step.model or 'TBD').replace('|', '\\|')} | {step.state} |"
-        for step in steps
-    )
+    for step in steps:
+        model_display = (step.model or "TBD").replace("|", "\\|")
+        lines.append(
+            f"| {step.index} | {step.status} | `{step.agent_name}` | {model_display} | {step.state} |"
+        )
     lines.append("")
     return "\n".join(lines)
 
