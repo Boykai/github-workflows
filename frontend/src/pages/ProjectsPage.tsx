@@ -3,7 +3,7 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
@@ -15,13 +15,14 @@ import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
+import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
+import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import type { BoardItem } from '@/types';
 import { ApiError } from '@/services/api';
-import { Filter, ArrowUpDown, Columns3 } from 'lucide-react';
 
 export function ProjectsPage() {
   const { updateRateLimit } = useRateLimitStatus();
@@ -59,11 +60,13 @@ export function ProjectsPage() {
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [sortField, setSortField] = useState<string | null>(null);
 
   const agentConfig = useAgentConfig(selectedProjectId);
   const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
+
+  // Board controls: filter, sort, group-by with localStorage persistence
+  const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
+  const transformedBoardData = boardControls.transformedData;
 
   const handleProjectSwitch = useCallback((projectId: string) => {
     if (agentConfig.isDirty) {
@@ -78,25 +81,6 @@ export function ProjectsPage() {
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
-
-  // Derive board data with optional sorting
-  const sortedBoardData = useMemo(() => {
-    if (!boardData || !sortField) return boardData;
-    return {
-      ...boardData,
-      columns: boardData.columns.map((col) => ({
-        ...col,
-        items: [...col.items].sort((a, b) => {
-          if (sortField === 'priority') {
-            const order: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
-            return (order[a.priority?.name ?? 'P2'] ?? 2) - (order[b.priority?.name ?? 'P2'] ?? 2);
-          }
-          if (sortField === 'title') return a.title.localeCompare(b.title);
-          return 0;
-        }),
-      })),
-    };
-  }, [boardData, sortField]);
 
   // Calculate progress
   const totalItems = boardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
@@ -211,31 +195,22 @@ export function ProjectsPage() {
 
       {/* Toolbar */}
       {selectedProjectId && boardData && (
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
-          >
-            <Filter className="w-3.5 h-3.5" />
-            Filter
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setSortField(sortField ? null : 'priority')}
-              className="flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors hover:bg-accent/45"
-            >
-              <ArrowUpDown className="w-3.5 h-3.5" />
-              Sort{sortField ? `: ${sortField}` : ''}
-            </button>
-          </div>
-          <button
-            className="cursor-default flex items-center gap-1.5 rounded-full border border-border/70 bg-background/50 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"
-            title="Coming soon"
-          >
-            <Columns3 className="w-3.5 h-3.5" />
-            Group by
-          </button>
-        </div>
+        <BoardToolbar
+          filters={boardControls.controls.filters}
+          sort={boardControls.controls.sort}
+          group={boardControls.controls.group}
+          onFiltersChange={boardControls.setFilters}
+          onSortChange={boardControls.setSort}
+          onGroupChange={boardControls.setGroup}
+          onClearAll={boardControls.clearAll}
+          availableLabels={boardControls.availableLabels}
+          availableAssignees={boardControls.availableAssignees}
+          availableMilestones={boardControls.availableMilestones}
+          hasActiveFilters={boardControls.hasActiveFilters}
+          hasActiveSort={boardControls.hasActiveSort}
+          hasActiveGroup={boardControls.hasActiveGroup}
+          hasActiveControls={boardControls.hasActiveControls}
+        />
       )}
 
       {/* Rate limit / error banners */}
@@ -320,16 +295,16 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {selectedProjectId && !boardLoading && sortedBoardData && (
+      {selectedProjectId && !boardLoading && transformedBoardData && (
         <div className="flex flex-col flex-1 gap-6 overflow-hidden">
           <AgentConfigRow
-            columnCount={Math.max(sortedBoardData.columns.length, 1)}
-            columns={sortedBoardData.columns}
+            columnCount={Math.max(transformedBoardData.columns.length, 1)}
+            columns={transformedBoardData.columns}
             agentConfig={agentConfig}
             availableAgents={availableAgents}
             renderPresetSelector={
               <AgentPresetSelector
-                columnNames={sortedBoardData.columns.map((c) => c.status.name)}
+                columnNames={transformedBoardData.columns.map((c) => c.status.name)}
                 currentMappings={agentConfig.localMappings}
                 onApplyPreset={agentConfig.applyPreset}
                 projectId={selectedProjectId}
@@ -349,14 +324,31 @@ export function ProjectsPage() {
           />
 
           <div className="flex flex-1 gap-6 overflow-hidden">
-            {sortedBoardData.columns.every((col) => col.items.length === 0) ? (
+            {transformedBoardData.columns.every((col) => col.items.length === 0) ? (
               <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
-                <div className="text-4xl mb-2">📭</div>
-                <h3 className="text-xl font-semibold">No items yet</h3>
-                <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
+                {boardControls.hasActiveControls ? (
+                  <>
+                    <div className="text-4xl mb-2">🔍</div>
+                    <h3 className="text-xl font-semibold">No issues match the current view</h3>
+                    <p className="text-muted-foreground">Try adjusting your filter, sort, or group settings.</p>
+                    <button
+                      onClick={boardControls.clearAll}
+                      className="mt-2 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                      type="button"
+                    >
+                      Clear All
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-2">📭</div>
+                    <h3 className="text-xl font-semibold">No items yet</h3>
+                    <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
+                  </>
+                )}
               </div>
             ) : (
-              <ProjectBoard boardData={sortedBoardData} onCardClick={handleCardClick} />
+              <ProjectBoard boardData={transformedBoardData} onCardClick={handleCardClick} availableAgents={availableAgents} getGroups={boardControls.getGroups} />
             )}
           </div>
         </div>

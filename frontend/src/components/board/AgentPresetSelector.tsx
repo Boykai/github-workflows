@@ -4,7 +4,7 @@
  * with confirmation dialog before replacing current agent configuration.
  */
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
@@ -68,6 +68,29 @@ function pipelineConfigToMappings(
   }
 
   return result;
+}
+
+function mappingsMatch(
+  expectedMappings: Record<string, { slug: string }[]>,
+  currentMappings: Record<string, { slug: string }[]>,
+  columnNames: string[]
+): boolean {
+  for (const col of columnNames) {
+    const expectedAgents = expectedMappings[col] ?? [];
+    const currentAgents = currentMappings[col] ?? [];
+
+    if (expectedAgents.length !== currentAgents.length) {
+      return false;
+    }
+
+    for (let index = 0; index < expectedAgents.length; index++) {
+      if (expectedAgents[index].slug !== currentAgents[index].slug) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 // ============ Preset Definitions (T025) ============
@@ -278,6 +301,37 @@ export function AgentPresetSelector({
 
   const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
+  const selectedSavedPipelineId = useMemo(() => {
+    if (!projectId) return null;
+    const storedSelection = localStorage.getItem(`pipeline-config:${projectId}`);
+    if (!storedSelection || storedSelection.startsWith('builtin:')) return null;
+    return storedSelection;
+  }, [projectId, currentMappings]);
+
+  const { data: activeSavedPipelineConfig } = useQuery({
+    queryKey: ['pipeline', projectId, selectedSavedPipelineId],
+    queryFn: () => pipelinesApi.get(projectId!, selectedSavedPipelineId!),
+    enabled: !!projectId && !!selectedSavedPipelineId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Derive active saved pipeline name for display (T017/T018)
+  const activePipelineName = useMemo(() => {
+    if (!selectedSavedPipelineId || !savedPipelines?.pipelines?.length || !activeSavedPipelineConfig) {
+      return null;
+    }
+
+    const matchedPipeline = savedPipelines.pipelines.find((pipeline) => pipeline.id === selectedSavedPipelineId);
+    if (!matchedPipeline) return null;
+
+    const resolvedMappings = pipelineConfigToMappings(activeSavedPipelineConfig, columnNames);
+    if (!mappingsMatch(resolvedMappings, currentMappings, columnNames)) {
+      return null;
+    }
+
+    return matchedPipeline.name;
+  }, [selectedSavedPipelineId, savedPipelines, activeSavedPipelineConfig, columnNames, currentMappings]);
+
   return (
     <>
       <div className="flex items-center gap-1 ml-auto bg-muted/50 p-1 rounded-md border border-border/50">
@@ -300,12 +354,12 @@ export function AgentPresetSelector({
         {hasSavedPipelines && (
           <div className="relative">
             <button
-              className="px-3 py-1 text-xs font-medium rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${activePipelineName ? 'bg-background text-foreground shadow-sm border border-border/50' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               onClick={() => setShowDropdown(!showDropdown)}
-              title="Saved pipeline configurations"
+              title={activePipelineName ? `Active saved pipeline: ${activePipelineName}` : 'Saved pipeline configurations'}
               type="button"
             >
-              Saved ▾
+              {activePipelineName ?? 'Saved'} ▾
             </button>
             {showDropdown && (
               <>
