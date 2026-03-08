@@ -368,10 +368,14 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const discardChanges = useCallback(() => {
     if (editingPipelineId && savedSnapshotRef.current) {
       // Revert to saved state
-      const saved = JSON.parse(savedSnapshotRef.current);
-      setPipeline((prev) =>
-        prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages } : null,
-      );
+      try {
+        const saved = JSON.parse(savedSnapshotRef.current);
+        setPipeline((prev) =>
+          prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages } : null,
+        );
+      } catch {
+        setPipeline(null);
+      }
     } else {
       // New pipeline — reset to empty
       setPipeline(null);

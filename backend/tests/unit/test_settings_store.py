@@ -148,6 +148,23 @@ class TestUpsertProjectSettings:
         eff = await get_effective_project_settings(seeded_db, "u1", "proj1")
         assert eff.project.board_display_config is None
 
+    async def test_malformed_json_does_not_crash(self, seeded_db):
+        """Malformed JSON in project settings should be handled gracefully, not crash."""
+        await upsert_project_settings(
+            seeded_db, "u1", "proj1", {"board_display_config": "{not valid json"}
+        )
+        # Should not raise JSONDecodeError
+        eff = await get_effective_project_settings(seeded_db, "u1", "proj1")
+        assert eff.project.board_display_config is None
+
+    async def test_malformed_agent_mappings_does_not_crash(self, seeded_db):
+        """Malformed agent_pipeline_mappings JSON should be handled gracefully."""
+        await upsert_project_settings(
+            seeded_db, "u1", "proj1", {"agent_pipeline_mappings": "{{bad"}
+        )
+        eff = await get_effective_project_settings(seeded_db, "u1", "proj1")
+        assert eff.project.agent_pipeline_mappings is None
+
 
 class TestGetEffectiveProjectSettings:
     async def test_inherits_user_and_global(self, seeded_db):

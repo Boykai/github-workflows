@@ -318,6 +318,14 @@ async def _poll_loop(
                     len(in_review_results),
                 )
             elif not skip_expensive:
+                # TODO(bug-bash): recovery_results is overwritten by Step 5 below, so any
+                # results from this Step 4b recovery are lost in the activity check at
+                # line ~409. Options: (1) Use separate variables (recovery_results_4b,
+                # recovery_results_5), (2) Accumulate into a single list, (3) Remove
+                # duplicate recovery call since both call recover_stalled_issues with
+                # identical arguments. Human decision needed: determine whether Step 4b
+                # and Step 5 are intentionally separate recovery passes or an accidental
+                # duplication.
                 recovery_results = await _cp.recover_stalled_issues(
                     access_token=access_token,
                     project_id=project_id,

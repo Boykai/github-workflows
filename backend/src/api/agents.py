@@ -66,7 +66,11 @@ async def list_agents(
     )
 
 
-@router.get("/{project_id}/pending", response_model=list[Agent])
+@router.get(
+    "/{project_id}/pending",
+    response_model=list[Agent],
+    dependencies=[Depends(verify_project_access)],
+)
 async def list_pending_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -88,7 +92,11 @@ async def list_pending_agents(
     )
 
 
-@router.delete("/{project_id}/pending", response_model=AgentPendingCleanupResult)
+@router.delete(
+    "/{project_id}/pending",
+    response_model=AgentPendingCleanupResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def purge_pending_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],

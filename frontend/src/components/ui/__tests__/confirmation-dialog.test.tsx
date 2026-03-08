@@ -96,8 +96,8 @@ describe('ConfirmationDialog', () => {
 
   it('calls onCancel when backdrop is clicked', () => {
     const { props } = renderDialog();
-    // The backdrop is the first child div with bg-black/50
-    const backdrop = screen.getByRole('dialog').parentElement!.querySelector('[aria-hidden="true"]')!;
+    // The backdrop is the sibling div with role="presentation"
+    const backdrop = screen.getByRole('dialog').parentElement!.querySelector('[role="presentation"]')!;
     fireEvent.click(backdrop);
     expect(props.onCancel).toHaveBeenCalledOnce();
   });
@@ -124,7 +124,7 @@ describe('ConfirmationDialog', () => {
 
   it('does not call onCancel on backdrop click during loading state', () => {
     const { props } = renderDialog({ isLoading: true });
-    const backdrop = screen.getByRole('dialog').parentElement!.querySelector('[aria-hidden="true"]')!;
+    const backdrop = screen.getByRole('dialog').parentElement!.querySelector('[role="presentation"]')!;
     fireEvent.click(backdrop);
     expect(props.onCancel).not.toHaveBeenCalled();
   });

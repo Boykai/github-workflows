@@ -341,7 +341,10 @@ async def _get_global_row(db: aiosqlite.Connection) -> aiosqlite.Row:
 
 def _row_to_global_response(row: aiosqlite.Row) -> GlobalSettingsResponse:
     """Convert a global_settings row to the API response model."""
-    allowed_models = json.loads(row["allowed_models"]) if row["allowed_models"] else []
+    try:
+        allowed_models = json.loads(row["allowed_models"]) if row["allowed_models"] else []
+    except (json.JSONDecodeError, TypeError):
+        allowed_models = []
 
     return GlobalSettingsResponse(
         ai=AIPreferences(
@@ -422,16 +425,22 @@ def _build_project_section(
 
     board_config = None
     if project_row["board_display_config"]:
-        raw = json.loads(project_row["board_display_config"])
-        board_config = ProjectBoardConfig(**raw)
+        try:
+            raw = json.loads(project_row["board_display_config"])
+            board_config = ProjectBoardConfig(**raw)
+        except (json.JSONDecodeError, TypeError):
+            board_config = None
 
     agent_mappings = None
     if project_row["agent_pipeline_mappings"]:
-        raw = json.loads(project_row["agent_pipeline_mappings"])
-        # raw is dict[str, list[dict]] — convert inner dicts to ProjectAgentMapping
-        agent_mappings = {
-            status: [ProjectAgentMapping(**m) for m in mappings] for status, mappings in raw.items()
-        }
+        try:
+            raw = json.loads(project_row["agent_pipeline_mappings"])
+            # raw is dict[str, list[dict]] — convert inner dicts to ProjectAgentMapping
+            agent_mappings = {
+                status: [ProjectAgentMapping(**m) for m in mappings] for status, mappings in raw.items()
+            }
+        except (json.JSONDecodeError, TypeError):
+            agent_mappings = None
 
     return ProjectSpecificSettings(
         project_id=project_id,

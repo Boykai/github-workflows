@@ -237,3 +237,50 @@ class TestIssueRecommendation:
         assert recommendation.metadata is not None
         assert recommendation.metadata.priority == IssuePriority.P2
         assert recommendation.metadata.size == IssueSize.M
+
+
+class TestProjectSettingsRowJsonParsing:
+    """Regression tests for ProjectSettingsRow JSON parsing robustness."""
+
+    def test_get_board_config_returns_none_for_malformed_json(self):
+        """get_board_config should return None instead of crashing on invalid JSON."""
+        from src.models.settings import ProjectSettingsRow
+
+        row = ProjectSettingsRow(
+            github_user_id="user1",
+            project_id="proj1",
+            board_display_config="{not valid json",
+        )
+        assert row.get_board_config() is None
+
+    def test_get_agent_mappings_returns_none_for_malformed_json(self):
+        """get_agent_mappings should return None instead of crashing on invalid JSON."""
+        from src.models.settings import ProjectSettingsRow
+
+        row = ProjectSettingsRow(
+            github_user_id="user1",
+            project_id="proj1",
+            agent_pipeline_mappings="{not valid json",
+        )
+        assert row.get_agent_mappings() is None
+
+    def test_get_board_config_returns_parsed_dict_for_valid_json(self):
+        """get_board_config should return parsed dict for valid JSON."""
+        from src.models.settings import ProjectSettingsRow
+
+        row = ProjectSettingsRow(
+            github_user_id="user1",
+            project_id="proj1",
+            board_display_config='{"key": "value"}',
+        )
+        assert row.get_board_config() == {"key": "value"}
+
+    def test_get_agent_mappings_returns_none_when_empty(self):
+        """get_agent_mappings should return None when field is None."""
+        from src.models.settings import ProjectSettingsRow
+
+        row = ProjectSettingsRow(
+            github_user_id="user1",
+            project_id="proj1",
+        )
+        assert row.get_agent_mappings() is None
