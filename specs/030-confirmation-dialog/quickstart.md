@@ -26,7 +26,7 @@ No backend changes are required for this feature.
 
 ## New Files to Create
 
-### Frontend
+### Frontend Files
 
 | File | Purpose |
 |------|---------|
@@ -67,7 +67,7 @@ No backend changes are required for this feature.
 
 ### Phase 2: Accessibility (FR-007)
 
-3. **confirmation-dialog.tsx** — Accessibility enhancements
+1. **confirmation-dialog.tsx** — Accessibility enhancements
    - Add `role="alertdialog"`, `aria-modal="true"`
    - Add `aria-labelledby` pointing to title element
    - Add `aria-describedby` pointing to description element
@@ -79,26 +79,26 @@ No backend changes are required for this feature.
 
 ### Phase 3: App Integration (FR-001)
 
-4. **App.tsx** — Provider integration
+1. **App.tsx** — Provider integration
    - Import `ConfirmationProvider`
    - Wrap the app tree (inside `QueryClientProvider`, wrapping all routes)
 
-5. **AgentCard.tsx** — Migration
+2. **AgentCard.tsx** — Migration
    - Import `useConfirmation`
    - Replace `window.confirm()` in `handleDelete()` with `await confirm({ ... })`
    - Use `variant: 'danger'` and `confirmLabel: 'Remove'`
 
-6. **AgentsPanel.tsx** — Migration
+3. **AgentsPanel.tsx** — Migration
    - Import `useConfirmation`
    - Replace `window.confirm()` in `handleClearPending()` with `await confirm({ ... })`
    - Use `variant: 'warning'` and `confirmLabel: 'Clear Records'`
 
-7. **ChoreCard.tsx** — Migration
+4. **ChoreCard.tsx** — Migration
    - Import `useConfirmation`
    - Replace `window.confirm()` in `handleDelete()` with `await confirm({ ... })`
    - Use `variant: 'danger'` and `confirmLabel: 'Remove'`
 
-8. **AgentsPipelinePage.tsx** — Migration
+5. **AgentsPipelinePage.tsx** — Migration
    - Import `useConfirmation`
    - Replace `window.confirm()` in `handleDelete()` with `await confirm({ ... })`
    - Use `variant: 'danger'` and `confirmLabel: 'Delete'`
