@@ -12,10 +12,12 @@ import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { ChatToolbar } from './ChatToolbar';
 import { FilePreviewChips } from './FilePreviewChips';
+import { PipelineWarningBanner } from './PipelineWarningBanner';
 import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useAuth } from '@/hooks/useAuth';
 import type { CommandDefinition } from '@/lib/commands/types';
 import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
@@ -62,6 +64,8 @@ export function ChatInterface({
   onRejectRecommendation,
   onNewChat,
 }: ChatInterfaceProps) {
+  const { user } = useAuth();
+  const projectId = user?.selected_project_id ?? null;
   const [input, setInput] = useState('');
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -401,6 +405,8 @@ export function ChatInterface({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {projectId && <PipelineWarningBanner projectId={projectId} />}
 
       <ChatToolbar
         aiEnhance={aiEnhance}
