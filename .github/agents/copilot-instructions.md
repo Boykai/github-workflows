@@ -148,6 +148,8 @@ npx playwright test
 - GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence) (029-board-hierarchy-filters)
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
+- TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, Pydantic v2.12 (backend) (030-at-mention-pipeline)
+- N/A — no new tables; reads from existing `pipeline_configs` table via `pipelinesApi.list()` (030-at-mention-pipeline)
 - Python 3.13 (backend), TypeScript ~5.9 (frontend) + FastAPI 0.135, Pydantic v2.12, aiosqlite 0.22 (backend); React 19.2, TanStack Query v5.90, Tailwind CSS v4, Vite 7.3 (frontend); sonner (new frontend dependency) (030-dry-error-handling)
 - SQLite with WAL mode (aiosqlite) — no schema changes required (030-dry-error-handling)
 - TypeScript ~5.9 (frontend-only feature) + React 19.2, @radix-ui/react-tooltip (new), Tailwind CSS v4, lucide-react 0.577, class-variance-authority 0.7 (030-ui-tooltips)

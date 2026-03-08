@@ -7,6 +7,10 @@ import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult
 import { MessageBubble } from './MessageBubble';
 import { SystemMessage } from './SystemMessage';
 import { CommandAutocomplete } from './CommandAutocomplete';
+import { MentionAutocomplete } from './MentionAutocomplete';
+import { MentionInput } from './MentionInput';
+import type { MentionInputHandle } from './MentionInput';
+import { PipelineIndicator } from './PipelineIndicator';
 import { TaskPreview } from './TaskPreview';
 import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
@@ -17,8 +21,8 @@ import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -27,7 +31,8 @@ interface ChatInterfaceProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[] }) => void;
+  projectId?: string;
+  onSendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[]; pipelineId?: string }) => void;
   onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
@@ -54,6 +59,7 @@ export function ChatInterface({
   pendingStatusChanges,
   pendingRecommendations,
   isSending,
+  projectId,
   onSendMessage,
   onRetryMessage,
   onConfirmProposal,
@@ -69,8 +75,9 @@ export function ChatInterface({
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
   const [showHistoryPopover, setShowHistoryPopover] = useState(false);
   const [aiEnhance, setAiEnhance] = useState(getInitialAiEnhance);
+  const [mentionValidationError, setMentionValidationError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const mentionInputRef = useRef<MentionInputHandle>(null);
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyNavTriggered = useRef(false);
 
@@ -99,10 +106,23 @@ export function ChatInterface({
     clearAll: clearAllFiles,
   } = useFileUpload();
 
+  // @Mention autocomplete
+  const mention = useMentionAutocomplete({
+    projectId: projectId ?? '',
+    inputRef: mentionInputRef,
+  });
+  const {
+    isAutocompleteOpen,
+    clearTokens,
+    handleMentionDismiss,
+    handleMentionTrigger: mentionTrigger,
+  } = mention;
+
   // Voice input management
   const handleVoiceTranscript = useCallback((text: string) => {
+    clearTokens();
     setInput((prev) => (prev ? `${prev} ${text}` : text));
-  }, []);
+  }, [clearTokens]);
   const {
     isSupported: isVoiceSupported,
     isRecording,
@@ -135,11 +155,6 @@ export function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input on mount
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
-
   // Update autocomplete state when input changes.
   // Derive filtered commands internally via useCommands() so autocomplete
   // works even when the parent (e.g. ChatPopup) does not pass command props.
@@ -148,6 +163,10 @@ export function ChatInterface({
     const shouldShow = trimmed.startsWith('/') && !trimmed.slice(1).includes(' ');
 
     if (shouldShow) {
+      // Dismiss @mention autocomplete when slash-command autocomplete activates
+      if (isAutocompleteOpen) {
+        handleMentionDismiss();
+      }
       // Extract the partial command name after '/' to filter the registry
       const prefix = trimmed.slice(1);
       const filtered = getFilteredCommands(prefix);
@@ -161,19 +180,39 @@ export function ChatInterface({
     } else {
       setShowAutocomplete(false);
     }
-  }, [input, getFilteredCommands]);
+  }, [input, getFilteredCommands, isAutocompleteOpen, handleMentionDismiss]);
 
   const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
+    clearTokens();
     setInput(`/${command.name} `);
     setShowAutocomplete(false);
-    inputRef.current?.focus();
-  }, []);
+    mentionInputRef.current?.focus();
+  }, [clearTokens]);
+
+  // Handle @mention trigger — dismiss slash-command autocomplete
+  const handleMentionTrigger = useCallback(
+    (query: string, offset: number) => {
+      if (showAutocomplete) setShowAutocomplete(false);
+      mentionTrigger(query, offset);
+    },
+    [showAutocomplete, mentionTrigger],
+  );
 
   const doSubmit = async () => {
     const content = input.trim();
     if (content && !isSending) {
       setShowAutocomplete(false);
       setShowHistoryPopover(false);
+      setMentionValidationError(null);
+
+      // Validate mention tokens before submit
+      const pipelineId = mention.getSubmissionPipelineId();
+      if (mention.mentionTokens.length > 0 && !mention.validateTokens()) {
+        // All tokens are invalid
+        setMentionValidationError('Pipeline not found — please select a valid pipeline');
+        return;
+      }
+
       addToHistory(content);
       resetNavigation();
       const commandInput = isCommandFn(content);
@@ -184,9 +223,15 @@ export function ChatInterface({
         fileUrls = await uploadAllFiles();
       }
 
-      onSendMessage(content, { isCommand: commandInput, aiEnhance, fileUrls });
+      onSendMessage(content, {
+        isCommand: commandInput,
+        aiEnhance,
+        fileUrls,
+        pipelineId: pipelineId ?? undefined,
+      });
       // Always clear input after submission
       setInput('');
+      mention.reset();
       clearAllFiles();
     }
   };
@@ -196,11 +241,14 @@ export function ChatInterface({
     doSubmit();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Determine whether autocomplete is contextually active based on
-    // the current input value rather than relying solely on the
-    // showAutocomplete state (which is updated via useEffect and may
-    // lag by one render frame).
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // @mention autocomplete takes priority when open
+    if (mention.isAutocompleteOpen) {
+      mention.handleKeyDown(e);
+      if (e.defaultPrevented) return;
+    }
+
+    // Determine whether slash-command autocomplete is contextually active
     const trimmed = input.trimStart();
     const autocompleteActive =
       showAutocomplete &&
@@ -232,63 +280,36 @@ export function ChatInterface({
     }
 
     // History navigation — ArrowUp to go to older messages
-    if (e.key === 'ArrowUp' && !autocompleteActive) {
-      const textarea = e.currentTarget;
-      const firstNewline = input.indexOf('\n');
-      const isOnFirstLine = firstNewline === -1 || textarea.selectionStart <= firstNewline;
-      if (isOnFirstLine) {
+    if (e.key === 'ArrowUp' && !autocompleteActive && !mention.isAutocompleteOpen) {
+      if (mentionInputRef.current?.isCaretOnFirstLine() ?? true) {
         const result = navigateUp(input);
         if (result !== null) {
           e.preventDefault();
           historyNavTriggered.current = true;
+          clearTokens();
           setInput(result);
         }
       }
     }
 
     // History navigation — ArrowDown to go to newer messages / restore draft
-    if (e.key === 'ArrowDown' && !autocompleteActive && isNavigating) {
-      const textarea = e.currentTarget;
-      const lastNewline = input.lastIndexOf('\n');
-      const isOnLastLine = lastNewline === -1 || textarea.selectionStart > lastNewline;
-      if (isOnLastLine) {
+    if (e.key === 'ArrowDown' && !autocompleteActive && !mention.isAutocompleteOpen && isNavigating) {
+      if (mentionInputRef.current?.isCaretOnLastLine() ?? true) {
         const result = navigateDown();
         if (result !== null) {
           e.preventDefault();
           historyNavTriggered.current = true;
+          clearTokens();
           setInput(result);
         }
       }
     }
-
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      doSubmit();
-    }
   };
 
-  // Auto-resize textarea to fit content
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 400)}px`;
-  };
-
-  // Reset textarea height when input is cleared (after send)
   useEffect(() => {
-    if (!input && inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
-  }, [input]);
-
-  // Position cursor at end when navigating history
-  useEffect(() => {
-    if (historyNavTriggered.current && inputRef.current) {
+    if (historyNavTriggered.current) {
       historyNavTriggered.current = false;
-      const len = inputRef.current.value.length;
-      inputRef.current.selectionStart = len;
-      inputRef.current.selectionEnd = len;
+      mentionInputRef.current?.moveCursorToEnd();
     }
   }, [input]);
 
@@ -303,6 +324,14 @@ export function ChatInterface({
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showHistoryPopover]);
+
+  // Clear validation error when tokens change
+  useEffect(() => {
+    if (mentionValidationError) {
+      setMentionValidationError(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mention.mentionTokens]);
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -424,6 +453,12 @@ export function ChatInterface({
         </div>
       )}
 
+      {mentionValidationError && (
+        <div className="border-b border-destructive/20 bg-destructive/5 px-4 py-1.5 text-xs text-destructive">
+          {mentionValidationError}
+        </div>
+      )}
+
       <form className="relative flex gap-3 border-t border-border bg-background/62 p-4" onSubmit={handleSubmit}>
         {showAutocomplete && (
           <CommandAutocomplete
@@ -434,25 +469,40 @@ export function ChatInterface({
             onHighlightChange={setHighlightedIndex}
           />
         )}
+        <MentionAutocomplete
+          pipelines={mention.filteredPipelines}
+          highlightedIndex={mention.highlightedIndex}
+          isLoading={mention.isLoadingPipelines}
+          isVisible={mention.isAutocompleteOpen && !showAutocomplete}
+          error={mention.pipelineError}
+          onSelect={mention.handleSelect}
+          onDismiss={mention.handleMentionDismiss}
+          onHighlightChange={mention.handleHighlightChange}
+        />
         <div className="flex-1 relative">
-          <textarea
-            ref={inputRef}
+          <MentionInput
+            ref={mentionInputRef}
             value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe a task or type / for commands..."
+            placeholder="Describe a task, type / for commands, or @ for pipelines..."
             disabled={isSending}
-            rows={2}
-            className={cn(
-              'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground resize-none focus:border-primary disabled:bg-muted',
-              isNavigating && 'border-l-4 border-l-primary bg-primary/5',
-            )}
+            isNavigating={isNavigating}
+            onTextChange={setInput}
+            onTokenRemove={mention.handleTokenRemove}
+            onMentionTrigger={handleMentionTrigger}
+            onMentionDismiss={mention.handleMentionDismiss}
+            onSubmit={doSubmit}
+            onKeyDown={handleKeyDown}
           />
           {interimTranscript && (
             <div className="px-3 py-1 text-xs text-muted-foreground italic truncate">
               {interimTranscript}
             </div>
           )}
+          <PipelineIndicator
+            activePipelineName={mention.activePipelineName}
+            hasMultipleMentions={mention.hasMultipleMentions}
+            hasInvalidMentions={mention.hasInvalidMentions}
+          />
         </div>
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
           {chatHistory.length > 0 && (
@@ -482,10 +532,11 @@ export function ChatInterface({
                           const result = selectFromHistory(reverseIdx, input);
                           if (result !== null) {
                             historyNavTriggered.current = true;
+                            clearTokens();
                             setInput(result);
                           }
                           setShowHistoryPopover(false);
-                          inputRef.current?.focus();
+                          mentionInputRef.current?.focus();
                         }}
                       >
                         {msg}
