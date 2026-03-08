@@ -6,6 +6,7 @@
 import { QueryClient, QueryClientProvider, QueryErrorResetBoundary } from '@tanstack/react-query';
 import { Route, RouterProvider, createBrowserRouter, createRoutesFromElements } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { ConfirmationProvider } from '@/hooks/useConfirmation';
 import { ApiError } from '@/services/api';
 import { AuthGate } from '@/layout/AuthGate';
 import { AppLayout } from '@/layout/AppLayout';
@@ -59,13 +60,15 @@ const router = createBrowserRouter(
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <QueryErrorResetBoundary>
-        {({ reset }) => (
-          <ErrorBoundary onReset={reset}>
-            <RouterProvider router={router} />
-          </ErrorBoundary>
-        )}
-      </QueryErrorResetBoundary>
+      <ConfirmationProvider>
+        <QueryErrorResetBoundary>
+          {({ reset }) => (
+            <ErrorBoundary onReset={reset}>
+              <RouterProvider router={router} />
+            </ErrorBoundary>
+          )}
+        </QueryErrorResetBoundary>
+      </ConfirmationProvider>
     </QueryClientProvider>
   );
 }
