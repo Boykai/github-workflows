@@ -500,9 +500,10 @@ class TestModelPreservation:
         new_body = update_agent_state(SAMPLE_BODY_LEGACY, "speckit.implement", STATE_ACTIVE)
         steps = parse_tracking_from_body(new_body)
         assert steps is not None
-        # All models should be "TBD" after migration (empty → TBD in rendering)
+        # Legacy rows still parse back to the canonical empty-model value.
+        # The markdown rendering shows "TBD", but parsing normalizes it to "".
         for step in steps:
-            assert step.model == "TBD"
+            assert step.model == ""
         # Verify the table now has the Model column header
         assert "| # | Status | Agent | Model | State |" in new_body
 
