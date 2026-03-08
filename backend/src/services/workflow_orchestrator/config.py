@@ -344,21 +344,19 @@ async def load_pipeline_as_agent_mappings(
 
         agent_mappings: dict[str, list[AgentAssignment]] = {}
         for stage in sorted(config.stages, key=lambda s: s.order):
-            agents: list[AgentAssignment] = []
-            for node in stage.agents:
-                agents.append(
-                    AgentAssignment(
-                        slug=node.agent_slug,
-                        display_name=node.agent_display_name or None,
-                        config={
-                            "model_id": node.model_id,
-                            "model_name": node.model_name,
-                        }
-                        if node.model_id
-                        else None,
-                    )
+            agent_mappings[stage.name] = [
+                AgentAssignment(
+                    slug=node.agent_slug,
+                    display_name=node.agent_display_name or None,
+                    config={
+                        "model_id": node.model_id,
+                        "model_name": node.model_name,
+                    }
+                    if node.model_id
+                    else None,
                 )
-            agent_mappings[stage.name] = agents
+                for node in stage.agents
+            ]
 
         return agent_mappings, config.name
     except Exception:
