@@ -22,7 +22,6 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { cn } from '@/lib/utils';
 import { History } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -124,6 +123,11 @@ export function ChatInterface({
     projectId: projectId ?? '',
     inputRef: mentionInputRef,
   });
+  const {
+    isAutocompleteOpen,
+    handleMentionDismiss,
+    handleMentionTrigger: mentionTrigger,
+  } = mention;
 
   // AI Enhance persistence
   const handleAiEnhanceChange = useCallback((enabled: boolean) => {
@@ -157,8 +161,8 @@ export function ChatInterface({
 
     if (shouldShow) {
       // Dismiss @mention autocomplete when slash-command autocomplete activates
-      if (mention.isAutocompleteOpen) {
-        mention.handleMentionDismiss();
+      if (isAutocompleteOpen) {
+        handleMentionDismiss();
       }
       // Extract the partial command name after '/' to filter the registry
       const prefix = trimmed.slice(1);
@@ -173,7 +177,7 @@ export function ChatInterface({
     } else {
       setShowAutocomplete(false);
     }
-  }, [input, getFilteredCommands, mention.isAutocompleteOpen, mention.handleMentionDismiss]);
+  }, [input, getFilteredCommands, isAutocompleteOpen, handleMentionDismiss]);
 
   const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
     setInput(`/${command.name} `);
@@ -185,9 +189,9 @@ export function ChatInterface({
   const handleMentionTrigger = useCallback(
     (query: string, offset: number) => {
       if (showAutocomplete) setShowAutocomplete(false);
-      mention.handleMentionTrigger(query, offset);
+      mentionTrigger(query, offset);
     },
-    [showAutocomplete, mention.handleMentionTrigger],
+    [showAutocomplete, mentionTrigger],
   );
 
   const doSubmit = async () => {
