@@ -14,6 +14,27 @@ from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdat
 
 logger = logging.getLogger(__name__)
 
+# Columns that may appear in dynamic UPDATE SET clauses.
+# Any column not in this set will be rejected to prevent SQL injection.
+_CHORE_UPDATABLE_COLUMNS = frozenset({
+    "name",
+    "template_path",
+    "template_content",
+    "status",
+    "schedule_type",
+    "schedule_value",
+    "last_triggered_at",
+    "last_triggered_count",
+    "current_pr_number",
+    "current_pr_url",
+    "current_issue_number",
+    "current_issue_node_id",
+    "execution_count",
+    "ai_enhance_enabled",
+    "agent_pipeline_id",
+    "updated_at",
+})
+
 
 def _strip_front_matter(text: str) -> str:
     """Remove YAML front matter (``---\n...\n---``) from the beginning of text."""
@@ -146,6 +167,11 @@ class ChoresService:
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         updates["updated_at"] = now
 
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(updates) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
+
         # Convert booleans to SQLite integers
         for key, val in list(updates.items()):
             if isinstance(val, bool):
@@ -275,6 +301,11 @@ class ChoresService:
             return
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         kwargs["updated_at"] = now
+
+        # Reject unexpected column names (defense-in-depth against SQL injection)
+        bad = set(kwargs) - _CHORE_UPDATABLE_COLUMNS
+        if bad:
+            raise ValueError(f"Invalid update columns: {bad}")
 
         # Convert booleans to SQLite integers
         for key, val in kwargs.items():
