@@ -45,6 +45,10 @@ interface UseMentionAutocompleteReturn {
   reset: () => void;
 }
 
+export const MENTION_TOKEN_BASE = 'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none';
+export const MENTION_TOKEN_VALID = `${MENTION_TOKEN_BASE} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`;
+export const MENTION_TOKEN_INVALID = `${MENTION_TOKEN_BASE} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`;
+
 export function useMentionAutocomplete({
   projectId,
   inputRef,
@@ -205,9 +209,9 @@ export function useMentionAutocomplete({
         const id = span.getAttribute('data-pipeline-id');
         const isValid = id ? pipelineIds.has(id) : false;
         if (isValid) {
-          span.className = 'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+          span.className = MENTION_TOKEN_VALID;
         } else {
-          span.className = 'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+          span.className = MENTION_TOKEN_INVALID;
         }
       });
     }

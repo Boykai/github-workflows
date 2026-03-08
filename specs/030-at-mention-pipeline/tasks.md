@@ -23,8 +23,8 @@
 
 **Purpose**: Add shared TypeScript types and backend model changes that multiple user stories depend on.
 
-- [ ] T001 Add `MentionToken`, `MentionInputState`, and `MentionFilterResult` interfaces and extend `ChatMessageRequest` with optional `pipeline_id` field in `frontend/src/types/index.ts`
-- [ ] T002 [P] Add optional `pipeline_id: str | None = Field(default=None, ...)` field to `ChatMessageRequest` Pydantic model in `backend/src/models/chat.py`
+- [x] T001 Add `MentionToken`, `MentionInputState`, and `MentionFilterResult` interfaces and extend `ChatMessageRequest` with optional `pipeline_id` field in `frontend/src/types/index.ts`
+- [x] T002 [P] Add optional `pipeline_id: str | None = Field(default=None, ...)` field to `ChatMessageRequest` Pydantic model in `backend/src/models/chat.py`
 
 ---
 
@@ -34,12 +34,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Update `send_message` handler in `backend/src/api/chat.py` to read `pipeline_id` from `ChatMessageRequest`, validate the referenced pipeline exists when provided (return 400 if not found), and pass `pipeline_id` to the issue creation flow to override the project's default pipeline assignment
-- [ ] T004 [P] Create `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — render a `<span>` with `contentEditable="false"`, `data-pipeline-id`, and `data-pipeline-name` attributes; implement both valid (blue chip: `bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`) and invalid (amber/red chip) visual states controlled by `isValid` prop; displays `@[pipeline name]` text (T017 later adds dynamic re-validation styling details)
-- [ ] T005 [P] Create `MentionAutocomplete` component in `frontend/src/components/chat/MentionAutocomplete.tsx` — floating dropdown with ARIA `role="listbox"` following `CommandAutocomplete.tsx` pattern; display pipeline name and optional description per item; keyboard navigation (ArrowUp/ArrowDown to highlight, Enter/Tab to select, Escape to dismiss); mouse hover/click support; scrollable list capped at 10 visible items; empty state ("No pipelines found"), loading skeleton, and error state ("Unable to load pipelines")
-- [ ] T006 [P] Create `PipelineIndicator` component in `frontend/src/components/chat/PipelineIndicator.tsx` — hidden when no @mention is present; shows "Using pipeline: [name]" badge when a valid pipeline is mentioned; shows info tooltip "Multiple pipelines mentioned — using last" when `hasMultipleMentions` is true; shows warning badge "Pipeline not found" when only invalid mentions exist
-- [ ] T007 [P] Create `MentionInput` component in `frontend/src/components/chat/MentionInput.tsx` — `contentEditable` div replacing the textarea; detect `@` trigger condition (preceded by space, newline, or at position 0); insert mention tokens as `<span contentEditable="false">` elements; handle backspace into a token by removing the entire token as a single unit; fire `onSubmit` on Enter (without Shift); fire `onNavigateHistory` on ArrowUp/ArrowDown when cursor is at start/end; auto-resize behavior matching current textarea; expose `focus()` and `clear()` via ref
-- [ ] T008 Create `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — fetch `pipelinesApi.list(projectId)` via TanStack Query (lazy on first `@` trigger, `staleTime: 30_000`); client-side case-insensitive filtering with 150ms debounce; keyboard navigation state management; token insertion/removal lifecycle; active pipeline tracking (last valid mention's ID); `validateTokens()` to re-check all tokens before submit; `getSubmissionPipelineId()` to return the pipeline ID for submission; `reset()` to clear state after successful send
+- [x] T003 Update `send_message` handler in `backend/src/api/chat.py` to read `pipeline_id` from `ChatMessageRequest`, validate the referenced pipeline exists when provided (return 400 if not found), and pass `pipeline_id` to the issue creation flow to override the project's default pipeline assignment
+- [x] T004 [P] Create `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — render a `<span>` with `contentEditable="false"`, `data-pipeline-id`, and `data-pipeline-name` attributes; implement both valid (blue chip: `bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`) and invalid (amber/red chip) visual states controlled by `isValid` prop; displays `@[pipeline name]` text (T017 later adds dynamic re-validation styling details)
+- [x] T005 [P] Create `MentionAutocomplete` component in `frontend/src/components/chat/MentionAutocomplete.tsx` — floating dropdown with ARIA `role="listbox"` following `CommandAutocomplete.tsx` pattern; display pipeline name and optional description per item; keyboard navigation (ArrowUp/ArrowDown to highlight, Enter/Tab to select, Escape to dismiss); mouse hover/click support; scrollable list capped at 10 visible items; empty state ("No pipelines found"), loading skeleton, and error state ("Unable to load pipelines")
+- [x] T006 [P] Create `PipelineIndicator` component in `frontend/src/components/chat/PipelineIndicator.tsx` — hidden when no @mention is present; shows "Using pipeline: [name]" badge when a valid pipeline is mentioned; shows info tooltip "Multiple pipelines mentioned — using last" when `hasMultipleMentions` is true; shows warning badge "Pipeline not found" when only invalid mentions exist
+- [x] T007 [P] Create `MentionInput` component in `frontend/src/components/chat/MentionInput.tsx` — `contentEditable` div replacing the textarea; detect `@` trigger condition (preceded by space, newline, or at position 0); insert mention tokens as `<span contentEditable="false">` elements; handle backspace into a token by removing the entire token as a single unit; fire `onSubmit` on Enter (without Shift); fire `onNavigateHistory` on ArrowUp/ArrowDown when cursor is at start/end; auto-resize behavior matching current textarea; expose `focus()` and `clear()` via ref
+- [x] T008 Create `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — fetch `pipelinesApi.list(projectId)` via TanStack Query (lazy on first `@` trigger, `staleTime: 30_000`); client-side case-insensitive filtering with 150ms debounce; keyboard navigation state management; token insertion/removal lifecycle; active pipeline tracking (last valid mention's ID); `validateTokens()` to re-check all tokens before submit; `getSubmissionPipelineId()` to return the pipeline ID for submission; `reset()` to clear state after successful send
 
 **Checkpoint**: All new components and hook are created. Backend accepts `pipeline_id`. Integration into ChatInterface can now begin.
 
@@ -53,9 +53,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Integrate `MentionInput` into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — replace the existing `<textarea>` with `<MentionInput>` component; wire `onTextChange`, `onMentionTrigger`, `onMentionDismiss`, `onTokenRemove`, `onSubmit`, `onNavigateHistory`, and `onKeyDown` props; preserve all existing textarea functionality (placeholder, disabled state, auto-focus)
-- [ ] T010 [US1] Integrate `MentionAutocomplete` overlay into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — render `<MentionAutocomplete>` as a sibling overlay alongside existing `CommandAutocomplete`; wire to `useMentionAutocomplete` hook state (`filteredPipelines`, `highlightedIndex`, `isLoadingPipelines`, `isAutocompleteOpen`); ensure only one autocomplete (slash-command or @mention) is open at a time
-- [ ] T011 [US1] Wire `useMentionAutocomplete` hook into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — initialize hook with `projectId` and `inputRef`; connect hook handlers to `MentionInput` and `MentionAutocomplete` props; call `reset()` after successful message send
+- [x] T009 [US1] Integrate `MentionInput` into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — replace the existing `<textarea>` with `<MentionInput>` component; wire `onTextChange`, `onMentionTrigger`, `onMentionDismiss`, `onTokenRemove`, `onSubmit`, `onNavigateHistory`, and `onKeyDown` props; preserve all existing textarea functionality (placeholder, disabled state, auto-focus)
+- [x] T010 [US1] Integrate `MentionAutocomplete` overlay into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — render `<MentionAutocomplete>` as a sibling overlay alongside existing `CommandAutocomplete`; wire to `useMentionAutocomplete` hook state (`filteredPipelines`, `highlightedIndex`, `isLoadingPipelines`, `isAutocompleteOpen`); ensure only one autocomplete (slash-command or @mention) is open at a time
+- [x] T011 [US1] Wire `useMentionAutocomplete` hook into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — initialize hook with `projectId` and `inputRef`; connect hook handlers to `MentionInput` and `MentionAutocomplete` props; call `reset()` after successful message send
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — users can type `@`, see the dropdown, filter, select a pipeline, and see it as a styled token in the input. Token deletion works atomically.
 
@@ -69,9 +69,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Update `doSubmit` function in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — before sending, call `getSubmissionPipelineId()` from the `useMentionAutocomplete` hook; include the returned `pipeline_id` in the `onSendMessage` callback options; strip mention token HTML from the content string before sending plain text to backend
-- [ ] T013 [US2] Update `onSendMessage` callback signature and its consumers in `frontend/src/components/chat/ChatInterface.tsx` — extend the options parameter to accept `pipelineId?: string`; update the API call that sends `ChatMessageRequest` to include `pipeline_id` from the options when present
-- [ ] T014 [US2] Add submission-time validation in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — before submit, call `validateTokens()` from the hook; if all tokens are invalid, block submission and display a clear error message ("Pipeline not found — please select a valid pipeline"); if some are valid and some invalid, proceed with last valid and show a transient warning
+- [x] T012 [US2] Update `doSubmit` function in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — before sending, call `getSubmissionPipelineId()` from the `useMentionAutocomplete` hook; include the returned `pipeline_id` in the `onSendMessage` callback options; strip mention token HTML from the content string before sending plain text to backend
+- [x] T013 [US2] Update `onSendMessage` callback signature and its consumers in `frontend/src/components/chat/ChatInterface.tsx` — extend the options parameter to accept `pipelineId?: string`; update the API call that sends `ChatMessageRequest` to include `pipeline_id` from the options when present
+- [x] T014 [US2] Add submission-time validation in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — before submit, call `validateTokens()` from the hook; if all tokens are invalid, block submission and display a clear error message ("Pipeline not found — please select a valid pipeline"); if some are valid and some invalid, proceed with last valid and show a transient warning
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — users can mention a pipeline and the correct pipeline ID is sent to the backend for issue creation.
 
@@ -85,7 +85,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Integrate `PipelineIndicator` into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — render `<PipelineIndicator>` between the input area and the submit button row; wire `activePipelineName`, `hasMultipleMentions`, and `hasInvalidMentions` props from the `useMentionAutocomplete` hook state
+- [x] T015 [US3] Integrate `PipelineIndicator` into `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — render `<PipelineIndicator>` between the input area and the submit button row; wire `activePipelineName`, `hasMultipleMentions`, and `hasInvalidMentions` props from the `useMentionAutocomplete` hook state
 
 **Checkpoint**: At this point, the active pipeline indicator correctly reflects the selected pipeline in real time.
 
@@ -99,9 +99,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [US4] Add real-time token validation in `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — whenever the cached pipeline list updates, re-validate all existing tokens' `pipelineId` values against the list; update `isValid` on each `MentionToken`; set `hasInvalidTokens` flag on the state
-- [ ] T017 [US4] Add invalid token visual styling to `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — when `isValid` is false, apply amber/red chip styling (`bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`) and render a warning icon (lucide-react `AlertTriangle`) inline before the `@` prefix
-- [ ] T018 [US4] Add unresolved @mention detection in `MentionInput` component in `frontend/src/components/chat/MentionInput.tsx` — when the user types `@text` and dismisses the autocomplete without selecting (Escape or click outside), detect if the typed text after `@` does not match any pipeline; if unresolved, optionally render the raw `@text` with a subtle warning underline via CSS class
+- [x] T016 [US4] Add real-time token validation in `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — whenever the cached pipeline list updates, re-validate all existing tokens' `pipelineId` values against the list; update `isValid` on each `MentionToken`; set `hasInvalidTokens` flag on the state
+- [x] T017 [US4] Add invalid token visual styling to `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — when `isValid` is false, apply amber/red chip styling (`bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`) and render a warning icon (lucide-react `AlertTriangle`) inline before the `@` prefix
+- [x] T018 [US4] Add unresolved @mention detection in `MentionInput` component in `frontend/src/components/chat/MentionInput.tsx` — when the user types `@text` and dismisses the autocomplete without selecting (Escape or click outside), detect if the typed text after `@` does not match any pipeline; if unresolved, optionally render the raw `@text` with a subtle warning underline via CSS class
 
 **Checkpoint**: At this point, invalid and unresolved mentions are visually distinguished and submission is properly guarded.
 
@@ -115,8 +115,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T019 [US5] Add multiple-mention tracking in `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — compute `hasMultipleMentions` (true when tokens array contains more than one valid mention); ensure `activePipelineId` always resolves to the last valid token's ID; expose `hasMultipleMentions` in the return value
-- [ ] T020 [US5] Add multiple-mention notification in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — when submitting with multiple valid mentions, display a transient notification/toast: "Multiple pipelines mentioned — using [last pipeline name]"
+- [x] T019 [US5] Add multiple-mention tracking in `useMentionAutocomplete` hook in `frontend/src/hooks/useMentionAutocomplete.ts` — compute `hasMultipleMentions` (true when tokens array contains more than one valid mention); ensure `activePipelineId` always resolves to the last valid token's ID; expose `hasMultipleMentions` in the return value
+- [x] T020 [US5] Add multiple-mention notification in `ChatInterface` in `frontend/src/components/chat/ChatInterface.tsx` — when submitting with multiple valid mentions, display a transient notification/toast: "Multiple pipelines mentioned — using [last pipeline name]"
 
 **Checkpoint**: At this point, all five user stories should be independently functional. Multiple @mentions are handled gracefully with clear feedback.
 
@@ -126,11 +126,11 @@
 
 **Purpose**: Final validation, cleanup, and coexistence verification across all user stories.
 
-- [ ] T021 Verify slash-command (`/`) autocomplete coexistence with @mention autocomplete in `frontend/src/components/chat/ChatInterface.tsx` — ensure only one autocomplete is open at a time; opening one dismisses the other; slash commands still work correctly at start of input
-- [ ] T022 Verify all existing frontend tests pass after modifications by running `npm test` in `frontend/`
-- [ ] T023 Verify all existing backend tests pass after modifications by running `pytest` in `backend/`
-- [ ] T024 Run quickstart.md verification scenarios (all 13 verification steps) to validate end-to-end feature behavior
-- [ ] T025 Code cleanup — ensure consistent import ordering, remove unused imports, verify TypeScript types are correctly applied across all new and modified files
+- [x] T021 Verify slash-command (`/`) autocomplete coexistence with @mention autocomplete in `frontend/src/components/chat/ChatInterface.tsx` — ensure only one autocomplete is open at a time; opening one dismisses the other; slash commands still work correctly at start of input
+- [x] T022 Verify all existing frontend tests pass after modifications by running `npm test` in `frontend/`
+- [x] T023 Verify all existing backend tests pass after modifications by running `pytest` in `backend/`
+- [x] T024 Run quickstart.md verification scenarios (all 13 verification steps) to validate end-to-end feature behavior
+- [x] T025 Code cleanup — ensure consistent import ordering, remove unused imports, verify TypeScript types are correctly applied across all new and modified files
 
 ---
 

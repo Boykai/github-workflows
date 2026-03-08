@@ -3,8 +3,9 @@
  * Supports inline @mention token spans alongside plain text.
  */
 
-import { useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { MENTION_TOKEN_VALID } from '@/hooks/useMentionAutocomplete';
 
 export interface MentionInputHandle {
   focus: () => void;
@@ -41,6 +42,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
   ) {
     const divRef = useRef<HTMLDivElement>(null);
     const isComposingRef = useRef(false);
+    const [isEmpty, setIsEmpty] = useState(true);
 
     // Expose imperative handle
     useImperativeHandle(ref, () => ({
@@ -51,6 +53,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
         if (divRef.current) {
           divRef.current.innerHTML = '';
           onTextChange('');
+          setIsEmpty(true);
         }
       },
       getPlainText() {
@@ -77,6 +80,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
 
       const text = extractPlainText(el);
       onTextChange(text);
+      setIsEmpty(!text.trim());
 
       // Check for @ trigger
       const sel = window.getSelection();
@@ -177,8 +181,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
       [],
     );
 
-    // Show/hide placeholder
-    const showPlaceholder = !disabled && divRef.current && !divRef.current.textContent?.trim() && divRef.current.querySelectorAll('[data-mention-token]').length === 0;
+    // Show/hide placeholder — use local state rather than DOM queries
 
     return (
       <div className="relative">
@@ -203,7 +206,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
             disabled && 'bg-muted pointer-events-none opacity-60',
           )}
         />
-        {(showPlaceholder || (!divRef.current?.textContent?.trim() && placeholder)) && (
+        {isEmpty && !disabled && placeholder && (
           <div className="absolute top-0 left-0 p-3 text-sm text-muted-foreground pointer-events-none select-none">
             {placeholder}
           </div>
@@ -303,7 +306,7 @@ function insertToken(
   span.setAttribute('data-pipeline-id', pipelineId);
   span.setAttribute('data-pipeline-name', pipelineName);
   span.setAttribute('data-mention-token', '');
-  span.className = 'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+  span.className = MENTION_TOKEN_VALID;
   span.textContent = `@${pipelineName}`;
 
   // Split the text node: [before @] [token] [after cursor]
