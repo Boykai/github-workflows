@@ -8,13 +8,13 @@
 
 ### Documentation File
 
-A markdown file within the `docs/` directory, `frontend/docs/`, or at the repository root that describes a specific aspect of the project.
+A markdown file or documentation directory within the `docs/` directory, `frontend/docs/`, or at the repository root that describes a specific aspect of the project (e.g., a collection of decision records in `docs/decisions/`).
 
 **Attributes**:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `path` | string | File path relative to repository root (e.g., `docs/setup.md`) |
+| `path` | string | Path to a markdown file or documentation directory relative to the repository root (e.g., `docs/setup.md`, `docs/decisions/`) |
 | `owner_role` | string | Designated responsible role from `docs/OWNERS.md` |
 | `content_category` | enum | `setup` / `configuration` / `api-reference` / `architecture` / `agent-pipeline` / `best-practices` / `integration` / `testing` / `troubleshooting` / `project-structure` / `frontend` / `checklist` / `decision-record` |
 | `last_reviewed` | date | Date of most recent review (tracked informally; target: within current quarter per SC-009) |

@@ -6,7 +6,7 @@
 
 **Task**: Determine what was already implemented by `027-doc-sweep` and what gaps remain against the expanded `030-doc-sweep` requirements (FR-001 through FR-020).
 
-**Decision**: The `027-doc-sweep` implementation covers the majority of requirements. Specific gaps exist in FR-019 (cadence schedule documentation), FR-020 (troubleshooting format enforcement), and completeness of the quarterly audit checklist (FR-011–FR-013).
+**Decision**: The `027-doc-sweep` implementation covers the majority of requirements. FR-019 (cadence schedule documentation) is fully addressed via `docs/OWNERS.md`. Specific gaps remain in FR-020 (troubleshooting format enforcement) and completeness of the quarterly audit checklist (FR-011–FR-013).
 
 **Rationale**: A systematic comparison of the 20 functional requirements against the current repository state reveals:
 
@@ -101,9 +101,9 @@ The template also includes Type of Change and Testing sections, providing a comp
 
 **Decision**: The existing CI configuration is sufficient. The `.markdownlint.json` config enforces dash-style lists, and the CI docs job runs markdownlint on `docs/**/*.md` and `*.md`. The `markdown-link-check` config handles link validation with retry logic and timeout handling.
 
-**Rationale**: FR-014 requires: ATX-style headings (enforced by markdownlint MD003 default), language-specified code blocks (can be enforced by MD040 rule), tables for structured data (process convention, not machine-enforceable), numbered lists for sequential steps (process convention), and inline code for filenames (process convention). FR-015 requires CI enforcement, which is already in place via `ci.yml`. FR-016 requires broken link detection, which is handled by `markdown-link-check` in CI.
+**Rationale**: FR-014 requires: ATX-style headings (enforced by markdownlint MD003 via the `"default": true` setting), language-specified code blocks (enforced by markdownlint MD040 via the `"default": true` setting), tables for structured data (process convention, not machine-enforceable), numbered lists for sequential steps (process convention), and inline code for filenames (process convention). FR-015 requires CI enforcement, which is already in place via `ci.yml`. FR-016 requires broken link detection, which is handled by `markdown-link-check` in CI.
 
-The `.markdownlint.json` currently has permissive settings (MD013 line length disabled, MD033 inline HTML allowed, MD041 first-line heading not required). These are appropriate for the project's documentation style. One potential enhancement: enable MD040 (fenced-code-language) to enforce language tags on code blocks, but this should be verified against existing docs first to avoid breaking CI.
+The `.markdownlint.json` currently has permissive settings (MD013 line length disabled, MD033 inline HTML allowed, MD041 first-line heading not required) while still enforcing MD003 and MD040 with their default behavior via the top-level `"default": true` setting. These choices are appropriate for the project's documentation style.
 
 **Alternatives Considered**:
 
