@@ -23,6 +23,7 @@ interface ConfirmationDialogProps {
 ```
 
 **Behavior**:
+
 - Renders a fixed-position overlay with a semi-transparent backdrop (`bg-black/50 backdrop-blur-sm`)
 - Dialog card is centered vertically and horizontally (`fixed inset-0 flex items-center justify-center`)
 - Displays an icon matching the variant (AlertTriangle for danger/warning, Info for info)
@@ -41,7 +42,8 @@ interface ConfirmationDialogProps {
 - Uses `createPortal()` to render at document body level
 
 **Visual Layout**:
-```
+
+```text
 ┌──────────────────────────────────────────┐
 │  ┌────┐                                  │
 │  │ ⚠️ │  Dialog Title                     │
@@ -69,6 +71,7 @@ interface ConfirmationProviderProps {
 ```
 
 **Behavior**:
+
 - Maintains internal state: current dialog options, open/close status, Promise resolver
 - Maintains a queue of pending confirmation requests
 - Renders `<ConfirmationDialog>` with current state
@@ -97,6 +100,7 @@ function useConfirmation(): {
 ```
 
 **Usage Pattern**:
+
 ```typescript
 // In any component
 const { confirm } = useConfirmation();
@@ -116,6 +120,7 @@ const handleDelete = async () => {
 ```
 
 **Error Handling**:
+
 - Throws `Error` if called outside of `ConfirmationProvider` (context not available)
 
 ---
@@ -128,6 +133,7 @@ const handleDelete = async () => {
 **Changes**: Replace `window.confirm()` with `useConfirmation()` hook.
 
 **Before** (lines 61-68):
+
 ```typescript
 const handleDelete = () => {
   if (
@@ -141,6 +147,7 @@ const handleDelete = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -164,6 +171,7 @@ const handleDelete = async () => {
 **Changes**: Replace `window.confirm()` with `useConfirmation()` hook.
 
 **Before** (lines 56-62):
+
 ```typescript
 const handleClearPending = () => {
   const confirmed = window.confirm(
@@ -176,6 +184,7 @@ const handleClearPending = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -199,6 +208,7 @@ const handleClearPending = async () => {
 **Changes**: Replace `window.confirm()` with `useConfirmation()` hook.
 
 **Before** (lines 119-123):
+
 ```typescript
 const handleDelete = () => {
   if (window.confirm(`Remove chore "${chore.name}"? This cannot be undone.`)) {
@@ -208,6 +218,7 @@ const handleDelete = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -231,6 +242,7 @@ const handleDelete = async () => {
 **Changes**: Replace `window.confirm()` with `useConfirmation()` hook.
 
 **Before** (lines 125-129):
+
 ```typescript
 const handleDelete = () => {
   if (window.confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
@@ -240,6 +252,7 @@ const handleDelete = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -263,6 +276,7 @@ const handleDelete = async () => {
 **Changes**: Wrap the application tree with `ConfirmationProvider`.
 
 **Before**:
+
 ```tsx
 function App() {
   return (
@@ -274,6 +288,7 @@ function App() {
 ```
 
 **After**:
+
 ```tsx
 import { ConfirmationProvider } from './hooks/useConfirmation';
 

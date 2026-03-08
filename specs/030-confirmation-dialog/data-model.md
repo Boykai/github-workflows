@@ -23,6 +23,7 @@ interface ConfirmationOptions {
 ```
 
 **Validation**:
+
 - `title` must be a non-empty string.
 - `description` must be a non-empty string.
 - `confirmLabel` defaults to `"Confirm"` if not provided.
@@ -41,6 +42,7 @@ interface ConfirmationContextValue {
 ```
 
 **Behavior**:
+
 - `confirm()` opens the dialog and returns a Promise that resolves to `true` (confirmed) or `false` (cancelled).
 - If called while a dialog is already open, the request is queued and the promise remains pending until the current dialog resolves.
 
@@ -126,7 +128,7 @@ const VARIANT_CONFIG: Record<ConfirmationVariant, {
 
 ### Confirmation Dialog Lifecycle
 
-```
+```text
                     ┌───────────┐
                     │   IDLE     │  No dialog visible
                     └─────┬─────┘
@@ -170,7 +172,7 @@ const VARIANT_CONFIG: Record<ConfirmationVariant, {
 
 ### Calling Component Flow (After Confirmation)
 
-```
+```text
 Component calls confirm()
     │
     ▼
