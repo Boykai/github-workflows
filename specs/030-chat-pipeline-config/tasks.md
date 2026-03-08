@@ -30,9 +30,9 @@
 
 **Purpose**: Define new backend and frontend types/dataclasses shared across multiple user stories.
 
-- [ ] T001 Add `PipelineResolutionResult` dataclass to backend/src/services/workflow_orchestrator/config.py with fields: `agent_mappings` (dict mapping status names to lists of AgentAssignment), `source` (str: "pipeline" | "user" | "default"), `pipeline_name` (str | None), `pipeline_id` (str | None) per data-model.md
-- [ ] T002 [P] Extend backend `AITaskProposal` response model with optional `pipeline_name: str | None = None` and `pipeline_source: str | None = None` fields in the relevant backend model file (backend/src/models/ or backend/src/api/chat.py where AITaskProposal is defined) per data-model.md
-- [ ] T003 [P] Extend frontend `AITaskProposal` TypeScript interface with optional `pipeline_name?: string` and `pipeline_source?: string` fields in frontend/src/types/index.ts per data-model.md
+- [x] T001 Add `PipelineResolutionResult` dataclass to backend/src/services/workflow_orchestrator/config.py with fields: `agent_mappings` (dict mapping status names to lists of AgentAssignment), `source` (str: "pipeline" | "user" | "default"), `pipeline_name` (str | None), `pipeline_id` (str | None) per data-model.md
+- [x] T002 [P] Extend backend `AITaskProposal` response model with optional `pipeline_name: str | None = None` and `pipeline_source: str | None = None` fields in the relevant backend model file (backend/src/models/ or backend/src/api/chat.py where AITaskProposal is defined) per data-model.md
+- [x] T003 [P] Extend frontend `AITaskProposal` TypeScript interface with optional `pipeline_name?: string` and `pipeline_source?: string` fields in frontend/src/types/index.ts per data-model.md
 
 **Checkpoint**: All shared types and dataclasses are in place. Ready for foundational function implementation.
 
@@ -44,9 +44,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Implement `load_pipeline_as_agent_mappings(project_id, pipeline_id)` async function in backend/src/services/workflow_orchestrator/config.py — fetch PipelineConfig from pipeline_configs table via PipelineService.get_pipeline(), iterate over stages in order, build dict mapping each stage name to an ordered list of AgentAssignment objects converted from PipelineAgentNode fields (slug, display_name, model_id, model_name), return tuple of (agent_mappings dict, pipeline_name str) or None if pipeline not found per research.md R2
-- [ ] T005 Implement `resolve_project_pipeline_mappings(project_id, github_user_id)` async function in backend/src/services/workflow_orchestrator/config.py — three-tier fallback chain: (1) read assigned_pipeline_id from project_settings where github_user_id="__workflow__", call load_pipeline_as_agent_mappings(), (2) call existing load_user_agent_mappings(github_user_id, project_id), (3) use DEFAULT_AGENT_MAPPINGS — return PipelineResolutionResult with resolved mappings and metadata per research.md R3 and contracts/api.md resolution logic
-- [ ] T006 [P] Create `useSelectedPipeline(projectId)` shared React hook in frontend/src/hooks/useSelectedPipeline.ts — wrap two React Query calls: (1) pipelinesApi.getAssignment(projectId) with query key ['pipelines', 'assignment', projectId], (2) pipelinesApi.list(projectId) with query key ['pipelines', projectId] — return SelectedPipelineState object with pipelineId, pipelineName (resolved by matching ID in list), isLoading, hasAssignment per contracts/components.md hook specification, staleTime of 60000 (1 minute), enabled only when projectId is non-null
+- [x] T004 Implement `load_pipeline_as_agent_mappings(project_id, pipeline_id)` async function in backend/src/services/workflow_orchestrator/config.py — fetch PipelineConfig from pipeline_configs table via PipelineService.get_pipeline(), iterate over stages in order, build dict mapping each stage name to an ordered list of AgentAssignment objects converted from PipelineAgentNode fields (slug, display_name, model_id, model_name), return tuple of (agent_mappings dict, pipeline_name str) or None if pipeline not found per research.md R2
+- [x] T005 Implement `resolve_project_pipeline_mappings(project_id, github_user_id)` async function in backend/src/services/workflow_orchestrator/config.py — three-tier fallback chain: (1) read assigned_pipeline_id from project_settings where github_user_id="__workflow__", call load_pipeline_as_agent_mappings(), (2) call existing load_user_agent_mappings(github_user_id, project_id), (3) use DEFAULT_AGENT_MAPPINGS — return PipelineResolutionResult with resolved mappings and metadata per research.md R3 and contracts/api.md resolution logic
+- [x] T006 [P] Create `useSelectedPipeline(projectId)` shared React hook in frontend/src/hooks/useSelectedPipeline.ts — wrap two React Query calls: (1) pipelinesApi.getAssignment(projectId) with query key ['pipelines', 'assignment', projectId], (2) pipelinesApi.list(projectId) with query key ['pipelines', projectId] — return SelectedPipelineState object with pipelineId, pipelineName (resolved by matching ID in list), isLoading, hasAssignment per contracts/components.md hook specification, staleTime of 60000 (1 minute), enabled only when projectId is non-null
 
 **Checkpoint**: Pipeline resolution backend functions and frontend hook are ready. User story implementation can now begin.
 
@@ -60,8 +60,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Integrate `resolve_project_pipeline_mappings()` in the `confirm_proposal` endpoint in backend/src/api/chat.py — replace the existing direct `load_user_agent_mappings()` call with `resolve_project_pipeline_mappings(project_id, github_user_id)`, apply the returned `agent_mappings` to the WorkflowConfiguration used by create_all_sub_issues(), per research.md R1 (backend-side resolution, no pipeline_id in request) and contracts/api.md resolution logic
-- [ ] T008 [US1] Populate `pipeline_name` and `pipeline_source` fields from PipelineResolutionResult in the confirm_proposal response in backend/src/api/chat.py — set pipeline_name from result.pipeline_name and pipeline_source from result.source on the AITaskProposal response object per contracts/api.md new response fields
+- [x] T007 [US1] Integrate `resolve_project_pipeline_mappings()` in the `confirm_proposal` endpoint in backend/src/api/chat.py — replace the existing direct `load_user_agent_mappings()` call with `resolve_project_pipeline_mappings(project_id, github_user_id)`, apply the returned `agent_mappings` to the WorkflowConfiguration used by create_all_sub_issues(), per research.md R1 (backend-side resolution, no pipeline_id in request) and contracts/api.md resolution logic
+- [x] T008 [US1] Populate `pipeline_name` and `pipeline_source` fields from PipelineResolutionResult in the confirm_proposal response in backend/src/api/chat.py — set pipeline_name from result.pipeline_name and pipeline_source from result.source on the AITaskProposal response object per contracts/api.md new response fields
 
 **Checkpoint**: At this point, User Story 1 is fully functional. Issues created via chat inherit the project's assigned pipeline. The confirm response includes pipeline metadata. This is the MVP — stop and validate independently.
 
@@ -75,8 +75,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Create PipelineWarningBanner component in frontend/src/components/chat/PipelineWarningBanner.tsx — accept `projectId: string` prop, consume useSelectedPipeline(projectId) hook, render amber/yellow inline warning banner when hasAssignment === false and isLoading === false with text "⚠ No Agent Pipeline selected — issues will use the default pipeline. Select one on the Project page.", render nothing when loading or assigned, style with `bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs`, add `role="alert"` and `aria-hidden="true"` on warning icon per contracts/components.md
-- [ ] T010 [US2] Render PipelineWarningBanner in ChatInterface — import PipelineWarningBanner into frontend/src/components/chat/ChatInterface.tsx, render it above the chat input area when projectId is available, no changes to existing chat logic or message handling per contracts/components.md ChatInterface modification spec
+- [x] T009 [P] [US2] Create PipelineWarningBanner component in frontend/src/components/chat/PipelineWarningBanner.tsx — accept `projectId: string` prop, consume useSelectedPipeline(projectId) hook, render amber/yellow inline warning banner when hasAssignment === false and isLoading === false with text "⚠ No Agent Pipeline selected — issues will use the default pipeline. Select one on the Project page.", render nothing when loading or assigned, style with `bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-xs`, add `role="alert"` and `aria-hidden="true"` on warning icon per contracts/components.md
+- [x] T010 [US2] Render PipelineWarningBanner in ChatInterface — import PipelineWarningBanner into frontend/src/components/chat/ChatInterface.tsx, render it above the chat input area when projectId is available, no changes to existing chat logic or message handling per contracts/components.md ChatInterface modification spec
 
 **Checkpoint**: At this point, User Stories 1 AND 2 are both functional. Pipeline inheritance works and users are warned when no pipeline is selected.
 
@@ -90,7 +90,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Display applied pipeline name badge in TaskPreview confirmation view in frontend/src/components/chat/TaskPreview.tsx — after successful confirmation (proposal.status === "confirmed"), render inline badge showing pipeline info: if proposal.pipeline_name exists show "Agent Pipeline: {pipeline_name}", if proposal.pipeline_source === "default" show "Agent Pipeline: Default", if proposal.pipeline_source === "user" show "Agent Pipeline: Custom Mappings" — style badge with `inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground`, use Workflow or GitBranch icon from lucide-react per contracts/components.md TaskPreview modification spec
+- [x] T011 [US3] Display applied pipeline name badge in TaskPreview confirmation view in frontend/src/components/chat/TaskPreview.tsx — after successful confirmation (proposal.status === "confirmed"), render inline badge showing pipeline info: if proposal.pipeline_name exists show "Agent Pipeline: {pipeline_name}", if proposal.pipeline_source === "default" show "Agent Pipeline: Default", if proposal.pipeline_source === "user" show "Agent Pipeline: Custom Mappings" — style badge with `inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground`, use Workflow or GitBranch icon from lucide-react per contracts/components.md TaskPreview modification spec
 
 **Checkpoint**: All three primary user stories are functional. Users see pipeline inheritance, warnings, and confirmations.
 
@@ -104,8 +104,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T012 [US4] Add stale pipeline auto-cleanup logic in resolve_project_pipeline_mappings() in backend/src/services/workflow_orchestrator/config.py — when assigned_pipeline_id is found but load_pipeline_as_agent_mappings() returns None (pipeline deleted), log a warning for observability, clear the stale assigned_pipeline_id from project_settings table, and fall through to Tier 2 (user mappings) or Tier 3 (defaults) per research.md R5
-- [ ] T013 [P] [US4] Handle deleted pipeline edge case in useSelectedPipeline hook in frontend/src/hooks/useSelectedPipeline.ts — when pipelineId is non-empty but not found in the pipeline list (assigned pipeline was deleted), return hasAssignment as true but pipelineName as "Unknown Pipeline" so the UI can distinguish between no-assignment and stale-assignment states per contracts/components.md hook specification
+- [x] T012 [US4] Add stale pipeline auto-cleanup logic in resolve_project_pipeline_mappings() in backend/src/services/workflow_orchestrator/config.py — when assigned_pipeline_id is found but load_pipeline_as_agent_mappings() returns None (pipeline deleted), log a warning for observability, clear the stale assigned_pipeline_id from project_settings table, and fall through to Tier 2 (user mappings) or Tier 3 (defaults) per research.md R5
+- [x] T013 [P] [US4] Handle deleted pipeline edge case in useSelectedPipeline hook in frontend/src/hooks/useSelectedPipeline.ts — when pipelineId is non-empty but not found in the pipeline list (assigned pipeline was deleted), return hasAssignment as true but pipelineName as "Unknown Pipeline" so the UI can distinguish between no-assignment and stale-assignment states per contracts/components.md hook specification
 
 **Checkpoint**: All four user stories are complete. The system handles creation, warnings, confirmations, and edge cases for deleted pipelines.
 
