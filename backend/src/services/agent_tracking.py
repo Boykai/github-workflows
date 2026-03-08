@@ -190,6 +190,8 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
         status = row_match.group(2).strip()
         agent_name = row_match.group(3).strip()
         model = row_match.group(4).strip()
+        # Normalize placeholder "TBD" back to the canonical "no model" value.
+        model = "" if model == "TBD" else model
         state = row_match.group(5).strip()
         steps.append(
             AgentStep(index=idx, status=status, agent_name=agent_name, model=model, state=state)
