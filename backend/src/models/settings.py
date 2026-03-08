@@ -272,11 +272,17 @@ class ProjectSettingsRow(BaseModel):
     def get_board_config(self) -> dict[str, Any] | None:
         """Parse board_display_config JSON."""
         if self.board_display_config:
-            return json.loads(self.board_display_config)
+            try:
+                return json.loads(self.board_display_config)
+            except (json.JSONDecodeError, TypeError):
+                return None
         return None
 
     def get_agent_mappings(self) -> dict[str, Any] | None:
         """Parse agent_pipeline_mappings JSON."""
         if self.agent_pipeline_mappings:
-            return json.loads(self.agent_pipeline_mappings)
+            try:
+                return json.loads(self.agent_pipeline_mappings)
+            except (json.JSONDecodeError, TypeError):
+                return None
         return None

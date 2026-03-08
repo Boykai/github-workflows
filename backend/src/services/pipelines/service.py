@@ -167,7 +167,10 @@ class PipelineService:
     @staticmethod
     def _row_to_config(row_dict: dict) -> PipelineConfig:
         """Convert a database row dict to a PipelineConfig model."""
-        stages_raw = json.loads(row_dict.get("stages", "[]"))
+        try:
+            stages_raw = json.loads(row_dict.get("stages", "[]"))
+        except (json.JSONDecodeError, TypeError):
+            stages_raw = []
         stages = [PipelineStage(**s) for s in stages_raw]
         return PipelineConfig(
             id=row_dict["id"],
@@ -205,7 +208,10 @@ class PipelineService:
         summaries: list[PipelineConfigSummary] = []
         for row in rows:
             row_dict = dict(row)
-            stages = json.loads(row_dict.get("stages", "[]"))
+            try:
+                stages = json.loads(row_dict.get("stages", "[]"))
+            except (json.JSONDecodeError, TypeError):
+                stages = []
             parsed_stages = [PipelineStage(**s) for s in stages]
             agent_count = sum(len(s.agents) for s in parsed_stages)
             total_tool_count = sum(a.tool_count for s in parsed_stages for a in s.agents)

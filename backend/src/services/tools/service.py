@@ -463,12 +463,18 @@ class ToolsService:
                     file_data = resp.json()
                     existing_sha = file_data.get("sha")
                     raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                    existing_content = json.loads(raw)
+                    try:
+                        existing_content = json.loads(raw)
+                    except (json.JSONDecodeError, TypeError):
+                        existing_content = {"mcpServers": {}}
                 elif resp.status_code != 404:
                     raise RuntimeError(f"GitHub API error: {resp.status_code} {resp.text[:200]}")
 
                 # Merge tool config
-                tool_config = json.loads(tool.config_content)
+                try:
+                    tool_config = json.loads(tool.config_content)
+                except (json.JSONDecodeError, TypeError):
+                    tool_config = {"mcpServers": {}}
                 mcp_servers = existing_content.get("mcpServers", {})
                 mcp_servers.update(tool_config.get("mcpServers", {}))
                 existing_content["mcpServers"] = mcp_servers
@@ -542,7 +548,10 @@ class ToolsService:
             file_data = resp.json()
             existing_sha = file_data.get("sha")
             raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-            existing_content = json.loads(raw)
+            try:
+                existing_content = json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                existing_content = {"mcpServers": {}}
 
             # Remove tool servers
             try:
