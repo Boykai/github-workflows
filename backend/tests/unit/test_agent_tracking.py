@@ -264,7 +264,7 @@ class TestParseTrackingFromBody:
         assert steps[1].model == "claude-3-5-sonnet"
         assert steps[2].agent_name == "speckit.implement"
         assert STATE_PENDING in steps[2].state
-        assert steps[2].model == "TBD"
+        assert steps[2].model == ""
 
     def test_no_tracking_returns_none(self):
         assert parse_tracking_from_body("Just a normal issue body.") is None
