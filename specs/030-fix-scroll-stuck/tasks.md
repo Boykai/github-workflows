@@ -22,7 +22,7 @@
 
 **Purpose**: Document the root cause and prepare the working branch
 
-- [ ] T001 Document root cause analysis of scroll freeze (modal scroll-lock race condition per R1) in the PR description and specs/030-fix-scroll-stuck/plan.md
+- [x] T001 Document root cause analysis of scroll freeze (modal scroll-lock race condition per R1) in the PR description and specs/030-fix-scroll-stuck/plan.md
 
 ---
 
@@ -32,8 +32,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Create useScrollLock hook with module-level reference-counting in frontend/src/hooks/useScrollLock.ts
-- [ ] T003 [P] Create unit tests for useScrollLock reference-counting logic in `frontend/src/hooks/__tests__/useScrollLock.test.ts`
+- [x] T002 Create useScrollLock hook with module-level reference-counting in frontend/src/hooks/useScrollLock.ts
+- [x] T003 [P] Create unit tests for useScrollLock reference-counting logic in `frontend/src/hooks/useScrollLock.test.ts`
 
 **Checkpoint**: Foundation ready — `useScrollLock` hook available for all modal component updates
 
@@ -47,10 +47,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/IssueDetailModal.tsx
-- [ ] T005 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T006 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpSummary.tsx
-- [ ] T007 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpAuditHistory.tsx
+- [x] T004 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/IssueDetailModal.tsx
+- [x] T005 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpConfirmModal.tsx
+- [x] T006 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpSummary.tsx
+- [x] T007 [P] [US1] Replace manual scroll lock with useScrollLock(true) and separate keydown listener into its own useEffect in frontend/src/components/board/CleanUpAuditHistory.tsx
 
 **Checkpoint**: At this point, the 4 worst-offending modals (those that unconditionally reset overflow to `''`) are fixed. Scrolling should no longer freeze after closing these modals. User Story 1 is fully functional and testable independently.
 
@@ -64,10 +64,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/layout/NotificationBell.tsx
-- [ ] T009 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T010 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/pipeline/ModelSelector.tsx
-- [ ] T011 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/pipeline/StageCard.tsx
+- [x] T008 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/layout/NotificationBell.tsx
+- [x] T009 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T010 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/pipeline/ModelSelector.tsx
+- [x] T011 [P] [US2] Update scroll addEventListener to { capture: true, passive: true } and removeEventListener to { capture: true } in frontend/src/components/pipeline/StageCard.tsx
 
 **Checkpoint**: All scroll event listeners now use passive mode. Browser can optimize scroll input processing. Popover repositioning still works correctly. User Stories 1 AND 2 should both work independently.
 
@@ -81,8 +81,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T012 [P] [US3] Replace manual scroll lock with useScrollLock(isOpen) in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T013 [P] [US3] Replace manual scroll lock with useScrollLock(showCopyDialog) and separate keydown listener into its own useEffect in frontend/src/components/pipeline/PipelineToolbar.tsx
+- [x] T012 [P] [US3] Replace manual scroll lock with useScrollLock(isOpen) in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T013 [P] [US3] Replace manual scroll lock with useScrollLock(showCopyDialog) and separate keydown listener into its own useEffect in frontend/src/components/pipeline/PipelineToolbar.tsx
 
 **Checkpoint**: All 6 modal components now use the centralized useScrollLock hook. The modal scroll-lock race condition is fully eliminated. Scroll stability during transitions is guaranteed by reference counting.
 
@@ -96,8 +96,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T014 [US4] Add defensive lockCount floor guard (prevent negative values) to useScrollLock cleanup in frontend/src/hooks/useScrollLock.ts
-- [ ] T015 [US4] Run full Vitest test suite and verify zero regressions across all modified components in frontend/
+- [x] T014 [US4] Add defensive lockCount floor guard (prevent negative values) to useScrollLock cleanup in frontend/src/hooks/useScrollLock.ts
+- [x] T015 [US4] Run full Vitest test suite and verify zero regressions across all modified components in frontend/
 
 **Checkpoint**: All scroll-dependent components verified. No regressions introduced. The full acceptance criteria from the parent issue are met.
 
@@ -107,8 +107,8 @@
 
 **Purpose**: Documentation, final validation, and cleanup
 
-- [ ] T016 [P] Add JSDoc documentation to useScrollLock hook explaining reference-counting behavior and usage in frontend/src/hooks/useScrollLock.ts
-- [ ] T017 Run quickstart.md validation checklist to verify all implementation steps in specs/030-fix-scroll-stuck/quickstart.md
+- [x] T016 [P] Add JSDoc documentation to useScrollLock hook explaining reference-counting behavior and usage in frontend/src/hooks/useScrollLock.ts
+- [x] T017 Run quickstart.md validation checklist to verify all implementation steps in specs/030-fix-scroll-stuck/quickstart.md
 - [ ] T018 Final cross-browser verification (Chrome, Firefox, Safari desktop + mobile touch) per SC-002
 
 ---

@@ -5,6 +5,7 @@
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { CleanupHistoryResponse } from '@/types';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface CleanUpAuditHistoryProps {
   data: CleanupHistoryResponse | null;
@@ -19,12 +20,12 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
     [onClose]
   );
 
+  useScrollLock(true);
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
 
