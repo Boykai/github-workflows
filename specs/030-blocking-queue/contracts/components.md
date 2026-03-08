@@ -214,7 +214,7 @@ const updateChore = useMutation({
 
 ### Toggle Persistence Flow
 
-```
+```text
 User toggles "Blocking" on ChoreCard
   → ChoreCard calls updateChore({ blocking: true })
   → useUpdateChore fires PATCH /api/v1/chores/{project_id}/{chore_id}
@@ -225,7 +225,7 @@ User toggles "Blocking" on ChoreCard
 
 ### Chat #block Flow
 
-```
+```text
 User types "Fix login page #block" in ChatInterface
   → Frontend shows 🔒 badge (local detection)
   → User sends message
@@ -238,7 +238,7 @@ User types "Fix login page #block" in ChatInterface
 
 ### Activation Cascade Flow
 
-```
+```text
 Active issue #41 transitions to "in review"
   → copilot_polling/pipeline.py detects status change
   → blocking_queue.mark_in_review(repo_key, 41)

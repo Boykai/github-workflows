@@ -136,6 +136,7 @@ This document defines the API contracts for the blocking queue feature. All endp
 #### `POST /api/v1/chat/{project_id}` — Send Chat Message
 
 **Behavior change**: The message content is scanned for `#block` (case-insensitive, anywhere in content). If found:
+
 1. All occurrences of `#block` are stripped from the message
 2. `is_blocking=True` is set on the resulting issue/task proposal
 3. The cleaned message proceeds through normal intent processing

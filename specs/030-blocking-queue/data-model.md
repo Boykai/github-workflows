@@ -185,6 +185,7 @@ ALTER TABLE chores ADD COLUMN blocking INTEGER NOT NULL DEFAULT 0;
 ```
 
 **Storage Notes**:
+
 - `queue_status` uses a CHECK constraint to enforce valid states, matching the `BlockingQueueStatus` enum.
 - `is_blocking` is stored as INTEGER (0/1) following SQLite's boolean convention used throughout the project.
 - `idx_blocking_queue_repo_status` supports the most frequent query: "get all non-completed entries for a repo."
@@ -199,7 +200,7 @@ ALTER TABLE chores ADD COLUMN blocking INTEGER NOT NULL DEFAULT 0;
 
 ### Blocking Queue Entry Lifecycle
 
-```
+```text
                     ┌──────────────┐
                     │   PENDING    │  Issue created, waiting for activation
                     │              │
@@ -229,7 +230,7 @@ ALTER TABLE chores ADD COLUMN blocking INTEGER NOT NULL DEFAULT 0;
 
 ### Activation Decision Logic (try_activate_next)
 
-```
+```text
 try_activate_next(repo_key):
     │
     ├─ Get all pending entries (ordered by created_at ASC)
@@ -261,7 +262,7 @@ try_activate_next(repo_key):
 
 ### Base Branch Resolution
 
-```
+```text
 get_base_ref_for_issue(repo_key, issue_number):
     │
     ├─ Find oldest open blocking issue (active or in_review)
@@ -279,7 +280,7 @@ get_base_ref_for_issue(repo_key, issue_number):
 
 This validates the activation rules using the scenario from the spec (SC-009):
 
-```
+```text
 Queue (creation order):
   1. Issue #1 — blocking
   2. Issue #2 — non-blocking

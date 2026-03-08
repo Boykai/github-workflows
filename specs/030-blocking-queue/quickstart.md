@@ -34,7 +34,7 @@ npm run dev
 
 ## New Files to Create
 
-### Backend
+### Backend — New Files
 
 | File | Purpose |
 |------|---------|
@@ -51,7 +51,7 @@ npm run dev
 
 ## Files to Modify
 
-### Backend
+### Backend — Modified Files
 
 | File | Changes |
 |------|---------|
@@ -66,7 +66,7 @@ npm run dev
 | `backend/src/services/copilot_polling/pipeline.py` | Add `mark_in_review()` + activation cascade on status transition |
 | `backend/src/services/copilot_polling/completion.py` | Add `mark_completed()` + activation cascade on issue completion |
 
-### Frontend
+### Frontend — Modified Files
 
 | File | Changes |
 |------|---------|
@@ -97,11 +97,11 @@ npm run dev
 
 ### Phase 2: Blocking Queue Service (Core Engine)
 
-4. **Store** (`services/blocking_queue_store.py`)
+1. **Store** (`services/blocking_queue_store.py`)
    - Implement CRUD: insert, update_status, get_by_repo, get_by_issue, get_pending, get_open_blocking
    - Follow existing `get_db()` async pattern
 
-5. **Service** (`services/blocking_queue.py`)
+2. **Service** (`services/blocking_queue.py`)
    - Implement: enqueue_issue, get_base_ref_for_issue, mark_active, mark_in_review, mark_completed
    - Implement core `try_activate_next()` with batch activation rules
    - Implement per-repo asyncio.Lock for concurrency control
@@ -109,46 +109,46 @@ npm run dev
 
 ### Phase 3: Backend Integration
 
-6. **Pipeline/Chore CRUD** (`services/pipelines/service.py`, `services/chores/service.py`)
+1. **Pipeline/Chore CRUD** (`services/pipelines/service.py`, `services/chores/service.py`)
    - Add `blocking` to `_PIPELINE_COLUMNS` and `_CHORE_UPDATABLE_COLUMNS` allowlists
    - Update row-to-model conversion to include blocking field
 
-7. **Chat** (`api/chat.py`)
+2. **Chat** (`api/chat.py`)
    - Add `#block` detection regex at Priority 0.5
    - Strip `#block` from message content
    - Propagate `is_blocking` through confirm_proposal → execute_full_workflow
 
-8. **Orchestrator** (`services/workflow_orchestrator/orchestrator.py`)
+3. **Orchestrator** (`services/workflow_orchestrator/orchestrator.py`)
    - In `execute_full_workflow()`: call `enqueue_issue()` after issue creation
    - If not activated: return pending WorkflowResult, skip agent assignment
    - In base_ref resolution: use `get_base_ref_for_issue()` for first agent assignment
 
-9. **Polling** (`services/copilot_polling/pipeline.py`, `completion.py`)
+4. **Polling** (`services/copilot_polling/pipeline.py`, `completion.py`)
    - On "in review" transition: call `mark_in_review()` + activate next
    - On completion: call `mark_completed()` + activate next
    - On startup: call `try_activate_next()` for all repos with non-completed entries
 
-10. **WebSocket** (integrated in blocking_queue.py)
-    - After activation cascade: broadcast `blocking_queue_updated` event via `connection_manager`
+5. **WebSocket** (integrated in blocking_queue.py)
+   - After activation cascade: broadcast `blocking_queue_updated` event via `connection_manager`
 
 ### Phase 4: Frontend Integration
 
-11. **Types** (`types/index.ts`)
-    - Add `BlockingQueueEntry`, `BlockingQueueStatus` types
-    - Add `blocking` to existing Chore and PipelineConfig types
+1. **Types** (`types/index.ts`)
+   - Add `BlockingQueueEntry`, `BlockingQueueStatus` types
+   - Add `blocking` to existing Chore and PipelineConfig types
 
-12. **Hooks** (`useChores.ts`, `usePipelineConfig.ts`)
-    - Include `blocking` in update mutation payloads
+2. **Hooks** (`useChores.ts`, `usePipelineConfig.ts`)
+   - Include `blocking` in update mutation payloads
 
-13. **Components**
-    - ChoreCard: Add "Blocking" toggle (follow `ai_enhance_enabled` pattern)
-    - SavedWorkflowsList: Add pipeline "Blocking" toggle
-    - ChatInterface: Add `#block` autocomplete + badge indicator
-    - Board cards: Add blocking/pending visual indicators
+3. **Components**
+   - ChoreCard: Add "Blocking" toggle (follow `ai_enhance_enabled` pattern)
+   - SavedWorkflowsList: Add pipeline "Blocking" toggle
+   - ChatInterface: Add `#block` autocomplete + badge indicator
+   - Board cards: Add blocking/pending visual indicators
 
-14. **WebSocket Handler**
-    - Listen for `blocking_queue_updated` events
-    - Display toast notifications for newly activated issues
+4. **WebSocket Handler**
+   - Listen for `blocking_queue_updated` events
+   - Display toast notifications for newly activated issues
 
 ## Key Patterns to Follow
 
