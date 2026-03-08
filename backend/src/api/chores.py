@@ -8,7 +8,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
-from src.exceptions import AppException, ConflictError, GitHubAPIError, NotFoundError, ValidationError
+from src.exceptions import (
+    AppException,
+    ConflictError,
+    GitHubAPIError,
+    NotFoundError,
+    ValidationError,
+)
 from src.logging_utils import handle_service_error
 from src.models.chores import (
     Chore,

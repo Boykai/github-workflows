@@ -154,9 +154,7 @@ async def update_project_settings_endpoint(
 
                 _workflow_configs.pop(project_id, None)
             except Exception:
-                logger.debug(
-                    "Cache invalidation skipped for project=%s", project_id, exc_info=True
-                )
+                logger.debug("Cache invalidation skipped for project=%s", project_id, exc_info=True)
 
     return await get_effective_project_settings(db, session.github_user_id, project_id)
 
