@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act, screen, render, fireEvent, waitFor } from '@testing-library/react';
+import { renderHook, act, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ConfirmationDialogProvider, useConfirmation } from '../useConfirmation';
 
