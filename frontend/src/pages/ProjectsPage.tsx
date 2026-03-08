@@ -3,7 +3,9 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRealTimeSync } from '@/hooks/useRealTimeSync';
@@ -12,22 +14,20 @@ import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
-import { AgentConfigRow } from '@/components/board/AgentConfigRow';
-import { AddAgentPopover } from '@/components/board/AddAgentPopover';
-import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
-import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
+import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { formatAgentName } from '@/utils/formatAgentName';
 import type { BoardItem } from '@/types';
-import { ApiError } from '@/services/api';
+import { ApiError, pipelinesApi } from '@/services/api';
 
 export function ProjectsPage() {
   const { updateRateLimit } = useRateLimitStatus();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const {
     projects,
@@ -63,28 +63,50 @@ export function ProjectsPage() {
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
 
-  const agentConfig = useAgentConfig(selectedProjectId);
-  const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(selectedProjectId);
+  const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
 
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
 
+  const { data: savedPipelines } = useQuery({
+    queryKey: ['pipelines', selectedProjectId],
+    queryFn: () => pipelinesApi.list(selectedProjectId!),
+    enabled: !!selectedProjectId,
+    staleTime: 60_000,
+  });
+
+  const { data: pipelineAssignment } = useQuery({
+    queryKey: ['pipelines', 'assignment', selectedProjectId],
+    queryFn: () => pipelinesApi.getAssignment(selectedProjectId!),
+    enabled: !!selectedProjectId,
+    staleTime: 60_000,
+  });
+
+  const assignPipelineMutation = useMutation({
+    mutationFn: (pipelineId: string) => pipelinesApi.setAssignment(selectedProjectId!, pipelineId),
+    onSuccess: (assignment) => {
+      if (!selectedProjectId) return;
+      queryClient.setQueryData(['pipelines', 'assignment', selectedProjectId], assignment);
+    },
+  });
+
   const handleProjectSwitch = useCallback((projectId: string) => {
-    if (agentConfig.isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved agent configuration changes. Discard and switch projects?'
-      );
-      if (!confirmed) return;
-      agentConfig.discard();
-    }
     selectBoardProject(projectId);
-  }, [agentConfig, selectBoardProject]);
+  }, [selectBoardProject]);
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
   const pipelineGridStyle = { gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` };
+  const assignedPipeline = useMemo(
+    () => savedPipelines?.pipelines.find((pipeline) => pipeline.id === (pipelineAssignment?.pipeline_id ?? '')) ?? null,
+    [pipelineAssignment?.pipeline_id, savedPipelines],
+  );
+  const assignedStageMap = useMemo(
+    () => new Map((assignedPipeline?.stages ?? []).map((stage) => [stage.name.toLowerCase(), stage])),
+    [assignedPipeline],
+  );
 
   const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
   const projectsRateLimitError = isRateLimitApiError(projectsError);
@@ -287,41 +309,40 @@ export function ProjectsPage() {
       {selectedProjectId && !boardLoading && transformedBoardData && (
         <div className="flex flex-col flex-1 gap-6 overflow-hidden">
           <section className="space-y-4">
-            <AgentConfigRow
-              columnCount={pipelineColumnCount}
-              columns={transformedBoardData.columns}
-              agentConfig={agentConfig}
-              availableAgents={availableAgents}
-              variant="compact"
-              title="Agent Pipeline"
-              renderPresetSelector={
-                <AgentPresetSelector
-                  columnNames={transformedBoardData.columns.map((c) => c.status.name)}
-                  currentMappings={agentConfig.localMappings}
-                  onApplyPreset={agentConfig.applyPreset}
-                  projectId={selectedProjectId}
-                />
-              }
-              renderAddButton={(status: string) => (
-                <AddAgentPopover
-                  status={status}
-                  availableAgents={availableAgents}
-                  assignedAgents={agentConfig.localMappings[status] ?? []}
-                  isLoading={agentsLoading}
-                  error={agentsError}
-                  onRetry={refetchAgents}
-                  onAddAgent={agentConfig.addAgent}
-                  compact={true}
-                />
-              )}
-            />
-
             <div>
-              <h3 className="mb-3 text-lg font-semibold">Pipeline Stages</h3>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold">Pipeline Stages</h3>
+                {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
+                  <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <span>Agent Pipeline</span>
+                    <select
+                      value={pipelineAssignment?.pipeline_id ?? ''}
+                      onChange={(event) => assignPipelineMutation.mutate(event.target.value)}
+                      disabled={assignPipelineMutation.isPending}
+                      className="moonwell h-9 min-w-[12rem] rounded-full border-border/60 px-4 text-xs font-medium text-foreground"
+                      aria-label="Agent Pipeline"
+                    >
+                      <option value="">No pipeline selected</option>
+                      {savedPipelines?.pipelines.map((pipeline) => (
+                        <option key={pipeline.id} value={pipeline.id}>
+                          {pipeline.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <Link
+                    to="/pipeline"
+                    className="solar-chip-soft inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-primary/10 hover:text-foreground"
+                  >
+                    Create new pipeline
+                  </Link>
+                )}
+              </div>
               <div className="overflow-x-auto pb-2">
                 <div className="grid min-w-full items-stretch gap-3" style={pipelineGridStyle}>
                   {transformedBoardData.columns.map((col) => {
-                    const assigned = agentConfig.localMappings[col.status.name] ?? [];
+                    const assigned = assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
                     const dotColor = statusColorToCSS(col.status.color);
 
                     return (
@@ -333,7 +354,7 @@ export function ProjectsPage() {
                           <div className="mt-1 flex flex-wrap justify-center gap-1">
                             {assigned.map((assignment) => (
                               <span key={assignment.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                                {formatAgentName(assignment.slug, assignment.display_name)}
+                                {formatAgentName(assignment.agent_slug, assignment.agent_display_name)}
                               </span>
                             ))}
                           </div>

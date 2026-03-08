@@ -139,6 +139,8 @@ interface AgentPresetSelectorProps {
   onApplyPreset: (mappings: Record<string, AgentAssignment[]>) => void;
   /** Project ID for fetching saved pipeline configs */
   projectId?: string | null;
+  /** Render only the saved pipeline dropdown trigger */
+  dropdownOnly?: boolean;
 }
 
 /**
@@ -172,6 +174,7 @@ export function AgentPresetSelector({
   currentMappings,
   onApplyPreset,
   projectId,
+  dropdownOnly = false,
 }: AgentPresetSelectorProps) {
   const [confirmPreset, setConfirmPreset] = useState<AgentPreset | null>(null);
   const [confirmPipeline, setConfirmPipeline] = useState<PipelineConfigSummary | null>(null);
@@ -338,7 +341,7 @@ export function AgentPresetSelector({
   return (
     <>
       <div className="ml-auto flex items-center gap-1 rounded-xl border border-border/60 bg-background/56 p-1 shadow-sm">
-        {PRESETS.map((preset) => {
+        {!dropdownOnly && PRESETS.map((preset) => {
           const isActive = matchesPreset(preset, currentMappings, columnNames);
           return (
             <button
