@@ -41,7 +41,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Create a summary tracking document at `/tmp/bug-bash-summary.md` using the schema from `specs/031-bug-basher/contracts/summary-table.md` with empty table ready to append entries
+- [ ] T008 Create a summary tracking document at `specs/031-bug-basher/summary.md` using the schema from `specs/031-bug-basher/contracts/summary-table.md` with empty table ready to append entries
 - [ ] T009 Identify full file inventory for audit: list all files under `backend/src/api/` (18 modules), `backend/src/services/` (49 modules), `backend/src/models/` (19 files), `backend/src/migrations/` (20 files), `backend/tests/unit/` (53 files), `frontend/src/` (183 files)
 
 **Checkpoint**: Foundation ready — category-based bug bash can now begin in priority order
@@ -276,7 +276,7 @@
 - [ ] T113 [US6] Review all issues flagged during US1–US5 audits that were marked as ambiguous — compile list of items needing `TODO(bug-bash):` comments
 - [ ] T114 [US6] Verify each `TODO(bug-bash):` comment includes: (1) issue description, (2) available options (at least two), (3) rationale for human review
 - [ ] T115 [US6] Verify existing `TODO(bug-bash):` comments from previous bug bash (030) in `backend/src/services/signal_chat.py`, `backend/src/main.py`, and `backend/src/services/database.py` are still accurate and complete
-- [ ] T116 [US6] Ensure migration numbering conflict (R-001) is documented with `TODO(bug-bash):` in `backend/src/services/database.py` with full context about prefixes 013, 014, 015 and deployment reconciliation options
+- [ ] T116 [US6] Ensure migration numbering conflict (R-001) is documented with `TODO(bug-bash):` in `backend/src/services/database.py` with full context about duplicate SQL migration version prefixes 013, 014, 015 (each has two files sharing the same prefix) and deployment reconciliation options
 - [ ] T117 [US6] Ensure CORS wildcard configuration (R-004) is documented with `TODO(bug-bash):` in `backend/src/main.py` with full context about `allow_methods=["*"]` and `allow_headers=["*"]`
 - [ ] T118 [P] [US6] Search entire codebase with `grep -r "TODO(bug-bash):" backend/ frontend/` to produce a complete inventory of all flagged items
 
