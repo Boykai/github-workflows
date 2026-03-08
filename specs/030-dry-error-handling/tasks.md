@@ -326,7 +326,7 @@ With multiple developers:
 | **Setup Tasks** | 2 (T001–T002) |
 | **Polish Tasks** | 4 (T040–T043) |
 | **Parallel Opportunities** | 12+ (8 HTTPException files ‖, 3 handle_service_error files ‖, 8 logger replacements ‖, 3 ErrorAlert replacements ‖, 3 correlation ID tasks ‖, cross-layer US1‖US2‖US3, polish T040‖T041‖T042) |
-| **Backend Files Modified** | 14 (exceptions.py, dependencies.py, main.py, settings.py, agents.py, auth.py, board.py, chat.py — unchanged, chores.py, cleanup.py, pipelines.py, signal.py, tools.py, webhooks.py, workflow.py) |
+| **Backend Files Modified** | 13 (exceptions.py, dependencies.py, main.py, settings.py, agents.py, auth.py, board.py, chores.py, cleanup.py, pipelines.py, signal.py, tools.py, webhooks.py, workflow.py) |
 | **Frontend Files Created** | 2 (logger.ts, ErrorAlert.tsx) |
 | **Frontend Files Modified** | 12 (App.tsx, main.tsx, ErrorBoundary.tsx, api.ts, useRealTimeSync.ts, usePipelineConfig.ts, AgentsPipelinePage.tsx, useBoardControls.ts, useSidebarState.ts, useAppTheme.ts, ProjectsPage.tsx, IssueRecommendationPreview.tsx, ChatInterface.tsx) |
 | **New Dependencies** | 1 (sonner) |
@@ -338,7 +338,7 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - US1 is the highest-impact change (79 HTTPException replacements, 12 handle_service_error activations) and constitutes the MVP
 - No new backend tests — existing test suite serves as regression gate (FR-016, FR-017)
-- The HTTPException→AppException status code mapping is corrected per research.md R1: `ValidationError` is 422 (not 400), `GitHubAPIError` is 502 (not 500). Each replacement requires reading semantic context.
+- The HTTPException→AppException status code mapping follows research.md R1: the existing `ValidationError` class defaults to `status_code=422` and `GitHubAPIError` defaults to `status_code=502`. When tasks say "400→ValidationError", this means `HTTPException(status_code=400)` is replaced with `ValidationError(message)` — the response status code changes from 400 to 422, which is more correct per RFC 9110 for semantic validation failures. Each replacement requires reading semantic context to select the correct subclass.
 - `chat.py` logger.error calls do NOT have immediate raise patterns — they are excluded from handle_service_error activation per research.md R3
 - `workflow.py` handle_service_error activation depends on whether `WorkflowError` is an AppException subclass — verify during implementation per research.md R3
 - `McpLimitExceededError` callers remain unchanged — `ConflictError` is for non-MCP 409 conflicts per research.md R2
