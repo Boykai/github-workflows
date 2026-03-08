@@ -254,7 +254,7 @@ With multiple developers:
 | **US3 Tasks** | 5 (T017–T021: 2 tests + 3 implementation) |
 | **US4 Tasks** | 4 (T022–T025: 2 tests + 2 implementation) |
 | **Polish Tasks** | 6 (T026–T031) |
-| **Parallel Opportunities** | 8 groups (US1 tests, US1 impl, US2 tests, US3 tests, US4 tests, US1‖US3‖US4, Polish T028‖T029‖T030, T006‖T007‖T008‖T009) |
+| **Parallel Opportunities** | 8 groups (US1 tests, US1 impl, US2 tests, US3 tests, US4 tests, US1/US3/US4 in parallel, Polish T028/T029/T030 in parallel, T006/T007/T008/T009 in parallel) |
 | **New Files** | 2 (confirmation-dialog.tsx, useConfirmation.ts) |
 | **Modified Files** | 5 (App.tsx, AgentCard.tsx, AgentsPanel.tsx, ChoreCard.tsx, AgentsPipelinePage.tsx) |
 | **New Test Files** | Up to 6 (component tests, hook tests, call site tests) |
