@@ -66,17 +66,27 @@ export function AddAgentPopover({
     setPosition({ top, left });
   }, []);
 
-  // Recalculate position when opened and on scroll/resize
+  // Recalculate position when opened and on scroll/resize.
+  // RAF-gated to prevent 100+ updatePosition calls/second during rapid scrolling.
   useLayoutEffect(() => {
     if (!isOpen) return;
     updatePosition();
 
-    const onReposition = () => updatePosition();
+    let rafId: number | null = null;
+    const onReposition = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updatePosition();
+      });
+    };
+
     window.addEventListener('scroll', onReposition, { capture: true, passive: true });
     window.addEventListener('resize', onReposition);
     return () => {
       window.removeEventListener('scroll', onReposition, { capture: true });
       window.removeEventListener('resize', onReposition);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   }, [isOpen, updatePosition]);
 

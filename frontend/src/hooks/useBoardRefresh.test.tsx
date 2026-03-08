@@ -494,4 +494,126 @@ describe('useBoardRefresh', () => {
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  // ── Regression tests: refresh-contract compliance (T014/FR-006) ────
+
+  describe('refresh-contract regression', () => {
+    it('should cancel in-progress queries with correct query key before manual fetch', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const cancelSpy = vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+      mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      expect(cancelSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['board', 'data', 'PVT_123'] }),
+      );
+      // cancelQueries must happen BEFORE the actual fetch
+      const cancelCallOrder = cancelSpy.mock.invocationCallOrder[0];
+      const fetchCallOrder = mockGetBoardData.mock.invocationCallOrder[0];
+      expect(cancelCallOrder).toBeLessThan(fetchCallOrder);
+    });
+
+    it('should reset timer on all update sources (manual, external resetTimer)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+      mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Reset via external caller (simulates WebSocket event)
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      act(() => {
+        result.current.resetTimer();
+      });
+      invalidateSpy.mockClear();
+
+      // Timer should restart from 0 — 500ms should not trigger
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(invalidateSpy).not.toHaveBeenCalled();
+
+      // Now reset via manual refresh
+      await act(async () => {
+        result.current.refresh();
+      });
+      invalidateSpy.mockClear();
+
+      // Timer should restart again — 500ms should not trigger
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(invalidateSpy).not.toHaveBeenCalled();
+
+      // Full interval from last reset should trigger
+      await act(async () => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(invalidateSpy).toHaveBeenCalled();
+    });
+
+    it('should use invalidateQueries (not direct fetch) for auto-refresh', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+      mockGetBoardData.mockClear();
+
+      renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      // Auto-refresh uses invalidateQueries (serves backend-cached data)
+      expect(invalidateSpy).toHaveBeenCalled();
+      // NOT a direct boardApi.getBoardData call
+      expect(mockGetBoardData).not.toHaveBeenCalled();
+    });
+
+    it('should use direct fetch with refresh=true for manual refresh', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+      mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      // Manual refresh bypasses server cache
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+      // And writes result directly to query cache
+      expect(setQueryDataSpy).toHaveBeenCalledWith(
+        ['board', 'data', 'PVT_123'],
+        expect.anything(),
+      );
+    });
+  });
 });
