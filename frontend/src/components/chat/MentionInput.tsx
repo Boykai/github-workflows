@@ -189,6 +189,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
           ref={divRef}
           contentEditable={!disabled}
           role="textbox"
+          tabIndex={0}
           aria-multiline="true"
           aria-label="Chat input"
           suppressContentEditableWarning
