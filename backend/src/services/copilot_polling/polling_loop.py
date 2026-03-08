@@ -116,6 +116,14 @@ async def poll_for_copilot_completion(
 
     _polling_state.is_running = True
 
+    # Blocking queue: startup recovery — activate any pending issues stuck during downtime
+    try:
+        from src.services import blocking_queue as bq_service
+
+        await bq_service.recover_all_repos()
+    except Exception:
+        logger.debug("Blocking queue startup recovery skipped (not available)")
+
     try:
         await _poll_loop(access_token, project_id, owner, repo, interval_seconds)
     except asyncio.CancelledError:

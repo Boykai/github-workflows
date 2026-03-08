@@ -233,7 +233,17 @@ async def mark_in_review(repo_key: str, issue_number: int) -> list[BlockingQueue
         )
         logger.info("Issue #%d marked in_review for %s", issue_number, repo_key)
 
-        return await _try_activate_next_unlocked(repo_key)
+        activated = await _try_activate_next_unlocked(repo_key)
+
+        # Broadcast WebSocket event for queue state change
+        if activated and entry:
+            await _broadcast_queue_update(
+                entry.project_id, repo_key,
+                activated_issues=[e.issue_number for e in activated],
+                completed_issues=[],
+            )
+
+        return activated
 
 
 async def mark_completed(repo_key: str, issue_number: int) -> list[BlockingQueueEntry]:
@@ -261,7 +271,17 @@ async def mark_completed(repo_key: str, issue_number: int) -> list[BlockingQueue
         )
         logger.info("Issue #%d marked completed for %s", issue_number, repo_key)
 
-        return await _try_activate_next_unlocked(repo_key)
+        activated = await _try_activate_next_unlocked(repo_key)
+
+        # Broadcast WebSocket event for queue state change
+        if entry:
+            await _broadcast_queue_update(
+                entry.project_id, repo_key,
+                activated_issues=[e.issue_number for e in activated],
+                completed_issues=[issue_number],
+            )
+
+        return activated
 
 
 async def get_base_ref_for_issue(repo_key: str, issue_number: int) -> str:
@@ -308,3 +328,28 @@ async def recover_all_repos() -> None:
                 )
         except Exception:
             logger.exception("Recovery failed for repo %s", repo_key)
+
+
+async def _broadcast_queue_update(
+    project_id: str,
+    repo_key: str,
+    activated_issues: list[int],
+    completed_issues: list[int],
+) -> None:
+    """Broadcast a blocking_queue_updated WebSocket event."""
+    try:
+        from src.services.websocket import connection_manager
+
+        current_base = await get_current_base_branch(repo_key)
+        await connection_manager.broadcast_to_project(
+            project_id,
+            {
+                "type": "blocking_queue_updated",
+                "repo_key": repo_key,
+                "activated_issues": activated_issues,
+                "completed_issues": completed_issues,
+                "current_base_branch": current_base,
+            },
+        )
+    except Exception:
+        logger.debug("Failed to broadcast blocking_queue_updated event")
