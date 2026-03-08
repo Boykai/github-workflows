@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
-from src.exceptions import AuthorizationError, ConflictError, NotFoundError
+from src.exceptions import AppException, AuthorizationError, NotFoundError
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -99,7 +99,7 @@ async def create_pipeline(
     try:
         return await service.create_pipeline(project_id, body)
     except ValueError as exc:
-        raise ConflictError(str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
 
 
 # ── Get Pipeline ──
@@ -136,7 +136,7 @@ async def update_pipeline(
     except PermissionError as exc:
         raise AuthorizationError(str(exc)) from exc
     except ValueError as exc:
-        raise ConflictError(str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
 
     if updated is None:
         raise NotFoundError("Pipeline not found")

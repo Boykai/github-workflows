@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
-from src.exceptions import GitHubAPIError, NotFoundError, ValidationError
+from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
 from src.logging_utils import handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agents import (
@@ -285,7 +285,7 @@ async def agent_chat(
             access_token=session.access_token,
         )
     except Exception as exc:
-        handle_service_error(exc, "complete agent chat", GitHubAPIError)
+        handle_service_error(exc, "complete agent chat", AppException)
 
 
 # ── Agent-Tool Associations ──

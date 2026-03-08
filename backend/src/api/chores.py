@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends
 from src.api.auth import get_session_dep
 from src.exceptions import (
     AppException,
-    ConflictError,
     GitHubAPIError,
     NotFoundError,
     ValidationError,
@@ -293,7 +292,10 @@ async def trigger_chore(
     )
 
     if not result.triggered:
-        raise ConflictError(result.skip_reason or "Chore trigger skipped")
+        raise AppException(
+            result.skip_reason or "Chore trigger skipped",
+            status_code=409,
+        )
 
     return result
 
@@ -318,7 +320,7 @@ async def chore_chat(
             ai_enhance=body.ai_enhance,
         )
     except Exception as exc:
-        handle_service_error(exc, "complete chat", GitHubAPIError)
+        handle_service_error(exc, "complete chat", AppException)
 
     return ChoreChatResponse(
         message=response,
@@ -372,8 +374,9 @@ async def inline_update_chore(
             project_id=project_id,
         )
     except ChoreConflictError as exc:
-        raise ConflictError(
+        raise AppException(
             str(exc),
+            status_code=409,
             details={
                 "current_sha": exc.current_sha,
                 "current_content": exc.current_content,

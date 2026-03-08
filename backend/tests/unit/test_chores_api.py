@@ -473,7 +473,7 @@ class TestChoreChat:
                 json={"content": "test", "conversation_id": None},
             )
 
-        assert resp.status_code == 502
+        assert resp.status_code == 500
         assert "Failed to complete chat" in resp.json()["error"]
 
 

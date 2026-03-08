@@ -18,8 +18,6 @@ from src.config import get_settings
 from src.exceptions import (
     AppException,
     AuthorizationError,
-    ConflictError,
-    GitHubAPIError,
     NotFoundError,
     ValidationError,
 )
@@ -96,13 +94,13 @@ async def initiate_signal_link(
     # Check for existing active connection
     existing = await get_connection_by_user(session.github_user_id)
     if existing and existing.status == SignalConnectionStatus.CONNECTED:
-        raise ConflictError("User already has an active Signal connection")
+        raise AppException("User already has an active Signal connection", status_code=409)
 
     try:
         qr_base64 = await request_qr_code_base64(body.device_name)
     except Exception as e:
         logger.error("Failed to request QR code from signal-api: %s", e)
-        raise GitHubAPIError("Failed to generate QR code from Signal service") from e
+        raise AppException("Failed to generate QR code from Signal service", status_code=502) from e
 
     return SignalLinkResponse(
         qr_code_base64=qr_base64,
@@ -141,7 +139,10 @@ async def check_signal_link_status(
         phone_hash = _hash_phone(phone)
         existing_for_phone = await get_connection_by_phone_hash(phone_hash)
         if existing_for_phone and existing_for_phone.github_user_id != session.github_user_id:
-            raise ConflictError("This Signal number is already linked to another account")
+            raise AppException(
+                "This Signal number is already linked to another account",
+                status_code=409,
+            )
 
         # Create the connection record
         await create_connection(session.github_user_id, phone)
