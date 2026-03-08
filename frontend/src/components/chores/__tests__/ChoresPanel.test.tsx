@@ -8,7 +8,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { ChoresPanel } from '../ChoresPanel';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
@@ -45,7 +44,7 @@ function createWrapper() {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
+        {children}
       </QueryClientProvider>
     );
   };
@@ -163,7 +162,11 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button').some((element) => element.textContent?.includes('Active'))).toBe(true);
+      const buttons = screen.getAllByRole('button', { name: 'Click to pause' });
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button).toHaveTextContent('Active');
+      });
     });
   });
 
@@ -173,7 +176,11 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByRole('button').some((element) => element.textContent?.includes('Paused'))).toBe(true);
+      const buttons = screen.getAllByRole('button', { name: 'Click to activate' });
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button).toHaveTextContent('Paused');
+      });
     });
   });
 

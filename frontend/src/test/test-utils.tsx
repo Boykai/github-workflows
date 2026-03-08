@@ -6,7 +6,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, type RenderOptions } from '@testing-library/react';
+import { render as rtlRender, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -62,7 +62,7 @@ export function renderWithProviders(
   }
 
   return {
-    ...render(ui, { wrapper: Wrapper, ...options }),
+    ...rtlRender(ui, { wrapper: Wrapper, ...options }),
     queryClient,
   };
 }
@@ -85,13 +85,11 @@ export {
 export type { RenderResult } from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
 
-import { render as rtlRender, type RenderOptions as RTLRenderOptions } from '@testing-library/react';
-
 /**
  * Custom `render` that wraps the UI with `TooltipProvider` so any component
  * using `<Tooltip>` can be rendered without manually adding the provider.
  */
-function tooltipAwareRender(ui: ReactElement, options?: RTLRenderOptions) {
+function tooltipAwareRender(ui: ReactElement, options?: RenderOptions) {
   const Wrapper = options?.wrapper;
   function TooltipWrapper({ children }: { children: ReactNode }) {
     const inner = <TooltipProvider delayDuration={0}>{children}</TooltipProvider>;
