@@ -839,4 +839,146 @@ describe('useRealTimeSync', () => {
       });
     });
   });
+
+  describe('performance regression: query key isolation (FR-015)', () => {
+    it('should only invalidate tasks query on WebSocket refresh message (not board data)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
+      });
+
+      const tasksCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['projects', 'PVT_123', 'tasks'])
+      );
+      expect(tasksCalls.length).toBe(1);
+
+      const boardCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['board', 'data', 'PVT_123'])
+      );
+      expect(boardCalls.length).toBe(0);
+    });
+
+    it('should only invalidate tasks query on WebSocket initial_data (not board data)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      const tasksCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['projects', 'PVT_123', 'tasks'])
+      );
+      expect(tasksCalls.length).toBe(1);
+
+      const boardCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['board', 'data', 'PVT_123'])
+      );
+      expect(boardCalls.length).toBe(0);
+    });
+
+    it('should only invalidate tasks query on status_changed (not board data)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'status_changed' });
+      });
+
+      const tasksCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['projects', 'PVT_123', 'tasks'])
+      );
+      expect(tasksCalls.length).toBe(1);
+
+      const boardCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['board', 'data', 'PVT_123'])
+      );
+      expect(boardCalls.length).toBe(0);
+    });
+
+    it('should debounce rapid reconnection invalidations within 2 second window', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Send two initial_data messages rapidly (within debounce window)
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      // Only the first should trigger invalidation
+      const tasksCalls = invalidateSpy.mock.calls.filter(
+        ([opts]) => JSON.stringify((opts as { queryKey: unknown }).queryKey) === JSON.stringify(['projects', 'PVT_123', 'tasks'])
+      );
+      expect(tasksCalls.length).toBe(1);
+    });
+  });
 });

@@ -139,6 +139,97 @@ class TestInMemoryCache:
         assert cache.get("test_key") == "updated"
 
 
+class TestCacheSubIssueTTL:
+    """Regression tests for sub-issue cache TTL and warm-cache reuse (FR-015)."""
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_uses_custom_ttl(self, mock_settings):
+        """Sub-issue data cached with TTL=600s should survive past default TTL=300s."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("sub_issues:owner/repo#1", [{"id": 1}], ttl_seconds=600)
+
+        # Should still be valid (600s TTL, not default 300s)
+        assert cache.get("sub_issues:owner/repo#1") == [{"id": 1}]
+
+    @patch("src.services.cache.get_settings")
+    def test_warm_cache_returns_data_without_refetch(self, mock_settings):
+        """Warm cache should serve data directly without API calls."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("sub_issues:owner/repo#5", [{"id": 5, "title": "sub"}], ttl_seconds=600)
+
+        result = cache.get("sub_issues:owner/repo#5")
+        assert result == [{"id": 5, "title": "sub"}]
+
+    @patch("src.services.cache.get_settings")
+    def test_cache_delete_clears_sub_issue_entry(self, mock_settings):
+        """Manual refresh should be able to clear sub-issue cache entries."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("sub_issues:owner/repo#1", [{"id": 1}], ttl_seconds=600)
+        cache.set("sub_issues:owner/repo#2", [{"id": 2}], ttl_seconds=600)
+
+        cache.delete("sub_issues:owner/repo#1")
+
+        assert cache.get("sub_issues:owner/repo#1") is None
+        assert cache.get("sub_issues:owner/repo#2") == [{"id": 2}]
+
+
+class TestCacheGetStale:
+    """Tests for stale cache fallback (FR-015)."""
+
+    @patch("src.services.cache.get_settings")
+    def test_get_stale_returns_expired_data(self, mock_settings):
+        """get_stale should return data even after TTL expiry."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("board_data:proj1", {"columns": []}, ttl_seconds=1)
+
+        time.sleep(1.1)
+
+        # get_stale returns expired value
+        stale_val = cache.get_stale("board_data:proj1")
+        assert stale_val == {"columns": []}
+
+        # Normal get returns None (expired) and cleans up
+        assert cache.get("board_data:proj1") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_get_stale_returns_none_for_missing(self, mock_settings):
+        """get_stale should return None when key never existed."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+
+        assert cache.get_stale("nonexistent") is None
+
+
+class TestCacheRefreshTTL:
+    """Tests for refresh_ttl method (FR-015)."""
+
+    @patch("src.services.cache.get_settings")
+    def test_refresh_ttl_extends_expiration(self, mock_settings):
+        """refresh_ttl should extend cache entry TTL without replacing value."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("key1", "value1", ttl_seconds=1)
+
+        result = cache.refresh_ttl("key1", ttl_seconds=600)
+        assert result is True
+
+        time.sleep(1.1)
+        # Should still be valid after original TTL since we refreshed
+        assert cache.get("key1") == "value1"
+
+    @patch("src.services.cache.get_settings")
+    def test_refresh_ttl_returns_false_for_missing(self, mock_settings):
+        """refresh_ttl should return False for non-existent keys."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+
+        assert cache.refresh_ttl("nonexistent") is False
+
+
 class TestCacheClearExpiredSafety:
     """Regression test: clear_expired must not raise KeyError when entries
     are concurrently removed (bug-bash fix)."""

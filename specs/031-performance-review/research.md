@@ -2,7 +2,32 @@
 
 **Feature Branch**: `031-performance-review`
 **Date**: 2026-03-08
-**Status**: Complete — all NEEDS CLARIFICATION resolved
+**Status**: Complete — all NEEDS CLARIFICATION resolved; Spec 022 audit confirmed
+
+## Spec 022 Audit Results
+
+> Audit performed 2026-03-08 by code inspection of the running codebase.
+
+| Spec 022 Item | Status | Evidence |
+|----------------|--------|----------|
+| WebSocket SHA256 change detection | ✅ Complete | `projects.py:375-388` — hash comparison on each 30s cycle |
+| Board cache TTL alignment (300s) | ✅ Complete | `board.py:359` — `cache.set(cache_key, board_data, ttl_seconds=300)` |
+| Sub-issue cache invalidation on manual refresh | ✅ Complete | `board.py:313-322` — pre-clears sub-issue entries |
+| Sub-issue cache with 600s TTL | ✅ Complete | `service.py:4366` — `cache.set(cache_key, sub_issues, ttl_seconds=600)` |
+| Adaptive polling backoff | ✅ Complete | `polling_loop.py:52-86` — multi-threshold system |
+| Rate-limit pre-checks in polling | ✅ Complete | `polling_loop.py:170,197-208` — skip expensive ops when budget low |
+| Fallback polling only invalidates tasks | ✅ Complete | `useRealTimeSync.ts:100-101` — tasks only, board commented |
+| Reconnection debounce (2s window) | ✅ Complete | `useRealTimeSync.ts:14,56-60` — `RECONNECT_DEBOUNCE_MS = 2000` |
+| Manual refresh cancels in-flight queries | ✅ Complete | `useBoardRefresh.ts:84` — `cancelQueries` before manual fetch |
+| No refetchInterval in board query | ✅ Complete | `useProjectBoard.ts:63-65` — deliberately removed |
+| BoardColumn React.memo | ✅ Complete | `BoardColumn.tsx:20` — `memo(function BoardColumn ...)` |
+| IssueCard React.memo | ✅ Complete | `IssueCard.tsx:107` — `memo(function IssueCard ...)` |
+| ChatPopup rAF gating | ✅ Complete | `ChatPopup.tsx:86-101` — `requestAnimationFrame` pattern |
+| AddAgentPopover useCallback | ✅ Complete | `AddAgentPopover.tsx:51` — `useCallback` on `updatePosition` |
+| Callbacks in ProjectsPage | ✅ Complete | `ProjectsPage.tsx:103-108` — `useCallback` wrappers |
+| onRefreshTriggered → resetTimer | ✅ Complete | `ProjectsPage.tsx:62-64` — wired via hook options |
+
+**Remaining gap found**: `pipelineGridStyle` and `totalItems` in `ProjectsPage.tsx` not memoized — fixed by wrapping in `useMemo`.
 
 ## Findings
 

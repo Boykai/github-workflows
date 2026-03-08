@@ -494,4 +494,130 @@ describe('useBoardRefresh', () => {
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  // ---------- performance regression tests (FR-015) ----------
+
+  describe('performance regression: refresh coordination (FR-015)', () => {
+    it('should cancel in-flight board queries before manual refresh', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const cancelSpy = vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      expect(cancelSpy).toHaveBeenCalledWith({
+        queryKey: ['board', 'data', 'PVT_123'],
+      });
+    });
+
+    it('should use setQueryData (not invalidateQueries) for manual refresh', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const setDataSpy = vi.spyOn(queryClient, 'setQueryData');
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      expect(setDataSpy).toHaveBeenCalledWith(
+        ['board', 'data', 'PVT_123'],
+        expect.anything(),
+      );
+    });
+
+    it('should use invalidateQueries for auto-refresh (background revalidation)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Advance past auto-refresh interval (mocked to 1000ms)
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['board', 'data', 'PVT_123'],
+      });
+    });
+
+    it('should reset auto-refresh timer when resetTimer is called externally', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Advance half the interval
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+
+      // Reset timer (simulating external event like WebSocket update)
+      act(() => {
+        result.current.resetTimer();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Advance less than the full interval from the reset point
+      await act(async () => {
+        vi.advanceTimersByTime(900);
+      });
+
+      // Should NOT have fired yet (timer was reset)
+      expect(invalidateSpy).not.toHaveBeenCalled();
+
+      // Advance past the full interval from the reset point
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+
+      // Now it should fire
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ['board', 'data', 'PVT_123'],
+      });
+    });
+
+    it('should call boardApi.getBoardData with refresh=true for manual refresh', async () => {
+      renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper() },
+      );
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123' }),
+        { wrapper: createWrapper() },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+    });
+  });
 });
