@@ -42,6 +42,7 @@ interface UseMentionAutocompleteReturn {
   validateTokens: () => boolean;
   getSubmissionPipelineId: () => string | null;
   getPlainTextContent: () => string;
+  clearTokens: () => void;
   reset: () => void;
 }
 
@@ -249,14 +250,16 @@ export function useMentionAutocomplete({
     return inputRef.current?.getPlainText() ?? '';
   }, [inputRef]);
 
-  const reset = useCallback(() => {
+  const clearTokens = useCallback(() => {
     setTokens([]);
-    setIsAutocompleteOpen(false);
-    setFilterQuery('');
-    setTriggerOffset(null);
+    handleMentionDismiss();
+  }, [handleMentionDismiss]);
+
+  const reset = useCallback(() => {
+    clearTokens();
     setHighlightedIndex(0);
     inputRef.current?.clear();
-  }, [inputRef]);
+  }, [clearTokens, inputRef]);
 
   return {
     isAutocompleteOpen,
@@ -278,6 +281,7 @@ export function useMentionAutocomplete({
     validateTokens,
     getSubmissionPipelineId,
     getPlainTextContent,
+    clearTokens,
     reset,
   };
 }

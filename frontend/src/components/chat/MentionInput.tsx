@@ -12,14 +12,19 @@ export interface MentionInputHandle {
   clear: () => void;
   getPlainText: () => string;
   getElement: () => HTMLDivElement | null;
+  moveCursorToEnd: () => void;
+  isCaretOnFirstLine: () => boolean;
+  isCaretOnLastLine: () => boolean;
   insertTokenAtCursor: (pipelineId: string, pipelineName: string, triggerOffset: number, queryLength: number) => void;
 }
 
 interface MentionInputProps {
+  value: string;
   placeholder?: string;
   disabled?: boolean;
   isNavigating?: boolean;
   onTextChange: (text: string) => void;
+  onTokenRemove?: (pipelineId: string) => void;
   onMentionTrigger: (query: string, offset: number) => void;
   onMentionDismiss: () => void;
   onSubmit: () => void;
@@ -29,10 +34,12 @@ interface MentionInputProps {
 export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
   function MentionInput(
     {
+      value,
       placeholder,
       disabled,
       isNavigating,
       onTextChange,
+      onTokenRemove,
       onMentionTrigger,
       onMentionDismiss,
       onSubmit,
@@ -62,9 +69,19 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
       getElement() {
         return divRef.current;
       },
+      moveCursorToEnd() {
+        moveCursorToEnd(divRef.current);
+      },
+      isCaretOnFirstLine() {
+        return isCaretOnFirstLine(divRef.current);
+      },
+      isCaretOnLastLine() {
+        return isCaretOnLastLine(divRef.current);
+      },
       insertTokenAtCursor(pipelineId: string, pipelineName: string, triggerOffset: number, queryLength: number) {
         insertToken(divRef.current, pipelineId, pipelineName, triggerOffset, queryLength);
         onTextChange(extractPlainText(divRef.current));
+        setIsEmpty(false);
       },
     }));
 
@@ -72,6 +89,20 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
     useEffect(() => {
       divRef.current?.focus();
     }, []);
+
+    useEffect(() => {
+      const el = divRef.current;
+      if (!el) return;
+
+      const currentText = extractPlainText(el);
+      if (currentText === value) {
+        setIsEmpty(!value.trim());
+        return;
+      }
+
+      setPlainTextContent(el, value);
+      setIsEmpty(!value.trim());
+    }, [value]);
 
     const handleInput = useCallback(() => {
       if (isComposingRef.current) return;
@@ -150,8 +181,11 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
               const prevSibling = container.previousSibling;
               if (prevSibling && prevSibling instanceof HTMLElement && prevSibling.hasAttribute('data-mention-token')) {
                 e.preventDefault();
+                const removedPipelineId = prevSibling.getAttribute('data-pipeline-id');
                 prevSibling.remove();
                 onTextChange(extractPlainText(divRef.current));
+                if (removedPipelineId) onTokenRemove?.(removedPipelineId);
+                setIsEmpty(!extractPlainText(divRef.current).trim());
                 return;
               }
             }
@@ -161,15 +195,18 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
               const prevNode = container.childNodes[range.startOffset - 1];
               if (prevNode && prevNode instanceof HTMLElement && prevNode.hasAttribute('data-mention-token')) {
                 e.preventDefault();
+                const removedPipelineId = prevNode.getAttribute('data-pipeline-id');
                 prevNode.remove();
                 onTextChange(extractPlainText(divRef.current));
+                if (removedPipelineId) onTokenRemove?.(removedPipelineId);
+                setIsEmpty(!extractPlainText(divRef.current).trim());
                 return;
               }
             }
           }
         }
       },
-      [onKeyDown, onSubmit, onTextChange],
+      [onKeyDown, onSubmit, onTextChange, onTokenRemove],
     );
 
     const handlePaste = useCallback(
@@ -273,33 +310,13 @@ function insertToken(
   container: HTMLDivElement | null,
   pipelineId: string,
   pipelineName: string,
-  _triggerOffset: number,
-  _queryLength: number,
+  triggerOffset: number,
+  queryLength: number,
 ): void {
   if (!container) return;
 
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
-
-  // Find and remove the @query text before the cursor
-  const range = sel.getRangeAt(0);
-  if (range.startContainer.nodeType !== Node.TEXT_NODE) return;
-
-  const textNode = range.startContainer as Text;
-  const text = textNode.textContent || '';
-  const cursorPos = range.startOffset;
-
-  // Find the @ that triggered this
-  let atPos = -1;
-  for (let i = cursorPos - 1; i >= 0; i--) {
-    if (text[i] === '@') {
-      atPos = i;
-      break;
-    }
-    if (text[i] === ' ' || text[i] === '\n') break;
-  }
-
-  if (atPos < 0) return;
 
   // Create the token span
   const span = document.createElement('span');
@@ -310,25 +327,146 @@ function insertToken(
   span.className = MENTION_TOKEN_VALID;
   span.textContent = `@${pipelineName}`;
 
-  // Split the text node: [before @] [token] [after cursor]
-  const beforeText = text.slice(0, atPos);
-  const afterText = text.slice(cursorPos);
+  if (!replaceQueryRangeWithToken(container, span, triggerOffset, queryLength + 1, sel)) {
+    replaceSelectionWithToken(sel, span);
+  }
+}
 
-  // Replace the text node content with just the "before" text
+function setPlainTextContent(el: HTMLDivElement, text: string): void {
+  if (!text) {
+    el.innerHTML = '';
+    return;
+  }
+  el.textContent = text;
+}
+
+function moveCursorToEnd(container: HTMLDivElement | null): void {
+  if (!container) return;
+  const selection = window.getSelection();
+  if (!selection) return;
+
+  const range = document.createRange();
+  range.selectNodeContents(container);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function isCaretOnFirstLine(container: HTMLDivElement | null): boolean {
+  const offset = getCaretOffset(container);
+  if (offset === null || !container) return true;
+  return !extractPlainText(container).slice(0, offset).includes('\n');
+}
+
+function isCaretOnLastLine(container: HTMLDivElement | null): boolean {
+  const offset = getCaretOffset(container);
+  if (offset === null || !container) return true;
+  return !extractPlainText(container).slice(offset).includes('\n');
+}
+
+function getCaretOffset(container: HTMLDivElement | null): number | null {
+  if (!container) return null;
+
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return null;
+
+  const range = selection.getRangeAt(0);
+  if (!container.contains(range.startContainer)) return null;
+
+  const preCaretRange = range.cloneRange();
+  preCaretRange.selectNodeContents(container);
+  preCaretRange.setEnd(range.startContainer, range.startOffset);
+  return preCaretRange.toString().length;
+}
+
+function replaceQueryRangeWithToken(
+  container: HTMLDivElement,
+  token: HTMLElement,
+  startOffset: number,
+  length: number,
+  selection: Selection,
+): boolean {
+  const start = locateTextPosition(container, startOffset);
+  const end = locateTextPosition(container, startOffset + length);
+  if (!start || !end || start.node !== end.node) {
+    return false;
+  }
+
+  const textNode = start.node;
+  const originalText = textNode.textContent || '';
+  const beforeText = originalText.slice(0, start.offset);
+  const afterText = originalText.slice(end.offset);
   textNode.textContent = beforeText;
 
-  // Insert the token span after the text node
   const parent = textNode.parentNode;
-  if (!parent) return;
+  if (!parent) return false;
 
-  const afterTextNode = document.createTextNode(afterText || '\u00A0');
-  parent.insertBefore(afterTextNode, textNode.nextSibling);
-  parent.insertBefore(span, afterTextNode);
+  const nextSibling = textNode.nextSibling;
+  parent.insertBefore(token, nextSibling);
 
-  // Move cursor to after the token
+  let caretNode: Text | null = null;
+  if (afterText) {
+    caretNode = document.createTextNode(afterText);
+    parent.insertBefore(caretNode, token.nextSibling);
+  }
+
   const newRange = document.createRange();
-  newRange.setStart(afterTextNode, afterText ? 0 : 1);
+  if (caretNode) {
+    newRange.setStart(caretNode, 0);
+  } else {
+    newRange.setStartAfter(token);
+  }
   newRange.collapse(true);
-  sel.removeAllRanges();
-  sel.addRange(newRange);
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+  return true;
+}
+
+function replaceSelectionWithToken(selection: Selection, token: HTMLElement): void {
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  range.insertNode(token);
+
+  const newRange = document.createRange();
+  newRange.setStartAfter(token);
+  newRange.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(newRange);
+}
+
+function locateTextPosition(
+  container: HTMLDivElement,
+  absoluteOffset: number,
+): { node: Text; offset: number } | null {
+  let remaining = absoluteOffset;
+  let lastTextNode: Text | null = null;
+
+  for (const node of container.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const textNode = node as Text;
+      const length = textNode.textContent?.length ?? 0;
+      lastTextNode = textNode;
+      if (remaining <= length) {
+        return { node: textNode, offset: remaining };
+      }
+      remaining -= length;
+      continue;
+    }
+
+    if (node instanceof HTMLElement && node.hasAttribute('data-mention-token')) {
+      const tokenLength = (node.getAttribute('data-pipeline-name') || '').length + 1;
+      if (remaining <= tokenLength) {
+        return null;
+      }
+      remaining -= tokenLength;
+    }
+  }
+
+  if (lastTextNode) {
+    return { node: lastTextNode, offset: lastTextNode.textContent?.length ?? 0 };
+  }
+
+  const textNode = document.createTextNode('');
+  container.appendChild(textNode);
+  return { node: textNode, offset: 0 };
 }

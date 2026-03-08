@@ -105,10 +105,23 @@ export function ChatInterface({
     clearAll: clearAllFiles,
   } = useFileUpload();
 
+  // @Mention autocomplete
+  const mention = useMentionAutocomplete({
+    projectId: projectId ?? '',
+    inputRef: mentionInputRef,
+  });
+  const {
+    isAutocompleteOpen,
+    clearTokens,
+    handleMentionDismiss,
+    handleMentionTrigger: mentionTrigger,
+  } = mention;
+
   // Voice input management
   const handleVoiceTranscript = useCallback((text: string) => {
+    clearTokens();
     setInput((prev) => (prev ? `${prev} ${text}` : text));
-  }, []);
+  }, [clearTokens]);
   const {
     isSupported: isVoiceSupported,
     isRecording,
@@ -117,17 +130,6 @@ export function ChatInterface({
     startRecording,
     stopRecording,
   } = useVoiceInput(handleVoiceTranscript);
-
-  // @Mention autocomplete
-  const mention = useMentionAutocomplete({
-    projectId: projectId ?? '',
-    inputRef: mentionInputRef,
-  });
-  const {
-    isAutocompleteOpen,
-    handleMentionDismiss,
-    handleMentionTrigger: mentionTrigger,
-  } = mention;
 
   // AI Enhance persistence
   const handleAiEnhanceChange = useCallback((enabled: boolean) => {
@@ -180,10 +182,11 @@ export function ChatInterface({
   }, [input, getFilteredCommands, isAutocompleteOpen, handleMentionDismiss]);
 
   const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
+    clearTokens();
     setInput(`/${command.name} `);
     setShowAutocomplete(false);
     mentionInputRef.current?.focus();
-  }, []);
+  }, [clearTokens]);
 
   // Handle @mention trigger — dismiss slash-command autocomplete
   const handleMentionTrigger = useCallback(
@@ -277,24 +280,37 @@ export function ChatInterface({
 
     // History navigation — ArrowUp to go to older messages
     if (e.key === 'ArrowUp' && !autocompleteActive && !mention.isAutocompleteOpen) {
-      const result = navigateUp(input);
-      if (result !== null) {
-        e.preventDefault();
-        historyNavTriggered.current = true;
-        setInput(result);
+      if (mentionInputRef.current?.isCaretOnFirstLine() ?? true) {
+        const result = navigateUp(input);
+        if (result !== null) {
+          e.preventDefault();
+          historyNavTriggered.current = true;
+          clearTokens();
+          setInput(result);
+        }
       }
     }
 
     // History navigation — ArrowDown to go to newer messages / restore draft
     if (e.key === 'ArrowDown' && !autocompleteActive && !mention.isAutocompleteOpen && isNavigating) {
-      const result = navigateDown();
-      if (result !== null) {
-        e.preventDefault();
-        historyNavTriggered.current = true;
-        setInput(result);
+      if (mentionInputRef.current?.isCaretOnLastLine() ?? true) {
+        const result = navigateDown();
+        if (result !== null) {
+          e.preventDefault();
+          historyNavTriggered.current = true;
+          clearTokens();
+          setInput(result);
+        }
       }
     }
   };
+
+  useEffect(() => {
+    if (historyNavTriggered.current) {
+      historyNavTriggered.current = false;
+      mentionInputRef.current?.moveCursorToEnd();
+    }
+  }, [input]);
 
   // Dismiss history popover on click outside
   useEffect(() => {
@@ -465,10 +481,12 @@ export function ChatInterface({
         <div className="flex-1 relative">
           <MentionInput
             ref={mentionInputRef}
+            value={input}
             placeholder="Describe a task, type / for commands, or @ for pipelines..."
             disabled={isSending}
             isNavigating={isNavigating}
             onTextChange={setInput}
+            onTokenRemove={mention.handleTokenRemove}
             onMentionTrigger={handleMentionTrigger}
             onMentionDismiss={mention.handleMentionDismiss}
             onSubmit={doSubmit}
@@ -511,6 +529,7 @@ export function ChatInterface({
                           const result = selectFromHistory(reverseIdx, input);
                           if (result !== null) {
                             historyNavTriggered.current = true;
+                            clearTokens();
                             setInput(result);
                           }
                           setShowHistoryPopover(false);

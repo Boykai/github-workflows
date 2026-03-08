@@ -11,7 +11,7 @@ from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
-from src.models.agent import AvailableAgentsResponse
+from src.models.agent import AgentAssignment, AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
 from src.models.user import UserSession
 from src.models.workflow import (
@@ -23,6 +23,7 @@ from src.services.agents.service import AgentsService
 from src.services.cache import cache, get_user_projects_cache_key
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
+from src.services.pipelines.service import PipelineService
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
@@ -111,6 +112,79 @@ def _get_repository_info(session: UserSession) -> tuple[str, str]:
     return session.github_username or "", ""
 
 
+def _build_pipeline_agent_mappings(
+    config: WorkflowConfiguration, pipeline
+) -> dict[str, list[AgentAssignment]]:
+    """Map a saved pipeline's ordered stages onto the workflow engine's fixed statuses."""
+    status_order = [
+        config.status_backlog,
+        config.status_ready,
+        config.status_in_progress,
+        config.status_in_review,
+    ]
+    mappings: dict[str, list[AgentAssignment]] = {status: [] for status in status_order}
+    ordered_stages = sorted(pipeline.stages, key=lambda stage: stage.order)
+
+    if len(ordered_stages) > len(status_order):
+        logger.warning(
+            "Selected pipeline %s has %d stages; folding stages beyond %d into '%s'",
+            pipeline.id,
+            len(ordered_stages),
+            len(status_order),
+            config.status_in_review,
+        )
+
+    for stage_index, stage in enumerate(ordered_stages):
+        target_status = status_order[min(stage_index, len(status_order) - 1)]
+        stage_agents = [
+            AgentAssignment(
+                slug=agent.agent_slug,
+                display_name=agent.agent_display_name or None,
+                config={
+                    "pipeline_stage_id": stage.id,
+                    "pipeline_stage_name": stage.name,
+                    "model_id": agent.model_id,
+                    "model_name": agent.model_name,
+                    "tool_ids": list(agent.tool_ids),
+                },
+            )
+            for agent in stage.agents
+        ]
+        mappings[target_status].extend(stage_agents)
+
+    return mappings
+
+
+async def _apply_selected_pipeline(
+    config: WorkflowConfiguration,
+    project_id: str,
+    pipeline_id: str | None,
+) -> WorkflowConfiguration:
+    """Return a per-request workflow config overridden by the selected saved pipeline."""
+    if not pipeline_id:
+        return config
+
+    service = PipelineService(get_db())
+    pipeline = await service.get_pipeline(project_id, pipeline_id)
+    if not pipeline:
+        logger.warning(
+            "Recommendation selected pipeline '%s', but it was not found for project %s",
+            pipeline_id,
+            project_id,
+        )
+        return config
+
+    effective_config = config.model_copy(deep=True)
+    effective_config.agent_mappings = _build_pipeline_agent_mappings(effective_config, pipeline)
+    logger.info(
+        "Applied selected pipeline '%s' (%s) to recommendation workflow for project %s",
+        pipeline.id,
+        pipeline.name,
+        project_id,
+    )
+    return effective_config
+
+
 @router.post("/recommendations/{recommendation_id}/confirm", response_model=WorkflowResult)
 @limiter.limit("10/minute")
 async def confirm_recommendation(
@@ -179,6 +253,12 @@ async def confirm_recommendation(
         if not config.copilot_assignee:
             config.copilot_assignee = settings.default_assignee
 
+    config = await _apply_selected_pipeline(
+        config,
+        session.selected_project_id,
+        recommendation.selected_pipeline_id,
+    )
+
     # Create workflow context
     ctx = WorkflowContext(
         session_id=str(session.session_id),
@@ -187,6 +267,7 @@ async def confirm_recommendation(
         repository_owner=config.repository_owner,
         repository_name=config.repository_name,
         recommendation_id=recommendation_id,
+        selected_pipeline_id=recommendation.selected_pipeline_id,
         config=config,
     )
 
