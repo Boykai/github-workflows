@@ -12,7 +12,7 @@ All endpoints are prefixed with `/api/v1` and require an authenticated session (
 
 ### Confirm Chat Proposal (Modified Response)
 
-```
+```text
 POST /api/v1/chat/proposals/{proposal_id}/confirm
 ```
 
@@ -88,7 +88,7 @@ POST /api/v1/chat/proposals/{proposal_id}/confirm
 
 ### Get Pipeline Assignment
 
-```
+```text
 GET /api/v1/pipelines/{project_id}/assignment
 ```
 
@@ -110,7 +110,7 @@ GET /api/v1/pipelines/{project_id}/assignment
 
 ### Set Pipeline Assignment
 
-```
+```text
 PUT /api/v1/pipelines/{project_id}/assignment
 ```
 
@@ -128,7 +128,7 @@ PUT /api/v1/pipelines/{project_id}/assignment
 
 ### List Pipelines
 
-```
+```text
 GET /api/v1/pipelines/{project_id}
 ```
 

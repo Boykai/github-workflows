@@ -18,6 +18,7 @@ class PipelineResolutionResult:
 ```
 
 **Fields**:
+
 - `agent_mappings` — The resolved agent assignments keyed by status name (e.g., `{"Backlog": [...], "In Progress": [...]}`)
 - `source` — Indicates which tier in the fallback chain was used: `"pipeline"` (project-level assignment), `"user"` (user-specific mappings), or `"default"` (system defaults)
 - `pipeline_name` — Display name of the pipeline, for use in the chat confirmation message. `None` if using user or default mappings.
@@ -43,6 +44,7 @@ class AITaskProposal(BaseModel):
 ```
 
 **Validation**:
+
 - `pipeline_name` is optional; only populated after proposal confirmation.
 - `pipeline_source` is optional; only populated after proposal confirmation.
 
@@ -73,7 +75,7 @@ interface SelectedPipelineState {
 }
 ```
 
-### AITaskProposal (Modified)
+### AITaskProposal — Frontend (Modified)
 
 ```typescript
 export interface AITaskProposal {
@@ -138,7 +140,7 @@ CREATE TABLE pipeline_configs (
 
 ## State Flow Diagram
 
-```
+```text
 ┌─────────────────────────────────────┐
 │         Projects Page               │
 │  ┌─────────────────────────┐        │
@@ -177,7 +179,7 @@ CREATE TABLE pipeline_configs (
 
 ## Entity Relationships
 
-```
+```text
 ProjectPipelineAssignment (1) ──→ (0..1) PipelineConfig
        │                                      │
        │ project_id                           │ stages[]

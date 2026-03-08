@@ -34,7 +34,7 @@ npm run dev
 
 ## New Files to Create
 
-### Frontend
+### New Frontend Files
 
 | File | Purpose |
 |------|---------|
@@ -76,17 +76,17 @@ npm run dev
 
 ### Phase 2: Frontend Warning Banner (FR-004, FR-005)
 
-4. **useSelectedPipeline.ts** (new)
+1. **useSelectedPipeline.ts** (new)
    - Wrap `pipelinesApi.getAssignment()` and `pipelinesApi.list()` queries
    - Return `{ pipelineId, pipelineName, isLoading, hasAssignment }`
    - Use React Query cache (same query keys as ProjectsPage)
 
-5. **PipelineWarningBanner.tsx** (new)
+2. **PipelineWarningBanner.tsx** (new)
    - Consume `useSelectedPipeline(projectId)`
    - Render amber warning when `!hasAssignment`
    - Render nothing when loading or when pipeline assigned
 
-6. **ChatInterface.tsx** — Render banner
+3. **ChatInterface.tsx** — Render banner
    - Import `PipelineWarningBanner`
    - Render above chat input area when `projectId` is available
 
@@ -94,10 +94,10 @@ npm run dev
 
 ### Phase 3: Pipeline Confirmation Display (FR-007)
 
-7. **types/index.ts** — Extend `AITaskProposal`
+1. **types/index.ts** — Extend `AITaskProposal`
    - Add `pipeline_name?: string` and `pipeline_source?: string`
 
-8. **TaskPreview.tsx** — Show pipeline badge
+2. **TaskPreview.tsx** — Show pipeline badge
    - After successful confirmation, render badge: "Agent Pipeline: {name}"
    - Handle all source types: pipeline, user, default
 
@@ -105,7 +105,7 @@ npm run dev
 
 ### Phase 4: Deleted Pipeline Handling (FR-008)
 
-9. **config.py** — Auto-cleanup in `resolve_project_pipeline_mappings()`
+1. **config.py** — Auto-cleanup in `resolve_project_pipeline_mappings()`
    - If `assigned_pipeline_id` exists but pipeline is deleted, clear the stale ID
    - Log warning for observability
    - Fall through to Tier 2/3
