@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.exceptions import AppException, NotFoundError, ValidationError
+from src.logging_utils import handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agent import AgentAssignment, AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
@@ -427,8 +428,7 @@ async def retry_pipeline(
         ctx.issue_number = issue_number
         ctx.issue_url = issue_data.get("html_url", "")
     except Exception as e:
-        logger.error("Failed to fetch issue #%d: %s", issue_number, e, exc_info=True)
-        raise ValidationError(f"Failed to fetch issue #{issue_number}") from e
+        handle_service_error(e, f"fetch issue #{issue_number}", ValidationError)
 
     # Clear the error state so retry proceeds
     state.error = None

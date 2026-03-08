@@ -12,12 +12,12 @@ Markdown format appended to the issue body:
 
     ## 🤖 Agents Pipelines
 
-    | # | Status | Agent | State |
-    |---|--------|-------|-------|
-    | 1 | Backlog | `speckit.specify` | ✅ Done |
-    | 2 | Ready | `speckit.plan` | ✅ Done |
-    | 3 | Ready | `speckit.tasks` | 🔄 Active |
-    | 4 | In Progress | `speckit.implement` | ⏳ Pending |
+    | # | Status | Agent | Model | State |
+    |---|--------|-------|-------|-------|
+    | 1 | Backlog | `speckit.specify` | gpt-4o | ✅ Done |
+    | 2 | Ready | `speckit.plan` | claude-3-5-sonnet | ✅ Done |
+    | 3 | Ready | `speckit.tasks` | TBD | 🔄 Active |
+    | 4 | In Progress | `speckit.implement` | gpt-4o | ⏳ Pending |
 
 State values:
     ⏳ Pending   — not yet started
@@ -52,8 +52,13 @@ _TRACKING_SECTION_RE = re.compile(
     re.DOTALL,
 )
 
-# Regex to parse a single row: | 1 | Backlog | `speckit.specify` | ⏳ Pending |
-_ROW_RE = re.compile(r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|")
+# Regex to parse a single row (5-column): | 1 | Backlog | `speckit.specify` | gpt-4o | ⏳ Pending |
+_ROW_RE = re.compile(
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
+)
+
+# Legacy regex for old 4-column format: | 1 | Backlog | `speckit.specify` | ⏳ Pending |
+_ROW_RE_OLD = re.compile(r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|")
 
 
 # ── Data types ───────────────────────────────────────────────────────────────
@@ -66,7 +71,8 @@ class AgentStep:
     index: int
     status: str  # e.g. "Backlog", "Ready", "In Progress"
     agent_name: str  # e.g. "speckit.specify"
-    state: str  # one of STATE_PENDING / STATE_ACTIVE / STATE_DONE
+    model: str = ""  # e.g. "gpt-4o"; empty string → renders as "TBD"
+    state: str = STATE_PENDING  # one of STATE_PENDING / STATE_ACTIVE / STATE_DONE
 
 
 # ── Generating the tracking section ─────────────────────────────────────────
@@ -103,8 +109,16 @@ def build_agent_pipeline_steps(
             matched_agents = []
         for agent in matched_agents:
             agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
+            config = getattr(agent, "config", None)
+            model = config.get("model_name", "") if isinstance(config, dict) else ""
             steps.append(
-                AgentStep(index=idx, status=status, agent_name=agent_slug, state=STATE_PENDING)
+                AgentStep(
+                    index=idx,
+                    status=status,
+                    agent_name=agent_slug,
+                    model=model,
+                    state=STATE_PENDING,
+                )
             )
             idx += 1
     return steps
@@ -123,12 +137,14 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
         "",
         TRACKING_HEADER,
         "",
-        "| # | Status | Agent | State |",
-        "|---|--------|-------|-------|",
+        "| # | Status | Agent | Model | State |",
+        "|---|--------|-------|-------|-------|",
     ]
-    lines.extend(
-        f"| {step.index} | {step.status} | `{step.agent_name}` | {step.state} |" for step in steps
-    )
+    for step in steps:
+        model_display = (step.model or "TBD").replace("|", "\\|")
+        lines.append(
+            f"| {step.index} | {step.status} | `{step.agent_name}` | {model_display} | {step.state} |"
+        )
     lines.append("")
     return "\n".join(lines)
 
@@ -173,8 +189,24 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
         idx = int(row_match.group(1))
         status = row_match.group(2).strip()
         agent_name = row_match.group(3).strip()
-        state = row_match.group(4).strip()
-        steps.append(AgentStep(index=idx, status=status, agent_name=agent_name, state=state))
+        model = row_match.group(4).strip()
+        # Normalize placeholder "TBD" back to the canonical "no model" value.
+        model = "" if model == "TBD" else model
+        state = row_match.group(5).strip()
+        steps.append(
+            AgentStep(index=idx, status=status, agent_name=agent_name, model=model, state=state)
+        )
+
+    # Fallback: try legacy 4-column format if no rows matched with 5-column regex
+    if not steps:
+        for row_match in _ROW_RE_OLD.finditer(section):
+            idx = int(row_match.group(1))
+            status = row_match.group(2).strip()
+            agent_name = row_match.group(3).strip()
+            state = row_match.group(4).strip()
+            steps.append(
+                AgentStep(index=idx, status=status, agent_name=agent_name, model="", state=state)
+            )
 
     return steps or None
 

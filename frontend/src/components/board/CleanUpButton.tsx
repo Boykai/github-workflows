@@ -11,6 +11,7 @@ import { CleanUpConfirmModal } from './CleanUpConfirmModal';
 import { CleanUpSummary } from './CleanUpSummary';
 import { CleanUpAuditHistory } from './CleanUpAuditHistory';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Trash2, Loader2 } from 'lucide-react';
 
 interface CleanUpButtonProps {
@@ -57,21 +58,22 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
   return (
     <>
       {/* Clean Up Button */}
-      <Button
-        onClick={handleClick}
-        disabled={!owner || !repo || state === 'loading' || state === 'executing'}
-        variant="outline"
-        size="lg"
-        className="gap-2"
-        title={!owner || !repo ? 'Link a repository to this project to enable cleanup' : "Remove stale branches and pull requests while preserving 'main' and items linked to open issues on the project board"}
-      >
-        {(state === 'loading' || state === 'executing') ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Trash2 className="h-4 w-4" />
-        )}
-        {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
-      </Button>
+      <Tooltip contentKey="board.toolbar.cleanUpButton">
+        <Button
+          onClick={handleClick}
+          disabled={!owner || !repo || state === 'loading' || state === 'executing'}
+          variant="outline"
+          size="lg"
+          className="gap-2"
+        >
+          {(state === 'loading' || state === 'executing') ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
+          {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
+        </Button>
+      </Tooltip>
 
       {/* Permission error inline display */}
       {permissionError && (

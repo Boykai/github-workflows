@@ -5,10 +5,12 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
+from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
+from src.logging_utils import handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agents import (
     Agent,
@@ -54,10 +56,7 @@ async def list_agents(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     return await service.list_agents(
         project_id=project_id,
@@ -79,10 +78,7 @@ async def list_pending_agents(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     return await service.list_pending_agents(
         project_id=project_id,
@@ -104,10 +100,7 @@ async def purge_pending_agents(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     logger.info(
         "Purging stale pending agents for project %s (%s/%s)",
@@ -138,10 +131,7 @@ async def bulk_update_models(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     return await service.bulk_update_models(
         project_id=project_id,
@@ -174,10 +164,7 @@ async def create_agent(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     try:
         return await service.create_agent(
@@ -189,10 +176,9 @@ async def create_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.error("Agent creation failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Agent creation failed") from exc
+        handle_service_error(exc, "create agent", GitHubAPIError)
 
 
 # ── Update (P3) ──
@@ -216,10 +202,7 @@ async def update_agent(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     try:
         return await service.update_agent(
@@ -232,9 +215,9 @@ async def update_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise NotFoundError(str(exc)) from exc
 
 
 # ── Delete ──
@@ -257,10 +240,7 @@ async def delete_agent(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
         logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise HTTPException(
-            status_code=400,
-            detail="Could not resolve repository for this project",
-        ) from exc
+        raise ValidationError("Could not resolve repository for this project") from exc
 
     try:
         return await service.delete_agent(
@@ -272,12 +252,11 @@ async def delete_agent(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc
     except LookupError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise NotFoundError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.error("Agent deletion failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Agent deletion failed") from exc
+        handle_service_error(exc, "delete agent", GitHubAPIError)
 
 
 # ── Chat ──
@@ -306,8 +285,7 @@ async def agent_chat(
             access_token=session.access_token,
         )
     except Exception as exc:
-        logger.error("Agent chat failed: %s", exc, exc_info=True)
-        raise HTTPException(status_code=500, detail="Chat completion failed") from exc
+        handle_service_error(exc, "complete agent chat", AppException)
 
 
 # ── Agent-Tool Associations ──
@@ -358,4 +336,4 @@ async def update_agent_tools(
             github_user_id=session.github_user_id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ValidationError(str(exc)) from exc

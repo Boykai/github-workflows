@@ -72,6 +72,13 @@ class RateLimitError(AppException):
         self.retry_after = retry_after
 
 
+class ConflictError(AppException):
+    """Resource conflict (e.g., duplicate creation, concurrent modification)."""
+
+    def __init__(self, message: str = "Resource conflict", details: dict | None = None):
+        super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=details)
+
+
 class McpValidationError(AppException):
     """MCP configuration validation failed (e.g. SSRF, invalid URL)."""
 
