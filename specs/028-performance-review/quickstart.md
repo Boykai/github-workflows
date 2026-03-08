@@ -39,8 +39,10 @@ grep -c "githubkit" /tmp/baseline-idle-5min.log
 ```bash
 # 1. With the board already loaded and sub-issue cache warm (wait 30s after load)
 
-# 2. Trigger an automatic refresh (wait for the 5-min timer or use browser devtools
-#    to call: queryClient.invalidateQueries({queryKey: ['board', 'data', '<project_id>']}))
+# 2. Trigger an automatic refresh. Either wait for the 5-min timer, or use
+#    browser devtools console to force-invalidate the board query:
+#    queryClient.invalidateQueries({queryKey: ['board', 'data', 'YOUR_PROJECT_ID']})
+#    Replace YOUR_PROJECT_ID with the actual project ID from the URL.
 
 # 3. Count outbound API calls in backend logs during the refresh
 # Target: ≤3 calls with warm sub-issue cache
