@@ -113,7 +113,7 @@ The existing `.markdown-link-check.json` includes:
 
 | Requirement | Current State | Status |
 |-------------|--------------|--------|
-| FR-014: Formatting standards | `.markdownlint.json` enforces ATX headings, dash lists, code block formatting | ✅ Compliant |
+| FR-014: Formatting standards | `.markdownlint.json` enforces consistent headings (ATX in practice), dash lists, code block formatting | ✅ Compliant |
 | FR-015: CI formatting enforcement | `ci.yml` runs markdownlint on `docs/**/*.md` + `*.md` | ✅ Compliant |
 | FR-016: CI link checking | `ci.yml` runs markdown-link-check on `docs/**/*.md` + `README.md` | ✅ Compliant |
 | SC-006: 100% formatting violations caught | markdownlint runs on every push/PR to main | ✅ Compliant |
