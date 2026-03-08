@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { Sparkles, Pencil, X, Save } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
 import { ChoreInlineEditor } from './ChoreInlineEditor';
 import { PipelineSelector, useProjectPipelineOptions } from './PipelineSelector';
@@ -108,6 +109,7 @@ export function ChoreCard({
   const updateMutation = useUpdateChore(projectId);
   const deleteMutation = useDeleteChore(projectId);
   const triggerMutation = useTriggerChore(projectId);
+  const { confirm } = useConfirmation();
   const isSpotlight = variant === 'spotlight';
   const isEditing = !!editState;
   const isDirty = editState?.isDirty ?? false;
@@ -117,8 +119,14 @@ export function ChoreCard({
     updateMutation.mutate({ choreId: chore.id, data: { status: newStatus } });
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Remove chore "${chore.name}"? This cannot be undone.`)) {
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Chore',
+      description: `Remove chore "${chore.name}"? This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (confirmed) {
       deleteMutation.mutate(chore.id);
     }
   };

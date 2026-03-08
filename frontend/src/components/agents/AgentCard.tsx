@@ -8,6 +8,7 @@ import type { AgentConfig, AgentStatus } from '@/services/api';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { AgentIconPickerModal } from '@/components/agents/AgentIconPickerModal';
 import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -51,6 +52,7 @@ export function AgentCard({
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const deleteMutation = useDeleteAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
+  const { confirm } = useConfirmation();
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
 
   const isRepoOnly = agent.source === 'repo';
@@ -59,12 +61,14 @@ export function AgentCard({
   const canDelete = !isPendingDeletion && !isPendingCreation;
   const canConfigureModel = !isPendingDeletion;
 
-  const handleDelete = () => {
-    if (
-      window.confirm(
-        `Remove agent "${agent.name}"? This opens a PR to delete the repo files. The catalog only updates after that PR is merged into main.`
-      )
-    ) {
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Agent',
+      description: `Remove agent "${agent.name}"? This opens a PR to delete the repo files. The catalog only updates after that PR is merged into main.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (confirmed) {
       deleteMutation.mutate(agent.id);
     }
   };

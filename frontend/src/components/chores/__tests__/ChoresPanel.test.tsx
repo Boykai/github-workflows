@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { ChoresPanel } from '../ChoresPanel';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
@@ -44,7 +45,7 @@ function createWrapper() {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
-        {children}
+        <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
       </QueryClientProvider>
     );
   };

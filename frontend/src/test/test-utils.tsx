@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render as rtlRender, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
@@ -54,6 +55,7 @@ export function renderWithProviders(
   function Wrapper({ children }: WrapperProps) {
     return (
       <QueryClientProvider client={queryClient}>
+        <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
         <TooltipProvider delayDuration={0}>
           {children}
         </TooltipProvider>

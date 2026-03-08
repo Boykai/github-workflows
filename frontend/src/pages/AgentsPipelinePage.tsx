@@ -13,6 +13,7 @@ import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
@@ -38,6 +39,7 @@ export function AgentsPipelinePage() {
   const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
   const { models: availableModels } = useModels();
+  const { confirm } = useConfirmation();
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
   const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
@@ -123,11 +125,17 @@ export function AgentsPipelinePage() {
   }, [columns, pipelineConfig]);
 
   // Handle delete with confirmation
-  const handleDelete = useCallback(() => {
-    if (window.confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
+  const handleDelete = useCallback(async () => {
+    const confirmed = await confirm({
+      title: 'Delete Pipeline',
+      description: 'Are you sure you want to delete this pipeline? This action cannot be undone.',
+      variant: 'danger',
+      confirmLabel: 'Delete Pipeline',
+    });
+    if (confirmed) {
       pipelineConfig.deletePipeline();
     }
-  }, [pipelineConfig]);
+  }, [pipelineConfig, confirm]);
 
   // Unsaved dialog handlers
   const handleUnsavedSave = useCallback(async () => {
