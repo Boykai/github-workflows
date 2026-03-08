@@ -4,6 +4,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface RefreshButtonProps {
   /** Callback to trigger manual refresh */
@@ -16,18 +17,19 @@ interface RefreshButtonProps {
 
 export function RefreshButton({ onRefresh, isRefreshing, disabled }: RefreshButtonProps) {
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onRefresh}
-      disabled={disabled || isRefreshing}
-      title="Auto-refreshes every 5 minutes"
-      aria-label="Refresh board data"
-      className="h-8 w-8"
-    >
-      <RefreshCw
-        className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-      />
-    </Button>
+    <Tooltip contentKey="board.toolbar.refreshButton">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onRefresh}
+        disabled={disabled || isRefreshing}
+        aria-label="Refresh board data"
+        className="h-8 w-8"
+      >
+        <RefreshCw
+          className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+        />
+      </Button>
+    </Tooltip>
   );
 }

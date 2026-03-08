@@ -6,6 +6,7 @@ import { Pencil, RefreshCw, Trash2, Wrench } from 'lucide-react';
 import type { McpToolConfig } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface ToolCardProps {
   tool: McpToolConfig;
@@ -74,35 +75,41 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
               : `Created ${new Date(tool.created_at).toLocaleDateString()}`}
           </span>
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-primary/10"
-              onClick={() => onEdit(tool)}
-              title="Edit tool"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 hover:bg-primary/10"
-              onClick={() => onSync(tool.id)}
-              disabled={isSyncing}
-              title="Re-sync to GitHub"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="solar-action-danger h-7 w-7 p-0"
-              onClick={() => onDelete(tool.id)}
-              disabled={isDeleting}
-              title="Delete tool"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip contentKey="tools.card.editButton">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 hover:bg-primary/10"
+                onClick={() => onEdit(tool)}
+                aria-label="Edit tool"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
+            <Tooltip contentKey="tools.card.resyncButton">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 hover:bg-primary/10"
+                onClick={() => onSync(tool.id)}
+                disabled={isSyncing}
+                aria-label="Re-sync to GitHub"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              </Button>
+            </Tooltip>
+            <Tooltip contentKey="tools.card.deleteButton">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="solar-action-danger h-7 w-7 p-0"
+                onClick={() => onDelete(tool.id)}
+                disabled={isDeleting}
+                aria-label="Delete tool"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </Tooltip>
           </div>
         </div>
       </CardContent>
