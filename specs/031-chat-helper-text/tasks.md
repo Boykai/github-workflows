@@ -44,7 +44,7 @@
 
 ## Phase 3: User Story 1 — Descriptive Chat Placeholder on Desktop (Priority: P1) 🎯 MVP
 
-**Goal**: The main chat input displays a descriptive, actionable placeholder that communicates at least four supported interaction types (questions, tasks, slash commands, pipeline mentions) on desktop viewports (≥768px).
+**Goal**: The main chat input displays a descriptive, actionable placeholder that communicates at least four supported interaction types (questions, tasks, slash commands, pipeline mentions) on desktop viewports (≥640px, per the Tailwind `sm` breakpoint used for responsive switching).
 
 **Independent Test**: Open the chat interface on a desktop viewport (≥1024px wide), observe the placeholder text in the empty chat input, and verify it reads "Ask a question, describe a task, use / for commands, or @ to select a pipeline…" and fits within the input boundary without overflow.
 
@@ -58,9 +58,9 @@
 
 ## Phase 4: User Story 2 — Responsive Helper Text on Mobile (Priority: P1)
 
-**Goal**: A shortened placeholder variant displays on mobile/small-screen viewports (<768px) that still communicates the chat's purpose without layout breakage.
+**Goal**: A shortened placeholder variant displays on small-screen viewports (<640px, per the Tailwind `max-sm:` breakpoint from research.md R2) that still communicates the chat's purpose without layout breakage.
 
-**Independent Test**: Open the chat interface on a mobile viewport (<768px wide), observe the placeholder text, and verify it reads "Ask anything or use / and @ for more…" and fits within the input without overflow or truncation.
+**Independent Test**: Open the chat interface on a mobile viewport (<640px wide), observe the placeholder text, and verify it reads "Ask anything or use / and @ for more…" and fits within the input without overflow or truncation.
 
 ### Implementation for User Story 2
 
@@ -219,7 +219,7 @@ Given the XS size of this feature and deeply interconnected P1 stories:
 - US1, US2, US3 are all P1 and modify the same files — recommend batching into a single implementation pass
 - US4 is P2 and modifies separate files (AgentChatFlow, ChoreChatFlow) — can run in parallel with US1–US3
 - US5 is P3 and optional — can be deferred without blocking core deliverables
-- Tests are NOT included because they were not explicitly requested in the specification
+- Tests are not included because they were not explicitly requested in the specification
 - WCAG contrast verification (T008) is a manual check, not a code change — existing `text-muted-foreground` already meets 4.5:1
 - Total estimated effort: ~1 hour (aligned with issue metadata)
 - Commit after each task or logical batch
