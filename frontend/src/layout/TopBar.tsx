@@ -27,11 +27,7 @@ export function TopBar({
 }: TopBarProps) {
   return (
     <header className="celestial-panel flex h-16 items-center justify-between border-b border-border/70 px-6 backdrop-blur-sm shrink-0">
-      <div className="flex items-center gap-3">
-        <span className="celestial-sigil hidden h-8 w-8 rounded-full border border-primary/20 text-[10px] text-primary/80 md:inline-flex">
-          <span className="relative z-10">✦</span>
-        </span>
-        <span className="hidden h-8 w-px bg-border/70 md:block" />
+      <div className="flex items-center gap-2">
         <Breadcrumb />
       </div>
 

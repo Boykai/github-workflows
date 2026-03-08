@@ -16,7 +16,6 @@ import { useModels } from '@/hooks/useModels';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
-import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
@@ -199,7 +198,6 @@ export function AgentsPipelinePage() {
               isPreset={pipelineConfig.isPreset}
               pipelineName={pipelineConfig.pipeline?.name}
               validationErrors={pipelineConfig.validationErrors}
-              onNewPipeline={handleNewPipeline}
               onSave={pipelineConfig.savePipeline}
               onSaveAsCopy={(newName) => pipelineConfig.saveAsCopy(newName)}
               onDelete={handleDelete}
@@ -258,10 +256,10 @@ export function AgentsPipelinePage() {
                     className="h-14 w-14 border-primary/30 shadow-[0_12px_30px_hsl(var(--night)/0.3)] transition-transform duration-200 group-hover:scale-105"
                   />
                 </button>
-                <h3 className="text-sm font-semibold text-foreground">Create your first pipeline</h3>
+                <h3 className="text-sm font-semibold text-foreground">Create new agent pipeline</h3>
                 <p className="text-xs text-muted-foreground max-w-md">
                   Build custom agent workflows by creating a pipeline with stages and agents.
-                  Click "New Pipeline" above to get started.
+                  Click the constellation to get started.
                 </p>
               </div>
             )}
@@ -282,13 +280,6 @@ export function AgentsPipelinePage() {
             availableAgents={availableAgents}
             variant="compact"
             title="Current Pipeline"
-            renderPresetSelector={
-              <AgentPresetSelector
-                columnNames={columns.map((c) => c.status.name)}
-                currentMappings={agentConfig.localMappings}
-                onApplyPreset={agentConfig.applyPreset}
-              />
-            }
             renderAddButton={(status: string) => (
               <AddAgentPopover
                 status={status}

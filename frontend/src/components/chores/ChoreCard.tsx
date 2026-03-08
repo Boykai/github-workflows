@@ -12,7 +12,7 @@ import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
 import { ChoreInlineEditor } from './ChoreInlineEditor';
-import { PipelineSelector } from './PipelineSelector';
+import { PipelineSelector, useProjectPipelineOptions } from './PipelineSelector';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -144,6 +144,13 @@ export function ChoreCard({
   const currentPipelineId = editState?.current.agent_pipeline_id ?? chore.agent_pipeline_id;
   const currentScheduleType = editState?.current.schedule_type ?? chore.schedule_type;
   const currentScheduleValue = editState?.current.schedule_value ?? chore.schedule_value;
+  const { pipelines } = useProjectPipelineOptions(projectId);
+  const selectedPipeline = currentPipelineId
+    ? pipelines.find((pipeline) => pipeline.id === currentPipelineId)
+    : null;
+  const pipelineLabel = currentPipelineId
+    ? selectedPipeline?.name ?? 'Saved pipeline unavailable'
+    : 'Auto';
 
   return (
     <Card
@@ -222,11 +229,9 @@ export function ChoreCard({
             <Sparkles className="h-3 w-3" />
             AI {currentAiEnhance ? 'ON' : 'OFF'}
           </button>
-          {currentPipelineId && (
-            <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
-              Custom Pipeline
-            </span>
-          )}
+          <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
+            Agent Pipeline: {pipelineLabel}
+          </span>
         </div>
 
         <div className="moonwell rounded-[1.3rem] p-3">

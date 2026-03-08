@@ -319,7 +319,19 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
               ) : (
                 <div className="constellation-grid mt-6 grid gap-4 lg:grid-cols-3">
                   {spotlightChores.map((chore) => (
-                    <ChoreCard key={chore.id} chore={chore} projectId={projectId} variant="spotlight" parentIssueCount={parentIssueCount} />
+                    <ChoreCard
+                      key={chore.id}
+                      chore={chore}
+                      projectId={projectId}
+                      variant="spotlight"
+                      parentIssueCount={parentIssueCount}
+                      editState={editState[chore.id]}
+                      onEditStart={() => handleEditStart(chore)}
+                      onEditChange={(updates) => handleEditChange(chore.id, updates)}
+                      onEditSave={() => handleEditSave(chore.id)}
+                      onEditDiscard={() => handleEditDiscard(chore.id)}
+                      isSaving={inlineUpdateMutation.isPending}
+                    />
                   ))}
                 </div>
               )}

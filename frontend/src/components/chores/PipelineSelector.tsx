@@ -18,9 +18,8 @@ interface PipelineSelectorProps {
   inputId?: string;
 }
 
-export function PipelineSelector({ projectId, value, onChange, disabled, inputId }: PipelineSelectorProps) {
-  const generatedId = useId();
-  const selectId = inputId ?? `pipeline-select-${projectId}-${generatedId}`;
+
+export function useProjectPipelineOptions(projectId: string) {
   const { data: pipelineList, isLoading } = useQuery({
     queryKey: ['pipelines', 'list', projectId],
     queryFn: () => pipelinesApi.list(projectId),
@@ -33,12 +32,19 @@ export function PipelineSelector({ projectId, value, onChange, disabled, inputId
     [pipelineList],
   );
 
+  return { pipelines, isLoading };
+}
+export function PipelineSelector({ projectId, value, onChange, disabled, inputId }: PipelineSelectorProps) {
+  const generatedId = useId();
+  const selectId = inputId ?? `pipeline-select-${projectId}-${generatedId}`;
+  const { pipelines, isLoading } = useProjectPipelineOptions(projectId);
+
   const selectedExists = value === '' || pipelines.some(p => p.id === value);
 
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor={selectId} className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        Pipelines
+        Agent Pipeline
       </label>
       <select
         id={selectId}
@@ -47,13 +53,18 @@ export function PipelineSelector({ projectId, value, onChange, disabled, inputId
         disabled={disabled || isLoading}
         className="moonwell h-8 w-full rounded-md border-border/60 px-3 text-xs text-foreground disabled:opacity-50"
       >
-        <option value="">Auto (Project Default)</option>
+        <option value="">Auto</option>
         {pipelines.map((p) => (
           <option key={p.id} value={p.id}>
             {p.name}
           </option>
         ))}
       </select>
+      <p className="text-[10px] text-muted-foreground">
+        {value === ''
+          ? 'Auto uses the project\'s currently selected agent pipeline configuration.'
+          : 'This chore will use the selected saved agent pipeline configuration.'}
+      </p>
       {!selectedExists && value && (
         <p className="text-[10px] text-yellow-600 dark:text-yellow-400">
           ⚠ Selected pipeline no longer available — will use Auto

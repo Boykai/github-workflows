@@ -6,6 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ChoresPanel } from '../ChoresPanel';
 import type { Chore } from '@/types';
@@ -15,11 +16,17 @@ import type { ReactNode } from 'react';
 
 const mockList = vi.fn();
 const mockListTemplates = vi.fn();
+const mockInlineUpdate = vi.fn();
+const mockPipelinesList = vi.fn();
 
 vi.mock('@/services/api', () => ({
   choresApi: {
     list: (...args: unknown[]) => mockList(...args),
     listTemplates: (...args: unknown[]) => mockListTemplates(...args),
+    inlineUpdate: (...args: unknown[]) => mockInlineUpdate(...args),
+  },
+  pipelinesApi: {
+    list: (...args: unknown[]) => mockPipelinesList(...args),
   },
   ApiError: class ApiError extends Error {
     constructor(public status: number, public error: { error: string }) {
@@ -60,6 +67,9 @@ function createChore(overrides: Partial<Chore> = {}): Chore {
     pr_number: null,
     pr_url: null,
     tracking_issue_number: null,
+    execution_count: 0,
+    ai_enhance_enabled: true,
+    agent_pipeline_id: '',
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -72,6 +82,18 @@ describe('ChoresPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockListTemplates.mockResolvedValue([]);
+    mockInlineUpdate.mockResolvedValue({
+      chore: createChore(),
+      pr_number: 101,
+      pr_url: 'https://example.test/pr/101',
+      pr_merged: false,
+      merge_error: null,
+    });
+    mockPipelinesList.mockResolvedValue({
+      pipelines: [
+        { id: 'pipe-1', name: 'Advanced Pipeline' },
+      ],
+    });
   });
 
   it('renders empty state when no chores exist', async () => {
@@ -149,6 +171,31 @@ describe('ChoresPanel', () => {
 
     await waitFor(() => {
       expect(screen.getAllByTitle('Click to activate').some((element) => element.textContent?.includes('Paused'))).toBe(true);
+    });
+  });
+
+  it('saves a selected saved pipeline from chore inline edit', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle('Edit chore').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getAllByTitle('Edit chore')[0]);
+
+    const pipelineSelectors = await screen.findAllByLabelText('Agent Pipeline');
+    await user.selectOptions(pipelineSelectors[0], 'pipe-1');
+
+    const saveButtons = screen.getAllByRole('button', { name: /Save & Create PR/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(mockInlineUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
+        agent_pipeline_id: 'pipe-1',
+      });
     });
   });
 });

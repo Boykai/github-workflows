@@ -17,10 +17,12 @@ import { AddAgentPopover } from '@/components/board/AddAgentPopover';
 import { AgentPresetSelector } from '@/components/board/AgentPresetSelector';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { RefreshButton } from '@/components/board/RefreshButton';
+import { statusColorToCSS } from '@/components/board/colorUtils';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
+import { formatAgentName } from '@/utils/formatAgentName';
 import type { BoardItem } from '@/types';
 import { ApiError } from '@/services/api';
 
@@ -81,6 +83,8 @@ export function ProjectsPage() {
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
+  const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
+  const pipelineGridStyle = { gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` };
 
   const totalItems = transformedBoardData?.columns.reduce((sum, col) => sum + col.item_count, 0) ?? 0;
   const projectsRateLimitError = isRateLimitApiError(projectsError);
@@ -282,33 +286,67 @@ export function ProjectsPage() {
 
       {selectedProjectId && !boardLoading && transformedBoardData && (
         <div className="flex flex-col flex-1 gap-6 overflow-hidden">
-          <AgentConfigRow
-            columnCount={Math.max(transformedBoardData.columns.length, 1)}
-            columns={transformedBoardData.columns}
-            agentConfig={agentConfig}
-            availableAgents={availableAgents}
-            variant="compact"
-            renderPresetSelector={
-              <AgentPresetSelector
-                columnNames={transformedBoardData.columns.map((c) => c.status.name)}
-                currentMappings={agentConfig.localMappings}
-                onApplyPreset={agentConfig.applyPreset}
-                projectId={selectedProjectId}
-              />
-            }
-            renderAddButton={(status: string) => (
-              <AddAgentPopover
-                status={status}
-                availableAgents={availableAgents}
-                assignedAgents={agentConfig.localMappings[status] ?? []}
-                isLoading={agentsLoading}
-                error={agentsError}
-                onRetry={refetchAgents}
-                onAddAgent={agentConfig.addAgent}
-                compact={true}
-              />
-            )}
-          />
+          <section className="space-y-4">
+            <AgentConfigRow
+              columnCount={pipelineColumnCount}
+              columns={transformedBoardData.columns}
+              agentConfig={agentConfig}
+              availableAgents={availableAgents}
+              variant="compact"
+              title="Agent Pipeline"
+              renderPresetSelector={
+                <AgentPresetSelector
+                  columnNames={transformedBoardData.columns.map((c) => c.status.name)}
+                  currentMappings={agentConfig.localMappings}
+                  onApplyPreset={agentConfig.applyPreset}
+                  projectId={selectedProjectId}
+                />
+              }
+              renderAddButton={(status: string) => (
+                <AddAgentPopover
+                  status={status}
+                  availableAgents={availableAgents}
+                  assignedAgents={agentConfig.localMappings[status] ?? []}
+                  isLoading={agentsLoading}
+                  error={agentsError}
+                  onRetry={refetchAgents}
+                  onAddAgent={agentConfig.addAgent}
+                  compact={true}
+                />
+              )}
+            />
+
+            <div>
+              <h3 className="mb-3 text-lg font-semibold">Pipeline Stages</h3>
+              <div className="overflow-x-auto pb-2">
+                <div className="grid min-w-full items-stretch gap-3" style={pipelineGridStyle}>
+                  {transformedBoardData.columns.map((col) => {
+                    const assigned = agentConfig.localMappings[col.status.name] ?? [];
+                    const dotColor = statusColorToCSS(col.status.color);
+
+                    return (
+                      <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm">
+                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: dotColor }} />
+                        <span className="text-sm font-medium">{col.status.name}</span>
+                        <span className="text-xs text-muted-foreground">{col.item_count} items</span>
+                        {assigned.length > 0 ? (
+                          <div className="mt-1 flex flex-wrap justify-center gap-1">
+                            {assigned.map((assignment) => (
+                              <span key={assignment.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                                {formatAgentName(assignment.slug, assignment.display_name)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="mt-1 text-[10px] text-muted-foreground/60">No agents</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </section>
 
           <div className="flex flex-1 gap-6 overflow-hidden">
             {transformedBoardData.columns.every((col) => col.items.length === 0) ? (
