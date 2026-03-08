@@ -9,6 +9,7 @@ import {
   type AgentPendingCleanupResult,
   type AgentChatMessage,
   type AgentChatResponse,
+  type BulkModelUpdateResult,
   type ApiError,
 } from '@/services/api';
 import { STALE_TIME_PROJECTS } from '@/constants';
@@ -85,5 +86,23 @@ export function useClearPendingAgents(projectId: string | null | undefined) {
 export function useAgentChat(projectId: string | null | undefined) {
   return useMutation<AgentChatResponse, ApiError, AgentChatMessage>({
     mutationFn: (data) => agentsApi.chat(projectId!, data),
+  });
+}
+
+export function useBulkUpdateModels(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation<
+    BulkModelUpdateResult,
+    ApiError,
+    { targetModelId: string; targetModelName: string }
+  >({
+    mutationFn: ({ targetModelId, targetModelName }) =>
+      agentsApi.bulkUpdateModels(projectId!, targetModelId, targetModelName),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      }
+    },
   });
 }
