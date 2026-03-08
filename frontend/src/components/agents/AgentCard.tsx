@@ -10,6 +10,7 @@ import { AgentIconPickerModal } from '@/components/agents/AgentIconPickerModal';
 import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { ModelSelector } from '@/components/pipeline/ModelSelector';
 import { cn } from '@/lib/utils';
 
@@ -113,20 +114,21 @@ export function AgentCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <button
-              type="button"
-              className="rounded-[1rem] transition-transform hover:-translate-y-0.5"
-              onClick={() => setIsIconPickerOpen(true)}
-              title="Choose icon"
-            >
-              <ThemedAgentIcon
-                slug={agent.slug}
-                iconName={agent.icon_name}
-                name={agent.name}
-                size="lg"
-                className="mt-0.5"
-              />
-            </button>
+            <Tooltip contentKey="agents.card.iconButton">
+              <button
+                type="button"
+                className="rounded-[1rem] transition-transform hover:-translate-y-0.5"
+                onClick={() => setIsIconPickerOpen(true)}
+              >
+                <ThemedAgentIcon
+                  slug={agent.slug}
+                  iconName={agent.icon_name}
+                  name={agent.name}
+                  size="lg"
+                  className="mt-0.5"
+                />
+              </button>
+            </Tooltip>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
@@ -228,20 +230,24 @@ export function AgentCard({
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
           {onEdit && !isPendingDeletion && (
-            <Button variant="outline" size="sm" onClick={() => onEdit(agent)}>
-              Edit
-            </Button>
+            <Tooltip contentKey="agents.card.editButton">
+              <Button variant="outline" size="sm" onClick={() => onEdit(agent)}>
+                Edit
+              </Button>
+            </Tooltip>
           )}
           {canDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="solar-action-danger"
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-            </Button>
+            <Tooltip contentKey="agents.card.deleteButton">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="solar-action-danger"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </Tooltip>
           )}
           {isPendingDeletion && (
             <span className="text-xs text-muted-foreground">Deletion pending</span>
