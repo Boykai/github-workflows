@@ -234,6 +234,8 @@ export interface AITaskProposal {
   edited_description?: string;
   created_at: string;
   expires_at: string;
+  pipeline_name?: string;
+  pipeline_source?: string;
 }
 
 export interface ProposalConfirmRequest {

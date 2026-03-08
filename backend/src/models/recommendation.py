@@ -49,6 +49,12 @@ class AITaskProposal(BaseModel):
         default_factory=lambda: utcnow() + timedelta(minutes=10),
         description="Auto-expiration time",
     )
+    pipeline_name: str | None = Field(
+        default=None, description="Name of the applied Agent Pipeline (after confirm)"
+    )
+    pipeline_source: str | None = Field(
+        default=None, description="Pipeline resolution source: pipeline, user, or default"
+    )
 
     @property
     def is_expired(self) -> bool:

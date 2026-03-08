@@ -728,18 +728,27 @@ async def confirm_proposal(
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
 
-            # Apply user-specific agent pipeline mappings if available
-            from src.services.workflow_orchestrator.config import load_user_agent_mappings
+            # Apply project-level or user-specific agent pipeline mappings
+            from src.services.workflow_orchestrator.config import (
+                resolve_project_pipeline_mappings,
+            )
 
-            user_mappings = await load_user_agent_mappings(session.github_user_id, project_id)
-            if user_mappings:
+            pipeline_result = await resolve_project_pipeline_mappings(
+                project_id, session.github_user_id
+            )
+            if pipeline_result.agent_mappings:
                 logger.info(
-                    "Applying user-specific agent pipeline mappings for user=%s project=%s",
-                    session.github_user_id,
+                    "Applying %s agent pipeline mappings for project=%s (pipeline=%s)",
+                    pipeline_result.source,
                     project_id,
+                    pipeline_result.pipeline_name or "N/A",
                 )
-                config.agent_mappings = user_mappings
+                config.agent_mappings = pipeline_result.agent_mappings
                 await set_workflow_config(project_id, config)
+
+            # Populate pipeline metadata on the proposal response
+            proposal.pipeline_name = pipeline_result.pipeline_name
+            proposal.pipeline_source = pipeline_result.source
 
             # Set issue status to Backlog on the project
             backlog_status = config.status_backlog
