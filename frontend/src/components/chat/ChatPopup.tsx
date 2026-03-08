@@ -41,7 +41,8 @@ interface ChatPopupProps {
   pendingStatusChanges: Map<string, StatusChangeProposal>;
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
-  onSendMessage: (content: string, options?: { isCommand?: boolean }) => void;
+  projectId?: string;
+  onSendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[]; pipelineId?: string }) => void;
   onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
@@ -57,6 +58,7 @@ export function ChatPopup({
   pendingStatusChanges,
   pendingRecommendations,
   isSending,
+  projectId,
   onSendMessage,
   onRetryMessage,
   onConfirmProposal,
@@ -167,6 +169,7 @@ export function ChatPopup({
           pendingStatusChanges={pendingStatusChanges}
           pendingRecommendations={pendingRecommendations}
           isSending={isSending}
+          projectId={projectId}
           onSendMessage={onSendMessage}
           onRetryMessage={onRetryMessage}
           onConfirmProposal={onConfirmProposal}

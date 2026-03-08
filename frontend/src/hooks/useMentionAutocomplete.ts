@@ -4,7 +4,7 @@
  * token management, and active pipeline tracking.
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { pipelinesApi } from '@/services/api';
 import type { MentionFilterResult, MentionToken, PipelineConfigSummary } from '@/types';
@@ -60,6 +60,13 @@ export function useMentionAutocomplete({
   const [tokens, setTokens] = useState<MentionToken[]>([]);
   const [hasTriggered, setHasTriggered] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // Fetch pipelines lazily (only after first @ trigger)
   const { data: pipelineData, isLoading, error: queryError } = useQuery({
