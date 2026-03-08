@@ -15,6 +15,7 @@ import { useCreateAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { useToolsList } from '@/hooks/useTools';
 import type { AgentConfig } from '@/services/api';
 import { ToolsEditor } from './ToolsEditor';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface AddAgentModalProps {
   projectId: string;
@@ -377,15 +378,17 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
               <label htmlFor="agent-name" className="mb-1.5 block text-sm font-medium">
                 Name
               </label>
-              <input
-                id="agent-name"
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g., Security Reviewer"
-                className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
-                maxLength={100}
-              />
+              <Tooltip contentKey="agents.modal.nameField" side="right">
+                <input
+                  id="agent-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g., Security Reviewer"
+                  className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
+                  maxLength={100}
+                />
+              </Tooltip>
             </div>
 
             <div>
@@ -395,14 +398,16 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
                   {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
                 </span>
               </label>
-              <textarea
-                id="agent-system-prompt"
-                value={systemPrompt}
-                onChange={(event) => setSystemPrompt(event.target.value)}
-                placeholder="Detailed instructions for the agent's behavior..."
-                className="min-h-[220px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
-                maxLength={MAX_PROMPT_LENGTH}
-              />
+              <Tooltip contentKey="agents.modal.systemPrompt" side="right">
+                <textarea
+                  id="agent-system-prompt"
+                  value={systemPrompt}
+                  onChange={(event) => setSystemPrompt(event.target.value)}
+                  placeholder="Detailed instructions for the agent's behavior..."
+                  className="min-h-[220px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
+                  maxLength={MAX_PROMPT_LENGTH}
+                />
+              </Tooltip>
             </div>
 
             <div>
@@ -442,21 +447,23 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
             {!isEditMode && (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={aiEnhance}
-                  onClick={() => setAiEnhance((previous) => !previous)}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                    aiEnhance ? 'bg-primary' : 'bg-muted'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
-                      aiEnhance ? 'translate-x-4' : 'translate-x-0'
+                <Tooltip contentKey="agents.modal.aiEnhanceToggle">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={aiEnhance}
+                    onClick={() => setAiEnhance((previous) => !previous)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                      aiEnhance ? 'bg-primary' : 'bg-muted'
                     }`}
-                  />
-                </button>
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0 transition-transform ${
+                        aiEnhance ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </Tooltip>
                 <span className="text-xs text-muted-foreground">
                   AI Enhance
                   <span className="ml-1 text-[10px]">

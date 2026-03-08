@@ -8,6 +8,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * Create a fresh QueryClient configured for tests:
@@ -51,7 +52,13 @@ export function renderWithProviders(
   { queryClient = createTestQueryClient(), ...options }: ExtendedRenderOptions = {},
 ) {
   function Wrapper({ children }: WrapperProps) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delayDuration={0}>
+          {children}
+        </TooltipProvider>
+      </QueryClientProvider>
+    );
   }
 
   return {
@@ -61,5 +68,35 @@ export function renderWithProviders(
 }
 
 // Re-export everything from RTL so tests can import from one place.
-export * from '@testing-library/react';
+// Override `render` to always wrap with TooltipProvider so Radix tooltips work.
+export {
+  screen,
+  waitFor,
+  within,
+  act,
+  cleanup,
+  fireEvent,
+  waitForElementToBeRemoved,
+  prettyDOM,
+  queries,
+  queryByAttribute,
+  buildQueries,
+} from '@testing-library/react';
+export type { RenderResult } from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
+
+import { render as rtlRender, type RenderOptions as RTLRenderOptions } from '@testing-library/react';
+
+/**
+ * Custom `render` that wraps the UI with `TooltipProvider` so any component
+ * using `<Tooltip>` can be rendered without manually adding the provider.
+ */
+function tooltipAwareRender(ui: ReactElement, options?: RTLRenderOptions) {
+  const Wrapper = options?.wrapper;
+  function TooltipWrapper({ children }: { children: ReactNode }) {
+    const inner = <TooltipProvider delayDuration={0}>{children}</TooltipProvider>;
+    return Wrapper ? <Wrapper>{inner}</Wrapper> : inner;
+  }
+  return rtlRender(ui, { ...options, wrapper: TooltipWrapper });
+}
+export { tooltipAwareRender as render };
