@@ -150,6 +150,8 @@ npx playwright test
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (030-fix-chore-issue-counter)
 - SQLite with WAL mode (aiosqlite) — no schema changes required. Existing `chores` table fields (`last_triggered_count`, `schedule_value`, `schedule_type`) are sufficient. (030-fix-chore-issue-counter)
+- Markdown (documentation), YAML (GitHub Actions CI), Node.js 20 (CI tooling runtime) + markdownlint-cli 0.48.0 (already in CI), markdown-link-check 3.14.2 (already in CI) (030-doc-sweep)
+- N/A — all artifacts are markdown files committed to the repository (030-doc-sweep)
 
 ## Recent Changes
 - 025-solune-ui-redesign: Added TypeScript 5.9, React 19.2, Vite 7.3 + react-router-dom v7 (new), TanStack Query 5.90, Tailwind CSS v4 (via @tailwindcss/vite), @dnd-kit, lucide-react 0.577, Radix UI
