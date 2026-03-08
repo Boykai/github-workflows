@@ -184,8 +184,9 @@ def _resolve_base_branch(open_blocking: list[BlockingQueueEntry]) -> str:
             return entry.parent_branch
     if open_blocking:
         logger.warning(
-            "No open blocking issue has a valid parent_branch for repo "
+            "No open blocking issue has a valid parent_branch for repo %s "
             "(oldest blocking issue #%d) — falling back to 'main'",
+            open_blocking[0].repo_key,
             open_blocking[0].issue_number,
         )
     return "main"

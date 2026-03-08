@@ -45,6 +45,11 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
       try {
         const data = JSON.parse(event.data);
 
+        const markUpdated = () => {
+          setLastUpdate(new Date());
+          onRefreshTriggeredRef.current?.();
+        };
+
         // Handle initial data / reconnection — debounce to at most once per cycle
         if (data.type === 'initial_data') {
           const now = Date.now();
@@ -55,16 +60,14 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
           lastReconnectInvalidationRef.current = now;
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          setLastUpdate(new Date());
-          onRefreshTriggeredRef.current?.();
+          markUpdated();
           return;
         }
 
         if (data.type === 'refresh') {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          setLastUpdate(new Date());
-          onRefreshTriggeredRef.current?.();
+          markUpdated();
           return;
         }
 
@@ -72,15 +75,13 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
         if (data.type === 'task_update' || data.type === 'task_created' || data.type === 'status_changed') {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          setLastUpdate(new Date());
-          onRefreshTriggeredRef.current?.();
+          markUpdated();
         }
 
         // Handle blocking queue state changes
         if (data.type === 'blocking_queue_updated') {
           queryClient.invalidateQueries({ queryKey: ['blocking-queue', projectId] });
-          setLastUpdate(new Date());
-          onRefreshTriggeredRef.current?.();
+          markUpdated();
         }
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);

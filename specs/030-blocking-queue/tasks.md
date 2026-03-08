@@ -147,7 +147,7 @@
 
 - [x] T028 [P] [US6] Add 🔒 "Blocking" badge (amber-colored, Lock icon from lucide-react) to issue cards that have is_blocking=true in frontend/src/components/board/
 - [x] T029 [P] [US6] Add "Pending (blocked)" status label (gray-colored, Clock icon) to issue cards with queue_status='pending' in frontend/src/components/board/
-- [ ] T030 [US6] Add blocking chain tooltip or collapsible sidebar showing ordered queue, current base branch, and next-in-line issue in frontend/src/components/board/
+- [x] T030 [US6] Add blocking chain tooltip or collapsible sidebar showing ordered queue, current base branch, and next-in-line issue in frontend/src/components/board/
 - [x] T031 [US6] Add WebSocket event handler for blocking_queue_updated events and display toast notification "Issue #X is now active — agents starting" for each newly activated issue in frontend
 
 **Checkpoint**: Board displays correct visual indicators for all blocking queue states. Toast notifications fire when pending issues activate. Users can understand the queue at a glance.
@@ -172,10 +172,10 @@
 
 **Purpose**: Integration tests, edge case handling, and cross-story validation
 
-- [ ] T033 [P] Create integration test for chore trigger with blocking=True verifying issue is enqueued and respects activation order in backend/tests/
-- [ ] T034 [P] Create integration test for pipeline with blocking=True verifying all created issues are enqueued as blocking in backend/tests/
-- [ ] T035 Review and harden edge case handling in backend/src/services/blocking_queue.py: manually closed issues detected during polling, deleted blocking branch fallback to 'main' with warning log, duplicate enqueue_issue calls (UNIQUE constraint handling), empty queue edge case
-- [ ] T036 Run quickstart.md validation scenarios (toggle persistence, serial activation, branch ancestry, 8-issue scenario, restart recovery)
+- [x] T033 [P] Create integration test for chore trigger with blocking=True verifying issue is enqueued and respects activation order in backend/tests/
+- [x] T034 [P] Create integration test for pipeline with blocking=True verifying all created issues are enqueued as blocking in backend/tests/
+- [x] T035 Review and harden edge case handling in backend/src/services/blocking_queue.py: manually closed issues detected during polling, deleted blocking branch fallback to 'main' with warning log, duplicate enqueue_issue calls (UNIQUE constraint handling), empty queue edge case
+- [x] T036 Run quickstart.md validation scenarios (toggle persistence, serial activation, branch ancestry, 8-issue scenario, restart recovery)
 
 ---
 
