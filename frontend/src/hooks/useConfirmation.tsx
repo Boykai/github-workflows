@@ -41,6 +41,7 @@ interface DialogState {
 interface QueuedRequest {
   options: DialogState['options'];
   resolve: (value: boolean) => void;
+  previousFocus: HTMLElement | null;
 }
 
 const DEFAULT_STATE: DialogState = {
@@ -64,35 +65,40 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const queueRef = useRef<QueuedRequest[]>([]);
 
-  const processQueue = useCallback(() => {
-    if (queueRef.current.length === 0) return;
-    const next = queueRef.current.shift()!;
-    previousFocusRef.current = document.activeElement as HTMLElement;
-    resolveRef.current = next.resolve;
+  const openDialog = useCallback((request: QueuedRequest) => {
+    previousFocusRef.current = request.previousFocus;
+    resolveRef.current = request.resolve;
     setState({
       isOpen: true,
-      options: next.options,
+      options: request.options,
       isLoading: false,
       error: null,
     });
   }, []);
 
+  const processQueue = useCallback(() => {
+    if (queueRef.current.length === 0) return;
+    const next = queueRef.current.shift()!;
+    openDialog(next);
+  }, [openDialog]);
+
   const closeDialog = useCallback(
     (result: boolean) => {
       const resolve = resolveRef.current;
+      const focusToRestore = previousFocusRef.current;
       resolveRef.current = null;
+      previousFocusRef.current = null;
       setState(DEFAULT_STATE);
 
-      // Restore focus to the element that triggered the dialog
       requestAnimationFrame(() => {
-        previousFocusRef.current?.focus();
-        previousFocusRef.current = null;
+        if (focusToRestore?.isConnected) {
+          focusToRestore.focus();
+        }
+
+        processQueue();
       });
 
       resolve?.(result);
-
-      // Process next queued request after closing
-      processQueue();
     },
     [processQueue],
   );
@@ -109,23 +115,28 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
       };
 
       return new Promise<boolean>((resolve) => {
+        const previousFocus = document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+
         // If a dialog is already open, queue this request
         if (state.isOpen || resolveRef.current) {
-          queueRef.current.push({ options: fullOptions, resolve });
+          queueRef.current.push({
+            options: fullOptions,
+            resolve,
+            previousFocus,
+          });
           return;
         }
 
-        previousFocusRef.current = document.activeElement as HTMLElement;
-        resolveRef.current = resolve;
-        setState({
-          isOpen: true,
+        openDialog({
           options: fullOptions,
-          isLoading: false,
-          error: null,
+          resolve,
+          previousFocus,
         });
       });
     },
-    [state.isOpen],
+    [openDialog, state.isOpen],
   );
 
   const handleConfirm = useCallback(async () => {

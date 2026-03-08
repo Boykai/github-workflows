@@ -51,7 +51,7 @@ interface ConfirmationDialogProps {
 
 ### useConfirmation
 
-**Location**: `frontend/src/hooks/useConfirmation.ts`
+**Location**: `frontend/src/hooks/useConfirmation.tsx`
 **Purpose**: Provides an imperative `confirm()` function via React Context. Manages dialog state, queue, focus, and rendering.
 
 **Exports**:

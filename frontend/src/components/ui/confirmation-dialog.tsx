@@ -8,6 +8,8 @@
 import { useEffect, useRef } from 'react';
 import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+
 export type ConfirmationVariant = 'danger' | 'warning' | 'info';
 
 export interface ConfirmationDialogProps {
@@ -128,8 +130,8 @@ export function ConfirmationDialog({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50"
-        onClick={handleBackdropClick}
-        aria-hidden="true"
+        onClick={isLoading ? undefined : handleBackdropClick}
+        role="presentation"
       />
 
       {/* Dialog */}
@@ -171,24 +173,27 @@ export function ConfirmationDialog({
 
         {/* Buttons */}
         <div className="mt-5 flex justify-end gap-2">
-          <button
+          <Button
             ref={cancelBtnRef}
             type="button"
-            className="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-primary/10 text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="ghost"
+            size="sm"
+            className="rounded-lg text-foreground"
             onClick={onCancel}
             disabled={isLoading}
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${confirmBtnClass}`}
+            size="sm"
+            className={`gap-2 rounded-lg ${confirmBtnClass}`}
             onClick={onConfirm}
             disabled={isLoading}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             {isLoading ? 'Processing…' : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

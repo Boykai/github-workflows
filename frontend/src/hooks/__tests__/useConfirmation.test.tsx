@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, act, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, renderHook, act, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ConfirmationDialogProvider, useConfirmation } from '../useConfirmation';
 
@@ -169,7 +169,7 @@ describe('useConfirmation', () => {
 
   // Async onConfirm
   it('shows loading state during async onConfirm', async () => {
-    let resolveAsync: () => void;
+    let resolveAsync: (() => void) | undefined;
     const asyncFn = vi.fn(
       () => new Promise<void>((resolve) => { resolveAsync = resolve; }),
     );
@@ -200,8 +200,9 @@ describe('useConfirmation', () => {
     });
 
     // Resolve the async function
+    expect(resolveAsync).toBeDefined();
     await act(async () => {
-      resolveAsync!();
+      resolveAsync?.();
     });
 
     // Dialog should close
@@ -303,6 +304,80 @@ describe('useConfirmation', () => {
 
     await waitFor(() => {
       expect(secondResolved).toBe(true);
+    });
+  });
+
+  it('restores focus to the queued trigger after the final dialog closes', async () => {
+    function FocusHarness() {
+      const { confirm } = useConfirmation();
+
+      return (
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              void confirm({
+                title: 'First Dialog',
+                description: 'First',
+                confirmLabel: 'OK First',
+              });
+            }}
+          >
+            Open First
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              void confirm({
+                title: 'Second Dialog',
+                description: 'Second',
+                confirmLabel: 'OK Second',
+              });
+            }}
+          >
+            Open Second
+          </button>
+        </div>
+      );
+    }
+
+    render(<FocusHarness />, { wrapper: createWrapper() });
+
+    const firstTrigger = screen.getByText('Open First');
+    const secondTrigger = screen.getByText('Open Second');
+
+    act(() => {
+      firstTrigger.focus();
+      fireEvent.click(firstTrigger);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('First Dialog')).toBeInTheDocument();
+    });
+
+    act(() => {
+      secondTrigger.focus();
+      fireEvent.click(secondTrigger);
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByText('OK First'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Second Dialog')).toBeInTheDocument();
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByText('Cancel'));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(secondTrigger);
     });
   });
 });

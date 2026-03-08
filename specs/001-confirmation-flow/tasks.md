@@ -17,7 +17,7 @@
 
 - **Web app**: `frontend/src/` (React/TypeScript), `backend/src/` (Python/FastAPI)
 - All changes are frontend-only — no backend modifications required
-- New files: `frontend/src/components/ui/confirmation-dialog.tsx`, `frontend/src/hooks/useConfirmation.ts`
+- New files: `frontend/src/components/ui/confirmation-dialog.tsx`, `frontend/src/hooks/useConfirmation.tsx`
 - Modified files: `frontend/src/App.tsx`, `frontend/src/components/agents/AgentCard.tsx`, `frontend/src/components/agents/AgentsPanel.tsx`, `frontend/src/components/chores/ChoreCard.tsx`, `frontend/src/pages/AgentsPipelinePage.tsx`
 
 ---
