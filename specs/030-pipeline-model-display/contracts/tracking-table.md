@@ -41,7 +41,7 @@ The tracking section is preceded by a `---` horizontal rule separator.
 | `AgentAssignment.config` is `{}` (empty dict) | `TBD` |
 | `AgentAssignment.config.model_name` is `""` (empty string) | `TBD` |
 | `AgentAssignment.config.model_name` is `"gpt-4o"` | `gpt-4o` |
-| `AgentAssignment.config.model_name` contains `|` | Escaped: `|` → `\|` |
+| `AgentAssignment.config.model_name` contains pipe char | Escaped with backslash for Markdown table safety |
 
 ### Complete Example
 
@@ -109,6 +109,7 @@ _ROW_RE = re.compile(
 ```
 
 **Groups**:
+
 1. Index (integer)
 2. Status (string)
 3. Agent name (string, without backticks)
@@ -133,6 +134,7 @@ When parsing old format, `model` defaults to `""` (renders as "TBD" on next re-r
 **Input**: List of `AgentStep` objects (each with `index`, `status`, `agent_name`, `model`, `state`)
 
 **Output**: Markdown string containing:
+
 1. Empty line
 2. `---` separator
 3. Empty line

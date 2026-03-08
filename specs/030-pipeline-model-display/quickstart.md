@@ -39,7 +39,7 @@ pip install -e ".[dev]"
 
 ### Phase 2: Extract Model from AgentAssignment (FR-001, FR-002, FR-007)
 
-2. **agent_tracking.py** — Update `build_agent_pipeline_steps()`
+1. **agent_tracking.py** — Update `build_agent_pipeline_steps()`
    - After extracting `agent_slug`, extract model name from `agent.config`
    - Logic: `model = agent.config.get("model_name", "") if isinstance(agent.config, dict) else ""`
    - Pass `model` to `AgentStep` constructor
@@ -48,7 +48,7 @@ pip install -e ".[dev]"
 
 ### Phase 3: Render Model Column (FR-001, FR-002, FR-003, FR-008)
 
-3. **agent_tracking.py** — Update `render_tracking_markdown()`
+1. **agent_tracking.py** — Update `render_tracking_markdown()`
    - Update table header to include "Model" column
    - Update table separator row
    - For each step, render `step.model or "TBD"` in the Model column
@@ -59,7 +59,7 @@ pip install -e ".[dev]"
 
 ### Phase 4: Parse Model Column (FR-004, FR-006)
 
-4. **agent_tracking.py** — Update `_ROW_RE` regex and `parse_tracking_from_body()`
+1. **agent_tracking.py** — Update `_ROW_RE` regex and `parse_tracking_from_body()`
    - Update `_ROW_RE` to match both 4-column and 5-column formats
    - Strategy: Use a regex that matches the new 5-column format, plus a separate fallback for old format
    - Populate `AgentStep.model` from parsed data (or `""` for old format)
@@ -68,7 +68,7 @@ pip install -e ".[dev]"
 
 ### Phase 5: Update Tests
 
-5. **test_agent_tracking.py** — Update all test cases
+1. **test_agent_tracking.py** — Update all test cases
    - Update `SAMPLE_BODY` to use new 5-column format
    - Add old-format `SAMPLE_BODY_LEGACY` for backward compatibility tests
    - Update `TestBuildAgentPipelineSteps` to verify model extraction
