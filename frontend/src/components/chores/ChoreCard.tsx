@@ -188,9 +188,6 @@ export function ChoreCard({
             </p>
           </div>
 
-          {triggerLabel && (
-            <span className="solar-chip shrink-0 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]">
-              {triggerLabel}
           <div className="flex flex-col items-end gap-2">
             {triggerLabel && (
               <span className="shrink-0 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-primary">
