@@ -14,7 +14,7 @@ The following existing endpoints are called after the user confirms an action. T
 
 ### Delete Agent
 
-```
+```text
 DELETE /api/v1/agents/{project_id}/{agent_id}
 ```
 
@@ -25,6 +25,7 @@ DELETE /api/v1/agents/{project_id}/{agent_id}
 **Request**: No body required.
 
 **Response** (200 OK):
+
 ```json
 {
   "agent": { /* deleted AgentConfig object */ },
@@ -37,7 +38,7 @@ DELETE /api/v1/agents/{project_id}/{agent_id}
 
 ### Clear Pending Agents
 
-```
+```text
 DELETE /api/v1/agents/{project_id}/pending
 ```
 
@@ -48,6 +49,7 @@ DELETE /api/v1/agents/{project_id}/pending
 **Request**: No body required.
 
 **Response** (200 OK):
+
 ```json
 {
   "deleted_count": 3
@@ -58,7 +60,7 @@ DELETE /api/v1/agents/{project_id}/pending
 
 ### Delete Chore
 
-```
+```text
 DELETE /api/v1/chores/{project_id}/{chore_id}
 ```
 
@@ -69,6 +71,7 @@ DELETE /api/v1/chores/{project_id}/{chore_id}
 **Request**: No body required.
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true
@@ -79,7 +82,7 @@ DELETE /api/v1/chores/{project_id}/{chore_id}
 
 ### Delete Pipeline
 
-```
+```text
 DELETE /api/v1/pipelines/{project_id}
 ```
 
@@ -90,6 +93,7 @@ DELETE /api/v1/pipelines/{project_id}
 **Request**: No body required.
 
 **Response** (200 OK):
+
 ```json
 {
   "success": true
