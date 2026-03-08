@@ -167,6 +167,27 @@ async def send_message(
 
     selected_project_id = session.selected_project_id
 
+    # Validate pipeline_id if provided
+    if chat_request.pipeline_id:
+        from src.services.database import get_db
+        from src.services.pipelines.service import PipelineService
+
+        try:
+            db = get_db()
+            pipeline_svc = PipelineService(db)
+            pipeline = await pipeline_svc.get_pipeline(
+                selected_project_id, chat_request.pipeline_id
+            )
+            if pipeline is None:
+                raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}")
+        except ValidationError:
+            raise
+        except Exception as exc:
+            logger.warning(
+                "Pipeline validation failed for pipeline_id=%s: %s", chat_request.pipeline_id, exc
+            )
+            raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}") from exc
+
     # Try to get AI service (optional)
     try:
         ai_service = get_ai_agent_service()
@@ -285,6 +306,8 @@ async def send_message(
                 metadata_context=metadata_context,
             )
 
+            recommendation.selected_pipeline_id = chat_request.pipeline_id or None
+
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
 
@@ -328,6 +351,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "status": RecommendationStatus.PENDING.value,
                     "ai_enhance": chat_request.ai_enhance,
                     "file_urls": chat_request.file_urls,
+                    "pipeline_id": chat_request.pipeline_id,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -884,12 +908,30 @@ async def upload_file(
     # For now, store files in a temporary upload directory and serve via a local URL.
     # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
     upload_id = str(uuid4())[:8]
-    safe_filename = f"{upload_id}-{file.filename}"
+    # Sanitise the original filename to prevent path-traversal attacks:
+    # strip null bytes first (could confuse Path parsing on some platforms),
+    # then strip directory components so e.g. "../../etc/passwd" becomes "passwd".
+    cleaned = file.filename.replace("\x00", "")
+    basename = Path(cleaned).name
+    if not basename:
+        basename = "upload"
+    safe_filename = f"{upload_id}-{basename}"
 
     # Store in a temporary directory
     upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
     file_path = upload_dir / safe_filename
+
+    # Verify resolved path stays inside upload_dir (defense-in-depth)
+    if not file_path.resolve().is_relative_to(upload_dir.resolve()):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "filename": file.filename,
+                "error": "Invalid filename",
+                "error_code": "invalid_filename",
+            },
+        )
 
     file_path.write_bytes(content)
 

@@ -109,10 +109,6 @@ export function PipelineBoard({
               value={editNameValue}
               onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
               onBlur={() => {
-                if (isEditMode) {
-                  handleNameConfirm();
-                  return;
-                }
                 handleNameConfirm();
               }}
               onKeyDown={(e) => {
@@ -180,10 +176,6 @@ export function PipelineBoard({
             value={editNameValue}
             onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
             onBlur={() => {
-              if (isEditMode) {
-                handleNameConfirm();
-                return;
-              }
               handleNameConfirm();
             }}
             onKeyDown={(e) => {

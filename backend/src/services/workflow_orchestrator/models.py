@@ -93,6 +93,7 @@ class WorkflowContext:
     repository_owner: str = ""
     repository_name: str = ""
     recommendation_id: str | None = None
+    selected_pipeline_id: str | None = None
     issue_id: str | None = None
     issue_number: int | None = None
     issue_url: str | None = None

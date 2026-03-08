@@ -205,6 +205,10 @@ class IssueRecommendation(BaseModel):
     technical_notes: str = Field(
         default="", description="Implementation hints and architecture considerations"
     )
+    selected_pipeline_id: str | None = Field(
+        default=None,
+        description="Optional saved pipeline selected when the recommendation was created",
+    )
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
         description="AI-generated issue metadata (priority, size, dates, labels)",
@@ -230,6 +234,7 @@ class IssueRecommendation(BaseModel):
                     "System MUST include timestamps in ISO 8601 format",
                 ],
                 "technical_notes": "Use streaming CSV response for large datasets. Rate-limit exports to 5 per minute per user.",
+                "selected_pipeline_id": "pipeline-123",
                 "metadata": {
                     "priority": "P2",
                     "size": "M",

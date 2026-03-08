@@ -11,10 +11,16 @@ import logging
 from datetime import UTC
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
+from src.exceptions import (
+    AppException,
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -88,19 +94,13 @@ async def initiate_signal_link(
     # Check for existing active connection
     existing = await get_connection_by_user(session.github_user_id)
     if existing and existing.status == SignalConnectionStatus.CONNECTED:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User already has an active Signal connection",
-        )
+        raise AppException("User already has an active Signal connection", status_code=409)
 
     try:
         qr_base64 = await request_qr_code_base64(body.device_name)
     except Exception as e:
         logger.error("Failed to request QR code from signal-api: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to generate QR code from Signal service",
-        ) from e
+        raise AppException("Failed to generate QR code from Signal service", status_code=502) from e
 
     return SignalLinkResponse(
         qr_code_base64=qr_base64,
@@ -139,9 +139,9 @@ async def check_signal_link_status(
         phone_hash = _hash_phone(phone)
         existing_for_phone = await get_connection_by_phone_hash(phone_hash)
         if existing_for_phone and existing_for_phone.github_user_id != session.github_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This Signal number is already linked to another account",
+            raise AppException(
+                "This Signal number is already linked to another account",
+                status_code=409,
             )
 
         # Create the connection record
@@ -179,10 +179,7 @@ async def disconnect_signal(
     """Disconnect Signal account and purge PII. FR-003, FR-014."""
     deleted = await disconnect_and_purge(session.github_user_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No Signal connection exists",
-        )
+        raise NotFoundError("No Signal connection exists")
     return {"message": "Signal account disconnected"}
 
 
@@ -196,10 +193,7 @@ async def get_signal_preferences(
     """Get Signal notification preferences. FR-007."""
     conn = await get_connection_by_user(session.github_user_id)
     if not conn:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No Signal connection exists",
-        )
+        raise NotFoundError("No Signal connection exists")
     return SignalPreferencesResponse(notification_mode=conn.notification_mode)
 
 
@@ -215,10 +209,7 @@ async def update_signal_preferences(
 
     conn = await get_connection_by_user(session.github_user_id)
     if not conn:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No Signal connection exists",
-        )
+        raise NotFoundError("No Signal connection exists")
 
     db = get_db()
     now = datetime.now(UTC).isoformat()
@@ -259,10 +250,7 @@ async def dismiss_signal_banner(
     """Dismiss a conflict banner. FR-015."""
     dismissed = await dismiss_banner(banner_id, session.github_user_id)
     if not dismissed:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Banner not found",
-        )
+        raise NotFoundError("Banner not found")
     return {"message": "Banner dismissed"}
 
 
@@ -281,33 +269,21 @@ async def handle_inbound_signal_message(
     """
     settings = get_settings()
     if not settings.signal_webhook_secret:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Signal webhook not configured",
-        )
+        raise AppException("Signal webhook not configured", status_code=503)
     if x_signal_secret is None or not hmac.compare_digest(
         x_signal_secret, settings.signal_webhook_secret
     ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid webhook secret",
-        )
+        raise AuthorizationError("Invalid webhook secret")
 
     source = body.source_number
     phone_hash = _hash_phone(source)
 
     conn = await get_connection_by_phone_hash(phone_hash)
     if not conn:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Unlinked sender",
-        )
+        raise ValidationError("Unlinked sender")
 
     if body.has_attachment and not body.message_text:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Only text messages are supported",
-        )
+        raise ValidationError("Only text messages are supported")
 
     chat_message_id = await store_inbound_message(
         conn, body.message_text, conn.last_active_project_id
