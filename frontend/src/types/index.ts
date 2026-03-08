@@ -652,6 +652,12 @@ export interface LinkedPR {
   url: string;
 }
 
+export interface BoardLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface SubIssue {
   id: string;
   number: number;
@@ -680,6 +686,10 @@ export interface BoardItem {
   estimate?: number;
   linked_prs: LinkedPR[];
   sub_issues: SubIssue[];
+  labels: BoardLabel[];
+  created_at?: string;
+  updated_at?: string;
+  milestone?: string;
 }
 
 export interface BoardColumn {

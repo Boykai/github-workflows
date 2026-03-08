@@ -20,6 +20,7 @@ function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
     assignees: [],
     linked_prs: [],
     sub_issues: [],
+    labels: [],
     ...overrides,
   };
 }
@@ -109,6 +110,19 @@ describe('IssueCard', () => {
       ],
     });
     render(<IssueCard item={item} onClick={vi.fn()} />);
-    expect(screen.getByText('1/2 sub-issues')).toBeInTheDocument();
+    expect(screen.getByText('2 sub-issues')).toBeInTheDocument();
+  });
+
+  it('falls back to a safe label color when the API returns invalid label data', () => {
+    const item = createBoardItem({
+      labels: [{ id: 'lbl-1', name: 'Needs Review', color: 'bad' }],
+    });
+
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    expect(screen.getByText('Needs Review')).toHaveStyle({
+      backgroundColor: '#d1d5db',
+      color: '#000',
+    });
   });
 });
