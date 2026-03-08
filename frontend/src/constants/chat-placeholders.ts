@@ -8,7 +8,7 @@
 
 /** Configuration for a single chat input's placeholder text. */
 export interface ChatPlaceholderConfig {
-  /** Full placeholder text for desktop viewports (≥640px) */
+  /** Full placeholder text for desktop viewports (≥640px, Tailwind `sm` breakpoint) */
   desktop: string;
   /** Shortened placeholder text for mobile viewports (<640px) */
   mobile: string;

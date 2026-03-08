@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Cycles through an array of placeholder strings at a configurable interval.
@@ -17,30 +17,33 @@ export function useCyclingPlaceholder(
   const intervalMs = options?.intervalMs ?? 5000;
   const enabled = options?.enabled ?? true;
   const [index, setIndex] = useState(0);
-  const prefersReducedMotion = useRef(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  // Check reduced motion preference once on mount
+  // Listen for reduced motion preference changes
   useEffect(() => {
-    prefersReducedMotion.current =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
   }, []);
 
   useEffect(() => {
-    if (!enabled || prefersReducedMotion.current || prompts.length <= 1) return;
+    if (!enabled || prefersReducedMotion || prompts.length <= 1) return;
 
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % prompts.length);
     }, intervalMs);
 
     return () => clearInterval(timer);
-  }, [prompts.length, intervalMs, enabled]);
+  }, [prompts.length, intervalMs, enabled, prefersReducedMotion]);
 
   // Reset to 0 when disabled so the cycle restarts cleanly
   useEffect(() => {
     if (!enabled) setIndex(0);
   }, [enabled]);
 
-  if (prefersReducedMotion.current) return prompts[0] ?? '';
+  if (prefersReducedMotion) return prompts[0] ?? '';
   return prompts[index] ?? '';
 }

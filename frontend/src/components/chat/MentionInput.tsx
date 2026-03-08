@@ -256,7 +256,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
               <>
                 <span className="max-sm:hidden">
                   {cyclingPlaceholder ? (
-                    <span key={cyclingPlaceholder} className="inline-block transition-opacity duration-300">{cyclingPlaceholder}</span>
+                    <span key={cyclingPlaceholder} className="inline-block animate-[fadeIn_0.3s_ease-in]">{cyclingPlaceholder}</span>
                   ) : (
                     placeholder
                   )}
