@@ -21,14 +21,14 @@
 
 **Task**: Determine how to handle existing GitHub issues that have the old 4-column pipeline table (without Model column) when parsing.
 
-**Decision**: Update the row-parsing regex `_ROW_RE` to make the Model column optional. The current regex matches `| 1 | Status | `agent` | State |`. The updated regex will match both `| 1 | Status | `agent` | State |` (old format) and `| 1 | Status | `agent` | Model | State |` (new format). When parsing an old table, the model field defaults to `""`. This ensures that `parse_tracking_from_body()`, `get_current_agent_from_tracking()`, `get_next_pending_agent()`, and `determine_next_action()` all continue to work on issues created before this change.
+**Decision**: Use two row-parsing regexes to support both table formats: `_ROW_RE` for the new 5-column format and `_ROW_RE_OLD` for the legacy 4-column format (without Model). The parser first attempts to match `_ROW_RE` (e.g., `| 1 | Status | `agent` | Model | State |`); if that fails, it falls back to `_ROW_RE_OLD` (e.g., `| 1 | Status | `agent` | State |`). When an old-format row is matched, the model field is set to `""`. This ensures that `parse_tracking_from_body()`, `get_current_agent_from_tracking()`, `get_next_pending_agent()`, and `determine_next_action()` all continue to work on issues created before this change.
 
-**Rationale**: There will be a transition period where both old (4-column) and new (5-column) tables exist in GitHub issues. The polling loop (`determine_next_action()`) reads the tracking table on every cycle — it must handle both formats. Making the Model column optional in the regex is the simplest approach and requires no migration of existing issues. When old issues are updated (e.g., agent marked active/done via `update_agent_state()`), the table will be re-rendered with the new format, naturally migrating it forward.
+**Rationale**: There will be a transition period where both old (4-column) and new (5-column) tables exist in GitHub issues. The polling loop (`determine_next_action()`) reads the tracking table on every cycle — it must handle both formats. Using two explicit regexes keeps the parsing logic straightforward and makes it easy to reason about and test each format separately. When old issues are updated (e.g., agent marked active/done via `update_agent_state()`), the table will be re-rendered with the new format, naturally migrating it forward.
 
 **Alternatives Considered**:
-- **Separate regex for old vs. new format**: Rejected — adds complexity with two code paths. A single regex with an optional group is cleaner.
+- **Single regex with optional Model column**: Considered but rejected — while it reduces the number of regex definitions, it makes the pattern harder to read and debug. Explicit regexes for each format keep the code paths clear and align better with the existing tests and tasks.
 - **Migration script to update all existing issues**: Rejected — over-engineered. Issues are naturally migrated when their tracking table is re-rendered during pipeline state changes. No manual migration needed.
-- **Version marker in the tracking section**: Rejected — adds metadata that serves no purpose beyond parsing. The regex handles both formats transparently.
+- **Version marker in the tracking section**: Rejected — adds metadata that serves no purpose beyond parsing. The regexes handle both formats transparently.
 
 ---
 

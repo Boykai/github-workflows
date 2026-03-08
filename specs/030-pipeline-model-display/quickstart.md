@@ -106,13 +106,13 @@ def _format_model_for_table(model: str) -> str:
 
 ```python
 # New 5-column format
-_ROW_RE_NEW = re.compile(
-    r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|"
+_ROW_RE = re.compile(
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
 )
 
 # Old 4-column format (fallback)
 _ROW_RE_OLD = re.compile(
-    r"\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|"
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|"
 )
 ```
 
