@@ -25,7 +25,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
     [onDismiss]
   );
 
-  useScrollLock(true);
+  useScrollLock(Boolean(result || error));
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
