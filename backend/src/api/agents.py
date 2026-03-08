@@ -8,9 +8,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
 from src.exceptions import GitHubAPIError, NotFoundError, ValidationError
 from src.logging_utils import handle_service_error
-from src.dependencies import verify_project_access
 from src.middleware.rate_limit import limiter
 from src.models.agents import (
     Agent,
@@ -178,7 +178,7 @@ async def create_agent(
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        handle_service_error(exc, "Agent creation failed", GitHubAPIError)
+        handle_service_error(exc, "create agent", GitHubAPIError)
 
 
 # ── Update (P3) ──
@@ -256,7 +256,7 @@ async def delete_agent(
     except LookupError as exc:
         raise NotFoundError(str(exc)) from exc
     except RuntimeError as exc:
-        handle_service_error(exc, "Agent deletion failed", GitHubAPIError)
+        handle_service_error(exc, "delete agent", GitHubAPIError)
 
 
 # ── Chat ──
@@ -285,7 +285,7 @@ async def agent_chat(
             access_token=session.access_token,
         )
     except Exception as exc:
-        handle_service_error(exc, "Chat completion failed", GitHubAPIError)
+        handle_service_error(exc, "complete agent chat", GitHubAPIError)
 
 
 # ── Agent-Tool Associations ──

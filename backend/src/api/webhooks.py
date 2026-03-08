@@ -9,7 +9,7 @@ from typing import Any
 from fastapi import APIRouter, Header, Request
 
 from src.config import get_settings
-from src.exceptions import AuthenticationError, ValidationError
+from src.exceptions import AppException, AuthenticationError
 from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
@@ -238,7 +238,7 @@ async def github_webhook(
         payload = await request.json()
     except Exception as e:
         logger.error("Failed to parse webhook payload: %s", e)
-        raise ValidationError("Invalid JSON payload") from e
+        raise AppException("Invalid JSON payload", status_code=400) from e
 
     logger.info(
         "Received GitHub webhook: event=%s, delivery=%s",
