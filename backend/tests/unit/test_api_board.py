@@ -234,7 +234,9 @@ class TestBoardCachePerformance:
             # Verify cache.set is called with ttl_seconds=300
             mock_cache.set.assert_called_once()
             _, kwargs = mock_cache.set.call_args
-            assert kwargs.get("ttl_seconds") == 300 or mock_cache.set.call_args[0][2:] == ()
+            assert kwargs.get("ttl_seconds") == 300, (
+                f"Expected ttl_seconds=300, got {kwargs}"
+            )
 
     async def test_manual_refresh_bypasses_cache(self, client, mock_github_service):
         """Manual refresh (refresh=true) should skip cache lookup entirely."""
