@@ -110,7 +110,7 @@ export function StageCard({
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
         <Tooltip contentKey="pipeline.stage.lockIcon">
-          <span aria-label="Stage position is locked">
+          <span role="img" aria-label="Stage position is locked">
             <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
           </span>
         </Tooltip>

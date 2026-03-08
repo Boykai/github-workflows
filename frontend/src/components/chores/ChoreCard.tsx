@@ -173,6 +173,7 @@ export function ChoreCard({
                   type="button"
                   onClick={handleToggleStatus}
                   disabled={updateMutation.isPending}
+                  aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
                     chore.status === 'active'
                       ? 'solar-chip-success'
@@ -223,6 +224,7 @@ export function ChoreCard({
               type="button"
               onClick={handleToggleAiEnhance}
               disabled={updateMutation.isPending}
+              aria-label={`AI Enhance: ${currentAiEnhance ? 'ON' : 'OFF'}`}
               className={cn(
                 'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
                 currentAiEnhance

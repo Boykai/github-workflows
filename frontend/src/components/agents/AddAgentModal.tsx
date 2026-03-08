@@ -375,39 +375,39 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
           <form id="agent-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
+              <label htmlFor="agent-name" className="mb-1.5 block text-sm font-medium">
+                Name
+              </label>
               <Tooltip contentKey="agents.modal.nameField" side="right">
-                <label htmlFor="agent-name" className="mb-1.5 block text-sm font-medium">
-                  Name
-                </label>
+                <input
+                  id="agent-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g., Security Reviewer"
+                  className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
+                  maxLength={100}
+                />
               </Tooltip>
-              <input
-                id="agent-name"
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g., Security Reviewer"
-                className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
-                maxLength={100}
-              />
             </div>
 
             <div>
+              <label htmlFor="agent-system-prompt" className="mb-1.5 block text-sm font-medium">
+                System Prompt
+                <span className="ml-2 font-normal text-muted-foreground">
+                  {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
+                </span>
+              </label>
               <Tooltip contentKey="agents.modal.systemPrompt" side="right">
-                <label htmlFor="agent-system-prompt" className="mb-1.5 block text-sm font-medium">
-                  System Prompt
-                  <span className="ml-2 font-normal text-muted-foreground">
-                    {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
-                  </span>
-                </label>
+                <textarea
+                  id="agent-system-prompt"
+                  value={systemPrompt}
+                  onChange={(event) => setSystemPrompt(event.target.value)}
+                  placeholder="Detailed instructions for the agent's behavior..."
+                  className="min-h-[220px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
+                  maxLength={MAX_PROMPT_LENGTH}
+                />
               </Tooltip>
-              <textarea
-                id="agent-system-prompt"
-                value={systemPrompt}
-                onChange={(event) => setSystemPrompt(event.target.value)}
-                placeholder="Detailed instructions for the agent's behavior..."
-                className="min-h-[220px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
-                maxLength={MAX_PROMPT_LENGTH}
-              />
             </div>
 
             <div>
@@ -425,9 +425,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             </div>
 
             <div>
-              <Tooltip contentKey="agents.modal.toolsEditor" side="right">
-                <span className="mb-1 block text-sm font-medium">MCP Tools</span>
-              </Tooltip>
+              <span className="mb-1 block text-sm font-medium">MCP Tools</span>
               {isEditMode ? (
                 <ToolsEditor
                   tools={selectedToolIds}
