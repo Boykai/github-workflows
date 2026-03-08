@@ -914,3 +914,49 @@ class TestErrorMessageSanitization:
         assert "token expired" not in str(body)
         assert "12345" not in str(body)
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+
+# ── POST /chat/upload — path-traversal regression ──────────────────────────
+
+
+class TestUploadFilePathTraversal:
+    """Regression tests for path-traversal vulnerability in file upload (bug-bash)."""
+
+    async def test_path_traversal_filename_is_sanitised(self, client):
+        """A filename containing '../' should be stripped to its base component."""
+        import io
+
+        file_content = b"harmless"
+        resp = await client.post(
+            "/api/v1/chat/upload",
+            files={"file": ("../../etc/passwd.txt", io.BytesIO(file_content), "text/plain")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        # The traversal components must not appear in the returned URL
+        assert "../" not in body["file_url"]
+        assert "passwd.txt" in body["file_url"]
+
+    async def test_normal_filename_accepted(self, client):
+        """A simple filename should be accepted without modification."""
+        import io
+
+        file_content = b"hello"
+        resp = await client.post(
+            "/api/v1/chat/upload",
+            files={"file": ("report.txt", io.BytesIO(file_content), "text/plain")},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "report.txt" in body["file_url"]
+        assert body["filename"] == "report.txt"
+
+    async def test_blocked_type_rejected(self, client):
+        """Executable file extensions should be rejected."""
+        import io
+
+        resp = await client.post(
+            "/api/v1/chat/upload",
+            files={"file": ("malware.exe", io.BytesIO(b"\x00"), "application/octet-stream")},
+        )
+        assert resp.status_code == 415

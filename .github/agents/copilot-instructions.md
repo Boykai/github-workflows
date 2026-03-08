@@ -148,6 +148,8 @@ npx playwright test
 - GitHub API (GraphQL + REST) with in-memory caching (backend), localStorage (frontend persistence) (029-board-hierarchy-filters)
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
+- Python >=3.12 (tooling targets 3.13) for backend; TypeScript ~5.9 / React 19 for frontend + FastAPI >=0.135, aiosqlite, githubkit, Pydantic >=2.12 (backend); React 19, TanStack Query, Tailwind CSS 4, dnd-kit (frontend) (030-bug-basher)
+- SQLite via aiosqlite (WAL mode, single persistent connection) (030-bug-basher)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (030-fix-chore-issue-counter)
 - SQLite with WAL mode (aiosqlite) — no schema changes required. Existing `chores` table fields (`last_triggered_count`, `schedule_value`, `schedule_type`) are sufficient. (030-fix-chore-issue-counter)
 - Python 3.13 (backend) + FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (030-pipeline-model-display)

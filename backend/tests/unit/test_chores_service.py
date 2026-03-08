@@ -601,3 +601,35 @@ class TestCommitTemplateExistingBranch:
         # commit_files should be called with the default branch HEAD
         commit_call = mock_github.commit_files.call_args
         assert commit_call[0][4] == "default-oid"
+
+
+# =============================================================================
+# Column whitelist regression (bug-bash)
+# =============================================================================
+
+
+class TestUpdateChoreFieldsColumnWhitelist:
+    """Regression test: update_chore_fields must reject unknown column names."""
+
+    async def test_rejects_unknown_columns(self, mock_db):
+        from src.services.chores.service import ChoresService
+
+        svc = ChoresService(mock_db)
+        with pytest.raises(ValueError, match="Invalid update columns"):
+            await svc.update_chore_fields("some-id", evil_column="DROP TABLE chores")
+
+    async def test_accepts_valid_columns_used_by_callers(self, mock_db):
+        """Columns actually passed by create_chore/inline_update must be accepted."""
+        from src.services.chores.service import ChoresService
+
+        svc = ChoresService(mock_db)
+        # These are the exact kwargs used by the API layer (chores.py create_chore)
+        # and by inline_update_chore in service.py. They must NOT be rejected.
+        # If the whitelist rejects a column, update_chore_fields raises ValueError,
+        # so reaching the end of this call without an exception proves acceptance.
+        await svc.update_chore_fields(
+            "some-id",
+            pr_number=42,
+            pr_url="https://github.com/owner/repo/pull/42",
+            tracking_issue_number=7,
+        )
