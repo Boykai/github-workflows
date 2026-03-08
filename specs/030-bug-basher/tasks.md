@@ -39,10 +39,10 @@
 
 **⚠️ CRITICAL**: No bug fix work can begin until this phase is complete.
 
-- [ ] T006 Catalog all backend source files to audit: 18 API modules in `backend/src/api/`, 7 core modules in `backend/src/`, 18 model files in `backend/src/models/`, all service files in `backend/src/services/` (47 files across 6 subdirectories), and 19 migration files in `backend/src/migrations/`
-- [ ] T007 [P] Catalog all frontend source files to audit: 9 pages in `frontend/src/pages/`, 30 hooks in `frontend/src/hooks/`, 1 API service in `frontend/src/services/api.ts`, and all components in `frontend/src/components/` (agents/, board/, chat/, chores/, common/, pipeline/, settings/, tools/, ui/)
-- [ ] T008 [P] Catalog all test files to audit: 43 unit tests in `backend/tests/unit/`, 3 integration tests in `backend/tests/integration/`, test helpers in `backend/tests/helpers/`, and all co-located frontend test files (`*.test.tsx`, `*.test.ts`)
-- [ ] T009 Review known issues from `specs/030-bug-basher/research.md` (R-001 through R-008) and integrate findings into the audit plan
+- [x] T006 Catalog all backend source files to audit: 18 API modules in `backend/src/api/`, 7 core modules in `backend/src/`, 18 model files in `backend/src/models/`, all service files in `backend/src/services/` (47 files across 6 subdirectories), and 19 migration files in `backend/src/migrations/`
+- [x] T007 [P] Catalog all frontend source files to audit: 9 pages in `frontend/src/pages/`, 30 hooks in `frontend/src/hooks/`, 1 API service in `frontend/src/services/api.ts`, and all components in `frontend/src/components/` (agents/, board/, chat/, chores/, common/, pipeline/, settings/, tools/, ui/)
+- [x] T008 [P] Catalog all test files to audit: 43 unit tests in `backend/tests/unit/`, 3 integration tests in `backend/tests/integration/`, test helpers in `backend/tests/helpers/`, and all co-located frontend test files (`*.test.tsx`, `*.test.ts`)
+- [x] T009 Review known issues from `specs/030-bug-basher/research.md` (R-001 through R-008) and integrate findings into the audit plan
 
 **Checkpoint**: File audit catalog complete — bug fix work can now begin in priority order.
 
@@ -56,13 +56,13 @@
 
 ### Backend API Security Audit
 
-- [ ] T010 [P] [US1] Audit authentication and authorization logic in `backend/src/api/auth.py` — check for auth bypasses, token validation gaps, session fixation
-- [ ] T011 [P] [US1] Audit webhook signature verification in `backend/src/api/webhooks.py` — check for timing attacks, missing signature validation
+- [x] T010 [P] [US1] Audit authentication and authorization logic in `backend/src/api/auth.py` — check for auth bypasses, token validation gaps, session fixation
+- [x] T011 [P] [US1] Audit webhook signature verification in `backend/src/api/webhooks.py` — check for timing attacks, missing signature validation
 - [x] T012 [P] [US1] Audit chat endpoint input handling in `backend/src/api/chat.py` — check for injection risks, file upload validation, path traversal in temp file handling
-- [ ] T013 [P] [US1] Audit agent endpoints in `backend/src/api/agents.py` — check for input validation, authorization on bulk operations
-- [ ] T014 [P] [US1] Audit workflow endpoints in `backend/src/api/workflow.py` — check for input validation, auth checks on workflow actions
-- [ ] T015 [P] [US1] Audit settings endpoints in `backend/src/api/settings.py` — check for sensitive data exposure, authorization on settings changes
-- [ ] T016 [P] [US1] Audit signal endpoints in `backend/src/api/signal.py` — check for input validation, phone number handling
+- [x] T013 [P] [US1] Audit agent endpoints in `backend/src/api/agents.py` — check for input validation, authorization on bulk operations
+- [x] T014 [P] [US1] Audit workflow endpoints in `backend/src/api/workflow.py` — check for input validation, auth checks on workflow actions
+- [x] T015 [P] [US1] Audit settings endpoints in `backend/src/api/settings.py` — check for sensitive data exposure, authorization on settings changes
+- [x] T016 [P] [US1] Audit signal endpoints in `backend/src/api/signal.py` — check for input validation, phone number handling
 - [x] T017 [P] [US1] Audit board, projects, tasks, tools, mcp, pipelines, chores, cleanup, health, metadata endpoints in `backend/src/api/board.py`, `backend/src/api/projects.py`, `backend/src/api/tasks.py`, `backend/src/api/tools.py`, `backend/src/api/mcp.py`, `backend/src/api/pipelines.py`, `backend/src/api/chores.py`, `backend/src/api/cleanup.py`, `backend/src/api/health.py`, `backend/src/api/metadata.py`
 
 ### Backend Core & Config Security Audit
@@ -75,22 +75,22 @@
 
 ### Backend Service Security Audit
 
-- [ ] T023 [P] [US1] Audit AI agent service for prompt injection and input sanitization in `backend/src/services/ai_agent.py`
+- [x] T023 [P] [US1] Audit AI agent service for prompt injection and input sanitization in `backend/src/services/ai_agent.py`
 - [x] T024 [P] [US1] Audit database service for SQL injection risks in `backend/src/services/database.py` — check parameterized queries, migration runner safety
-- [ ] T025 [P] [US1] Audit signal chat and bridge services for input validation in `backend/src/services/signal_chat.py` and `backend/src/services/signal_bridge.py`
+- [x] T025 [P] [US1] Audit signal chat and bridge services for input validation in `backend/src/services/signal_chat.py` and `backend/src/services/signal_bridge.py`
 - [x] T026 [P] [US1] Audit settings store for sensitive data handling in `backend/src/services/settings_store.py`
 - [x] T027 [P] [US1] Audit MCP store for input validation in `backend/src/services/mcp_store.py`
 
 ### Frontend Security Audit
 
 - [x] T028 [P] [US1] Audit API client for token handling and request security in `frontend/src/services/api.ts` — check for token exposure in URLs, missing auth headers, insecure storage
-- [ ] T029 [P] [US1] Audit auth hook and login flow in `frontend/src/hooks/useAuth.ts` and `frontend/src/components/auth/LoginButton.tsx` — check for OAuth state validation, token storage security
-- [ ] T030 [P] [US1] Audit chat interface for XSS risks in rendered content in `frontend/src/components/chat/MessageBubble.tsx`, `frontend/src/components/chat/ChatInterface.tsx` — check for unsafe HTML rendering, markdown injection
+- [x] T029 [P] [US1] Audit auth hook and login flow in `frontend/src/hooks/useAuth.ts` and `frontend/src/components/auth/LoginButton.tsx` — check for OAuth state validation, token storage security
+- [x] T030 [P] [US1] Audit chat interface for XSS risks in rendered content in `frontend/src/components/chat/MessageBubble.tsx`, `frontend/src/components/chat/ChatInterface.tsx` — check for unsafe HTML rendering, markdown injection
 
 ### Security Regression Tests
 
 - [x] T031 [US1] Add regression tests for each security fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
-- [ ] T032 [US1] Add regression tests for each security fix found in frontend — create test cases in appropriate co-located test files under `frontend/src/`
+- [x] T032 [US1] Add regression tests for each security fix found in frontend — create test cases in appropriate co-located test files under `frontend/src/`
 - [x] T033 [US1] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new security regression tests
 - [x] T034 [US1] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new security regression tests
 - [x] T035 [US1] Run backend linting (`ruff check src/ tests/`) and verify zero errors after security fixes
@@ -109,25 +109,25 @@
 ### Backend Runtime Error Audit
 
 - [x] T037 [P] [US2] Audit exception handling and resource management in `backend/src/services/database.py` — check for connection leaks, unclosed cursors, migration runner error paths
-- [ ] T038 [P] [US2] Audit GitHub Projects service for unhandled exceptions and resource management in `backend/src/services/github_projects/service.py` and `backend/src/services/github_projects/graphql.py` — check for uncaught GraphQL errors, pagination edge cases, null field access
+- [x] T038 [P] [US2] Audit GitHub Projects service for unhandled exceptions and resource management in `backend/src/services/github_projects/service.py` and `backend/src/services/github_projects/graphql.py` — check for uncaught GraphQL errors, pagination edge cases, null field access
 - [x] T039 [P] [US2] Audit agent service for method naming mismatches and incorrect calls in `backend/src/services/agents/service.py` — check `get_model_preferences()` vs `get_agent_preferences()` naming, `_save_runtime_model_selection()` vs `_save_runtime_preferences()` calls, `bulk_update_models()` method references
-- [ ] T040 [P] [US2] Audit copilot polling services for race conditions and error handling in `backend/src/services/copilot_polling/polling_loop.py`, `backend/src/services/copilot_polling/state.py`, `backend/src/services/copilot_polling/recovery.py`
+- [x] T040 [P] [US2] Audit copilot polling services for race conditions and error handling in `backend/src/services/copilot_polling/polling_loop.py`, `backend/src/services/copilot_polling/state.py`, `backend/src/services/copilot_polling/recovery.py`
 - [x] T041 [P] [US2] Audit websocket service for connection management and error handling in `backend/src/services/websocket.py`
 - [x] T042 [P] [US2] Audit cache service for expiry handling and concurrent access in `backend/src/services/cache.py`
-- [ ] T043 [P] [US2] Audit signal delivery service for error handling and retry logic in `backend/src/services/signal_delivery.py`
+- [x] T043 [P] [US2] Audit signal delivery service for error handling and retry logic in `backend/src/services/signal_delivery.py`
 
 ### Backend Logic Bug Audit
 
-- [ ] T044 [P] [US2] Audit workflow orchestrator for incorrect state transitions in `backend/src/services/workflow_orchestrator/orchestrator.py` and `backend/src/services/workflow_orchestrator/transitions.py`
-- [ ] T045 [P] [US2] Audit chores scheduler for timing logic bugs in `backend/src/services/chores/scheduler.py` and `backend/src/services/chores/counter.py`
+- [x] T044 [P] [US2] Audit workflow orchestrator for incorrect state transitions in `backend/src/services/workflow_orchestrator/orchestrator.py` and `backend/src/services/workflow_orchestrator/transitions.py`
+- [x] T045 [P] [US2] Audit chores scheduler for timing logic bugs in `backend/src/services/chores/scheduler.py` and `backend/src/services/chores/counter.py`
 - [x] T046 [P] [US2] Audit chores service for SQLite boolean handling and data consistency in `backend/src/services/chores/service.py`
 - [x] T047 [P] [US2] Audit completion providers for incorrect return values and edge cases in `backend/src/services/completion_providers.py`
-- [ ] T048 [P] [US2] Audit model fetcher for API call correctness in `backend/src/services/model_fetcher.py`
-- [ ] T049 [P] [US2] Audit cleanup service for logic correctness in `backend/src/services/cleanup_service.py`
-- [ ] T050 [P] [US2] Audit GitHub commit workflow for control flow correctness in `backend/src/services/github_commit_workflow.py`
-- [ ] T051 [P] [US2] Audit agent creator, agent tracking, and metadata services for logic correctness in `backend/src/services/agent_creator.py`, `backend/src/services/agent_tracking.py`, `backend/src/services/metadata_service.py`
+- [x] T048 [P] [US2] Audit model fetcher for API call correctness in `backend/src/services/model_fetcher.py`
+- [x] T049 [P] [US2] Audit cleanup service for logic correctness in `backend/src/services/cleanup_service.py`
+- [x] T050 [P] [US2] Audit GitHub commit workflow for control flow correctness in `backend/src/services/github_commit_workflow.py`
+- [x] T051 [P] [US2] Audit agent creator, agent tracking, and metadata services for logic correctness in `backend/src/services/agent_creator.py`, `backend/src/services/agent_tracking.py`, `backend/src/services/metadata_service.py`
 - [x] T052 [P] [US2] Audit pipeline service for logic bugs in `backend/src/services/pipelines/service.py`
-- [ ] T053 [P] [US2] Audit tools service for logic bugs in `backend/src/services/tools/service.py`
+- [x] T053 [P] [US2] Audit tools service for logic bugs in `backend/src/services/tools/service.py`
 
 ### Backend API Logic Audit
 
@@ -137,28 +137,28 @@
 
 ### Backend Model Validation Audit
 
-- [ ] T057 [P] [US2] Audit all Pydantic models for type safety and validation rules in `backend/src/models/` — check for missing validators, incorrect types, serialization issues across all 18 model files
+- [x] T057 [P] [US2] Audit all Pydantic models for type safety and validation rules in `backend/src/models/` — check for missing validators, incorrect types, serialization issues across all 18 model files
 
 ### Frontend Runtime Error Audit
 
-- [ ] T058 [P] [US2] Audit error boundary implementation in `frontend/src/components/common/ErrorBoundary.tsx` — check for uncaught promise rejections, missing error boundaries in page components
-- [ ] T059 [P] [US2] Audit null/undefined access patterns in board components in `frontend/src/components/board/ProjectBoard.tsx`, `frontend/src/components/board/BoardColumn.tsx`, `frontend/src/components/board/IssueCard.tsx`, `frontend/src/components/board/IssueDetailModal.tsx`
-- [ ] T060 [P] [US2] Audit hooks for stale closures and race conditions in `frontend/src/hooks/useProjectBoard.ts`, `frontend/src/hooks/useChat.ts`, `frontend/src/hooks/useRealTimeSync.ts`, `frontend/src/hooks/useBoardRefresh.ts`
+- [x] T058 [P] [US2] Audit error boundary implementation in `frontend/src/components/common/ErrorBoundary.tsx` — check for uncaught promise rejections, missing error boundaries in page components
+- [x] T059 [P] [US2] Audit null/undefined access patterns in board components in `frontend/src/components/board/ProjectBoard.tsx`, `frontend/src/components/board/BoardColumn.tsx`, `frontend/src/components/board/IssueCard.tsx`, `frontend/src/components/board/IssueDetailModal.tsx`
+- [x] T060 [P] [US2] Audit hooks for stale closures and race conditions in `frontend/src/hooks/useProjectBoard.ts`, `frontend/src/hooks/useChat.ts`, `frontend/src/hooks/useRealTimeSync.ts`, `frontend/src/hooks/useBoardRefresh.ts`
 - [x] T061 [P] [US2] Audit pipeline components for runtime errors in `frontend/src/components/pipeline/PipelineBoard.tsx`, `frontend/src/components/pipeline/PipelineFlowGraph.tsx`, `frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T062 [P] [US2] Audit chores components for runtime errors in `frontend/src/components/chores/ChoresPanel.tsx`, `frontend/src/components/chores/ChoreCard.tsx`, `frontend/src/components/chores/ChoreInlineEditor.tsx`
+- [x] T062 [P] [US2] Audit chores components for runtime errors in `frontend/src/components/chores/ChoresPanel.tsx`, `frontend/src/components/chores/ChoreCard.tsx`, `frontend/src/components/chores/ChoreInlineEditor.tsx`
 
 ### Frontend Logic Bug Audit
 
-- [ ] T063 [P] [US2] Audit board controls hook for filter/sort/group state management bugs in `frontend/src/hooks/useBoardControls.ts` — check localStorage persistence, state reset edge cases
-- [ ] T064 [P] [US2] Audit agent usage count computation for off-by-one or missing-count errors in `frontend/src/pages/AgentsPage.tsx` and `frontend/src/components/agents/AgentsPanel.tsx` — verify Featured Agents two-pass algorithm correctness
-- [ ] T065 [P] [US2] Audit settings form hooks for state management bugs in `frontend/src/hooks/useSettings.ts`, `frontend/src/hooks/useSettingsForm.ts`
-- [ ] T066 [P] [US2] Audit chat history hook for data consistency in `frontend/src/hooks/useChatHistory.ts`
-- [ ] T067 [P] [US2] Audit pipeline config hook for state management bugs in `frontend/src/hooks/usePipelineConfig.ts`
+- [x] T063 [P] [US2] Audit board controls hook for filter/sort/group state management bugs in `frontend/src/hooks/useBoardControls.ts` — check localStorage persistence, state reset edge cases
+- [x] T064 [P] [US2] Audit agent usage count computation for off-by-one or missing-count errors in `frontend/src/pages/AgentsPage.tsx` and `frontend/src/components/agents/AgentsPanel.tsx` — verify Featured Agents two-pass algorithm correctness
+- [x] T065 [P] [US2] Audit settings form hooks for state management bugs in `frontend/src/hooks/useSettings.ts`, `frontend/src/hooks/useSettingsForm.ts`
+- [x] T066 [P] [US2] Audit chat history hook for data consistency in `frontend/src/hooks/useChatHistory.ts`
+- [x] T067 [P] [US2] Audit pipeline config hook for state management bugs in `frontend/src/hooks/usePipelineConfig.ts`
 
 ### Runtime & Logic Regression Tests
 
 - [x] T068 [US2] Add regression tests for each runtime error and logic bug fix found in backend — create test functions in appropriate files under `backend/tests/unit/`
-- [ ] T069 [US2] Add regression tests for each runtime error and logic bug fix found in frontend — create test cases in appropriate co-located test files
+- [x] T069 [US2] Add regression tests for each runtime error and logic bug fix found in frontend — create test cases in appropriate co-located test files
 - [x] T070 [US2] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass including new regression tests
 - [x] T071 [US2] Run full frontend test suite (`npx vitest run`) and verify all tests pass including new regression tests
 - [x] T072 [US2] Run all linting checks (`ruff check src/ tests/` backend, `npx eslint src/ && npx tsc --noEmit` frontend) and verify zero errors
@@ -175,37 +175,37 @@
 
 ### Backend Test Quality Audit
 
-- [ ] T073 [P] [US3] Audit test helpers for mock leaks in `backend/tests/helpers/mocks.py` — check for MagicMock objects leaking into production paths (e.g., mock objects used as file paths, database URLs, or config values)
-- [ ] T074 [P] [US3] Audit test factories for correctness in `backend/tests/helpers/factories.py` — check that factory-generated test data matches production data shapes
-- [ ] T075 [P] [US3] Audit test assertions for tautological checks in `backend/tests/helpers/assertions.py` — check for assertions that can never fail
-- [ ] T076 [P] [US3] Audit conftest fixtures for shared state issues in `backend/tests/conftest.py` — check for fixture leaks between tests
-- [ ] T077 [P] [US3] Audit database and migration tests for mock leaks in `backend/tests/unit/test_database.py` — check that mock database paths don't leak into migration runner
-- [ ] T078 [P] [US3] Audit agent service tests for assertion quality in `backend/tests/unit/test_agents_service.py` — check that tests verify actual behavior, not just that mocks were called
-- [ ] T079 [P] [US3] Audit AI agent tests for coverage gaps in `backend/tests/unit/test_ai_agent.py` — check for untested error paths, missing edge cases in title generation and task creation
-- [ ] T080 [P] [US3] Audit API endpoint tests for coverage completeness in `backend/tests/unit/test_api_auth.py`, `backend/tests/unit/test_api_chat.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_api_workflow.py`, `backend/tests/unit/test_api_projects.py`, `backend/tests/unit/test_api_settings.py`, `backend/tests/unit/test_api_mcp.py`, `backend/tests/unit/test_api_tasks.py`
-- [ ] T081 [P] [US3] Audit chores tests for mock correctness in `backend/tests/unit/test_chores_service.py`, `backend/tests/unit/test_chores_scheduler.py`, `backend/tests/unit/test_chores_counter.py`, `backend/tests/unit/test_chores_api.py`
-- [ ] T082 [P] [US3] Audit remaining backend unit tests for assertion quality and mock leaks in `backend/tests/unit/test_config.py`, `backend/tests/unit/test_main.py`, `backend/tests/unit/test_middleware.py`, `backend/tests/unit/test_github_auth.py`, `backend/tests/unit/test_github_projects.py`, `backend/tests/unit/test_copilot_polling.py`, `backend/tests/unit/test_completion_providers.py`, `backend/tests/unit/test_webhooks.py`, `backend/tests/unit/test_websocket.py`, `backend/tests/unit/test_models.py`
-- [ ] T083 [P] [US3] Audit utility and infrastructure tests in `backend/tests/unit/test_utils.py`, `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_session_store.py`, `backend/tests/unit/test_settings_store.py`, `backend/tests/unit/test_token_encryption.py`, `backend/tests/unit/test_mcp_store.py`, `backend/tests/unit/test_cleanup_service.py`, `backend/tests/unit/test_logging_utils.py`
-- [ ] T084 [P] [US3] Audit edge-case and specialized tests in `backend/tests/unit/test_error_responses.py`, `backend/tests/unit/test_exceptions.py`, `backend/tests/unit/test_oauth_state.py`, `backend/tests/unit/test_auth_security.py`, `backend/tests/unit/test_completion_false_positive.py`, `backend/tests/unit/test_issue_creation_retry.py`, `backend/tests/unit/test_prompts.py`, `backend/tests/unit/test_recommendation_models.py`, `backend/tests/unit/test_module_boundaries.py`
-- [ ] T085 [P] [US3] Audit integration tests for correctness in `backend/tests/integration/test_custom_agent_assignment.py`, `backend/tests/integration/test_health_endpoint.py`, `backend/tests/integration/test_webhook_verification.py`
+- [x] T073 [P] [US3] Audit test helpers for mock leaks in `backend/tests/helpers/mocks.py` — check for MagicMock objects leaking into production paths (e.g., mock objects used as file paths, database URLs, or config values)
+- [x] T074 [P] [US3] Audit test factories for correctness in `backend/tests/helpers/factories.py` — check that factory-generated test data matches production data shapes
+- [x] T075 [P] [US3] Audit test assertions for tautological checks in `backend/tests/helpers/assertions.py` — check for assertions that can never fail
+- [x] T076 [P] [US3] Audit conftest fixtures for shared state issues in `backend/tests/conftest.py` — check for fixture leaks between tests
+- [x] T077 [P] [US3] Audit database and migration tests for mock leaks in `backend/tests/unit/test_database.py` — check that mock database paths don't leak into migration runner
+- [x] T078 [P] [US3] Audit agent service tests for assertion quality in `backend/tests/unit/test_agents_service.py` — check that tests verify actual behavior, not just that mocks were called
+- [x] T079 [P] [US3] Audit AI agent tests for coverage gaps in `backend/tests/unit/test_ai_agent.py` — check for untested error paths, missing edge cases in title generation and task creation
+- [x] T080 [P] [US3] Audit API endpoint tests for coverage completeness in `backend/tests/unit/test_api_auth.py`, `backend/tests/unit/test_api_chat.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_api_workflow.py`, `backend/tests/unit/test_api_projects.py`, `backend/tests/unit/test_api_settings.py`, `backend/tests/unit/test_api_mcp.py`, `backend/tests/unit/test_api_tasks.py`
+- [x] T081 [P] [US3] Audit chores tests for mock correctness in `backend/tests/unit/test_chores_service.py`, `backend/tests/unit/test_chores_scheduler.py`, `backend/tests/unit/test_chores_counter.py`, `backend/tests/unit/test_chores_api.py`
+- [x] T082 [P] [US3] Audit remaining backend unit tests for assertion quality and mock leaks in `backend/tests/unit/test_config.py`, `backend/tests/unit/test_main.py`, `backend/tests/unit/test_middleware.py`, `backend/tests/unit/test_github_auth.py`, `backend/tests/unit/test_github_projects.py`, `backend/tests/unit/test_copilot_polling.py`, `backend/tests/unit/test_completion_providers.py`, `backend/tests/unit/test_webhooks.py`, `backend/tests/unit/test_websocket.py`, `backend/tests/unit/test_models.py`
+- [x] T083 [P] [US3] Audit utility and infrastructure tests in `backend/tests/unit/test_utils.py`, `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_session_store.py`, `backend/tests/unit/test_settings_store.py`, `backend/tests/unit/test_token_encryption.py`, `backend/tests/unit/test_mcp_store.py`, `backend/tests/unit/test_cleanup_service.py`, `backend/tests/unit/test_logging_utils.py`
+- [x] T084 [P] [US3] Audit edge-case and specialized tests in `backend/tests/unit/test_error_responses.py`, `backend/tests/unit/test_exceptions.py`, `backend/tests/unit/test_oauth_state.py`, `backend/tests/unit/test_auth_security.py`, `backend/tests/unit/test_completion_false_positive.py`, `backend/tests/unit/test_issue_creation_retry.py`, `backend/tests/unit/test_prompts.py`, `backend/tests/unit/test_recommendation_models.py`, `backend/tests/unit/test_module_boundaries.py`
+- [x] T085 [P] [US3] Audit integration tests for correctness in `backend/tests/integration/test_custom_agent_assignment.py`, `backend/tests/integration/test_health_endpoint.py`, `backend/tests/integration/test_webhook_verification.py`
 
 ### Frontend Test Quality Audit
 
-- [ ] T086 [P] [US3] Audit board component tests for assertion quality and mock correctness in `frontend/src/components/board/BoardColumn.test.tsx`, `frontend/src/components/board/IssueCard.test.tsx`, `frontend/src/components/board/IssueDetailModal.test.tsx`, `frontend/src/components/board/AgentSaveBar.test.tsx`, `frontend/src/components/board/AgentTile.test.tsx`
-- [ ] T087 [P] [US3] Audit chat component tests for coverage gaps in `frontend/src/components/chat/CommandAutocomplete.test.tsx`, `frontend/src/components/chat/MessageBubble.test.tsx`, `frontend/src/components/chat/StatusChangePreview.test.tsx`, `frontend/src/components/chat/TaskPreview.test.tsx`, `frontend/src/components/chat/IssueRecommendationPreview.test.tsx`
-- [ ] T088 [P] [US3] Audit pipeline component tests for correctness in `frontend/src/components/pipeline/PipelineBoard.test.tsx`, `frontend/src/components/pipeline/PipelineFlowGraph.test.tsx`, `frontend/src/components/pipeline/StageCard.test.tsx`, `frontend/src/components/pipeline/AgentNode.test.tsx`
-- [ ] T089 [P] [US3] Audit agent and chores component tests in `frontend/src/components/agents/__tests__/AddAgentModal.test.tsx`, `frontend/src/components/agents/__tests__/AgentsPanel.test.tsx`, `frontend/src/components/chores/__tests__/AddChoreModal.test.tsx`, `frontend/src/components/chores/__tests__/ChoreScheduleConfig.test.tsx`, `frontend/src/components/chores/__tests__/ChoresPanel.test.tsx`, `frontend/src/components/chores/__tests__/FeaturedRitualsPanel.test.tsx`
-- [ ] T090 [P] [US3] Audit UI, settings, common, and theme tests in `frontend/src/components/ui/button.test.tsx`, `frontend/src/components/ui/card.test.tsx`, `frontend/src/components/ui/input.test.tsx`, `frontend/src/components/settings/DynamicDropdown.test.tsx`, `frontend/src/components/settings/SettingsSection.test.tsx`, `frontend/src/components/common/ErrorBoundary.test.tsx`, `frontend/src/components/common/ThemedAgentIcon.test.tsx`, `frontend/src/components/ThemeProvider.test.tsx`
-- [ ] T091 [P] [US3] Audit hook tests and auth tests in `frontend/src/hooks/useChatHistory.test.ts`, `frontend/src/components/auth/LoginButton.test.tsx`
-- [ ] T092 [P] [US3] Audit test utilities and factories for correctness in `frontend/src/test/test-utils.tsx`, `frontend/src/test/factories/index.ts`, `frontend/src/test/setup.ts`, `frontend/src/test/a11y-helpers.ts`
+- [x] T086 [P] [US3] Audit board component tests for assertion quality and mock correctness in `frontend/src/components/board/BoardColumn.test.tsx`, `frontend/src/components/board/IssueCard.test.tsx`, `frontend/src/components/board/IssueDetailModal.test.tsx`, `frontend/src/components/board/AgentSaveBar.test.tsx`, `frontend/src/components/board/AgentTile.test.tsx`
+- [x] T087 [P] [US3] Audit chat component tests for coverage gaps in `frontend/src/components/chat/CommandAutocomplete.test.tsx`, `frontend/src/components/chat/MessageBubble.test.tsx`, `frontend/src/components/chat/StatusChangePreview.test.tsx`, `frontend/src/components/chat/TaskPreview.test.tsx`, `frontend/src/components/chat/IssueRecommendationPreview.test.tsx`
+- [x] T088 [P] [US3] Audit pipeline component tests for correctness in `frontend/src/components/pipeline/PipelineBoard.test.tsx`, `frontend/src/components/pipeline/PipelineFlowGraph.test.tsx`, `frontend/src/components/pipeline/StageCard.test.tsx`, `frontend/src/components/pipeline/AgentNode.test.tsx`
+- [x] T089 [P] [US3] Audit agent and chores component tests in `frontend/src/components/agents/__tests__/AddAgentModal.test.tsx`, `frontend/src/components/agents/__tests__/AgentsPanel.test.tsx`, `frontend/src/components/chores/__tests__/AddChoreModal.test.tsx`, `frontend/src/components/chores/__tests__/ChoreScheduleConfig.test.tsx`, `frontend/src/components/chores/__tests__/ChoresPanel.test.tsx`, `frontend/src/components/chores/__tests__/FeaturedRitualsPanel.test.tsx`
+- [x] T090 [P] [US3] Audit UI, settings, common, and theme tests in `frontend/src/components/ui/button.test.tsx`, `frontend/src/components/ui/card.test.tsx`, `frontend/src/components/ui/input.test.tsx`, `frontend/src/components/settings/DynamicDropdown.test.tsx`, `frontend/src/components/settings/SettingsSection.test.tsx`, `frontend/src/components/common/ErrorBoundary.test.tsx`, `frontend/src/components/common/ThemedAgentIcon.test.tsx`, `frontend/src/components/ThemeProvider.test.tsx`
+- [x] T091 [P] [US3] Audit hook tests and auth tests in `frontend/src/hooks/useChatHistory.test.ts`, `frontend/src/components/auth/LoginButton.test.tsx`
+- [x] T092 [P] [US3] Audit test utilities and factories for correctness in `frontend/src/test/test-utils.tsx`, `frontend/src/test/factories/index.ts`, `frontend/src/test/setup.ts`, `frontend/src/test/a11y-helpers.ts`
 
 ### Test Quality Fixes and Validation
 
-- [ ] T093 [US3] Fix all identified mock leaks — ensure no MagicMock or vi.fn() objects are used as production values (file paths, URLs, config)
-- [ ] T094 [US3] Fix all identified tautological assertions — replace with meaningful assertions that would fail if behavior changed
-- [ ] T095 [US3] Add new tests for identified untested critical code paths in both `backend/tests/` and `frontend/src/`
-- [ ] T096 [US3] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass after quality improvements
-- [ ] T097 [US3] Run full frontend test suite (`npx vitest run`) and verify all tests pass after quality improvements
+- [x] T093 [US3] Fix all identified mock leaks — ensure no MagicMock or vi.fn() objects are used as production values (file paths, URLs, config)
+- [x] T094 [US3] Fix all identified tautological assertions — replace with meaningful assertions that would fail if behavior changed
+- [x] T095 [US3] Add new tests for identified untested critical code paths in both `backend/tests/` and `frontend/src/`
+- [x] T096 [US3] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass after quality improvements
+- [x] T097 [US3] Run full frontend test suite (`npx vitest run`) and verify all tests pass after quality improvements
 
 **Checkpoint**: All test quality issues identified and fixed. Mock leaks removed, tautological assertions replaced, coverage gaps filled. Test suite validates real behavior.
 
@@ -219,24 +219,24 @@
 
 ### Backend Code Quality Audit
 
-- [ ] T098 [P] [US4] Audit for dead code and unused imports across all files in `backend/src/api/` (18 modules) — remove dead imports and unreachable branches
-- [ ] T099 [P] [US4] Audit for dead code and unused imports across all files in `backend/src/services/` (47 modules) — remove dead imports and unreachable branches
-- [ ] T100 [P] [US4] Audit for dead code and unused imports in `backend/src/models/` (18 modules) and core files (`backend/src/config.py`, `backend/src/constants.py`, `backend/src/dependencies.py`, `backend/src/exceptions.py`, `backend/src/logging_utils.py`, `backend/src/main.py`, `backend/src/utils.py`)
-- [ ] T101 [P] [US4] Audit for silent failures (swallowed exceptions, missing error messages) in `backend/src/services/` — add appropriate error feedback where exceptions are caught and silently discarded
-- [ ] T102 [P] [US4] Audit for hardcoded values that should be configurable in `backend/src/config.py`, `backend/src/constants.py`, `backend/src/services/` — note (do not fix) any that require config changes
+- [x] T098 [P] [US4] Audit for dead code and unused imports across all files in `backend/src/api/` (18 modules) — remove dead imports and unreachable branches
+- [x] T099 [P] [US4] Audit for dead code and unused imports across all files in `backend/src/services/` (47 modules) — remove dead imports and unreachable branches
+- [x] T100 [P] [US4] Audit for dead code and unused imports in `backend/src/models/` (18 modules) and core files (`backend/src/config.py`, `backend/src/constants.py`, `backend/src/dependencies.py`, `backend/src/exceptions.py`, `backend/src/logging_utils.py`, `backend/src/main.py`, `backend/src/utils.py`)
+- [x] T101 [P] [US4] Audit for silent failures (swallowed exceptions, missing error messages) in `backend/src/services/` — add appropriate error feedback where exceptions are caught and silently discarded
+- [x] T102 [P] [US4] Audit for hardcoded values that should be configurable in `backend/src/config.py`, `backend/src/constants.py`, `backend/src/services/` — note (do not fix) any that require config changes
 
 ### Frontend Code Quality Audit
 
-- [ ] T103 [P] [US4] Audit for dead code, unused imports, and unreachable branches across all files in `frontend/src/components/` — remove dead imports and unreachable code
-- [ ] T104 [P] [US4] Audit for dead code and unused imports in `frontend/src/pages/` (9 page components), `frontend/src/hooks/` (30 hooks), and `frontend/src/services/api.ts`
-- [ ] T105 [P] [US4] Audit for silent failures in frontend error handling — check for swallowed promise rejections, missing user feedback on errors in `frontend/src/hooks/` and `frontend/src/components/`
+- [x] T103 [P] [US4] Audit for dead code, unused imports, and unreachable branches across all files in `frontend/src/components/` — remove dead imports and unreachable code
+- [x] T104 [P] [US4] Audit for dead code and unused imports in `frontend/src/pages/` (9 page components), `frontend/src/hooks/` (30 hooks), and `frontend/src/services/api.ts`
+- [x] T105 [P] [US4] Audit for silent failures in frontend error handling — check for swallowed promise rejections, missing user feedback on errors in `frontend/src/hooks/` and `frontend/src/components/`
 
 ### Code Quality Fixes and Validation
 
-- [ ] T106 [US4] Add regression tests for any silent failure fixes (where previously silent errors now produce feedback) in `backend/tests/unit/` and `frontend/src/`
-- [ ] T107 [US4] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass after code quality cleanup
-- [ ] T108 [US4] Run full frontend test suite (`npx vitest run`) and verify all tests pass after code quality cleanup
-- [ ] T109 [US4] Run all linting checks (`ruff check src/ tests/` backend, `npx eslint src/ && npx tsc --noEmit` frontend) and verify zero errors after cleanup
+- [x] T106 [US4] Add regression tests for any silent failure fixes (where previously silent errors now produce feedback) in `backend/tests/unit/` and `frontend/src/`
+- [x] T107 [US4] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify all tests pass after code quality cleanup
+- [x] T108 [US4] Run full frontend test suite (`npx vitest run`) and verify all tests pass after code quality cleanup
+- [x] T109 [US4] Run all linting checks (`ruff check src/ tests/` backend, `npx eslint src/ && npx tsc --noEmit` frontend) and verify zero errors after cleanup
 
 **Checkpoint**: Dead code removed, unreachable branches eliminated, silent failures addressed. All tests continue to pass.
 
@@ -256,13 +256,13 @@
 
 ### Discovered Ambiguous Issues
 
-- [ ] T113 [US5] Add `TODO(bug-bash):` comments for any additional ambiguous issues discovered during Phases 3–6 that were not fixed
-- [ ] T114 [US5] Compile list of all `TODO(bug-bash):` comments in the codebase (grep for `TODO(bug-bash):`) and verify each follows the format: `# TODO(bug-bash): <description>. Options: (1) <A>, (2) <B>. Human decision needed: <rationale>.`
+- [x] T113 [US5] Add `TODO(bug-bash):` comments for any additional ambiguous issues discovered during Phases 3–6 that were not fixed
+- [x] T114 [US5] Compile list of all `TODO(bug-bash):` comments in the codebase (grep for `TODO(bug-bash):`) and verify each follows the format: `# TODO(bug-bash): <description>. Options: (1) <A>, (2) <B>. Human decision needed: <rationale>.`
 
 ### Validation
 
-- [ ] T115 [US5] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify no TODO comments accidentally broke anything
-- [ ] T116 [US5] Run full frontend test suite (`npx vitest run`) and verify no TODO comments accidentally broke anything
+- [x] T115 [US5] Run full backend test suite (`python -m pytest tests/unit/ -v`) and verify no TODO comments accidentally broke anything
+- [x] T116 [US5] Run full frontend test suite (`npx vitest run`) and verify no TODO comments accidentally broke anything
 
 **Checkpoint**: All ambiguous issues documented with properly formatted `TODO(bug-bash):` comments. No code behavior changed.
 
@@ -276,11 +276,11 @@
 - [x] T118 Run full frontend test suite one final time (`cd frontend && npx vitest run`) — must be zero failures
 - [x] T119 [P] Run backend linting one final time (`cd backend && ruff check src/ tests/`) — must be zero errors
 - [x] T120 [P] Run frontend linting and type-check one final time (`cd frontend && npx eslint src/ && npx tsc --noEmit`) — must be zero errors
-- [ ] T121 Generate the Bug Bash Summary Table following the format in `specs/030-bug-basher/contracts/summary-table.md` — list every bug found with file, line(s), category, description, and status (✅ Fixed or ⚠️ Flagged)
-- [ ] T122 Verify summary table ordering: entries grouped by category (Security → Runtime → Logic → Test Quality → Code Quality), within category by file path (alphabetical), within file by line number (ascending)
-- [ ] T123 Verify every `✅ Fixed` entry in summary has a corresponding regression test
-- [ ] T124 Verify every `⚠️ Flagged (TODO)` entry has a corresponding `TODO(bug-bash):` comment in source code
-- [ ] T125 Final review: confirm no new dependencies added, no architecture changes, no public API changes, code style preserved
+- [x] T121 Generate the Bug Bash Summary Table following the format in `specs/030-bug-basher/contracts/summary-table.md` — list every bug found with file, line(s), category, description, and status (✅ Fixed or ⚠️ Flagged)
+- [x] T122 Verify summary table ordering: entries grouped by category (Security → Runtime → Logic → Test Quality → Code Quality), within category by file path (alphabetical), within file by line number (ascending)
+- [x] T123 Verify every `✅ Fixed` entry in summary has a corresponding regression test
+- [x] T124 Verify every `⚠️ Flagged (TODO)` entry has a corresponding `TODO(bug-bash):` comment in source code
+- [x] T125 Final review: confirm no new dependencies added, no architecture changes, no public API changes, code style preserved
 
 ---
 
