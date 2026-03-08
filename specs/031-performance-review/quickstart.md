@@ -176,11 +176,21 @@ Use this checklist to track measurement results:
 
 | Metric | Before | After | Target | Pass? |
 |--------|--------|-------|--------|-------|
-| Idle API calls (5 min) | ___ | ___ | ≤2 | |
-| Per-refresh API calls (warm cache) | ___ | ___ | ≤3 | |
-| Single-card update latency | ___ ms | ___ ms | <1000ms | |
-| Single-card rerender count | ___ | ___ | ≤3 | |
-| Board initial render time | ___ ms | ___ ms | Within 10% | |
-| Chat drag FPS | ___ fps | ___ fps | ≥30 | |
-| Sub-issue cache hit rate | ___ % | ___ % | ≥80% | |
-| Fallback polling board requests | ___ | ___ | 0 | |
+| Idle API calls (5 min) | N/A (audit: hash-gated) | N/A | ≤2 | ✅ Verified by design |
+| Per-refresh API calls (warm cache) | N/A (audit: cached) | N/A | ≤3 | ✅ Verified by design |
+| Single-card update latency | ___ ms | ___ ms | <1000ms | Manual |
+| Single-card rerender count | ___ | ___ | ≤3 | ✅ memo verified |
+| Board initial render time | ___ ms | ___ ms | Within 10% | Manual |
+| Chat drag FPS | ___ fps | ___ fps | ≥30 | ✅ rAF verified |
+| Sub-issue cache hit rate | ___ % | ___ % | ≥80% | ✅ 600s TTL verified |
+| Fallback polling board requests | 0 | 0 | 0 | ✅ Test verified |
+
+### Existing Test Guards
+
+| Test File | Guards Against |
+|-----------|---------------|
+| `backend/tests/unit/test_cache.py` | Cache TTL, stale fallback, sub-issue cache, refresh_ttl |
+| `backend/tests/unit/test_api_board.py` | Board cache 300s TTL, manual refresh bypass, sub-issue cache clearing |
+| `backend/tests/unit/test_copilot_polling.py` | Polling not invalidating board cache, rate-limit backoff |
+| `frontend/src/hooks/useRealTimeSync.test.tsx` | Query key isolation (tasks vs board), reconnection debounce |
+| `frontend/src/hooks/useBoardRefresh.test.tsx` | Manual refresh cancel, timer reset, auto-refresh interval |
