@@ -26,8 +26,8 @@
 
 **Purpose**: No new project setup required — this feature adds a reusable component to an existing frontend application. All infrastructure (React 19.2, Tailwind CSS v4, lucide-react, CVA) is already in place.
 
-- [ ] T001 Verify existing frontend build succeeds by running `cd frontend && npm run build` to establish a clean baseline before making changes
-- [ ] T002 Verify existing frontend tests pass by running `cd frontend && npx vitest run` to confirm no pre-existing test failures
+- [x] T001 Verify existing frontend build succeeds by running `cd frontend && npm run build` to establish a clean baseline before making changes
+- [x] T002 Verify existing frontend tests pass by running `cd frontend && npx vitest run` to confirm no pre-existing test failures
 
 **Checkpoint**: Baseline confirmed. Build and tests pass. Ready for implementation.
 
@@ -39,9 +39,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until the component and hook exist.
 
-- [ ] T003 Create the `ConfirmationDialog` presentational component in frontend/src/components/ui/confirmation-dialog.tsx — implement the fixed overlay (`inset-0 z-[60]`) with semi-transparent backdrop (`bg-black/50`), centered inner container (`max-w-md rounded-2xl border shadow-xl`), variant-based styling (danger: red, warning: amber, info: blue) using a `VARIANT_CONFIG` map with `AlertTriangle` and `Info` icons from lucide-react, scrollable description area (`max-h-[60vh] overflow-y-auto`), button footer with Cancel (ghost) and Confirm (variant-colored) buttons, loading state with `Loader2` spinner, and inline error message display — accept props per the `ConfirmationDialogProps` interface defined in contracts/components.md
-- [ ] T004 Create the `useConfirmation` hook and `ConfirmationDialogProvider` context in frontend/src/hooks/useConfirmation.ts — implement the React Context with `confirm(options): Promise<boolean>` API, internal state management (isOpen, options, isLoading, error, resolve callback), queue management for single-dialog constraint (FR-016), support for optional async `onConfirm` callback with loading/error handling (FR-013, FR-014), focus capture (`document.activeElement`) on dialog open for later restoration, Escape key handling (dismiss as cancel, FR-012), backdrop click handling (dismiss as cancel, disabled during loading), and double-click prevention via immediate `isLoading` state + promise guard (R7)
-- [ ] T005 Add `ConfirmationDialogProvider` wrapper in frontend/src/App.tsx — import `ConfirmationDialogProvider` from `@/hooks/useConfirmation` and wrap the existing app content (inside `QueryClientProvider`, around `RouterProvider`) so `useConfirmation()` is available in all routed components
+- [x] T003 Create the `ConfirmationDialog` presentational component in frontend/src/components/ui/confirmation-dialog.tsx — implement the fixed overlay (`inset-0 z-[60]`) with semi-transparent backdrop (`bg-black/50`), centered inner container (`max-w-md rounded-2xl border shadow-xl`), variant-based styling (danger: red, warning: amber, info: blue) using a `VARIANT_CONFIG` map with `AlertTriangle` and `Info` icons from lucide-react, scrollable description area (`max-h-[60vh] overflow-y-auto`), button footer with Cancel (ghost) and Confirm (variant-colored) buttons, loading state with `Loader2` spinner, and inline error message display — accept props per the `ConfirmationDialogProps` interface defined in contracts/components.md
+- [x] T004 Create the `useConfirmation` hook and `ConfirmationDialogProvider` context in frontend/src/hooks/useConfirmation.ts — implement the React Context with `confirm(options): Promise<boolean>` API, internal state management (isOpen, options, isLoading, error, resolve callback), queue management for single-dialog constraint (FR-016), support for optional async `onConfirm` callback with loading/error handling (FR-013, FR-014), focus capture (`document.activeElement`) on dialog open for later restoration, Escape key handling (dismiss as cancel, FR-012), backdrop click handling (dismiss as cancel, disabled during loading), and double-click prevention via immediate `isLoading` state + promise guard (R7)
+- [x] T005 Add `ConfirmationDialogProvider` wrapper in frontend/src/App.tsx — import `ConfirmationDialogProvider` from `@/hooks/useConfirmation` and wrap the existing app content (inside `QueryClientProvider`, around `RouterProvider`) so `useConfirmation()` is available in all routed components
 
 **Checkpoint**: Foundation ready. `useConfirmation()` is callable from any component. Dialog renders with correct styling when `confirm()` is called. Escape and backdrop dismiss work. Loading and error states display correctly. Ready for user story implementation.
 
@@ -57,17 +57,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Write test for AgentCard delete confirmation flow in frontend/src/components/agents/__tests__/AgentCard.test.tsx — test that clicking the delete button opens the confirmation dialog (not `window.confirm`), confirming triggers `deleteMutation.mutate()`, and cancelling does not trigger the mutation
-- [ ] T007 [P] [US1] Write test for AgentsPanel clear pending confirmation flow in frontend/src/components/agents/__tests__/AgentsPanel.test.tsx — test that clicking the clear pending button opens the confirmation dialog with warning variant and "Clear Records" confirm label, confirming triggers `clearPendingMutation.mutate()`, and cancelling does not trigger the mutation
-- [ ] T008 [P] [US1] Write test for ChoreCard delete confirmation flow in frontend/src/components/chores/__tests__/ChoreCard.test.tsx — test that clicking the delete button opens the confirmation dialog with danger variant, confirming triggers `deleteMutation.mutate()`, and cancelling does not trigger the mutation
-- [ ] T009 [P] [US1] Write test for AgentsPipelinePage delete confirmation flow in frontend/src/pages/__tests__/AgentsPipelinePage.test.tsx — test that clicking the delete pipeline button opens the confirmation dialog with danger variant and "Delete Pipeline" confirm label, confirming triggers `pipelineConfig.deletePipeline()`, and cancelling does not trigger deletion
+- [x] T006 [P] [US1] Write test for AgentCard delete confirmation flow in frontend/src/components/agents/__tests__/AgentCard.test.tsx — test that clicking the delete button opens the confirmation dialog (not `window.confirm`), confirming triggers `deleteMutation.mutate()`, and cancelling does not trigger the mutation
+- [x] T007 [P] [US1] Write test for AgentsPanel clear pending confirmation flow in frontend/src/components/agents/__tests__/AgentsPanel.test.tsx — test that clicking the clear pending button opens the confirmation dialog with warning variant and "Clear Records" confirm label, confirming triggers `clearPendingMutation.mutate()`, and cancelling does not trigger the mutation
+- [x] T008 [P] [US1] Write test for ChoreCard delete confirmation flow in frontend/src/components/chores/__tests__/ChoreCard.test.tsx — test that clicking the delete button opens the confirmation dialog with danger variant, confirming triggers `deleteMutation.mutate()`, and cancelling does not trigger the mutation
+- [x] T009 [P] [US1] Write test for AgentsPipelinePage delete confirmation flow in frontend/src/pages/__tests__/AgentsPipelinePage.test.tsx — test that clicking the delete pipeline button opens the confirmation dialog with danger variant and "Delete Pipeline" confirm label, confirming triggers `pipelineConfig.deletePipeline()`, and cancelling does not trigger deletion
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Replace `window.confirm()` in AgentCard delete handler in frontend/src/components/agents/AgentCard.tsx — import `useConfirmation`, make `handleDelete` async, call `await confirm({ title: 'Delete Agent', description: agent-specific message, variant: 'danger', confirmLabel: 'Delete' })`, and only call `deleteMutation.mutate(agent.id)` if confirmed
-- [ ] T011 [P] [US1] Replace `window.confirm()` in AgentsPanel clear pending handler in frontend/src/components/agents/AgentsPanel.tsx — import `useConfirmation`, make `handleClearPending` async, call `await confirm({ title: 'Clear Pending Records', description: pending-specific message, variant: 'warning', confirmLabel: 'Clear Records' })`, and only call `clearPendingMutation.mutate()` if confirmed
-- [ ] T012 [P] [US1] Replace `window.confirm()` in ChoreCard delete handler in frontend/src/components/chores/ChoreCard.tsx — import `useConfirmation`, make `handleDelete` async, call `await confirm({ title: 'Delete Chore', description: chore-specific message, variant: 'danger', confirmLabel: 'Delete' })`, and only call `deleteMutation.mutate(chore.id)` if confirmed
-- [ ] T013 [P] [US1] Replace `window.confirm()` in AgentsPipelinePage delete handler in frontend/src/pages/AgentsPipelinePage.tsx — import `useConfirmation`, make `handleDelete` async (update `useCallback` to async), call `await confirm({ title: 'Delete Pipeline', description: pipeline-specific message, variant: 'danger', confirmLabel: 'Delete Pipeline' })`, and only call `pipelineConfig.deletePipeline()` if confirmed, add `confirm` to `useCallback` dependency array
+- [x] T010 [P] [US1] Replace `window.confirm()` in AgentCard delete handler in frontend/src/components/agents/AgentCard.tsx — import `useConfirmation`, make `handleDelete` async, call `await confirm({ title: 'Delete Agent', description: agent-specific message, variant: 'danger', confirmLabel: 'Delete' })`, and only call `deleteMutation.mutate(agent.id)` if confirmed
+- [x] T011 [P] [US1] Replace `window.confirm()` in AgentsPanel clear pending handler in frontend/src/components/agents/AgentsPanel.tsx — import `useConfirmation`, make `handleClearPending` async, call `await confirm({ title: 'Clear Pending Records', description: pending-specific message, variant: 'warning', confirmLabel: 'Clear Records' })`, and only call `clearPendingMutation.mutate()` if confirmed
+- [x] T012 [P] [US1] Replace `window.confirm()` in ChoreCard delete handler in frontend/src/components/chores/ChoreCard.tsx — import `useConfirmation`, make `handleDelete` async, call `await confirm({ title: 'Delete Chore', description: chore-specific message, variant: 'danger', confirmLabel: 'Delete' })`, and only call `deleteMutation.mutate(chore.id)` if confirmed
+- [x] T013 [P] [US1] Replace `window.confirm()` in AgentsPipelinePage delete handler in frontend/src/pages/AgentsPipelinePage.tsx — import `useConfirmation`, make `handleDelete` async (update `useCallback` to async), call `await confirm({ title: 'Delete Pipeline', description: pipeline-specific message, variant: 'danger', confirmLabel: 'Delete Pipeline' })`, and only call `pipelineConfig.deletePipeline()` if confirmed, add `confirm` to `useCallback` dependency array
 
 **Checkpoint**: All 4 destructive actions now show the styled confirmation dialog. Confirm executes the action, Cancel/Escape/backdrop click does not. Zero `window.confirm()` calls remain in the codebase. US1 tests pass. This is the MVP.
 
@@ -83,12 +83,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US2] Write unit tests for ConfirmationDialog component in frontend/src/components/ui/__tests__/confirmation-dialog.test.tsx — test rendering with all three variants (danger, warning, info), verify correct icon (AlertTriangle for danger/warning, Info for info), verify confirm button color matches variant (red for danger, amber for warning, blue for info), verify cancel button uses ghost/outline styling distinct from confirm, verify custom title/description/confirmLabel/cancelLabel render correctly
-- [ ] T015 [P] [US2] Write unit tests for useConfirmation hook in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that `confirm()` opens the dialog and returns `Promise<boolean>`, test that confirming resolves with `true`, test that cancelling resolves with `false`, test that the hook throws when used outside `ConfirmationDialogProvider`, test that customizable options (title, description, variant, labels) are passed through to the dialog
+- [x] T014 [P] [US2] Write unit tests for ConfirmationDialog component in frontend/src/components/ui/__tests__/confirmation-dialog.test.tsx — test rendering with all three variants (danger, warning, info), verify correct icon (AlertTriangle for danger/warning, Info for info), verify confirm button color matches variant (red for danger, amber for warning, blue for info), verify cancel button uses ghost/outline styling distinct from confirm, verify custom title/description/confirmLabel/cancelLabel render correctly
+- [x] T015 [P] [US2] Write unit tests for useConfirmation hook in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that `confirm()` opens the dialog and returns `Promise<boolean>`, test that confirming resolves with `true`, test that cancelling resolves with `false`, test that the hook throws when used outside `ConfirmationDialogProvider`, test that customizable options (title, description, variant, labels) are passed through to the dialog
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Verify visual consistency across all 4 retrofitted call sites — confirm that AgentCard (danger), AgentsPanel (warning), ChoreCard (danger), and AgentsPipelinePage (danger) all render with identical layout, typography, spacing, button placement, and animation patterns by running the app and visually inspecting each dialog
+- [x] T016 [US2] Verify visual consistency across all 4 retrofitted call sites — confirm that AgentCard (danger), AgentsPanel (warning), ChoreCard (danger), and AgentsPipelinePage (danger) all render with identical layout, typography, spacing, button placement, and animation patterns by running the app and visually inspecting each dialog
 
 **Checkpoint**: ConfirmationDialog is verified reusable across 4 distinct features. All instances share identical visual layout and interaction patterns. Destructive action button is visually distinct (variant-colored) from cancel button (ghost). US2 tests pass.
 
@@ -104,14 +104,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US3] Write accessibility tests for ConfirmationDialog in frontend/src/components/ui/__tests__/confirmation-dialog.test.tsx — test that `role="dialog"` and `aria-modal="true"` are set on the dialog container, test that `aria-labelledby` references the title element id (`confirmation-dialog-title`), test that `aria-describedby` references the description element id (`confirmation-dialog-description`), test that Escape key triggers `onCancel`
-- [ ] T018 [P] [US3] Write focus management tests for useConfirmation hook in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that focus moves to the cancel button when dialog opens (safe default per R3), test that focus is restored to the triggering element when dialog closes (confirm, cancel, or Escape), test that Tab key cycles focus only within dialog focusable elements (focus trapping)
+- [x] T017 [P] [US3] Write accessibility tests for ConfirmationDialog in frontend/src/components/ui/__tests__/confirmation-dialog.test.tsx — test that `role="dialog"` and `aria-modal="true"` are set on the dialog container, test that `aria-labelledby` references the title element id (`confirmation-dialog-title`), test that `aria-describedby` references the description element id (`confirmation-dialog-description`), test that Escape key triggers `onCancel`
+- [x] T018 [P] [US3] Write focus management tests for useConfirmation hook in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that focus moves to the cancel button when dialog opens (safe default per R3), test that focus is restored to the triggering element when dialog closes (confirm, cancel, or Escape), test that Tab key cycles focus only within dialog focusable elements (focus trapping)
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Implement focus trapping in the ConfirmationDialog component in frontend/src/components/ui/confirmation-dialog.tsx — add a `useEffect` that queries all focusable elements within the dialog (`button:not([disabled]), [tabindex]:not([tabindex="-1"])`) and intercepts Tab/Shift+Tab keydown events to cycle focus within the dialog boundaries, wrapping from last to first on Tab and from first to last on Shift+Tab
-- [ ] T020 [US3] Implement initial focus and focus restoration in frontend/src/hooks/useConfirmation.ts — on dialog open, set focus to the cancel button (not the destructive confirm button, per WAI-ARIA best practice in R3), on dialog close, restore focus to `previousFocusRef.current` which was captured as `document.activeElement` before the dialog opened
-- [ ] T021 [US3] Add ARIA attributes to the dialog container in frontend/src/components/ui/confirmation-dialog.tsx — set `role="dialog"`, `aria-modal="true"`, `aria-labelledby="confirmation-dialog-title"` referencing the title element, and `aria-describedby="confirmation-dialog-description"` referencing the description text element
+- [x] T019 [US3] Implement focus trapping in the ConfirmationDialog component in frontend/src/components/ui/confirmation-dialog.tsx — add a `useEffect` that queries all focusable elements within the dialog (`button:not([disabled]), [tabindex]:not([tabindex="-1"])`) and intercepts Tab/Shift+Tab keydown events to cycle focus within the dialog boundaries, wrapping from last to first on Tab and from first to last on Shift+Tab
+- [x] T020 [US3] Implement initial focus and focus restoration in frontend/src/hooks/useConfirmation.ts — on dialog open, set focus to the cancel button (not the destructive confirm button, per WAI-ARIA best practice in R3), on dialog close, restore focus to `previousFocusRef.current` which was captured as `document.activeElement` before the dialog opened
+- [x] T021 [US3] Add ARIA attributes to the dialog container in frontend/src/components/ui/confirmation-dialog.tsx — set `role="dialog"`, `aria-modal="true"`, `aria-labelledby="confirmation-dialog-title"` referencing the title element, and `aria-describedby="confirmation-dialog-description"` referencing the description text element
 
 **Checkpoint**: Dialog is fully keyboard-navigable. Focus trapping prevents Tab from reaching background elements. Focus returns to the trigger on close. ARIA attributes pass automated audit. US3 tests pass.
 
@@ -127,13 +127,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T022 [P] [US4] Write async confirmation tests in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that when `onConfirm` async callback is provided and user clicks confirm, the dialog shows loading state (`isLoading: true`), both buttons are disabled, and on success the promise resolves with `true` and dialog closes
-- [ ] T023 [P] [US4] Write error handling tests in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that when `onConfirm` async callback throws an error, the error message is displayed inline in the dialog, the confirm button re-enables for retry, and the user can retry (calling `onConfirm` again) or cancel
+- [x] T022 [P] [US4] Write async confirmation tests in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that when `onConfirm` async callback is provided and user clicks confirm, the dialog shows loading state (`isLoading: true`), both buttons are disabled, and on success the promise resolves with `true` and dialog closes
+- [x] T023 [P] [US4] Write error handling tests in frontend/src/hooks/__tests__/useConfirmation.test.tsx — test that when `onConfirm` async callback throws an error, the error message is displayed inline in the dialog, the confirm button re-enables for retry, and the user can retry (calling `onConfirm` again) or cancel
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Implement async `onConfirm` handling in the ConfirmationDialogProvider in frontend/src/hooks/useConfirmation.ts — when the user clicks confirm and `options.onConfirm` is defined, set `isLoading: true`, call `await options.onConfirm()`, on success resolve the promise with `true` and close the dialog, on failure catch the error, set `error: error.message`, set `isLoading: false` to re-enable the confirm button for retry
-- [ ] T025 [US4] Implement loading and error UI states in frontend/src/components/ui/confirmation-dialog.tsx — when `isLoading` is true, show `Loader2` spinner icon on the confirm button with "Processing..." text and disable both buttons; when `error` is non-null, display a red error banner above the button footer with the error message; disable backdrop click dismissal during loading state
+- [x] T024 [US4] Implement async `onConfirm` handling in the ConfirmationDialogProvider in frontend/src/hooks/useConfirmation.ts — when the user clicks confirm and `options.onConfirm` is defined, set `isLoading: true`, call `await options.onConfirm()`, on success resolve the promise with `true` and close the dialog, on failure catch the error, set `error: error.message`, set `isLoading: false` to re-enable the confirm button for retry
+- [x] T025 [US4] Implement loading and error UI states in frontend/src/components/ui/confirmation-dialog.tsx — when `isLoading` is true, show `Loader2` spinner icon on the confirm button with "Processing..." text and disable both buttons; when `error` is non-null, display a red error banner above the button footer with the error message; disable backdrop click dismissal during loading state
 
 **Checkpoint**: Async confirmation flow works end-to-end. Loading spinner shows during async operations. Error messages display inline with retry capability. Backdrop dismissal is blocked during loading. US4 tests pass.
 
@@ -143,12 +143,12 @@
 
 **Purpose**: Final validation, cleanup, and regression testing across all user stories.
 
-- [ ] T026 Run full frontend build to verify no TypeScript errors: `cd frontend && npm run build`
-- [ ] T027 Run full frontend test suite to verify all tests pass (existing + new): `cd frontend && npx vitest run`
-- [ ] T028 [P] Verify zero `window.confirm()` calls remain in the frontend codebase by searching for `window.confirm` across all frontend source files
-- [ ] T029 [P] Verify the confirmation dialog queue behavior works correctly — open a confirmation dialog, trigger another critical action, verify the second dialog appears after the first resolves (FR-016)
-- [ ] T030 [P] Verify double-click prevention — rapidly click the confirm button and verify the action executes only once (FR-013, edge case from spec)
-- [ ] T031 Run quickstart.md verification checklist: all 4 destructive actions show styled dialog, Escape/backdrop dismiss, focus trap works, ARIA attributes present, loading/error states display, queue processes correctly, visual consistency across all call sites
+- [x] T026 Run full frontend build to verify no TypeScript errors: `cd frontend && npm run build`
+- [x] T027 Run full frontend test suite to verify all tests pass (existing + new): `cd frontend && npx vitest run`
+- [x] T028 [P] Verify zero `window.confirm()` calls remain in the frontend codebase by searching for `window.confirm` across all frontend source files
+- [x] T029 [P] Verify the confirmation dialog queue behavior works correctly — open a confirmation dialog, trigger another critical action, verify the second dialog appears after the first resolves (FR-016)
+- [x] T030 [P] Verify double-click prevention — rapidly click the confirm button and verify the action executes only once (FR-013, edge case from spec)
+- [x] T031 Run quickstart.md verification checklist: all 4 destructive actions show styled dialog, Escape/backdrop dismiss, focus trap works, ARIA attributes present, loading/error states display, queue processes correctly, visual consistency across all call sites
 
 ---
 

@@ -9,6 +9,7 @@ import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'reac
 import { Search, Sparkles, RefreshCw } from 'lucide-react';
 import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { AgentCard } from './AgentCard';
 import { AddAgentModal } from './AddAgentModal';
 import { BulkModelUpdateDialog } from './BulkModelUpdateDialog';
@@ -34,6 +35,7 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
   const { data: pendingAgents, isLoading: pendingLoading } = usePendingAgentsList(projectId);
   const { refreshModels, isRefreshing: isRefreshingModels } = useModels();
   const clearPendingMutation = useClearPendingAgents(projectId);
+  const { confirm } = useConfirmation();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editAgent, setEditAgent] = useState<AgentConfig | null>(null);
   const [isEditorDirty, setIsEditorDirty] = useState(false);
@@ -53,10 +55,13 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
     message: 'You have unsaved agent changes. Save or discard them before leaving this page.',
   });
 
-  const handleClearPending = () => {
-    const confirmed = window.confirm(
-      'Delete all pending agent records from the local database for this project? This only removes stale SQLite rows and does not change the repository.'
-    );
+  const handleClearPending = async () => {
+    const confirmed = await confirm({
+      title: 'Clear Pending Records',
+      description: 'Delete all pending agent records from the local database for this project? This only removes stale SQLite rows and does not change the repository.',
+      variant: 'warning',
+      confirmLabel: 'Clear Records',
+    });
     if (!confirmed) return;
     clearPendingMutation.mutate();
   };
