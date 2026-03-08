@@ -170,6 +170,11 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
               </span>
             );
           })}
+          {labels.some((l) => l.name.toLowerCase() === 'blocking') && (
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+              🔒 Blocking
+            </span>
+          )}
         </div>
       )}
 

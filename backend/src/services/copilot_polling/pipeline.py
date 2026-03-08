@@ -1214,6 +1214,37 @@ async def _transition_after_pipeline_complete(
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
 
+    # When transitioning to "Done", mark the issue as completed in the blocking queue
+    # and activate any pending issues.
+    if to_status.lower() == "done":
+        try:
+            from src.services import blocking_queue as bq_service
+
+            repo_key = f"{owner}/{repo}"
+            activated = await bq_service.mark_completed(repo_key, issue_number)
+            if activated:
+                logger.info(
+                    "Blocking queue: %d issue(s) activated after #%d completed",
+                    len(activated),
+                    issue_number,
+                )
+                for activated_entry in activated:
+                    try:
+                        await _activate_queued_issue(
+                            access_token=access_token,
+                            project_id=activated_entry.project_id,
+                            owner=owner,
+                            repo=repo,
+                            issue_number=activated_entry.issue_number,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to activate queued issue #%d",
+                            activated_entry.issue_number,
+                        )
+        except Exception:
+            logger.debug("Blocking queue mark_completed skipped (not available)")
+
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.
     # Uses comprehensive multi-strategy discovery (in-memory cache,
@@ -1221,6 +1252,36 @@ async def _transition_after_pipeline_complete(
     # and auto-creation of PR from WIP branches) to find the main PR
     # even when in-memory state is lost (e.g. after server restart).
     if to_status.lower() == "in review":
+        # Blocking queue: mark issue as in_review and activate next pending issues
+        try:
+            from src.services import blocking_queue as bq_service
+
+            repo_key = f"{owner}/{repo}"
+            activated = await bq_service.mark_in_review(repo_key, issue_number)
+            if activated:
+                logger.info(
+                    "Blocking queue: %d issue(s) activated after #%d moved to in_review",
+                    len(activated),
+                    issue_number,
+                )
+                # Trigger agent assignment for newly activated issues
+                for activated_entry in activated:
+                    try:
+                        await _activate_queued_issue(
+                            access_token=access_token,
+                            project_id=activated_entry.project_id,
+                            owner=owner,
+                            repo=repo,
+                            issue_number=activated_entry.issue_number,
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to activate queued issue #%d",
+                            activated_entry.issue_number,
+                        )
+        except Exception:
+            logger.debug("Blocking queue mark_in_review skipped (not available)")
+
         from .helpers import _discover_main_pr_for_review
 
         discovered = await _discover_main_pr_for_review(
@@ -1972,3 +2033,55 @@ async def process_in_progress_issue(
             "issue_number": issue_number,
             "error": str(e),
         }
+
+
+async def _activate_queued_issue(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+) -> None:
+    """Activate a previously queued issue by assigning its first agent.
+
+    Called when the blocking queue determines an issue should now activate.
+    This mirrors the agent assignment logic from confirm_proposal / trigger_chore.
+    """
+    logger.info("Activating queued issue #%d for %s/%s", issue_number, owner, repo)
+
+    try:
+        config = await _cp.get_workflow_config(project_id)
+        if not config:
+            logger.warning(
+                "No workflow config for project %s, cannot activate issue #%d",
+                project_id,
+                issue_number,
+            )
+            return
+
+        from src.config import get_settings
+
+        settings = get_settings()
+        if not config.copilot_assignee:
+            config.copilot_assignee = settings.default_assignee
+        config.repository_owner = owner
+        config.repository_name = repo
+
+        backlog_status = config.status_backlog
+
+        ctx = _cp.WorkflowContext(
+            session_id="blocking-queue-activation",
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            config=config,
+        )
+        ctx.issue_number = issue_number
+
+        orchestrator = _cp.get_workflow_orchestrator()
+        await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
+
+        logger.info("Successfully activated queued issue #%d", issue_number)
+    except Exception:
+        logger.exception("Failed to activate queued issue #%d", issue_number)

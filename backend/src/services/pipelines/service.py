@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 
 # Column allowlist for dynamic SET clauses
-_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
+_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at", "blocking"})
 
 
 # Preset pipeline definitions

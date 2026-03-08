@@ -47,6 +47,7 @@ class Chore(BaseModel):
     execution_count: int = 0
     ai_enhance_enabled: bool = True
     agent_pipeline_id: str = ""
+    blocking: bool = False
     created_at: str
     updated_at: str
 
@@ -56,6 +57,7 @@ class ChoreCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=200)
     template_content: str = Field(..., min_length=1)
+    blocking: bool = False
 
 
 class ChoreUpdate(BaseModel):
@@ -66,6 +68,7 @@ class ChoreUpdate(BaseModel):
     status: ChoreStatus | None = None
     ai_enhance_enabled: bool | None = None
     agent_pipeline_id: str | None = None
+    blocking: bool | None = None
 
 
 # ── Trigger Models ──

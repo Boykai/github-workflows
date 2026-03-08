@@ -863,6 +863,25 @@ class WorkflowOrchestrator:
         current_head_sha = ""  # Track HEAD SHA at assignment time
 
         if ctx.issue_number:
+            # Blocking queue: resolve base branch for first agent assignment.
+            # If a blocking issue is open, branch from its branch instead of "main".
+            try:
+                from src.services import blocking_queue as bq_service
+
+                repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
+                blocking_base = await bq_service.get_base_ref_for_issue(
+                    repo_key, ctx.issue_number
+                )
+                if blocking_base != "main":
+                    base_ref = blocking_base
+                    logger.info(
+                        "Blocking queue: issue #%d will use base_ref '%s' (from blocking queue)",
+                        ctx.issue_number,
+                        base_ref,
+                    )
+            except Exception:
+                logger.debug("Blocking queue base_ref lookup skipped (not available)")
+
             # Check if we already have a "main branch" stored for this issue
             main_branch_info = get_issue_main_branch(ctx.issue_number)
 
@@ -2000,7 +2019,8 @@ class WorkflowOrchestrator:
     # FULL WORKFLOW: Execute from confirmation to Ready (T022+T023+T031)
     # ──────────────────────────────────────────────────────────────────
     async def execute_full_workflow(
-        self, ctx: WorkflowContext, recommendation: IssueRecommendation
+        self, ctx: WorkflowContext, recommendation: IssueRecommendation,
+        *, is_blocking: bool = False,
     ) -> WorkflowResult:
         """
         Execute the workflow from confirmation to Backlog status with first agent assigned.
@@ -2008,7 +2028,8 @@ class WorkflowOrchestrator:
         This orchestrates:
         1. Create GitHub Issue from recommendation
         2. Add issue to project with Backlog status
-        3. Assign the first Backlog agent (e.g., speckit.specify)
+        3. Enqueue in blocking queue (if applicable)
+        4. Assign the first Backlog agent (e.g., speckit.specify)
 
         Subsequent transitions (Backlog→Ready→In Progress) are handled by the polling
         service as agents complete their work.
@@ -2016,6 +2037,7 @@ class WorkflowOrchestrator:
         Args:
             ctx: Workflow context
             recommendation: The confirmed recommendation
+            is_blocking: Whether the issue should be enqueued as blocking
 
         Returns:
             WorkflowResult with success status and details
@@ -2026,6 +2048,36 @@ class WorkflowOrchestrator:
 
             # Step 2: Add to project with metadata
             await self.add_to_project_with_backlog(ctx, recommendation)
+
+            # Step 2.5: Enqueue in blocking queue and check activation
+            issue_activated = True  # Default: activate immediately
+            if ctx.issue_number:
+                try:
+                    from src.services import blocking_queue as bq_service
+
+                    repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
+                    _entry, issue_activated = await bq_service.enqueue_issue(
+                        repo_key, ctx.issue_number, ctx.project_id, is_blocking
+                    )
+                    if not issue_activated:
+                        logger.info(
+                            "Issue #%d is pending in blocking queue — skipping agent assignment",
+                            ctx.issue_number,
+                        )
+                        return WorkflowResult(
+                            success=True,
+                            issue_id=ctx.issue_id,
+                            issue_number=ctx.issue_number,
+                            issue_url=ctx.issue_url,
+                            project_item_id=ctx.project_item_id,
+                            current_status="pending",
+                            message=(
+                                f"Issue #{ctx.issue_number} created and added to project. "
+                                f"It is queued behind blocking issues and will activate automatically."
+                            ),
+                        )
+                except Exception:
+                    logger.debug("Blocking queue enqueue skipped (not available)")
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)
