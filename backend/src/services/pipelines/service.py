@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 
 # Column allowlist for dynamic SET clauses
-_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
+_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at", "blocking"})
 
 
 # Preset pipeline definitions
@@ -177,6 +177,7 @@ class PipelineService:
             stages=stages,
             is_preset=bool(row_dict.get("is_preset", 0)),
             preset_id=row_dict.get("preset_id", ""),
+            blocking=bool(row_dict.get("blocking", 0)),
             created_at=row_dict["created_at"],
             updated_at=row_dict["updated_at"],
         )
@@ -219,6 +220,7 @@ class PipelineService:
                     is_preset=bool(row_dict.get("is_preset", 0)),
                     preset_id=row_dict.get("preset_id", ""),
                     stages=parsed_stages,
+                    blocking=bool(row_dict.get("blocking", 0)),
                     updated_at=row_dict["updated_at"],
                 )
             )
@@ -262,10 +264,19 @@ class PipelineService:
         try:
             await self._db.execute(
                 """
-                INSERT INTO pipeline_configs (id, project_id, name, description, stages, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO pipeline_configs (id, project_id, name, description, stages, blocking, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (pipeline_id, project_id, body.name, body.description, stages_json, now, now),
+                (
+                    pipeline_id,
+                    project_id,
+                    body.name,
+                    body.description,
+                    stages_json,
+                    int(body.blocking),
+                    now,
+                    now,
+                ),
             )
             await self._db.commit()
         except aiosqlite.IntegrityError as exc:
@@ -316,6 +327,9 @@ class PipelineService:
             ]
             self._normalize_tool_counts(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])
+
+        if "blocking" in updates and updates["blocking"] is not None:
+            updates["blocking"] = int(bool(updates["blocking"]))
 
         # Validate columns against allowlist
         safe_updates = {k: v for k, v in updates.items() if k in _PIPELINE_COLUMNS}
