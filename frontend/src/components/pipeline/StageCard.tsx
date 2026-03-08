@@ -76,11 +76,11 @@ export function StageCard({
 
     updatePickerPosition();
     window.addEventListener('resize', updatePickerPosition);
-    window.addEventListener('scroll', updatePickerPosition, true);
+    window.addEventListener('scroll', updatePickerPosition, { capture: true, passive: true });
 
     return () => {
       window.removeEventListener('resize', updatePickerPosition);
-      window.removeEventListener('scroll', updatePickerPosition, true);
+      window.removeEventListener('scroll', updatePickerPosition, { capture: true });
     };
   }, [showAgentPicker]);
 

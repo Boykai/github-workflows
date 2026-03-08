@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Save, Copy, Trash2, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PipelineBoardState, PipelineValidationErrors } from '@/types';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface PipelineToolbarProps {
   boardState: PipelineBoardState;
@@ -52,11 +53,10 @@ export function PipelineToolbar({
     }
   };
 
+  useScrollLock(showCopyDialog);
+
   useEffect(() => {
     if (!showCopyDialog) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -66,7 +66,6 @@ export function PipelineToolbar({
 
     window.addEventListener('keydown', handleEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleEscape);
     };
   }, [showCopyDialog]);

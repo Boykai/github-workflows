@@ -8,6 +8,7 @@
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { CleanupExecuteResponse } from '@/types';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface CleanUpSummaryProps {
   result: CleanupExecuteResponse | null;
@@ -24,12 +25,12 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
     [onDismiss]
   );
 
+  useScrollLock(true);
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
     };
   }, [handleKeyDown]);
 
