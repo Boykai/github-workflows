@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 # The regex pattern used in chat.py for #block detection (no \s* — avoids ReDoS)
 _BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 

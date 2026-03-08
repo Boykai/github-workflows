@@ -73,7 +73,7 @@ class TestPipelineBlockingFlag:
         # Simulate a blocking pipeline creating 3 issues
         pipeline_blocking = True
         for issue_num in [100, 101, 102]:
-            entry, activated = await bq.enqueue_issue(
+            entry, _activated = await bq.enqueue_issue(
                 REPO, issue_num, PROJECT, is_blocking=pipeline_blocking
             )
             assert entry.is_blocking is True
@@ -93,7 +93,9 @@ class TestPipelineBlockingFlag:
         for issue_num in [100, 101, 102]:
             await bq.enqueue_issue(REPO, issue_num, PROJECT, is_blocking=True)
 
-        await store.update_status(REPO, 100, queue_status="active", parent_branch="copilot/issue-100")
+        await store.update_status(
+            REPO, 100, queue_status="active", parent_branch="copilot/issue-100"
+        )
 
         # #100 → in_review → #101 activates alone (blocking)
         activated = await bq.mark_in_review(REPO, 100)
@@ -101,7 +103,9 @@ class TestPipelineBlockingFlag:
         assert activated[0].issue_number == 101
         assert activated[0].parent_branch == "copilot/issue-100"
 
-        await store.update_status(REPO, 101, queue_status="active", parent_branch="copilot/issue-101")
+        await store.update_status(
+            REPO, 101, queue_status="active", parent_branch="copilot/issue-101"
+        )
 
         # #101 → in_review → #102 activates alone (blocking)
         activated2 = await bq.mark_in_review(REPO, 101)
@@ -113,11 +117,13 @@ class TestPipelineBlockingFlag:
         """Issues from blocking and non-blocking pipelines coexist correctly."""
         # Blocking pipeline creates #100
         await bq.enqueue_issue(REPO, 100, PROJECT, is_blocking=True)
-        await store.update_status(REPO, 100, queue_status="active", parent_branch="copilot/issue-100")
+        await store.update_status(
+            REPO, 100, queue_status="active", parent_branch="copilot/issue-100"
+        )
 
         # Non-blocking pipeline creates #200, #201
-        e200, act200 = await bq.enqueue_issue(REPO, 200, PROJECT, is_blocking=False)
-        e201, act201 = await bq.enqueue_issue(REPO, 201, PROJECT, is_blocking=False)
+        _e200, act200 = await bq.enqueue_issue(REPO, 200, PROJECT, is_blocking=False)
+        _e201, act201 = await bq.enqueue_issue(REPO, 201, PROJECT, is_blocking=False)
         assert act200 is False  # blocked by #100
         assert act201 is False  # blocked by #100
 
@@ -137,7 +143,9 @@ class TestPipelineBlockingFlag:
         assert entry.parent_branch == "main"
 
         # Simulate branch creation
-        await store.update_status(REPO, 100, queue_status="active", parent_branch="copilot/issue-100")
+        await store.update_status(
+            REPO, 100, queue_status="active", parent_branch="copilot/issue-100"
+        )
 
         # Issues #101, #102 are created and pending
         await bq.enqueue_issue(REPO, 101, PROJECT, is_blocking=True)
@@ -170,7 +178,7 @@ class TestPipelineBlockingFlag:
         await bq.enqueue_issue(REPO, 100, PROJECT, is_blocking=True)
         await bq.mark_in_review(REPO, 100)
 
-        activated = await bq.mark_in_review(REPO, 100)  # Already in_review
+        await bq.mark_in_review(REPO, 100)  # Already in_review
         # Actually need to enqueue #101 first, then complete both
         await bq.enqueue_issue(REPO, 101, PROJECT, is_blocking=True)
 

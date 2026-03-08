@@ -8,7 +8,7 @@ T033 — Verifies the full chore-trigger-to-blocking-queue integration:
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import aiosqlite
 import pytest
@@ -87,7 +87,7 @@ class TestChoreTriggerBlocking:
     async def test_blocking_chore_serializes_subsequent_issues(self, db):
         """When a blocking chore's issue is active, subsequent issues are pending."""
         # First chore triggers a blocking issue
-        entry1, act1 = await bq.enqueue_issue(REPO_KEY, 10, PROJECT, is_blocking=True)
+        _entry1, act1 = await bq.enqueue_issue(REPO_KEY, 10, PROJECT, is_blocking=True)
         assert act1 is True
 
         # Second chore triggers while blocking issue is active → pending
@@ -105,7 +105,9 @@ class TestChoreTriggerBlocking:
         """Completing a blocking chore's issue activates the next in queue."""
         # Blocking chore issue #10 activates
         await bq.enqueue_issue(REPO_KEY, 10, PROJECT, is_blocking=True)
-        await store.update_status(REPO_KEY, 10, queue_status="active", parent_branch="copilot/issue-10")
+        await store.update_status(
+            REPO_KEY, 10, queue_status="active", parent_branch="copilot/issue-10"
+        )
 
         # Non-blocking #20 and blocking #30 are pending
         await bq.enqueue_issue(REPO_KEY, 20, PROJECT, is_blocking=False)
@@ -147,17 +149,16 @@ class TestChoreTriggerBlocking:
     @pytest.mark.asyncio
     async def test_non_blocking_chores_concurrent(self, db):
         """Multiple non-blocking chores with no blocking issues activate concurrently."""
-        entry1, act1 = await bq.enqueue_issue(REPO_KEY, 10, PROJECT, is_blocking=False)
+        _entry1, act1 = await bq.enqueue_issue(REPO_KEY, 10, PROJECT, is_blocking=False)
         assert act1 is True
 
-        # When first non-blocking is active, no blocking exists, but active check blocks
-        entry2, act2 = await bq.enqueue_issue(REPO_KEY, 20, PROJECT, is_blocking=False)
-        assert act2 is False  # #10 is still active
+        # No blocking issues exist → second non-blocking activates concurrently
+        _entry2, act2 = await bq.enqueue_issue(REPO_KEY, 20, PROJECT, is_blocking=False)
+        assert act2 is True  # concurrent: no blocking issues
 
-        # Move #10 to in_review → #20 activates
+        # Both already active, mark_in_review triggers no new activations
         activated = await bq.mark_in_review(REPO_KEY, 10)
-        assert len(activated) == 1
-        assert activated[0].issue_number == 20
+        assert len(activated) == 0
 
     @pytest.mark.asyncio
     async def test_chore_trigger_completion_unlocks_queue(self, db):

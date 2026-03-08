@@ -456,7 +456,9 @@ class ChoresService:
                         from src.services.pipelines.service import PipelineService
 
                         pipeline_svc = PipelineService(self._db)
-                        pipeline_cfg = await pipeline_svc.get_pipeline(chore.agent_pipeline_id)
+                        pipeline_cfg = await pipeline_svc.get_pipeline(
+                            project_id, chore.agent_pipeline_id
+                        )
                         if pipeline_cfg and pipeline_cfg.blocking:
                             is_blocking = True
                     except Exception:

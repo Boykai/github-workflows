@@ -114,9 +114,7 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     has_open_blocking = len(open_blocking) > 0
 
     active_or_review = await store.get_active_or_in_review(repo_key)
-    has_active = any(
-        e.queue_status == BlockingQueueStatus.ACTIVE for e in active_or_review
-    )
+    has_active = any(e.queue_status == BlockingQueueStatus.ACTIVE for e in active_or_review)
 
     # Determine which pending entries to activate
     to_activate: list[BlockingQueueEntry] = []
@@ -124,7 +122,9 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     if has_open_blocking or pending[0].is_blocking:
         # Blocking mode — serial activation: only one active batch at a time
         if has_active:
-            logger.debug("Repo %s has active entries in blocking mode — skipping activation", repo_key)
+            logger.debug(
+                "Repo %s has active entries in blocking mode — skipping activation", repo_key
+            )
             return []
 
         first = pending[0]
@@ -267,7 +267,8 @@ async def mark_in_review(repo_key: str, issue_number: int) -> list[BlockingQueue
         # Broadcast WebSocket event for queue state change
         if activated:
             await _broadcast_queue_update(
-                entry.project_id, repo_key,
+                entry.project_id,
+                repo_key,
                 activated_issues=[e.issue_number for e in activated],
                 completed_issues=[],
             )
@@ -318,7 +319,8 @@ async def mark_completed(repo_key: str, issue_number: int) -> list[BlockingQueue
 
         # Broadcast WebSocket event for queue state change
         await _broadcast_queue_update(
-            entry.project_id, repo_key,
+            entry.project_id,
+            repo_key,
             activated_issues=[e.issue_number for e in activated],
             completed_issues=[issue_number],
         )
