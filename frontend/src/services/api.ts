@@ -872,10 +872,6 @@ export const pipelinesApi = {
     return request<PipelineConfig>(`/pipelines/${projectId}/${pipelineId}`);
   },
 
-  listModels(): Promise<AIModel[]> {
-    return request<AIModel[]>('/pipelines/models/available');
-  },
-
   create(projectId: string, data: PipelineConfigCreate): Promise<PipelineConfig> {
     return request<PipelineConfig>(`/pipelines/${projectId}`, {
       method: 'POST',

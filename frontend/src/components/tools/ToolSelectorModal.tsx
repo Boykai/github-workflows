@@ -72,7 +72,7 @@ export function ToolSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
       <div
         className="bg-card rounded-lg border border-border shadow-lg w-full max-w-3xl max-h-[85vh] flex flex-col"
         role="presentation"
