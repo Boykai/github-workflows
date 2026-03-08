@@ -16,6 +16,7 @@ import { ChoreInlineEditor } from './ChoreInlineEditor';
 import { PipelineSelector, useProjectPipelineOptions } from './PipelineSelector';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface ChoreCardProps {
@@ -175,19 +176,21 @@ export function ChoreCard({
               <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
                 {chore.schedule_type ? `${chore.schedule_type} cadence` : 'No cadence'}
               </span>
-              <button
-                type="button"
-                onClick={handleToggleStatus}
-                disabled={updateMutation.isPending}
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
-                  chore.status === 'active'
-                    ? 'solar-chip-success'
-                    : 'solar-chip-violet'
-                } disabled:opacity-50`}
-                title={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
-              >
-                {chore.status === 'active' ? 'Active' : 'Paused'}
-              </button>
+              <Tooltip contentKey="chores.card.statusToggle">
+                <button
+                  type="button"
+                  onClick={handleToggleStatus}
+                  disabled={updateMutation.isPending}
+                  aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
+                    chore.status === 'active'
+                      ? 'solar-chip-success'
+                      : 'solar-chip-violet'
+                  } disabled:opacity-50`}
+                >
+                  {chore.status === 'active' ? 'Active' : 'Paused'}
+                </button>
+              </Tooltip>
               {chore.execution_count > 0 && (
                 <span className="rounded-full border border-border/50 bg-muted/50 px-2 py-0.5 text-[9px] text-muted-foreground">
                   {chore.execution_count} run{chore.execution_count !== 1 ? 's' : ''}
@@ -208,35 +211,39 @@ export function ChoreCard({
             )}
             {/* Edit toggle button */}
             {!isEditing && onEditStart && (
-              <button
-                type="button"
-                onClick={onEditStart}
-                className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
-                title="Edit chore"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
+              <Tooltip contentKey="chores.card.editButton">
+                <button
+                  type="button"
+                  onClick={onEditStart}
+                  aria-label="Edit chore"
+                  className="rounded-full p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
 
         {/* AI Enhance & Pipeline indicators */}
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleToggleAiEnhance}
-            disabled={updateMutation.isPending}
-            className={cn(
-              'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
-              currentAiEnhance
-                ? 'border-primary/30 bg-primary/10 text-primary'
-                : 'border-border/60 bg-muted/40 text-muted-foreground'
-            )}
-            title={`AI Enhance: ${currentAiEnhance ? 'ON' : 'OFF'}`}
-          >
-            <Sparkles className="h-3 w-3" />
-            AI {currentAiEnhance ? 'ON' : 'OFF'}
-          </button>
+          <Tooltip contentKey="chores.card.aiEnhanceToggle">
+            <button
+              type="button"
+              onClick={handleToggleAiEnhance}
+              disabled={updateMutation.isPending}
+              aria-label={`AI Enhance: ${currentAiEnhance ? 'ON' : 'OFF'}`}
+              className={cn(
+                'flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] transition-colors',
+                currentAiEnhance
+                  ? 'border-primary/30 bg-primary/10 text-primary'
+                  : 'border-border/60 bg-muted/40 text-muted-foreground'
+              )}
+            >
+              <Sparkles className="h-3 w-3" />
+              AI {currentAiEnhance ? 'ON' : 'OFF'}
+            </button>
+          </Tooltip>
           <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5 text-[9px] text-muted-foreground">
             Agent Pipeline: {pipelineLabel}
           </span>
@@ -365,24 +372,28 @@ export function ChoreCard({
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-          <Button
-            type="button"
-            onClick={handleTrigger}
-            disabled={triggerMutation.isPending}
-            size="sm"
-          >
-            {triggerMutation.isPending ? 'Triggering…' : 'Trigger'}
-          </Button>
-          <Button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
-            variant="ghost"
-            size="sm"
-            className="solar-action-danger"
-          >
-            {deleteMutation.isPending ? 'Removing…' : 'Remove'}
-          </Button>
+          <Tooltip contentKey="chores.card.executeButton">
+            <Button
+              type="button"
+              onClick={handleTrigger}
+              disabled={triggerMutation.isPending}
+              size="sm"
+            >
+              {triggerMutation.isPending ? 'Triggering…' : 'Trigger'}
+            </Button>
+          </Tooltip>
+          <Tooltip contentKey="chores.card.deleteButton">
+            <Button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              variant="ghost"
+              size="sm"
+              className="solar-action-danger"
+            >
+              {deleteMutation.isPending ? 'Removing…' : 'Remove'}
+            </Button>
+          </Tooltip>
         </div>
       </CardContent>
     </Card>

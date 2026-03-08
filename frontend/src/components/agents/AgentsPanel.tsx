@@ -16,6 +16,7 @@ import { BulkModelUpdateDialog } from './BulkModelUpdateDialog';
 import { AgentInlineEditor, type AgentInlineEditorHandle } from './AgentInlineEditor';
 import type { AgentConfig } from '@/services/api';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
@@ -465,10 +466,12 @@ export function AgentsPanel({ projectId, owner, repo, agentUsageCounts = {} }: A
                     <option value="name">Alphabetical</option>
                     <option value="usage">By usage</option>
                   </select>
-                  <Button variant="outline" size="sm" onClick={() => setBulkUpdateOpen(true)}>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Update All Models
-                  </Button>
+                  <Tooltip contentKey="agents.panel.bulkUpdateButton">
+                    <Button variant="outline" size="sm" onClick={() => setBulkUpdateOpen(true)}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Update All Models
+                    </Button>
+                  </Tooltip>
                 </div>
               </div>
             </div>

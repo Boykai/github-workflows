@@ -161,3 +161,40 @@ class TestGlobalConnectionManager:
         """Should have a global ConnectionManager instance."""
         assert connection_manager is not None
         assert isinstance(connection_manager, ConnectionManager)
+
+
+class TestBroadcastSetMutation:
+    """Regression test: broadcast must not raise RuntimeError when the
+    connection set is mutated during iteration (bug-bash fix)."""
+
+    @pytest.fixture
+    def manager(self):
+        return ConnectionManager()
+
+    @pytest.mark.asyncio
+    async def test_broadcast_tolerates_disconnect_during_send(self, manager):
+        """Simulates a connection being removed while broadcast iterates."""
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+
+        ws2 = MagicMock()
+        ws2.accept = AsyncMock()
+
+        async def disconnect_first(_message):
+            manager.disconnect(ws1)
+
+        async def disconnect_second(_message):
+            manager.disconnect(ws2)
+
+        ws1.send_json = AsyncMock(side_effect=disconnect_first)
+        ws2.send_json = AsyncMock(side_effect=disconnect_second)
+
+        await manager.connect(ws1, "PVT_X")
+        await manager.connect(ws2, "PVT_X")
+
+        # Should NOT raise RuntimeError ("Set changed size during iteration")
+        await manager.broadcast_to_project("PVT_X", {"type": "ping"})
+
+        assert manager.get_connection_count("PVT_X") == 0
+        ws1.send_json.assert_called_once()
+        ws2.send_json.assert_called_once()

@@ -4,13 +4,13 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Cookie, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from slowapi.util import get_remote_address
 
 from src.constants import SESSION_COOKIE_NAME
-from src.exceptions import AuthenticationError
+from src.exceptions import AppException, AuthenticationError, NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
@@ -119,10 +119,7 @@ async def github_callback(
     # Validate state
     if not github_auth_service.validate_state(state):
         logger.warning("Invalid OAuth state: %s", state[:20])
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OAuth state",
-        )
+        raise ValidationError("Invalid or expired OAuth state")
 
     try:
         # Create session
@@ -148,15 +145,12 @@ async def github_callback(
 
     except ValueError as e:
         logger.warning("OAuth token exchange failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Authentication failed",
-        ) from e
+        raise ValidationError("Authentication failed") from e
     except Exception as e:
         logger.exception("Failed to create session: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to complete authentication",
+        raise AppException(
+            message="Failed to complete authentication",
+            status_code=500,
         ) from e
 
 
@@ -204,10 +198,7 @@ async def dev_login(
     settings = get_settings()
 
     if not settings.debug:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not Found",
-        )
+        raise NotFoundError("Not Found")
 
     try:
         session = await github_auth_service.create_session_from_token(body.github_token)
@@ -220,7 +211,4 @@ async def dev_login(
 
     except Exception as e:
         logger.warning("Dev login failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed",
-        ) from e
+        raise AuthenticationError("Authentication failed") from e

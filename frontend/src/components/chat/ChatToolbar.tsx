@@ -7,6 +7,7 @@
 import { useRef } from 'react';
 import { Sparkles, Paperclip } from 'lucide-react';
 import { VoiceInputButton } from './VoiceInputButton';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface ChatToolbarProps {
   aiEnhance: boolean;
@@ -46,44 +47,48 @@ export function ChatToolbar({
   return (
     <div className="flex items-center justify-between border-b border-border bg-background/62 px-4 py-2">
       {/* Left section: AI Enhance toggle */}
-      <button
-        type="button"
-        onClick={() => onAiEnhanceChange(!aiEnhance)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border ${
-          aiEnhance
-            ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
-            : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground'
-        }`}
-        aria-pressed={aiEnhance}
-        aria-label={`AI Enhance ${aiEnhance ? 'on' : 'off'}`}
-      >
-        <Sparkles className="w-4 h-4" />
-        <span>AI Enhance</span>
-        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-          aiEnhance
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted-foreground/20 text-muted-foreground'
-        }`}>
-          {aiEnhance ? 'ON' : 'OFF'}
-        </span>
-      </button>
+      <Tooltip contentKey="chat.toolbar.aiEnhanceToggle">
+        <button
+          type="button"
+          onClick={() => onAiEnhanceChange(!aiEnhance)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border ${
+            aiEnhance
+              ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
+              : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground'
+          }`}
+          aria-pressed={aiEnhance}
+          aria-label={`AI Enhance ${aiEnhance ? 'on' : 'off'}`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>AI Enhance</span>
+          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+            aiEnhance
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted-foreground/20 text-muted-foreground'
+          }`}>
+            {aiEnhance ? 'ON' : 'OFF'}
+          </span>
+        </button>
+      </Tooltip>
 
       {/* Right section: Action buttons */}
       <div className="flex items-center gap-1">
         {/* File upload button */}
-        <button
-          type="button"
-          onClick={handleFileClick}
-          className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
-          aria-label="Attach file"
-        >
-          <Paperclip className="w-4 h-4" />
-          {fileCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
-              {fileCount}
-            </span>
-          )}
-        </button>
+        <Tooltip contentKey="chat.toolbar.attachButton">
+          <button
+            type="button"
+            onClick={handleFileClick}
+            className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+            aria-label="Attach file"
+          >
+            <Paperclip className="w-4 h-4" />
+            {fileCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center text-[10px] font-bold rounded-full bg-primary text-primary-foreground">
+                {fileCount}
+              </span>
+            )}
+          </button>
+        </Tooltip>
         <input
           ref={fileInputRef}
           type="file"

@@ -262,8 +262,8 @@ class TestUpdateChore:
             f"/api/v1/chores/PVT_1/{cid}",
             json={"schedule_type": "time"},
         )
-        assert resp.status_code == 400
-        assert "Invalid chore configuration" in resp.json()["detail"]
+        assert resp.status_code == 422
+        assert "Invalid chore configuration" in resp.json()["error"]
 
     @pytest.mark.anyio
     async def test_update_nonexistent_chore(self, client, mock_db):
@@ -342,8 +342,64 @@ class TestInlineUpdateChoreApi:
                 json={"name": "Renamed chore"},
             )
 
-        assert resp.status_code == 400
-        assert "Could not resolve repository" in resp.json()["detail"]
+        assert resp.status_code == 422
+        assert "Could not resolve repository" in resp.json()["error"]
+
+
+# =============================================================================
+# POST /chores/evaluate-triggers
+# =============================================================================
+
+
+class TestEvaluateTriggersApi:
+    """Tests for the evaluate triggers endpoint."""
+
+    @pytest.mark.anyio
+    async def test_forwards_project_and_parent_issue_count(
+        self,
+        client,
+        mock_github_service,
+        mock_session,
+    ):
+        """POST evaluate-triggers forwards the project filter and current count."""
+        service = AsyncMock()
+        service.evaluate_triggers.return_value = {
+            "evaluated": 1,
+            "triggered": 1,
+            "skipped": 0,
+            "results": [
+                {
+                    "chore_id": "chore-1",
+                    "chore_name": "Bug Bash",
+                    "triggered": True,
+                    "issue_number": 42,
+                    "issue_url": "https://github.com/owner/repo/issues/42",
+                }
+            ],
+        }
+
+        with (
+            patch("src.api.chores._get_service", return_value=service),
+            patch(
+                "src.api.chores.resolve_repository",
+                AsyncMock(return_value=("owner", "repo")),
+            ),
+        ):
+            resp = await client.post(
+                "/api/v1/chores/evaluate-triggers",
+                json={"project_id": "PVT_1", "parent_issue_count": 7},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["triggered"] == 1
+        service.evaluate_triggers.assert_awaited_once_with(
+            github_service=mock_github_service,
+            access_token=mock_session.access_token,
+            owner="owner",
+            repo="repo",
+            project_id="PVT_1",
+            parent_issue_count=7,
+        )
 
 
 # =============================================================================
@@ -474,7 +530,7 @@ class TestChoreChat:
             )
 
         assert resp.status_code == 500
-        assert "Chat completion failed" in resp.json()["detail"]
+        assert "Failed to complete chat" in resp.json()["error"]
 
 
 # =============================================================================
@@ -523,7 +579,7 @@ class TestManualTrigger:
             resp = await client.post(f"/api/v1/chores/PVT_1/{cid}/trigger")
 
         assert resp.status_code == 409
-        assert "Open instance" in resp.json()["detail"]
+        assert "Open instance" in resp.json()["error"]
 
     @pytest.mark.anyio
     async def test_trigger_404_nonexistent(self, client, mock_db):

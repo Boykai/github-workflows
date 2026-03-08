@@ -163,7 +163,11 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Click to pause').some((element) => element.textContent?.includes('Active'))).toBe(true);
+      const buttons = screen.getAllByRole('button', { name: 'Click to pause' });
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button).toHaveTextContent('Active');
+      });
     });
   });
 
@@ -173,7 +177,11 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Click to activate').some((element) => element.textContent?.includes('Paused'))).toBe(true);
+      const buttons = screen.getAllByRole('button', { name: 'Click to activate' });
+      expect(buttons.length).toBeGreaterThan(0);
+      buttons.forEach((button) => {
+        expect(button).toHaveTextContent('Paused');
+      });
     });
   });
 
@@ -184,10 +192,10 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getAllByTitle('Edit chore').length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('button', { name: 'Edit chore' }).length).toBeGreaterThan(0);
     });
 
-    await user.click(screen.getAllByTitle('Edit chore')[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Edit chore' })[0]);
 
     const pipelineSelectors = await screen.findAllByLabelText('Agent Pipeline');
     await user.selectOptions(pipelineSelectors[0], 'pipe-1');

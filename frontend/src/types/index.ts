@@ -124,6 +124,35 @@ export interface ChatMessageRequest {
   content: string;
   ai_enhance?: boolean;
   file_urls?: string[];
+  pipeline_id?: string;
+}
+
+// ============ @Mention Types ============
+
+/** Represents a single @mention reference within the chat input. */
+export interface MentionToken {
+  pipelineId: string;
+  pipelineName: string;
+  isValid: boolean;
+  position: number;
+}
+
+/** Internal state managed by the useMentionAutocomplete hook. */
+export interface MentionInputState {
+  isAutocompleteOpen: boolean;
+  filterQuery: string;
+  highlightedIndex: number;
+  mentionTriggerOffset: number | null;
+  activePipelineId: string | null;
+  activePipelineName: string | null;
+  tokens: MentionToken[];
+  hasInvalidTokens: boolean;
+}
+
+/** A pipeline matching the current filter query for autocomplete display. */
+export interface MentionFilterResult {
+  pipeline: PipelineConfigSummary;
+  matchIndices: [number, number][];
 }
 
 // ============ Chat Enhancement Types ============

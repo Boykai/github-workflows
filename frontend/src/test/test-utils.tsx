@@ -6,9 +6,10 @@
  */
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, type RenderOptions } from '@testing-library/react';
+import { render as rtlRender, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 /**
  * Create a fresh QueryClient configured for tests:
@@ -55,16 +56,47 @@ export function renderWithProviders(
     return (
       <QueryClientProvider client={queryClient}>
         <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
+        <TooltipProvider delayDuration={0}>
+          {children}
+        </TooltipProvider>
       </QueryClientProvider>
     );
   }
 
   return {
-    ...render(ui, { wrapper: Wrapper, ...options }),
+    ...rtlRender(ui, { wrapper: Wrapper, ...options }),
     queryClient,
   };
 }
 
 // Re-export everything from RTL so tests can import from one place.
-export * from '@testing-library/react';
+// Override `render` to always wrap with TooltipProvider so Radix tooltips work.
+export {
+  screen,
+  waitFor,
+  within,
+  act,
+  cleanup,
+  fireEvent,
+  waitForElementToBeRemoved,
+  prettyDOM,
+  queries,
+  queryByAttribute,
+  buildQueries,
+} from '@testing-library/react';
+export type { RenderResult } from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
+
+/**
+ * Custom `render` that wraps the UI with `TooltipProvider` so any component
+ * using `<Tooltip>` can be rendered without manually adding the provider.
+ */
+function tooltipAwareRender(ui: ReactElement, options?: RenderOptions) {
+  const Wrapper = options?.wrapper;
+  function TooltipWrapper({ children }: { children: ReactNode }) {
+    const inner = <TooltipProvider delayDuration={0}>{children}</TooltipProvider>;
+    return Wrapper ? <Wrapper>{inner}</Wrapper> : inner;
+  }
+  return rtlRender(ui, { ...options, wrapper: TooltipWrapper });
+}
+export { tooltipAwareRender as render };

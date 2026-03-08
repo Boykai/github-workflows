@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.exceptions import AppException, AuthorizationError, NotFoundError
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -81,7 +82,7 @@ async def set_assignment(
     try:
         return await service.set_assignment(project_id, body.pipeline_id)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise NotFoundError(str(exc)) from exc
 
 
 # ── Create Pipeline ──
@@ -98,7 +99,7 @@ async def create_pipeline(
     try:
         return await service.create_pipeline(project_id, body)
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
 
 
 # ── Get Pipeline ──
@@ -114,7 +115,7 @@ async def get_pipeline(
     service = _get_service()
     pipeline = await service.get_pipeline(project_id, pipeline_id)
     if pipeline is None:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
+        raise NotFoundError("Pipeline not found")
     return pipeline
 
 
@@ -133,12 +134,12 @@ async def update_pipeline(
     try:
         updated = await service.update_pipeline(project_id, pipeline_id, body)
     except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        raise AuthorizationError(str(exc)) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise AppException(str(exc), status_code=409) from exc
 
     if updated is None:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
+        raise NotFoundError("Pipeline not found")
     return updated
 
 
@@ -155,5 +156,5 @@ async def delete_pipeline(
     service = _get_service()
     deleted = await service.delete_pipeline(project_id, pipeline_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
+        raise NotFoundError("Pipeline not found")
     return {"success": True, "deleted_id": pipeline_id}

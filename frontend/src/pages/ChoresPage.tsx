@@ -47,6 +47,7 @@ export function ChoresPage() {
         if (seenItemIds.has(item.item_id)) continue;
         seenItemIds.add(item.item_id);
         if (item.number != null && subIssueNumbers.has(item.number)) continue;
+        if (item.labels?.some(l => l.name === 'chore')) continue;
         count += 1;
       }
     }

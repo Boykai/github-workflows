@@ -14,7 +14,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request
+
+from src.exceptions import AppException, AuthorizationError
 
 if TYPE_CHECKING:
     import aiosqlite
@@ -89,9 +91,9 @@ async def require_admin(
             "(GitHub user id: %s)",
             session.github_user_id,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Server configuration error: admin settings are missing.",
+        raise AppException(
+            message="Server configuration error: admin settings are missing.",
+            status_code=500,
         )
 
     admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
@@ -122,17 +124,14 @@ async def require_admin(
                 "admin user (GitHub user id: %s)",
                 session.github_user_id,
             )
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Server configuration error: admin settings are missing.",
+            raise AppException(
+                message="Server configuration error: admin settings are missing.",
+                status_code=500,
             )
         admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if session.github_user_id != admin_user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the session owner can modify settings",
-        )
+        raise AuthorizationError("Only the session owner can modify settings")
 
     return session
 
@@ -159,12 +158,6 @@ async def verify_project_access(
             project_id,
             exc_info=True,
         )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unable to verify project access",
-        ) from None
+        raise AuthorizationError("Unable to verify project access") from None
 
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="You do not have access to this project",
-    )
+    raise AuthorizationError("You do not have access to this project")
