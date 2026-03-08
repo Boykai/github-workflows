@@ -137,3 +137,42 @@ class TestInMemoryCache:
         cache.set("test_key", "updated")
 
         assert cache.get("test_key") == "updated"
+
+
+class TestCacheClearExpiredSafety:
+    """Regression test: clear_expired must not raise KeyError when entries
+    are concurrently removed (bug-bash fix)."""
+
+    @patch("src.services.cache.get_settings")
+    def test_clear_expired_tolerates_missing_key(self, mock_settings):
+        """If a key disappears between snapshot and deletion, no KeyError."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=0)
+        cache = InMemoryCache()
+        cache.set("k1", "v1", ttl_seconds=0)
+
+        time.sleep(0.01)
+
+        # Manually remove the key before clear_expired processes it
+        del cache._cache["k1"]
+
+        # Should NOT raise KeyError
+        removed = cache.clear_expired()
+        assert removed == 0
+
+    @patch("src.services.cache.get_settings")
+    def test_get_expired_entry_uses_pop(self, mock_settings):
+        """Expired entry cleanup in get() should not raise KeyError."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=0)
+        cache = InMemoryCache()
+        cache.set("k1", "v1", ttl_seconds=0)
+
+        time.sleep(0.01)
+
+        # Simulate key already removed
+        cache._cache.pop("k1", None)
+        cache.set("k1", "v2", ttl_seconds=0)
+
+        time.sleep(0.01)
+
+        # Should return None, not raise
+        assert cache.get("k1") is None

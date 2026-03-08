@@ -51,7 +51,7 @@ class InMemoryCache:
             return None
 
         if entry.is_expired:
-            del self._cache[key]
+            self._cache.pop(key, None)
             logger.debug("Cache miss (expired): %s", key)
             return None
 
@@ -139,11 +139,12 @@ class InMemoryCache:
         Returns:
             True if key existed
         """
-        if key in self._cache:
+        try:
             del self._cache[key]
             logger.debug("Cache delete: %s", key)
             return True
-        return False
+        except KeyError:
+            return False
 
     def clear(self) -> None:
         """Clear all cached values."""
@@ -158,13 +159,16 @@ class InMemoryCache:
             Number of entries removed
         """
         expired_keys = [k for k, v in self._cache.items() if v.is_expired]
+        removed = 0
         for key in expired_keys:
-            del self._cache[key]
+            # Use pop to avoid KeyError if another caller already removed it
+            if self._cache.pop(key, None) is not None:
+                removed += 1
 
-        if expired_keys:
-            logger.debug("Cleared %d expired cache entries", len(expired_keys))
+        if removed:
+            logger.debug("Cleared %d expired cache entries", removed)
 
-        return len(expired_keys)
+        return removed
 
 
 # Global cache instance
