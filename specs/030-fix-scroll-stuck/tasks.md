@@ -82,7 +82,7 @@
 ### Implementation for User Story 3
 
 - [ ] T012 [P] [US3] Replace manual scroll lock with useScrollLock(isOpen) in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T013 [US3] Replace manual scroll lock with useScrollLock(showCopyDialog) and separate keydown listener into its own useEffect in frontend/src/components/pipeline/PipelineToolbar.tsx
+- [ ] T013 [P] [US3] Replace manual scroll lock with useScrollLock(showCopyDialog) and separate keydown listener into its own useEffect in frontend/src/components/pipeline/PipelineToolbar.tsx
 
 **Checkpoint**: All 6 modal components now use the centralized useScrollLock hook. The modal scroll-lock race condition is fully eliminated. Scroll stability during transitions is guaranteed by reference counting.
 
