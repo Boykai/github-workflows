@@ -357,3 +357,23 @@ async def get_board_data(
     # Manual refresh (refresh=true) bypasses this cache entirely.
     cache.set(cache_key, board_data, ttl_seconds=300)
     return board_data
+
+
+@router.get("/projects/{project_id}/blocking-queue")
+async def get_blocking_queue(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[dict]:
+    """Get active blocking queue entries for a project.
+
+    Returns non-completed entries ordered by created_at ASC, providing
+    data for the blocking chain tooltip/sidebar on the board.
+    """
+    try:
+        from src.services import blocking_queue_store as bq_store
+
+        entries = await bq_store.get_by_project(project_id)
+        return [entry.model_dump() for entry in entries]
+    except Exception:
+        logger.debug("Blocking queue data unavailable for project %s", project_id)
+        return []

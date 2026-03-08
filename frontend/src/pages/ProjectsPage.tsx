@@ -15,10 +15,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
+import { BlockingChainPanel } from '@/components/board/BlockingChainPanel';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
+import { useBlockingQueue } from '@/hooks/useBlockingQueue';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -68,6 +70,9 @@ export function ProjectsPage() {
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
+
+  // Blocking queue state for the blocking chain panel
+  const { data: blockingQueueEntries } = useBlockingQueue(selectedProjectId ?? undefined);
 
   const { data: savedPipelines } = useQuery({
     queryKey: ['pipelines', selectedProjectId],
@@ -206,22 +211,27 @@ export function ProjectsPage() {
 
       {/* Toolbar */}
       {selectedProjectId && boardData && (
-        <BoardToolbar
-          filters={boardControls.controls.filters}
-          sort={boardControls.controls.sort}
-          group={boardControls.controls.group}
-          onFiltersChange={boardControls.setFilters}
-          onSortChange={boardControls.setSort}
-          onGroupChange={boardControls.setGroup}
-          onClearAll={boardControls.clearAll}
-          availableLabels={boardControls.availableLabels}
-          availableAssignees={boardControls.availableAssignees}
-          availableMilestones={boardControls.availableMilestones}
-          hasActiveFilters={boardControls.hasActiveFilters}
-          hasActiveSort={boardControls.hasActiveSort}
-          hasActiveGroup={boardControls.hasActiveGroup}
-          hasActiveControls={boardControls.hasActiveControls}
-        />
+        <div className="flex items-center gap-2">
+          <BoardToolbar
+            filters={boardControls.controls.filters}
+            sort={boardControls.controls.sort}
+            group={boardControls.controls.group}
+            onFiltersChange={boardControls.setFilters}
+            onSortChange={boardControls.setSort}
+            onGroupChange={boardControls.setGroup}
+            onClearAll={boardControls.clearAll}
+            availableLabels={boardControls.availableLabels}
+            availableAssignees={boardControls.availableAssignees}
+            availableMilestones={boardControls.availableMilestones}
+            hasActiveFilters={boardControls.hasActiveFilters}
+            hasActiveSort={boardControls.hasActiveSort}
+            hasActiveGroup={boardControls.hasActiveGroup}
+            hasActiveControls={boardControls.hasActiveControls}
+          />
+          {blockingQueueEntries && blockingQueueEntries.length > 0 && (
+            <BlockingChainPanel entries={blockingQueueEntries} />
+          )}
+        </div>
       )}
 
       {/* Rate limit / error banners */}
