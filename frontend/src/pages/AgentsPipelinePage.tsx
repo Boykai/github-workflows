@@ -13,6 +13,7 @@ import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
@@ -122,11 +123,19 @@ export function AgentsPipelinePage() {
   }, [columns, pipelineConfig]);
 
   // Handle delete with confirmation
-  const handleDelete = useCallback(() => {
-    if (window.confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
+  const { confirm } = useConfirmation();
+  const handleDelete = useCallback(async () => {
+    const ok = await confirm({
+      title: 'Delete Pipeline',
+      description: 'Are you sure you want to delete this pipeline? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+    });
+    if (ok) {
       pipelineConfig.deletePipeline();
     }
-  }, [pipelineConfig]);
+  }, [confirm, pipelineConfig]);
 
   // Unsaved dialog handlers
   const handleUnsavedSave = useCallback(async () => {
