@@ -385,6 +385,13 @@ def create_app() -> FastAPI:
     )
 
     # CORS middleware
+    # TODO(bug-bash): allow_methods=["*"] and allow_headers=["*"] are more
+    # permissive than necessary. Restricting to the actual methods/headers
+    # used by the frontend (GET, POST, PUT, PATCH, DELETE + specific headers)
+    # would reduce attack surface. Options: (1) enumerate explicit methods
+    # and headers, (2) keep wildcards since origins are already validated.
+    # Human decision needed: tightening may break existing integrations or
+    # preflight requests for custom headers.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,

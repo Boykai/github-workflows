@@ -726,10 +726,22 @@ export const choresApi = {
   /**
    * Evaluate all active chore triggers.
    */
-  evaluateTriggers(projectId?: string): Promise<EvaluateChoreTriggersResponse> {
+  evaluateTriggers(
+    projectId?: string,
+    parentIssueCount?: number,
+  ): Promise<EvaluateChoreTriggersResponse> {
     return request<EvaluateChoreTriggersResponse>('/chores/evaluate-triggers', {
       method: 'POST',
-      body: JSON.stringify(projectId ? { project_id: projectId } : {}),
+      body: JSON.stringify(
+        projectId
+          ? {
+              project_id: projectId,
+              ...(parentIssueCount !== undefined
+                ? { parent_issue_count: parentIssueCount }
+                : {}),
+            }
+          : {},
+      ),
     });
   },
 };

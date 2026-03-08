@@ -347,6 +347,62 @@ class TestInlineUpdateChoreApi:
 
 
 # =============================================================================
+# POST /chores/evaluate-triggers
+# =============================================================================
+
+
+class TestEvaluateTriggersApi:
+    """Tests for the evaluate triggers endpoint."""
+
+    @pytest.mark.anyio
+    async def test_forwards_project_and_parent_issue_count(
+        self,
+        client,
+        mock_github_service,
+        mock_session,
+    ):
+        """POST evaluate-triggers forwards the project filter and current count."""
+        service = AsyncMock()
+        service.evaluate_triggers.return_value = {
+            "evaluated": 1,
+            "triggered": 1,
+            "skipped": 0,
+            "results": [
+                {
+                    "chore_id": "chore-1",
+                    "chore_name": "Bug Bash",
+                    "triggered": True,
+                    "issue_number": 42,
+                    "issue_url": "https://github.com/owner/repo/issues/42",
+                }
+            ],
+        }
+
+        with (
+            patch("src.api.chores._get_service", return_value=service),
+            patch(
+                "src.api.chores.resolve_repository",
+                AsyncMock(return_value=("owner", "repo")),
+            ),
+        ):
+            resp = await client.post(
+                "/api/v1/chores/evaluate-triggers",
+                json={"project_id": "PVT_1", "parent_issue_count": 7},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["triggered"] == 1
+        service.evaluate_triggers.assert_awaited_once_with(
+            github_service=mock_github_service,
+            access_token=mock_session.access_token,
+            owner="owner",
+            repo="repo",
+            project_id="PVT_1",
+            parent_issue_count=7,
+        )
+
+
+# =============================================================================
 # DELETE /chores/{project_id}/{chore_id}
 # =============================================================================
 

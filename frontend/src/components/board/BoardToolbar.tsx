@@ -5,6 +5,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Filter, ArrowUpDown, Columns3, X } from 'lucide-react';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { BoardFilterState, BoardSortState, BoardGroupState } from '@/hooks/useBoardControls';
 
 type ActivePanel = 'filter' | 'sort' | 'group' | null;
@@ -177,15 +178,16 @@ export function BoardToolbar({
       <ToolbarButton icon={Columns3} label={group.field ? `Group: ${group.field}` : 'Group by'} isActive={activePanel === 'group'} hasIndicator={hasActiveGroup} onClick={() => togglePanel('group')} />
 
       {hasActiveControls && (
-        <button
-          onClick={onClearAll}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          type="button"
-          title="Clear all filters, sort, and grouping"
-        >
-          <X className="w-3 h-3" />
-          Clear
-        </button>
+        <Tooltip contentKey="board.toolbar.clearAllButton">
+          <button
+            onClick={onClearAll}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            type="button"
+          >
+            <X className="w-3 h-3" />
+            Clear
+          </button>
+        </Tooltip>
       )}
 
       {/* Filter Panel */}

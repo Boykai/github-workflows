@@ -12,6 +12,7 @@ import { StatusChangePreview } from './StatusChangePreview';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import { ChatToolbar } from './ChatToolbar';
 import { FilePreviewChips } from './FilePreviewChips';
+import { Tooltip } from '@/components/ui/tooltip';
 import { useCommands } from '@/hooks/useCommands';
 import { useChatHistory } from '@/hooks/useChatHistory';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -455,14 +456,16 @@ export function ChatInterface({
         </div>
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
           {chatHistory.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowHistoryPopover((prev) => !prev)}
-              aria-label="Message history"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
-            >
-              <History className="w-4 h-4" />
-            </button>
+            <Tooltip contentKey="chat.interface.historyToggle">
+              <button
+                type="button"
+                onClick={() => setShowHistoryPopover((prev) => !prev)}
+                aria-label="Message history"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+              >
+                <History className="w-4 h-4" />
+              </button>
+            </Tooltip>
           )}
           {showHistoryPopover && chatHistory.length > 0 && (
             <div className="absolute bottom-full right-0 z-20 mb-2 max-h-60 w-64 overflow-y-auto rounded-lg border border-border bg-popover shadow-lg backdrop-blur-sm">

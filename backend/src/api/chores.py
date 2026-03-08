@@ -49,6 +49,41 @@ def _get_service() -> ChoresService:
     return ChoresService(get_db())
 
 
+# ── Evaluate Triggers (Cron) ──
+
+
+@router.post("/evaluate-triggers", response_model=EvaluateChoreTriggersResponse)
+async def evaluate_triggers(
+    session: Annotated[UserSession, Depends(get_session_dep)],
+    body: EvaluateChoreTriggersRequest | None = None,
+) -> EvaluateChoreTriggersResponse:
+    """Evaluate all active chores for trigger conditions."""
+    service = _get_service()
+
+    project_id = body.project_id if body else None
+    parent_issue_count = body.parent_issue_count if body else None
+    if not project_id:
+        logger.warning("evaluate-triggers called without project_id; returning empty result")
+        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
+
+    # Resolve repository for the specified project
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception:
+        logger.warning("Could not resolve repository for project %s", project_id)
+        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
+
+    result = await service.evaluate_triggers(
+        github_service=github_projects_service,
+        access_token=session.access_token,
+        owner=owner,
+        repo=repo,
+        project_id=project_id,
+        parent_issue_count=parent_issue_count,
+    )
+    return EvaluateChoreTriggersResponse(**result)
+
+
 # ── Templates (from repo) ──
 
 
@@ -429,35 +464,3 @@ async def create_chore_with_merge(
         handle_service_error(exc, "create chore", GitHubAPIError)
 
     return ChoreCreateResponse(**result)
-
-
-# ── Evaluate Triggers (Cron) ──
-
-
-@router.post("/evaluate-triggers", response_model=EvaluateChoreTriggersResponse)
-async def evaluate_triggers(
-    session: Annotated[UserSession, Depends(get_session_dep)],
-    body: EvaluateChoreTriggersRequest | None = None,
-) -> EvaluateChoreTriggersResponse:
-    """Evaluate all active chores for trigger conditions."""
-    service = _get_service()
-
-    project_id = body.project_id if body else None
-    if not project_id:
-        logger.warning("evaluate-triggers called without project_id; returning empty result")
-        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
-
-    # Resolve repository for the specified project
-    try:
-        owner, repo = await resolve_repository(session.access_token, project_id)
-    except Exception:
-        logger.warning("Could not resolve repository for project %s", project_id)
-        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
-
-    result = await service.evaluate_triggers(
-        github_service=github_projects_service,
-        access_token=session.access_token,
-        owner=owner,
-        repo=repo,
-    )
-    return EvaluateChoreTriggersResponse(**result)
