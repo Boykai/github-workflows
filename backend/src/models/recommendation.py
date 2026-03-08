@@ -37,6 +37,10 @@ class AITaskProposal(BaseModel):
     proposed_description: str = Field(
         ..., max_length=65536, description="AI-generated task description"
     )
+    is_blocking: bool = Field(
+        default=False,
+        description="Whether the confirmed issue should enter the blocking queue",
+    )
     status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(default=None, description="User-modified title")
     edited_description: str | None = Field(default=None, description="User-modified description")
@@ -75,6 +79,7 @@ class AITaskProposal(BaseModel):
                 "original_input": "Add authentication so users can log in with their GitHub accounts",
                 "proposed_title": "Add OAuth2 authentication flow",
                 "proposed_description": "## Overview\\nImplement GitHub OAuth2...",
+                "is_blocking": False,
                 "status": "pending",
                 "edited_title": None,
                 "edited_description": None,

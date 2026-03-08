@@ -149,6 +149,8 @@ npx playwright test
 - Python 3.13 (backend), TypeScript/Node.js 22 (frontend) + FastAPI (backend API), React (frontend UI), Pydantic (models) (029-fix-ai-enhance-disabled)
 - In-memory dictionaries (`_proposals`, `_recommendations`) — lost on restart (029-fix-ai-enhance-disabled)
 - SQLite with WAL mode (aiosqlite) — existing `project_settings` table (`assigned_pipeline_id` column), existing `pipeline_configs` table (030-chat-pipeline-config)
+- Python 3.13 (backend), TypeScript ~5.9 (frontend) + FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12, websockets 16.0 (backend); React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend) (030-blocking-queue)
+- SQLite with WAL mode (aiosqlite) — new `blocking_queue` table; ALTER TABLE additions to `pipeline_configs` and `chores` (030-blocking-queue)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend — no changes needed) + React 19.2, TanStack Query v5.90, Tailwind CSS v4.2, lucide-react 0.577, class-variance-authority 0.7 (frontend) (001-confirmation-flow)
 - N/A — no storage changes; confirmation is a pure UI concern (001-confirmation-flow)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, Pydantic v2.12 (backend) (030-at-mention-pipeline)

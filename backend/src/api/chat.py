@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 import tempfile
 from pathlib import Path
 from typing import Annotated
@@ -80,6 +81,8 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
+# Module-level compiled regex for #block detection (no \s* prefix — avoids ReDoS)
+_BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
@@ -271,6 +274,15 @@ async def send_message(
         return agent_msg
 
     # ──────────────────────────────────────────────────────────────────
+    # PRIORITY 0.5: #block detection — mark resulting issue as blocking
+    # ──────────────────────────────────────────────────────────────────
+    is_blocking = bool(_BLOCK_PATTERN.search(chat_request.content))
+    if is_blocking:
+        # Strip #block and normalise whitespace (avoids ReDoS from \s* prefix)
+        chat_request.content = " ".join(_BLOCK_PATTERN.sub("", chat_request.content).split())
+        logger.info("Detected #block in message — is_blocking=True, stripped content")
+
+    # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
     # ──────────────────────────────────────────────────────────────────
     ai_service = get_ai_agent_service()
@@ -351,6 +363,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "status": RecommendationStatus.PENDING.value,
                     "ai_enhance": chat_request.ai_enhance,
                     "file_urls": chat_request.file_urls,
+                    "is_blocking": is_blocking,
                     "pipeline_id": chat_request.pipeline_id,
                 },
             )
@@ -470,6 +483,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 original_input=chat_request.content,
                 proposed_title=title,
                 proposed_description=chat_request.content,
+                is_blocking=is_blocking,
             )
             _proposals[str(proposal.proposal_id)] = proposal
 
@@ -487,6 +501,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                     "proposed_title": title,
                     "proposed_description": chat_request.content,
                     "status": ProposalStatus.PENDING.value,
+                    "is_blocking": is_blocking,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -520,6 +535,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             original_input=chat_request.content,
             proposed_title=generated.title,
             proposed_description=generated.description,
+            is_blocking=is_blocking,
         )
         _proposals[str(proposal.proposal_id)] = proposal
 
@@ -539,6 +555,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 "proposed_title": generated.title,
                 "proposed_description": generated.description,
                 "status": ProposalStatus.PENDING.value,
+                "is_blocking": is_blocking,
             },
         )
         add_message(session.session_id, assistant_message)
@@ -686,6 +703,9 @@ async def confirm_proposal(
 
         # Step 3: Set up workflow config and assign agent for Backlog status
         try:
+            # Resolve is_blocking from the proposal
+            proposal_is_blocking = proposal.is_blocking
+
             from src.config import get_settings
 
             settings = get_settings()
@@ -758,6 +778,24 @@ async def confirm_proposal(
             ctx.project_item_id = item_id
 
             orchestrator = get_workflow_orchestrator()
+
+            # Blocking queue: enqueue issue and check if it should activate
+            issue_activated = True
+            try:
+                from src.services import blocking_queue as bq_service
+
+                repo_key = f"{owner}/{repo}"
+                _bq_entry, issue_activated = await bq_service.enqueue_issue(
+                    repo_key, issue_number, project_id, proposal_is_blocking
+                )
+                if not issue_activated:
+                    logger.info(
+                        "Issue #%d is pending in blocking queue — skipping agent assignment",
+                        issue_number,
+                    )
+                    return proposal
+            except Exception:
+                logger.debug("Blocking queue enqueue skipped in confirm_proposal")
 
             # Create all sub-issues upfront so the user can see the full pipeline
             agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)

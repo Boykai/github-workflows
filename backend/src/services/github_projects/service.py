@@ -2666,6 +2666,93 @@ class GitHubProjectsService:
             status_name=status_name,
         )
 
+    async def get_issue_node_and_project_item(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        project_id: str,
+    ) -> tuple[str | None, str | None]:
+        """Return the issue node id and matching project item id for an issue."""
+        try:
+            issue_data = await self._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/issues/{issue_number}",
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to load issue #%d from %s/%s: %s",
+                issue_number,
+                owner,
+                repo,
+                exc,
+            )
+            return None, None
+
+        if not isinstance(issue_data, dict):
+            logger.warning("Unexpected issue payload for #%d in %s/%s", issue_number, owner, repo)
+            return None, None
+
+        issue_node_id = issue_data.get("node_id")
+        if not issue_node_id:
+            logger.warning("Issue #%d in %s/%s has no node_id", issue_number, owner, repo)
+            return None, None
+
+        query = """
+        query($issueId: ID!) {
+            node(id: $issueId) {
+                ... on Issue {
+                    projectItems(first: 10) {
+                        nodes {
+                            id
+                            project { id }
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        try:
+            data = await self._graphql(access_token, query, {"issueId": issue_node_id})
+        except Exception as exc:
+            logger.warning(
+                "Failed to query project items for issue #%d (%s): %s",
+                issue_number,
+                issue_node_id,
+                exc,
+            )
+            return issue_node_id, None
+
+        nodes = data.get("node", {}).get("projectItems", {}).get("nodes", [])
+        item_id: str | None = None
+        for node in nodes:
+            if node.get("project", {}).get("id") == project_id:
+                item_id = node.get("id")
+                break
+
+        if not item_id and nodes:
+            item_id = nodes[0].get("id")
+
+        if not item_id:
+            try:
+                item_id = await self.add_issue_to_project(
+                    access_token=access_token,
+                    project_id=project_id,
+                    issue_node_id=issue_node_id,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Failed to attach issue #%d to project %s: %s",
+                    issue_number,
+                    project_id,
+                    exc,
+                )
+
+        return issue_node_id, item_id
+
     # ──────────────────────────────────────────────────────────────────
     # Project Field Management (Priority, Size, Estimate, Dates)
     # ──────────────────────────────────────────────────────────────────
