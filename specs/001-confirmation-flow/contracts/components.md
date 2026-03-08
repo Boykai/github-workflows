@@ -25,6 +25,7 @@ interface ConfirmationDialogProps {
 ```
 
 **Behavior**:
+
 - **Visual structure**: Fixed overlay (`inset-0 z-[60]`) with semi-transparent backdrop (`bg-black/50`). Centered inner container with `max-w-md rounded-2xl border shadow-xl bg-background`.
 - **Header**: Icon (from variant config) + title text. Icon is `AlertTriangle` for danger/warning, `Info` for info variant.
 - **Body**: Scrollable description area (`max-h-[60vh] overflow-y-auto`) containing the description text. Supports long content with scroll while keeping buttons visible.
@@ -77,6 +78,7 @@ interface ConfirmationOptions {
 ```
 
 **Behavior**:
+
 - **`ConfirmationDialogProvider`**: Renders the `ConfirmationDialog` component at the provider level. Manages internal state (`isOpen`, `options`, `isLoading`, `error`, `resolve` callback, queue).
 - **`useConfirmation()`**: Returns `{ confirm }`. Throws if used outside the provider.
 - **`confirm(options)`**: Opens the dialog with the given options. Returns a `Promise<boolean>` that resolves when the user confirms (`true`) or cancels (`false`).
@@ -99,6 +101,7 @@ interface ConfirmationOptions {
 **Changes**: Replace `window.confirm()` in `handleDelete` with the `useConfirmation` hook.
 
 **Before**:
+
 ```typescript
 const handleDelete = () => {
   if (
@@ -112,6 +115,7 @@ const handleDelete = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -136,6 +140,7 @@ const handleDelete = async () => {
 **Changes**: Replace `window.confirm()` in `handleClearPending` with the `useConfirmation` hook.
 
 **Before**:
+
 ```typescript
 const handleClearPending = () => {
   const confirmed = window.confirm(
@@ -147,6 +152,7 @@ const handleClearPending = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -170,6 +176,7 @@ const handleClearPending = async () => {
 **Changes**: Replace `window.confirm()` in `handleDelete` with the `useConfirmation` hook.
 
 **Before**:
+
 ```typescript
 const handleDelete = () => {
   if (window.confirm(`Remove chore "${chore.name}"? This cannot be undone.`)) {
@@ -179,6 +186,7 @@ const handleDelete = () => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -203,6 +211,7 @@ const handleDelete = async () => {
 **Changes**: Replace `window.confirm()` in `handleDelete` with the `useConfirmation` hook.
 
 **Before**:
+
 ```typescript
 const handleDelete = useCallback(() => {
   if (window.confirm('Are you sure you want to delete this pipeline? This action cannot be undone.')) {
@@ -212,6 +221,7 @@ const handleDelete = useCallback(() => {
 ```
 
 **After**:
+
 ```typescript
 const { confirm } = useConfirmation();
 
@@ -236,6 +246,7 @@ const handleDelete = useCallback(async () => {
 **Changes**: Add `ConfirmationDialogProvider` wrapper.
 
 **Before** (conceptual):
+
 ```tsx
 function App() {
   return (
@@ -247,6 +258,7 @@ function App() {
 ```
 
 **After** (conceptual):
+
 ```tsx
 import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 
@@ -267,7 +279,7 @@ function App() {
 
 ### Confirmation Dialog (All Variants)
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │  (Semi-transparent backdrop: bg-black/50)    │
 │                                              │
@@ -297,7 +309,7 @@ function App() {
 
 ### Loading State
 
-```
+```text
 ┌─────────────────────────────┐
 │                             │
 │  ⚠️  Delete Pipeline        │
@@ -315,7 +327,7 @@ function App() {
 
 ### Scrollable Long Content
 
-```
+```text
 ┌─────────────────────────────┐
 │                             │
 │  ⚠️  Bulk Delete Items       │
