@@ -35,7 +35,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
 - [ ] T003 Update `send_message` handler in `backend/src/api/chat.py` to read `pipeline_id` from `ChatMessageRequest`, validate the referenced pipeline exists when provided (return 400 if not found), and pass `pipeline_id` to the issue creation flow to override the project's default pipeline assignment
-- [ ] T004 [P] Create `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — render a `<span>` with `contentEditable="false"`, `data-pipeline-id`, and `data-pipeline-name` attributes; valid state uses blue chip styling (`bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`); invalid state uses amber/red styling with warning icon; displays `@[pipeline name]` text
+- [ ] T004 [P] Create `MentionToken` component in `frontend/src/components/chat/MentionToken.tsx` — render a `<span>` with `contentEditable="false"`, `data-pipeline-id`, and `data-pipeline-name` attributes; implement both valid (blue chip: `bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`) and invalid (amber/red chip) visual states controlled by `isValid` prop; displays `@[pipeline name]` text (T017 later adds dynamic re-validation styling details)
 - [ ] T005 [P] Create `MentionAutocomplete` component in `frontend/src/components/chat/MentionAutocomplete.tsx` — floating dropdown with ARIA `role="listbox"` following `CommandAutocomplete.tsx` pattern; display pipeline name and optional description per item; keyboard navigation (ArrowUp/ArrowDown to highlight, Enter/Tab to select, Escape to dismiss); mouse hover/click support; scrollable list capped at 10 visible items; empty state ("No pipelines found"), loading skeleton, and error state ("Unable to load pipelines")
 - [ ] T006 [P] Create `PipelineIndicator` component in `frontend/src/components/chat/PipelineIndicator.tsx` — hidden when no @mention is present; shows "Using pipeline: [name]" badge when a valid pipeline is mentioned; shows info tooltip "Multiple pipelines mentioned — using last" when `hasMultipleMentions` is true; shows warning badge "Pipeline not found" when only invalid mentions exist
 - [ ] T007 [P] Create `MentionInput` component in `frontend/src/components/chat/MentionInput.tsx` — `contentEditable` div replacing the textarea; detect `@` trigger condition (preceded by space, newline, or at position 0); insert mention tokens as `<span contentEditable="false">` elements; handle backspace into a token by removing the entire token as a single unit; fire `onSubmit` on Enter (without Shift); fire `onNavigateHistory` on ArrowUp/ArrowDown when cursor is at start/end; auto-resize behavior matching current textarea; expose `focus()` and `clear()` via ref
@@ -166,7 +166,7 @@
 ### Parallel Opportunities
 
 - **Phase 1**: T001 and T002 can run in parallel (frontend types vs backend model — different repos)
-- **Phase 2**: T004, T005, T006, T007 can all run in parallel (different new files); T003 is backend-only and independent; T008 depends on T004–T007 component interfaces
+- **Phase 2**: T003 is backend-only and independent; T004, T005, T006, T007 can all run in parallel (different new frontend files); T008 (hook) can be developed in parallel with components since they share a defined interface from contracts/components.md
 - **Phase 3**: T009, T010, T011 are sequential (all modify `ChatInterface.tsx`)
 - **Phase 6**: T016, T017, T018 touch different files and can run in parallel
 - **Phase 7**: T019 and T020 touch different files and can run in parallel
