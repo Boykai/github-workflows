@@ -694,10 +694,9 @@ async def confirm_proposal(
             )
             if pipeline_result.agent_mappings:
                 logger.info(
-                    "Applying %s agent pipeline mappings for project=%s (source=%s, pipeline=%s)",
+                    "Applying %s agent pipeline mappings for project=%s (pipeline=%s)",
                     pipeline_result.source,
                     project_id,
-                    pipeline_result.source,
                     pipeline_result.pipeline_name or "N/A",
                 )
                 config.agent_mappings = pipeline_result.agent_mappings

@@ -29,7 +29,7 @@ export function useSelectedPipeline(projectId: string | null): SelectedPipelineS
   });
 
   const { data: pipelineList, isLoading: listLoading } = useQuery({
-    queryKey: ['pipelines', 'list', projectId],
+    queryKey: ['pipelines', projectId],
     queryFn: () => pipelinesApi.list(projectId!),
     staleTime: 60_000,
     enabled,

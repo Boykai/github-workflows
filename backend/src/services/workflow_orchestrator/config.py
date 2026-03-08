@@ -398,7 +398,7 @@ async def resolve_project_pipeline_mappings(
                 ("__workflow__", project_id),
             )
             row = await cursor.fetchone()
-            assigned_id = (row["assigned_pipeline_id"] if row else None) or ""
+            assigned_id = (row["assigned_pipeline_id"] or "") if row else ""
 
         if assigned_id:
             result = await load_pipeline_as_agent_mappings(project_id, assigned_id)
