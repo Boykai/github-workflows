@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.dependencies import verify_project_access
 from src.exceptions import (
     AppException,
     GitHubAPIError,
@@ -87,7 +88,11 @@ async def evaluate_triggers(
 # ── Templates (from repo) ──
 
 
-@router.get("/{project_id}/templates", response_model=list[ChoreTemplate])
+@router.get(
+    "/{project_id}/templates",
+    response_model=list[ChoreTemplate],
+    dependencies=[Depends(verify_project_access)],
+)
 async def list_templates(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -149,7 +154,11 @@ async def list_templates(
 # ── List ──
 
 
-@router.get("/{project_id}", response_model=list[Chore])
+@router.get(
+    "/{project_id}",
+    response_model=list[Chore],
+    dependencies=[Depends(verify_project_access)],
+)
 async def list_chores(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -162,7 +171,12 @@ async def list_chores(
 # ── Create ──
 
 
-@router.post("/{project_id}", response_model=Chore, status_code=201)
+@router.post(
+    "/{project_id}",
+    response_model=Chore,
+    status_code=201,
+    dependencies=[Depends(verify_project_access)],
+)
 async def create_chore(
     project_id: str,
     body: ChoreCreate,
@@ -228,7 +242,11 @@ async def create_chore(
 # ── Update ──
 
 
-@router.patch("/{project_id}/{chore_id}", response_model=Chore)
+@router.patch(
+    "/{project_id}/{chore_id}",
+    response_model=Chore,
+    dependencies=[Depends(verify_project_access)],
+)
 async def update_chore(
     project_id: str,
     chore_id: str,
@@ -257,7 +275,10 @@ async def update_chore(
 # ── Delete ──
 
 
-@router.delete("/{project_id}/{chore_id}")
+@router.delete(
+    "/{project_id}/{chore_id}",
+    dependencies=[Depends(verify_project_access)],
+)
 async def delete_chore(
     project_id: str,
     chore_id: str,
@@ -301,7 +322,11 @@ async def delete_chore(
 # ── Manual Trigger ──
 
 
-@router.post("/{project_id}/{chore_id}/trigger", response_model=ChoreTriggerResult)
+@router.post(
+    "/{project_id}/{chore_id}/trigger",
+    response_model=ChoreTriggerResult,
+    dependencies=[Depends(verify_project_access)],
+)
 async def trigger_chore(
     project_id: str,
     chore_id: str,
@@ -338,7 +363,11 @@ async def trigger_chore(
 # ── Chat ──
 
 
-@router.post("/{project_id}/chat", response_model=ChoreChatResponse)
+@router.post(
+    "/{project_id}/chat",
+    response_model=ChoreChatResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def chore_chat(
     project_id: str,
     body: ChoreChatMessage,
@@ -368,7 +397,11 @@ async def chore_chat(
 # ── Inline Update ──
 
 
-@router.put("/{project_id}/{chore_id}/inline-update", response_model=ChoreInlineUpdateResponse)
+@router.put(
+    "/{project_id}/{chore_id}/inline-update",
+    response_model=ChoreInlineUpdateResponse,
+    dependencies=[Depends(verify_project_access)],
+)
 async def inline_update_chore(
     project_id: str,
     chore_id: str,
@@ -431,7 +464,12 @@ async def inline_update_chore(
 # ── Create with Auto-Merge ──
 
 
-@router.post("/{project_id}/create-with-merge", response_model=ChoreCreateResponse, status_code=201)
+@router.post(
+    "/{project_id}/create-with-merge",
+    response_model=ChoreCreateResponse,
+    status_code=201,
+    dependencies=[Depends(verify_project_access)],
+)
 async def create_chore_with_merge(
     project_id: str,
     body: ChoreCreateWithConfirmation,
