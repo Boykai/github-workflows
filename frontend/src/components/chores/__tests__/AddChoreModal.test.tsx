@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 const mockCreate = vi.fn();
 const mockCreateWithAutoMerge = vi.fn();
 const mockChat = vi.fn();
+const mockPipelinesList = vi.fn();
 
 vi.mock('@/services/api', () => ({
   choresApi: {
@@ -24,6 +25,9 @@ vi.mock('@/services/api', () => ({
     chat: (...args: unknown[]) => mockChat(...args),
     list: vi.fn().mockResolvedValue([]),
     listTemplates: vi.fn().mockResolvedValue([]),
+  },
+  pipelinesApi: {
+    list: (...args: unknown[]) => mockPipelinesList(...args),
   },
   ApiError: class ApiError extends Error {
     constructor(public status: number, public error: { error: string }) {
@@ -52,6 +56,7 @@ describe('AddChoreModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPipelinesList.mockResolvedValue({ pipelines: [] });
   });
 
   it('does not render when isOpen is false', () => {

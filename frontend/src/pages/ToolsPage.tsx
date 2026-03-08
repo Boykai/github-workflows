@@ -22,9 +22,9 @@ export function ToolsPage() {
       <CelestialCatalogHero
         eyebrow="Tool Forge"
         title="Equip your agents with MCP tools."
-        description="Upload and manage MCP configurations that sync to your GitHub repository. Assign tools to agents during creation for enhanced capabilities."
+        description="Upload and manage MCP configurations that sync to your repository and can be embedded into GitHub Custom Agent definitions. Assign tools to agents during creation for enhanced capabilities."
         badge={repo ? repo.name : 'Awaiting repository'}
-        note="Each MCP tool configuration is synced to .copilot/mcp.json in your repository, enabling GitHub Custom Agents to discover and use them."
+        note="Uploaded MCP configs are stored in .vscode/mcp.json and embedded into assigned .github/agents/*.agent.md files when you save an agent."
         stats={[
           { label: 'Repository', value: repo ? repo.name : 'Unlinked' },
           { label: 'Project', value: selectedProject?.name ?? 'Unselected' },

@@ -4338,7 +4338,7 @@ class GitHubProjectsService:
         import re
 
         clean_body = re.sub(
-            r"\n---\s*\n\s*##\s*🤖\s*Agent Pipeline.*",
+            r"\n---\s*\n\s*##\s*🤖\s*(?:Agent Pipeline|Agents Pipelines).*",
             "",
             parent_body,
             flags=re.DOTALL,

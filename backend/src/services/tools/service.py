@@ -1,7 +1,7 @@
 """Tools service — CRUD, validation, GitHub sync for MCP tool configurations.
 
 Stores MCP configurations in the ``mcp_configurations`` table and syncs them
-to the connected GitHub repository's ``.copilot/mcp.json`` file via the
+to the connected GitHub repository's ``.vscode/mcp.json`` file via the
 Contents API.
 """
 
@@ -21,6 +21,7 @@ from src.models.tools import (
     McpToolConfigListResponse,
     McpToolConfigResponse,
     McpToolConfigSyncResult,
+    McpToolConfigUpdate,
     ToolDeleteResult,
 )
 from src.utils import utcnow
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 MAX_TOOLS_PER_PROJECT = 25
 MAX_CONFIG_SIZE = 262144  # 256 KB
-MCP_CONFIG_PATH = ".copilot/mcp.json"
+MCP_CONFIG_PATH = ".vscode/mcp.json"
 
 
 class ToolsService:
@@ -277,6 +278,107 @@ class ToolsService:
             updated_at=now,
         )
 
+    async def update_tool(
+        self,
+        project_id: str,
+        tool_id: str,
+        github_user_id: str,
+        data: McpToolConfigUpdate,
+        owner: str,
+        repo: str,
+        access_token: str,
+    ) -> McpToolConfigResponse:
+        """Update an MCP tool configuration and re-sync it to GitHub."""
+        existing_tool = await self.get_tool(project_id, tool_id, github_user_id)
+        if not existing_tool:
+            raise LookupError("Tool not found")
+
+        next_name = (data.name or existing_tool.name).strip()
+        next_description = (
+            data.description if data.description is not None else existing_tool.description
+        )
+        next_config_content = data.config_content or existing_tool.config_content
+        next_repo_target = (data.github_repo_target or existing_tool.github_repo_target).strip()
+
+        if not next_name:
+            raise ValueError("Name is required")
+
+        is_valid, error_msg = self.validate_mcp_config(next_config_content)
+        if not is_valid:
+            raise ValueError(error_msg)
+
+        cursor = await self.db.execute(
+            "SELECT id FROM mcp_configurations WHERE project_id = ? AND github_user_id = ? AND name = ? AND id != ?",
+            (project_id, github_user_id, next_name, tool_id),
+        )
+        duplicate = await cursor.fetchone()
+        if duplicate:
+            raise DuplicateToolNameError(
+                f"An MCP tool named '{next_name}' already exists in this project"
+            )
+
+        old_sync_owner, old_sync_repo = owner, repo
+        if existing_tool.github_repo_target and "/" in existing_tool.github_repo_target:
+            target_owner, target_repo = existing_tool.github_repo_target.split("/", 1)
+            if target_owner.strip() and target_repo.strip():
+                old_sync_owner, old_sync_repo = target_owner.strip(), target_repo.strip()
+
+        try:
+            await self._remove_from_github(
+                existing_tool, old_sync_owner, old_sync_repo, access_token
+            )
+        except Exception:
+            logger.exception("Failed to remove old GitHub config for tool %s", tool_id)
+
+        now = utcnow().isoformat()
+        endpoint_url = self._extract_endpoint_url(next_config_content)
+        effective_repo_target = next_repo_target or f"{owner}/{repo}"
+
+        await self.db.execute(
+            "UPDATE mcp_configurations SET name = ?, description = ?, endpoint_url = ?, config_content = ?, github_repo_target = ?, sync_status = 'pending', sync_error = '', synced_at = NULL, updated_at = ? WHERE id = ? AND github_user_id = ?",
+            (
+                next_name,
+                next_description,
+                endpoint_url,
+                next_config_content,
+                effective_repo_target,
+                now,
+                tool_id,
+                github_user_id,
+            ),
+        )
+        await self.db.commit()
+
+        sync_owner, sync_repo = owner, repo
+        if effective_repo_target and "/" in effective_repo_target:
+            target_owner, target_repo = effective_repo_target.split("/", 1)
+            if target_owner.strip() and target_repo.strip():
+                sync_owner, sync_repo = target_owner.strip(), target_repo.strip()
+
+        sync_result = await self.sync_tool_to_github(
+            tool_id,
+            project_id,
+            github_user_id,
+            sync_owner,
+            sync_repo,
+            access_token,
+        )
+
+        return McpToolConfigResponse(
+            id=tool_id,
+            name=next_name,
+            description=next_description,
+            endpoint_url=endpoint_url,
+            config_content=next_config_content,
+            sync_status=sync_result.sync_status,
+            sync_error=sync_result.sync_error,
+            synced_at=sync_result.synced_at,
+            github_repo_target=effective_repo_target,
+            is_active=existing_tool.is_active,
+            created_at=existing_tool.created_at,
+            updated_at=now,
+        )
+
     async def delete_tool(
         self,
         project_id: str,
@@ -327,7 +429,7 @@ class ToolsService:
         repo: str,
         access_token: str,
     ) -> McpToolConfigSyncResult:
-        """Sync an MCP tool configuration to GitHub .copilot/mcp.json."""
+        """Sync an MCP tool configuration to GitHub .vscode/mcp.json."""
         import httpx
 
         tool = await self.get_tool(project_id, tool_id, github_user_id)
@@ -422,7 +524,7 @@ class ToolsService:
         repo: str,
         access_token: str,
     ) -> None:
-        """Remove an MCP server entry from .copilot/mcp.json."""
+        """Remove an MCP server entry from .vscode/mcp.json."""
         import httpx
 
         headers = {

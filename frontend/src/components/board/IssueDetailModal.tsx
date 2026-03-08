@@ -176,7 +176,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         {item.body && (
           <div className="mb-6">
             <h3 className="text-sm font-semibold mb-2">Description</h3>
-            <div className="prose prose-sm dark:prose-invert max-w-none overflow-y-auto max-h-[50vh] rounded-md border border-border bg-background/46 p-4">
+            <div className="prose prose-sm prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-em:text-foreground prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground prose-code:text-foreground prose-pre:bg-muted/75 prose-pre:text-foreground prose-blockquote:border-primary/30 prose-blockquote:text-foreground prose-a:text-primary hover:prose-a:text-primary/80 dark:prose-invert max-w-none overflow-y-auto max-h-[50vh] rounded-md border border-border/80 bg-background/78 p-4 shadow-[inset_0_1px_0_hsl(var(--background)/0.55)]">
               <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={sanitizeMarkdownUrl}>
                 {item.body}
               </ReactMarkdown>

@@ -9,9 +9,20 @@ import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 
+function getAssignmentModelName(agent: AgentAssignment): string {
+  const config = agent.config;
+  if (!config || typeof config !== 'object') {
+    return '';
+  }
+
+  const modelName = config.model_name;
+  return typeof modelName === 'string' ? modelName : '';
+}
+
 interface AgentTileProps {
   agent: AgentAssignment;
   onRemove?: (agentInstanceId: string) => void;
+  onClone?: (agentInstanceId: string) => void;
   /** Sorted item props from useSortable (injected by AgentColumnCell) */
   sortableProps?: {
     attributes: Record<string, unknown>;
@@ -24,17 +35,45 @@ interface AgentTileProps {
   availableAgents?: AvailableAgent[];
   /** Whether this agent is missing from available agents */
   isWarning?: boolean;
+  variant?: 'default' | 'compact';
+  compactIndex?: number;
+  compactCount?: number;
 }
 
-export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isWarning }: AgentTileProps) {
+function DoubleMoonIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" aria-hidden="true">
+      <circle cx="7.1" cy="9" r="3.45" fill="hsl(var(--gold))" opacity="0.88" />
+      <circle cx="8.9" cy="8.1" r="3.15" fill="hsl(var(--background))" />
+      <circle cx="12.6" cy="10.7" r="3.15" fill="hsl(var(--foreground))" opacity="0.88" />
+      <circle cx="14.1" cy="9.9" r="2.85" fill="hsl(var(--background))" />
+      <circle cx="15.7" cy="5.1" r="0.85" fill="hsl(var(--glow))" />
+      <circle cx="4.2" cy="4.8" r="0.7" fill="hsl(var(--star))" opacity="0.95" />
+    </svg>
+  );
+}
+
+export function AgentTile({
+  agent,
+  onRemove,
+  onClone,
+  sortableProps,
+  availableAgents,
+  isWarning,
+  variant = 'default',
+  compactIndex = 0,
+  compactCount = 1,
+}: AgentTileProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const displayName = formatAgentName(agent.slug, agent.display_name);
   const metadata = availableAgents?.find((a) => a.slug === agent.slug);
+  const assignedModelName = getAssignmentModelName(agent);
+  const effectiveModelName = assignedModelName || metadata?.default_model_name || '';
 
   // Build metadata line: model · N tools
   const metaParts: string[] = [];
-  if (metadata?.default_model_name) metaParts.push(metadata.default_model_name);
+  if (effectiveModelName) metaParts.push(effectiveModelName);
   if (metadata && metadata.tools_count != null) metaParts.push(`${metadata.tools_count} tool${metadata.tools_count !== 1 ? 's' : ''}`);
   const metaLine = metaParts.join(' · ');
 
@@ -43,10 +82,90 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
     onRemove?.(agent.id);
   };
 
+  const handleClone = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClone?.(agent.id);
+  };
+
   const tileStyle: React.CSSProperties = {
     ...(sortableProps?.style ?? {}),
     opacity: sortableProps?.isDragging ? 0.3 : 1,
   };
+
+  const isCompact = variant === 'compact';
+
+  if (isCompact) {
+    return (
+      <div
+        ref={sortableProps?.setNodeRef}
+        className={`group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8'}`}
+        style={tileStyle}
+        {...(sortableProps?.attributes ?? {})}
+        aria-roledescription="sortable agent"
+      >
+        {(compactIndex > 0 || compactIndex < compactCount - 1) && (
+          <span className="pointer-events-none absolute left-[1.05rem] top-0 bottom-0 w-px opacity-80">
+            {compactIndex > 0 && (
+              <span className="absolute bottom-1/2 top-0 left-0 w-px bg-gradient-to-b from-primary/10 via-primary/35 to-primary/55" />
+            )}
+            {compactIndex < compactCount - 1 && (
+              <span className="absolute top-1/2 bottom-0 left-0 w-px bg-gradient-to-b from-primary/55 via-primary/35 to-primary/10" />
+            )}
+          </span>
+        )}
+
+        {sortableProps && (
+          <span className="cursor-grab px-0.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground" {...(sortableProps.listeners ?? {})}>
+            ⠿
+          </span>
+        )}
+
+        <span className="relative z-10 rounded-full p-[2px] shadow-[0_0_18px_hsl(var(--gold)/0.15)]">
+          <span className="absolute inset-0 rounded-full border border-primary/18 bg-background/18" />
+          <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={metadata?.avatar_url} iconName={metadata?.icon_name} size="sm" className="relative border-border/50" title={agent.slug} />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <span className="block truncate text-[11px] font-semibold tracking-[0.02em] text-foreground" title={agent.slug}>
+            {displayName}
+          </span>
+          {effectiveModelName && (
+            <span className="block truncate text-[9px] uppercase tracking-[0.12em] text-muted-foreground/80">
+              {effectiveModelName}
+            </span>
+          )}
+        </div>
+
+        {isWarning && (
+          <span className="rounded-full border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300" title="Agent not found in available agents">
+            !
+          </span>
+        )}
+
+        {onClone && (
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+            onClick={handleClone}
+            title="Clone agent into this pipeline"
+            type="button"
+          >
+            <DoubleMoonIcon />
+          </button>
+        )}
+
+        {onRemove && (
+          <button
+            className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleRemove}
+            title="Remove agent"
+            type="button"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -94,6 +213,17 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
           {isExpanded ? '▾' : '▸'}
         </button>
 
+        {onClone && (
+          <button
+            className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
+            onClick={handleClone}
+            title="Clone agent into this pipeline"
+            type="button"
+          >
+            <DoubleMoonIcon />
+          </button>
+        )}
+
         {/* Remove button */}
         {onRemove && (
           <button
@@ -113,6 +243,10 @@ export function AgentTile({ agent, onRemove, sortableProps, availableAgents, isW
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-muted-foreground font-medium min-w-[70px]">Slug:</span>
             <code className="solar-chip-soft rounded border px-1.5 py-0.5 text-[10px] font-mono break-all">{agent.slug}</code>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-muted-foreground font-medium min-w-[70px]">Model:</span>
+            <span className="text-foreground">{effectiveModelName || 'No model selected'}</span>
           </div>
           {metadata?.source && (
             <div className="flex items-baseline gap-2">

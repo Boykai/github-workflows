@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Plus, Save, Copy, Trash2, RotateCcw, Loader2 } from 'lucide-react';
+import { Save, Copy, Trash2, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PipelineBoardState, PipelineValidationErrors } from '@/types';
 
@@ -15,7 +15,6 @@ interface PipelineToolbarProps {
   isPreset: boolean;
   pipelineName?: string;
   validationErrors: PipelineValidationErrors;
-  onNewPipeline: () => void;
   onSave: () => void;
   onSaveAsCopy: (newName: string) => void;
   onDelete: () => void;
@@ -29,7 +28,6 @@ export function PipelineToolbar({
   isPreset,
   pipelineName,
   validationErrors,
-  onNewPipeline,
   onSave,
   onSaveAsCopy,
   onDelete,
@@ -38,7 +36,6 @@ export function PipelineToolbar({
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyName, setCopyName] = useState('');
 
-  const isNewEnabled = boardState === 'empty' || boardState === 'editing';
   // Save is always enabled when board is not empty (FR-007)
   const isSaveEnabled = boardState === 'creating' || (boardState === 'editing' && !isPreset);
   const isDiscardEnabled =
@@ -76,16 +73,6 @@ export function PipelineToolbar({
 
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onNewPipeline}
-        disabled={!isNewEnabled}
-      >
-        <Plus className="mr-1.5 h-3.5 w-3.5" />
-        New Pipeline
-      </Button>
-
       {isPreset && boardState === 'editing' ? (
         <>
           <Button

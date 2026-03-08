@@ -7,6 +7,7 @@ import { X, Wrench, Copy } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { PipelineAgentNode } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface AgentNodeProps {
   agentNode: PipelineAgentNode;
@@ -18,7 +19,7 @@ interface AgentNodeProps {
 
 export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, onClone }: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
-  const displayName = agentNode.agent_display_name || agentNode.agent_slug;
+  const displayName = formatAgentName(agentNode.agent_slug, agentNode.agent_display_name);
 
   return (
     <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/48 px-2.5 py-2 transition-colors hover:bg-primary/10">
@@ -29,11 +30,20 @@ export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, on
         <div className="text-xs font-medium text-foreground truncate">
           {displayName}
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          <ModelSelector
-            selectedModelId={agentNode.model_id || null}
-            onSelect={onModelSelect}
-          />
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              Model
+            </span>
+            <ModelSelector
+              selectedModelId={agentNode.model_id || null}
+              selectedModelName={agentNode.model_name || null}
+              onSelect={onModelSelect}
+              allowAuto={true}
+              autoLabel="Agent default"
+              triggerClassName="min-w-0 flex-1 justify-between"
+            />
+          </div>
           <button
             type="button"
             onClick={onToolsClick}

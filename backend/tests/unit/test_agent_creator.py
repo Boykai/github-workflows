@@ -212,6 +212,33 @@ class TestGenerateConfigFiles:
         files = generate_config_files(preview)
         assert "tools:" not in files[0]["content"]
 
+    def test_agent_file_includes_mcp_servers_and_metadata(self):
+        preview = AgentPreview(
+            name="McpReviewer",
+            slug="mcp-reviewer",
+            description="Uses uploaded MCP servers",
+            system_prompt="Review with MCP assistance",
+            status_column="Todo",
+            tools=["Context7"],
+            tool_ids=["tool-123"],
+            mcp_servers={
+                "context7": {
+                    "type": "http",
+                    "url": "https://example.com/mcp",
+                    "tools": ["*"],
+                }
+            },
+        )
+
+        files = generate_config_files(preview)
+        content = files[0]["content"]
+
+        assert "mcp-servers:" in content
+        assert "context7:" in content
+        assert "url: https://example.com/mcp" in content
+        assert "github-workflows-tool-ids: tool-123" in content
+        assert "\nmetadata:\n" in content
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # _format_preview

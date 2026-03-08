@@ -66,7 +66,7 @@ import type { NavRoute } from '@/types';
 export const NAV_ROUTES: NavRoute[] = [
   { path: '/', label: 'App', icon: LayoutDashboard },
   { path: '/projects', label: 'Projects', icon: Kanban },
-  { path: '/pipeline', label: 'Agents Pipeline', icon: GitBranch },
+  { path: '/pipeline', label: 'Agents Pipelines', icon: GitBranch },
   { path: '/agents', label: 'Agents', icon: Bot },
   { path: '/tools', label: 'Tools', icon: Wrench },
   { path: '/chores', label: 'Chores', icon: ListChecks },

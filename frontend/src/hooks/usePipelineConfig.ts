@@ -149,6 +149,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<PipelineValidationErrors>({});
+  const [pendingModelOverride, setPendingModelOverride] = useState<PipelineModelOverride | null>(null);
 
   // Saved snapshot for isDirty comparison
   const savedSnapshotRef = useRef<string | null>(null);
@@ -164,7 +165,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   }, [pipeline]);
 
   const isPreset = useMemo(() => pipeline?.is_preset ?? false, [pipeline]);
-  const modelOverride = useMemo(() => deriveModelOverride(pipeline), [deriveModelOverride, pipeline]);
+  const hasAnyAgents = useMemo(
+    () => (pipeline?.stages.some((stage) => stage.agents.length > 0) ?? false),
+    [pipeline],
+  );
+  const modelOverride = useMemo(() => {
+    const derived = deriveModelOverride(pipeline);
+    if (hasAnyAgents) return derived;
+    return pendingModelOverride ?? derived;
+  }, [deriveModelOverride, hasAnyAgents, pendingModelOverride, pipeline]);
   const assignedPipelineId = assignment?.pipeline_id ?? '';
 
   // ── Save snapshot helper ──
@@ -197,6 +206,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   // ── Model Override ──
   const setModelOverride = useCallback((override: PipelineModelOverride) => {
+    setPendingModelOverride(override);
     setPipeline((prev) => {
       if (!prev) return null;
       const updatedStages = prev.stages.map((stage) => ({
@@ -242,6 +252,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     setPipeline(newConfig);
     setEditingPipelineId(null);
     setBoardState('creating');
+    setPendingModelOverride(null);
     setValidationErrors({});
     savedSnapshotRef.current = JSON.stringify({
       name: '',
@@ -258,6 +269,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         setPipeline(config);
         setEditingPipelineId(pipelineId);
         setBoardState('editing');
+        setPendingModelOverride(null);
         updateSnapshot(config);
         setSaveError(null);
         setValidationErrors({});
@@ -342,6 +354,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       setPipeline(null);
       setEditingPipelineId(null);
       setBoardState('empty');
+      setPendingModelOverride(null);
       savedSnapshotRef.current = null;
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
     } catch (err) {
@@ -363,6 +376,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       setPipeline(null);
       setEditingPipelineId(null);
       setBoardState('empty');
+      setPendingModelOverride(null);
       savedSnapshotRef.current = null;
     }
     setSaveError(null);

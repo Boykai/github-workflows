@@ -14,6 +14,9 @@ interface PipelineBoardProps {
   columnCount: number;
   stages: PipelineStage[];
   availableAgents: AvailableAgent[];
+  agentsLoading?: boolean;
+  agentsError?: string | null;
+  onRetryAgents?: () => void;
   availableModels: AIModel[];
   isEditMode: boolean;
   pipelineName: string;
@@ -35,6 +38,9 @@ export function PipelineBoard({
   columnCount,
   stages,
   availableAgents,
+  agentsLoading = false,
+  agentsError = null,
+  onRetryAgents,
   availableModels,
   isEditMode,
   pipelineName,
@@ -54,6 +60,7 @@ export function PipelineBoard({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(pipelineName);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const showInlineNameInput = isEditMode || isEditingName;
 
   const gridStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))`,
@@ -64,11 +71,11 @@ export function PipelineBoard({
   }, [pipelineName]);
 
   useEffect(() => {
-    if (isEditingName && nameInputRef.current) {
+    if (showInlineNameInput && nameInputRef.current) {
       nameInputRef.current.focus();
       nameInputRef.current.select();
     }
-  }, [isEditingName]);
+  }, [showInlineNameInput]);
 
   const handleNameConfirm = useCallback(() => {
     const trimmed = editNameValue.trim();
@@ -94,13 +101,20 @@ export function PipelineBoard({
 
         {/* Pipeline name with validation */}
         <div>
-          {isEditingName ? (
+          {showInlineNameInput ? (
             <input
               ref={nameInputRef}
               type="text"
+              aria-label="Pipeline name"
               value={editNameValue}
               onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
-              onBlur={handleNameConfirm}
+              onBlur={() => {
+                if (isEditMode) {
+                  handleNameConfirm();
+                  return;
+                }
+                handleNameConfirm();
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNameConfirm();
                 if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
@@ -158,13 +172,20 @@ export function PipelineBoard({
 
       {/* Pipeline name with validation */}
       <div>
-        {isEditingName ? (
+        {showInlineNameInput ? (
           <input
             ref={nameInputRef}
             type="text"
+            aria-label="Pipeline name"
             value={editNameValue}
             onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
-            onBlur={handleNameConfirm}
+            onBlur={() => {
+              if (isEditMode) {
+                handleNameConfirm();
+                return;
+              }
+              handleNameConfirm();
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNameConfirm();
               if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
@@ -207,6 +228,9 @@ export function PipelineBoard({
               key={stage.id}
               stage={stage}
               availableAgents={availableAgents}
+              agentsLoading={agentsLoading}
+              agentsError={agentsError}
+              onRetryAgents={onRetryAgents}
               projectId={projectId}
               onUpdate={(updated) => onUpdateStage(stage.id, updated)}
               onRemove={() => onRemoveStage(stage.id)}

@@ -23,6 +23,8 @@ interface UseAgentConfigReturn {
   addAgent: (status: string, agent: AvailableAgent) => void;
   /** Remove an agent by instance ID */
   removeAgent: (status: string, agentInstanceId: string) => void;
+  /** Clone an agent assignment within a status column */
+  cloneAgent: (status: string, agentInstanceId: string) => void;
   /** Reorder agents within a column */
   reorderAgents: (status: string, newOrder: AgentAssignment[]) => void;
   /** Move an agent from one column to another */
@@ -145,6 +147,13 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
         id: generateId(),
         slug: agent.slug,
         display_name: agent.display_name,
+        config:
+          agent.default_model_id || agent.default_model_name
+            ? {
+                model_id: agent.default_model_id ?? '',
+                model_name: agent.default_model_name ?? '',
+              }
+            : null,
       };
       // Use the board's column name (status) as the canonical key
       const updated = { ...prev, [status]: [...current, newAssignment] };
@@ -163,6 +172,28 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
       const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
       const current = prev[matchedKey] ?? [];
       return { ...prev, [matchedKey]: current.filter((a) => a.id !== agentInstanceId) };
+    });
+  }, []);
+
+  const cloneAgent = useCallback((status: string, agentInstanceId: string) => {
+    setLocalMappings((prev) => {
+      const lowerStatus = status.toLowerCase();
+      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const current = prev[matchedKey] ?? [];
+      const sourceIndex = current.findIndex((agent) => agent.id === agentInstanceId);
+      if (sourceIndex === -1) {
+        return prev;
+      }
+
+      const sourceAgent = current[sourceIndex];
+      const clonedAssignment: AgentAssignment = {
+        ...sourceAgent,
+        id: generateId(),
+      };
+      const nextAgents = [...current];
+      nextAgents.splice(sourceIndex + 1, 0, clonedAssignment);
+
+      return { ...prev, [matchedKey]: nextAgents };
     });
   }, []);
 
@@ -268,6 +299,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     isColumnDirty,
     addAgent,
     removeAgent,
+    cloneAgent,
     reorderAgents,
     moveAgentToColumn,
     applyPreset,

@@ -10,10 +10,14 @@ import { AgentNode } from './AgentNode';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface StageCardProps {
   stage: PipelineStage;
   availableAgents: AvailableAgent[];
+  agentsLoading?: boolean;
+  agentsError?: string | null;
+  onRetryAgents?: () => void;
   projectId: string;
   onUpdate: (updatedStage: PipelineStage) => void;
   onRemove: () => void;
@@ -26,6 +30,9 @@ interface StageCardProps {
 export function StageCard({
   stage,
   availableAgents,
+  agentsLoading = false,
+  agentsError = null,
+  onRetryAgents,
   projectId,
   onUpdate,
   onRemove,
@@ -192,26 +199,50 @@ export function StageCard({
               style={{ top: pickerPosition.top, left: pickerPosition.left, width: pickerPosition.width }}
             >
               <div className="max-h-40 overflow-y-auto p-1">
-                {availableAgents.length === 0 && (
+                {agentsLoading && (
+                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+                    <span className="h-3.5 w-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    Loading agents...
+                  </div>
+                )}
+                {!agentsLoading && agentsError && (
+                  <div className="flex flex-col gap-2 p-2 text-xs text-destructive">
+                    <span>Failed to load agents</span>
+                    {onRetryAgents && (
+                      <button
+                        type="button"
+                        className="rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10"
+                        onClick={onRetryAgents}
+                      >
+                        Retry
+                      </button>
+                    )}
+                  </div>
+                )}
+                {!agentsLoading && !agentsError && availableAgents.length === 0 && (
                   <div className="py-2 text-center text-xs text-muted-foreground">
                     No agents available
                   </div>
                 )}
-                {availableAgents.map((agent) => (
-                  <button
-                    key={agent.slug}
-                    type="button"
-                    onClick={() => {
-                      onAddAgent(agent.slug);
-                      setShowAgentPicker(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
-                  >
-                    <ThemedAgentIcon slug={agent.slug} name={agent.display_name} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
-                    <span className="font-medium">{agent.display_name}</span>
-                    <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
-                  </button>
-                ))}
+                {!agentsLoading && !agentsError && availableAgents.map((agent) => {
+                  const displayName = formatAgentName(agent.slug, agent.display_name);
+
+                  return (
+                    <button
+                      key={agent.slug}
+                      type="button"
+                      onClick={() => {
+                        onAddAgent(agent.slug);
+                        setShowAgentPicker(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
+                    >
+                      <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
+                      <span className="font-medium">{displayName}</span>
+                      <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </>,

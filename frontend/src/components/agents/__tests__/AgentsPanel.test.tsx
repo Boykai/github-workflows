@@ -15,6 +15,7 @@ const mockUseCreateAgent = vi.fn();
 const mockUseUpdateAgent = vi.fn();
 const mockUseBulkUpdateModels = vi.fn();
 const mockUseModels = vi.fn();
+const mockUseUnsavedChanges = vi.fn();
 
 vi.mock('@/hooks/useModels', () => ({
   useModels: (...args: unknown[]) => mockUseModels(...args),
@@ -36,6 +37,10 @@ vi.mock('@/hooks/useAgents', () => ({
   useCreateAgent: (...args: unknown[]) => mockUseCreateAgent(...args),
   useUpdateAgent: (...args: unknown[]) => mockUseUpdateAgent(...args),
   useBulkUpdateModels: (...args: unknown[]) => mockUseBulkUpdateModels(...args),
+}));
+
+vi.mock('@/hooks/useUnsavedChanges', () => ({
+  useUnsavedChanges: (...args: unknown[]) => mockUseUnsavedChanges(...args),
 }));
 
 function createWrapper() {
@@ -115,6 +120,10 @@ describe('AgentsPanel', () => {
       refreshModels: vi.fn(),
       isRefreshing: false,
     });
+    mockUseUnsavedChanges.mockReturnValue({
+      blocker: { state: 'unblocked', proceed: vi.fn(), reset: vi.fn() },
+      isBlocked: false,
+    });
   });
 
   it('prioritizes the top three used agents in the featured section', () => {
@@ -181,6 +190,10 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUsePendingAgentsList.mockReturnValue({
+      data: [createAgent({ id: 'p1', slug: 'beta', name: 'Beta', status: 'pending_pr' })],
+      isLoading: false,
+    });
 
     render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
     const user = userEvent.setup();
@@ -189,9 +202,10 @@ describe('AgentsPanel', () => {
 
     expect(screen.getByRole('dialog', { name: 'Bulk model update dialog' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Update All Agent Models' })).toBeInTheDocument();
+    expect(screen.getByText(/Select the target model to apply to all 2 agents/i)).toBeInTheDocument();
   });
 
-  it('opens the edit modal for pending local agents', async () => {
+  it('opens the inline editor for pending local agents', async () => {
     mockUsePendingAgentsList.mockReturnValue({
       data: [createAgent()],
       isLoading: false,
@@ -207,10 +221,68 @@ describe('AgentsPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Edit' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Edit Agent' })).toBeInTheDocument();
+      expect(screen.getByText('Editing agent definition')).toBeInTheDocument();
     });
 
     expect(screen.getByDisplayValue('Reviewer')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Review carefully')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save Changes' })).toBeInTheDocument();
+  });
+
+  it('allows editing repository agents so tools can be updated', async () => {
+    mockUseAgentsList.mockReturnValue({
+      data: [createAgent({ id: 'repo:reviewer', source: 'repo', status: 'active' })],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+    const user = userEvent.setup();
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Editing agent definition')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('MCP Tools')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Tools' })).toBeInTheDocument();
+  });
+
+  it('saves inline edits and surfaces the PR link', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({ pr_url: 'https://example.test/pr/99' });
+    mockUseAgentsList.mockReturnValue({
+      data: [createAgent({ status: 'active', source: 'both' })],
+      isLoading: false,
+      error: null,
+    });
+    mockUseUpdateAgent.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    });
+
+    render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+    const user = userEvent.setup();
+
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[0]);
+    await user.clear(screen.getByLabelText('Name'));
+    await user.type(screen.getByLabelText('Name'), 'Reviewer Updated');
+    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith({
+        agentId: 'agent-1',
+        data: {
+          name: 'Reviewer Updated',
+          system_prompt: 'Review carefully',
+          tools: ['read', 'comment'],
+        },
+      });
+    });
+
+    expect(await screen.findByRole('link', { name: 'View Pull Request' })).toHaveAttribute(
+      'href',
+      'https://example.test/pr/99',
+    );
   });
 });

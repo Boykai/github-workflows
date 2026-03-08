@@ -3,6 +3,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import type { Notification } from '@/types';
 
@@ -15,6 +16,36 @@ interface NotificationBellProps {
 export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const panelWidth = 320;
+      const margin = 12;
+      const maxLeft = Math.max(window.innerWidth - panelWidth - margin, margin);
+
+      setPosition({
+        top: rect.bottom + 8,
+        left: Math.min(Math.max(rect.right - panelWidth, margin), maxLeft),
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
 
   // Close on outside click
   useEffect(() => {
@@ -28,23 +59,24 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isOpen]);
 
-  return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-      >
-        <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
-      {isOpen && (
-        <div className="celestial-panel absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md">
+  const dropdown = isOpen && position
+    ? createPortal(
+        <div
+          className="celestial-panel fixed z-[10000] w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
+          style={{ top: position.top, left: position.left }}
+        >
           <div className="flex items-center justify-between border-b border-border/70 bg-background/25 px-4 py-3">
             <span className="text-sm font-semibold">Notifications</span>
             {unreadCount > 0 && (
@@ -79,8 +111,28 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
               ))
             )}
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        ref={buttonRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+      >
+        <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {dropdown}
     </div>
   );
 }

@@ -102,6 +102,56 @@ describe('useBoardControls', () => {
     expect(groups).toEqual([{ name: 'hubot', items: transformedColumn?.items ?? [] }]);
   });
 
+  it('excludes sub-issue cards from the transformed board data', () => {
+    const boardData = createBoardData();
+    boardData.columns[0].items = [
+      createBoardItem({
+        item_id: 'parent-1',
+        number: 101,
+        title: 'Parent issue',
+        sub_issues: [
+          {
+            id: 'sub-1',
+            number: 202,
+            title: 'Agent sub-issue',
+            url: 'https://github.com/test/repo/issues/202',
+            state: 'open',
+            assignees: [],
+            linked_prs: [],
+          },
+        ],
+      }),
+      createBoardItem({
+        item_id: 'sub-item-1',
+        number: 202,
+        title: 'Agent sub-issue',
+      }),
+    ];
+    boardData.columns[0].item_count = 2;
+
+    const { result } = renderHook(() => useBoardControls('PVT_1', boardData));
+
+    expect(result.current.transformedData?.columns[0].items.map((item) => item.number)).toEqual([101]);
+    expect(result.current.transformedData?.columns[0].item_count).toBe(1);
+  });
+
+  it('shows only parent GitHub issues on the board', () => {
+    const boardData = createBoardData();
+    boardData.columns[0].items = [
+      createBoardItem({ item_id: 'issue-1', number: 101, title: 'Parent issue', content_type: 'issue' }),
+      createBoardItem({ item_id: 'draft-1', number: 102, title: 'Draft issue', content_type: 'draft_issue' }),
+      createBoardItem({ item_id: 'pr-1', number: 103, title: 'Linked PR item', content_type: 'pull_request' }),
+    ];
+    boardData.columns[0].item_count = 3;
+
+    const { result } = renderHook(() => useBoardControls('PVT_1', boardData));
+
+    expect(result.current.transformedData?.columns[0].items.map((item) => item.title)).toEqual([
+      'Parent issue',
+    ]);
+    expect(result.current.transformedData?.columns[0].item_count).toBe(1);
+  });
+
   it('loads per-project controls before persisting on project switch', async () => {
     localStorage.setItem(
       'board-controls-PVT_1',

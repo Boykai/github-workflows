@@ -125,4 +125,57 @@ describe('usePipelineConfig', () => {
     expect(stage?.agents[0]?.model_id).toBe('gpt-5.4-mini');
     expect(stage?.agents[0]?.model_name).toBe('GPT-5.4 Mini');
   });
+
+  it('retains a selected pipeline model before any agents exist and applies it to future agents', async () => {
+    const { result } = renderHook(() => usePipelineConfig('PVT_123'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.pipelinesLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.newPipeline(['Inbox']);
+    });
+
+    act(() => {
+      result.current.setModelOverride({
+        mode: 'specific',
+        modelId: 'gpt-5.4',
+        modelName: 'GPT-5.4',
+      });
+    });
+
+    expect(result.current.modelOverride).toEqual({
+      mode: 'specific',
+      modelId: 'gpt-5.4',
+      modelName: 'GPT-5.4',
+    });
+
+    const stageId = result.current.pipeline?.stages[0]?.id;
+    expect(stageId).toBeTruthy();
+
+    const agent: AvailableAgent = {
+      slug: 'writer',
+      display_name: 'Writer',
+      source: 'repository',
+      default_model_id: 'gpt-5.4-mini',
+      default_model_name: 'GPT-5.4 Mini',
+    };
+
+    act(() => {
+      result.current.addAgentToStage(stageId!, agent);
+    });
+
+    const stage = result.current.pipeline?.stages[0];
+    expect(stage?.agents).toHaveLength(1);
+    expect(stage?.agents[0]?.model_id).toBe('gpt-5.4');
+    expect(stage?.agents[0]?.model_name).toBe('GPT-5.4');
+    expect(result.current.modelOverride).toEqual({
+      mode: 'specific',
+      modelId: 'gpt-5.4',
+      modelName: 'GPT-5.4',
+    });
+  });
 });

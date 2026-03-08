@@ -147,6 +147,7 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
     pending = [(v, path) for v, path in migration_files if v > current_version]
 
     if not pending:
+        await _reconcile_known_schema_drifts(db)
         logger.info("Database schema is up to date (version %d)", current_version)
         return
 
@@ -168,7 +169,38 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
             logger.exception("Failed to apply migration %s", path.stem)
             raise
 
+    await _reconcile_known_schema_drifts(db)
     logger.info("All migrations applied. Schema version: %d", current_version)
+
+
+async def _reconcile_known_schema_drifts(db: aiosqlite.Connection) -> None:
+    """Repair additive schema drift for persisted databases from older builds.
+
+    Some long-lived SQLite volumes may report the latest schema version while
+    still missing additive columns introduced in later app versions. Reconcile
+    those cases defensively at startup so reads and writes do not crash.
+    """
+    if not await _table_exists(db, "agent_configs"):
+        return
+
+    if not await _column_exists(db, "agent_configs", "icon_name"):
+        logger.warning("agent_configs table is missing icon_name; applying compatibility repair")
+        await db.execute("ALTER TABLE agent_configs ADD COLUMN icon_name TEXT")
+        await db.commit()
+
+
+async def _table_exists(db: aiosqlite.Connection, table_name: str) -> bool:
+    cursor = await db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        (table_name,),
+    )
+    return await cursor.fetchone() is not None
+
+
+async def _column_exists(db: aiosqlite.Connection, table_name: str, column_name: str) -> bool:
+    cursor = await db.execute(f"PRAGMA table_info({table_name})")
+    rows = await cursor.fetchall()
+    return any(row[1] == column_name for row in rows)
 
 
 def _discover_migrations() -> list[tuple[int, Path]]:

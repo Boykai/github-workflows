@@ -70,14 +70,14 @@ export function CelestialCatalogHero({
             <div className="mt-8 flex flex-col gap-6">
               {actions && <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">{actions}</div>}
               {stats.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="flex flex-wrap items-start gap-3">
                   {stats.map((stat) => (
                     <div
                       key={stat.label}
-                      className="moonwell rounded-[1.2rem] px-4 py-3 sm:rounded-[1.3rem]"
+                      className="moonwell inline-flex max-w-full min-w-0 flex-col rounded-[1.2rem] px-4 py-3 sm:rounded-[1.3rem]"
                     >
                       <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">{stat.label}</p>
-                      <p className="mt-2 truncate text-xl font-semibold text-foreground">{stat.value}</p>
+                      <p className="mt-2 break-words text-xl font-semibold leading-tight text-foreground">{stat.value}</p>
                     </div>
                   ))}
                 </div>

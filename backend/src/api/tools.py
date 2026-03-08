@@ -14,6 +14,7 @@ from src.models.tools import (
     McpToolConfigListResponse,
     McpToolConfigResponse,
     McpToolConfigSyncResult,
+    McpToolConfigUpdate,
     ToolDeleteResult,
 )
 from src.models.user import UserSession
@@ -113,6 +114,46 @@ async def get_tool(
     if not tool:
         raise HTTPException(status_code=404, detail="Tool not found")
     return tool
+
+
+@router.put(
+    "/{project_id}/{tool_id}",
+    response_model=McpToolConfigResponse,
+    dependencies=[Depends(verify_project_access)],
+)
+async def update_tool(
+    project_id: str,
+    tool_id: str,
+    data: McpToolConfigUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> McpToolConfigResponse:
+    """Update an existing MCP tool configuration."""
+    service = _get_service()
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot resolve repository: {exc}",
+        ) from exc
+
+    try:
+        return await service.update_tool(
+            project_id=project_id,
+            tool_id=tool_id,
+            github_user_id=session.github_user_id,
+            data=data,
+            owner=owner,
+            repo=repo,
+            access_token=session.access_token,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except DuplicateToolNameError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 # ── Sync Tool ──

@@ -11,6 +11,7 @@ import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react
 import { createPortal } from 'react-dom';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AvailableAgent, AgentAssignment } from '@/types';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 interface AddAgentPopoverProps {
   /** Status column name */
@@ -27,6 +28,7 @@ interface AddAgentPopoverProps {
   onRetry: () => void;
   /** Called when user selects an agent */
   onAddAgent: (status: string, agent: AvailableAgent) => void;
+  compact?: boolean;
 }
 
 export function AddAgentPopover({
@@ -37,6 +39,7 @@ export function AddAgentPopover({
   error,
   onRetry,
   onAddAgent,
+  compact = false,
 }: AddAgentPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState('');
@@ -188,18 +191,19 @@ export function AddAgentPopover({
           ) : (
             filteredAgents.map((agent) => {
               const isDuplicate = assignedSlugs.has(agent.slug);
+              const displayName = formatAgentName(agent.slug, agent.display_name);
               return (
                 <button
                   key={agent.slug}
                   className={`relative flex w-full flex-col gap-1 rounded-md p-2 text-left transition-colors hover:bg-primary/10 ${isDuplicate ? 'opacity-70' : ''}`}
                   onClick={() => handleSelect(agent)}
                   type="button"
-                  title={isDuplicate ? `${agent.display_name} (already assigned)` : agent.display_name}
+                  title={isDuplicate ? `${displayName} (already assigned)` : displayName}
                 >
                   <div className="flex items-start justify-between gap-2 w-full">
                     <div className="flex min-w-0 items-start gap-2">
-                      <ThemedAgentIcon slug={agent.slug} name={agent.display_name} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="md" className="mt-0.5" />
-                      <span className="text-sm font-medium text-foreground truncate pr-2">{agent.display_name}</span>
+                      <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="md" className="mt-0.5" />
+                      <span className="text-sm font-medium text-foreground truncate pr-2">{displayName}</span>
                     </div>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0 ${agent.source === 'builtin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400' : agent.source === 'repository' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-muted text-muted-foreground'}`}>
                       {agent.source}
@@ -226,7 +230,9 @@ export function AddAgentPopover({
     <div className="relative">
       <button
         ref={triggerRef}
-        className="w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground"
+        className={compact
+          ? 'w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
+          : 'w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'}
         onClick={() => setIsOpen(!isOpen)}
         title={`Add agent to ${status}`}
         type="button"

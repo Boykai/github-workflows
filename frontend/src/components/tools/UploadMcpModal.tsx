@@ -2,16 +2,18 @@
  * UploadMcpModal — modal dialog for uploading/pasting MCP configuration JSON.
  */
 
-import { useCallback, useEffect, useState } from 'react';
-import type { McpToolConfigCreate } from '@/types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { McpToolConfig, McpToolConfigCreate, McpToolConfigUpdate } from '@/types';
 
 interface UploadMcpModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (data: McpToolConfigCreate) => Promise<unknown>;
-  isUploading: boolean;
-  uploadError: string | null;
+  onUpdate: (toolId: string, data: McpToolConfigUpdate) => Promise<unknown>;
+  isSubmitting: boolean;
+  submitError: string | null;
   existingNames?: string[];
+  editingTool?: McpToolConfig | null;
 }
 
 const MAX_CONFIG_SIZE = 262144; // 256 KB
@@ -76,9 +78,11 @@ export function UploadMcpModal({
   isOpen,
   onClose,
   onUpload,
-  isUploading,
-  uploadError,
+  onUpdate,
+  isSubmitting,
+  submitError,
   existingNames = [],
+  editingTool = null,
 }: UploadMcpModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -88,6 +92,11 @@ export function UploadMcpModal({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [multiServerWarning, setMultiServerWarning] = useState<string | null>(null);
+  const isEditMode = editingTool !== null;
+  const reservedNames = useMemo(
+    () => existingNames.filter((existingName) => existingName !== editingTool?.name),
+    [editingTool?.name, existingNames],
+  );
 
   const resetForm = useCallback(() => {
     setName('');
@@ -115,12 +124,28 @@ export function UploadMcpModal({
   }, [isOpen, handleClose]);
 
   useEffect(() => {
-    if (name.trim() && existingNames.includes(name.trim())) {
+    if (!isOpen) return;
+    if (editingTool) {
+      setName(editingTool.name);
+      setDescription(editingTool.description);
+      setConfigContent(editingTool.config_content);
+      setGithubRepoTarget(editingTool.github_repo_target);
+      setMode('paste');
+      setValidationError(null);
+      setDuplicateWarning(null);
+      setMultiServerWarning(null);
+      return;
+    }
+    resetForm();
+  }, [editingTool, isOpen, resetForm]);
+
+  useEffect(() => {
+    if (name.trim() && reservedNames.includes(name.trim())) {
       setDuplicateWarning(`A tool named "${name.trim()}" already exists`);
     } else {
       setDuplicateWarning(null);
     }
-  }, [name, existingNames]);
+  }, [name, reservedNames]);
 
   // Auto-populate name from mcpServers key when name is empty
   useEffect(() => {
@@ -186,22 +211,33 @@ export function UploadMcpModal({
     if (error) { setValidationError(error); return; }
 
     try {
-      await onUpload({
-        name: trimmedName,
-        description: description.trim(),
-        config_content: configContent,
-        github_repo_target: githubRepoTarget.trim(),
-      });
+      if (editingTool) {
+        await onUpdate(editingTool.id, {
+          name: trimmedName,
+          description: description.trim(),
+          config_content: configContent,
+          github_repo_target: githubRepoTarget.trim(),
+        });
+      } else {
+        await onUpload({
+          name: trimmedName,
+          description: description.trim(),
+          config_content: configContent,
+          github_repo_target: githubRepoTarget.trim(),
+        });
+      }
       handleClose();
     } catch {
-      // Upload error is shown via uploadError prop
+      // Submit error is shown via submitError prop
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
       <div className="celestial-panel w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-semibold mb-4">Upload MCP Configuration</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {isEditMode ? 'Edit MCP Configuration' : 'Upload MCP Configuration'}
+        </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Name */}
@@ -293,17 +329,17 @@ export function UploadMcpModal({
           )}
 
           {/* Upload Error (from server) */}
-          {uploadError && (
+          {submitError && (
             <div className="text-sm text-destructive bg-destructive/10 rounded-md p-2">
-              {uploadError}
+              {submitError}
             </div>
           )}
 
           {/* Loading indicator */}
-          {isUploading && (
+          {isSubmitting && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              Uploading and syncing to GitHub...
+              {isEditMode ? 'Saving and syncing to GitHub...' : 'Uploading and syncing to GitHub...'}
             </div>
           )}
 
@@ -319,9 +355,9 @@ export function UploadMcpModal({
             <button
               type="submit"
               className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-              disabled={isUploading}
+              disabled={isSubmitting}
             >
-              {isUploading ? 'Uploading…' : 'Upload'}
+              {isSubmitting ? (isEditMode ? 'Saving…' : 'Uploading…') : isEditMode ? 'Save Changes' : 'Upload'}
             </button>
           </div>
         </form>

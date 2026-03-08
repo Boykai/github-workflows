@@ -10,7 +10,7 @@ Markdown format appended to the issue body:
 
     ---
 
-    ## 🤖 Agent Pipeline
+    ## 🤖 Agents Pipelines
 
     | # | Status | Agent | State |
     |---|--------|-------|-------|
@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-TRACKING_HEADER = "## 🤖 Agent Pipeline"
+TRACKING_HEADER = "## 🤖 Agents Pipelines"
 TRACKING_SEPARATOR = "---"
 
 STATE_PENDING = "⏳ Pending"
@@ -48,7 +48,7 @@ STATE_DONE = "✅ Done"
 
 # Regex to detect the tracking section already present in issue body
 _TRACKING_SECTION_RE = re.compile(
-    r"---\s*\n\s*##\s*🤖\s*Agent Pipeline.*",
+    r"---\s*\n\s*##\s*🤖\s*(?:Agent Pipeline|Agents Pipelines).*",
     re.DOTALL,
 )
 

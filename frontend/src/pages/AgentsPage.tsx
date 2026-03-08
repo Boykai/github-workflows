@@ -11,6 +11,7 @@ import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPage() {
   const { user } = useAuth();
@@ -113,7 +114,7 @@ export function AgentsPage() {
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {assigned.map((a) => (
                               <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                                {a.display_name ?? a.slug}
+                                {formatAgentName(a.slug, a.display_name)}
                               </span>
                             ))}
                           </div>

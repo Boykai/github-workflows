@@ -1,6 +1,6 @@
 /**
  * AgentPresetSelector component - renders preset buttons
- * (Custom, GitHub Copilot, Spec Kit) plus saved pipeline configurations
+ * (Clear, GitHub Copilot, Spec Kit) plus saved pipeline configurations
  * with confirmation dialog before replacing current agent configuration.
  */
 
@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
+import { formatAgentName } from '@/utils/formatAgentName';
 import { pipelinesApi } from '@/services/api';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
@@ -35,7 +36,7 @@ function resolvePreset(
     if (actualCol) {
       // Deep-clone each assignment with fresh UUIDs
       result[actualCol] = assignments.map((a) =>
-        makeAssignment(a.slug, a.display_name ?? a.slug)
+        makeAssignment(a.slug, formatAgentName(a.slug, a.display_name))
       );
     }
   }
@@ -62,7 +63,7 @@ function pipelineConfigToMappings(
     const matchedCol = lowerMap.get(stage.name.toLowerCase());
     if (matchedCol) {
       result[matchedCol] = stage.agents.map((agent) =>
-        makeAssignment(agent.agent_slug, agent.agent_display_name || agent.agent_slug)
+        makeAssignment(agent.agent_slug, formatAgentName(agent.agent_slug, agent.agent_display_name))
       );
     }
   }
@@ -98,7 +99,7 @@ function mappingsMatch(
 const PRESETS: AgentPreset[] = [
   {
     id: 'custom',
-    label: 'Custom',
+    label: 'Clear',
     description: 'Clear all agent assignments',
     mappings: {},
   },
@@ -138,6 +139,8 @@ interface AgentPresetSelectorProps {
   onApplyPreset: (mappings: Record<string, AgentAssignment[]>) => void;
   /** Project ID for fetching saved pipeline configs */
   projectId?: string | null;
+  /** Render only the saved pipeline dropdown trigger */
+  dropdownOnly?: boolean;
 }
 
 /**
@@ -150,7 +153,7 @@ function matchesPreset(
   columnNames: string[]
 ): boolean {
   if (preset.id === 'custom') {
-    // Custom matches when all columns are empty
+    // Clear matches when all columns are empty
     return columnNames.every((col) => (currentMappings[col] ?? []).length === 0);
   }
 
@@ -171,6 +174,7 @@ export function AgentPresetSelector({
   currentMappings,
   onApplyPreset,
   projectId,
+  dropdownOnly = false,
 }: AgentPresetSelectorProps) {
   const [confirmPreset, setConfirmPreset] = useState<AgentPreset | null>(null);
   const [confirmPipeline, setConfirmPipeline] = useState<PipelineConfigSummary | null>(null);
@@ -299,6 +303,8 @@ export function AgentPresetSelector({
     setConfirmPipeline(null);
   }, []);
 
+  const isClearingPreset = confirmPreset?.id === 'custom';
+
   const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
   const selectedSavedPipelineId = useMemo(() => {
@@ -335,7 +341,7 @@ export function AgentPresetSelector({
   return (
     <>
       <div className="ml-auto flex items-center gap-1 rounded-xl border border-border/60 bg-background/56 p-1 shadow-sm">
-        {PRESETS.map((preset) => {
+        {!dropdownOnly && PRESETS.map((preset) => {
           const isActive = matchesPreset(preset, currentMappings, columnNames);
           return (
             <button
@@ -400,11 +406,14 @@ export function AgentPresetSelector({
             aria-label="Confirm preset"
           >
             <h4 className="text-lg font-semibold text-foreground m-0">
-              Apply &ldquo;{confirmPreset.label}&rdquo; preset?
+              {isClearingPreset
+                ? 'Clear pipeline assignments?'
+                : `Apply “${confirmPreset.label}” preset?`}
             </h4>
             <p className="text-sm text-muted-foreground m-0">
-              This will replace your current agent configuration. Unsaved changes will be reflected
-              in the save bar.
+              {isClearingPreset
+                ? 'This will remove all agents from the pipeline board. Unsaved changes will be reflected in the save bar.'
+                : 'This will replace your current agent configuration. Unsaved changes will be reflected in the save bar.'}
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button
@@ -419,7 +428,7 @@ export function AgentPresetSelector({
                 onClick={handleConfirmPreset}
                 type="button"
               >
-                Apply Preset
+                {isClearingPreset ? 'Clear' : 'Apply Preset'}
               </button>
             </div>
           </div>
