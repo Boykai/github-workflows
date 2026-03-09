@@ -9,7 +9,6 @@ import { ACCEPTED_AVATAR_TYPES, MAX_AVATAR_SIZE } from '@/types';
 
 interface ProfileHeaderProps {
   profile: UserProfile;
-  avatarFile: File | null;
   avatarPreview: string | null;
   isEditing: boolean;
   onAvatarSelect: (file: File) => void;

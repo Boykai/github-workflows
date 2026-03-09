@@ -1278,25 +1278,8 @@ export interface UserProfileUpdate {
   bio?: string;
 }
 
-export interface ProfileFormState {
-  displayName: string;
-  bio: string;
-  avatarFile: File | null;
-  avatarPreview: string | null;
-  isDirty: boolean;
-  isEditing: boolean;
-}
-
-export interface ProfileValidation {
-  displayName: string | null;
-  avatar: string | null;
-}
-
 /** Maximum avatar file size in bytes (5 MB) */
 export const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
 /** Accepted avatar MIME types */
 export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-
-/** Accepted avatar file extensions (for display) */
-export const ACCEPTED_AVATAR_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];

@@ -234,10 +234,16 @@ export const profileApi = {
   async uploadAvatar(file: File): Promise<UserProfile> {
     const formData = new FormData();
     formData.append('file', file);
-    return request<UserProfile>('/users/profile/avatar', {
+      const response = await fetch(`${API_BASE_URL}/users/profile/avatar`, {
       method: 'POST',
       body: formData,
     });
+
+      if (!response.ok) {
+         throw new Error('Failed to upload avatar');
+      }
+
+      return response.json() as Promise<UserProfile>;
   },
 };
 ```

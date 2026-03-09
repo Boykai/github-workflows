@@ -226,11 +226,17 @@ export const profileApi = {
   async uploadAvatar(file: File): Promise<UserProfile> {
     const formData = new FormData();
     formData.append('file', file);
-    return request<UserProfile>('/users/profile/avatar', {
+    const res = await fetch('/api/v1/users/profile/avatar', {
       method: 'POST',
       body: formData,
       // Note: Do NOT set Content-Type header — browser sets it with boundary
     });
+
+    if (!res.ok) {
+      throw new Error('Failed to upload avatar');
+    }
+
+    return (await res.json()) as UserProfile;
   },
 };
 ```

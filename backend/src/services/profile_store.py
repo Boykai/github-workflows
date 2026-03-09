@@ -1,49 +1,14 @@
 """Profile data persistence for user_profiles table."""
 
-import logging
 from datetime import UTC, datetime
 
 import aiosqlite
 
 from src.models.user import UserProfile, UserProfileUpdate
 
-logger = logging.getLogger(__name__)
-
-_table_ensured = False
-
-
-async def ensure_table(db: aiosqlite.Connection) -> None:
-    """Create user_profiles table if not exists (lazy initialization)."""
-    global _table_ensured
-    if _table_ensured:
-        return
-
-    await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS user_profiles (
-            github_user_id TEXT PRIMARY KEY,
-            display_name TEXT,
-            bio TEXT,
-            avatar_path TEXT,
-            created_at TEXT NOT NULL DEFAULT (datetime('now')),
-            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-        )
-        """
-    )
-    await db.execute(
-        """
-        CREATE INDEX IF NOT EXISTS idx_user_profiles_updated
-            ON user_profiles(updated_at)
-        """
-    )
-    await db.commit()
-    _table_ensured = True
-
 
 async def get_profile(db: aiosqlite.Connection, github_user_id: str) -> UserProfile | None:
     """Fetch profile by GitHub user ID. Returns None if not found."""
-    await ensure_table(db)
-
     cursor = await db.execute(
         "SELECT github_user_id, display_name, bio, avatar_path, created_at, updated_at "
         "FROM user_profiles WHERE github_user_id = ?",
@@ -67,8 +32,6 @@ async def upsert_profile(
     db: aiosqlite.Connection, github_user_id: str, update: UserProfileUpdate
 ) -> UserProfile:
     """Create or update profile fields. Preserves existing fields not in update."""
-    await ensure_table(db)
-
     now = datetime.now(UTC).isoformat()
 
     # Read existing profile to merge
@@ -105,8 +68,6 @@ async def update_avatar_path(
     db: aiosqlite.Connection, github_user_id: str, avatar_path: str | None
 ) -> None:
     """Update the avatar_path field for a user."""
-    await ensure_table(db)
-
     now = datetime.now(UTC).isoformat()
 
     # Ensure profile row exists

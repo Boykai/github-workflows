@@ -9,6 +9,7 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { ProfileMetadata } from '@/components/profile/ProfileMetadata';
 import { useProfile } from '@/hooks/useProfile';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import type { UserProfileUpdate } from '@/types';
 
 type FeedbackState = {
@@ -23,16 +24,7 @@ export function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<FeedbackState>(null);
-
-  // Warn before navigating away with unsaved changes
-  useEffect(() => {
-    if (!isEditing) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isEditing]);
+  const { blocker, isBlocked } = useUnsavedChanges({ isDirty: isEditing });
 
   // Cleanup avatar preview URL on unmount
   useEffect(() => {
@@ -172,7 +164,6 @@ export function ProfilePage() {
         <CardHeader>
           <ProfileHeader
             profile={profile}
-            avatarFile={avatarFile}
             avatarPreview={avatarPreview}
             isEditing={isEditing}
             onAvatarSelect={handleAvatarSelect}
@@ -191,6 +182,26 @@ export function ProfilePage() {
           <ProfileMetadata profile={profile} />
         </CardContent>
       </Card>
+
+      {isBlocked && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" role="presentation" />
+          <div className="relative z-10 mx-4 w-full max-w-sm rounded-lg border border-border bg-background p-6 text-center shadow-xl">
+            <h3 className="mb-2 text-lg font-semibold text-foreground">Unsaved Changes</h3>
+            <p className="mb-4 text-sm text-muted-foreground">
+              You have unsaved changes — are you sure you want to leave?
+            </p>
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={() => blocker.reset?.()}>
+                Stay
+              </Button>
+              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
+                Discard and Leave
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
