@@ -6,6 +6,7 @@ import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { RateLimitBar } from './RateLimitBar';
+import { Link } from 'react-router-dom';
 import type { Notification } from '@/types';
 
 interface TopBarProps {
@@ -43,7 +44,7 @@ export function TopBar({
 
         {/* User avatar & logout */}
         {user && (
-          <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background/50 px-2 py-1">
+          <Link to="/profile" className="flex items-center gap-2 rounded-full border border-border/70 bg-background/50 px-2 py-1 hover:border-primary/50 transition-colors">
             {user.avatar_url && (
               <img
                 src={user.avatar_url}
@@ -56,7 +57,7 @@ export function TopBar({
             <span className="hidden pr-1 text-xs uppercase tracking-[0.18em] text-muted-foreground md:block">
               {user.login}
             </span>
-          </div>
+          </Link>
         )}
         <LoginButton authenticatedDisplay="action-only" />
       </div>

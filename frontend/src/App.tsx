@@ -20,6 +20,7 @@ const AgentsPage = lazy(() => import('@/pages/AgentsPage').then((module) => ({ d
 const ToolsPage = lazy(() => import('@/pages/ToolsPage').then((module) => ({ default: module.ToolsPage })));
 const ChoresPage = lazy(() => import('@/pages/ChoresPage').then((module) => ({ default: module.ChoresPage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage })));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((module) => ({ default: module.ProfilePage })));
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((module) => ({ default: module.LoginPage })));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })));
 
@@ -66,6 +67,7 @@ const router = createBrowserRouter(
         <Route path="tools" element={withSuspense(<ToolsPage />)} />
         <Route path="chores" element={withSuspense(<ChoresPage />)} />
         <Route path="settings" element={withSuspense(<SettingsPage />)} />
+        <Route path="profile" element={withSuspense(<ProfilePage />)} />
         <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>
     </>,
