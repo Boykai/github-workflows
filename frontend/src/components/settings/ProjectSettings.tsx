@@ -112,7 +112,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
         <label htmlFor="project-selector" className="text-sm font-medium text-foreground">Project</label>
         <select
           id="project-selector"
-          className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
         >
@@ -136,7 +136,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             <input
               id="proj-col-order"
               type="text"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={columnOrder}
               onChange={(e) => setColumnOrder(e.target.value)}
               placeholder="Backlog, Ready, In Progress, Done"
@@ -148,7 +148,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             <input
               id="proj-collapsed"
               type="text"
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               value={collapsedColumns}
               onChange={(e) => setCollapsedColumns(e.target.value)}
               placeholder="Done"
@@ -159,7 +159,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+                className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
                 checked={showEstimates}
                 onChange={(e) => setShowEstimates(e.target.checked)}
               />
@@ -173,7 +173,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             <label htmlFor="proj-agents" className="text-sm font-medium text-foreground">JSON (status → agent list)</label>
             <textarea
               id="proj-agents"
-              className="flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+              className="celestial-focus flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
               rows={6}
               value={agentMappingsText}
               onChange={(e) => setAgentMappingsText(e.target.value)}

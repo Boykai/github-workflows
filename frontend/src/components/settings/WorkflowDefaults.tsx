@@ -56,7 +56,7 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
         <input
           id="workflow-repo"
           type="text"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.default_repository}
           onChange={(e) => setField('default_repository', e.target.value)}
           placeholder="owner/repo"
@@ -68,7 +68,7 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
         <input
           id="workflow-assignee"
           type="text"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.default_assignee}
           onChange={(e) => setField('default_assignee', e.target.value)}
           placeholder="GitHub username"
@@ -82,7 +82,7 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
         <input
           id="workflow-polling"
           type="number"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           min="0"
           value={localState.copilot_polling_interval}
           onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)}

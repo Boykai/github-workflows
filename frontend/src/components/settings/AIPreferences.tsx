@@ -37,7 +37,7 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         <label htmlFor="ai-provider" className="text-sm font-medium text-foreground">Provider</label>
         <select
           id="ai-provider"
-          className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.provider}
           onChange={(e) => setField('provider', e.target.value as AIProviderType)}
         >
@@ -51,7 +51,7 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         <input
           id="ai-model"
           type="text"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.model}
           onChange={(e) => setField('model', e.target.value)}
           placeholder="e.g. gpt-4o"
@@ -65,7 +65,7 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
         <input
           id="ai-temperature"
           type="range"
-          className="w-full accent-primary"
+          className="celestial-focus w-full accent-primary"
           min="0"
           max="2"
           step="0.1"

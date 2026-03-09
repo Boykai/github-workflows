@@ -207,7 +207,7 @@ function AddMcpForm({
           }}
           placeholder="My MCP Server"
           maxLength={100}
-          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
+          className={`celestial-focus px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
             focus:outline-none focus:ring-2 focus:ring-primary
             ${nameError ? 'border-destructive' : 'border-border'}`}
@@ -232,7 +232,7 @@ function AddMcpForm({
           }}
           placeholder="https://example.com/mcp"
           maxLength={2048}
-          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
+          className={`celestial-focus px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
             focus:outline-none focus:ring-2 focus:ring-primary
             ${urlError ? 'border-destructive' : 'border-border'}`}

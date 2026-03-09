@@ -47,7 +47,7 @@ function formatTimeAgo(isoString: string): string {
 }
 
 const selectClass =
-  'flex h-9 w-full rounded-md border border-input bg-background/72 text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed';
+  'celestial-focus flex h-9 w-full rounded-md border border-input bg-background/72 text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed';
 
 export function DynamicDropdown({
   value,
@@ -87,7 +87,7 @@ export function DynamicDropdown({
           <input
             id={id}
             type="text"
-            className="flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="e.g. gpt-4o"

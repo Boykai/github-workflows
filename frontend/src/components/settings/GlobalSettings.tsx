@@ -112,6 +112,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
   };
 
   return (
+    <div className="celestial-fade-in">
     <SettingsSection
       title="Global Settings"
       description="Instance-wide defaults that apply to all users unless overridden."
@@ -123,32 +124,32 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">AI</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-ai-provider" className="text-sm font-medium text-foreground">Provider</label>
-        <select id="global-ai-provider" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.provider} onChange={(e) => setField('provider', e.target.value as AIProviderType)}>
+        <select id="global-ai-provider" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.provider} onChange={(e) => setField('provider', e.target.value as AIProviderType)}>
           <option value="copilot">GitHub Copilot</option>
           <option value="azure_openai">Azure OpenAI</option>
         </select>
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-ai-model" className="text-sm font-medium text-foreground">Model</label>
-        <input id="global-ai-model" type="text" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.model} onChange={(e) => setField('model', e.target.value)} />
+        <input id="global-ai-model" type="text" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.model} onChange={(e) => setField('model', e.target.value)} />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-ai-temp" className="text-sm font-medium text-foreground">Temperature: {f.temperature.toFixed(1)}</label>
-        <input id="global-ai-temp" type="range" className="w-full accent-primary" min="0" max="2" step="0.1" value={f.temperature} onChange={(e) => setField('temperature', parseFloat(e.target.value))} />
+        <input id="global-ai-temp" type="range" className="celestial-focus w-full accent-primary" min="0" max="2" step="0.1" value={f.temperature} onChange={(e) => setField('temperature', parseFloat(e.target.value))} />
       </div>
 
       {/* Display */}
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Display</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-theme" className="text-sm font-medium text-foreground">Theme</label>
-        <select id="global-theme" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.theme} onChange={(e) => setField('theme', e.target.value as ThemeModeType)}>
+        <select id="global-theme" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.theme} onChange={(e) => setField('theme', e.target.value as ThemeModeType)}>
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-view" className="text-sm font-medium text-foreground">Default View</label>
-        <select id="global-view" className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_view} onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}>
+        <select id="global-view" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_view} onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}>
           <option value="chat">Chat</option>
           <option value="board">Board</option>
           <option value="settings">Settings</option>
@@ -156,7 +157,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       </div>
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
-          <input type="checkbox" className="w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.sidebar_collapsed} onChange={(e) => setField('sidebar_collapsed', e.target.checked)} />
+          <input type="checkbox" className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.sidebar_collapsed} onChange={(e) => setField('sidebar_collapsed', e.target.checked)} />
           Sidebar collapsed by default
         </label>
       </div>
@@ -165,30 +166,31 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Workflow</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-repo" className="text-sm font-medium text-foreground">Default Repository</label>
-        <input id="global-repo" type="text" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_repository} onChange={(e) => setField('default_repository', e.target.value)} placeholder="owner/repo" />
+        <input id="global-repo" type="text" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_repository} onChange={(e) => setField('default_repository', e.target.value)} placeholder="owner/repo" />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-assignee" className="text-sm font-medium text-foreground">Default Assignee</label>
-        <input id="global-assignee" type="text" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_assignee} onChange={(e) => setField('default_assignee', e.target.value)} />
+        <input id="global-assignee" type="text" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.default_assignee} onChange={(e) => setField('default_assignee', e.target.value)} />
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-polling" className="text-sm font-medium text-foreground">Polling Interval (seconds)</label>
-        <input id="global-polling" type="number" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" min="0" value={f.copilot_polling_interval} onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)} />
+        <input id="global-polling" type="number" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" min="0" value={f.copilot_polling_interval} onChange={(e) => setField('copilot_polling_interval', parseInt(e.target.value, 10) || 0)} />
       </div>
 
       {/* Notifications */}
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Notifications</h4>
-      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.task_status_change} onChange={(e) => setField('task_status_change', e.target.checked)} /> Task status changes</label></div>
-      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.agent_completion} onChange={(e) => setField('agent_completion', e.target.checked)} /> Agent completion</label></div>
-      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.new_recommendation} onChange={(e) => setField('new_recommendation', e.target.checked)} /> New recommendations</label></div>
-      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.chat_mention} onChange={(e) => setField('chat_mention', e.target.checked)} /> Chat mentions</label></div>
+      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.task_status_change} onChange={(e) => setField('task_status_change', e.target.checked)} /> Task status changes</label></div>
+      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.agent_completion} onChange={(e) => setField('agent_completion', e.target.checked)} /> Agent completion</label></div>
+      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.new_recommendation} onChange={(e) => setField('new_recommendation', e.target.checked)} /> New recommendations</label></div>
+      <div className="flex items-center gap-2"><label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer"><input type="checkbox" className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary" checked={f.chat_mention} onChange={(e) => setField('chat_mention', e.target.checked)} /> Chat mentions</label></div>
 
       {/* Allowed Models */}
       <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Allowed Models</h4>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-models" className="text-sm font-medium text-foreground">Comma-separated model identifiers</label>
-        <input id="global-models" type="text" className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.allowed_models} onChange={(e) => setField('allowed_models', e.target.value)} placeholder="gpt-4o, gpt-4" />
+        <input id="global-models" type="text" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.allowed_models} onChange={(e) => setField('allowed_models', e.target.value)} placeholder="gpt-4o, gpt-4" />
       </div>
     </SettingsSection>
+    </div>
   );
 }
