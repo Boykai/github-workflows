@@ -153,7 +153,7 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
     <div
       ref={containerRef}
       className={cn(
-        'relative overflow-hidden rounded-[1.25rem] border border-border/60 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_58%),linear-gradient(180deg,hsl(var(--background)/0.72)_0%,hsl(var(--background)/0.92)_100%)]',
+        'relative overflow-hidden rounded-[1.25rem] border border-border/60 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--primary)/0.08),transparent_58%),linear-gradient(180deg,hsl(var(--background)/0.72)_0%,hsl(var(--background)/0.92)_100%)] overflow-x-auto',
         className,
       )}
       style={responsive ? { width: '100%', height } : { width: graphWidth, height }}

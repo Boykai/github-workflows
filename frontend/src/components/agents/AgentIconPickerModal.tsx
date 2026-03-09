@@ -30,7 +30,7 @@ export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName,
     <div className="fixed inset-0 z-[140] bg-black/55" role="presentation" onClick={onClose}>
       <div className="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6">
         <div
-          className="celestial-panel relative my-4 flex max-h-[min(92vh,56rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
+          className="celestial-panel relative my-4 flex max-h-[min(92vh,56rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.5rem] border border-border/80 p-6 shadow-xl max-sm:max-w-none max-sm:max-h-none max-sm:h-full max-sm:rounded-none max-sm:my-0 max-sm:border-0 max-sm:p-4"
           role="presentation"
           onClick={(event) => event.stopPropagation()}
         >

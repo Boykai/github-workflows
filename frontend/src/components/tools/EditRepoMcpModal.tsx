@@ -122,7 +122,7 @@ export function EditRepoMcpModal({
         onClick={handleClose}
       />
       <div
-        className="celestial-panel relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg"
+        className="celestial-panel relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg max-sm:max-w-none max-sm:max-h-none max-sm:h-full max-sm:rounded-none max-sm:border-0 max-sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -81,7 +81,7 @@ export function AgentsPage() {
   const pendingSubIssueCounts = countPendingAssignedSubIssues(boardData);
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-3 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-4 md:p-6">
       <CelestialCatalogHero
         eyebrow="Celestial Catalog"
         title="Shape your agent constellation."
