@@ -104,6 +104,11 @@
     50% { opacity: 0.3; }
     100% { opacity: 0; }
   }
+  @keyframes cosmic-gradient-cycle {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
 }
 
 @layer base {
@@ -996,12 +1001,6 @@
   .cosmic-gradient-shift {
     background-size: 200% 200%;
     animation: cosmic-gradient-cycle 12s ease-in-out infinite alternate;
-  }
-
-  @keyframes cosmic-gradient-cycle {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
   }
 
   /* ── Solar button hover enhancement ── */

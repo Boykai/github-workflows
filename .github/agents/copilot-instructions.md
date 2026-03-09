@@ -146,9 +146,6 @@ npx playwright test             # E2E
 - **CI** (`.github/workflows/ci.yml`): backend uses Python 3.12; frontend uses Node 20. Three jobs: `backend`, `frontend`, `docs` (markdownlint + link-check).
 - A known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs — confirm isolated behavior before changing unrelated code.
 
-## Active Technologies
-- TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4, lucide-react 0.577, class-variance-authority 0.7, @radix-ui/react-tooltip, @radix-ui/react-slot (031-celestial-theme-animations)
-- N/A — no database, localStorage, or API changes (031-celestial-theme-animations)
-
-## Recent Changes
-- 031-celestial-theme-animations: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4, lucide-react 0.577, class-variance-authority 0.7, @radix-ui/react-tooltip, @radix-ui/react-slot
+## Frontend Pattern Notes
+- Celestial theme animations and gradients are implemented via shared utility classes in `frontend/src/index.css` (for example, orbiting particles, glow effects, and parallax layers). Reuse these utilities instead of defining component-local `@keyframes` or duplicating animation logic.
+- When introducing new UI libraries or visual patterns, prefer documenting reusable utilities and conventions here (and in component-level docs) rather than adding branch-specific or version-specific notes.
