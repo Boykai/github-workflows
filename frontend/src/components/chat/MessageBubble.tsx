@@ -17,7 +17,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
   const isFailed = message.status === 'failed';
 
   return (
-    <div className={`flex gap-3 max-w-[80%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}>
+    <div className={`flex gap-3 max-w-[80%] celestial-fade-in ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}>
       {!isUser && !isSystem && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/72 text-muted-foreground shadow-sm">
           <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">

@@ -239,7 +239,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
             handleInput();
           }}
           className={cn(
-            'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words',
+            'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words celestial-focus',
             isNavigating && 'border-l-4 border-l-primary bg-primary/5',
             disabled && 'bg-muted pointer-events-none opacity-60',
           )}
