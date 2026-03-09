@@ -81,6 +81,15 @@ describe('MentionInput', () => {
     expect(screen.getByText('Try: summarize issues')).toBeInTheDocument();
   });
 
+  it('renders cycling placeholder without requiring a mobile placeholder', () => {
+    renderMentionInput({
+      placeholder: 'Static text',
+      cyclingPlaceholder: 'Try: summarize issues',
+    });
+
+    expect(screen.getByText('Try: summarize issues')).toBeInTheDocument();
+  });
+
   it('applies motion-reduce:animate-none class to cycling placeholder span', () => {
     renderMentionInput({
       placeholder: 'Static text',

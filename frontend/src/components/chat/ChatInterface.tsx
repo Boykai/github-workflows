@@ -73,6 +73,7 @@ export function ChatInterface({
   onNewChat,
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(true);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [autocompleteCommands, setAutocompleteCommands] = useState<CommandDefinition[]>([]);
@@ -100,9 +101,12 @@ export function ChatInterface({
   } = useChatHistory();
 
   // Cycling placeholder for contextual prompt examples (stops when input has text or sending)
-  const cyclingPlaceholder = useCyclingPlaceholder(CYCLING_EXAMPLES, {
-    enabled: !input.trim() && !isSending,
-  });
+  const cyclingPlaceholder = useCyclingPlaceholder(
+    [CHAT_PLACEHOLDERS.main.desktop, ...CYCLING_EXAMPLES],
+    {
+      enabled: !isInputFocused && !input.trim() && !isSending,
+    },
+  );
 
   // File upload management
   const {
@@ -497,6 +501,7 @@ export function ChatInterface({
             placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}
             cyclingPlaceholder={cyclingPlaceholder}
             ariaLabel={CHAT_PLACEHOLDERS.main.ariaLabel}
+            onFocusChange={setIsInputFocused}
             disabled={isSending}
             isNavigating={isNavigating}
             onTextChange={setInput}

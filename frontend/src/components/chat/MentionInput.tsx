@@ -24,6 +24,7 @@ interface MentionInputProps {
   placeholderMobile?: string;
   cyclingPlaceholder?: string;
   ariaLabel?: string;
+  onFocusChange?: (isFocused: boolean) => void;
   disabled?: boolean;
   isNavigating?: boolean;
   onTextChange: (text: string) => void;
@@ -42,6 +43,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
       placeholderMobile,
       cyclingPlaceholder,
       ariaLabel,
+      onFocusChange,
       disabled,
       isNavigating,
       onTextChange,
@@ -236,6 +238,8 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
           aria-multiline="true"
           aria-label={ariaLabel || "Chat input"}
           suppressContentEditableWarning
+          onFocus={() => onFocusChange?.(true)}
+          onBlur={() => onFocusChange?.(false)}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
@@ -264,7 +268,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
                 <span className="hidden max-sm:inline">{placeholderMobile}</span>
               </>
             ) : (
-              placeholder
+              cyclingPlaceholder || placeholder
             )}
           </div>
         )}

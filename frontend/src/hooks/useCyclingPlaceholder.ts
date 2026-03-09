@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+type LegacyMediaQueryList = MediaQueryList & {
+  addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+  removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+};
+
 /**
  * Cycles through an array of placeholder strings at a configurable interval.
  * Respects `prefers-reduced-motion` — falls back to the first prompt when
@@ -22,11 +27,19 @@ export function useCyclingPlaceholder(
   // Listen for reduced motion preference changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)') as LegacyMediaQueryList;
     setPrefersReducedMotion(mql.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
+
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', handler);
+      return () => mql.removeEventListener('change', handler);
+    }
+
+    if (typeof mql.addListener === 'function') {
+      mql.addListener(handler);
+      return () => mql.removeListener?.(handler);
+    }
   }, []);
 
   useEffect(() => {

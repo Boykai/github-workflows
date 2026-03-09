@@ -111,6 +111,28 @@ describe('useCyclingPlaceholder', () => {
     vi.restoreAllMocks();
   });
 
+  it('falls back to addListener/removeListener when addEventListener is unavailable', () => {
+    const addListener = vi.fn();
+    const removeListener = vi.fn();
+    const mql = {
+      matches: false,
+      addListener,
+      removeListener,
+    };
+    vi.spyOn(window, 'matchMedia').mockReturnValue(mql as unknown as MediaQueryList);
+
+    const { unmount } = renderHook(() =>
+      useCyclingPlaceholder(prompts, { intervalMs: 1000 }),
+    );
+
+    expect(addListener).toHaveBeenCalledTimes(1);
+
+    unmount();
+
+    expect(removeListener).toHaveBeenCalledTimes(1);
+    vi.restoreAllMocks();
+  });
+
   it('does not cycle when only one prompt is provided', () => {
     const { result } = renderHook(() =>
       useCyclingPlaceholder(['Only one'], { intervalMs: 1000 }),
