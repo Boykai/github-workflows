@@ -423,6 +423,34 @@ class TestAssignAgentForStatus:
         mock_github_service.assign_copilot_to_issue.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_tracking_table_omitting_status_blocks_config_fallback(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
+        """Statuses omitted from the frozen tracking table should not fall back to config agents."""
+        from src.services.workflow_orchestrator.orchestrator import _tracking_table_cache
+
+        _tracking_table_cache.clear()
+        mock_github_service.get_issue_with_comments.return_value = {
+            "title": "Test",
+            "body": (
+                "Original body\n\n"
+                "---\n\n"
+                "## 🤖 Agents Pipelines\n\n"
+                "| # | Status | Agent | Model | State |\n"
+                "|---|--------|-------|-------|-------|\n"
+                "| 1 | In Progress | `copilot` | TBD | ✅ Done |\n"
+                "| 2 | In Progress | `copilot-review` | TBD | ⏳ Pending |\n"
+            ),
+            "comments": [],
+        }
+
+        result = await orchestrator.assign_agent_for_status(workflow_context, "Ready", 0)
+
+        assert result is True
+        mock_github_service.assign_copilot_to_issue.assert_not_called()
+        _tracking_table_cache.clear()
+
+    @pytest.mark.asyncio
     async def test_assign_out_of_range_index(
         self, orchestrator, workflow_context, mock_github_service
     ):

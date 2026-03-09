@@ -876,11 +876,19 @@ class WorkflowOrchestrator:
                     _tracking_table_cache[ctx.issue_number] = steps or []
 
                 if steps:
+                    tracked_statuses = {s.status.lower() for s in steps}
                     tracking_agents = [
                         s.agent_name for s in steps if s.status.lower() == status.lower()
                     ]
                     config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
-                    if tracking_agents and tracking_agents != config_slugs:
+                    if status.lower() not in tracked_statuses:
+                        logger.info(
+                            "Tracking table omits status '%s' for issue #%d; treating it as having no agents",
+                            status,
+                            ctx.issue_number,
+                        )
+                        agents = []
+                    elif tracking_agents != config_slugs:
                         logger.info(
                             "Overriding config agents %s with tracking "
                             "table agents %s for status '%s' on issue #%d",

@@ -4,9 +4,19 @@
  */
 
 import { LoginButton } from '@/components/auth/LoginButton';
-import { MoonStar } from 'lucide-react';
+import { useTheme } from '@/components/ThemeProvider';
+import { MoonStar, SunMedium } from 'lucide-react';
 
 export function LoginPage() {
+  const { theme, setTheme } = useTheme();
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
+
   return (
     <div className="starfield celestial-fade-in relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
@@ -88,9 +98,15 @@ export function LoginPage() {
           </div>
 
           <div className="celestial-panel celestial-fade-in golden-ring absolute bottom-0 left-1/2 z-10 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-6 rounded-[2rem] border border-border/80 p-8 backdrop-blur-md">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/25 bg-primary/12 text-2xl text-primary">
-              <MoonStar className="h-8 w-8" />
-            </div>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+              className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/25 bg-primary/12 text-2xl text-primary transition-[transform,background-color,border-color,color] duration-300 hover:border-primary/45 hover:bg-primary/18 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-95"
+            >
+              {isDark ? <MoonStar className="h-8 w-8" /> : <SunMedium className="h-8 w-8" />}
+            </button>
             <div className="text-center">
               <h2 className="mb-2 text-4xl font-display font-medium tracking-[0.08em] text-foreground">
                 Solune
