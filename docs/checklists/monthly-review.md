@@ -44,6 +44,10 @@ For each file, verify:
 - [ ] API tables include: method, path, auth required, brief description
 - [ ] Troubleshooting entries follow the format: **Symptom → Cause → Fix**
 
+## Good Documentation Acceptance Bar
+
+- [ ] All reviewed files meet the "good documentation" definition (see [docs/OWNERS.md](../OWNERS.md#definition-of-good-documentation)): accurate, minimal, actionable, discoverable, maintained
+
 ## Completion
 
 - **Date**: YYYY-MM-DD
