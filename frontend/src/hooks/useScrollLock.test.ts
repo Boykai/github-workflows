@@ -68,10 +68,9 @@ describe('useScrollLock', () => {
 
   it('handles toggling isLocked from true to false', () => {
     document.body.style.overflow = '';
-    const { rerender } = renderHook(
-      ({ locked }: { locked: boolean }) => useScrollLock(locked),
-      { initialProps: { locked: true } },
-    );
+    const { rerender } = renderHook(({ locked }: { locked: boolean }) => useScrollLock(locked), {
+      initialProps: { locked: true },
+    });
     expect(document.body.style.overflow).toBe('hidden');
 
     act(() => {
@@ -82,10 +81,9 @@ describe('useScrollLock', () => {
 
   it('handles toggling isLocked from false to true', () => {
     document.body.style.overflow = '';
-    const { rerender } = renderHook(
-      ({ locked }: { locked: boolean }) => useScrollLock(locked),
-      { initialProps: { locked: false } },
-    );
+    const { rerender } = renderHook(({ locked }: { locked: boolean }) => useScrollLock(locked), {
+      initialProps: { locked: false },
+    });
     expect(document.body.style.overflow).toBe('');
 
     act(() => {
@@ -95,19 +93,24 @@ describe('useScrollLock', () => {
   });
 
   it('handles rapid open/close sequences correctly', () => {
-    const hook1 = renderHook(
-      ({ locked }: { locked: boolean }) => useScrollLock(locked),
-      { initialProps: { locked: true } },
-    );
+    const hook1 = renderHook(({ locked }: { locked: boolean }) => useScrollLock(locked), {
+      initialProps: { locked: true },
+    });
     expect(document.body.style.overflow).toBe('hidden');
 
-    act(() => { hook1.rerender({ locked: false }); });
+    act(() => {
+      hook1.rerender({ locked: false });
+    });
     expect(document.body.style.overflow).toBe('');
 
-    act(() => { hook1.rerender({ locked: true }); });
+    act(() => {
+      hook1.rerender({ locked: true });
+    });
     expect(document.body.style.overflow).toBe('hidden');
 
-    act(() => { hook1.rerender({ locked: false }); });
+    act(() => {
+      hook1.rerender({ locked: false });
+    });
     expect(document.body.style.overflow).toBe('');
   });
 

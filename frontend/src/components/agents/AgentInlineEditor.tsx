@@ -1,11 +1,4 @@
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useState,
-} from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import type { AgentConfig } from '@/services/api';
 import { useUpdateAgent } from '@/hooks/useAgents';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
@@ -35,7 +28,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
     const [systemPrompt, setSystemPrompt] = useState(agent.system_prompt || '');
     const [selectedToolIds, setSelectedToolIds] = useState<string[]>([...(agent.tools ?? [])]);
     const [selectedIconName, setSelectedIconName] = useState<CelestialIconName | null>(
-      isCelestialIconName(agent.icon_name) ? agent.icon_name : null,
+      isCelestialIconName(agent.icon_name) ? agent.icon_name : null
     );
     const [error, setError] = useState<string | null>(null);
     const [toolsError, setToolsError] = useState<string | null>(null);
@@ -47,7 +40,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
         tools: [...(agent.tools ?? [])],
         iconName: isCelestialIconName(agent.icon_name) ? agent.icon_name : null,
       }),
-      [agent],
+      [agent]
     );
 
     useEffect(() => {
@@ -147,14 +140,16 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
         save: handleSave,
         discard: handleDiscard,
       }),
-      [handleDiscard, handleSave],
+      [handleDiscard, handleSave]
     );
 
     return (
       <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Editing agent definition</p>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+              Editing agent definition
+            </p>
             <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
               {agent.name}
             </h4>
@@ -172,7 +167,11 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
             <Button variant="outline" onClick={onCancel} disabled={updateMutation.isPending}>
               Close Editor
             </Button>
-            <Button variant="outline" onClick={handleDiscard} disabled={!isDirty || updateMutation.isPending}>
+            <Button
+              variant="outline"
+              onClick={handleDiscard}
+              disabled={!isDirty || updateMutation.isPending}
+            >
               Discard
             </Button>
             <Button onClick={() => void handleSave()} disabled={updateMutation.isPending}>
@@ -193,13 +192,16 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="e.g., Security Reviewer"
-                className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
+                className="celestial-focus w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
                 maxLength={100}
               />
             </div>
 
             <div>
-              <label htmlFor="inline-agent-system-prompt" className="mb-1.5 block text-sm font-medium">
+              <label
+                htmlFor="inline-agent-system-prompt"
+                className="mb-1.5 block text-sm font-medium"
+              >
                 System Prompt
                 <span className="ml-2 font-normal text-muted-foreground">
                   {systemPrompt.length.toLocaleString()} / {MAX_PROMPT_LENGTH.toLocaleString()}
@@ -210,7 +212,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
                 value={systemPrompt}
                 onChange={(event) => setSystemPrompt(event.target.value)}
                 placeholder="Detailed instructions for the agent's behavior..."
-                className="min-h-[280px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
+                className="celestial-focus min-h-[280px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
                 maxLength={MAX_PROMPT_LENGTH}
               />
             </div>
@@ -255,5 +257,5 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
         </div>
       </section>
     );
-  },
+  }
 );

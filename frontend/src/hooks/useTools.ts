@@ -92,8 +92,7 @@ export function useToolsList(projectId: string | null | undefined) {
     onSettled: () => setDeletingId(null),
   });
 
-  const authError =
-    query.error instanceof ApiError && query.error.status === 401;
+  const authError = query.error instanceof ApiError && query.error.status === 401;
 
   return {
     tools: query.data?.tools ?? [],

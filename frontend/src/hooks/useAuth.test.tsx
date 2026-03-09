@@ -16,7 +16,10 @@ vi.mock('@/services/api', () => ({
     logout: vi.fn(),
   },
   ApiError: class ApiError extends Error {
-    constructor(public status: number, public error: { error: string }) {
+    constructor(
+      public status: number,
+      public error: { error: string }
+    ) {
       super(error.error);
       this.name = 'ApiError';
     }
@@ -40,11 +43,7 @@ function createWrapper() {
     },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -212,9 +211,7 @@ describe('useAuth', () => {
 
       // Should clean up URL and notify React Router via popstate
       expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/');
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'popstate' })
-      );
+      expect(dispatchEventSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'popstate' }));
     });
 
     it('should not modify URL when not on /auth/callback', async () => {

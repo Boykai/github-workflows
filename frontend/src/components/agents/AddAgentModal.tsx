@@ -250,7 +250,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         aria-label="Unsaved changes confirmation"
       >
         <div
-          className="celestial-panel w-full max-w-sm rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
+          className="celestial-panel celestial-fade-in w-full max-w-sm rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
           onClick={(event) => event.stopPropagation()}
         >
@@ -297,13 +297,15 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         onClick={resetAndClose}
       >
         <div
-          className="celestial-panel w-full max-w-md rounded-[1.6rem] border border-border/80 p-6 shadow-xl"
+          className="celestial-panel celestial-fade-in w-full max-w-md rounded-[1.6rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex flex-col items-center gap-3 text-center">
             <CheckCircle2 className="h-8 w-8 text-primary" aria-hidden="true" />
-            <h3 className="text-lg font-semibold">{isEditMode ? 'Agent Updated' : 'Agent Created'}</h3>
+            <h3 className="text-lg font-semibold">
+              {isEditMode ? 'Agent Updated' : 'Agent Created'}
+            </h3>
             <p className="text-sm text-muted-foreground">
               A pull request has been opened with the agent configuration files. It will appear in
               the catalog after merge to main.
@@ -336,7 +338,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
       onClick={handleRequestClose}
     >
       <div
-        className="celestial-panel relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
+        className="celestial-panel celestial-fade-in relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
         role="presentation"
         onClick={(event) => event.stopPropagation()}
       >

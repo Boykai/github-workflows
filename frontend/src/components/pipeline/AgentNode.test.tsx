@@ -49,13 +49,7 @@ describe('AgentNode', () => {
   });
 
   it('shows an explicit model control for pipeline agents', () => {
-    render(
-      <AgentNode
-        agentNode={createAgentNode()}
-        onModelSelect={vi.fn()}
-        onRemove={vi.fn()}
-      />,
-    );
+    render(<AgentNode agentNode={createAgentNode()} onModelSelect={vi.fn()} onRemove={vi.fn()} />);
 
     expect(screen.getByText('Model')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /agent default/i })).toBeInTheDocument();
@@ -64,11 +58,7 @@ describe('AgentNode', () => {
   it('lets the user change the model from the pipeline agent card', async () => {
     const onModelSelect = vi.fn();
     render(
-      <AgentNode
-        agentNode={createAgentNode()}
-        onModelSelect={onModelSelect}
-        onRemove={vi.fn()}
-      />,
+      <AgentNode agentNode={createAgentNode()} onModelSelect={onModelSelect} onRemove={vi.fn()} />
     );
 
     const user = userEvent.setup();

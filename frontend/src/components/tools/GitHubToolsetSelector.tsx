@@ -19,7 +19,12 @@ const TOOLSETS = [
 ] as const;
 
 export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetSelectorProps) {
-  const [selectedToolsets, setSelectedToolsets] = useState<string[]>(['repos', 'issues', 'pull_requests', 'actions']);
+  const [selectedToolsets, setSelectedToolsets] = useState<string[]>([
+    'repos',
+    'issues',
+    'pull_requests',
+    'actions',
+  ]);
   const [fullAccess, setFullAccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +34,9 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
         mcpServers: {
           github: {
             type: 'http',
-            url: fullAccess ? 'https://api.githubcopilot.com/mcp/' : 'https://api.githubcopilot.com/mcp/readonly',
+            url: fullAccess
+              ? 'https://api.githubcopilot.com/mcp/'
+              : 'https://api.githubcopilot.com/mcp/readonly',
             tools: ['*'],
             headers: {
               'X-MCP-Toolsets': selectedToolsets.join(','),
@@ -38,13 +45,13 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
         },
       },
       null,
-      2,
+      2
     );
   }, [fullAccess, selectedToolsets]);
 
   const toggleToolset = (toolset: string) => {
     setSelectedToolsets((current) =>
-      current.includes(toolset) ? current.filter((item) => item !== toolset) : [...current, toolset],
+      current.includes(toolset) ? current.filter((item) => item !== toolset) : [...current, toolset]
     );
   };
 
@@ -64,7 +71,9 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
         github_repo_target: '',
       });
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : 'Failed to create GitHub MCP tool.');
+      setError(
+        createError instanceof Error ? createError.message : 'Failed to create GitHub MCP tool.'
+      );
     }
   };
 
@@ -72,14 +81,21 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
     <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
       <div>
         <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">GitHub MCP</p>
-        <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Configure GitHub toolsets</h4>
+        <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+          Configure GitHub toolsets
+        </h4>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Build a GitHub MCP server config from current GitHub documentation, including the `X-MCP-Toolsets` header used by Copilot coding agents.
+          Build a GitHub MCP server config from current GitHub documentation, including the
+          `X-MCP-Toolsets` header used by Copilot coding agents.
         </p>
       </div>
 
       <label className="mt-5 flex items-center gap-3 text-sm text-foreground">
-        <input type="checkbox" checked={fullAccess} onChange={(event) => setFullAccess(event.target.checked)} />
+        <input
+          type="checkbox"
+          checked={fullAccess}
+          onChange={(event) => setFullAccess(event.target.checked)}
+        />
         Use full-access endpoint instead of read-only
       </label>
 
@@ -102,7 +118,9 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
 
       <div className="mt-5 rounded-[1.2rem] border border-border/70 bg-background/40 p-4">
         <p className="text-xs uppercase tracking-[0.22em] text-primary/80">Generated config</p>
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{previewConfig}</pre>
+        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">
+          {previewConfig}
+        </pre>
       </div>
 
       {error && <p className="mt-3 text-sm text-destructive">{error}</p>}

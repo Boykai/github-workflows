@@ -44,9 +44,7 @@ function getSpeechRecognitionConstructor(): (new () => SpeechRecognitionInstance
   return win.SpeechRecognition || win.webkitSpeechRecognition || null;
 }
 
-export function useVoiceInput(
-  onTranscript: (text: string) => void
-): UseVoiceInputReturn {
+export function useVoiceInput(onTranscript: (text: string) => void): UseVoiceInputReturn {
   const [isSupported] = useState(() => getSpeechRecognitionConstructor() !== null);
   const [isRecording, setIsRecording] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -75,54 +73,61 @@ export function useVoiceInput(
 
     // Request microphone permission first
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        // Stop the stream immediately — we just needed permission
-        stream.getTracks().forEach((track) => track.stop());
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          // Stop the stream immediately — we just needed permission
+          stream.getTracks().forEach((track) => track.stop());
 
-        const recognition = new SpeechRecognitionCtor();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
+          const recognition = new SpeechRecognitionCtor();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = 'en-US';
 
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          let interim = '';
-          let finalText = '';
+          recognition.onresult = (event: SpeechRecognitionEvent) => {
+            let interim = '';
+            let finalText = '';
 
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalText += transcript;
-            } else {
-              interim += transcript;
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalText += transcript;
+              } else {
+                interim += transcript;
+              }
             }
-          }
 
-          setInterimTranscript(interim);
-          if (finalText) {
-            onTranscript(finalText);
-          }
-        };
+            setInterimTranscript(interim);
+            if (finalText) {
+              onTranscript(finalText);
+            }
+          };
 
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          if (event.error === 'not-allowed' || event.error === 'permission-denied') {
-            setError('Microphone access is required for voice input. Please allow microphone access in your browser settings.');
-          } else if (event.error !== 'aborted') {
-            setError(`Voice input error: ${event.error}`);
-          }
-          setIsRecording(false);
-        };
+          recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+              setError(
+                'Microphone access is required for voice input. Please allow microphone access in your browser settings.'
+              );
+            } else if (event.error !== 'aborted') {
+              setError(`Voice input error: ${event.error}`);
+            }
+            setIsRecording(false);
+          };
 
-        recognition.onend = () => {
-          setIsRecording(false);
-          setInterimTranscript('');
-        };
+          recognition.onend = () => {
+            setIsRecording(false);
+            setInterimTranscript('');
+          };
 
-        recognitionRef.current = recognition;
-        recognition.start();
-        setIsRecording(true);
-      }).catch(() => {
-        setError('Microphone access is required for voice input. Please allow microphone access in your browser settings.');
-      });
+          recognitionRef.current = recognition;
+          recognition.start();
+          setIsRecording(true);
+        })
+        .catch(() => {
+          setError(
+            'Microphone access is required for voice input. Please allow microphone access in your browser settings.'
+          );
+        });
     } else {
       setError('Microphone access is not available in this browser.');
     }

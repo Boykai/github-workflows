@@ -55,7 +55,10 @@ export function BulkModelUpdateDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="presentation"
+    >
       <button
         type="button"
         className="absolute inset-0 cursor-default"
@@ -63,7 +66,7 @@ export function BulkModelUpdateDialog({
         onClick={handleClose}
       />
       <div
-        className="relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+        className="celestial-panel celestial-fade-in relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-label="Bulk model update dialog"

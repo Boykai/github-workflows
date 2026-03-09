@@ -34,14 +34,15 @@ export function CelestialCatalogHero({
         className
       )}
     >
+      {/* Decorative celestial background elements with animations */}
       <div className="pointer-events-none absolute inset-0 opacity-90">
-        <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl" />
-        <div className="celestial-orbit left-[54%] top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 border-primary/20" />
-        <div className="celestial-orbit left-[54%] top-1/2 h-[17rem] w-[17rem] -translate-x-1/2 -translate-y-1/2 border-border/35" />
-        <div className="celestial-orbit left-[54%] top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2 border-primary/25" />
-        <div className="absolute right-10 top-12 h-16 w-16 rounded-full lunar-disc opacity-95" />
-        <div className="absolute left-[58%] top-[18%] h-3 w-3 rounded-full bg-primary/70 shadow-[0_0_20px_hsl(var(--gold)/0.35)]" />
-        <div className="absolute bottom-10 left-[52%] h-5 w-5 rounded-full bg-primary/80 shadow-[0_0_30px_hsl(var(--gold)/0.35)]" />
+        <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl celestial-pulse-glow" />
+        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 border-primary/20" />
+        <div className="celestial-orbit celestial-orbit-spin-reverse left-[54%] top-1/2 h-[17rem] w-[17rem] -translate-x-1/2 -translate-y-1/2 border-border/35" />
+        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2 border-primary/25" />
+        <div className="absolute right-10 top-12 h-16 w-16 rounded-full lunar-disc celestial-float opacity-95" />
+        <div className="absolute left-[58%] top-[18%] h-3 w-3 rounded-full bg-primary/70 shadow-[0_0_20px_hsl(var(--gold)/0.35)] celestial-twinkle" />
+        <div className="absolute bottom-10 left-[52%] h-5 w-5 rounded-full bg-primary/80 shadow-[0_0_30px_hsl(var(--gold)/0.35)] celestial-twinkle-delayed" />
         <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       </div>
 
@@ -68,7 +69,11 @@ export function CelestialCatalogHero({
 
           {(actions || stats.length > 0) && (
             <div className="mt-8 flex flex-col gap-6">
-              {actions && <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">{actions}</div>}
+              {actions && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  {actions}
+                </div>
+              )}
               {stats.length > 0 && (
                 <div className="flex flex-wrap items-start gap-3">
                   {stats.map((stat) => (
@@ -76,8 +81,12 @@ export function CelestialCatalogHero({
                       key={stat.label}
                       className="moonwell inline-flex max-w-full min-w-0 flex-col rounded-[1.2rem] px-4 py-3 sm:rounded-[1.3rem]"
                     >
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">{stat.label}</p>
-                      <p className="mt-2 break-words text-xl font-semibold leading-tight text-foreground">{stat.value}</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+                        {stat.label}
+                      </p>
+                      <p className="mt-2 break-words text-xl font-semibold leading-tight text-foreground">
+                        {stat.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -90,14 +99,16 @@ export function CelestialCatalogHero({
           <div className="hanging-stars absolute inset-x-6 top-0 h-28" />
           <div className="absolute inset-x-3 bottom-0 top-12 rounded-[2rem] border border-border/70 bg-background/42 p-6 backdrop-blur-md">
             <div className="absolute inset-x-8 top-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-            <div className="absolute left-1/2 top-10 h-3 w-3 -translate-x-1/2 rounded-full bg-primary" />
-            <div className="absolute left-10 top-16 h-14 w-14 rounded-full solar-halo" />
-            <div className="absolute bottom-10 right-10 h-16 w-16 rounded-full lunar-disc" />
-            <div className="absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/30 bg-background/30" />
-            <div className="absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 ring-1 ring-primary/30" />
-            <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35 bg-background/60" />
+            <div className="absolute left-1/2 top-10 h-3 w-3 -translate-x-1/2 rounded-full bg-primary celestial-twinkle-slow" />
+            <div className="absolute left-10 top-16 h-14 w-14 rounded-full solar-halo celestial-pulse-glow" />
+            <div className="absolute bottom-10 right-10 h-16 w-16 rounded-full lunar-disc celestial-float-delayed" />
+            <div className="celestial-orbit celestial-orbit-spin absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 border-primary/30 bg-background/30" />
+            <div className="celestial-orbit celestial-orbit-spin-reverse absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 bg-primary/10 ring-1 ring-primary/30" />
+            <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35 bg-background/60 celestial-pulse-glow" />
             <div className="absolute bottom-6 left-6 right-6 rounded-[1.35rem] border border-border/60 bg-background/55 px-4 py-4">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-primary/80">Current ritual</p>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-primary/80">
+                Current Ritual
+              </p>
               <p className="mt-2 text-sm leading-6 text-foreground">{note ?? description}</p>
             </div>
           </div>

@@ -66,12 +66,16 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
           size="lg"
           className="gap-2"
         >
-          {(state === 'loading' || state === 'executing') ? (
+          {state === 'loading' || state === 'executing' ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Trash2 className="h-4 w-4" />
           )}
-          {state === 'loading' ? 'Analyzing...' : state === 'executing' ? 'Cleaning up...' : 'Clean Up'}
+          {state === 'loading'
+            ? 'Analyzing...'
+            : state === 'executing'
+              ? 'Cleaning up...'
+              : 'Clean Up'}
         </Button>
       </Tooltip>
 
@@ -113,11 +117,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
 
       {/* Confirmation Modal */}
       {state === 'confirming' && preflightData && (
-        <CleanUpConfirmModal
-          data={preflightData}
-          onConfirm={handleConfirm}
-          onCancel={cancel}
-        />
+        <CleanUpConfirmModal data={preflightData} onConfirm={handleConfirm} onCancel={cancel} />
       )}
 
       {/* Summary Modal */}
@@ -132,10 +132,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
 
       {/* Audit History Modal */}
       {state === 'auditHistory' && (
-        <CleanUpAuditHistory
-          data={historyData}
-          onClose={closeAuditHistory}
-        />
+        <CleanUpAuditHistory data={historyData} onClose={closeAuditHistory} />
       )}
     </>
   );

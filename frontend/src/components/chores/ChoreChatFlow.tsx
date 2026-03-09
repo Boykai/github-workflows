@@ -56,7 +56,7 @@ export function ChoreChatFlow({
             setTemplateContent(data.template_content);
           }
         },
-      },
+      }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -83,7 +83,7 @@ export function ChoreChatFlow({
             setTemplateContent(data.template_content);
           }
         },
-      },
+      }
     );
   };
 
@@ -139,7 +139,10 @@ export function ChoreChatFlow({
 
       {!aiEnhance && (
         <p className="text-xs text-muted-foreground bg-muted/30 rounded-md px-2.5 py-1.5 border border-border/50">
-          <span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" />Your input will be used as the template body — AI will generate metadata only</span>
+          <span className="inline-flex items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Your input will be used as the template body — AI will generate metadata only
+          </span>
         </p>
       )}
 
@@ -158,9 +161,7 @@ export function ChoreChatFlow({
           </div>
         ))}
         {chatMutation.isPending && (
-          <div className="self-start text-xs text-muted-foreground p-2">
-            Thinking…
-          </div>
+          <div className="self-start text-xs text-muted-foreground p-2">Thinking…</div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -175,7 +176,7 @@ export function ChoreChatFlow({
           placeholder={CHAT_PLACEHOLDERS.choreFlow.desktop}
           aria-label={CHAT_PLACEHOLDERS.choreFlow.ariaLabel}
           disabled={chatMutation.isPending}
-          className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+          className="celestial-focus flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
         />
         <button
           type="button"

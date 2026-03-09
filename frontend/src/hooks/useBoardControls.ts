@@ -40,9 +40,20 @@ const DEFAULT_FILTERS: BoardFilterState = { labels: [], assignees: [], milestone
 const DEFAULT_SORT: BoardSortState = { field: null, direction: 'asc' };
 const DEFAULT_GROUP: BoardGroupState = { field: null };
 
-const VALID_SORT_FIELDS: Array<BoardSortState['field']> = ['created', 'updated', 'priority', 'title', null];
+const VALID_SORT_FIELDS: Array<BoardSortState['field']> = [
+  'created',
+  'updated',
+  'priority',
+  'title',
+  null,
+];
 const VALID_SORT_DIRECTIONS: Array<BoardSortState['direction']> = ['asc', 'desc'];
-const VALID_GROUP_FIELDS: Array<BoardGroupState['field']> = ['label', 'assignee', 'milestone', null];
+const VALID_GROUP_FIELDS: Array<BoardGroupState['field']> = [
+  'label',
+  'assignee',
+  'milestone',
+  null,
+];
 
 function cloneFilters(filters: BoardFilterState = DEFAULT_FILTERS): BoardFilterState {
   return {
@@ -87,16 +98,22 @@ function mergeStoredControlsWithDefaults(value: unknown): BoardControlsState {
     filters: {
       labels: Array.isArray(filters.labels) ? [...filters.labels] : base.filters.labels,
       assignees: Array.isArray(filters.assignees) ? [...filters.assignees] : base.filters.assignees,
-      milestones: Array.isArray(filters.milestones) ? [...filters.milestones] : base.filters.milestones,
+      milestones: Array.isArray(filters.milestones)
+        ? [...filters.milestones]
+        : base.filters.milestones,
     },
     sort: {
-      field: VALID_SORT_FIELDS.includes(sort.field ?? null) ? (sort.field ?? null) : base.sort.field,
+      field: VALID_SORT_FIELDS.includes(sort.field ?? null)
+        ? (sort.field ?? null)
+        : base.sort.field,
       direction: VALID_SORT_DIRECTIONS.includes(sort.direction ?? 'asc')
         ? (sort.direction ?? 'asc')
         : base.sort.direction,
     },
     group: {
-      field: VALID_GROUP_FIELDS.includes(group.field ?? null) ? (group.field ?? null) : base.group.field,
+      field: VALID_GROUP_FIELDS.includes(group.field ?? null)
+        ? (group.field ?? null)
+        : base.group.field,
     },
   };
 }
@@ -139,14 +156,18 @@ function getParentIssueColumns(boardData: BoardDataResponse): BoardColumn[] {
   return boardData.columns.map((column) => ({
     ...column,
     items: column.items.filter(
-      (item) => item.content_type === 'issue' && (item.number == null || !subIssueNumbers.has(item.number)),
+      (item) =>
+        item.content_type === 'issue' && (item.number == null || !subIssueNumbers.has(item.number))
     ),
   }));
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useBoardControls(projectId: string | null, boardData: BoardDataResponse | undefined) {
+export function useBoardControls(
+  projectId: string | null,
+  boardData: BoardDataResponse | undefined
+) {
   const [controls, setControlsState] = useState<BoardControlsState>(() => loadControls(projectId));
   const [hydratedProjectId, setHydratedProjectId] = useState<string | null>(projectId);
 
@@ -244,8 +265,8 @@ export function useBoardControls(projectId: string | null, boardData: BoardDataR
         );
       }
       if (filters.milestones.length > 0) {
-        items = items.filter((item) =>
-          item.milestone != null && filters.milestones.includes(item.milestone)
+        items = items.filter(
+          (item) => item.milestone != null && filters.milestones.includes(item.milestone)
         );
       }
 

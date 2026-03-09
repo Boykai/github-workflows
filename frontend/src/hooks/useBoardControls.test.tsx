@@ -38,7 +38,9 @@ function createBoardData(): BoardDataResponse {
           createBoardItem({
             item_id: 'item-1',
             title: 'Alpha issue',
-            assignees: [{ login: 'octocat', avatar_url: 'https://avatars.githubusercontent.com/u/1' }],
+            assignees: [
+              { login: 'octocat', avatar_url: 'https://avatars.githubusercontent.com/u/1' },
+            ],
             labels: [{ id: 'label-1', name: 'bug', color: 'ff0000' }],
             milestone: 'Sprint 1',
             created_at: '2026-03-01T00:00:00Z',
@@ -46,7 +48,9 @@ function createBoardData(): BoardDataResponse {
           createBoardItem({
             item_id: 'item-2',
             title: 'Beta issue',
-            assignees: [{ login: 'hubot', avatar_url: 'https://avatars.githubusercontent.com/u/2' }],
+            assignees: [
+              { login: 'hubot', avatar_url: 'https://avatars.githubusercontent.com/u/2' },
+            ],
             labels: [{ id: 'label-2', name: 'feature', color: '00ff00' }],
             milestone: 'Sprint 2',
             created_at: '2026-03-02T00:00:00Z',
@@ -131,16 +135,33 @@ describe('useBoardControls', () => {
 
     const { result } = renderHook(() => useBoardControls('PVT_1', boardData));
 
-    expect(result.current.transformedData?.columns[0].items.map((item) => item.number)).toEqual([101]);
+    expect(result.current.transformedData?.columns[0].items.map((item) => item.number)).toEqual([
+      101,
+    ]);
     expect(result.current.transformedData?.columns[0].item_count).toBe(1);
   });
 
   it('shows only parent GitHub issues on the board', () => {
     const boardData = createBoardData();
     boardData.columns[0].items = [
-      createBoardItem({ item_id: 'issue-1', number: 101, title: 'Parent issue', content_type: 'issue' }),
-      createBoardItem({ item_id: 'draft-1', number: 102, title: 'Draft issue', content_type: 'draft_issue' }),
-      createBoardItem({ item_id: 'pr-1', number: 103, title: 'Linked PR item', content_type: 'pull_request' }),
+      createBoardItem({
+        item_id: 'issue-1',
+        number: 101,
+        title: 'Parent issue',
+        content_type: 'issue',
+      }),
+      createBoardItem({
+        item_id: 'draft-1',
+        number: 102,
+        title: 'Draft issue',
+        content_type: 'draft_issue',
+      }),
+      createBoardItem({
+        item_id: 'pr-1',
+        number: 103,
+        title: 'Linked PR item',
+        content_type: 'pull_request',
+      }),
     ];
     boardData.columns[0].item_count = 3;
 

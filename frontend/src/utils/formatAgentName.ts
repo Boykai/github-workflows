@@ -51,7 +51,7 @@ function formatSpecKitSuffixName(slug: string): string {
 export function formatAgentName(
   slug: string,
   displayName?: string | null,
-  options?: FormatAgentNameOptions,
+  options?: FormatAgentNameOptions
 ): string {
   const isSpecKitSlug = /^speckit(?:[.-]|$)/i.test(slug);
 

@@ -38,11 +38,7 @@ function createWrapper() {
     },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -69,8 +65,20 @@ describe('useProjects', () => {
   it('should return projects after loading', async () => {
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_123', name: 'Project 1', owner_login: 'user', type: 'user', url: 'https://github.com' },
-        { project_id: 'PVT_456', name: 'Project 2', owner_login: 'user', type: 'user', url: 'https://github.com' },
+        {
+          project_id: 'PVT_123',
+          name: 'Project 1',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
+        {
+          project_id: 'PVT_456',
+          name: 'Project 2',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
       ],
     };
 
@@ -91,7 +99,13 @@ describe('useProjects', () => {
   it('should fetch tasks when selectedProjectId is provided', async () => {
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_123', name: 'Project 1', owner_login: 'user', type: 'user', url: 'https://github.com' },
+        {
+          project_id: 'PVT_123',
+          name: 'Project 1',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
       ],
     };
     const mockTasks = {
@@ -135,7 +149,13 @@ describe('useProjects', () => {
   it('should select project and update query cache', async () => {
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_123', name: 'Project 1', owner_login: 'user', type: 'user', url: 'https://github.com' },
+        {
+          project_id: 'PVT_123',
+          name: 'Project 1',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
       ],
     };
     const mockUser = {
@@ -168,8 +188,20 @@ describe('useProjects', () => {
   it('should find selected project from list', async () => {
     const mockProjects = {
       projects: [
-        { project_id: 'PVT_123', name: 'Project 1', owner_login: 'user', type: 'user', url: 'https://github.com' },
-        { project_id: 'PVT_456', name: 'Project 2', owner_login: 'user', type: 'user', url: 'https://github.com' },
+        {
+          project_id: 'PVT_123',
+          name: 'Project 1',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
+        {
+          project_id: 'PVT_456',
+          name: 'Project 2',
+          owner_login: 'user',
+          type: 'user',
+          url: 'https://github.com',
+        },
       ],
     };
     const mockTasks = { tasks: [] };

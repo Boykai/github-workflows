@@ -29,7 +29,13 @@ type ChoreStatusFilter = 'all' | 'active' | 'paused';
 type ScheduleFilter = 'all' | 'time' | 'count' | 'unscheduled';
 type ChoreSortMode = 'attention' | 'updated' | 'name';
 
-export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDirtyChange }: ChoresPanelProps) {
+export function ChoresPanel({
+  projectId,
+  owner,
+  repo,
+  parentIssueCount = 0,
+  onDirtyChange,
+}: ChoresPanelProps) {
   const { data: chores, isLoading, error } = useChoresList(projectId);
   const { data: repoTemplates } = useChoreTemplates(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -44,10 +50,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   const [editState, setEditState] = useState<Record<string, ChoreEditState>>({});
   const inlineUpdateMutation = useInlineUpdateChore(projectId);
 
-  const isAnyDirty = useMemo(
-    () => Object.values(editState).some(s => s.isDirty),
-    [editState],
-  );
+  const isAnyDirty = useMemo(() => Object.values(editState).some((s) => s.isDirty), [editState]);
 
   // Notify parent of dirty state changes
   useEffect(() => {
@@ -55,11 +58,11 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   }, [isAnyDirty, onDirtyChange]);
 
   const handleEditChange = useCallback((choreId: string, updates: Partial<ChoreInlineUpdate>) => {
-    setEditState(prev => {
+    setEditState((prev) => {
       const existing = prev[choreId];
       if (!existing) return prev;
       const newCurrent = { ...existing.current, ...updates };
-      const isDirty = Object.keys(newCurrent).some(key => {
+      const isDirty = Object.keys(newCurrent).some((key) => {
         const k = key as keyof ChoreInlineUpdate;
         const original = existing.original[k as keyof Chore];
         return newCurrent[k] !== undefined && newCurrent[k] !== original;
@@ -69,7 +72,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   }, []);
 
   const handleEditStart = useCallback((chore: Chore) => {
-    setEditState(prev => ({
+    setEditState((prev) => ({
       ...prev,
       [chore.id]: {
         original: chore,
@@ -81,32 +84,35 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   }, []);
 
   const handleEditDiscard = useCallback((choreId: string) => {
-    setEditState(prev => {
+    setEditState((prev) => {
       const next = { ...prev };
       delete next[choreId];
       return next;
     });
   }, []);
 
-  const handleEditSave = useCallback(async (choreId: string) => {
-    const state = editState[choreId];
-    if (!state?.isDirty) return;
+  const handleEditSave = useCallback(
+    async (choreId: string) => {
+      const state = editState[choreId];
+      if (!state?.isDirty) return;
 
-    try {
-      await inlineUpdateMutation.mutateAsync({
-        choreId,
-        data: state.current,
-      });
-      // Clear edit state on success
-      setEditState(prev => {
-        const next = { ...prev };
-        delete next[choreId];
-        return next;
-      });
-    } catch {
-      // Error handled by mutation state
-    }
-  }, [editState, inlineUpdateMutation]);
+      try {
+        await inlineUpdateMutation.mutateAsync({
+          choreId,
+          data: state.current,
+        });
+        // Clear edit state on success
+        setEditState((prev) => {
+          const next = { ...prev };
+          delete next[choreId];
+          return next;
+        });
+      } catch {
+        // Error handled by mutation state
+      }
+    },
+    [editState, inlineUpdateMutation]
+  );
 
   const handleTemplateClick = (template: ChoreTemplate) => {
     setPreselectedTemplate(template);
@@ -165,19 +171,29 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   const unscheduledChores = chores?.filter((chore) => !chore.schedule_type).length ?? 0;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="celestial-fade-in flex min-w-0 flex-col gap-6">
       <div className="ritual-stage flex flex-col gap-4 rounded-[1.55rem] p-4 sm:rounded-[1.8rem] sm:p-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Upkeep studio</p>
-          <h3 className="mt-2 text-[1.55rem] font-display font-medium leading-tight sm:text-[1.9rem]">Recurring work, given actual breathing room</h3>
+          <h3 className="mt-2 text-[1.55rem] font-display font-medium leading-tight sm:text-[1.9rem]">
+            Recurring work, given actual breathing room
+          </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Templates, active chores, and manual cleanup controls now sit in one broader workspace instead of a single narrow rail.
+            Templates, active chores, and manual cleanup controls now sit in one broader workspace
+            instead of a single narrow rail.
           </p>
         </div>
 
         <div className="flex flex-col items-stretch gap-2">
-          <CleanUpButton key={`${projectId}:${owner ?? ''}/${repo ?? ''}`} owner={owner} repo={repo} projectId={projectId} />
-          <Button onClick={() => setShowAddModal(true)} size="lg">+ Add Chore</Button>
+          <CleanUpButton
+            key={`${projectId}:${owner ?? ''}/${repo ?? ''}`}
+            owner={owner}
+            repo={repo}
+            projectId={projectId}
+          />
+          <Button onClick={() => setShowAddModal(true)} size="lg">
+            + Add Chore
+          </Button>
         </div>
       </div>
 
@@ -188,17 +204,13 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
             You have unsaved changes
           </p>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditState({})}
-            >
+            <Button variant="outline" size="sm" onClick={() => setEditState({})}>
               Discard All
             </Button>
             <Button
               size="sm"
               onClick={async () => {
-                const dirtyIds = Object.keys(editState).filter(id => editState[id]?.isDirty);
+                const dirtyIds = Object.keys(editState).filter((id) => editState[id]?.isDirty);
                 for (const id of dirtyIds) {
                   await handleEditSave(id);
                 }
@@ -232,56 +244,78 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
       )}
 
       {/* Empty state */}
-      {!isLoading && !error && chores && chores.length === 0 && (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
-        <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
-          <ScrollText className="h-8 w-8 text-primary/80" />
-          <p className="text-lg font-medium text-foreground">No chores yet</p>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Add a chore to set up recurring maintenance tasks
-          </p>
-          <Button onClick={() => setShowAddModal(true)}>Create the first chore</Button>
-        </div>
-      )}
+      {!isLoading &&
+        !error &&
+        chores &&
+        chores.length === 0 &&
+        (!uncreatedTemplates || uncreatedTemplates.length === 0) && (
+          <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
+            <ScrollText className="h-8 w-8 text-primary/80" />
+            <p className="text-lg font-medium text-foreground">No chores yet</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              Add a chore to set up recurring maintenance tasks
+            </p>
+            <Button onClick={() => setShowAddModal(true)}>Create the first chore</Button>
+          </div>
+        )}
 
       {!isLoading && !error && (
         <>
           {(uncreatedTemplates && uncreatedTemplates.length > 0) || spotlightChores.length > 0 ? (
-            <section id="chore-templates" className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
+            <section
+              id="chore-templates"
+              className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6"
+            >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <div className="flex items-center gap-2 text-primary">
                     <Sparkles className="h-4 w-4" />
                     <p className="text-[11px] uppercase tracking-[0.24em]">Featured rituals</p>
                   </div>
-                  <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Start from templates, then monitor what needs attention</h4>
+                  <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+                    Start from templates, then monitor what needs attention
+                  </h4>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Uncreated repository templates stay visible in the spotlight so they do not disappear behind existing chores.
+                    Uncreated repository templates stay visible in the spotlight so they do not
+                    disappear behind existing chores.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <Card className="moonwell rounded-[1.35rem] border-primary/15 shadow-none">
                     <CardContent className="p-4">
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Total chores</p>
-                      <p className="mt-2 text-2xl font-semibold text-foreground">{chores?.length ?? 0}</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                        Total chores
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-foreground">
+                        {chores?.length ?? 0}
+                      </p>
                     </CardContent>
                   </Card>
                   <Card className="moonwell rounded-[1.35rem] border-primary/15 shadow-none">
                     <CardContent className="p-4">
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Active</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                        Active
+                      </p>
                       <p className="mt-2 text-2xl font-semibold text-foreground">{activeChores}</p>
                     </CardContent>
                   </Card>
                   <Card className="moonwell rounded-[1.35rem] border-primary/15 shadow-none">
                     <CardContent className="p-4">
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Paused</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                        Paused
+                      </p>
                       <p className="mt-2 text-2xl font-semibold text-foreground">{pausedChores}</p>
                     </CardContent>
                   </Card>
                   <Card className="moonwell rounded-[1.35rem] border-primary/15 shadow-none">
                     <CardContent className="p-4">
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Unscheduled</p>
-                      <p className="mt-2 text-2xl font-semibold text-foreground">{unscheduledChores}</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                        Unscheduled
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold text-foreground">
+                        {unscheduledChores}
+                      </p>
                     </CardContent>
                   </Card>
                 </div>
@@ -307,10 +341,14 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
                           <div>
                             <h5 className="text-lg font-semibold text-foreground">{tpl.name}</h5>
                             {tpl.about && (
-                              <p className="mt-2 text-sm leading-6 text-muted-foreground line-clamp-3">{tpl.about}</p>
+                              <p className="mt-2 text-sm leading-6 text-muted-foreground line-clamp-3">
+                                {tpl.about}
+                              </p>
                             )}
                           </div>
-                          <p className="mt-auto text-xs uppercase tracking-[0.18em] text-muted-foreground">Tap to seed this ritual</p>
+                          <p className="mt-auto text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                            Tap to seed this ritual
+                          </p>
                         </CardContent>
                       </Card>
                     </button>
@@ -339,11 +377,18 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
           ) : null}
 
           {chores && chores.length > 0 && (
-            <section id="chores-catalog" className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
+            <section
+              id="chores-catalog"
+              className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6"
+            >
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Catalog controls</p>
-                  <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Filter active routines</h4>
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                    Catalog controls
+                  </p>
+                  <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+                    Filter active routines
+                  </h4>
                 </div>
 
                 <div className="flex flex-col gap-3 xl:min-w-[34rem]">
@@ -384,7 +429,9 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
                       <select
                         className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
                         value={scheduleFilter}
-                        onChange={(event) => setScheduleFilter(event.target.value as ScheduleFilter)}
+                        onChange={(event) =>
+                          setScheduleFilter(event.target.value as ScheduleFilter)
+                        }
                         aria-label="Filter chores by schedule"
                       >
                         <option value="all">All schedules</option>
@@ -409,13 +456,19 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
 
               {filteredChores.length === 0 ? (
                 <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-8 text-center">
-                  <p className="text-sm text-muted-foreground">No chores match the current filters.</p>
-                  <Button variant="ghost" className="mt-3" onClick={() => {
-                    setSearch('');
-                    setStatusFilter('all');
-                    setScheduleFilter('all');
-                    setSortMode('attention');
-                  }}>
+                  <p className="text-sm text-muted-foreground">
+                    No chores match the current filters.
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="mt-3"
+                    onClick={() => {
+                      setSearch('');
+                      setStatusFilter('all');
+                      setScheduleFilter('all');
+                      setSortMode('attention');
+                    }}
+                  >
                     Reset filters
                   </Button>
                 </div>
@@ -443,8 +496,12 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
           {uncreatedTemplates && uncreatedTemplates.length > 3 && (
             <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Repository templates</p>
-                <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">More rituals available in the repo</h4>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                  Repository templates
+                </p>
+                <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+                  More rituals available in the repo
+                </h4>
               </div>
               <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {uncreatedTemplates.slice(3).map((tpl) => (
@@ -457,9 +514,13 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
                   >
                     <ScrollText className="h-4 w-4 shrink-0 text-primary/70" />
                     <div className="flex min-w-0 flex-col gap-1">
-                      <span className="text-sm font-medium text-foreground truncate">{tpl.name}</span>
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {tpl.name}
+                      </span>
                       {tpl.about && (
-                        <span className="text-xs leading-5 text-muted-foreground line-clamp-3">{tpl.about}</span>
+                        <span className="text-xs leading-5 text-muted-foreground line-clamp-3">
+                          {tpl.about}
+                        </span>
                       )}
                     </div>
                   </button>

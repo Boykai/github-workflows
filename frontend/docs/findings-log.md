@@ -30,6 +30,62 @@
 | F-008 | content-integrity | cosmetic | All | All views | No placeholder/lorem ipsum text found in any customer-facing view | No placeholder content in production | verified | N/A | FR-007 |
 | F-009 | performance | cosmetic | All | Bundle | Production bundle: 370KB JS (110KB gzipped), 34KB CSS (6.8KB gzipped) — reasonable for app scope | Bundle size within acceptable range | verified | N/A | FR-011 |
 
+---
+
+## Celestial Theme & Style Audit (031-celestial-theme-animations)
+
+**Date**: 2026-03-09
+
+### Audit Summary
+
+| Category | Items Checked | Changes Made | Status |
+|----------|--------------|--------------|--------|
+| Text Casing | ~70 components | Title case for headings/nav, sentence case for body, ALL CAPS for badges/labels | applied |
+| Animation System | `index.css` @theme block | 4 motion tokens, 9 keyframes, 14 utility classes added | applied |
+| Reduced Motion | `prefers-reduced-motion` block | All celestial animations disabled/minimized for motion-sensitive users | applied |
+| New Components | `components/common/` | `CelestialLoader` (orbital loading indicator), `CelestialCatalogHero` tests | added |
+| ThemeProvider | `ThemeProvider.tsx` | Cosmic gradient transition overlay via `theme-transitioning` CSS class | applied |
+| Loading States | All loading spinners | Replaced generic spinners with `CelestialLoader` across agents, board, tools | applied |
+
+### Motion Token Reference
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--transition-cosmic-fast` | `200ms ease` | Micro-interactions (focus, hover state changes) |
+| `--transition-cosmic-base` | `400ms ease-in-out` | Standard transitions (card hover, button effects) |
+| `--transition-cosmic-slow` | `800ms ease-in-out` | Emphasis animations (glow effects, theme shifts) |
+| `--transition-cosmic-drift` | `1600ms ease-in-out` | Ambient motion (floating elements, orbit drift) |
+
+### Keyframes Added
+
+| Keyframe | Purpose |
+|----------|---------|
+| `twinkle` | Star twinkling opacity cycle |
+| `pulse-glow` | Sun/planet glow pulsing |
+| `orbit-spin` | Orbital rotation for loader and hero decorations |
+| `shimmer` | Shimmer gradient sweep |
+| `float` | Gentle vertical bobbing motion |
+| `cosmic-fade-in` | Fade-in with slight upward movement |
+| `star-wink` | Brief star flash effect |
+| `theme-shift` | Theme transition gradient shift |
+| `cosmic-gradient-cycle` | Background gradient cycling |
+
+### Utility Classes Added
+
+`celestial-twinkle`, `celestial-twinkle-delayed`, `celestial-twinkle-slow`, `celestial-pulse-glow`, `celestial-orbit-spin`, `celestial-orbit-spin-reverse`, `celestial-orbit-spin-fast`, `celestial-float`, `celestial-float-delayed`, `celestial-star-wink`, `celestial-shimmer`, `celestial-fade-in`, `cosmic-gradient-shift`, `celestial-focus`
+
+All utility classes are defined in `@layer utilities` within `frontend/src/index.css` and have corresponding `prefers-reduced-motion: reduce` overrides.
+
+### Text Casing Changes
+
+Applied consistent casing conventions across all ~70 frontend components:
+
+- **Title Case**: Headings, navigation items, page titles, modal titles, button labels
+- **Sentence case**: Body copy, descriptions, tooltips, helper text, placeholder text
+- **ALL CAPS**: Badges, status labels, eyebrow text (via `uppercase tracking-[...]` classes)
+
+---
+
 ## Performance Audit Results
 
 | View | LCP | CLS | INP | Status | Notes |

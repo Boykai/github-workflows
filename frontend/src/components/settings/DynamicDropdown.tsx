@@ -47,7 +47,7 @@ function formatTimeAgo(isoString: string): string {
 }
 
 const selectClass =
-  'flex h-9 w-full rounded-md border border-input bg-background/72 text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed';
+  'celestial-focus flex h-9 w-full rounded-md border border-input bg-background/72 text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
 
 export function DynamicDropdown({
   value,
@@ -87,7 +87,7 @@ export function DynamicDropdown({
           <input
             id={id}
             type="text"
-            className="flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="e.g. gpt-4o"
@@ -112,12 +112,7 @@ export function DynamicDropdown({
           {label}
         </label>
         <div className="relative" aria-busy="true" aria-label={`Loading ${label}`}>
-          <select
-            id={id}
-            className={selectClass}
-            disabled
-            aria-label={`${label} - loading`}
-          >
+          <select id={id} className={selectClass} disabled aria-label={`${label} - loading`}>
             <option>Loading models...</option>
           </select>
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -216,7 +211,10 @@ export function DynamicDropdown({
           className="flex items-center gap-2 rounded-md bg-primary/10 p-2 text-xs text-foreground"
           role="status"
         >
-          <span className="inline-flex items-center gap-2"><TriangleAlert className="h-3.5 w-3.5" />{message || 'Rate limit reached. Using cached values.'}</span>
+          <span className="inline-flex items-center gap-2">
+            <TriangleAlert className="h-3.5 w-3.5" />
+            {message || 'Rate limit reached. Using cached values.'}
+          </span>
         </div>
       </div>
     );

@@ -8,12 +8,12 @@ import { MoonStar, SunMedium } from 'lucide-react';
 
 export function LoginPage() {
   return (
-    <div className="starfield relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
+    <div className="starfield celestial-fade-in relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
       <div className="pointer-events-none absolute inset-0 opacity-80">
-        <div className="celestial-orbit left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />
-        <div className="celestial-orbit left-[58%] top-[18%] hidden h-[24rem] w-[24rem] border-primary/25 lg:block" />
-        <div className="absolute left-[6%] top-[8%] h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />
+        <div className="celestial-orbit celestial-orbit-spin-reverse left-[58%] top-[18%] hidden h-[24rem] w-[24rem] border-primary/25 lg:block" />
+        <div className="absolute left-[6%] top-[8%] h-32 w-32 rounded-full bg-primary/10 blur-3xl celestial-pulse-glow" />
         <div className="absolute left-[12%] top-[12%] hidden items-center gap-12 text-[11px] uppercase tracking-[0.3em] text-muted-foreground/70 lg:flex">
           <span>Meditation</span>
           <span>Tarot</span>
@@ -32,19 +32,28 @@ export function LoginPage() {
               Change your workflow mindset.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-              Solune reframes GitHub operations with a brighter solar shell by day, a lunar shell by night, and calmer hierarchy throughout.
+              Solune reframes GitHub operations with a brighter solar shell by day, a lunar shell by
+              night, and calmer hierarchy throughout.
             </p>
           </div>
 
           <div className="grid gap-6 lg:max-w-xl">
             <div className="grid gap-3 text-xs uppercase tracking-[0.24em] text-muted-foreground/80 sm:grid-cols-3">
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Moonlit triage</span>
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Solar signals</span>
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Ambient focus</span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Moonlit triage
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Solar signals
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Ambient focus
+              </span>
             </div>
 
             <div>
-              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Daily affirmations</p>
+              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">
+                Daily affirmations
+              </p>
               <p className="mt-3 max-w-sm text-2xl font-display font-medium leading-tight text-foreground">
                 Guide active work with brighter highlights and quieter night around it.
               </p>
@@ -54,10 +63,10 @@ export function LoginPage() {
 
         <div className="relative mx-auto flex min-h-[560px] w-full max-w-[30rem] items-center justify-center">
           <div className="hanging-stars absolute inset-x-10 top-6 hidden h-28 lg:block" />
-          <div className="celestial-orbit inset-5 hidden lg:block" />
-          <div className="celestial-orbit inset-16 hidden border-primary/25 lg:block" />
-          <div className="solar-halo absolute left-8 top-16 h-16 w-16 rounded-full" />
-          <div className="lunar-disc absolute right-7 top-12 h-14 w-14 rounded-full" />
+          <div className="celestial-orbit celestial-orbit-spin inset-5 hidden lg:block" />
+          <div className="celestial-orbit celestial-orbit-spin-reverse inset-16 hidden border-primary/25 lg:block" />
+          <div className="solar-halo celestial-pulse-glow absolute left-8 top-16 h-16 w-16 rounded-full" />
+          <div className="lunar-disc celestial-float absolute right-7 top-12 h-14 w-14 rounded-full" />
 
           <div className="relative flex h-[29rem] w-full items-center justify-center">
             <div className="absolute bottom-20 h-[18rem] w-[18rem] rounded-full bg-[linear-gradient(180deg,hsl(var(--muted)),color-mix(in_srgb,hsl(var(--muted))_82%,black))] opacity-90" />
@@ -78,7 +87,7 @@ export function LoginPage() {
             <div className="absolute bottom-[17.2rem] right-[calc(50%-3.2rem)] h-px w-7 bg-border/60" />
           </div>
 
-          <div className="celestial-panel golden-ring absolute bottom-0 left-1/2 z-10 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-6 rounded-[2rem] border border-border/80 p-8 backdrop-blur-md">
+          <div className="celestial-panel celestial-fade-in golden-ring absolute bottom-0 left-1/2 z-10 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-6 rounded-[2rem] border border-border/80 p-8 backdrop-blur-md">
             <div className="absolute right-8 top-6 flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-background/80 text-primary">
               <SunMedium className="h-5 w-5" />
             </div>

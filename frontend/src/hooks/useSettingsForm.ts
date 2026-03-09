@@ -26,9 +26,7 @@ export interface UseSettingsFormReturn<T extends object> {
   reset: () => void;
 }
 
-export function useSettingsForm<T extends object>(
-  serverState: T,
-): UseSettingsFormReturn<T> {
+export function useSettingsForm<T extends object>(serverState: T): UseSettingsFormReturn<T> {
   const [localState, setLocalState] = useState<T>({ ...serverState });
   const serverRef = useRef(serverState);
 
@@ -38,9 +36,7 @@ export function useSettingsForm<T extends object>(
     // Only re-sync if the server state actually changed (shallow key compare).
     const prev = serverRef.current;
     const keys = Object.keys(serverState) as Array<keyof T & string>;
-    const changed = keys.some(
-      (k) => serverState[k] !== prev[k],
-    );
+    const changed = keys.some((k) => serverState[k] !== prev[k]);
     if (changed) {
       setLocalState({ ...serverState });
       serverRef.current = serverState;
@@ -57,9 +53,7 @@ export function useSettingsForm<T extends object>(
 
   // isDirty: shallow compare each key
   const keys = Object.keys(serverState) as Array<keyof T & string>;
-  const isDirty = keys.some(
-    (k) => localState[k] !== serverState[k],
-  );
+  const isDirty = keys.some((k) => localState[k] !== serverState[k]);
 
   return { localState, setField, isDirty, reset };
 }

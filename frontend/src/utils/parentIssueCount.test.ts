@@ -69,15 +69,17 @@ describe('countParentIssues', () => {
     const parentWithSubIssue = createItem({
       item_id: 'parent-2',
       number: 103,
-      sub_issues: [{
-        id: 'sub-1',
-        number: 201,
-        title: 'Sub task',
-        url: 'https://example.test/issues/201',
-        state: 'open',
-        assignees: [],
-        linked_prs: [],
-      }],
+      sub_issues: [
+        {
+          id: 'sub-1',
+          number: 201,
+          title: 'Sub task',
+          url: 'https://example.test/issues/201',
+          state: 'open',
+          assignees: [],
+          linked_prs: [],
+        },
+      ],
     });
     const subIssueAlsoOnBoard = createItem({ item_id: 'sub-item', number: 201 });
     const duplicatedParent = createItem({ item_id: 'parent-1', number: 101 });

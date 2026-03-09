@@ -40,7 +40,7 @@ export function ConfirmChoreModal({
         onClick={isLoading ? undefined : onCancel}
         role="presentation"
       />
-      <div className="relative z-10 w-full max-w-md mx-4 rounded-lg border border-border bg-background shadow-xl">
+      <div className="celestial-panel celestial-fade-in relative z-10 w-full max-w-md mx-4 rounded-lg border border-border bg-background shadow-xl">
         {step === 1 ? (
           <div className="p-6 flex flex-col items-center gap-4 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
@@ -48,16 +48,15 @@ export function ConfirmChoreModal({
             </div>
             <h3 className="text-lg font-semibold text-foreground">Add Chore to Repository</h3>
             <p className="text-sm text-muted-foreground">
-              Creating <strong>&ldquo;{choreName}&rdquo;</strong> will automatically add a Chore file
-              to your code repository and create a Pull Request that will be auto-merged into main.
+              Creating <strong>&ldquo;{choreName}&rdquo;</strong> will automatically add a Chore
+              file to your code repository and create a Pull Request that will be auto-merged into
+              main.
             </p>
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={onCancel}>
                 Cancel
               </Button>
-              <Button onClick={() => setStep(2)}>
-                I Understand, Continue
-              </Button>
+              <Button onClick={() => setStep(2)}>I Understand, Continue</Button>
             </div>
           </div>
         ) : (
@@ -67,8 +66,8 @@ export function ConfirmChoreModal({
             </div>
             <h3 className="text-lg font-semibold text-foreground">Confirm Chore Creation</h3>
             <p className="text-sm text-muted-foreground">
-              This will create a GitHub Issue, open a PR with the new Chore definition file,
-              and automatically merge it into main. This action cannot be undone.
+              This will create a GitHub Issue, open a PR with the new Chore definition file, and
+              automatically merge it into main. This action cannot be undone.
             </p>
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setStep(1)} disabled={isLoading}>

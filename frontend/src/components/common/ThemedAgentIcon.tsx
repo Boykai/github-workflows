@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CelestialGlyph, getIconToneStyles, resolveAgentIconName, type CelestialIconName } from '@/components/common/agentIcons';
+import {
+  CelestialGlyph,
+  getIconToneStyles,
+  resolveAgentIconName,
+  type CelestialIconName,
+} from '@/components/common/agentIcons';
 import { cn } from '@/lib/utils';
 
 const SIZE_STYLES = {
@@ -27,14 +32,26 @@ interface ThemedAgentIconProps {
   title?: string;
 }
 
-export { CELESTIAL_ICON_CATALOG, getThemedAgentIconName as getThemedAgentVariant, resolveAgentIconName } from '@/components/common/agentIcons';
+export {
+  CELESTIAL_ICON_CATALOG,
+  getThemedAgentIconName as getThemedAgentVariant,
+  resolveAgentIconName,
+} from '@/components/common/agentIcons';
 
 function getInitial(name: string): string {
   const trimmed = name.trim();
   return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
 }
 
-export function ThemedAgentIcon({ slug, name, avatarUrl, iconName, size = 'md', className, title }: ThemedAgentIconProps) {
+export function ThemedAgentIcon({
+  slug,
+  name,
+  avatarUrl,
+  iconName,
+  size = 'md',
+  className,
+  title,
+}: ThemedAgentIconProps) {
   const [imageErrored, setImageErrored] = useState(false);
 
   useEffect(() => {
@@ -51,7 +68,7 @@ export function ThemedAgentIcon({ slug, name, avatarUrl, iconName, size = 'md', 
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border font-semibold tracking-[0.02em] select-none',
         sizeStyle.wrapper,
-        className,
+        className
       )}
       style={styles.wrapper}
       title={title ?? name}
@@ -66,7 +83,10 @@ export function ThemedAgentIcon({ slug, name, avatarUrl, iconName, size = 'md', 
           onError={() => setImageErrored(true)}
         />
       ) : resolvedIconName ? (
-        <CelestialGlyph iconName={resolvedIconName as CelestialIconName} className={sizeStyle.icon} />
+        <CelestialGlyph
+          iconName={resolvedIconName as CelestialIconName}
+          className={sizeStyle.icon}
+        />
       ) : (
         <span style={{ color: 'hsl(var(--foreground))' }}>{initial}</span>
       )}

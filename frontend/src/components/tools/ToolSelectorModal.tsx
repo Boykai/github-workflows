@@ -72,9 +72,13 @@ export function ToolSelectorModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={onClose}
+    >
       <div
-        className="celestial-panel flex w-full max-w-3xl max-h-[85vh] flex-col rounded-[1.4rem] border border-border shadow-lg"
+        className="celestial-panel celestial-fade-in flex w-full max-w-3xl max-h-[85vh] flex-col rounded-[1.4rem] border border-border shadow-lg"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
       >
@@ -108,7 +112,10 @@ export function ToolSelectorModal({
           {isLoading && (
             <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-24 rounded-lg border border-border bg-background/40 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-24 rounded-lg border border-border bg-background/40 animate-pulse"
+                />
               ))}
             </div>
           )}
@@ -144,7 +151,9 @@ export function ToolSelectorModal({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">{tool.name}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{tool.description}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                        {tool.description}
+                      </p>
                     </div>
                     {isSelected && (
                       <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">

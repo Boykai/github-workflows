@@ -34,11 +34,12 @@ export function PipelineModelDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const displayLabel = currentOverride.mode === 'auto'
-    ? 'Auto (Agent Defaults)'
-    : currentOverride.mode === 'mixed'
-      ? 'Mixed'
-      : currentOverride.modelName || currentOverride.modelId;
+  const displayLabel =
+    currentOverride.mode === 'auto'
+      ? 'Auto (Agent Defaults)'
+      : currentOverride.mode === 'mixed'
+        ? 'Mixed'
+        : currentOverride.modelName || currentOverride.modelId;
 
   // Group models by provider
   const grouped = models.reduce<Record<string, AIModel[]>>((acc, model) => {
@@ -55,13 +56,15 @@ export function PipelineModelDropdown({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/68 px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
+        className="celestial-focus flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/68 px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
       >
         <span className="flex items-center gap-2 truncate">
           <Sparkles className="h-3.5 w-3.5 text-primary/60" />
           {displayLabel}
         </span>
-        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (

@@ -11,11 +11,7 @@ import { DynamicDropdown } from './DynamicDropdown';
 import { SignalConnection } from './SignalConnection';
 import { useSettingsForm } from '@/hooks/useSettingsForm';
 import { useModelOptions } from '@/hooks/useSettings';
-import type {
-  AIPreferences,
-  AIProviderType,
-  UserPreferencesUpdate,
-} from '@/types';
+import type { AIPreferences, AIProviderType, UserPreferencesUpdate } from '@/types';
 
 /** Provider metadata — mirrors backend PROVIDER_METADATA */
 const PROVIDER_INFO: Record<string, { label: string; supportsDynamic: boolean }> = {
@@ -75,7 +71,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
           </label>
           <select
             id="primary-provider"
-            className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none"
             value={localState.provider}
             onChange={(e) => handleProviderChange(e.target.value as AIProviderType)}
             aria-label="Model Provider"
@@ -109,7 +105,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
           <input
             id="primary-temperature"
             type="range"
-            className="w-full accent-primary"
+            className="celestial-focus w-full accent-primary"
             min="0"
             max="2"
             step="0.1"

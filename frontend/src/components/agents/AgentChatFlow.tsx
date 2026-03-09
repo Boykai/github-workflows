@@ -59,7 +59,7 @@ export function AgentChatFlow({
             });
           }
         },
-      },
+      }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +91,7 @@ export function AgentChatFlow({
             });
           }
         },
-      },
+      }
     );
   };
 
@@ -136,9 +136,7 @@ export function AgentChatFlow({
           </div>
         ))}
         {chatMutation.isPending && (
-          <div className="text-sm p-2 rounded-md bg-muted mr-8 animate-pulse">
-            Thinking…
-          </div>
+          <div className="text-sm p-2 rounded-md bg-muted mr-8 animate-pulse">Thinking…</div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -147,14 +145,18 @@ export function AgentChatFlow({
       {preview && (
         <div className="border border-border rounded-md p-3 bg-muted/30">
           <h4 className="text-sm font-semibold mb-1">Agent Preview</h4>
-          <p className="text-xs"><strong>Name:</strong> {preview.name || agentName}</p>
-          <p className="text-xs"><strong>Description:</strong> {preview.description}</p>
-          {preview.tools.length > 0 && (
-            <p className="text-xs"><strong>Tools:</strong> {preview.tools.join(', ')}</p>
-          )}
-          <p className="text-xs mt-1 text-muted-foreground line-clamp-3">
-            {preview.system_prompt}
+          <p className="text-xs">
+            <strong>Name:</strong> {preview.name || agentName}
           </p>
+          <p className="text-xs">
+            <strong>Description:</strong> {preview.description}
+          </p>
+          {preview.tools.length > 0 && (
+            <p className="text-xs">
+              <strong>Tools:</strong> {preview.tools.join(', ')}
+            </p>
+          )}
+          <p className="text-xs mt-1 text-muted-foreground line-clamp-3">{preview.system_prompt}</p>
           <button
             className="mt-2 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() =>
@@ -162,7 +164,7 @@ export function AgentChatFlow({
                 preview.name || agentName,
                 preview.description,
                 preview.system_prompt,
-                preview.tools,
+                preview.tools
               )
             }
           >
@@ -181,7 +183,7 @@ export function AgentChatFlow({
             onKeyDown={handleKeyDown}
             placeholder={CHAT_PLACEHOLDERS.agentFlow.desktop}
             aria-label={CHAT_PLACEHOLDERS.agentFlow.ariaLabel}
-            className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
+            className="celestial-focus flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
             disabled={chatMutation.isPending}
           />
           <button

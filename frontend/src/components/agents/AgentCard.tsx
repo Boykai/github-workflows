@@ -93,7 +93,7 @@ export function AgentCard({
   return (
     <Card
       className={cn(
-        'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
+        'celestial-panel celestial-fade-in group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
         isSpotlight && 'border-primary/20 bg-background/62'
       )}
     >
@@ -127,7 +127,9 @@ export function AgentCard({
                 <span className="solar-chip-neutral rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shadow-sm">
                   {sourceLabel}
                 </span>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shrink-0 shadow-sm ${badge.className}`}>
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shrink-0 shadow-sm ${badge.className}`}
+                >
                   {badge.label}
                 </span>
               </div>
@@ -163,7 +165,10 @@ export function AgentCard({
         {agent.tools.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {agent.tools.slice(0, isSpotlight ? 5 : 4).map((tool) => (
-              <span key={tool} className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-medium">
+              <span
+                key={tool}
+                className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-medium"
+              >
                 {tool}
               </span>
             ))}
@@ -242,7 +247,7 @@ export function AgentCard({
 
       <AgentIconPickerModal
         isOpen={isIconPickerOpen}
-      agentName={displayName}
+        agentName={displayName}
         slug={agent.slug}
         currentIconName={agent.icon_name}
         isSaving={updateMutation.isPending}

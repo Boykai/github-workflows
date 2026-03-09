@@ -30,10 +30,10 @@ describe('Button', () => {
     expect(btn.className).toContain('disabled:opacity-50');
   });
 
-  it('includes focus-visible ring classes for accessibility', () => {
+  it('includes celestial-focus class for accessible focus ring', () => {
     render(<Button>Focus me</Button>);
     const btn = screen.getByRole('button', { name: 'Focus me' });
-    expect(btn.className).toContain('focus-visible:ring-2');
+    expect(btn.className).toContain('celestial-focus');
   });
 
   it('applies size variants', () => {

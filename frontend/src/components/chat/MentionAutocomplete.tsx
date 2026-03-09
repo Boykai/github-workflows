@@ -42,10 +42,7 @@ export function MentionAutocomplete({
   const activeId = highlightedIndex >= 0 ? `mention-option-${highlightedIndex}` : undefined;
 
   return (
-    <div
-      className="absolute bottom-full left-0 right-0 mb-1 z-50"
-      role="presentation"
-    >
+    <div className="absolute bottom-full left-0 right-0 mb-1 z-50" role="presentation">
       <ul
         ref={listRef}
         role="listbox"
@@ -61,40 +58,40 @@ export function MentionAutocomplete({
         )}
 
         {error && !isLoading && (
-          <li className="px-3 py-2 text-sm text-destructive">
-            Unable to load pipelines
-          </li>
+          <li className="px-3 py-2 text-sm text-destructive">Unable to load pipelines</li>
         )}
 
         {!isLoading && !error && pipelines.length === 0 && (
-          <li className="px-3 py-2 text-sm text-muted-foreground">
-            No pipelines found
-          </li>
+          <li className="px-3 py-2 text-sm text-muted-foreground">No pipelines found</li>
         )}
 
-        {!isLoading && !error && pipelines.map(({ pipeline }, index) => (
-          <li
-            key={pipeline.id}
-            id={`mention-option-${index}`}
-            role="option"
-            aria-selected={index === highlightedIndex}
-            className={`px-3 py-2 cursor-pointer flex flex-col gap-0.5 text-sm transition-colors ${
-              index === highlightedIndex
-                ? 'bg-primary/10 text-foreground'
-                : 'text-foreground hover:bg-primary/10'
-            }`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              onSelect(pipeline);
-            }}
-            onMouseEnter={() => onHighlightChange(index)}
-          >
-            <span className="font-medium">@{pipeline.name}</span>
-            {pipeline.description && (
-              <span className="text-muted-foreground text-xs truncate">{pipeline.description}</span>
-            )}
-          </li>
-        ))}
+        {!isLoading &&
+          !error &&
+          pipelines.map(({ pipeline }, index) => (
+            <li
+              key={pipeline.id}
+              id={`mention-option-${index}`}
+              role="option"
+              aria-selected={index === highlightedIndex}
+              className={`px-3 py-2 cursor-pointer flex flex-col gap-0.5 text-sm transition-colors ${
+                index === highlightedIndex
+                  ? 'bg-primary/10 text-foreground'
+                  : 'text-foreground hover:bg-primary/10'
+              }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onSelect(pipeline);
+              }}
+              onMouseEnter={() => onHighlightChange(index)}
+            >
+              <span className="font-medium">@{pipeline.name}</span>
+              {pipeline.description && (
+                <span className="text-muted-foreground text-xs truncate">
+                  {pipeline.description}
+                </span>
+              )}
+            </li>
+          ))}
       </ul>
     </div>
   );

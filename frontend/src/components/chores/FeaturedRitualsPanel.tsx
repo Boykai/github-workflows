@@ -40,7 +40,10 @@ function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
     const threshold = chore.schedule_value;
     const progress = threshold > 0 ? (threshold - remaining) / threshold : 0;
     return {
-      stat: remaining === 0 ? 'Ready to trigger' : `${remaining} issue${remaining !== 1 ? 's' : ''} remaining`,
+      stat:
+        remaining === 0
+          ? 'Ready to trigger'
+          : `${remaining} issue${remaining !== 1 ? 's' : ''} remaining`,
       isDue: remaining === 0,
       progress,
     };
@@ -55,19 +58,28 @@ function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
   const hours = Math.floor((remainingMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
 
   return {
-    stat: remainingMs === 0 ? 'Due now' : days > 0 ? `${days}d ${hours}h remaining` : `${hours}h remaining`,
+    stat:
+      remainingMs === 0
+        ? 'Due now'
+        : days > 0
+          ? `${days}d ${hours}h remaining`
+          : `${hours}h remaining`,
     isDue: remainingMs === 0,
     progress,
   };
 }
 
-export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }: FeaturedRitualsPanelProps) {
+export function FeaturedRitualsPanel({
+  chores,
+  parentIssueCount,
+  onChoreClick,
+}: FeaturedRitualsPanelProps) {
   const rituals = useMemo(() => {
     if (chores.length === 0) {
       return [];
     }
 
-    const activeChores = chores.filter(c => c.status === 'active');
+    const activeChores = chores.filter((c) => c.status === 'active');
 
     // Next Run — compare normalized progress toward the next trigger across schedule types.
     let nextRun: RitualCard | null = null;
@@ -107,8 +119,19 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
         const ago = Date.now() - ts;
         const hoursAgo = Math.floor(ago / (60 * 60 * 1000));
         const daysAgo = Math.floor(hoursAgo / 24);
-        const stat = daysAgo > 0 ? `Run ${daysAgo}d ago` : hoursAgo > 0 ? `Run ${hoursAgo}h ago` : 'Run just now';
-        mostRecentlyRun = { choreId: chore.id, choreName: chore.name, stat, icon: PlayCircle, label: 'Most Recently Run' };
+        const stat =
+          daysAgo > 0
+            ? `Run ${daysAgo}d ago`
+            : hoursAgo > 0
+              ? `Run ${hoursAgo}h ago`
+              : 'Run just now';
+        mostRecentlyRun = {
+          choreId: chore.id,
+          choreName: chore.name,
+          stat,
+          icon: PlayCircle,
+          label: 'Most Recently Run',
+        };
       }
     }
 
@@ -162,14 +185,15 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
       <div className="rounded-[1.3rem] border border-dashed border-border/70 bg-background/35 p-6 text-center">
         <p className="text-sm font-medium text-foreground">No rituals yet</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Create your first chore to surface upcoming runs, recent activity, and execution leaders here.
+          Create your first chore to surface upcoming runs, recent activity, and execution leaders
+          here.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+    <div className="celestial-fade-in grid gap-4 grid-cols-1 sm:grid-cols-3">
       {rituals.map((card) => (
         <button
           key={card.label}
@@ -182,7 +206,9 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
             <CardContent className="flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <card.icon className="h-4 w-4 text-primary" />
-                <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{card.label}</span>
+                <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  {card.label}
+                </span>
               </div>
               <h5 className="text-sm font-semibold text-foreground truncate" title={card.choreName}>
                 {card.choreName}

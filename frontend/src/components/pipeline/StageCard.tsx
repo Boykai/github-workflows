@@ -60,7 +60,9 @@ function SortableAgentNode({
   onToolsClick?: () => void;
   onClone?: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: agent.id,
+  });
 
   return (
     <AgentNode
@@ -96,14 +98,18 @@ export function StageCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
-  const [pickerPosition, setPickerPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [pickerPosition, setPickerPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [toolModalAgent, setToolModalAgent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const handleAgentDragEnd = (event: DragEndEvent) => {
@@ -169,9 +175,7 @@ export function StageCard({
   };
 
   return (
-    <div
-    className="pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
-    >
+    <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm">
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
         <Tooltip contentKey="pipeline.stage.lockIcon">
@@ -194,7 +198,10 @@ export function StageCard({
         ) : (
           <button
             type="button"
-            onClick={() => { setEditName(stage.name); setIsEditing(true); }}
+            onClick={() => {
+              setEditName(stage.name);
+              setIsEditing(true);
+            }}
             className="flex-1 text-left text-sm font-medium text-foreground hover:text-primary transition-colors truncate"
             title="Click to rename"
           >
@@ -215,8 +222,15 @@ export function StageCard({
       </div>
 
       {/* Agent nodes */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAgentDragEnd}>
-        <SortableContext items={stage.agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleAgentDragEnd}
+      >
+        <SortableContext
+          items={stage.agents.map((a) => a.id)}
+          strategy={verticalListSortingStrategy}
+        >
           <div className="flex flex-col gap-1.5">
             {stage.agents.map((agent) => (
               <SortableAgentNode
@@ -246,9 +260,7 @@ export function StageCard({
             });
             setToolModalAgent(null);
           }}
-          initialSelectedIds={
-            stage.agents.find((a) => a.id === toolModalAgent)?.tool_ids ?? []
-          }
+          initialSelectedIds={stage.agents.find((a) => a.id === toolModalAgent)?.tool_ids ?? []}
           projectId={projectId}
         />
       )}
@@ -265,63 +277,86 @@ export function StageCard({
           Add Agent
         </button>
 
-        {showAgentPicker && pickerPosition && createPortal(
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowAgentPicker(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowAgentPicker(false); }} role="button" tabIndex={0} aria-label="Close agent picker" />
-            <div
-              className="fixed z-50 rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm"
-              style={{ top: pickerPosition.top, left: pickerPosition.left, width: pickerPosition.width }}
-            >
-              <div className="max-h-40 overflow-y-auto p-1">
-                {agentsLoading && (
-                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
-                    <span className="h-3.5 w-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                    Loading agents...
-                  </div>
-                )}
-                {!agentsLoading && agentsError && (
-                  <div className="flex flex-col gap-2 p-2 text-xs text-destructive">
-                    <span>Failed to load agents</span>
-                    {onRetryAgents && (
-                      <button
-                        type="button"
-                        className="rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10"
-                        onClick={onRetryAgents}
-                      >
-                        Retry
-                      </button>
-                    )}
-                  </div>
-                )}
-                {!agentsLoading && !agentsError && availableAgents.length === 0 && (
-                  <div className="py-2 text-center text-xs text-muted-foreground">
-                    No agents available
-                  </div>
-                )}
-                {!agentsLoading && !agentsError && availableAgents.map((agent) => {
-                  const displayName = formatAgentName(agent.slug, agent.display_name);
+        {showAgentPicker &&
+          pickerPosition &&
+          createPortal(
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowAgentPicker(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setShowAgentPicker(false);
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label="Close agent picker"
+              />
+              <div
+                className="fixed z-50 rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm"
+                style={{
+                  top: pickerPosition.top,
+                  left: pickerPosition.left,
+                  width: pickerPosition.width,
+                }}
+              >
+                <div className="max-h-40 overflow-y-auto p-1">
+                  {agentsLoading && (
+                    <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
+                      <span className="h-3.5 w-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                      Loading agents...
+                    </div>
+                  )}
+                  {!agentsLoading && agentsError && (
+                    <div className="flex flex-col gap-2 p-2 text-xs text-destructive">
+                      <span>Failed to load agents</span>
+                      {onRetryAgents && (
+                        <button
+                          type="button"
+                          className="rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10"
+                          onClick={onRetryAgents}
+                        >
+                          Retry
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {!agentsLoading && !agentsError && availableAgents.length === 0 && (
+                    <div className="py-2 text-center text-xs text-muted-foreground">
+                      No agents available
+                    </div>
+                  )}
+                  {!agentsLoading &&
+                    !agentsError &&
+                    availableAgents.map((agent) => {
+                      const displayName = formatAgentName(agent.slug, agent.display_name);
 
-                  return (
-                    <button
-                      key={agent.slug}
-                      type="button"
-                      onClick={() => {
-                        onAddAgent(agent.slug);
-                        setShowAgentPicker(false);
-                      }}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
-                    >
-                      <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={agent.avatar_url} iconName={agent.icon_name} size="sm" />
-                      <span className="font-medium">{displayName}</span>
-                      <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={agent.slug}
+                          type="button"
+                          onClick={() => {
+                            onAddAgent(agent.slug);
+                            setShowAgentPicker(false);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
+                        >
+                          <ThemedAgentIcon
+                            slug={agent.slug}
+                            name={displayName}
+                            avatarUrl={agent.avatar_url}
+                            iconName={agent.icon_name}
+                            size="sm"
+                          />
+                          <span className="font-medium">{displayName}</span>
+                          <span className="text-[10px] text-muted-foreground">({agent.slug})</span>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
-            </div>
-          </>,
-          document.body,
-        )}
+            </>,
+            document.body
+          )}
       </div>
     </div>
   );

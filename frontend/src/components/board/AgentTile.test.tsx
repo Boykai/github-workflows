@@ -47,7 +47,7 @@ describe('AgentTile', () => {
       <AgentTile
         agent={createAgentAssignment()}
         availableAgents={[createAvailableAgent({ default_model_name: 'GPT-5 Mini' })]}
-      />,
+      />
     );
 
     expect(screen.getByText(/GPT-5 Mini/)).toBeInTheDocument();

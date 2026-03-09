@@ -8,11 +8,7 @@
 import { useCallback } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { AgentTile } from './AgentTile';
@@ -127,7 +123,10 @@ export function AgentColumnCell({
         <div className="flex items-center justify-between px-1 pb-0.5">
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary/70 shadow-[0_0_10px_hsl(var(--glow)/0.45)]" />
-            <span className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80" title={status}>
+            <span
+              className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80"
+              title={status}
+            >
               {status}
             </span>
           </div>

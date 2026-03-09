@@ -35,54 +35,57 @@ export function useFileUpload(): UseFileUploadReturn {
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const addFiles = useCallback((fileList: FileList) => {
-    const newErrors: string[] = [];
-    const newFiles: FileAttachment[] = [];
+  const addFiles = useCallback(
+    (fileList: FileList) => {
+      const newErrors: string[] = [];
+      const newFiles: FileAttachment[] = [];
 
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
-      const ext = getFileExtension(file.name);
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const ext = getFileExtension(file.name);
 
-      // Check total file count
-      if (files.length + newFiles.length >= FILE_VALIDATION.maxFilesPerMessage) {
-        newErrors.push(`Maximum ${FILE_VALIDATION.maxFilesPerMessage} files allowed per message`);
-        break;
+        // Check total file count
+        if (files.length + newFiles.length >= FILE_VALIDATION.maxFilesPerMessage) {
+          newErrors.push(`Maximum ${FILE_VALIDATION.maxFilesPerMessage} files allowed per message`);
+          break;
+        }
+
+        // Check file size
+        if (file.size > FILE_VALIDATION.maxFileSize) {
+          newErrors.push(`${file.name}: File exceeds the 10 MB size limit`);
+          continue;
+        }
+
+        // Check file type
+        if (!ALLOWED_TYPES.includes(ext as (typeof ALLOWED_TYPES)[number])) {
+          newErrors.push(`${file.name}: File type ${ext || 'unknown'} is not supported`);
+          continue;
+        }
+
+        newFiles.push({
+          id: generateFileId(),
+          file,
+          filename: file.name,
+          fileSize: file.size,
+          contentType: file.type || 'application/octet-stream',
+          status: 'pending',
+          progress: 0,
+          fileUrl: null,
+          error: null,
+        });
       }
 
-      // Check file size
-      if (file.size > FILE_VALIDATION.maxFileSize) {
-        newErrors.push(`${file.name}: File exceeds the 10 MB size limit`);
-        continue;
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
       }
-
-      // Check file type
-      if (!ALLOWED_TYPES.includes(ext as typeof ALLOWED_TYPES[number])) {
-        newErrors.push(`${file.name}: File type ${ext || 'unknown'} is not supported`);
-        continue;
+      if (newErrors.length > 0) {
+        setErrors(newErrors);
+        // Clear errors after a few seconds
+        setTimeout(() => setErrors([]), 5000);
       }
-
-      newFiles.push({
-        id: generateFileId(),
-        file,
-        filename: file.name,
-        fileSize: file.size,
-        contentType: file.type || 'application/octet-stream',
-        status: 'pending',
-        progress: 0,
-        fileUrl: null,
-        error: null,
-      });
-    }
-
-    if (newFiles.length > 0) {
-      setFiles((prev) => [...prev, ...newFiles]);
-    }
-    if (newErrors.length > 0) {
-      setErrors(newErrors);
-      // Clear errors after a few seconds
-      setTimeout(() => setErrors([]), 5000);
-    }
-  }, [files.length]);
+    },
+    [files.length]
+  );
 
   const removeFile = useCallback((fileId: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
@@ -108,7 +111,9 @@ export function useFileUpload(): UseFileUploadReturn {
     for (const file of pendingFiles) {
       // Mark as uploading
       setFiles((prev) =>
-        prev.map((f) => (f.id === file.id ? { ...f, status: 'uploading' as const, progress: 50 } : f))
+        prev.map((f) =>
+          f.id === file.id ? { ...f, status: 'uploading' as const, progress: 50 } : f
+        )
       );
 
       try {

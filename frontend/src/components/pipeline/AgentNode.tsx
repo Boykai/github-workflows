@@ -11,7 +11,6 @@ import { formatAgentName } from '@/utils/formatAgentName';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import type { DraggableAttributes } from '@dnd-kit/core';
 
-
 interface AgentNodeProps {
   agentNode: PipelineAgentNode;
   onModelSelect: (modelId: string, modelName: string) => void;
@@ -45,7 +44,7 @@ export function AgentNode({
     <div
       ref={setNodeRef}
       style={dragStyle}
-      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-colors hover:border-primary/30${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
     >
       {/* Drag handle */}
       {dragHandleListeners && (
@@ -65,9 +64,7 @@ export function AgentNode({
 
       {/* Agent info */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-foreground truncate">
-          {displayName}
-        </div>
+        <div className="text-xs font-medium text-foreground truncate">{displayName}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -90,7 +87,9 @@ export function AgentNode({
           >
             <Wrench className="h-3 w-3 text-muted-foreground" />
             {toolCount > 0 ? (
-              <span className="font-medium text-primary">{toolCount} tool{toolCount !== 1 ? 's' : ''}</span>
+              <span className="font-medium text-primary">
+                {toolCount} tool{toolCount !== 1 ? 's' : ''}
+              </span>
             ) : (
               <span className="text-muted-foreground">+ Tools</span>
             )}

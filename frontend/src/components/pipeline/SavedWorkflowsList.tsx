@@ -45,7 +45,7 @@ export function SavedWorkflowsList({
   onAssign,
 }: SavedWorkflowsListProps) {
   return (
-    <div>
+    <div className="celestial-fade-in">
       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Workflow className="h-5 w-5 text-primary/70" />
         Saved Pipelines
@@ -116,9 +116,7 @@ export function SavedWorkflowsList({
                         Active
                       </span>
                     )}
-                    {pipeline.is_preset && (
-                      <PresetBadge presetId={pipeline.preset_id} />
-                    )}
+                    {pipeline.is_preset && <PresetBadge presetId={pipeline.preset_id} />}
                     {pipeline.blocking && (
                       <span
                         className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-600 dark:text-amber-400"
@@ -193,7 +191,10 @@ export function SavedWorkflowsList({
                 {onAssign && !isAssigned && (
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); onAssign(pipeline.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAssign(pipeline.id);
+                    }}
                     className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 transition-colors hover:text-primary"
                   >
                     Assign to Project

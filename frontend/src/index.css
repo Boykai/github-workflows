@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
 @theme {
@@ -36,16 +36,135 @@
   --color-gold: hsl(var(--gold));
   --color-night: hsl(var(--night));
 
+  /* Existing accordion animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
+  /* ── Celestial motion tokens ── */
+  --transition-cosmic-fast: 200ms ease;
+  --transition-cosmic-base: 400ms ease-in-out;
+  --transition-cosmic-slow: 800ms ease-in-out;
+  --transition-cosmic-drift: 1600ms ease-in-out;
+
+  /* Named animation tokens */
+  --animate-twinkle: twinkle 3s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 4s ease-in-out infinite;
+  --animate-orbit-spin: orbit-spin 24s linear infinite;
+  --animate-shimmer: shimmer 2s ease-in-out infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-cosmic-fade-in: cosmic-fade-in 0.5s ease-out both;
+  --animate-star-wink: star-wink 5s ease-in-out infinite;
+
+  /* Theme transition token */
+  --transition-theme-shift: 600ms ease-in-out;
+
+
   @keyframes accordion-down {
-    from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
   }
   @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
-    to { height: 0; }
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+
+  /* ── Celestial keyframes ── */
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.3);
+    }
+  }
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 8px hsl(var(--glow) / 0.3);
+    }
+    50% {
+      box-shadow:
+        0 0 24px hsl(var(--glow) / 0.6),
+        0 0 48px hsl(var(--gold) / 0.15);
+    }
+  }
+  @keyframes orbit-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes cosmic-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes star-wink {
+    0%,
+    80%,
+    100% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 0.3;
+    }
+  }
+  @keyframes theme-shift {
+    0% {
+      opacity: 0;
+    }
+    50% {
+      opacity: 0.3;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes cosmic-gradient-cycle {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
   @keyframes fadeIn {
     from { opacity: 0; }
@@ -156,10 +275,17 @@
       radial-gradient(circle at 18% 14%, hsl(var(--glow) / 0.34), transparent 18%),
       radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.16), transparent 14%),
       radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.08), transparent 32%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 96%, white) 0%, hsl(var(--background)) 42%, color-mix(in srgb, hsl(var(--background)) 88%, black) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--background)) 96%, white) 0%,
+        hsl(var(--background)) 42%,
+        color-mix(in srgb, hsl(var(--background)) 88%, black) 100%
+      );
     min-height: 100vh;
   }
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     font-family: var(--font-display);
     font-weight: 700;
     letter-spacing: -0.03em;
@@ -190,7 +316,12 @@
     background:
       radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.18), transparent 28%),
       radial-gradient(circle at 82% 8%, hsl(var(--gold) / 0.1), transparent 22%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%, hsl(var(--panel)) 56%, color-mix(in srgb, hsl(var(--panel)) 88%, black) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%,
+        hsl(var(--panel)) 56%,
+        color-mix(in srgb, hsl(var(--panel)) 88%, black) 100%
+      );
   }
 
   .celestial-shell {
@@ -198,7 +329,12 @@
       radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.22), transparent 24%),
       radial-gradient(circle at 88% 4%, hsl(var(--gold) / 0.1), transparent 18%),
       radial-gradient(circle at 82% 88%, hsl(var(--accent) / 0.1), transparent 20%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 96%, white) 0%, hsl(var(--background)) 42%, color-mix(in srgb, hsl(var(--background)) 92%, black) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--background)) 96%, white) 0%,
+        hsl(var(--background)) 42%,
+        color-mix(in srgb, hsl(var(--background)) 92%, black) 100%
+      );
   }
 
   .section-aurora {
@@ -206,7 +342,12 @@
       radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.22), transparent 18%),
       radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.14), transparent 20%),
       radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.1), transparent 28%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%, hsl(var(--panel)) 52%, color-mix(in srgb, hsl(var(--panel)) 86%, black) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%,
+        hsl(var(--panel)) 52%,
+        color-mix(in srgb, hsl(var(--panel)) 86%, black) 100%
+      );
   }
 
   .ritual-stage {
@@ -243,16 +384,22 @@
     background:
       radial-gradient(ellipse at 82% 0%, hsl(45 100% 72% / 0.38), transparent 38%),
       radial-gradient(circle at 12% 8%, hsl(200 64% 84% / 0.22), transparent 28%),
-      linear-gradient(180deg,
+      linear-gradient(
+        180deg,
         color-mix(in srgb, hsl(var(--panel)) 90%, white 10%) 0%,
         hsl(var(--panel) / 0.88) 54%,
-        color-mix(in srgb, hsl(var(--panel)) 87%, hsl(var(--gold)) 13%) 100%);
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.22), 0 14px 28px hsl(var(--night) / 0.08);
+        color-mix(in srgb, hsl(var(--panel)) 87%, hsl(var(--gold)) 13%) 100%
+      );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.22),
+      0 14px 28px hsl(var(--night) / 0.08);
     isolation: isolate;
   }
 
   .pipeline-stage-card {
-    box-shadow: inset 0 2px 0 hsl(0 0% 100% / 0.62), 0 16px 30px hsl(var(--night) / 0.07);
+    box-shadow:
+      inset 0 2px 0 hsl(0 0% 100% / 0.62),
+      0 16px 30px hsl(var(--night) / 0.07);
   }
 
   /* Cloud puffs + sun disc (light theme) */
@@ -263,15 +410,30 @@
     pointer-events: none;
     background:
       /* Sun disc with warm corona */
-      radial-gradient(circle at 86% 14%, hsl(45 100% 74% / 0.96) 0 5px, hsl(45 100% 74% / 0.42) 6px 14px, hsl(45 100% 74% / 0.14) 15px 22px, transparent 23px),
+      radial-gradient(
+        circle at 86% 14%,
+        hsl(45 100% 74% / 0.96) 0 5px,
+        hsl(45 100% 74% / 0.42) 6px 14px,
+        hsl(45 100% 74% / 0.14) 15px 22px,
+        transparent 23px
+      ),
       /* Main cloud bank upper-right */
-      radial-gradient(ellipse 74% 46% at 80% 24%, hsl(0 0% 100% / 0.7) 0%, hsl(0 0% 100% / 0.32) 42%, transparent 68%),
+        radial-gradient(
+          ellipse 74% 46% at 80% 24%,
+          hsl(0 0% 100% / 0.7) 0%,
+          hsl(0 0% 100% / 0.32) 42%,
+          transparent 68%
+        ),
       /* Secondary cloud puff upper-left */
-      radial-gradient(ellipse 52% 38% at 16% 30%, hsl(0 0% 100% / 0.54) 0%, hsl(0 0% 98% / 0.22) 48%, transparent 72%),
+        radial-gradient(
+          ellipse 52% 38% at 16% 30%,
+          hsl(0 0% 100% / 0.54) 0%,
+          hsl(0 0% 98% / 0.22) 48%,
+          transparent 72%
+        ),
       /* Cloud wisp lower centre */
-      radial-gradient(ellipse 58% 28% at 54% 86%, hsl(0 0% 100% / 0.4) 0%, transparent 62%),
-      /* Warm sky tint */
-      linear-gradient(180deg, hsl(43 68% 94% / 0.44) 0%, transparent 50%);
+        radial-gradient(ellipse 58% 28% at 54% 86%, hsl(0 0% 100% / 0.4) 0%, transparent 62%),
+      /* Warm sky tint */ linear-gradient(180deg, hsl(43 68% 94% / 0.44) 0%, transparent 50%);
     opacity: 0.96;
   }
 
@@ -286,16 +448,18 @@
       linear-gradient(198deg, hsl(45 92% 78% / 0.14) 0 9.8%, transparent 10.6%),
       linear-gradient(222deg, hsl(45 92% 78% / 0.15) 0 5.2%, transparent 6%),
       linear-gradient(234deg, hsl(45 92% 78% / 0.11) 0 3.8%, transparent 4.6%),
-      /* Soft blue sky wash */
-      linear-gradient(180deg, hsl(210 48% 88% / 0.18) 0%, transparent 44%);
+      /* Soft blue sky wash */ linear-gradient(180deg, hsl(210 48% 88% / 0.18) 0%, transparent 44%);
     opacity: 0.84;
   }
 
   .pipeline-agent-node {
     position: relative;
     overflow: hidden;
-    background:
-      linear-gradient(180deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.5) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.7) 0%,
+      hsl(var(--background) / 0.5) 100%
+    );
     box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12);
   }
 
@@ -305,8 +469,18 @@
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(ellipse at 18% 86%, hsl(var(--background) / 0.78) 0%, hsl(var(--background) / 0.74) 10%, transparent 11%),
-      radial-gradient(ellipse at 34% 88%, hsl(var(--background) / 0.74) 0%, hsl(var(--background) / 0.68) 9%, transparent 10%),
+      radial-gradient(
+        ellipse at 18% 86%,
+        hsl(var(--background) / 0.78) 0%,
+        hsl(var(--background) / 0.74) 10%,
+        transparent 11%
+      ),
+      radial-gradient(
+        ellipse at 34% 88%,
+        hsl(var(--background) / 0.74) 0%,
+        hsl(var(--background) / 0.68) 9%,
+        transparent 10%
+      ),
       radial-gradient(circle at 88% 18%, hsl(var(--glow) / 0.08) 0%, transparent 18%);
     opacity: 0.75;
   }
@@ -314,8 +488,11 @@
   .pipeline-stage-add {
     position: relative;
     overflow: hidden;
-    background:
-      linear-gradient(180deg, hsl(var(--background) / 0.36) 0%, hsl(var(--background) / 0.2) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.36) 0%,
+      hsl(var(--background) / 0.2) 100%
+    );
   }
 
   .pipeline-stage-add::before {
@@ -325,7 +502,12 @@
     pointer-events: none;
     background:
       radial-gradient(circle at 82% 24%, hsl(var(--gold) / 0.12) 0%, transparent 16%),
-      radial-gradient(ellipse at 24% 88%, hsl(var(--background) / 0.5) 0%, hsl(var(--background) / 0.42) 10%, transparent 11%);
+      radial-gradient(
+        ellipse at 24% 88%,
+        hsl(var(--background) / 0.5) 0%,
+        hsl(var(--background) / 0.42) 10%,
+        transparent 11%
+      );
     opacity: 0.8;
   }
 
@@ -335,24 +517,40 @@
       radial-gradient(ellipse at 22% 6%, hsl(var(--glow) / 0.2), transparent 36%),
       radial-gradient(ellipse at 80% 78%, hsl(var(--gold) / 0.14), transparent 30%),
       radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.08), transparent 52%),
-      linear-gradient(180deg,
+      linear-gradient(
+        180deg,
         color-mix(in srgb, hsl(var(--panel)) 82%, hsl(var(--night)) 18%) 0%,
-        hsl(var(--night) / 0.99) 100%);
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.14), 0 18px 36px hsl(var(--night) / 0.36);
+        hsl(var(--night) / 0.99) 100%
+      );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.14),
+      0 18px 36px hsl(var(--night) / 0.36);
   }
 
   .dark .pipeline-stage-card {
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.14), 0 18px 36px hsl(var(--night) / 0.36);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.14),
+      0 18px 36px hsl(var(--night) / 0.36);
   }
 
   /* Rich starfield with halos on principal stars (dark theme) */
   .dark .pipeline-stage-card::before {
     background:
       /* Principal stars with soft haloes */
-      radial-gradient(circle at 14% 13%, hsl(var(--star-soft) / 0.98) 0 1.5px, hsl(var(--glow) / 0.28) 2px 5px, transparent 6px),
-      radial-gradient(circle at 72% 9%, hsl(var(--gold) / 0.96) 0 1.7px, hsl(var(--gold) / 0.24) 2px 7px, transparent 8px),
+      radial-gradient(
+        circle at 14% 13%,
+        hsl(var(--star-soft) / 0.98) 0 1.5px,
+        hsl(var(--glow) / 0.28) 2px 5px,
+        transparent 6px
+      ),
+      radial-gradient(
+        circle at 72% 9%,
+        hsl(var(--gold) / 0.96) 0 1.7px,
+        hsl(var(--gold) / 0.24) 2px 7px,
+        transparent 8px
+      ),
       /* Mid-brightness stars */
-      radial-gradient(circle at 36% 24%, hsl(var(--star) / 0.88) 0 1.2px, transparent 2px),
+        radial-gradient(circle at 36% 24%, hsl(var(--star) / 0.88) 0 1.2px, transparent 2px),
       radial-gradient(circle at 66% 18%, hsl(var(--star-soft) / 0.84) 0 1.1px, transparent 1.9px),
       radial-gradient(circle at 88% 62%, hsl(var(--gold) / 0.82) 0 1.3px, transparent 2.1px),
       radial-gradient(circle at 24% 78%, hsl(var(--star-soft) / 0.76) 0 1.1px, transparent 1.8px),
@@ -361,7 +559,7 @@
       radial-gradient(circle at 46% 42%, hsl(var(--star-soft) / 0.66) 0 0.9px, transparent 1.5px),
       radial-gradient(circle at 8% 52%, hsl(var(--star) / 0.64) 0 0.9px, transparent 1.5px),
       /* Dim background stars */
-      radial-gradient(circle at 52% 88%, hsl(var(--star-soft) / 0.5) 0 0.7px, transparent 1.2px),
+        radial-gradient(circle at 52% 88%, hsl(var(--star-soft) / 0.5) 0 0.7px, transparent 1.2px),
       radial-gradient(circle at 78% 82%, hsl(var(--star) / 0.46) 0 0.6px, transparent 1.1px),
       radial-gradient(circle at 32% 56%, hsl(var(--gold) / 0.42) 0 0.6px, transparent 1.1px),
       radial-gradient(circle at 92% 18%, hsl(var(--star-soft) / 0.48) 0 0.7px, transparent 1.2px),
@@ -373,21 +571,47 @@
   .dark .pipeline-stage-card::after {
     background:
       /* Constellation connector lines — thin gradient bands at connecting angles */
-      linear-gradient(112deg, transparent 0 14.8%, hsl(var(--star-soft) / 0.26) 15.1% 15.4%, transparent 15.7%),
-      linear-gradient(148deg, transparent 0 22.4%, hsl(var(--gold) / 0.22) 22.7% 23%, transparent 23.3%),
-      linear-gradient(68deg, transparent 0 35.2%, hsl(var(--star-soft) / 0.2) 35.5% 35.8%, transparent 36.1%),
-      linear-gradient(168deg, transparent 0 52.6%, hsl(var(--gold) / 0.18) 52.9% 53.2%, transparent 53.5%),
-      linear-gradient(92deg, transparent 0 66.4%, hsl(var(--star) / 0.2) 66.7% 67%, transparent 67.3%),
+      linear-gradient(
+        112deg,
+        transparent 0 14.8%,
+        hsl(var(--star-soft) / 0.26) 15.1% 15.4%,
+        transparent 15.7%
+      ),
+      linear-gradient(
+        148deg,
+        transparent 0 22.4%,
+        hsl(var(--gold) / 0.22) 22.7% 23%,
+        transparent 23.3%
+      ),
+      linear-gradient(
+        68deg,
+        transparent 0 35.2%,
+        hsl(var(--star-soft) / 0.2) 35.5% 35.8%,
+        transparent 36.1%
+      ),
+      linear-gradient(
+        168deg,
+        transparent 0 52.6%,
+        hsl(var(--gold) / 0.18) 52.9% 53.2%,
+        transparent 53.5%
+      ),
+      linear-gradient(
+        92deg,
+        transparent 0 66.4%,
+        hsl(var(--star) / 0.2) 66.7% 67%,
+        transparent 67.3%
+      ),
       /* Nebula glow patches */
-      radial-gradient(ellipse 62% 42% at 26% 20%, hsl(var(--glow) / 0.16) 0%, transparent 80%),
+        radial-gradient(ellipse 62% 42% at 26% 20%, hsl(var(--glow) / 0.16) 0%, transparent 80%),
       radial-gradient(ellipse 50% 38% at 74% 68%, hsl(var(--gold) / 0.12) 0%, transparent 80%);
     opacity: 0.92;
   }
 
   .dark .pipeline-agent-node {
-    background:
-      linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.74) 100%);
-    box-shadow: inset 0 1px 0 hsl(var(--star-soft) / 0.08), 0 8px 18px hsl(var(--night) / 0.16);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.74) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.08),
+      0 8px 18px hsl(var(--night) / 0.16);
   }
 
   .dark .pipeline-agent-node::before {
@@ -400,8 +624,7 @@
   }
 
   .dark .pipeline-stage-add {
-    background:
-      linear-gradient(180deg, hsl(var(--night) / 0.56) 0%, hsl(var(--panel) / 0.52) 100%);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.56) 0%, hsl(var(--panel) / 0.52) 100%);
   }
 
   .dark .pipeline-stage-add::before {
@@ -421,72 +644,117 @@
     position: absolute;
     inset: -0.5rem 0 auto 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.15) 16%, hsl(var(--border) / 0.28) 50%, transparent 100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.15) 16%,
+      hsl(var(--border) / 0.28) 50%,
+      transparent 100%
+    );
   }
 
   .golden-ring {
-    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.28), 0 20px 56px hsl(var(--night) / 0.22), 0 0 0 10px hsl(var(--glow) / 0.04);
+    box-shadow:
+      0 0 0 1px hsl(var(--gold) / 0.28),
+      0 20px 56px hsl(var(--night) / 0.22),
+      0 0 0 10px hsl(var(--glow) / 0.04);
   }
 
   .solar-chip {
     border: 1px solid hsl(var(--primary) / 0.42);
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.28) 0%, hsl(var(--primary) / 0.16) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.28) 0%,
+      hsl(var(--primary) / 0.16) 100%
+    );
     color: hsl(var(--primary));
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.28), 0 10px 22px hsl(var(--gold) / 0.12);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.28),
+      0 10px 22px hsl(var(--gold) / 0.12);
   }
 
   .solar-chip-soft {
     border: 1px solid hsl(var(--border) / 0.92);
-    background: linear-gradient(180deg, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.8) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.98) 0%,
+      hsl(var(--background) / 0.8) 100%
+    );
     color: hsl(var(--foreground));
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.2), 0 8px 18px hsl(var(--night) / 0.08);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.2),
+      0 8px 18px hsl(var(--night) / 0.08);
   }
 
   .solar-chip-neutral {
     border: 1px solid hsl(var(--border) / 0.86);
-    background: linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--glow)) 8%) 0%, hsl(var(--background) / 0.84) 100%);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--glow)) 8%) 0%,
+      hsl(var(--background) / 0.84) 100%
+    );
     color: hsl(var(--foreground));
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.2), 0 8px 20px hsl(var(--night) / 0.06);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.2),
+      0 8px 20px hsl(var(--night) / 0.06);
   }
 
   .solar-chip-success {
     border: 1px solid rgb(16 185 129 / 0.4);
     background: linear-gradient(180deg, rgb(16 185 129 / 0.24) 0%, rgb(16 185 129 / 0.14) 100%);
     color: rgb(4 120 87);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 10px 20px rgb(16 185 129 / 0.12);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28),
+      0 10px 20px rgb(16 185 129 / 0.12);
   }
 
   .solar-chip-warning {
     border: 1px solid rgb(245 158 11 / 0.42);
     background: linear-gradient(180deg, rgb(245 158 11 / 0.22) 0%, rgb(245 158 11 / 0.12) 100%);
     color: rgb(180 83 9);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), 0 10px 20px rgb(245 158 11 / 0.12);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.24),
+      0 10px 20px rgb(245 158 11 / 0.12);
   }
 
   .solar-chip-danger {
     border: 1px solid rgb(239 68 68 / 0.42);
     background: linear-gradient(180deg, rgb(239 68 68 / 0.2) 0%, rgb(239 68 68 / 0.12) 100%);
     color: rgb(185 28 28);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 10px 20px rgb(239 68 68 / 0.1);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 10px 20px rgb(239 68 68 / 0.1);
   }
 
   .solar-chip-violet {
     border: 1px solid rgb(139 92 246 / 0.4);
     background: linear-gradient(180deg, rgb(139 92 246 / 0.24) 0%, rgb(139 92 246 / 0.14) 100%);
     color: rgb(109 40 217);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), 0 10px 20px rgb(139 92 246 / 0.12);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.24),
+      0 10px 20px rgb(139 92 246 / 0.12);
   }
 
   .solar-action {
     border: 1px solid hsl(var(--border) / 0.88);
-    background: linear-gradient(180deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.8) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.92) 0%,
+      hsl(var(--background) / 0.8) 100%
+    );
     color: hsl(var(--foreground));
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.18), 0 8px 22px hsl(var(--night) / 0.05);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.18),
+      0 8px 22px hsl(var(--night) / 0.05);
   }
 
   .solar-action:hover {
     border-color: hsl(var(--primary) / 0.38);
-    background: linear-gradient(180deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.12) 100%);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.18) 0%,
+      hsl(var(--primary) / 0.12) 100%
+    );
     color: hsl(var(--foreground));
   }
 
@@ -494,7 +762,9 @@
     border: 1px solid rgb(239 68 68 / 0.26);
     background: linear-gradient(180deg, rgb(239 68 68 / 0.12) 0%, rgb(239 68 68 / 0.08) 100%);
     color: rgb(185 28 28);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 8px 18px rgb(239 68 68 / 0.08);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 8px 18px rgb(239 68 68 / 0.08);
   }
 
   .solar-action-danger:hover {
@@ -509,7 +779,9 @@
     background:
       radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.14), transparent 42%),
       linear-gradient(180deg, hsl(var(--background) / 0.88) 0%, hsl(var(--background) / 0.72) 100%);
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.16), 0 8px 20px hsl(var(--night) / 0.05);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.16),
+      0 8px 20px hsl(var(--night) / 0.05);
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
@@ -537,7 +809,11 @@
     background:
       radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.22), transparent 44%),
       radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.14), transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%, hsl(var(--background) / 0.78) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%,
+        hsl(var(--background) / 0.78) 100%
+      );
     box-shadow:
       0 0 0 1px hsl(var(--gold) / 0.3),
       inset 0 1px 0 hsl(var(--glow) / 0.28),
@@ -589,7 +865,11 @@
   .project-pipeline-option-active {
     background:
       radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.16), transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%, hsl(var(--background) / 0.84) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%,
+        hsl(var(--background) / 0.84) 100%
+      );
     color: hsl(var(--foreground));
     box-shadow: inset 0 0 0 1px hsl(var(--gold) / 0.26);
   }
@@ -599,7 +879,9 @@
     background:
       radial-gradient(circle at 16% 0%, hsl(var(--glow) / 0.12), transparent 42%),
       linear-gradient(180deg, hsl(var(--panel) / 0.92) 0%, hsl(var(--night) / 0.84) 100%);
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12), 0 10px 24px hsl(var(--night) / 0.18);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.12),
+      0 10px 24px hsl(var(--night) / 0.18);
   }
 
   .dark .project-pipeline-select:hover {
@@ -622,7 +904,11 @@
     background:
       radial-gradient(circle at 14% 0%, hsl(var(--glow) / 0.2), transparent 44%),
       radial-gradient(circle at 84% 16%, hsl(var(--gold) / 0.12), transparent 22%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 90%, hsl(var(--gold)) 10%) 0%, hsl(var(--night) / 0.9) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--panel)) 90%, hsl(var(--gold)) 10%) 0%,
+        hsl(var(--night) / 0.9) 100%
+      );
     box-shadow:
       0 0 0 1px hsl(var(--gold) / 0.38),
       0 0 0 4px hsl(var(--glow) / 0.05),
@@ -665,7 +951,11 @@
   .dark .project-pipeline-option-active {
     background:
       radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.16), transparent 24%),
-      linear-gradient(180deg, color-mix(in srgb, hsl(var(--panel)) 90%, hsl(var(--gold)) 10%) 0%, hsl(var(--night) / 0.9) 100%);
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--panel)) 90%, hsl(var(--gold)) 10%) 0%,
+        hsl(var(--night) / 0.9) 100%
+      );
     color: hsl(var(--foreground));
     box-shadow: inset 0 0 0 1px hsl(var(--gold) / 0.34);
   }
@@ -679,7 +969,13 @@
     position: absolute;
     inset: auto 1rem 0.85rem 1rem;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.18) 18%, hsl(var(--border) / 0.4) 50%, transparent 100%);
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.18) 18%,
+      hsl(var(--border) / 0.4) 50%,
+      transparent 100%
+    );
   }
 
   .celestial-orbit {
@@ -690,15 +986,30 @@
   }
 
   .solar-halo {
-    background:
-      radial-gradient(circle, hsl(var(--glow) / 1) 0%, hsl(var(--gold) / 0.9) 34%, hsl(var(--gold) / 0.24) 62%, transparent 74%);
-    box-shadow: 0 0 0 1px hsl(var(--gold) / 0.22), 0 0 56px hsl(var(--gold) / 0.24), 0 0 110px hsl(var(--glow) / 0.18);
+    background: radial-gradient(
+      circle,
+      hsl(var(--glow) / 1) 0%,
+      hsl(var(--gold) / 0.9) 34%,
+      hsl(var(--gold) / 0.24) 62%,
+      transparent 74%
+    );
+    box-shadow:
+      0 0 0 1px hsl(var(--gold) / 0.22),
+      0 0 56px hsl(var(--gold) / 0.24),
+      0 0 110px hsl(var(--glow) / 0.18);
   }
 
   .lunar-disc {
-    background:
-      radial-gradient(circle at 36% 36%, hsl(42 34% 98%) 0%, hsl(41 24% 94%) 40%, hsl(37 18% 78%) 72%, hsl(var(--background) / 0.14) 100%);
-    box-shadow: inset -12px -10px 28px hsl(var(--night) / 0.18), 0 0 24px hsl(var(--glow) / 0.2);
+    background: radial-gradient(
+      circle at 36% 36%,
+      hsl(42 34% 98%) 0%,
+      hsl(41 24% 94%) 40%,
+      hsl(37 18% 78%) 72%,
+      hsl(var(--background) / 0.14) 100%
+    );
+    box-shadow:
+      inset -12px -10px 28px hsl(var(--night) / 0.18),
+      0 0 24px hsl(var(--glow) / 0.2);
   }
 
   .celestial-sigil {
@@ -714,7 +1025,12 @@
     position: absolute;
     width: 1px;
     height: 100%;
-    background: linear-gradient(180deg, transparent 0%, hsl(var(--gold) / 0.9) 28%, hsl(var(--gold) / 0.2) 100%);
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      hsl(var(--gold) / 0.9) 28%,
+      hsl(var(--gold) / 0.2) 100%
+    );
   }
 
   .celestial-sigil::before {
@@ -734,9 +1050,15 @@
       linear-gradient(hsl(var(--border) / 0.55), hsl(var(--border) / 0.02)),
       linear-gradient(hsl(var(--border) / 0.45), hsl(var(--border) / 0.02)),
       linear-gradient(hsl(var(--border) / 0.4), hsl(var(--border) / 0.02));
-    background-size: 1px 92px, 1px 76px, 1px 108px;
+    background-size:
+      1px 92px,
+      1px 76px,
+      1px 108px;
     background-repeat: no-repeat;
-    background-position: 22% 0, 49% 0, 74% 0;
+    background-position:
+      22% 0,
+      49% 0,
+      74% 0;
   }
 
   .hanging-stars::before,
@@ -808,5 +1130,233 @@
 
   .dark .solar-action-danger {
     color: rgb(252 165 165);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     Celestial animation utilities
+     ══════════════════════════════════════════════════════════════ */
+
+  /* Twinkling star — use on small decorative dot elements */
+  .celestial-twinkle {
+    animation: var(--animate-twinkle);
+  }
+  .celestial-twinkle-delayed {
+    animation: var(--animate-twinkle);
+    animation-delay: 1.5s;
+  }
+  .celestial-twinkle-slow {
+    animation: var(--animate-twinkle);
+    animation-duration: 5s;
+    animation-delay: 0.8s;
+  }
+
+  /* Glow pulse — use on halo / badge / indicator elements */
+  .celestial-pulse-glow {
+    animation: var(--animate-pulse-glow);
+  }
+
+  /* Orbital spin — use on orbit ring decorative elements */
+  .celestial-orbit-spin {
+    animation: var(--animate-orbit-spin);
+  }
+  .celestial-orbit-spin-reverse {
+    animation: var(--animate-orbit-spin);
+    animation-duration: 30s;
+    animation-direction: reverse;
+  }
+  .celestial-orbit-spin-fast {
+    animation: var(--animate-orbit-spin);
+    animation-duration: 0.8s;
+  }
+
+  /* Floating drift — use on hero illustrations or decorative bodies */
+  .celestial-float {
+    animation: var(--animate-float);
+  }
+  .celestial-float-delayed {
+    animation: var(--animate-float);
+    animation-delay: 2s;
+  }
+
+  /* Star wink — subtle disappear/reappear for background stars */
+  .celestial-star-wink {
+    animation: var(--animate-star-wink);
+  }
+
+  /* Cosmic fade-in — entry animation for cards, modals, sections */
+  .celestial-fade-in {
+    animation: var(--animate-cosmic-fade-in);
+  }
+
+  /* Shimmer loading skeleton — cosmic gradient sweep */
+  .celestial-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--panel) / 0.6) 25%,
+      hsl(var(--glow) / 0.18) 50%,
+      hsl(var(--panel) / 0.6) 75%
+    );
+    background-size: 400% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* ── Enhanced starfield with twinkling ── */
+  .starfield::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 20% 30%, hsl(var(--star-soft) / 0.9) 0 1.2px, transparent 1.8px),
+      radial-gradient(circle at 55% 15%, hsl(var(--gold) / 0.85) 0 1px, transparent 1.6px),
+      radial-gradient(circle at 75% 55%, hsl(var(--star) / 0.8) 0 1.1px, transparent 1.7px),
+      radial-gradient(circle at 40% 70%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.5px);
+    animation: var(--animate-twinkle);
+    animation-duration: 4s;
+    animation-direction: alternate;
+    opacity: 0.18;
+  }
+
+  .dark .starfield::after {
+    opacity: 0.32;
+  }
+
+  /* ── Interactive celestial hover/focus states ── */
+
+  /* Cards: subtle glow lift on hover */
+  .celestial-panel {
+    transition:
+      box-shadow var(--transition-cosmic-base),
+      border-color var(--transition-cosmic-base),
+      transform var(--transition-cosmic-fast);
+  }
+  .celestial-panel:hover {
+    box-shadow:
+      0 0 0 1px hsl(var(--glow) / 0.12),
+      0 12px 32px hsl(var(--night) / 0.12),
+      0 0 40px hsl(var(--glow) / 0.06);
+  }
+
+  /* Solar halo pulse on hover */
+  .solar-halo {
+    transition: box-shadow var(--transition-cosmic-slow);
+  }
+  .solar-halo:hover,
+  .solar-halo.celestial-pulse-glow {
+    box-shadow:
+      0 0 0 1px hsl(var(--gold) / 0.3),
+      0 0 64px hsl(var(--gold) / 0.32),
+      0 0 120px hsl(var(--glow) / 0.22);
+  }
+
+  /* Lunar disc subtle glow */
+  .lunar-disc {
+    transition: box-shadow var(--transition-cosmic-slow);
+  }
+
+  /* Focus-visible ring with celestial glow for interactive elements */
+  .celestial-focus:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--primary) / 0.5),
+      0 0 16px hsl(var(--glow) / 0.2);
+  }
+
+  /* Cosmic gradient background shift — use on hero / feature sections */
+  .cosmic-gradient-shift {
+    background-size: 200% 200%;
+    animation: cosmic-gradient-cycle 12s ease-in-out infinite alternate;
+  }
+
+  /* ── Solar button hover enhancement ── */
+  .solar-action {
+    transition:
+      border-color var(--transition-cosmic-fast),
+      background var(--transition-cosmic-fast),
+      box-shadow var(--transition-cosmic-fast),
+      transform var(--transition-cosmic-fast);
+  }
+  .solar-action:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.24),
+      0 12px 28px hsl(var(--night) / 0.08),
+      0 0 20px hsl(var(--glow) / 0.06);
+  }
+  .solar-action:active {
+    transform: translateY(0);
+  }
+
+  /* ── Celestial orbit animation on CelestialCatalogHero ── */
+  .celestial-orbit {
+    transition: border-color var(--transition-cosmic-slow);
+  }
+
+  /* ── Theme transition overlay ── */
+  .theme-transitioning {
+    transition:
+      background-color var(--transition-theme-shift),
+      color var(--transition-theme-shift);
+  }
+  .theme-transitioning::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--gold) / 0.08) 0%,
+      hsl(var(--night) / 0.12) 50%,
+      hsl(var(--glow) / 0.06) 100%
+    );
+    animation: theme-shift var(--transition-theme-shift) ease-in-out both;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     prefers-reduced-motion — disable/minimize all celestial motion
+     ══════════════════════════════════════════════════════════════ */
+  @media (prefers-reduced-motion: reduce) {
+    .celestial-twinkle,
+    .celestial-twinkle-delayed,
+    .celestial-twinkle-slow,
+    .celestial-pulse-glow,
+    .celestial-orbit-spin,
+    .celestial-orbit-spin-reverse,
+    .celestial-orbit-spin-fast,
+    .celestial-float,
+    .celestial-float-delayed,
+    .celestial-star-wink,
+    .celestial-shimmer,
+    .cosmic-gradient-shift,
+    .starfield::after {
+      animation: none !important;
+    }
+
+    .celestial-fade-in {
+      animation: none !important;
+      opacity: 1;
+    }
+
+    .celestial-panel,
+    .solar-halo,
+    .lunar-disc,
+    .solar-action,
+    .celestial-orbit,
+    .project-pipeline-select,
+    .project-pipeline-option {
+      transition: none !important;
+    }
+
+    .solar-action:hover {
+      transform: none;
+    }
+
+    .theme-transitioning,
+    .theme-transitioning::after {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 }

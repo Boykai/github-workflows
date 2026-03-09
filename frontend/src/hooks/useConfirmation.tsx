@@ -8,10 +8,7 @@
 
 import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
-import {
-  ConfirmationDialog,
-  type ConfirmationVariant,
-} from '@/components/ui/confirmation-dialog';
+import { ConfirmationDialog, type ConfirmationVariant } from '@/components/ui/confirmation-dialog';
 
 export interface ConfirmationOptions {
   title: string;
@@ -100,7 +97,7 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
 
       resolve?.(result);
     },
-    [processQueue],
+    [processQueue]
   );
 
   const confirm = useCallback(
@@ -115,9 +112,8 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
       };
 
       return new Promise<boolean>((resolve) => {
-        const previousFocus = document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
+        const previousFocus =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
         // If a dialog is already open, queue this request
         if (state.isOpen || resolveRef.current) {
@@ -136,7 +132,7 @@ export function ConfirmationDialogProvider({ children }: { children: ReactNode }
         });
       });
     },
-    [openDialog, state.isOpen],
+    [openDialog, state.isOpen]
   );
 
   const handleConfirm = useCallback(async () => {

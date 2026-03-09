@@ -38,9 +38,12 @@ export function RepoConfigPanel({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Repository MCP</p>
-          <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Current repository config</h4>
+          <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+            Current repository config
+          </h4>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Live view of MCP servers discovered in the repository. The app now syncs both `.copilot/mcp.json` and `.vscode/mcp.json`.
+            Live view of MCP servers discovered in the repository. The app now syncs both
+            `.copilot/mcp.json` and `.vscode/mcp.json`.
           </p>
         </div>
         <button
@@ -66,8 +69,14 @@ export function RepoConfigPanel({
         })}
       </div>
 
-      {isLoading && <div className="mt-6 text-sm text-muted-foreground">Loading repository MCP config…</div>}
-      {error && !isLoading && <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>}
+      {isLoading && (
+        <div className="mt-6 text-sm text-muted-foreground">Loading repository MCP config…</div>
+      )}
+      {error && !isLoading && (
+        <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {!isLoading && !error && repoConfig && repoConfig.servers.length === 0 && (
         <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-6 text-sm text-muted-foreground">
@@ -80,7 +89,10 @@ export function RepoConfigPanel({
           {repoConfig.servers.map((server) => {
             const summary = summarizeServer(server.config);
             return (
-              <article key={server.name} className="rounded-[1.35rem] border border-border/70 bg-background/40 p-4">
+              <article
+                key={server.name}
+                className="rounded-[1.35rem] border border-border/70 bg-background/40 p-4"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -89,7 +101,9 @@ export function RepoConfigPanel({
                         {managedServerNames.includes(server.name) ? 'Managed' : 'Repo only'}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs uppercase tracking-[0.22em] text-primary/80">{summary.type}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.22em] text-primary/80">
+                      {summary.type}
+                    </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-1">
@@ -119,9 +133,11 @@ export function RepoConfigPanel({
                       </Tooltip>
                     </div>
                     <div className="flex flex-wrap justify-end gap-2 text-[11px] text-muted-foreground">
-                    {server.source_paths.map((path) => (
-                      <span key={path} className="rounded-full border border-border/60 px-2 py-1">{path}</span>
-                    ))}
+                      {server.source_paths.map((path) => (
+                        <span key={path} className="rounded-full border border-border/60 px-2 py-1">
+                          {path}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>

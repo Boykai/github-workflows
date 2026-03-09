@@ -142,22 +142,31 @@ github-workflows/
 │   │   ├── constants.ts          # Named timing/polling/cache constants
 │   │   ├── types/index.ts        # TypeScript type definitions
 │   │   ├── components/
-│   │   │   ├── ThemeProvider.tsx  # Dark/light theme context
+│   │   │   ├── ThemeProvider.tsx  # Dark/light/system theme + cosmic transition overlay
 │   │   │   ├── auth/             # LoginButton
 │   │   │   ├── board/            # ProjectBoard, BoardColumn, IssueCard,
 │   │   │   │                     # IssueDetailModal, agent config UI, cleanup UI
 │   │   │   ├── chat/             # ChatInterface, ChatPopup, MessageBubble,
 │   │   │   │                     # TaskPreview, StatusChangePreview,
 │   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete
-│   │   │   ├── common/           # ErrorBoundary
+│   │   │   ├── common/           # ErrorBoundary, CelestialCatalogHero,
+│   │   │   │                     # CelestialLoader, ThemedAgentIcon, agentIcons
+│   │   │   ├── agents/           # AgentsPanel, AgentCard, AgentAvatar,
+│   │   │   │                     # AgentChatFlow, AddAgentModal, AgentInlineEditor
 │   │   │   ├── chores/           # ChoresPanel, AddChoreModal, ChoreCard,
 │   │   │   │                     # ChoreScheduleConfig, ChoreChatFlow
+│   │   │   ├── pipeline/         # PipelineBoard, PipelineFlowGraph, AgentNode,
+│   │   │   │                     # StageCard, ModelSelector, PipelineToolbar
+│   │   │   ├── tools/            # ToolsPanel, ToolSelectorModal, ToolCard,
+│   │   │   │                     # McpPresetsGallery, EditRepoMcpModal
 │   │   │   ├── settings/         # AI, Display, Workflow, Notification preferences,
 │   │   │   │                     # ProjectSettings, GlobalSettings, SignalConnection,
 │   │   │   │                     # McpSettings, AdvancedSettings
-│   │   │   └── ui/               # Shared UI primitives (button, etc.)
+│   │   │   └── ui/               # Shared UI primitives (button, input, card, tooltip)
 │   │   ├── hooks/                # React hooks (see Architecture doc)
-│   │   ├── pages/                # ProjectBoardPage, SettingsPage
+│   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
+│   │   │                         # ChoresPage, LoginPage, NotFoundPage,
+│   │   │                         # ProjectsPage, SettingsPage, ToolsPage
 │   │   ├── services/api.ts       # Centralized HTTP/WS client
 │   │   └── utils/                # generateId, formatTime
 │   └── e2e/                      # Playwright E2E test specs

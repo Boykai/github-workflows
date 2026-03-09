@@ -28,8 +28,7 @@ export const pipelineKeys = {
   list: (projectId: string) => [...pipelineKeys.all, 'list', projectId] as const,
   detail: (projectId: string, pipelineId: string) =>
     [...pipelineKeys.all, 'detail', projectId, pipelineId] as const,
-  assignment: (projectId: string) =>
-    [...pipelineKeys.all, 'assignment', projectId] as const,
+  assignment: (projectId: string) => [...pipelineKeys.all, 'assignment', projectId] as const,
 };
 
 // ── Return Type ──
@@ -81,7 +80,7 @@ interface UsePipelineConfigReturn {
   updateAgentInStage: (
     stageId: string,
     agentNodeId: string,
-    updates: Partial<PipelineAgentNode>,
+    updates: Partial<PipelineAgentNode>
   ) => void;
   updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
   cloneAgentInStage: (stageId: string, agentNodeId: string) => void;
@@ -93,49 +92,54 @@ interface UsePipelineConfigReturn {
 export function usePipelineConfig(projectId: string | null): UsePipelineConfigReturn {
   const queryClient = useQueryClient();
 
-  const deriveModelOverride = useCallback((config: PipelineConfig | null): PipelineModelOverride => {
-    if (!config) {
-      return { mode: 'auto', modelId: '', modelName: '' };
-    }
-
-    const agents = config.stages.flatMap((stage) => stage.agents);
-    if (agents.length === 0) {
-      return { mode: 'auto', modelId: '', modelName: '' };
-    }
-
-    const uniqueModels = [...new Set(agents.map((agent) => agent.model_id || ''))];
-    if (uniqueModels.length === 1) {
-      const modelId = uniqueModels[0];
-      if (!modelId) {
+  const deriveModelOverride = useCallback(
+    (config: PipelineConfig | null): PipelineModelOverride => {
+      if (!config) {
         return { mode: 'auto', modelId: '', modelName: '' };
       }
 
-      const matchingAgent = agents.find((agent) => agent.model_id === modelId);
-      return {
-        mode: 'specific',
-        modelId,
-        modelName: matchingAgent?.model_name ?? '',
-      };
-    }
+      const agents = config.stages.flatMap((stage) => stage.agents);
+      if (agents.length === 0) {
+        return { mode: 'auto', modelId: '', modelName: '' };
+      }
 
-    return { mode: 'mixed', modelId: '', modelName: '' };
-  }, []);
+      const uniqueModels = [...new Set(agents.map((agent) => agent.model_id || ''))];
+      if (uniqueModels.length === 1) {
+        const modelId = uniqueModels[0];
+        if (!modelId) {
+          return { mode: 'auto', modelId: '', modelName: '' };
+        }
 
-  const buildStage = useCallback((name: string, order: number): PipelineStage => ({
-    id: generateId(),
-    name,
-    order,
-    agents: [],
-  }), []);
+        const matchingAgent = agents.find((agent) => agent.model_id === modelId);
+        return {
+          mode: 'specific',
+          modelId,
+          modelName: matchingAgent?.model_name ?? '',
+        };
+      }
+
+      return { mode: 'mixed', modelId: '', modelName: '' };
+    },
+    []
+  );
+
+  const buildStage = useCallback(
+    (name: string, order: number): PipelineStage => ({
+      id: generateId(),
+      name,
+      order,
+      agents: [],
+    }),
+    []
+  );
 
   // Pipeline list query
-  const { data: pipelines, isLoading: pipelinesLoading } =
-    useQuery<PipelineConfigListResponse>({
-      queryKey: pipelineKeys.list(projectId ?? ''),
-      queryFn: () => pipelinesApi.list(projectId!),
-      staleTime: STALE_TIME_SHORT,
-      enabled: !!projectId,
-    });
+  const { data: pipelines, isLoading: pipelinesLoading } = useQuery<PipelineConfigListResponse>({
+    queryKey: pipelineKeys.list(projectId ?? ''),
+    queryFn: () => pipelinesApi.list(projectId!),
+    staleTime: STALE_TIME_SHORT,
+    enabled: !!projectId,
+  });
 
   const { data: assignment } = useQuery({
     queryKey: pipelineKeys.assignment(projectId ?? ''),
@@ -151,7 +155,9 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<PipelineValidationErrors>({});
-  const [pendingModelOverride, setPendingModelOverride] = useState<PipelineModelOverride | null>(null);
+  const [pendingModelOverride, setPendingModelOverride] = useState<PipelineModelOverride | null>(
+    null
+  );
 
   // Saved snapshot for isDirty comparison
   const savedSnapshotRef = useRef<string | null>(null);
@@ -169,8 +175,8 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   const isPreset = useMemo(() => pipeline?.is_preset ?? false, [pipeline]);
   const hasAnyAgents = useMemo(
-    () => (pipeline?.stages.some((stage) => stage.agents.length > 0) ?? false),
-    [pipeline],
+    () => pipeline?.stages.some((stage) => stage.agents.length > 0) ?? false,
+    [pipeline]
   );
   const modelOverride = useMemo(() => {
     const derived = deriveModelOverride(pipeline);
@@ -226,46 +232,52 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
   }, []);
 
   // ── Pipeline Assignment ──
-  const assignPipeline = useCallback(async (pipelineId: string) => {
-    if (!projectId) return;
-    try {
-      const result = await pipelinesApi.setAssignment(projectId, pipelineId);
-      queryClient.setQueryData(pipelineKeys.assignment(projectId), result);
-      await queryClient.invalidateQueries({ queryKey: pipelineKeys.assignment(projectId) });
-    } catch (err) {
-      console.warn('Pipeline assignment failed:', err);
-    }
-  }, [projectId, queryClient]);
+  const assignPipeline = useCallback(
+    async (pipelineId: string) => {
+      if (!projectId) return;
+      try {
+        const result = await pipelinesApi.setAssignment(projectId, pipelineId);
+        queryClient.setQueryData(pipelineKeys.assignment(projectId), result);
+        await queryClient.invalidateQueries({ queryKey: pipelineKeys.assignment(projectId) });
+      } catch (err) {
+        console.warn('Pipeline assignment failed:', err);
+      }
+    },
+    [projectId, queryClient]
+  );
 
   // ── Pipeline Actions ──
 
-  const newPipeline = useCallback((stageNames: string[] = []) => {
-    const now = new Date().toISOString();
-    const seededStages = stageNames.map((stageName, index) => buildStage(stageName, index));
-    const newConfig: PipelineConfig = {
-      id: '',
-      project_id: projectId ?? '',
-      name: '',
-      description: '',
-      stages: seededStages,
-      is_preset: false,
-      preset_id: '',
-      blocking: false,
-      created_at: now,
-      updated_at: now,
-    };
-    setPipeline(newConfig);
-    setEditingPipelineId(null);
-    setBoardState('creating');
-    setPendingModelOverride(null);
-    setValidationErrors({});
-    savedSnapshotRef.current = JSON.stringify({
-      name: '',
-      description: '',
-      stages: seededStages,
-      blocking: false,
-    });
-  }, [buildStage, projectId]);
+  const newPipeline = useCallback(
+    (stageNames: string[] = []) => {
+      const now = new Date().toISOString();
+      const seededStages = stageNames.map((stageName, index) => buildStage(stageName, index));
+      const newConfig: PipelineConfig = {
+        id: '',
+        project_id: projectId ?? '',
+        name: '',
+        description: '',
+        stages: seededStages,
+        is_preset: false,
+        preset_id: '',
+        blocking: false,
+        created_at: now,
+        updated_at: now,
+      };
+      setPipeline(newConfig);
+      setEditingPipelineId(null);
+      setBoardState('creating');
+      setPendingModelOverride(null);
+      setValidationErrors({});
+      savedSnapshotRef.current = JSON.stringify({
+        name: '',
+        description: '',
+        stages: seededStages,
+        blocking: false,
+      });
+    },
+    [buildStage, projectId]
+  );
 
   const loadPipeline = useCallback(
     async (pipelineId: string) => {
@@ -283,7 +295,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         setSaveError(err instanceof Error ? err.message : 'Failed to load pipeline');
       }
     },
-    [projectId, updateSnapshot],
+    [projectId, updateSnapshot]
   );
 
   const savePipeline = useCallback(async () => {
@@ -331,28 +343,31 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     }
   }, [pipeline, projectId, editingPipelineId, updateSnapshot, queryClient, validatePipeline]);
 
-  const saveAsCopy = useCallback(async (newName: string) => {
-    if (!pipeline || !projectId) return;
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const saved = await pipelinesApi.create(projectId, {
-        name: newName,
-        description: pipeline.description,
-        stages: pipeline.stages,
-        blocking: pipeline.blocking,
-      });
-      setPipeline(saved);
-      setEditingPipelineId(saved.id);
-      setBoardState('editing');
-      updateSnapshot(saved);
-      queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to save pipeline copy');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [pipeline, projectId, updateSnapshot, queryClient]);
+  const saveAsCopy = useCallback(
+    async (newName: string) => {
+      if (!pipeline || !projectId) return;
+      setIsSaving(true);
+      setSaveError(null);
+      try {
+        const saved = await pipelinesApi.create(projectId, {
+          name: newName,
+          description: pipeline.description,
+          stages: pipeline.stages,
+          blocking: pipeline.blocking,
+        });
+        setPipeline(saved);
+        setEditingPipelineId(saved.id);
+        setBoardState('editing');
+        updateSnapshot(saved);
+        queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save pipeline copy');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [pipeline, projectId, updateSnapshot, queryClient]
+  );
 
   const deletePipeline = useCallback(async () => {
     if (!editingPipelineId || !projectId) return;
@@ -378,7 +393,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       // Revert to saved state
       const saved = JSON.parse(savedSnapshotRef.current);
       setPipeline((prev) =>
-        prev ? { ...prev, name: saved.name, description: saved.description, stages: saved.stages, blocking: saved.blocking ?? false } : null,
+        prev
+          ? {
+              ...prev,
+              name: saved.name,
+              description: saved.description,
+              stages: saved.stages,
+              blocking: saved.blocking ?? false,
+            }
+          : null
       );
     } else {
       // New pipeline — reset to empty
@@ -394,10 +417,13 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
 
   // ── Board Mutations ──
 
-  const setPipelineName = useCallback((name: string) => {
-    setPipeline((prev) => (prev ? { ...prev, name } : null));
-    clearValidationError('name');
-  }, [clearValidationError]);
+  const setPipelineName = useCallback(
+    (name: string) => {
+      setPipeline((prev) => (prev ? { ...prev, name } : null));
+      clearValidationError('name');
+    },
+    [clearValidationError]
+  );
 
   const setPipelineDescription = useCallback((description: string) => {
     setPipeline((prev) => (prev ? { ...prev, description } : null));
@@ -435,27 +461,36 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     });
   }, []);
 
-  const addAgentToStage = useCallback((stageId: string, agent: AvailableAgent) => {
-    setPipeline((prev) => {
-      if (!prev) return null;
-      const newAgent: PipelineAgentNode = {
-        id: generateId(),
-        agent_slug: agent.slug,
-        agent_display_name: agent.display_name,
-        model_id: modelOverride.mode === 'specific' ? modelOverride.modelId : (agent.default_model_id ?? ''),
-        model_name: modelOverride.mode === 'specific' ? modelOverride.modelName : (agent.default_model_name ?? ''),
-        tool_ids: [],
-        tool_count: 0,
-        config: {},
-      };
-      return {
-        ...prev,
-        stages: prev.stages.map((s) =>
-          s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s,
-        ),
-      };
-    });
-  }, [modelOverride]);
+  const addAgentToStage = useCallback(
+    (stageId: string, agent: AvailableAgent) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        const newAgent: PipelineAgentNode = {
+          id: generateId(),
+          agent_slug: agent.slug,
+          agent_display_name: agent.display_name,
+          model_id:
+            modelOverride.mode === 'specific'
+              ? modelOverride.modelId
+              : (agent.default_model_id ?? ''),
+          model_name:
+            modelOverride.mode === 'specific'
+              ? modelOverride.modelName
+              : (agent.default_model_name ?? ''),
+          tool_ids: [],
+          tool_count: 0,
+          config: {},
+        };
+        return {
+          ...prev,
+          stages: prev.stages.map((s) =>
+            s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s
+          ),
+        };
+      });
+    },
+    [modelOverride]
+  );
 
   const removeAgentFromStage = useCallback((stageId: string, agentNodeId: string) => {
     setPipeline((prev) => {
@@ -463,9 +498,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       return {
         ...prev,
         stages: prev.stages.map((s) =>
-          s.id === stageId
-            ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) }
-            : s,
+          s.id === stageId ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) } : s
         ),
       };
     });
@@ -483,12 +516,12 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
                   ...s,
                   agents: s.agents.map((a) => (a.id === agentNodeId ? { ...a, ...updates } : a)),
                 }
-              : s,
+              : s
           ),
         };
       });
     },
-    [],
+    []
   );
 
   const updateAgentTools = useCallback(
@@ -507,44 +540,39 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
                       : a
                   ),
                 }
-              : s,
+              : s
           ),
         };
       });
     },
-    [],
+    []
   );
 
-  const cloneAgentInStage = useCallback(
-    (stageId: string, agentNodeId: string) => {
-      setPipeline((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          stages: prev.stages.map((s) => {
-            if (s.id !== stageId) return s;
-            const sourceAgent = s.agents.find((a) => a.id === agentNodeId);
-            if (!sourceAgent) return s;
-            const cloned: PipelineAgentNode = {
-              ...structuredClone(sourceAgent),
-              id: generateId(),
-            };
-            return { ...s, agents: [...s.agents, cloned] };
-          }),
-        };
-      });
-    },
-    [],
-  );
+  const cloneAgentInStage = useCallback((stageId: string, agentNodeId: string) => {
+    setPipeline((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        stages: prev.stages.map((s) => {
+          if (s.id !== stageId) return s;
+          const sourceAgent = s.agents.find((a) => a.id === agentNodeId);
+          if (!sourceAgent) return s;
+          const cloned: PipelineAgentNode = {
+            ...structuredClone(sourceAgent),
+            id: generateId(),
+          };
+          return { ...s, agents: [...s.agents, cloned] };
+        }),
+      };
+    });
+  }, []);
 
   const reorderAgentsInStage = useCallback((stageId: string, newOrder: PipelineAgentNode[]) => {
     setPipeline((prev) => {
       if (!prev) return null;
       return {
         ...prev,
-        stages: prev.stages.map((s) =>
-          s.id === stageId ? { ...s, agents: newOrder } : s,
-        ),
+        stages: prev.stages.map((s) => (s.id === stageId ? { ...s, agents: newOrder } : s)),
       };
     });
   }, []);

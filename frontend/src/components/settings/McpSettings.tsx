@@ -166,7 +166,8 @@ function AddMcpForm({
       if (detailFromErrorField) return detailFromErrorField;
 
       // Also support FastAPI HTTPException shape: { detail: string }
-      const detailFromDetailField = (serverError.error as unknown as Record<string, unknown>)?.detail;
+      const detailFromDetailField = (serverError.error as unknown as Record<string, unknown>)
+        ?.detail;
       if (typeof detailFromDetailField === 'string' && detailFromDetailField.trim()) {
         return detailFromDetailField;
       }
@@ -207,15 +208,13 @@ function AddMcpForm({
           }}
           placeholder="My MCP Server"
           maxLength={100}
-          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
+          className={`celestial-focus px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
+            focus:outline-none
             ${nameError ? 'border-destructive' : 'border-border'}`}
           disabled={isCreating}
         />
-        {nameError && (
-          <p className="text-xs text-destructive">{nameError}</p>
-        )}
+        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -232,15 +231,13 @@ function AddMcpForm({
           }}
           placeholder="https://example.com/mcp"
           maxLength={2048}
-          className={`px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
+          className={`celestial-focus px-3 py-2 text-sm rounded-md border bg-background/72 text-foreground
             placeholder:text-muted-foreground/50
-            focus:outline-none focus:ring-2 focus:ring-primary
+            focus:outline-none
             ${urlError ? 'border-destructive' : 'border-border'}`}
           disabled={isCreating}
         />
-        {urlError && (
-          <p className="text-xs text-destructive">{urlError}</p>
-        )}
+        {urlError && <p className="text-xs text-destructive">{urlError}</p>}
       </div>
 
       {serverErrorMsg && (
@@ -307,7 +304,7 @@ export function McpSettings() {
         return false;
       }
     },
-    [createMcp, showSuccess],
+    [createMcp, showSuccess]
   );
 
   const handleRemove = useCallback(
@@ -320,7 +317,7 @@ export function McpSettings() {
         // Error is captured by the mutation state
       }
     },
-    [deleteMcp, showSuccess, resetDeleteError],
+    [deleteMcp, showSuccess, resetDeleteError]
   );
 
   // Extract a human-readable message from a delete error
@@ -329,7 +326,7 @@ export function McpSettings() {
     if (deleteError instanceof ApiError) {
       return (
         deleteError.error?.error ||
-        (deleteError.error as unknown as Record<string, unknown>)?.detail as string ||
+        ((deleteError.error as unknown as Record<string, unknown>)?.detail as string) ||
         (deleteError.message !== 'undefined' ? deleteError.message : null) ||
         'Failed to delete MCP configuration.'
       );
@@ -419,9 +416,7 @@ export function McpSettings() {
       {/* Delete Error */}
       {deleteError && (
         <div className="rounded-[1rem] border border-destructive/30 bg-destructive/10 p-3">
-          <p className="text-sm text-destructive">
-            {getDeleteErrorMessage()}
-          </p>
+          <p className="text-sm text-destructive">{getDeleteErrorMessage()}</p>
         </div>
       )}
 
