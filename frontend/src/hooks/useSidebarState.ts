@@ -39,7 +39,7 @@ export function useSidebarState() {
   // Auto-close mobile drawer on route change
   useEffect(() => {
     setIsMobileOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, location.search, location.hash, location.key]);
 
   return { isCollapsed, toggle, isMobileOpen, openMobile, closeMobile };
 }

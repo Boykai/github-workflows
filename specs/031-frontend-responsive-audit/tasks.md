@@ -38,8 +38,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [x] T005 Add `touch` size variant (`min-h-[44px] min-w-[44px] px-4 py-2`) to the Button CVA variants in `frontend/src/components/ui/Button.tsx`
-- [x] T006 [P] Add `max-sm:min-h-[44px]` to base input classes in `frontend/src/components/ui/Input.tsx` for mobile touch-friendly input height
+- [x] T005 Add `touch` size variant (`min-h-[44px] min-w-[44px] px-4 py-2`) to the Button CVA variants in `frontend/src/components/ui/button.tsx`
+- [x] T006 [P] Add `max-sm:min-h-[44px]` to base input classes in `frontend/src/components/ui/input.tsx` for mobile touch-friendly input height
 - [x] T007 Extend `useSidebarState` hook with mobile drawer state (`isMobileOpen`, `openMobile`, `closeMobile`) and auto-close on route change via `useLocation` in `frontend/src/hooks/useSidebarState.ts`
 
 **Checkpoint**: Foundation ready — responsive tokens, utility hook, UI primitives, and sidebar state are in place. User story implementation can now begin.

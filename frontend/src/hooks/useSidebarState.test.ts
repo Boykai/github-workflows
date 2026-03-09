@@ -5,9 +5,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-// Track the current pathname so we can simulate route changes
-let currentPathname = '/';
-const mockLocation = { pathname: currentPathname };
+// Track location fields so we can simulate route changes.
+const mockLocation = { pathname: '/', search: '', hash: '', key: 'initial' };
 
 vi.mock('react-router-dom', () => ({
   useLocation: () => mockLocation,
@@ -18,8 +17,10 @@ import { useSidebarState } from './useSidebarState';
 describe('useSidebarState', () => {
   beforeEach(() => {
     localStorage.clear();
-    currentPathname = '/';
     mockLocation.pathname = '/';
+    mockLocation.search = '';
+    mockLocation.hash = '';
+    mockLocation.key = 'initial';
   });
 
   describe('isCollapsed', () => {
@@ -91,7 +92,24 @@ describe('useSidebarState', () => {
 
       // Simulate route change
       mockLocation.pathname = '/settings';
+      mockLocation.key = 'route-settings';
       rerender();
+      expect(result.current.isMobileOpen).toBe(false);
+    });
+
+    it('auto-closes mobile drawer when only search or hash changes', () => {
+      const { result, rerender } = renderHook(() => useSidebarState());
+
+      act(() => {
+        result.current.openMobile();
+      });
+      expect(result.current.isMobileOpen).toBe(true);
+
+      mockLocation.search = '?tab=advanced';
+      mockLocation.hash = '#models';
+      mockLocation.key = 'route-settings-query';
+      rerender();
+
       expect(result.current.isMobileOpen).toBe(false);
     });
   });

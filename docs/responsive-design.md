@@ -108,6 +108,7 @@ E2E tests use standardized viewport sizes defined in `frontend/e2e/viewports.ts`
 | `mobile` | 375 × 667 | Standard phone (iPhone SE) |
 | `mobileLarge` | 390 × 844 | Modern phone (iPhone 14) |
 | `tablet` | 768 × 1024 | Tablet (iPad) |
+| `desktopSmall` | 1024 × 768 | Small laptop / large tablet landscape |
 | `desktop` | 1280 × 800 | Standard desktop |
 | `desktopLarge` | 1440 × 900 | Large desktop |
 

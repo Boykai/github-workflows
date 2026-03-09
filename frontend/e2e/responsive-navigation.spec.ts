@@ -11,6 +11,10 @@
 import { test, expect } from '@playwright/test';
 import { VIEWPORTS } from './viewports';
 
+function isLoginRoute(url: string): boolean {
+  return /\/login(?:$|[?#])/.test(url);
+}
+
 test.describe('Responsive Navigation', () => {
   test.describe('mobile hamburger menu', () => {
     for (const name of ['mobileSmall', 'mobile', 'mobileLarge'] as const) {
@@ -21,11 +25,13 @@ test.describe('Responsive Navigation', () => {
         await page.goto('/');
         await expect(page.locator('body')).toBeVisible();
 
-        // The hamburger button uses aria-label "Open navigation menu" and md:hidden
-        const hamburger = page.locator('button[aria-label="Open navigation menu"]');
-        // On mobile it should be in the DOM (visible or hidden based on CSS)
-        const count = await hamburger.count();
-        expect(count).toBeGreaterThanOrEqual(1);
+        test.skip(
+          isLoginRoute(page.url()),
+          'Authenticated navigation shell is not available without an E2E auth session.'
+        );
+
+        const hamburger = page.getByRole('button', { name: /navigation menu/i });
+        await expect(hamburger).toBeVisible();
       });
     }
   });

@@ -171,7 +171,7 @@ Desktop (≥768px):
 
 ### Button.tsx (Size Variant Extension)
 
-**Location**: `frontend/src/components/ui/Button.tsx`
+**Location**: `frontend/src/components/ui/button.tsx`
 **Purpose**: Base button component — modified to add `touch` size variant for mobile-friendly touch targets.
 
 **Changes**:
@@ -198,7 +198,7 @@ const buttonVariants = cva('...', {
 
 ### Input.tsx (Mobile-Friendly Sizing)
 
-**Location**: `frontend/src/components/ui/Input.tsx`
+**Location**: `frontend/src/components/ui/input.tsx`
 **Purpose**: Base input component — modified to ensure mobile-friendly input height.
 
 **Changes**:

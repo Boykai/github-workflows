@@ -221,7 +221,7 @@ export function Sidebar(props: SidebarProps) {
           {/* Drawer */}
           <aside
             id="mobile-nav-drawer"
-            className="celestial-panel fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-border/70 shadow-lg transition-transform duration-300 md:hidden"
+            className="celestial-panel relative fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-border/70 shadow-lg transition-transform duration-300 md:hidden"
             aria-label="Main navigation"
           >
             <SidebarContent {...props} isMobile={true} />

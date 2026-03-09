@@ -64,8 +64,14 @@ describe('TopBar', () => {
 
       // Render again with mobile menu open to verify aria-expanded changes
       renderTopBar({ isMobileMenuOpen: true });
-      const updatedButton = screen.getByLabelText('Open navigation menu');
+      const updatedButton = screen.getByLabelText('Close navigation menu');
       expect(updatedButton.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('updates the accessible name when the mobile menu is open', () => {
+      renderTopBar({ isMobileMenuOpen: true });
+      expect(screen.getByLabelText('Close navigation menu')).toBeTruthy();
+      expect(screen.queryByLabelText('Open navigation menu')).toBeNull();
     });
 
     it('references mobile-nav-drawer via aria-controls', () => {

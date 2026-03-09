@@ -60,8 +60,8 @@ uvicorn src.main:app --reload --port 8000
 
 | File | Changes |
 |------|---------|
-| `frontend/src/components/ui/Button.tsx` | Add `touch` size variant (min 44×44px) |
-| `frontend/src/components/ui/Input.tsx` | Add `max-sm:min-h-[44px]` for mobile touch friendliness |
+| `frontend/src/components/ui/button.tsx` | Add `touch` size variant (min 44×44px) |
+| `frontend/src/components/ui/input.tsx` | Add `max-sm:min-h-[44px]` for mobile touch friendliness |
 
 ### Page Components
 

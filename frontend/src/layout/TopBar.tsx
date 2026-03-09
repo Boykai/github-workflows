@@ -38,7 +38,7 @@ export function TopBar({
             type="button"
             onClick={onMenuToggle}
             className="touch-target inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground md:hidden"
-            aria-label="Open navigation menu"
+            aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={isMobileMenuOpen ?? false}
             aria-controls="mobile-nav-drawer"
           >

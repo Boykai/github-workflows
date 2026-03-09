@@ -10,7 +10,7 @@
 import { test, expect } from '@playwright/test';
 import { VIEWPORTS } from './viewports';
 
-const MINIMUM_BODY_FONT_SIZE = 12; // px — below this text is unreadable without zoom
+const MINIMUM_BODY_FONT_SIZE = 16; // px — below this text is unreadable without zoom
 
 test.describe('Responsive Typography', () => {
   for (const [name, viewport] of Object.entries(VIEWPORTS)) {

@@ -26,20 +26,16 @@ test.describe('Touch Target Sizes', () => {
       for (let i = 0; i < Math.min(count, 10); i++) {
         const box = await buttons.nth(i).boundingBox();
         if (box) {
-          // Either width or height should meet minimum, or the element uses
-          // CSS touch-target class which adds padding
-          const meetsMinimum = box.width >= MINIMUM_TOUCH_SIZE || box.height >= MINIMUM_TOUCH_SIZE;
           // Log which button is checked for debugging
           const label = await buttons.nth(i).getAttribute('aria-label') ?? `button-${i}`;
-          if (!meetsMinimum) {
-            // Some small icon buttons may be inline elements — allow if total
-            // clickable area (accounting for padding) reaches threshold
-            const effectiveArea = box.width * box.height;
-            expect.soft(
-              effectiveArea,
-              `Button "${label}" (${box.width}x${box.height}) should have sufficient touch area`,
-            ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_SIZE * 24); // relaxed: 44*24 = ~1056 sq px
-          }
+          expect.soft(
+            box.width,
+            `Button "${label}" should be at least ${MINIMUM_TOUCH_SIZE}px wide`,
+          ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_SIZE);
+          expect.soft(
+            box.height,
+            `Button "${label}" should be at least ${MINIMUM_TOUCH_SIZE}px tall`,
+          ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_SIZE);
         }
       }
     }
@@ -57,8 +53,12 @@ test.describe('Touch Target Sizes', () => {
       const box = await touchTargets.nth(i).boundingBox();
       if (box) {
         expect.soft(
-          Math.max(box.width, box.height),
-          `touch-target element ${i} should have at least one dimension >= ${MINIMUM_TOUCH_SIZE}px`,
+          box.width,
+          `touch-target element ${i} should be at least ${MINIMUM_TOUCH_SIZE}px wide`,
+        ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_SIZE);
+        expect.soft(
+          box.height,
+          `touch-target element ${i} should be at least ${MINIMUM_TOUCH_SIZE}px tall`,
         ).toBeGreaterThanOrEqual(MINIMUM_TOUCH_SIZE);
       }
     }

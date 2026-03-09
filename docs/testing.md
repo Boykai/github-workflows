@@ -187,7 +187,7 @@ E2E specs:
 
 #### Responsive E2E Strategy
 
-The `responsive-*` test files validate that the app works across six standard viewport sizes defined in `e2e/viewports.ts` (`VIEWPORTS` constant): `mobileSmall` (320 px), `mobile` (375 px), `mobileLarge` (390 px), `tablet` (768 px), `desktop` (1280 px), and `desktopLarge` (1440 px).
+The `responsive-*` test files validate that the app works across seven standard viewport sizes defined in `e2e/viewports.ts` (`VIEWPORTS` constant): `mobileSmall` (320 px), `mobile` (375 px), `mobileLarge` (390 px), `tablet` (768 px), `desktopSmall` (1024 px), `desktop` (1280 px), and `desktopLarge` (1440 px).
 
 Each responsive spec follows a common pattern:
 
