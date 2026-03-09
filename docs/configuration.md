@@ -60,7 +60,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 |----------|---------|-------------|
 | `HOST` | `0.0.0.0` | Server bind host |
 | `PORT` | `8000` | Server bind port |
-| `DEBUG` | `false` | Enable API docs (`/api/docs`), dev-login endpoint |
+| `DEBUG` | `false` | Development mode: enables dev-login endpoint, development logging/structured output, uvicorn reload, and disables strict production secret validation |
+| `ENABLE_DOCS` | `false` | Serve interactive API docs at `/api/docs` and `/api/redoc` (independent of `DEBUG`) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Session
@@ -74,7 +75,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `/app/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
+| `DATABASE_PATH` | `/var/lib/ghchat/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
 
 ### Signal (Optional)
 
@@ -107,7 +108,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `012`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `018`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -125,6 +126,15 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `010_chores.sql` | Chores system (replaces housekeeping) |
 | `011_metadata_cache.sql` | GitHub metadata cache (labels, branches, milestones) |
 | `012_chat_persistence.sql` | Persistent chat messages, proposals, recommendations |
+| `013_agent_config_lifecycle_status.sql` | Agent lifecycle state for repo/list reconciliation |
+| `013_pipeline_configs.sql` | Pipeline configuration storage (stages + agent assignments) |
+| `014_agent_default_models.sql` | Default model column on agent configs |
+| `014_extend_mcp_tools.sql` | Extended MCP tool descriptions, sync status, project scoping |
+| `015_agent_icon_name.sql` | Icon name column on agent configs |
+| `015_pipeline_mcp_presets.sql` | Pipeline preset identification and project assignment |
+| `016_chores_enhancements.sql` | Chore execution tracking, AI enhance, pipeline assignment |
+| `017_blocking_queue.sql` | Per-repo blocking queue for serial issue activation |
+| `018_pipeline_blocking_override.sql` | Project-level pipeline blocking override |
 
 ## Workflow Settings
 

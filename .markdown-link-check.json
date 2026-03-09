@@ -7,6 +7,12 @@
       "pattern": "^https://github\\.com/codespaces/badge\\.svg"
     },
     {
+      "pattern": "^https://img\\.shields\\.io/"
+    },
+    {
+      "pattern": "^https://github\\.com/Boykai/github-workflows/commits/main$"
+    },
+    {
       "pattern": "^https?://localhost"
     }
   ],
