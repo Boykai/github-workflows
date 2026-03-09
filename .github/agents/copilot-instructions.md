@@ -152,6 +152,8 @@ npx playwright test             # E2E
 ## Active Technologies
 - TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577 (031-chat-helper-text)
 - N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
+- Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI 0.135+, TanStack React Query 5.90+, React 19.2, Vite 7.3, githubkit 0.14+ (032-performance-review)
+- In-memory cache with TTL (backend `InMemoryCache`), aiosqlite for durable settings; TanStack Query cache (frontend) (032-performance-review)
 
 ## Recent Changes
 - 031-chat-helper-text: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577
