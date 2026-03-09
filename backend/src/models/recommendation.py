@@ -55,6 +55,10 @@ class AITaskProposal(BaseModel):
     pipeline_source: str | None = Field(
         default=None, description="Pipeline resolution source: pipeline, user, or default"
     )
+    selected_pipeline_id: str | None = Field(
+        default=None,
+        description="Optional saved pipeline selected when the task proposal was created",
+    )
 
     @property
     def is_expired(self) -> bool:
@@ -83,6 +87,7 @@ class AITaskProposal(BaseModel):
                 "status": "pending",
                 "edited_title": None,
                 "edited_description": None,
+                "selected_pipeline_id": "pipeline-123",
                 "created_at": "2026-01-30T10:00:00Z",
                 "expires_at": "2026-01-30T10:10:00Z",
             }

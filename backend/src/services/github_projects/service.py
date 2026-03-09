@@ -2266,6 +2266,7 @@ class GitHubProjectsService:
             base_ref,
             normalized_custom_agent,
             custom_instructions,
+            model=model,
         )
 
     async def _assign_copilot_rest(
@@ -2277,6 +2278,7 @@ class GitHubProjectsService:
         base_ref: str = "main",
         custom_agent: str = "",
         custom_instructions: str = "",
+        model: str = "claude-opus-4.6",
     ) -> bool:
         """
         Fallback: Assign GitHub Copilot using REST API.
@@ -2289,6 +2291,7 @@ class GitHubProjectsService:
             base_ref: Branch to base the PR on
             custom_agent: Custom agent name
             custom_instructions: Custom instructions for the agent
+            model: Model to run for the assigned agent
 
         Returns:
             True if assignment succeeded
@@ -2301,7 +2304,7 @@ class GitHubProjectsService:
                     "base_branch": base_ref,
                     "custom_instructions": custom_instructions,
                     "custom_agent": custom_agent,
-                    "model": "claude-opus-4.6",
+                    "model": model,
                 },
             }
 

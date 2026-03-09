@@ -627,6 +627,69 @@ class TestConfirmProposalEdgeCases:
         assert proposal.edited_description == "Updated description text"
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
+    async def test_confirm_proposal_applies_selected_pipeline_from_chat_mention(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        """A selected chat pipeline must override project/user/default mappings on confirm."""
+        import src.api.chat as chat_mod
+
+        proposal = _proposal(mock_session.session_id, selected_pipeline_id="pipe-easy")
+        chat_mod._proposals[str(proposal.proposal_id)] = proposal
+        mock_session.selected_project_id = "PVT_1"
+
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "id": 100022,
+            "number": 22,
+            "node_id": "I_22",
+            "html_url": "https://github.com/owner/repo/issues/22",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_22"
+
+        selected_mappings = {
+            "Backlog": [
+                {
+                    "slug": "easy",
+                    "display_name": "Easy",
+                }
+            ]
+        }
+
+        with (
+            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock) as mock_set_config,
+            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.get_agent_slugs", return_value=["easy"]),
+            patch(
+                "src.services.workflow_orchestrator.config.load_pipeline_as_agent_mappings",
+                new_callable=AsyncMock,
+                return_value=(selected_mappings, "Easy"),
+            ) as mock_load_selected,
+            patch(
+                "src.services.workflow_orchestrator.config.resolve_project_pipeline_mappings",
+                new_callable=AsyncMock,
+            ) as mock_resolve_fallback,
+        ):
+            mock_orch.return_value.assign_agent_for_status = AsyncMock()
+            mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
+
+            resp = await client.post(
+                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
+                json={},
+            )
+
+        assert resp.status_code == 200
+        mock_load_selected.assert_awaited_once_with("PVT_1", "pipe-easy")
+        mock_resolve_fallback.assert_not_called()
+        set_config_call = mock_set_config.await_args_list[-1]
+        assert set_config_call.args[1].agent_mappings == selected_mappings
+        create_subissues_ctx = mock_orch.return_value.create_all_sub_issues.await_args.args[0]
+        assert create_subissues_ctx.selected_pipeline_id == "pipe-easy"
+        assert create_subissues_ctx.config.agent_mappings == selected_mappings
+        assert proposal.pipeline_name == "Easy"
+        assert proposal.pipeline_source == "pipeline"
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
     async def test_feature_request_generation_error(
         self, client, mock_session, mock_ai_agent_service
     ):

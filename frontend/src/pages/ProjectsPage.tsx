@@ -213,8 +213,9 @@ export function ProjectsPage() {
     refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
-    <div className="celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm">
+    <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm">
       <CelestialCatalogHero
+        className="projects-catalog-hero"
         eyebrow="Mission Control"
         title="Every project, mapped and moving."
         description="Live Kanban view of your GitHub Project. Filter, sort, and group issues across pipeline stages, then trigger agents directly from the board."

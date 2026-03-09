@@ -35,15 +35,15 @@ export function CelestialCatalogHero({
       )}
     >
       {/* Decorative celestial background elements with animations */}
-      <div className="pointer-events-none absolute inset-0 opacity-90 dark:opacity-50">
-        <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl celestial-pulse-glow dark:bg-primary/5" />
-        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 border-primary/20 dark:border-primary/10" />
-        <div className="celestial-orbit celestial-orbit-spin-reverse left-[54%] top-1/2 h-[17rem] w-[17rem] -translate-x-1/2 -translate-y-1/2 border-border/35 dark:border-border/20" />
-        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2 border-primary/25 dark:border-primary/12" />
-        <div className="absolute right-10 top-12 h-16 w-16 rounded-full lunar-disc celestial-float opacity-95" />
-        <div className="absolute left-[58%] top-[18%] h-3 w-3 rounded-full bg-primary/70 shadow-[0_0_20px_hsl(var(--gold)/0.35)] celestial-twinkle dark:bg-primary/50 dark:shadow-[0_0_12px_hsl(var(--gold)/0.2)]" />
-        <div className="absolute bottom-10 left-[52%] h-5 w-5 rounded-full bg-primary/80 shadow-[0_0_30px_hsl(var(--gold)/0.35)] celestial-twinkle-delayed dark:bg-primary/50 dark:shadow-[0_0_16px_hsl(var(--gold)/0.2)]" />
-        <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent dark:via-primary/20" />
+      <div className="catalog-hero-decor pointer-events-none absolute inset-0 opacity-90 dark:opacity-50">
+        <div className="catalog-hero-ambient-glow absolute left-8 top-8 h-24 w-24 rounded-full bg-primary/10 blur-3xl celestial-pulse-glow dark:bg-primary/5" />
+        <div className="catalog-hero-orbit catalog-hero-orbit-outer celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 border-primary/20 dark:border-primary/10" />
+        <div className="catalog-hero-orbit catalog-hero-orbit-mid celestial-orbit celestial-orbit-spin-reverse left-[54%] top-1/2 h-[17rem] w-[17rem] -translate-x-1/2 -translate-y-1/2 border-border/35 dark:border-border/20" />
+        <div className="catalog-hero-orbit catalog-hero-orbit-inner celestial-orbit celestial-orbit-spin left-[54%] top-1/2 h-[8rem] w-[8rem] -translate-x-1/2 -translate-y-1/2 border-primary/25 dark:border-primary/12" />
+        <div className="catalog-hero-moon absolute right-10 top-12 h-16 w-16 rounded-full lunar-disc celestial-float opacity-95" />
+        <div className="catalog-hero-star catalog-hero-star-top absolute left-[58%] top-[18%] h-3 w-3 rounded-full bg-primary/70 shadow-[0_0_20px_hsl(var(--gold)/0.35)] celestial-twinkle dark:bg-primary/50 dark:shadow-[0_0_12px_hsl(var(--gold)/0.2)]" />
+        <div className="catalog-hero-star catalog-hero-star-bottom absolute bottom-10 left-[52%] h-5 w-5 rounded-full bg-primary/80 shadow-[0_0_30px_hsl(var(--gold)/0.35)] celestial-twinkle-delayed dark:bg-primary/50 dark:shadow-[0_0_16px_hsl(var(--gold)/0.2)]" />
+        <div className="catalog-hero-beam absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent dark:via-primary/20" />
       </div>
 
       <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_22rem] lg:items-center lg:gap-10">
@@ -95,17 +95,17 @@ export function CelestialCatalogHero({
           )}
         </div>
 
-        <div className="relative hidden min-h-[20rem] lg:block">
+        <div className="catalog-hero-aside-wrap relative hidden min-h-[20rem] lg:block">
           <div className="hanging-stars absolute inset-x-6 top-0 h-28" />
-          <div className="absolute inset-x-3 bottom-0 top-12 rounded-[2rem] border border-border/70 bg-background/42 p-6 backdrop-blur-md dark:bg-background/60 dark:border-border/40">
-            <div className="absolute inset-x-8 top-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent dark:via-primary/20" />
-            <div className="absolute left-1/2 top-10 h-3 w-3 -translate-x-1/2 rounded-full bg-primary celestial-twinkle-slow dark:bg-primary/60" />
-            <div className="absolute left-10 top-16 h-14 w-14 rounded-full solar-halo celestial-pulse-glow dark:opacity-40" />
-            <div className="absolute bottom-10 right-10 h-16 w-16 rounded-full lunar-disc celestial-float-delayed" />
-            <div className="celestial-orbit celestial-orbit-spin absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 border-primary/30 bg-background/30 dark:border-primary/15 dark:bg-transparent" />
-            <div className="celestial-orbit celestial-orbit-spin-reverse absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 bg-primary/10 ring-1 ring-primary/30 dark:bg-transparent dark:ring-primary/15" />
-            <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35 bg-background/60 celestial-pulse-glow dark:border-primary/20" />
-            <div className="absolute bottom-6 left-6 right-6 rounded-[1.35rem] border border-border/60 bg-background/55 px-4 py-4">
+          <div className="catalog-hero-aside absolute inset-x-3 bottom-0 top-12 rounded-[2rem] border border-border/70 bg-background/42 p-6 backdrop-blur-md dark:bg-background/60 dark:border-border/40">
+            <div className="catalog-hero-aside-beam absolute inset-x-8 top-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent dark:via-primary/20" />
+            <div className="catalog-hero-aside-star absolute left-1/2 top-10 h-3 w-3 -translate-x-1/2 rounded-full bg-primary celestial-twinkle-slow dark:bg-primary/60" />
+            <div className="catalog-hero-aside-sun absolute left-10 top-16 h-14 w-14 rounded-full solar-halo celestial-pulse-glow dark:opacity-40" />
+            <div className="catalog-hero-aside-moon absolute bottom-10 right-10 h-16 w-16 rounded-full lunar-disc celestial-float-delayed" />
+            <div className="catalog-hero-aside-orbit-outer celestial-orbit celestial-orbit-spin absolute left-1/2 top-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2 border-primary/30 bg-background/30 dark:border-primary/15 dark:bg-transparent" />
+            <div className="catalog-hero-aside-orbit-inner celestial-orbit celestial-orbit-spin-reverse absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 bg-primary/10 ring-1 ring-primary/30 dark:bg-transparent dark:ring-primary/15" />
+            <div className="catalog-hero-aside-core absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35 bg-background/60 celestial-pulse-glow dark:border-primary/20" />
+            <div className="catalog-hero-note absolute bottom-6 left-6 right-6 rounded-[1.35rem] border border-border/60 bg-background/55 px-4 py-4">
               <p className="text-[10px] uppercase tracking-[0.24em] text-primary/80">
                 Current Ritual
               </p>

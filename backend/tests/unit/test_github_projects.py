@@ -2029,6 +2029,33 @@ class TestAssignCopilotToIssue:
             assert payload["agent_assignment"]["custom_agent"] == "speckit.specify"
 
     @pytest.mark.asyncio
+    async def test_assign_copilot_rest_fallback_preserves_selected_model(self, service):
+        """REST fallback should use the resolved model instead of the default."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"assignees": [{"login": "copilot-swe-agent[bot]"}]}
+
+        with patch.object(
+            service, "_assign_copilot_graphql", new_callable=AsyncMock
+        ) as mock_graphql:
+            mock_graphql.return_value = False
+
+            service._rest_response = AsyncMock(return_value=mock_response)
+
+            await service.assign_copilot_to_issue(
+                access_token="test-token",
+                owner="owner",
+                repo="repo",
+                issue_node_id="I_123",
+                issue_number=1,
+                custom_agent="speckit.specify",
+                model="gpt-4o",
+            )
+
+            payload = service._rest_response.call_args.kwargs["json"]
+            assert payload["agent_assignment"]["model"] == "gpt-4o"
+
+    @pytest.mark.asyncio
     async def test_assign_copilot_no_issue_number_no_rest_fallback(self, service):
         """Should not attempt REST fallback when issue_number is missing."""
         with patch.object(
