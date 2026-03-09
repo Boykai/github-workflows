@@ -427,6 +427,90 @@
     border-color: hsl(var(--border) / 0.22);
   }
 
+  .dark .projects-page-shell .pipeline-stage-card {
+    background:
+      radial-gradient(circle at 16% 14%, hsl(var(--glow) / 0.05), transparent 18%),
+      radial-gradient(circle at 82% 16%, hsl(var(--gold) / 0.04), transparent 16%),
+      linear-gradient(180deg, hsl(var(--night) / 0.74) 0%, hsl(var(--panel) / 0.56) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.08),
+      0 16px 30px hsl(var(--night) / 0.24);
+  }
+
+  .dark .projects-page-shell .pipeline-stage-card::before {
+    background:
+      radial-gradient(circle at 14% 16%, hsl(var(--star-soft) / 0.8) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 78% 12%, hsl(var(--gold) / 0.7) 0 1.1px, transparent 1.9px),
+      radial-gradient(circle at 56% 56%, hsl(var(--accent) / 0.08), transparent 22%),
+      radial-gradient(circle at 24% 78%, hsl(var(--glow) / 0.08), transparent 18%);
+    opacity: 0.52;
+  }
+
+  .dark .projects-page-shell .pipeline-stage-card::after {
+    background:
+      linear-gradient(180deg, hsl(var(--star-soft) / 0.06) 0%, transparent 38%),
+      radial-gradient(ellipse at 70% 78%, hsl(var(--gold) / 0.05) 0%, transparent 52%);
+    opacity: 0.28;
+  }
+
+  .dark .projects-page-shell .pipeline-column-surface {
+    background:
+      radial-gradient(circle at 18% 10%, hsl(var(--glow) / 0.06), transparent 22%),
+      radial-gradient(circle at 84% 18%, hsl(var(--gold) / 0.04), transparent 18%),
+      linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.64) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.08),
+      0 20px 38px hsl(var(--night) / 0.28);
+  }
+
+  .dark .projects-page-shell .project-board-column {
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.08),
+      0 20px 40px hsl(var(--night) / 0.26);
+  }
+
+  .dark .projects-page-shell .project-board-column::before {
+    background:
+      radial-gradient(circle at 12% 10%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.5px),
+      radial-gradient(circle at 78% 12%, hsl(var(--gold) / 0.64) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 84% 26%, hsl(var(--gold) / 0.08), transparent 16%),
+      radial-gradient(circle at 20% 82%, hsl(var(--glow) / 0.1), transparent 18%);
+    opacity: 0.44;
+  }
+
+  .dark .projects-page-shell .project-board-column::after {
+    background:
+      linear-gradient(180deg, hsl(var(--star-soft) / 0.05) 0%, transparent 28%),
+      radial-gradient(ellipse 52% 34% at 74% 72%, hsl(var(--gold) / 0.04) 0%, transparent 72%);
+    opacity: 0.22;
+  }
+
+  .dark .projects-page-shell .project-board-column-header {
+    background: linear-gradient(180deg, hsl(var(--night) / 0.7) 0%, hsl(var(--panel) / 0.4) 100%);
+  }
+
+  .dark .projects-page-shell .project-board-column-list {
+    background: linear-gradient(180deg, hsl(var(--night) / 0.12) 0%, hsl(var(--night) / 0.24) 100%);
+  }
+
+  .dark .projects-page-shell .project-board-card {
+    background:
+      radial-gradient(circle at 82% 14%, hsl(var(--gold) / 0.08), transparent 16%),
+      radial-gradient(circle at 16% 10%, hsl(var(--glow) / 0.08), transparent 18%),
+      linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.68) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.08),
+      0 16px 28px hsl(var(--night) / 0.24);
+  }
+
+  .dark .projects-page-shell .project-board-card::before {
+    background:
+      radial-gradient(circle at 18% 18%, hsl(var(--star-soft) / 0.58) 0 0.8px, transparent 1.4px),
+      radial-gradient(circle at 76% 12%, hsl(var(--gold) / 0.62) 0 0.9px, transparent 1.5px),
+      linear-gradient(124deg, transparent 0 76%, hsl(var(--gold) / 0.04) 76.3%, transparent 76.8%);
+    opacity: 0.46;
+  }
+
   .ritual-stage {
     position: relative;
     border: 1px solid hsl(var(--border) / 0.72);

@@ -33,6 +33,7 @@ import { useEffect } from 'react';
 
 let lockCount = 0;
 let originalOverflow = '';
+let lockedElement: HTMLElement | null = null;
 
 /**
  * Returns the app's primary scroll container.
@@ -50,17 +51,22 @@ export function useScrollLock(isLocked: boolean): void {
   useEffect(() => {
     if (!isLocked) return;
 
-    const el = getScrollContainer();
-    if (lockCount === 0) {
-      originalOverflow = el.style.overflow;
+    if (lockCount === 0 || lockedElement == null) {
+      lockedElement = getScrollContainer();
+      originalOverflow = lockedElement.style.overflow;
     }
+
+    const el = lockedElement;
     lockCount++;
     el.style.overflow = 'hidden';
 
     return () => {
       lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0) {
-        getScrollContainer().style.overflow = originalOverflow;
+        el.style.overflow = originalOverflow;
+        if (lockedElement === el) {
+          lockedElement = null;
+        }
       }
     };
   }, [isLocked]);
@@ -70,6 +76,7 @@ export function useScrollLock(isLocked: boolean): void {
 export function _resetForTesting(): void {
   lockCount = 0;
   originalOverflow = '';
+  lockedElement = null;
   document.body.style.overflow = '';
   const mainEl = document.querySelector('main') as HTMLElement | null;
   if (mainEl) mainEl.style.overflow = '';

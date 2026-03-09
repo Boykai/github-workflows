@@ -138,7 +138,9 @@ describe('useScrollLock — <main> scroll container targeting', () => {
   });
 
   afterEach(() => {
-    document.body.removeChild(mainEl);
+    if (mainEl.isConnected) {
+      document.body.removeChild(mainEl);
+    }
   });
 
   it('locks <main> overflow (not body) when isLocked is true', () => {
@@ -176,5 +178,24 @@ describe('useScrollLock — <main> scroll container targeting', () => {
     expect(document.body.style.overflow).toBe('scroll');
     unmount();
     expect(document.body.style.overflow).toBe('scroll');
+  });
+
+  it('restores the originally locked element when the scroll container changes', () => {
+    mainEl.style.overflow = 'auto';
+    const { unmount } = renderHook(() => useScrollLock(true));
+
+    expect(mainEl.style.overflow).toBe('hidden');
+
+    document.body.removeChild(mainEl);
+
+    const replacementMain = document.createElement('main');
+    document.body.appendChild(replacementMain);
+
+    unmount();
+
+    expect(mainEl.style.overflow).toBe('auto');
+    expect(replacementMain.style.overflow).toBe('');
+
+    document.body.removeChild(replacementMain);
   });
 });

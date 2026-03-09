@@ -38,15 +38,17 @@ function titleCaseSegment(segment: string): string {
 }
 
 /**
- * Detect raw slug-style identifiers (all lowercase, no spaces, only letters/digits/hyphens/dots).
+ * Detect raw slug-style identifiers (all lowercase, no spaces, only letters,
+ * digits, hyphens, underscores, and dots).
  * These are display names that were never explicitly set and fall back to the raw slug.
  */
 const RAW_SLUG_RE = /^[a-z][a-z0-9._-]*$/;
 
 /**
  * Format a slug-like string, handling both dots (segment separator) and
- * hyphens (word separator within a segment).
+ * hyphens/underscores (word separators within a segment).
  * e.g. "quality-assurance" → "Quality Assurance"
+ *      "quality_assurance" → "Quality Assurance"
  *      "speckit.tasks"     → "Spec Kit - Tasks"
  */
 function formatSlugString(slug: string): string {
@@ -57,8 +59,8 @@ function formatSlugString(slug: string): string {
     const lower = segment.toLowerCase();
     if (lower === 'speckit') return 'Spec Kit';
     if (/^v\d+$/i.test(segment)) return segment.toUpperCase();
-    // Handle hyphen-separated words within a segment
-    const parts = lower.split('-').filter((p) => p.length > 0);
+    // Handle hyphen/underscore-separated words within a segment
+    const parts = lower.split(/[-_]/).filter((p) => p.length > 0);
     return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
   });
 

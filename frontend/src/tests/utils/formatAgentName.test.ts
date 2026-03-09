@@ -38,6 +38,10 @@ describe('formatAgentName', () => {
     expect(formatAgentName('quality-assurance', 'quality-assurance')).toBe('Quality Assurance');
   });
 
+  it('formats raw slug displayName (underscored) like a slug', () => {
+    expect(formatAgentName('quality_assurance', 'quality_assurance')).toBe('Quality Assurance');
+  });
+
   it('lowercases all-caps slug before title-casing', () => {
     expect(formatAgentName('LINTER')).toBe('Linter');
   });

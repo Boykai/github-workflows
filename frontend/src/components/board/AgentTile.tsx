@@ -89,6 +89,10 @@ export function AgentTile({
     onClone?.(agent.id);
   };
 
+  const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
   const tileStyle: React.CSSProperties = {
     ...(sortableProps?.style ?? {}),
     opacity: sortableProps?.isDragging ? 0.3 : 1,
@@ -157,6 +161,7 @@ export function AgentTile({
           <button
             className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
             onClick={handleClone}
+            onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
             type="button"
           >
@@ -168,6 +173,7 @@ export function AgentTile({
           <button
             className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
             onClick={handleRemove}
+            onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
             type="button"
           >
@@ -223,6 +229,7 @@ export function AgentTile({
         <button
           className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsExpanded(!isExpanded)}
+          onPointerDown={stopDragPointerPropagation}
           title={isExpanded ? 'Collapse' : 'Expand'}
           type="button"
         >
@@ -233,6 +240,7 @@ export function AgentTile({
           <button
             className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
             onClick={handleClone}
+            onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
             type="button"
           >
@@ -245,6 +253,7 @@ export function AgentTile({
           <button
             className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             onClick={handleRemove}
+            onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
             type="button"
           >

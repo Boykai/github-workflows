@@ -39,6 +39,9 @@ export function AgentNode({
 }: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
   const displayName = formatAgentName(agentNode.agent_slug, agentNode.agent_display_name);
+  const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
 
   return (
     <div
@@ -56,7 +59,10 @@ export function AgentNode({
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-foreground truncate">{displayName}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
+          <div
+            className="flex min-w-[10rem] flex-1 items-center gap-1.5"
+            onPointerDown={stopDragPointerPropagation}
+          >
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Model
             </span>
@@ -72,6 +78,7 @@ export function AgentNode({
           <button
             type="button"
             onClick={onToolsClick}
+            onPointerDown={stopDragPointerPropagation}
             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10"
             title="Select tools"
           >
@@ -92,6 +99,7 @@ export function AgentNode({
         <button
           type="button"
           onClick={onClone}
+          onPointerDown={stopDragPointerPropagation}
           className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
           title="Clone agent"
         >
@@ -103,6 +111,7 @@ export function AgentNode({
       <button
         type="button"
         onClick={onRemove}
+        onPointerDown={stopDragPointerPropagation}
         className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
         title="Remove agent"
       >
