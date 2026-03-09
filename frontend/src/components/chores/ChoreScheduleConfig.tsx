@@ -61,7 +61,7 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
         <select
           value={scheduleType}
           onChange={(e) => setScheduleType(e.target.value as ScheduleType | '')}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="celestial-focus h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           aria-label="Schedule type"
         >
           <option value="">Select type…</option>
@@ -75,7 +75,7 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
           value={scheduleValue}
           onChange={(e) => setScheduleValue(e.target.value)}
           placeholder={scheduleType === 'time' ? 'Days' : 'Issues'}
-          className="h-8 w-20 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="celestial-focus h-8 w-20 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           aria-label="Schedule value"
         />
 

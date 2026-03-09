@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ChevronDown, Inbox, Lock, Search, TriangleAlert } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
@@ -192,7 +193,7 @@ export function ProjectsPage() {
   const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
-    <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
+    <div className="celestial-fade-in flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
       <CelestialCatalogHero
         eyebrow="Mission Control"
         title="Every project, mapped and moving."
@@ -389,8 +390,7 @@ export function ProjectsPage() {
 
       {selectedProjectId && boardLoading && (
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading board...</p>
+          <CelestialLoader size="md" label="Loading board…" />
         </div>
       )}
 

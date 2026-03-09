@@ -173,7 +173,7 @@ export function ChoreChatFlow({
           onKeyDown={handleKeyDown}
           placeholder="Type your response…"
           disabled={chatMutation.isPending}
-          className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+          className="celestial-focus flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
         />
         <button
           type="button"

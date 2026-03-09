@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 
 type Theme = "dark" | "light" | "system"
 
@@ -24,10 +24,18 @@ export function ThemeProvider({
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     const root = window.document.documentElement
 
+    root.classList.add("theme-transitioning")
     root.classList.remove("light", "dark")
 
     if (theme === "system") {
@@ -37,10 +45,14 @@ export function ThemeProvider({
         : "light"
 
       root.classList.add(systemTheme)
-      return
+    } else {
+      root.classList.add(theme)
     }
 
-    root.classList.add(theme)
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      root.classList.remove("theme-transitioning")
+    }, 600)
   }, [theme])
 
   const value = {

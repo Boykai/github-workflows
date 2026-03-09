@@ -16,7 +16,7 @@ export function AppPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="starfield flex min-h-full flex-col justify-center p-8 lg:p-12">
+    <div className="starfield celestial-fade-in flex min-h-full flex-col justify-center p-8 lg:p-12">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <section className="flex min-h-[34rem] flex-col justify-between">
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-primary">

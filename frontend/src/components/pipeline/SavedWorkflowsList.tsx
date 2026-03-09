@@ -45,7 +45,7 @@ export function SavedWorkflowsList({
   onAssign,
 }: SavedWorkflowsListProps) {
   return (
-    <div>
+    <div className="celestial-fade-in">
       <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
         <Workflow className="h-5 w-5 text-primary/70" />
         Saved Pipelines

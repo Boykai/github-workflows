@@ -38,7 +38,7 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label htmlFor="display-theme" className="text-sm font-medium text-foreground">Theme</label>
         <select
           id="display-theme"
-          className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.theme}
           onChange={(e) => setField('theme', e.target.value as ThemeModeType)}
         >
@@ -51,7 +51,7 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label htmlFor="display-view" className="text-sm font-medium text-foreground">Default View</label>
         <select
           id="display-view"
-          className="flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           value={localState.default_view}
           onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}
         >
@@ -65,7 +65,7 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
         <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
             type="checkbox"
-            className="w-4 h-4 rounded border-input text-primary focus:ring-primary"
+            className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
             checked={localState.sidebar_collapsed}
             onChange={(e) => setField('sidebar_collapsed', e.target.checked)}
           />

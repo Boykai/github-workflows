@@ -97,7 +97,7 @@ export function PipelineBoard({
   // Empty state
   if (stages.length === 0) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="celestial-fade-in flex flex-col gap-4">
         {/* Edit mode banner */}
         {isEditMode && (
           <div className="flex items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
@@ -189,7 +189,7 @@ export function PipelineBoard({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="celestial-fade-in flex flex-col gap-4">
       {/* Edit mode banner */}
       {isEditMode && (
         <div className="flex items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">

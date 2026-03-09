@@ -98,7 +98,7 @@ export function PipelineToolbar({
               }}
             >
               <div
-                className="bg-card rounded-lg border border-border shadow-lg p-4 w-80"
+                className="celestial-fade-in bg-card rounded-lg border border-border shadow-lg p-4 w-80"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="copy-dialog-title"

@@ -162,7 +162,7 @@ export function ModelSelector({
         }}
         disabled={disabled}
         className={cn(
-          'flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60',
+          'celestial-focus flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60',
           triggerClassName,
         )}
       >

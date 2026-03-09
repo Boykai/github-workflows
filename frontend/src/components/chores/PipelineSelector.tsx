@@ -52,7 +52,7 @@ export function PipelineSelector({ projectId, value, onChange, disabled, inputId
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || isLoading}
-        className="moonwell h-8 w-full rounded-md border-border/60 px-3 text-xs text-foreground disabled:opacity-50"
+        className="celestial-focus moonwell h-8 w-full rounded-md border-border/60 px-3 text-xs text-foreground disabled:opacity-50"
       >
         <option value="">Auto</option>
         {pipelines.map((p) => (

@@ -55,6 +55,12 @@
   --animate-cosmic-fade-in: cosmic-fade-in 0.5s ease-out both;
   --animate-star-wink: star-wink 5s ease-in-out infinite;
 
+  /* Theme transition token */
+  --transition-theme-shift: 600ms ease-in-out;
+
+  /* Loader animation token */
+  --animate-celestial-loader: orbit-spin 1.8s linear infinite;
+
   @keyframes accordion-down {
     from { height: 0; }
     to { height: var(--radix-accordion-content-height); }
@@ -92,6 +98,11 @@
   @keyframes star-wink {
     0%, 80%, 100% { opacity: 1; }
     90% { opacity: 0.3; }
+  }
+  @keyframes theme-shift {
+    0% { opacity: 0; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0; }
   }
 }
 
@@ -1017,6 +1028,27 @@
     transition: border-color var(--transition-cosmic-slow);
   }
 
+  /* ── Theme transition overlay ── */
+  .theme-transitioning {
+    transition:
+      background-color var(--transition-theme-shift),
+      color var(--transition-theme-shift);
+  }
+  .theme-transitioning::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--gold) / 0.08) 0%,
+      hsl(var(--night) / 0.12) 50%,
+      hsl(var(--glow) / 0.06) 100%
+    );
+    animation: theme-shift var(--transition-theme-shift) ease-in-out both;
+  }
+
   /* ══════════════════════════════════════════════════════════════
      prefers-reduced-motion — disable/minimize all celestial motion
      ══════════════════════════════════════════════════════════════ */
@@ -1054,6 +1086,12 @@
 
     .solar-action:hover {
       transform: none;
+    }
+
+    .theme-transitioning,
+    .theme-transitioning::after {
+      animation: none !important;
+      transition: none !important;
     }
   }
 }

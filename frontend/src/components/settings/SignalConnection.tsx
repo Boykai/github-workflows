@@ -161,7 +161,7 @@ function NotificationPreferenceSelector() {
               checked={preferences.notification_mode === opt.value}
               onChange={() => handleChange(opt.value)}
               disabled={isPending}
-              className="mt-0.5 accent-primary"
+              className="celestial-focus mt-0.5 accent-primary"
             />
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-medium text-foreground">{opt.label}</span>

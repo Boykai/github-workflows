@@ -66,7 +66,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
 
       {/* Expanded panel */}
       {isExpanded && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border border-border bg-card shadow-lg p-4 flex flex-col gap-3">
+        <div className="celestial-fade-in absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border border-border bg-card shadow-lg p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">Blocking Queue</span>
             <button

@@ -179,7 +179,7 @@ export function AgentChatFlow({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your response…"
-            className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
+            className="celestial-focus flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
             disabled={chatMutation.isPending}
           />
           <button

@@ -74,7 +74,7 @@ export function ToolSelectorModal({
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" role="presentation" onClick={onClose}>
       <div
-        className="celestial-panel flex w-full max-w-3xl max-h-[85vh] flex-col rounded-[1.4rem] border border-border shadow-lg"
+        className="celestial-panel celestial-fade-in flex w-full max-w-3xl max-h-[85vh] flex-col rounded-[1.4rem] border border-border shadow-lg"
         role="presentation"
         onClick={(e) => e.stopPropagation()}
       >

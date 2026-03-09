@@ -193,7 +193,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="e.g., Security Reviewer"
-                className="w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
+                className="celestial-focus w-full rounded-xl border border-border bg-background/72 px-3 py-2.5 text-sm outline-none transition-colors focus:border-primary/40"
                 maxLength={100}
               />
             </div>
@@ -210,7 +210,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
                 value={systemPrompt}
                 onChange={(event) => setSystemPrompt(event.target.value)}
                 placeholder="Detailed instructions for the agent's behavior..."
-                className="min-h-[280px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
+                className="celestial-focus min-h-[280px] w-full resize-y rounded-[1.1rem] border border-border bg-background/72 px-3 py-3 font-mono text-xs leading-relaxed outline-none transition-colors focus:border-primary/40"
                 maxLength={MAX_PROMPT_LENGTH}
               />
             </div>

@@ -250,7 +250,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         aria-label="Unsaved changes confirmation"
       >
         <div
-          className="celestial-panel w-full max-w-sm rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
+          className="celestial-panel celestial-fade-in w-full max-w-sm rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
           onClick={(event) => event.stopPropagation()}
         >
@@ -297,7 +297,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         onClick={resetAndClose}
       >
         <div
-          className="celestial-panel w-full max-w-md rounded-[1.6rem] border border-border/80 p-6 shadow-xl"
+          className="celestial-panel celestial-fade-in w-full max-w-md rounded-[1.6rem] border border-border/80 p-6 shadow-xl"
           role="presentation"
           onClick={(event) => event.stopPropagation()}
         >
@@ -336,7 +336,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
       onClick={handleRequestClose}
     >
       <div
-        className="celestial-panel relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
+        className="celestial-panel celestial-fade-in relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
         role="presentation"
         onClick={(event) => event.stopPropagation()}
       >

@@ -4,6 +4,7 @@
  */
 
 import { useMemo } from 'react';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -81,7 +82,7 @@ export function AgentsPage() {
   const pendingSubIssueCounts = countPendingAssignedSubIssues(boardData);
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="celestial-fade-in flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
       <CelestialCatalogHero
         eyebrow="Celestial Catalog"
         title="Shape your agent constellation."
@@ -142,7 +143,7 @@ export function AgentsPage() {
             </div>
             {boardLoading ? (
               <div className="celestial-panel flex items-center justify-center rounded-[1.3rem] border border-border/70 p-6 sm:rounded-[1.4rem] sm:p-8">
-                <div className="w-6 h-6 border-3 border-border border-t-primary rounded-full animate-spin" />
+                <CelestialLoader size="sm" label="Loading agents…" />
               </div>
             ) : columns.length === 0 ? (
               <p className="celestial-panel rounded-[1.3rem] border border-dashed border-border/80 p-4 text-center text-sm text-muted-foreground sm:rounded-[1.4rem] sm:p-5">
