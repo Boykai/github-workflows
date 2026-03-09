@@ -185,7 +185,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="celestial-fade-in flex min-w-0 flex-col gap-6">
       <RepoConfigPanel
         repoConfig={repoConfig}
         isLoading={isRepoConfigLoading}

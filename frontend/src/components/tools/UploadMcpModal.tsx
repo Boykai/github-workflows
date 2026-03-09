@@ -247,7 +247,7 @@ export function UploadMcpModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
-      <div className="celestial-panel w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(e) => e.stopPropagation()}>
+      <div className="celestial-panel celestial-fade-in w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-semibold mb-4">
           {isEditMode ? 'Edit MCP Configuration' : 'Upload MCP Configuration'}
         </h2>

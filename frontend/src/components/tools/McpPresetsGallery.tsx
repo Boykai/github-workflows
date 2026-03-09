@@ -9,7 +9,7 @@ interface McpPresetsGalleryProps {
 
 export function McpPresetsGallery({ presets, isLoading, error, onSelectPreset }: McpPresetsGalleryProps) {
   return (
-    <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
+    <section className="celestial-fade-in ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
       <div>
         <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Preset library</p>
         <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Quick-add MCP presets</h4>
