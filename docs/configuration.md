@@ -60,8 +60,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 |----------|---------|-------------|
 | `HOST` | `0.0.0.0` | Server bind host |
 | `PORT` | `8000` | Server bind port |
-| `DEBUG` | `false` | Enable dev-login endpoint |
-| `ENABLE_DOCS` | `false` | Serve interactive API docs at `/api/docs` and `/api/redoc` |
+| `DEBUG` | `false` | Development mode: enables dev-login endpoint, development logging/structured output, uvicorn reload, and disables strict production secret validation |
+| `ENABLE_DOCS` | `false` | Serve interactive API docs at `/api/docs` and `/api/redoc` (independent of `DEBUG`) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Session
