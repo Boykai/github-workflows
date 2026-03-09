@@ -242,10 +242,35 @@ npm run format
 npm run type-check
 ```
 
-### Pre-Commit Hook
+### Git Hooks
 
-Install the git pre-commit hook that runs ruff, pyright, eslint, tsc, vitest, and build:
+Install the repository git hooks:
 
 ```bash
 ./scripts/setup-hooks.sh
+```
+
+This installs:
+
+- `pre-commit` for staged backend/frontend checks via `scripts/pre-commit`:
+  - Ruff format + lint for backend Python changes
+  - Pyright for backend type checking
+  - ESLint, TypeScript, Vitest, and `npm run build` for frontend changes
+- `pre-push` for full test execution:
+  - `python -m pytest tests/ -q --tb=short` in `backend/`
+  - `npm test` in `frontend/`
+
+Documentation linting is enforced separately by the root CI/docs tooling:
+
+```bash
+npx -y markdownlint-cli@0.48.0 "docs/**/*.md" "*.md" --config .markdownlint.json
+
+find docs -name "*.md" -print0 | xargs -0 -I {} \
+  npx -y markdown-link-check@3.14.2 {} \
+    --config .markdown-link-check.json \
+    --quiet
+
+npx -y markdown-link-check@3.14.2 README.md \
+  --config .markdown-link-check.json \
+  --quiet
 ```
