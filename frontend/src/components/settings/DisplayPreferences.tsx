@@ -23,7 +23,11 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
 
   const handleSave = async () => {
     await onSave({
-      display: { theme: localState.theme, default_view: localState.default_view, sidebar_collapsed: localState.sidebar_collapsed },
+      display: {
+        theme: localState.theme,
+        default_view: localState.default_view,
+        sidebar_collapsed: localState.sidebar_collapsed,
+      },
     });
   };
 
@@ -35,7 +39,9 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
       onSave={handleSave}
     >
       <div className="flex flex-col gap-2">
-        <label htmlFor="display-theme" className="text-sm font-medium text-foreground">Theme</label>
+        <label htmlFor="display-theme" className="text-sm font-medium text-foreground">
+          Theme
+        </label>
         <select
           id="display-theme"
           className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -48,7 +54,9 @@ export function DisplayPreferences({ settings, onSave }: DisplayPreferencesProps
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="display-view" className="text-sm font-medium text-foreground">Default View</label>
+        <label htmlFor="display-view" className="text-sm font-medium text-foreground">
+          Default View
+        </label>
         <select
           id="display-view"
           className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

@@ -22,7 +22,10 @@ vi.mock('@/services/api', () => ({
     list: vi.fn().mockResolvedValue([]),
   },
   ApiError: class ApiError extends Error {
-    constructor(public status: number, public error: { error: string }) {
+    constructor(
+      public status: number,
+      public error: { error: string }
+    ) {
       super(error.error);
     }
   },
@@ -35,9 +38,7 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -76,10 +77,9 @@ describe('ChoreScheduleConfig', () => {
   });
 
   it('renders schedule type dropdown and value input', () => {
-    render(
-      <ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.getByLabelText('Schedule type')).toBeInTheDocument();
     expect(screen.getByLabelText('Schedule value')).toBeInTheDocument();
@@ -89,10 +89,9 @@ describe('ChoreScheduleConfig', () => {
   it('shows error when no type selected', async () => {
     const user = userEvent.setup();
 
-    render(
-      <ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.click(screen.getByText('Save'));
 
@@ -103,10 +102,9 @@ describe('ChoreScheduleConfig', () => {
   it('shows error when value is empty', async () => {
     const user = userEvent.setup();
 
-    render(
-      <ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.selectOptions(screen.getByLabelText('Schedule type'), 'time');
     await user.click(screen.getByText('Save'));
@@ -120,10 +118,9 @@ describe('ChoreScheduleConfig', () => {
     const chore = createChore();
     mockUpdate.mockResolvedValue({ ...chore, schedule_type: 'time', schedule_value: 14 });
 
-    render(
-      <ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.selectOptions(screen.getByLabelText('Schedule type'), 'time');
     await user.type(screen.getByLabelText('Schedule value'), '14');
@@ -142,10 +139,9 @@ describe('ChoreScheduleConfig', () => {
     const chore = createChore();
     mockUpdate.mockResolvedValue({ ...chore, schedule_type: 'count', schedule_value: 5 });
 
-    render(
-      <ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.selectOptions(screen.getByLabelText('Schedule type'), 'count');
     await user.type(screen.getByLabelText('Schedule value'), '5');
@@ -162,10 +158,9 @@ describe('ChoreScheduleConfig', () => {
   it('pre-fills existing schedule values', () => {
     const chore = createChore({ schedule_type: 'time', schedule_value: 7 });
 
-    render(
-      <ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={chore} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     const typeSelect = screen.getByLabelText('Schedule type') as HTMLSelectElement;
     const valueInput = screen.getByLabelText('Schedule value') as HTMLInputElement;
@@ -178,10 +173,9 @@ describe('ChoreScheduleConfig', () => {
     const user = userEvent.setup();
     mockUpdate.mockRejectedValue(new Error('Validation failed'));
 
-    render(
-      <ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />,
-      { wrapper: createWrapper() },
-    );
+    render(<ChoreScheduleConfig chore={createChore()} projectId="PVT_1" onDone={onDone} />, {
+      wrapper: createWrapper(),
+    });
 
     await user.selectOptions(screen.getByLabelText('Schedule type'), 'time');
     await user.type(screen.getByLabelText('Schedule value'), '14');

@@ -87,11 +87,7 @@ export function useUpdateChore(projectId: string | null | undefined) {
 export function useDeleteChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    { deleted: boolean; closed_issue_number: number | null },
-    ApiError,
-    string
-  >({
+  return useMutation<{ deleted: boolean; closed_issue_number: number | null }, ApiError, string>({
     mutationFn: (choreId) => choresApi.delete(projectId!, choreId),
     onSuccess: () => {
       if (projectId) {
@@ -127,7 +123,7 @@ export function useTriggerChore(projectId: string | null | undefined) {
 export function useEvaluateChoresTriggers(
   projectId: string | null | undefined,
   parentIssueCount: number,
-  boardLoaded: boolean,
+  boardLoaded: boolean
 ) {
   const queryClient = useQueryClient();
 

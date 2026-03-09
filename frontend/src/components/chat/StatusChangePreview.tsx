@@ -38,10 +38,16 @@ export function StatusChangePreview({
       </div>
 
       <div className="flex gap-2 border-t border-border bg-background/42 p-3">
-        <button onClick={onReject} className="flex-1 rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium cursor-pointer text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground">
+        <button
+          onClick={onReject}
+          className="flex-1 rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium cursor-pointer text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+        >
           Cancel
         </button>
-        <button onClick={onConfirm} className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90">
+        <button
+          onClick={onConfirm}
+          className="flex-1 py-2 px-4 rounded-md text-sm font-medium cursor-pointer transition-colors bg-primary text-primary-foreground border-none hover:bg-primary/90"
+        >
           Update Status
         </button>
       </div>

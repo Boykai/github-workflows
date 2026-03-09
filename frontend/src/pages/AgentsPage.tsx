@@ -48,7 +48,7 @@ export function AgentsPage() {
   // Map: lowercase column name → agent slug → model name from the assigned pipeline
   const stageAgentModelMap = useMemo(() => {
     const assignedPipeline = (pipelineList?.pipelines ?? []).find(
-      (p) => p.id === (pipelineAssignment?.pipeline_id ?? ''),
+      (p) => p.id === (pipelineAssignment?.pipeline_id ?? '')
     );
     const map: Record<string, Record<string, string>> = {};
     for (const stage of assignedPipeline?.stages ?? []) {
@@ -62,23 +62,32 @@ export function AgentsPage() {
   }, [pipelineList, pipelineAssignment]);
 
   const columns = boardData?.columns ?? [];
-  const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
-  const assignedCount = Object.values(agentConfig.localMappings).reduce((sum, mapped) => sum + mapped.length, 0);
-  const agentUsageCounts = Object.values(agentConfig.localMappings).reduce<Record<string, number>>((counts, mapped) => {
-    mapped.forEach((assignment) => {
-      counts[assignment.slug] = (counts[assignment.slug] ?? 0) + 1;
-    });
-    return counts;
-  }, {});
-  const pipelineConfigCounts = (pipelineList?.pipelines ?? []).reduce<Record<string, number>>((counts, pipeline) => {
-    const pipelineAgentSlugs = new Set(
-      pipeline.stages.flatMap((stage) => stage.agents.map((agent) => agent.agent_slug))
-    );
-    pipelineAgentSlugs.forEach((slug) => {
-      counts[slug] = (counts[slug] ?? 0) + 1;
-    });
-    return counts;
-  }, {});
+  const repo = boardData?.columns.flatMap((c) => c.items).find((i) => i.repository)?.repository;
+  const assignedCount = Object.values(agentConfig.localMappings).reduce(
+    (sum, mapped) => sum + mapped.length,
+    0
+  );
+  const agentUsageCounts = Object.values(agentConfig.localMappings).reduce<Record<string, number>>(
+    (counts, mapped) => {
+      mapped.forEach((assignment) => {
+        counts[assignment.slug] = (counts[assignment.slug] ?? 0) + 1;
+      });
+      return counts;
+    },
+    {}
+  );
+  const pipelineConfigCounts = (pipelineList?.pipelines ?? []).reduce<Record<string, number>>(
+    (counts, pipeline) => {
+      const pipelineAgentSlugs = new Set(
+        pipeline.stages.flatMap((stage) => stage.agents.map((agent) => agent.agent_slug))
+      );
+      pipelineAgentSlugs.forEach((slug) => {
+        counts[slug] = (counts[slug] ?? 0) + 1;
+      });
+      return counts;
+    },
+    {}
+  );
   const pendingSubIssueCounts = countPendingAssignedSubIssues(boardData);
 
   return (
@@ -138,7 +147,8 @@ export function AgentsPage() {
               <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Orbital map</p>
               <h3 className="mt-2 text-xl font-display font-medium">Column assignments</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Keep agents aligned with each delivery state so status changes feel intentional rather than improvised.
+                Keep agents aligned with each delivery state so status changes feel intentional
+                rather than improvised.
               </p>
             </div>
             {boardLoading ? (
@@ -155,8 +165,14 @@ export function AgentsPage() {
                   const assigned = agentConfig.localMappings[col.status.name] ?? [];
                   const dotColor = statusColorToCSS(col.status.color);
                   return (
-                    <div key={col.status.option_id} className="celestial-panel orbit-divider flex items-start gap-3 rounded-[1.25rem] border border-border/75 p-3.5 sm:rounded-[1.35rem] sm:p-4">
-                      <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
+                    <div
+                      key={col.status.option_id}
+                      className="celestial-panel orbit-divider flex items-start gap-3 rounded-[1.25rem] border border-border/75 p-3.5 sm:rounded-[1.35rem] sm:p-4"
+                    >
+                      <span
+                        className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: dotColor }}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                           <span className="text-sm font-medium">{col.status.name}</span>
@@ -167,9 +183,13 @@ export function AgentsPage() {
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {assigned.map((a) => {
-                              const model = stageAgentModelMap[col.status.name.toLowerCase()]?.[a.slug];
+                              const model =
+                                stageAgentModelMap[col.status.name.toLowerCase()]?.[a.slug];
                               return (
-                                <span key={a.id} className="solar-chip inline-flex flex-col rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                                <span
+                                  key={a.id}
+                                  className="solar-chip inline-flex flex-col rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                >
                                   <span>{formatAgentName(a.slug, a.display_name)}</span>
                                   {model && (
                                     <span className="mt-0.5 block normal-case tracking-normal font-normal text-[9px] text-primary/70 leading-tight truncate max-w-[9rem]">
@@ -181,7 +201,9 @@ export function AgentsPage() {
                             })}
                           </div>
                         ) : (
-                          <p className="text-xs text-muted-foreground/60 mt-0.5">No agents assigned</p>
+                          <p className="text-xs text-muted-foreground/60 mt-0.5">
+                            No agents assigned
+                          </p>
                         )}
                       </div>
                     </div>
@@ -191,9 +213,12 @@ export function AgentsPage() {
             )}
 
             <div className="celestial-panel rounded-[1.3rem] border border-border/75 p-4 sm:rounded-[1.4rem] sm:p-5">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Guiding note</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                Guiding note
+              </p>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                Use the catalog to decide which agents deserve long-lived ownership, then keep assignment density low enough that each column still has a clear specialist.
+                Use the catalog to decide which agents deserve long-lived ownership, then keep
+                assignment density low enough that each column still has a clear specialist.
               </p>
             </div>
           </div>

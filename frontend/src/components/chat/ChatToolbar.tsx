@@ -61,11 +61,13 @@ export function ChatToolbar({
         >
           <Sparkles className="w-4 h-4" />
           <span>AI Enhance</span>
-          <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-            aiEnhance
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted-foreground/20 text-muted-foreground'
-          }`}>
+          <span
+            className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+              aiEnhance
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted-foreground/20 text-muted-foreground'
+            }`}
+          >
             {aiEnhance ? 'ON' : 'OFF'}
           </span>
         </button>

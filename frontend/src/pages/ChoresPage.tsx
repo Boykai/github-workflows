@@ -42,7 +42,9 @@ export function ChoresPage() {
   const { isBlocked, blocker } = useUnsavedChanges({ isDirty: isAnyDirty });
 
   // Prefer repo info from board items; fall back to the project's workflow config.
-  const boardRepo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
+  const boardRepo = boardData?.columns
+    .flatMap((c) => c.items)
+    .find((i) => i.repository)?.repository;
 
   const { data: workflowConfig } = useQuery({
     queryKey: ['workflow', 'config', projectId],
@@ -87,13 +89,14 @@ export function ChoresPage() {
       {projectId && (
         <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
           <div className="mb-4">
-            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Featured Rituals</p>
-            <h4 className="mt-1 text-[1.15rem] font-display font-medium leading-tight">Key chore highlights</h4>
+            <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+              Featured Rituals
+            </p>
+            <h4 className="mt-1 text-[1.15rem] font-display font-medium leading-tight">
+              Key chore highlights
+            </h4>
           </div>
-          <FeaturedRitualsPanel
-            chores={chores ?? []}
-            parentIssueCount={parentIssueCount}
-          />
+          <FeaturedRitualsPanel chores={chores ?? []} parentIssueCount={parentIssueCount} />
         </section>
       )}
 

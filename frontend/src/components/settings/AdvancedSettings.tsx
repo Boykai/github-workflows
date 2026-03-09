@@ -69,25 +69,13 @@ export function AdvancedSettings({
           role="region"
           aria-label="Advanced Settings"
         >
-          <DisplayPreferences
-            settings={userSettings.display}
-            onSave={onUserSave}
-          />
+          <DisplayPreferences settings={userSettings.display} onSave={onUserSave} />
 
-          <WorkflowDefaults
-            settings={userSettings.workflow}
-            onSave={onUserSave}
-          />
+          <WorkflowDefaults settings={userSettings.workflow} onSave={onUserSave} />
 
-          <NotificationPreferences
-            settings={userSettings.notifications}
-            onSave={onUserSave}
-          />
+          <NotificationPreferences settings={userSettings.notifications} onSave={onUserSave} />
 
-          <ProjectSettings
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-          />
+          <ProjectSettings projects={projects} selectedProjectId={selectedProjectId} />
 
           <GlobalSettings
             settings={globalSettings}

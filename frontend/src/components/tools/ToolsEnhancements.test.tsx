@@ -30,7 +30,7 @@ describe('RepoConfigPanel', () => {
         onRefresh={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
-      />,
+      />
     );
 
     expect(screen.getByText('Current repository config')).toBeInTheDocument();
@@ -67,7 +67,7 @@ describe('RepoConfigPanel', () => {
         onEdit={onEdit}
         onDelete={onDelete}
         managedServerNames={['github']}
-      />,
+      />
     );
 
     await user.click(screen.getByRole('button', { name: 'Edit repository MCP github' }));
@@ -98,13 +98,13 @@ describe('McpPresetsGallery', () => {
         isLoading={false}
         error={null}
         onSelectPreset={onSelectPreset}
-      />,
+      />
     );
 
     await user.click(screen.getByRole('button', { name: 'Use preset' }));
 
     expect(onSelectPreset).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'github-readonly', name: 'GitHub MCP Server' }),
+      expect.objectContaining({ id: 'github-readonly', name: 'GitHub MCP Server' })
     );
   });
 });
@@ -122,13 +122,15 @@ describe('GitHubToolsetSelector', () => {
       expect.objectContaining({
         name: 'GitHub MCP Server',
         config_content: expect.stringContaining('X-MCP-Toolsets'),
-      }),
+      })
     );
     expect(onCreate.mock.calls[0][0].config_content).toContain('users');
   });
 
   it('marks toolset buttons with pressed state', () => {
-    render(<GitHubToolsetSelector onCreate={vi.fn().mockResolvedValue(undefined)} isSubmitting={false} />);
+    render(
+      <GitHubToolsetSelector onCreate={vi.fn().mockResolvedValue(undefined)} isSubmitting={false} />
+    );
 
     expect(screen.getByRole('button', { name: 'repos' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'users' })).toHaveAttribute('aria-pressed', 'false');

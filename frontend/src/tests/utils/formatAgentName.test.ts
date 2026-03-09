@@ -48,13 +48,13 @@ describe('formatAgentName', () => {
 
   it('formats spec kit agents with suffix style when requested', () => {
     expect(formatAgentName('speckit.clarify', 'Speckit.Clarify', { specKitStyle: 'suffix' })).toBe(
-      'Clarify (Spec Kit)',
+      'Clarify (Spec Kit)'
     );
   });
 
   it('formats hyphenated spec kit agents with suffix style when requested', () => {
     expect(formatAgentName('speckit-taskstoissues', undefined, { specKitStyle: 'suffix' })).toBe(
-      'Tasks To Issues (Spec Kit)',
+      'Tasks To Issues (Spec Kit)'
     );
   });
 });

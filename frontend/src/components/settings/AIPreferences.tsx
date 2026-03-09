@@ -22,7 +22,11 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
 
   const handleSave = async () => {
     await onSave({
-      ai: { provider: localState.provider, model: localState.model, temperature: localState.temperature },
+      ai: {
+        provider: localState.provider,
+        model: localState.model,
+        temperature: localState.temperature,
+      },
     });
   };
 
@@ -34,7 +38,9 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
       onSave={handleSave}
     >
       <div className="flex flex-col gap-2">
-        <label htmlFor="ai-provider" className="text-sm font-medium text-foreground">Provider</label>
+        <label htmlFor="ai-provider" className="text-sm font-medium text-foreground">
+          Provider
+        </label>
         <select
           id="ai-provider"
           className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -47,7 +53,9 @@ export function AIPreferences({ settings, onSave }: AIPreferencesProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="ai-model" className="text-sm font-medium text-foreground">Model</label>
+        <label htmlFor="ai-model" className="text-sm font-medium text-foreground">
+          Model
+        </label>
         <input
           id="ai-model"
           type="text"

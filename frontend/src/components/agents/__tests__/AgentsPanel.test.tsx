@@ -207,7 +207,9 @@ describe('AgentsPanel', () => {
 
     expect(screen.getByRole('dialog', { name: 'Bulk model update dialog' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Update All Agent Models' })).toBeInTheDocument();
-    expect(screen.getByText(/Select the target model to apply to all 2 agents/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Select the target model to apply to all 2 agents/i)
+    ).toBeInTheDocument();
   });
 
   it('opens the inline editor for pending local agents', async () => {
@@ -294,13 +296,9 @@ describe('AgentsPanel', () => {
       error: null,
     });
 
-    render(
-      <AgentsPanel
-        projectId="PVT_1"
-        pendingSubIssueCounts={{ alpha: 3 }}
-      />,
-      { wrapper: createWrapper() }
-    );
+    render(<AgentsPanel projectId="PVT_1" pendingSubIssueCounts={{ alpha: 3 }} />, {
+      wrapper: createWrapper(),
+    });
 
     expect(screen.getAllByText('Recently added').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Assigned sub-issues').length).toBeGreaterThan(0);
@@ -402,7 +400,7 @@ describe('AgentsPanel', () => {
 
     expect(await screen.findByRole('link', { name: 'View Pull Request' })).toHaveAttribute(
       'href',
-      'https://example.test/pr/99',
+      'https://example.test/pr/99'
     );
   });
 });

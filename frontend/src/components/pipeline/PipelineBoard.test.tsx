@@ -35,7 +35,7 @@ describe('PipelineBoard', () => {
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
-      />,
+      />
     );
 
     expect(screen.getByLabelText('Pipeline name')).toHaveValue('Advanced Pipeline');
@@ -63,7 +63,7 @@ describe('PipelineBoard', () => {
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
-      />,
+      />
     );
 
     const user = userEvent.setup();

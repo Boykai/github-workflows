@@ -49,7 +49,9 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
             <div className="min-w-0">
               <h4 className="truncate text-sm font-semibold text-foreground">{tool.name}</h4>
               {tool.description && (
-                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{tool.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                  {tool.description}
+                </p>
               )}
             </div>
           </div>

@@ -55,7 +55,10 @@ export function BulkModelUpdateDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="presentation"
+    >
       <button
         type="button"
         className="absolute inset-0 cursor-default"

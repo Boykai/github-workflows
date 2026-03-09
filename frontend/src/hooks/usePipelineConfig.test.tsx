@@ -71,8 +71,12 @@ describe('usePipelineConfig', () => {
       'In Progress',
       'Done',
     ]);
-    expect(result.current.pipeline?.stages.map((stage: PipelineStage) => stage.order)).toEqual([0, 1, 2]);
-    expect(result.current.pipeline?.stages.every((stage: PipelineStage) => stage.agents.length === 0)).toBe(true);
+    expect(result.current.pipeline?.stages.map((stage: PipelineStage) => stage.order)).toEqual([
+      0, 1, 2,
+    ]);
+    expect(
+      result.current.pipeline?.stages.every((stage: PipelineStage) => stage.agents.length === 0)
+    ).toBe(true);
   });
 
   it('creates an empty new pipeline when no stage names are provided', async () => {

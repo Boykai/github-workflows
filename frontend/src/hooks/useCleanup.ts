@@ -69,7 +69,7 @@ export function useCleanup(): UseCleanupReturn {
       if (!data.has_permission) {
         setPermissionError(
           data.permission_error ||
-          'You need at least push access to this repository to delete branches and close pull requests.'
+            'You need at least push access to this repository to delete branches and close pull requests.'
         );
         setState('idle');
         return;
@@ -84,30 +84,33 @@ export function useCleanup(): UseCleanupReturn {
     }
   }, []);
 
-  const confirmExecute = useCallback(async (owner: string, repo: string, projectId: string) => {
-    if (!preflightData) return;
+  const confirmExecute = useCallback(
+    async (owner: string, repo: string, projectId: string) => {
+      if (!preflightData) return;
 
-    setState('executing');
-    setError(null);
+      setState('executing');
+      setError(null);
 
-    try {
-      const result = await cleanupApi.execute({
-        owner,
-        repo,
-        project_id: projectId,
-        branches_to_delete: preflightData.branches_to_delete.map(b => b.name),
-        prs_to_close: preflightData.prs_to_close.map(p => p.number),
-        issues_to_close: (preflightData.orphaned_issues ?? []).map(i => i.number),
-      });
+      try {
+        const result = await cleanupApi.execute({
+          owner,
+          repo,
+          project_id: projectId,
+          branches_to_delete: preflightData.branches_to_delete.map((b) => b.name),
+          prs_to_close: preflightData.prs_to_close.map((p) => p.number),
+          issues_to_close: (preflightData.orphaned_issues ?? []).map((i) => i.number),
+        });
 
-      setExecuteResult(result);
-      setState('summary');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Cleanup operation failed';
-      setError(message);
-      setState('summary');
-    }
-  }, [preflightData]);
+        setExecuteResult(result);
+        setState('summary');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Cleanup operation failed';
+        setError(message);
+        setState('summary');
+      }
+    },
+    [preflightData]
+  );
 
   const cancel = useCallback(() => {
     setState('idle');

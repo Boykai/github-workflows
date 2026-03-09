@@ -100,13 +100,11 @@ export function Tooltip({
             'data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
             'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2',
             'data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-            'motion-reduce:animate-none',
+            'motion-reduce:animate-none'
           )}
           style={{ fontSize: '13px' }}
         >
-          {entry.title && (
-            <p className="font-semibold leading-snug mb-1">{entry.title}</p>
-          )}
+          {entry.title && <p className="font-semibold leading-snug mb-1">{entry.title}</p>}
           <p className="leading-snug">{entry.summary}</p>
           {entry.learnMoreUrl && (
             <a

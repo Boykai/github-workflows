@@ -54,13 +54,15 @@ describe('useConfirmation', () => {
 
     let resolved: boolean | undefined;
     act(() => {
-      result.current.confirm({
-        title: 'Confirm?',
-        description: 'Are you sure?',
-        confirmLabel: 'Yes',
-      }).then((val) => {
-        resolved = val;
-      });
+      result.current
+        .confirm({
+          title: 'Confirm?',
+          description: 'Are you sure?',
+          confirmLabel: 'Yes',
+        })
+        .then((val) => {
+          resolved = val;
+        });
     });
 
     await waitFor(() => {
@@ -81,12 +83,14 @@ describe('useConfirmation', () => {
 
     let resolved: boolean | undefined;
     act(() => {
-      result.current.confirm({
-        title: 'Confirm?',
-        description: 'Are you sure?',
-      }).then((val) => {
-        resolved = val;
-      });
+      result.current
+        .confirm({
+          title: 'Confirm?',
+          description: 'Are you sure?',
+        })
+        .then((val) => {
+          resolved = val;
+        });
     });
 
     await waitFor(() => {
@@ -107,12 +111,14 @@ describe('useConfirmation', () => {
 
     let resolved: boolean | undefined;
     act(() => {
-      result.current.confirm({
-        title: 'Confirm?',
-        description: 'Are you sure?',
-      }).then((val) => {
-        resolved = val;
-      });
+      result.current
+        .confirm({
+          title: 'Confirm?',
+          description: 'Are you sure?',
+        })
+        .then((val) => {
+          resolved = val;
+        });
     });
 
     await waitFor(() => {
@@ -171,7 +177,10 @@ describe('useConfirmation', () => {
   it('shows loading state during async onConfirm', async () => {
     let resolveAsync: (() => void) | undefined;
     const asyncFn = vi.fn(
-      () => new Promise<void>((resolve) => { resolveAsync = resolve; }),
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAsync = resolve;
+        })
     );
 
     const { result } = renderHook(() => useConfirmation(), { wrapper: createWrapper() });
@@ -255,13 +264,15 @@ describe('useConfirmation', () => {
     let secondResolved: boolean | undefined;
 
     act(() => {
-      result.current.confirm({
-        title: 'First Dialog',
-        description: 'First',
-        confirmLabel: 'OK First',
-      }).then((val) => {
-        firstResolved = val;
-      });
+      result.current
+        .confirm({
+          title: 'First Dialog',
+          description: 'First',
+          confirmLabel: 'OK First',
+        })
+        .then((val) => {
+          firstResolved = val;
+        });
     });
 
     await waitFor(() => {
@@ -270,13 +281,15 @@ describe('useConfirmation', () => {
 
     // Queue second dialog while first is open
     act(() => {
-      result.current.confirm({
-        title: 'Second Dialog',
-        description: 'Second',
-        confirmLabel: 'OK Second',
-      }).then((val) => {
-        secondResolved = val;
-      });
+      result.current
+        .confirm({
+          title: 'Second Dialog',
+          description: 'Second',
+          confirmLabel: 'OK Second',
+        })
+        .then((val) => {
+          secondResolved = val;
+        });
     });
 
     // First dialog still showing

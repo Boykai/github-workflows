@@ -32,7 +32,10 @@ vi.mock('@/services/api', () => ({
     list: (...args: unknown[]) => mockPipelinesList(...args),
   },
   ApiError: class ApiError extends Error {
-    constructor(public status: number, public error: { error: string }) {
+    constructor(
+      public status: number,
+      public error: { error: string }
+    ) {
       super(error.error);
     }
   },
@@ -97,9 +100,7 @@ describe('ChoresPanel', () => {
       merge_error: null,
     });
     mockPipelinesList.mockResolvedValue({
-      pipelines: [
-        { id: 'pipe-1', name: 'Advanced Pipeline' },
-      ],
+      pipelines: [{ id: 'pipe-1', name: 'Advanced Pipeline' }],
     });
   });
 
@@ -118,7 +119,12 @@ describe('ChoresPanel', () => {
   it('renders chore list with ChoreCards', async () => {
     mockList.mockResolvedValue([
       createChore({ id: 'c1', name: 'Bug Bash' }),
-      createChore({ id: 'c2', name: 'Dependency Update', schedule_type: 'count', schedule_value: 5 }),
+      createChore({
+        id: 'c2',
+        name: 'Dependency Update',
+        schedule_type: 'count',
+        schedule_value: 5,
+      }),
     ]);
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
@@ -191,7 +197,9 @@ describe('ChoresPanel', () => {
 
   it('saves a selected saved pipeline from chore inline edit', async () => {
     const user = userEvent.setup();
-    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' })]);
+    mockList.mockResolvedValue([
+      createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' }),
+    ]);
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -216,7 +224,9 @@ describe('ChoresPanel', () => {
 
   it('updates the pipeline directly from the pipeline pill pop-out', async () => {
     const user = userEvent.setup();
-    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' })]);
+    mockList.mockResolvedValue([
+      createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' }),
+    ]);
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 

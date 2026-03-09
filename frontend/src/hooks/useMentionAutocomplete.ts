@@ -46,7 +46,8 @@ interface UseMentionAutocompleteReturn {
   reset: () => void;
 }
 
-export const MENTION_TOKEN_BASE = 'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none';
+export const MENTION_TOKEN_BASE =
+  'inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium align-baseline select-none';
 export const MENTION_TOKEN_VALID = `${MENTION_TOKEN_BASE} bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200`;
 export const MENTION_TOKEN_INVALID = `${MENTION_TOKEN_BASE} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`;
 
@@ -70,7 +71,11 @@ export function useMentionAutocomplete({
   }, []);
 
   // Fetch pipelines lazily (only after first @ trigger)
-  const { data: pipelineData, isLoading, error: queryError } = useQuery({
+  const {
+    data: pipelineData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
     queryKey: ['pipelines', projectId],
     queryFn: () => pipelinesApi.list(projectId),
     enabled: !!projectId && hasTriggered,
@@ -102,8 +107,10 @@ export function useMentionAutocomplete({
   const validTokens = useMemo(() => tokens.filter((t) => t.isValid), [tokens]);
   const invalidTokens = useMemo(() => tokens.filter((t) => !t.isValid), [tokens]);
 
-  const activePipelineId = validTokens.length > 0 ? validTokens[validTokens.length - 1].pipelineId : null;
-  const activePipelineName = validTokens.length > 0 ? validTokens[validTokens.length - 1].pipelineName : null;
+  const activePipelineId =
+    validTokens.length > 0 ? validTokens[validTokens.length - 1].pipelineId : null;
+  const activePipelineName =
+    validTokens.length > 0 ? validTokens[validTokens.length - 1].pipelineName : null;
   const hasMultipleMentions = validTokens.length > 1;
   const hasInvalidMentions = invalidTokens.length > 0;
 
@@ -120,7 +127,7 @@ export function useMentionAutocomplete({
         setHighlightedIndex(0);
       }, 150);
     },
-    [hasTriggered],
+    [hasTriggered]
   );
 
   const handleMentionDismiss = useCallback(() => {
@@ -153,7 +160,7 @@ export function useMentionAutocomplete({
       handleMentionDismiss();
       inputRef.current?.focus();
     },
-    [filterQuery, triggerOffset, inputRef, handleMentionDismiss],
+    [filterQuery, triggerOffset, inputRef, handleMentionDismiss]
   );
 
   const handleTokenRemove = useCallback((pipelineId: string) => {
@@ -171,14 +178,16 @@ export function useMentionAutocomplete({
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          filteredPipelines.length > 0 ? (prev + 1) % filteredPipelines.length : 0,
+          filteredPipelines.length > 0 ? (prev + 1) % filteredPipelines.length : 0
         );
         return;
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          filteredPipelines.length > 0 ? (prev - 1 + filteredPipelines.length) % filteredPipelines.length : 0,
+          filteredPipelines.length > 0
+            ? (prev - 1 + filteredPipelines.length) % filteredPipelines.length
+            : 0
         );
         return;
       }
@@ -195,7 +204,7 @@ export function useMentionAutocomplete({
         return;
       }
     },
-    [isAutocompleteOpen, filteredPipelines, highlightedIndex, handleSelect, handleMentionDismiss],
+    [isAutocompleteOpen, filteredPipelines, highlightedIndex, handleSelect, handleMentionDismiss]
   );
 
   // Re-validate tokens against pipeline list

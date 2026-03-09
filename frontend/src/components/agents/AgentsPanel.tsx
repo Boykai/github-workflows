@@ -74,7 +74,8 @@ export function AgentsPanel({
   const handleClearPending = async () => {
     const confirmed = await confirm({
       title: 'Clear Pending Records',
-      description: 'Delete all pending agent records from the local database for this project? This only removes stale SQLite rows and does not change the repository.',
+      description:
+        'Delete all pending agent records from the local database for this project? This only removes stale SQLite rows and does not change the repository.',
       variant: 'warning',
       confirmLabel: 'Clear Records',
     });
@@ -105,7 +106,7 @@ export function AgentsPanel({
 
       queueUnsavedAction(() => setEditAgent(agent), 'Switch to another agent definition');
     },
-    [isEditorDirty, queueUnsavedAction],
+    [isEditorDirty, queueUnsavedAction]
   );
 
   const handleCloseEditor = useCallback(() => {
@@ -239,8 +240,8 @@ export function AgentsPanel({
 
       {saveResult && (
         <div className="rounded-[1.25rem] border border-emerald-300/40 bg-emerald-50/80 p-4 text-sm text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-200">
-          Saved changes for <span className="font-semibold">{saveResult.agentName}</span>. A pull request was opened with the updated agent files.
-          {' '}
+          Saved changes for <span className="font-semibold">{saveResult.agentName}</span>. A pull
+          request was opened with the updated agent files.{' '}
           <a
             href={saveResult.prUrl}
             target="_blank"
@@ -351,7 +352,10 @@ export function AgentsPanel({
           {pendingLoading ? (
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {[1, 2].map((i) => (
-                <div key={i} className="h-48 rounded-[1.4rem] border border-border bg-background/40 animate-pulse" />
+                <div
+                  key={i}
+                  className="h-48 rounded-[1.4rem] border border-border bg-background/40 animate-pulse"
+                />
               ))}
             </div>
           ) : (
@@ -496,7 +500,9 @@ export function AgentsPanel({
 
             {filteredAgents.length === 0 ? (
               <div className="mt-6 rounded-[1.35rem] border border-dashed border-border/80 bg-background/42 p-8 text-center">
-                <p className="text-sm text-muted-foreground">No agents match the current filters.</p>
+                <p className="text-sm text-muted-foreground">
+                  No agents match the current filters.
+                </p>
                 <Button
                   variant="ghost"
                   className="mt-3"

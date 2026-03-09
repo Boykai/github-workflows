@@ -97,7 +97,11 @@ describe('IssueCard', () => {
   });
 
   it('shows draft badge for draft issues', () => {
-    const item = createBoardItem({ content_type: 'draft_issue', repository: undefined, number: undefined });
+    const item = createBoardItem({
+      content_type: 'draft_issue',
+      repository: undefined,
+      number: undefined,
+    });
     render(<IssueCard item={item} onClick={vi.fn()} />);
     expect(screen.getByText('Draft')).toBeInTheDocument();
   });
@@ -105,8 +109,24 @@ describe('IssueCard', () => {
   it('renders sub-issues count', () => {
     const item = createBoardItem({
       sub_issues: [
-        { id: 'si-1', number: 1, title: 'Sub 1', url: '#', state: 'open', assignees: [], linked_prs: [] },
-        { id: 'si-2', number: 2, title: 'Sub 2', url: '#', state: 'closed', assignees: [], linked_prs: [] },
+        {
+          id: 'si-1',
+          number: 1,
+          title: 'Sub 1',
+          url: '#',
+          state: 'open',
+          assignees: [],
+          linked_prs: [],
+        },
+        {
+          id: 'si-2',
+          number: 2,
+          title: 'Sub 2',
+          url: '#',
+          state: 'closed',
+          assignees: [],
+          linked_prs: [],
+        },
       ],
     });
     render(<IssueCard item={item} onClick={vi.fn()} />);

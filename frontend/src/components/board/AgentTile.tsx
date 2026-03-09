@@ -75,7 +75,8 @@ export function AgentTile({
   // Build metadata line: model · N tools
   const metaParts: string[] = [];
   if (effectiveModelName) metaParts.push(effectiveModelName);
-  if (metadata && metadata.tools_count != null) metaParts.push(`${metadata.tools_count} tool${metadata.tools_count !== 1 ? 's' : ''}`);
+  if (metadata && metadata.tools_count != null)
+    metaParts.push(`${metadata.tools_count} tool${metadata.tools_count !== 1 ? 's' : ''}`);
   const metaLine = metaParts.join(' · ');
 
   const handleRemove = (e: React.MouseEvent) => {
@@ -116,18 +117,32 @@ export function AgentTile({
         )}
 
         {sortableProps && (
-          <span className="cursor-grab px-0.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground" {...(sortableProps.listeners ?? {})}>
+          <span
+            className="cursor-grab px-0.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+            {...(sortableProps.listeners ?? {})}
+          >
             ⠿
           </span>
         )}
 
         <span className="relative z-10 rounded-full p-[2px] shadow-[0_0_18px_hsl(var(--gold)/0.15)]">
           <span className="absolute inset-0 rounded-full border border-primary/18 bg-background/18" />
-          <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={metadata?.avatar_url} iconName={metadata?.icon_name} size="sm" className="relative border-border/50" title={agent.slug} />
+          <ThemedAgentIcon
+            slug={agent.slug}
+            name={displayName}
+            avatarUrl={metadata?.avatar_url}
+            iconName={metadata?.icon_name}
+            size="sm"
+            className="relative border-border/50"
+            title={agent.slug}
+          />
         </span>
 
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-[11px] font-semibold tracking-[0.02em] text-foreground" title={agent.slug}>
+          <span
+            className="block truncate text-[11px] font-semibold tracking-[0.02em] text-foreground"
+            title={agent.slug}
+          >
             {displayName}
           </span>
           {effectiveModelName && (
@@ -138,7 +153,10 @@ export function AgentTile({
         </div>
 
         {isWarning && (
-          <span className="rounded-full border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300" title="Agent not found in available agents">
+          <span
+            className="rounded-full border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300"
+            title="Agent not found in available agents"
+          >
             !
           </span>
         )}
@@ -179,13 +197,23 @@ export function AgentTile({
       <div className="flex items-center gap-2 p-2">
         {/* Drag handle */}
         {sortableProps && (
-          <span className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1" {...(sortableProps.listeners ?? {})}>
+          <span
+            className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1"
+            {...(sortableProps.listeners ?? {})}
+          >
             <GripVertical className="h-4 w-4" />
           </span>
         )}
 
         {/* Avatar */}
-        <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={metadata?.avatar_url} iconName={metadata?.icon_name} size="sm" title={agent.slug} />
+        <ThemedAgentIcon
+          slug={agent.slug}
+          name={displayName}
+          avatarUrl={metadata?.avatar_url}
+          iconName={metadata?.icon_name}
+          size="sm"
+          title={agent.slug}
+        />
 
         {/* Name and metadata */}
         <div className="flex-1 min-w-0">
@@ -199,7 +227,10 @@ export function AgentTile({
 
         {/* Warning badge (T032) */}
         {isWarning && (
-          <span className="rounded-md border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300" title="Agent not found in available agents">
+          <span
+            className="rounded-md border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300"
+            title="Agent not found in available agents"
+          >
             <TriangleAlert className="h-3.5 w-3.5" />
           </span>
         )}
@@ -243,7 +274,9 @@ export function AgentTile({
         <div className="mt-1 flex flex-col gap-1.5 rounded-b-md border-t border-border/50 bg-background/46 p-3 pt-0 text-xs">
           <div className="flex items-baseline gap-2 mt-2">
             <span className="text-muted-foreground font-medium min-w-[70px]">Slug:</span>
-            <code className="solar-chip-soft rounded border px-1.5 py-0.5 text-[10px] font-mono break-all">{agent.slug}</code>
+            <code className="solar-chip-soft rounded border px-1.5 py-0.5 text-[10px] font-mono break-all">
+              {agent.slug}
+            </code>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-muted-foreground font-medium min-w-[70px]">Model:</span>

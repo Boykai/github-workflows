@@ -86,7 +86,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -188,11 +188,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
   if (showChatFlow) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleCancel}
-          role="presentation"
-        />
+        <div className="absolute inset-0 bg-black/50" onClick={handleCancel} role="presentation" />
         <div className="celestial-panel celestial-fade-in relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
@@ -223,11 +219,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={handleCancel}
-        role="presentation"
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={handleCancel} role="presentation" />
 
       {/* Modal */}
       <div className="celestial-panel celestial-fade-in relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
@@ -246,9 +238,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           {/* Template picker */}
           {repoTemplates && repoTemplates.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">
-                Start from a template
-              </span>
+              <span className="text-sm font-medium text-foreground">Start from a template</span>
               <div className="flex flex-wrap gap-2">
                 {repoTemplates.map((tpl) => (
                   <button
@@ -258,13 +248,14 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
                     className="rounded-md border border-input bg-background/56 px-2.5 py-1.5 text-left text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/10"
                     title={tpl.about || tpl.name}
                   >
-                    <span className="inline-flex items-center gap-2"><ScrollText className="h-3.5 w-3.5 text-primary/70" />{tpl.name}</span>
+                    <span className="inline-flex items-center gap-2">
+                      <ScrollText className="h-3.5 w-3.5 text-primary/70" />
+                      {tpl.name}
+                    </span>
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Or create a custom chore below
-              </p>
+              <p className="text-xs text-muted-foreground">Or create a custom chore below</p>
             </div>
           )}
 
@@ -342,9 +333,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           />
 
           {/* Error */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">

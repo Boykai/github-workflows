@@ -699,7 +699,11 @@ export const choresApi = {
   /**
    * Manually trigger a chore.
    */
-  trigger(projectId: string, choreId: string, parentIssueCount?: number): Promise<ChoreTriggerResult> {
+  trigger(
+    projectId: string,
+    choreId: string,
+    parentIssueCount?: number
+  ): Promise<ChoreTriggerResult> {
     return request<ChoreTriggerResult>(`/chores/${projectId}/${choreId}/trigger`, {
       method: 'POST',
       ...(parentIssueCount !== undefined
@@ -721,7 +725,11 @@ export const choresApi = {
   /**
    * Inline update a chore definition (creates a PR on save).
    */
-  inlineUpdate(projectId: string, choreId: string, data: ChoreInlineUpdate): Promise<ChoreInlineUpdateResponse> {
+  inlineUpdate(
+    projectId: string,
+    choreId: string,
+    data: ChoreInlineUpdate
+  ): Promise<ChoreInlineUpdateResponse> {
     return request<ChoreInlineUpdateResponse>(`/chores/${projectId}/${choreId}/inline-update`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -731,7 +739,10 @@ export const choresApi = {
   /**
    * Create a new chore with auto-merge flow.
    */
-  createWithAutoMerge(projectId: string, data: ChoreCreateWithConfirmation): Promise<ChoreCreateResponse> {
+  createWithAutoMerge(
+    projectId: string,
+    data: ChoreCreateWithConfirmation
+  ): Promise<ChoreCreateResponse> {
     return request<ChoreCreateResponse>(`/chores/${projectId}/create-with-merge`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -743,7 +754,7 @@ export const choresApi = {
    */
   evaluateTriggers(
     projectId?: string,
-    parentIssueCount?: number,
+    parentIssueCount?: number
   ): Promise<EvaluateChoreTriggersResponse> {
     return request<EvaluateChoreTriggersResponse>('/chores/evaluate-triggers', {
       method: 'POST',
@@ -751,11 +762,9 @@ export const choresApi = {
         projectId
           ? {
               project_id: projectId,
-              ...(parentIssueCount !== undefined
-                ? { parent_issue_count: parentIssueCount }
-                : {}),
+              ...(parentIssueCount !== undefined ? { parent_issue_count: parentIssueCount } : {}),
             }
-          : {},
+          : {}
       ),
     });
   },
@@ -971,7 +980,10 @@ export const pipelinesApi = {
     });
   },
 
-  setBlockingOverride(projectId: string, blockingOverride: boolean | null): Promise<ProjectPipelineAssignment> {
+  setBlockingOverride(
+    projectId: string,
+    blockingOverride: boolean | null
+  ): Promise<ProjectPipelineAssignment> {
     return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
       method: 'PATCH',
       body: JSON.stringify({ blocking_override: blockingOverride }),
@@ -1007,14 +1019,14 @@ export const toolsApi = {
   updateRepoServer(
     projectId: string,
     serverName: string,
-    data: RepoMcpServerUpdate,
+    data: RepoMcpServerUpdate
   ): Promise<RepoMcpServerConfig> {
     return request<RepoMcpServerConfig>(
       `/tools/${projectId}/repo-config/${encodeURIComponent(serverName)}`,
       {
         method: 'PUT',
         body: JSON.stringify(data),
-      },
+      }
     );
   },
 
@@ -1023,7 +1035,7 @@ export const toolsApi = {
       `/tools/${projectId}/repo-config/${encodeURIComponent(serverName)}`,
       {
         method: 'DELETE',
-      },
+      }
     );
   },
 

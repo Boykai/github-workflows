@@ -6,10 +6,7 @@
 
 import { SettingsSection } from './SettingsSection';
 import { useSettingsForm } from '@/hooks/useSettingsForm';
-import type {
-  WorkflowDefaults as WorkflowDefaultsType,
-  UserPreferencesUpdate,
-} from '@/types';
+import type { WorkflowDefaults as WorkflowDefaultsType, UserPreferencesUpdate } from '@/types';
 
 interface WorkflowDefaultsProps {
   settings: WorkflowDefaultsType;
@@ -52,7 +49,9 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
       onSave={handleSave}
     >
       <div className="flex flex-col gap-2">
-        <label htmlFor="workflow-repo" className="text-sm font-medium text-foreground">Default Repository</label>
+        <label htmlFor="workflow-repo" className="text-sm font-medium text-foreground">
+          Default Repository
+        </label>
         <input
           id="workflow-repo"
           type="text"
@@ -64,7 +63,9 @@ export function WorkflowDefaults({ settings, onSave }: WorkflowDefaultsProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="workflow-assignee" className="text-sm font-medium text-foreground">Default Assignee</label>
+        <label htmlFor="workflow-assignee" className="text-sm font-medium text-foreground">
+          Default Assignee
+        </label>
         <input
           id="workflow-assignee"
           type="text"

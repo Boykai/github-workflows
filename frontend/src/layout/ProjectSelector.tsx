@@ -57,11 +57,13 @@ export function ProjectSelector({
       ref={ref}
       className={cn(
         'celestial-panel absolute bottom-full left-0 right-0 z-50 mb-2 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md',
-        className,
+        className
       )}
     >
       <div className="border-b border-border/70 bg-background/25 px-3 py-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">Projects</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">
+          Projects
+        </p>
       </div>
 
       {isLoading ? (
@@ -71,7 +73,9 @@ export function ProjectSelector({
       ) : projects.length === 0 ? (
         <div className="p-5 text-center">
           <p className="text-sm text-muted-foreground">No projects available</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Connect a GitHub project to get started</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">
+            Connect a GitHub project to get started
+          </p>
         </div>
       ) : (
         <div className="max-h-[280px] overflow-y-auto py-1">
@@ -83,7 +87,9 @@ export function ProjectSelector({
                 onClose();
               }}
               className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 ${
-                project.project_id === selectedProjectId ? 'bg-primary/10 text-primary' : 'text-foreground'
+                project.project_id === selectedProjectId
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-foreground'
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
@@ -91,7 +97,9 @@ export function ProjectSelector({
               </span>
               <div className="flex flex-col min-w-0">
                 <span className="font-medium truncate">{project.name}</span>
-                <span className="text-xs text-muted-foreground truncate">{project.owner_login}</span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {project.owner_login}
+                </span>
               </div>
               {project.project_id === selectedProjectId && (
                 <Check className="ml-auto h-3.5 w-3.5 text-primary" />

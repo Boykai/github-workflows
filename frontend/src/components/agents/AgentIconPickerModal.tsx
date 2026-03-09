@@ -15,8 +15,18 @@ interface AgentIconPickerModalProps {
   onSave: (iconName: CelestialIconName | null) => Promise<void> | void;
 }
 
-export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName, isSaving = false, onClose, onSave }: AgentIconPickerModalProps) {
-  const [selectedIconName, setSelectedIconName] = useState<CelestialIconName | null>(isCelestialIconName(currentIconName) ? currentIconName : null);
+export function AgentIconPickerModal({
+  isOpen,
+  agentName,
+  slug,
+  currentIconName,
+  isSaving = false,
+  onClose,
+  onSave,
+}: AgentIconPickerModalProps) {
+  const [selectedIconName, setSelectedIconName] = useState<CelestialIconName | null>(
+    isCelestialIconName(currentIconName) ? currentIconName : null
+  );
 
   useEffect(() => {
     setSelectedIconName(isCelestialIconName(currentIconName) ? currentIconName : null);
@@ -36,11 +46,25 @@ export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName,
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Celestial Icon Catalog</p>
-              <h3 className="mt-2 text-2xl font-display font-medium">Choose an icon for {agentName}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">Pick a specific celestial icon, or leave it on automatic to use the diversified slug-based mapping.</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                Celestial Icon Catalog
+              </p>
+              <h3 className="mt-2 text-2xl font-display font-medium">
+                Choose an icon for {agentName}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Pick a specific celestial icon, or leave it on automatic to use the diversified
+                slug-based mapping.
+              </p>
             </div>
-            <button type="button" className="solar-action flex h-10 w-10 items-center justify-center rounded-full" onClick={onClose} aria-label="Close icon picker"><X className="h-4 w-4" /></button>
+            <button
+              type="button"
+              className="solar-action flex h-10 w-10 items-center justify-center rounded-full"
+              onClick={onClose}
+              aria-label="Close icon picker"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -53,7 +77,13 @@ export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName,
           </div>
 
           <div className="mt-5 flex shrink-0 justify-end gap-2">
-            <button type="button" className="solar-action rounded-full px-4 py-2 text-sm font-medium" onClick={onClose}>Cancel</button>
+            <button
+              type="button"
+              className="solar-action rounded-full px-4 py-2 text-sm font-medium"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
             <button
               type="button"
               className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
@@ -66,6 +96,6 @@ export function AgentIconPickerModal({ isOpen, agentName, slug, currentIconName,
         </div>
       </div>
     </div>,
-    document.body,
+    document.body
   );
 }

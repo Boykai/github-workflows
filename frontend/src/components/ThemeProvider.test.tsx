@@ -137,9 +137,7 @@ describe('ThemeProvider', () => {
 
   it('throws when useTheme is used outside provider', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<ThemeConsumer />)).toThrow(
-      'useTheme must be used within a ThemeProvider'
-    );
+    expect(() => render(<ThemeConsumer />)).toThrow('useTheme must be used within a ThemeProvider');
     consoleSpy.mockRestore();
   });
 

@@ -34,11 +34,12 @@ export function PipelineModelDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const displayLabel = currentOverride.mode === 'auto'
-    ? 'Auto (Agent Defaults)'
-    : currentOverride.mode === 'mixed'
-      ? 'Mixed'
-      : currentOverride.modelName || currentOverride.modelId;
+  const displayLabel =
+    currentOverride.mode === 'auto'
+      ? 'Auto (Agent Defaults)'
+      : currentOverride.mode === 'mixed'
+        ? 'Mixed'
+        : currentOverride.modelName || currentOverride.modelId;
 
   // Group models by provider
   const grouped = models.reduce<Record<string, AIModel[]>>((acc, model) => {
@@ -61,7 +62,9 @@ export function PipelineModelDropdown({
           <Sparkles className="h-3.5 w-3.5 text-primary/60" />
           {displayLabel}
         </span>
-        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (

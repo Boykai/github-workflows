@@ -78,10 +78,15 @@ function CheckboxList({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </span>
       <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto">
         {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs">
+          <label
+            key={opt}
+            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
+          >
             <input
               type="checkbox"
               checked={selected.includes(opt)}
@@ -108,7 +113,10 @@ function RadioList({
   return (
     <div className="flex flex-col gap-0.5">
       {options.map((opt) => (
-        <label key={opt.value} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs">
+        <label
+          key={opt.value}
+          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-muted/50 cursor-pointer text-xs"
+        >
           <input
             type="radio"
             name="board-control-radio"
@@ -142,12 +150,9 @@ export function BoardToolbar({
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const togglePanel = useCallback(
-    (panel: ActivePanel) => {
-      setActivePanel((prev) => (prev === panel ? null : panel));
-    },
-    []
-  );
+  const togglePanel = useCallback((panel: ActivePanel) => {
+    setActivePanel((prev) => (prev === panel ? null : panel));
+  }, []);
 
   // Close panel on outside click
   useEffect(() => {
@@ -173,9 +178,27 @@ export function BoardToolbar({
 
   return (
     <div className="relative flex items-center gap-2 shrink-0" ref={panelRef}>
-      <ToolbarButton icon={Filter} label="Filter" isActive={activePanel === 'filter'} hasIndicator={hasActiveFilters} onClick={() => togglePanel('filter')} />
-      <ToolbarButton icon={ArrowUpDown} label={sort.field ? `Sort: ${sort.field}` : 'Sort'} isActive={activePanel === 'sort'} hasIndicator={hasActiveSort} onClick={() => togglePanel('sort')} />
-      <ToolbarButton icon={Columns3} label={group.field ? `Group: ${group.field}` : 'Group by'} isActive={activePanel === 'group'} hasIndicator={hasActiveGroup} onClick={() => togglePanel('group')} />
+      <ToolbarButton
+        icon={Filter}
+        label="Filter"
+        isActive={activePanel === 'filter'}
+        hasIndicator={hasActiveFilters}
+        onClick={() => togglePanel('filter')}
+      />
+      <ToolbarButton
+        icon={ArrowUpDown}
+        label={sort.field ? `Sort: ${sort.field}` : 'Sort'}
+        isActive={activePanel === 'sort'}
+        hasIndicator={hasActiveSort}
+        onClick={() => togglePanel('sort')}
+      />
+      <ToolbarButton
+        icon={Columns3}
+        label={group.field ? `Group: ${group.field}` : 'Group by'}
+        isActive={activePanel === 'group'}
+        hasIndicator={hasActiveGroup}
+        onClick={() => togglePanel('group')}
+      />
 
       {hasActiveControls && (
         <Tooltip contentKey="board.toolbar.clearAllButton">
@@ -205,9 +228,24 @@ export function BoardToolbar({
               </button>
             )}
           </div>
-          <CheckboxList title="Labels" options={availableLabels} selected={filters.labels} onChange={(labels) => onFiltersChange({ ...filters, labels })} />
-          <CheckboxList title="Assignees" options={availableAssignees} selected={filters.assignees} onChange={(assignees) => onFiltersChange({ ...filters, assignees })} />
-          <CheckboxList title="Milestones" options={availableMilestones} selected={filters.milestones} onChange={(milestones) => onFiltersChange({ ...filters, milestones })} />
+          <CheckboxList
+            title="Labels"
+            options={availableLabels}
+            selected={filters.labels}
+            onChange={(labels) => onFiltersChange({ ...filters, labels })}
+          />
+          <CheckboxList
+            title="Assignees"
+            options={availableAssignees}
+            selected={filters.assignees}
+            onChange={(assignees) => onFiltersChange({ ...filters, assignees })}
+          />
+          <CheckboxList
+            title="Milestones"
+            options={availableMilestones}
+            selected={filters.milestones}
+            onChange={(milestones) => onFiltersChange({ ...filters, milestones })}
+          />
         </div>
       )}
 
@@ -237,7 +275,9 @@ export function BoardToolbar({
             onChange={(field) => onSortChange({ ...sort, field: field as BoardSortState['field'] })}
           />
           <div className="flex items-center gap-2 pt-1 border-t border-border/50">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Direction</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Direction
+            </span>
             <button
               className={`px-2 py-0.5 text-xs rounded ${sort.direction === 'asc' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => onSortChange({ ...sort, direction: 'asc' })}

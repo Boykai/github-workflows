@@ -35,18 +35,38 @@ export interface IconToneStyles {
 export const CELESTIAL_ICON_CATALOG: CelestialIconOption[] = [
   { id: 'sun-halo', label: 'Sun Halo', family: 'sun', description: 'Radiant centered halo.' },
   { id: 'sunrise', label: 'Sunrise', family: 'sun', description: 'Rising sun over an arc.' },
-  { id: 'solar-crown', label: 'Solar Crown', family: 'sun', description: 'Crowned sun with sharp rays.' },
+  {
+    id: 'solar-crown',
+    label: 'Solar Crown',
+    family: 'sun',
+    description: 'Crowned sun with sharp rays.',
+  },
   { id: 'crescent', label: 'Crescent', family: 'moon', description: 'Classic moon crescent.' },
   { id: 'moon-phase', label: 'Moon Phase', family: 'moon', description: 'Phase cycle with stars.' },
   { id: 'eclipse', label: 'Eclipse', family: 'moon', description: 'Shadowed sun ring.' },
   { id: 'north-star', label: 'North Star', family: 'star', description: 'Single guiding star.' },
-  { id: 'eight-point-star', label: 'Eight-Point Star', family: 'star', description: 'Symmetric bright star.' },
-  { id: 'constellation', label: 'Constellation', family: 'star', description: 'Connected star map.' },
+  {
+    id: 'eight-point-star',
+    label: 'Eight-Point Star',
+    family: 'star',
+    description: 'Symmetric bright star.',
+  },
+  {
+    id: 'constellation',
+    label: 'Constellation',
+    family: 'star',
+    description: 'Connected star map.',
+  },
   { id: 'twin-stars', label: 'Twin Stars', family: 'star', description: 'Paired stars in orbit.' },
   { id: 'comet', label: 'Comet', family: 'motion', description: 'Bright comet with long trail.' },
   { id: 'meteor', label: 'Meteor', family: 'motion', description: 'Fast meteor streak.' },
   { id: 'orbit', label: 'Orbit', family: 'orbit', description: 'Orbital rings and core.' },
-  { id: 'planet-ring', label: 'Planet Ring', family: 'orbit', description: 'Saturn-like planet icon.' },
+  {
+    id: 'planet-ring',
+    label: 'Planet Ring',
+    family: 'orbit',
+    description: 'Saturn-like planet icon.',
+  },
   { id: 'nova', label: 'Nova', family: 'star', description: 'Exploding starburst.' },
   { id: 'aurora', label: 'Aurora', family: 'aurora', description: 'Celestial wave and stars.' },
 ];
@@ -76,7 +96,10 @@ const ICON_BY_SLUG: Record<string, CelestialIconName> = {
 const HASH_ICONS = CELESTIAL_ICON_CATALOG.map((icon) => icon.id);
 
 function normalizeSlug(slug?: string | null): string {
-  return (slug ?? '').trim().toLowerCase().replace(/[._\s]+/g, '-');
+  return (slug ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[._\s]+/g, '-');
 }
 
 function hashString(value: string): number {
@@ -113,7 +136,10 @@ export function getThemedAgentIconName(slug?: string | null): CelestialIconName 
   return HASH_ICONS[hashString(normalized) % HASH_ICONS.length];
 }
 
-export function resolveAgentIconName(iconName?: string | null, slug?: string | null): CelestialIconName | null {
+export function resolveAgentIconName(
+  iconName?: string | null,
+  slug?: string | null
+): CelestialIconName | null {
   if (isCelestialIconName(iconName)) {
     return iconName;
   }
@@ -124,7 +150,8 @@ export function resolveAgentIconName(iconName?: string | null, slug?: string | n
 export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
   const sunTone: IconToneStyles = {
     wrapper: {
-      background: 'radial-gradient(circle at 34% 30%, hsl(var(--glow) / 0.98) 0%, hsl(var(--gold) / 0.82) 24%, hsl(var(--background) / 0.94) 62%, hsl(var(--background) / 0.86) 100%)',
+      background:
+        'radial-gradient(circle at 34% 30%, hsl(var(--glow) / 0.98) 0%, hsl(var(--gold) / 0.82) 24%, hsl(var(--background) / 0.94) 62%, hsl(var(--background) / 0.86) 100%)',
       borderColor: 'hsl(var(--gold) / 0.42)',
       boxShadow: '0 8px 22px hsl(var(--gold) / 0.14), inset 0 1px 0 hsl(var(--glow) / 0.4)',
     },
@@ -135,7 +162,8 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
 
   const moonTone: IconToneStyles = {
     wrapper: {
-      background: 'radial-gradient(circle at 30% 24%, hsl(var(--glow) / 0.5) 0%, hsl(var(--panel) / 0.98) 34%, hsl(var(--background) / 0.9) 100%)',
+      background:
+        'radial-gradient(circle at 30% 24%, hsl(var(--glow) / 0.5) 0%, hsl(var(--panel) / 0.98) 34%, hsl(var(--background) / 0.9) 100%)',
       borderColor: 'hsl(var(--border) / 0.76)',
       boxShadow: '0 8px 18px hsl(var(--night) / 0.1), inset 0 1px 0 hsl(var(--glow) / 0.16)',
     },
@@ -146,7 +174,8 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
 
   const nightTone: IconToneStyles = {
     wrapper: {
-      background: 'radial-gradient(circle at 28% 24%, hsl(var(--star-soft) / 0.22) 0%, hsl(var(--night) / 0.94) 42%, hsl(var(--night) / 0.98) 100%)',
+      background:
+        'radial-gradient(circle at 28% 24%, hsl(var(--star-soft) / 0.22) 0%, hsl(var(--night) / 0.94) 42%, hsl(var(--night) / 0.98) 100%)',
       borderColor: 'hsl(var(--gold) / 0.2)',
       boxShadow: '0 10px 22px hsl(var(--night) / 0.24), inset 0 1px 0 hsl(var(--star-soft) / 0.18)',
     },
@@ -157,7 +186,8 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
 
   const orbitTone: IconToneStyles = {
     wrapper: {
-      background: 'radial-gradient(circle at 34% 28%, hsl(var(--glow) / 0.34) 0%, hsl(var(--background) / 0.98) 38%, hsl(var(--panel) / 0.92) 100%)',
+      background:
+        'radial-gradient(circle at 34% 28%, hsl(var(--glow) / 0.34) 0%, hsl(var(--background) / 0.98) 38%, hsl(var(--panel) / 0.92) 100%)',
       borderColor: 'hsl(var(--gold) / 0.28)',
       boxShadow: '0 8px 18px hsl(var(--night) / 0.08), inset 0 1px 0 hsl(var(--glow) / 0.2)',
     },
@@ -168,7 +198,8 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
 
   const motionTone: IconToneStyles = {
     wrapper: {
-      background: 'linear-gradient(145deg, hsl(var(--background) / 0.98) 0%, hsl(var(--panel) / 0.92) 44%, hsl(var(--glow) / 0.26) 100%)',
+      background:
+        'linear-gradient(145deg, hsl(var(--background) / 0.98) 0%, hsl(var(--panel) / 0.92) 44%, hsl(var(--glow) / 0.26) 100%)',
       borderColor: 'hsl(var(--gold) / 0.28)',
       boxShadow: '0 8px 20px hsl(var(--night) / 0.1), inset 0 1px 0 hsl(var(--glow) / 0.26)',
     },
@@ -179,7 +210,8 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
 
   const auroraTone: IconToneStyles = {
     wrapper: {
-      background: 'radial-gradient(circle at 32% 22%, hsl(var(--glow) / 0.42) 0%, color-mix(in srgb, hsl(var(--background)) 88%, hsl(var(--accent)) 12%) 44%, hsl(var(--panel) / 0.94) 100%)',
+      background:
+        'radial-gradient(circle at 32% 22%, hsl(var(--glow) / 0.42) 0%, color-mix(in srgb, hsl(var(--background)) 88%, hsl(var(--accent)) 12%) 44%, hsl(var(--panel) / 0.94) 100%)',
       borderColor: 'hsl(var(--accent) / 0.22)',
       boxShadow: '0 8px 20px hsl(var(--night) / 0.1), inset 0 1px 0 hsl(var(--glow) / 0.24)',
     },
@@ -216,7 +248,13 @@ export function getIconToneStyles(iconName: CelestialIconName): IconToneStyles {
   }
 }
 
-export function CelestialGlyph({ iconName, className }: { iconName: CelestialIconName; className: string }) {
+export function CelestialGlyph({
+  iconName,
+  className,
+}: {
+  iconName: CelestialIconName;
+  className: string;
+}) {
   const styles = getIconToneStyles(iconName);
 
   switch (iconName) {
@@ -240,8 +278,17 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
     case 'sunrise':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M4.5 15.6h15" stroke={styles.icon.color as string} strokeWidth="1.25" strokeLinecap="round" />
-          <path d="M7.2 15.4a4.8 4.8 0 0 1 9.6 0" fill={styles.accent.color as string} opacity="0.92" />
+          <path
+            d="M4.5 15.6h15"
+            stroke={styles.icon.color as string}
+            strokeWidth="1.25"
+            strokeLinecap="round"
+          />
+          <path
+            d="M7.2 15.4a4.8 4.8 0 0 1 9.6 0"
+            fill={styles.accent.color as string}
+            opacity="0.92"
+          />
           <g stroke={styles.icon.color as string} strokeWidth="1.15" strokeLinecap="round">
             <path d="M12 4.2v2.4" />
             <path d="m8 6.5 1.6 1.5" />
@@ -253,7 +300,11 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
           <circle cx="12" cy="12" r="3.7" fill={styles.glow.color as string} />
-          <path d="M12 3.3 13.6 7l3.9-.9-2.1 3.3 3.3 2.1-3.9.8.8 3.9-3.2-2.2-3.2 2.2.8-3.9-3.9-.8 3.3-2.1-2.1-3.3 3.9.9L12 3.3Z" fill={styles.accent.color as string} opacity="0.9" />
+          <path
+            d="M12 3.3 13.6 7l3.9-.9-2.1 3.3 3.3 2.1-3.9.8.8 3.9-3.2-2.2-3.2 2.2.8-3.9-3.9-.8 3.3-2.1-2.1-3.3 3.9.9L12 3.3Z"
+            fill={styles.accent.color as string}
+            opacity="0.9"
+          />
         </svg>
       );
     case 'crescent':
@@ -269,7 +320,11 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
           <circle cx="12" cy="12" r="5.7" fill={styles.accent.color as string} opacity="0.28" />
-          <path d="M12 6.3a5.7 5.7 0 1 0 0 11.4c1.14-1.26 1.75-3.09 1.75-5.7S13.14 7.56 12 6.3Z" fill={styles.icon.color as string} opacity="0.88" />
+          <path
+            d="M12 6.3a5.7 5.7 0 1 0 0 11.4c1.14-1.26 1.75-3.09 1.75-5.7S13.14 7.56 12 6.3Z"
+            fill={styles.icon.color as string}
+            opacity="0.88"
+          />
           <circle cx="6.3" cy="7" r="1.05" fill={styles.glow.color as string} />
           <circle cx="17.9" cy="16.7" r="0.95" fill={styles.glow.color as string} />
         </svg>
@@ -279,22 +334,46 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
           <circle cx="12" cy="12" r="6.8" fill={styles.accent.color as string} opacity="0.22" />
           <circle cx="12" cy="12" r="5.8" fill="hsl(var(--night))" />
-          <path d="M16.4 6.8c1.15 1.18 1.86 2.8 1.86 4.58 0 3.62-2.91 6.56-6.5 6.62" stroke={styles.glow.color as string} strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M7.6 17.1c-1.2-1.18-1.96-2.82-1.96-4.64 0-3.66 2.97-6.63 6.63-6.63" stroke={styles.accent.color as string} strokeWidth="1.15" strokeLinecap="round" opacity="0.9" />
+          <path
+            d="M16.4 6.8c1.15 1.18 1.86 2.8 1.86 4.58 0 3.62-2.91 6.56-6.5 6.62"
+            stroke={styles.glow.color as string}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M7.6 17.1c-1.2-1.18-1.96-2.82-1.96-4.64 0-3.66 2.97-6.63 6.63-6.63"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.15"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
         </svg>
       );
     case 'north-star':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M12 3.5 13.1 10l6.4 2-6.4 2L12 20.5l-1.1-6.5L4.5 12l6.4-2L12 3.5Z" fill={styles.accent.color as string} opacity="0.9" />
+          <path
+            d="M12 3.5 13.1 10l6.4 2-6.4 2L12 20.5l-1.1-6.5L4.5 12l6.4-2L12 3.5Z"
+            fill={styles.accent.color as string}
+            opacity="0.9"
+          />
           <circle cx="12" cy="12" r="1.2" fill={styles.glow.color as string} />
         </svg>
       );
     case 'eight-point-star':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M12 4.2 13.4 9.6 19 11l-5.6 1.4L12 17.8l-1.4-5.4L5 11l5.6-1.4L12 4.2Z" fill={styles.accent.color as string} opacity="0.92" />
-          <path d="M12 1.9v4.1M12 18v4.1M1.9 12H6M18 12h4.1M4.4 4.4l2.9 2.9M16.7 16.7l2.9 2.9M4.4 19.6l2.9-2.9M16.7 7.3l2.9-2.9" stroke={styles.glow.color as string} strokeWidth="1.05" strokeLinecap="round" />
+          <path
+            d="M12 4.2 13.4 9.6 19 11l-5.6 1.4L12 17.8l-1.4-5.4L5 11l5.6-1.4L12 4.2Z"
+            fill={styles.accent.color as string}
+            opacity="0.92"
+          />
+          <path
+            d="M12 1.9v4.1M12 18v4.1M1.9 12H6M18 12h4.1M4.4 4.4l2.9 2.9M16.7 16.7l2.9 2.9M4.4 19.6l2.9-2.9M16.7 7.3l2.9-2.9"
+            stroke={styles.glow.color as string}
+            strokeWidth="1.05"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case 'constellation':
@@ -316,16 +395,40 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
     case 'twin-stars':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M8 7.2 8.9 10l2.8.9-2.8.9L8 14.6l-.9-2.8-2.8-.9 2.8-.9L8 7.2Z" fill={styles.accent.color as string} />
-          <path d="M16.5 10.2 17.2 12.6l2.4.8-2.4.8-.7 2.4-.8-2.4-2.4-.8 2.4-.8.8-2.4Z" fill={styles.glow.color as string} />
-          <path d="M8.8 11.1c1.64 0 3.05.39 4.24 1.2" stroke={styles.icon.color as string} strokeWidth="1.1" strokeLinecap="round" opacity="0.78" />
+          <path
+            d="M8 7.2 8.9 10l2.8.9-2.8.9L8 14.6l-.9-2.8-2.8-.9 2.8-.9L8 7.2Z"
+            fill={styles.accent.color as string}
+          />
+          <path
+            d="M16.5 10.2 17.2 12.6l2.4.8-2.4.8-.7 2.4-.8-2.4-2.4-.8 2.4-.8.8-2.4Z"
+            fill={styles.glow.color as string}
+          />
+          <path
+            d="M8.8 11.1c1.64 0 3.05.39 4.24 1.2"
+            stroke={styles.icon.color as string}
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            opacity="0.78"
+          />
         </svg>
       );
     case 'comet':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M5.2 15.8c3.1-3.35 6.18-5.2 11.95-7.26" stroke={styles.glow.color as string} strokeWidth="1.35" strokeLinecap="round" opacity="0.9" />
-          <path d="M4.6 12.7c2.65-2.06 5.3-3.36 9.45-4.54" stroke={styles.accent.color as string} strokeWidth="1.1" strokeLinecap="round" opacity="0.9" />
+          <path
+            d="M5.2 15.8c3.1-3.35 6.18-5.2 11.95-7.26"
+            stroke={styles.glow.color as string}
+            strokeWidth="1.35"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
+          <path
+            d="M4.6 12.7c2.65-2.06 5.3-3.36 9.45-4.54"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.1"
+            strokeLinecap="round"
+            opacity="0.9"
+          />
           <circle cx="17.5" cy="7.7" r="2.55" fill={styles.accent.color as string} />
           <circle cx="17.5" cy="7.7" r="1.2" fill={styles.icon.color as string} opacity="0.72" />
         </svg>
@@ -333,16 +436,49 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
     case 'meteor':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M4.3 14.8c2.3-1.2 5.3-2.1 9.7-2.7" stroke={styles.glow.color as string} strokeWidth="1.15" strokeLinecap="round" />
-          <path d="M5.1 11.4c3.1-.9 6.1-1.3 10.3-1.35" stroke={styles.accent.color as string} strokeWidth="1.25" strokeLinecap="round" />
-          <path d="m16.8 8.3 2.8 1.4-1.3 2.85-2.85 1.35-1.4-2.8 1.45-2.8Z" fill={styles.accent.color as string} opacity="0.9" />
+          <path
+            d="M4.3 14.8c2.3-1.2 5.3-2.1 9.7-2.7"
+            stroke={styles.glow.color as string}
+            strokeWidth="1.15"
+            strokeLinecap="round"
+          />
+          <path
+            d="M5.1 11.4c3.1-.9 6.1-1.3 10.3-1.35"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.25"
+            strokeLinecap="round"
+          />
+          <path
+            d="m16.8 8.3 2.8 1.4-1.3 2.85-2.85 1.35-1.4-2.8 1.45-2.8Z"
+            fill={styles.accent.color as string}
+            opacity="0.9"
+          />
         </svg>
       );
     case 'orbit':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <ellipse cx="12" cy="12" rx="7.5" ry="4.15" fill="none" stroke={styles.accent.color as string} strokeWidth="1.15" transform="rotate(-20 12 12)" />
-          <ellipse cx="12" cy="12" rx="7.5" ry="4.15" fill="none" stroke={styles.glow.color as string} strokeWidth="0.95" transform="rotate(20 12 12)" opacity="0.86" />
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="7.5"
+            ry="4.15"
+            fill="none"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.15"
+            transform="rotate(-20 12 12)"
+          />
+          <ellipse
+            cx="12"
+            cy="12"
+            rx="7.5"
+            ry="4.15"
+            fill="none"
+            stroke={styles.glow.color as string}
+            strokeWidth="0.95"
+            transform="rotate(20 12 12)"
+            opacity="0.86"
+          />
           <circle cx="12" cy="12" r="2.3" fill={styles.icon.color as string} opacity="0.9" />
           <circle cx="17.6" cy="8.8" r="1.25" fill={styles.accent.color as string} />
         </svg>
@@ -350,23 +486,57 @@ export function CelestialGlyph({ iconName, className }: { iconName: CelestialIco
     case 'planet-ring':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <ellipse cx="12" cy="12.7" rx="8.1" ry="2.9" fill="none" stroke={styles.accent.color as string} strokeWidth="1.15" transform="rotate(-10 12 12.7)" />
+          <ellipse
+            cx="12"
+            cy="12.7"
+            rx="8.1"
+            ry="2.9"
+            fill="none"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.15"
+            transform="rotate(-10 12 12.7)"
+          />
           <circle cx="12" cy="12" r="3.95" fill={styles.glow.color as string} />
-          <path d="M8.2 14.2a4.2 4.2 0 0 0 7.6-2.2" stroke={styles.icon.color as string} strokeWidth="1.05" strokeLinecap="round" opacity="0.78" />
+          <path
+            d="M8.2 14.2a4.2 4.2 0 0 0 7.6-2.2"
+            stroke={styles.icon.color as string}
+            strokeWidth="1.05"
+            strokeLinecap="round"
+            opacity="0.78"
+          />
         </svg>
       );
     case 'nova':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M12 3.2 13.6 9l5.6-1.6-3.4 4.5 4.5 2.1-5.8 1.05.78 5.75L12 16.7l-3.28 4.1.78-5.75L3.7 14l4.5-2.1L4.8 7.4 10.4 9 12 3.2Z" fill={styles.accent.color as string} opacity="0.88" />
-          <path d="M12 6.7 12.85 10l3.3-.92-2 2.62 2.66 1.22-3.4.58.46 3.4L12 14.46l-1.87 2.44.44-3.4-3.38-.58 2.64-1.22-2-2.62 3.3.92.87-3.3Z" fill={styles.glow.color as string} />
+          <path
+            d="M12 3.2 13.6 9l5.6-1.6-3.4 4.5 4.5 2.1-5.8 1.05.78 5.75L12 16.7l-3.28 4.1.78-5.75L3.7 14l4.5-2.1L4.8 7.4 10.4 9 12 3.2Z"
+            fill={styles.accent.color as string}
+            opacity="0.88"
+          />
+          <path
+            d="M12 6.7 12.85 10l3.3-.92-2 2.62 2.66 1.22-3.4.58.46 3.4L12 14.46l-1.87 2.44.44-3.4-3.38-.58 2.64-1.22-2-2.62 3.3.92.87-3.3Z"
+            fill={styles.glow.color as string}
+          />
         </svg>
       );
     case 'aurora':
       return (
         <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-          <path d="M4.4 15.4c2.2-3.3 4.55-5.06 7.2-5.06 2.45 0 3.6 1.54 5.2 1.54 1.15 0 2.12-.56 2.88-1.74" stroke={styles.icon.color as string} strokeWidth="1.2" strokeLinecap="round" fill="none" />
-          <path d="M4.6 18.1c1.7-1.8 3.84-2.8 6.2-2.8 2.48 0 3.86 1.25 5.4 1.25 1.28 0 2.22-.44 3.18-1.38" stroke={styles.accent.color as string} strokeWidth="1.15" strokeLinecap="round" fill="none" />
+          <path
+            d="M4.4 15.4c2.2-3.3 4.55-5.06 7.2-5.06 2.45 0 3.6 1.54 5.2 1.54 1.15 0 2.12-.56 2.88-1.74"
+            stroke={styles.icon.color as string}
+            strokeWidth="1.2"
+            strokeLinecap="round"
+            fill="none"
+          />
+          <path
+            d="M4.6 18.1c1.7-1.8 3.84-2.8 6.2-2.8 2.48 0 3.86 1.25 5.4 1.25 1.28 0 2.22-.44 3.18-1.38"
+            stroke={styles.accent.color as string}
+            strokeWidth="1.15"
+            strokeLinecap="round"
+            fill="none"
+          />
           <circle cx="8.2" cy="7.2" r="1.05" fill={styles.glow.color as string} />
           <circle cx="17.6" cy="6.1" r="0.92" fill={styles.glow.color as string} />
         </svg>

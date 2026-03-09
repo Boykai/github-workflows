@@ -19,10 +19,7 @@ import {
   type DragOverEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable';
+import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { BoardColumn, AvailableAgent, AgentAssignment } from '@/types';
 import { AgentColumnCell } from './AgentColumnCell';
 import { AgentDragOverlay } from './AgentDragOverlay';
@@ -46,10 +43,24 @@ function AgentPipelineSigil() {
           <path d="m4.4 12 1.15-1.15" />
           <path d="m10.65 5.75 1.15-1.15" />
         </g>
-        <path d="M15.6 5.8a4.7 4.7 0 1 0 0 9.4c.92-.78 1.45-2.12 1.45-4.7 0-2.22-.56-3.88-1.45-4.7Z" fill="hsl(var(--foreground))" opacity="0.96" />
-        <path d="M5.2 16.55c1.9-2.1 4.9-3.38 8.1-3.38 2.08 0 3.96.46 5.58 1.34" stroke="hsl(var(--border))" strokeWidth="1.05" strokeLinecap="round" fill="none" opacity="0.9" />
+        <path
+          d="M15.6 5.8a4.7 4.7 0 1 0 0 9.4c.92-.78 1.45-2.12 1.45-4.7 0-2.22-.56-3.88-1.45-4.7Z"
+          fill="hsl(var(--foreground))"
+          opacity="0.96"
+        />
+        <path
+          d="M5.2 16.55c1.9-2.1 4.9-3.38 8.1-3.38 2.08 0 3.96.46 5.58 1.34"
+          stroke="hsl(var(--border))"
+          strokeWidth="1.05"
+          strokeLinecap="round"
+          fill="none"
+          opacity="0.9"
+        />
         <circle cx="18.1" cy="16.55" r="1.05" fill="hsl(var(--gold))" opacity="0.92" />
-        <path d="M18.35 3.9 18.9 5.35 20.35 5.9 18.9 6.45 18.35 7.9 17.8 6.45 16.35 5.9 17.8 5.35 18.35 3.9Z" fill="hsl(var(--star))" />
+        <path
+          d="M18.35 3.9 18.9 5.35 20.35 5.9 18.9 6.45 18.35 7.9 17.8 6.45 16.35 5.9 17.8 5.35 18.35 3.9Z"
+          fill="hsl(var(--star))"
+        />
       </svg>
       <span className="absolute -bottom-0.5 -right-0.5 z-10 h-2.5 w-2.5 rounded-full border border-background/85 bg-primary/85 shadow-[0_0_12px_hsl(var(--glow)/0.3)]" />
     </span>
@@ -127,13 +138,18 @@ export function AgentConfigRow({
       const agents = localMappings[column.status.name] ?? [];
       if (agents.length === 0) return [];
 
-      const x = visibleColumns.length === 1
-        ? 50
-        : leftInset + (columnIndex * (100 - leftInset - rightInset)) / (visibleColumns.length - 1);
+      const x =
+        visibleColumns.length === 1
+          ? 50
+          : leftInset +
+            (columnIndex * (100 - leftInset - rightInset)) / (visibleColumns.length - 1);
 
-      const rows = agents.length === 1
-        ? [topInset + usableHeight / 2]
-        : agents.map((_, agentIndex) => topInset + (agentIndex * usableHeight) / (agents.length - 1));
+      const rows =
+        agents.length === 1
+          ? [topInset + usableHeight / 2]
+          : agents.map(
+              (_, agentIndex) => topInset + (agentIndex * usableHeight) / (agents.length - 1)
+            );
 
       return agents.map((agent, agentIndex) => ({
         id: agent.id,
@@ -284,9 +300,15 @@ export function AgentConfigRow({
   // Loading skeleton (T030)
   if (!isLoaded) {
     return (
-      <div className={`celestial-panel flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem]' : 'rounded-[1.2rem]'}`}>
-        <div className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}>
-          <span className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm'}`}>
+      <div
+        className={`celestial-panel flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem]' : 'rounded-[1.2rem]'}`}
+      >
+        <div
+          className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}
+        >
+          <span
+            className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm'}`}
+          >
             <AgentPipelineSigil />
             {title}
           </span>
@@ -294,7 +316,10 @@ export function AgentConfigRow({
         <div className={isCompact ? 'p-1.5' : 'p-2'}>
           <div className={`flex overflow-x-auto ${isCompact ? 'gap-2 pb-1' : 'gap-4 pb-2'}`}>
             {columns.map((col) => (
-              <div key={col.status.option_id} className={`flex flex-1 flex-col border border-border/60 animate-pulse ${isCompact ? 'min-w-[220px] max-w-[280px] gap-1.5 rounded-[1rem] p-1.5' : 'min-w-[300px] max-w-[350px] gap-2 rounded-[1.2rem] p-2'}`}>
+              <div
+                key={col.status.option_id}
+                className={`flex flex-1 flex-col border border-border/60 animate-pulse ${isCompact ? 'min-w-[220px] max-w-[280px] gap-1.5 rounded-[1rem] p-1.5' : 'min-w-[300px] max-w-[350px] gap-2 rounded-[1.2rem] p-2'}`}
+              >
                 <div className="h-10 bg-muted rounded-md w-full" />
               </div>
             ))}
@@ -305,9 +330,13 @@ export function AgentConfigRow({
   }
 
   return (
-    <div className={`celestial-panel relative flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]'}`}>
+    <div
+      className={`celestial-panel relative flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]'}`}
+    >
       {/* Header with toggle and presets */}
-      <div className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}>
+      <div
+        className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}
+      >
         <button
           className={`solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground ${isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6'}`}
           onClick={() => setIsExpanded(!isExpanded)}
@@ -316,7 +345,9 @@ export function AgentConfigRow({
         >
           {isExpanded ? '▾' : '▸'}
         </button>
-        <span className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-[11px] uppercase tracking-[0.18em]' : 'text-sm'}`}>
+        <span
+          className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-[11px] uppercase tracking-[0.18em]' : 'text-sm'}`}
+        >
           <AgentPipelineSigil />
           {title}
         </span>
@@ -334,54 +365,74 @@ export function AgentConfigRow({
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-           <div className="overflow-x-auto">
-            <div className={`relative grid min-w-full items-start ${isCompact ? 'gap-2 px-2 pb-1' : 'gap-3 px-2 pb-2'}`} style={{ gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${isCompact ? '12rem' : '14rem'}, 1fr))` }}>
-              {isCompact && compactConstellation.nodes.length > 1 && (
-                <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  {compactConstellation.edges.map((edge, index) => (
-                    <g key={edge.id}>
-                      <path
-                        d={edge.path}
-                        fill="none"
-                        stroke="hsl(var(--border) / 0.24)"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
+            <div className="overflow-x-auto">
+              <div
+                className={`relative grid min-w-full items-start ${isCompact ? 'gap-2 px-2 pb-1' : 'gap-3 px-2 pb-2'}`}
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${isCompact ? '12rem' : '14rem'}, 1fr))`,
+                }}
+              >
+                {isCompact && compactConstellation.nodes.length > 1 && (
+                  <svg
+                    className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    {compactConstellation.edges.map((edge, index) => (
+                      <g key={edge.id}>
+                        <path
+                          d={edge.path}
+                          fill="none"
+                          stroke="hsl(var(--border) / 0.24)"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d={edge.path}
+                          fill="none"
+                          stroke={
+                            index % 2 === 0
+                              ? 'hsl(var(--gold) / 0.5)'
+                              : 'hsl(var(--primary) / 0.46)'
+                          }
+                          strokeWidth="0.72"
+                          strokeLinecap="round"
+                        />
+                      </g>
+                    ))}
+                    {compactConstellation.stars.map((star) => (
+                      <circle
+                        key={star.id}
+                        cx={star.x}
+                        cy={star.y}
+                        r={star.r}
+                        fill="hsl(var(--star) / 0.8)"
                       />
-                      <path
-                        d={edge.path}
-                        fill="none"
-                        stroke={index % 2 === 0 ? 'hsl(var(--gold) / 0.5)' : 'hsl(var(--primary) / 0.46)'}
-                        strokeWidth="0.72"
-                        strokeLinecap="round"
-                      />
-                    </g>
-                  ))}
-                  {compactConstellation.stars.map((star) => (
-                    <circle key={star.id} cx={star.x} cy={star.y} r={star.r} fill="hsl(var(--star) / 0.8)" />
-                  ))}
-                </svg>
-              )}
-              {columns.map((col) => {
-                const status = col.status.name;
-                const agents = localMappings[status] ?? [];
+                    ))}
+                  </svg>
+                )}
+                {columns.map((col) => {
+                  const status = col.status.name;
+                  const agents = localMappings[status] ?? [];
 
-                return (
-                  <AgentColumnCell
-                    key={col.status.option_id}
-                    status={status}
-                    agents={agents}
-                    isModified={isColumnDirty(status)}
-                    onRemoveAgent={removeAgent}
-                    onCloneAgent={cloneAgent}
-                    onReorderAgents={reorderAgents}
-                    renderAddButton={renderAddButton?.(status)}
-                    availableAgents={availableAgents}
-                    variant={variant}
-                  />
-                );
-              })}
+                  return (
+                    <AgentColumnCell
+                      key={col.status.option_id}
+                      status={status}
+                      agents={agents}
+                      isModified={isColumnDirty(status)}
+                      onRemoveAgent={removeAgent}
+                      onCloneAgent={cloneAgent}
+                      onReorderAgents={reorderAgents}
+                      renderAddButton={renderAddButton?.(status)}
+                      availableAgents={availableAgents}
+                      variant={variant}
+                    />
+                  );
+                })}
+              </div>
             </div>
-           </div>
 
             {/* Floating drag overlay */}
             <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
@@ -399,12 +450,7 @@ export function AgentConfigRow({
 
       {/* Floating save bar */}
       {isDirty && (
-        <AgentSaveBar
-          onSave={save}
-          onDiscard={discard}
-          isSaving={isSaving}
-          error={saveError}
-        />
+        <AgentSaveBar onSave={save} onDiscard={discard} isSaving={isSaving} error={saveError} />
       )}
     </div>
   );

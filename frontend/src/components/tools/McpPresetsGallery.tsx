@@ -7,30 +7,49 @@ interface McpPresetsGalleryProps {
   onSelectPreset: (preset: McpPreset) => void;
 }
 
-export function McpPresetsGallery({ presets, isLoading, error, onSelectPreset }: McpPresetsGalleryProps) {
+export function McpPresetsGallery({
+  presets,
+  isLoading,
+  error,
+  onSelectPreset,
+}: McpPresetsGalleryProps) {
   return (
     <section className="celestial-fade-in ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
       <div>
         <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Preset library</p>
-        <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Quick-add MCP presets</h4>
+        <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+          Quick-add MCP presets
+        </h4>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Start from a documented MCP configuration and adjust it before saving it into the repository.
+          Start from a documented MCP configuration and adjust it before saving it into the
+          repository.
         </p>
       </div>
 
       {isLoading && <div className="mt-6 text-sm text-muted-foreground">Loading presets…</div>}
-      {error && !isLoading && <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>}
+      {error && !isLoading && (
+        <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {!isLoading && !error && (
         <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {presets.map((preset) => (
-            <article key={preset.id} className="rounded-[1.35rem] border border-border/70 bg-background/40 p-4">
+            <article
+              key={preset.id}
+              className="rounded-[1.35rem] border border-border/70 bg-background/40 p-4"
+            >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">{preset.category}</p>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">
+                    {preset.category}
+                  </p>
                   <h5 className="mt-2 text-base font-medium text-foreground">{preset.name}</h5>
                 </div>
-                <span className="rounded-full border border-border/60 px-2 py-1 text-xs text-muted-foreground">{preset.icon}</span>
+                <span className="rounded-full border border-border/60 px-2 py-1 text-xs text-muted-foreground">
+                  {preset.icon}
+                </span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{preset.description}</p>
               <button

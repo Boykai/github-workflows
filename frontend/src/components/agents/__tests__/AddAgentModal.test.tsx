@@ -71,12 +71,7 @@ describe('AddAgentModal', () => {
     mockUseUpdateAgent.mockReturnValue({ mutateAsync, isPending: false });
 
     render(
-      <AddAgentModal
-        projectId="PVT_1"
-        isOpen={true}
-        onClose={vi.fn()}
-        editAgent={createAgent()}
-      />
+      <AddAgentModal projectId="PVT_1" isOpen={true} onClose={vi.fn()} editAgent={createAgent()} />
     );
 
     await user.clear(screen.getByLabelText('Name'));

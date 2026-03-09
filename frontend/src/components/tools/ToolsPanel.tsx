@@ -127,8 +127,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     const query = deferredSearch.trim().toLowerCase();
     if (query.length === 0) return true;
     return (
-      tool.name.toLowerCase().includes(query) ||
-      tool.description.toLowerCase().includes(query)
+      tool.name.toLowerCase().includes(query) || tool.description.toLowerCase().includes(query)
     );
   });
 
@@ -221,9 +220,12 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
       <div className="ritual-stage flex flex-col gap-4 rounded-[1.55rem] p-4 sm:rounded-[1.8rem] sm:p-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Tool archive</p>
-          <h3 className="mt-2 text-[1.55rem] font-display font-medium leading-tight sm:text-[1.9rem]">MCP Tools</h3>
+          <h3 className="mt-2 text-[1.55rem] font-display font-medium leading-tight sm:text-[1.9rem]">
+            MCP Tools
+          </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Manage MCP configurations that sync to your repository and can be attached to Custom Agents.
+            Manage MCP configurations that sync to your repository and can be attached to Custom
+            Agents.
           </p>
         </div>
         <Button onClick={handleOpenCreate} size="lg">
@@ -257,11 +259,10 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           <Wrench className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-lg font-medium text-foreground">No MCP tools configured yet</p>
           <p className="max-w-md text-sm text-muted-foreground">
-            Upload your first MCP configuration to get started. Configurations will sync to your repository and become available when attached to a Custom Agent.
+            Upload your first MCP configuration to get started. Configurations will sync to your
+            repository and become available when attached to a Custom Agent.
           </p>
-          <Button onClick={handleOpenCreate}>
-            Upload your first MCP config
-          </Button>
+          <Button onClick={handleOpenCreate}>Upload your first MCP config</Button>
         </div>
       )}
 
@@ -270,8 +271,12 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         <section className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Catalog controls</p>
-              <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">Filter tools</h4>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                Catalog controls
+              </p>
+              <h4 className="mt-2 text-[1.35rem] font-display font-medium leading-tight sm:text-[1.6rem]">
+                Filter tools
+              </h4>
             </div>
 
             <div className="xl:min-w-[28rem]">
@@ -314,38 +319,51 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
       )}
 
       {/* Delete confirmation with affected agents */}
-      {deleteConfirmId && deleteResult && !deleteResult.success && deleteResult.affected_agents.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={() => setDeleteConfirmId(null)}>
-          <div className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md" role="presentation" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-2">Tool in use</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              This tool is assigned to the following agents:
-            </p>
-            <ul className="mb-4 space-y-1">
-              {deleteResult.affected_agents.map((agent) => (
-                <li key={agent.id} className="text-sm font-medium">• {agent.name}</li>
-              ))}
-            </ul>
-            <p className="text-sm text-muted-foreground mb-4">
-              Deleting it will remove it from these agents. Are you sure?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                onClick={() => setDeleteConfirmId(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={handleConfirmDelete}
-              >
-                Delete anyway
-              </button>
+      {deleteConfirmId &&
+        deleteResult &&
+        !deleteResult.success &&
+        deleteResult.affected_agents.length > 0 && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            role="presentation"
+            onClick={() => setDeleteConfirmId(null)}
+          >
+            <div
+              className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md"
+              role="presentation"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-2">Tool in use</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                This tool is assigned to the following agents:
+              </p>
+              <ul className="mb-4 space-y-1">
+                {deleteResult.affected_agents.map((agent) => (
+                  <li key={agent.id} className="text-sm font-medium">
+                    • {agent.name}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-muted-foreground mb-4">
+                Deleting it will remove it from these agents. Are you sure?
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => setDeleteConfirmId(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={handleConfirmDelete}
+                >
+                  Delete anyway
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Upload Modal */}
       <UploadMcpModal

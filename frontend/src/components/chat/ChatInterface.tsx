@@ -3,7 +3,13 @@
  */
 
 import { useState, useRef, useEffect, useCallback, FormEvent } from 'react';
-import type { ChatMessage, AITaskProposal, IssueCreateActionData, WorkflowResult, StatusChangeProposal } from '@/types';
+import type {
+  ChatMessage,
+  AITaskProposal,
+  IssueCreateActionData,
+  WorkflowResult,
+  StatusChangeProposal,
+} from '@/types';
 import { MessageBubble } from './MessageBubble';
 import { SystemMessage } from './SystemMessage';
 import { CommandAutocomplete } from './CommandAutocomplete';
@@ -33,7 +39,10 @@ interface ChatInterfaceProps {
   pendingRecommendations: Map<string, IssueCreateActionData>;
   isSending: boolean;
   projectId?: string;
-  onSendMessage: (content: string, options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[]; pipelineId?: string }) => void;
+  onSendMessage: (
+    content: string,
+    options?: { isCommand?: boolean; aiEnhance?: boolean; fileUrls?: string[]; pipelineId?: string }
+  ) => void;
   onRetryMessage: (messageId: string) => void;
   onConfirmProposal: (proposalId: string) => void;
   onConfirmStatusChange: (proposalId: string) => void;
@@ -120,10 +129,13 @@ export function ChatInterface({
   } = mention;
 
   // Voice input management
-  const handleVoiceTranscript = useCallback((text: string) => {
-    clearTokens();
-    setInput((prev) => (prev ? `${prev} ${text}` : text));
-  }, [clearTokens]);
+  const handleVoiceTranscript = useCallback(
+    (text: string) => {
+      clearTokens();
+      setInput((prev) => (prev ? `${prev} ${text}` : text));
+    },
+    [clearTokens]
+  );
   const {
     isSupported: isVoiceSupported,
     isRecording,
@@ -183,12 +195,15 @@ export function ChatInterface({
     }
   }, [input, getFilteredCommands, isAutocompleteOpen, handleMentionDismiss]);
 
-  const handleAutocompleteSelect = useCallback((command: CommandDefinition) => {
-    clearTokens();
-    setInput(`/${command.name} `);
-    setShowAutocomplete(false);
-    mentionInputRef.current?.focus();
-  }, [clearTokens]);
+  const handleAutocompleteSelect = useCallback(
+    (command: CommandDefinition) => {
+      clearTokens();
+      setInput(`/${command.name} `);
+      setShowAutocomplete(false);
+      mentionInputRef.current?.focus();
+    },
+    [clearTokens]
+  );
 
   // Handle @mention trigger — dismiss slash-command autocomplete
   const handleMentionTrigger = useCallback(
@@ -196,7 +211,7 @@ export function ChatInterface({
       if (showAutocomplete) setShowAutocomplete(false);
       mentionTrigger(query, offset);
     },
-    [showAutocomplete, mentionTrigger],
+    [showAutocomplete, mentionTrigger]
   );
 
   const doSubmit = async () => {
@@ -265,7 +280,9 @@ export function ChatInterface({
       }
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev - 1 + autocompleteCommands.length) % autocompleteCommands.length);
+        setHighlightedIndex(
+          (prev) => (prev - 1 + autocompleteCommands.length) % autocompleteCommands.length
+        );
         return;
       }
       if (e.key === 'Enter' || e.key === 'Tab') {
@@ -294,7 +311,12 @@ export function ChatInterface({
     }
 
     // History navigation — ArrowDown to go to newer messages / restore draft
-    if (e.key === 'ArrowDown' && !autocompleteActive && !mention.isAutocompleteOpen && isNavigating) {
+    if (
+      e.key === 'ArrowDown' &&
+      !autocompleteActive &&
+      !mention.isAutocompleteOpen &&
+      isNavigating
+    ) {
       if (mentionInputRef.current?.isCaretOnLastLine() ?? true) {
         const result = navigateDown();
         if (result !== null) {
@@ -331,7 +353,7 @@ export function ChatInterface({
     if (mentionValidationError) {
       setMentionValidationError(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mention.mentionTokens]);
 
   return (
@@ -344,7 +366,15 @@ export function ChatInterface({
             className="flex items-center gap-1.5 rounded-full border border-border bg-background/72 px-4 py-2 text-sm font-medium cursor-pointer text-foreground transition-colors hover:border-primary/20 hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSending}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" className="shrink-0">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              width="16"
+              height="16"
+              className="shrink-0"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
             New Chat
@@ -359,10 +389,18 @@ export function ChatInterface({
             <div className="mt-6 w-full max-w-sm rounded-lg border border-border bg-background/56 p-4 text-left">
               <p className="font-medium text-foreground mb-2">Try something like:</p>
               <ul className="list-none space-y-2">
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Create a task to add user authentication</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Add a bug fix for the login page crash</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Set up CI/CD pipeline for the project</li>
-                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">Type /help to see available commands</li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Create a task to add user authentication
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Add a bug fix for the login page crash
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Set up CI/CD pipeline for the project
+                </li>
+                <li className="text-sm text-muted-foreground before:content-['\201C'] after:content-['\201D'] before:text-primary after:text-primary">
+                  Type /help to see available commands
+                </li>
               </ul>
             </div>
           </div>
@@ -381,15 +419,21 @@ export function ChatInterface({
             const recommendationId = actionData?.recommendation_id as string | undefined;
             const proposal = proposalId ? pendingProposals.get(proposalId) : null;
             const statusChange = proposalId ? pendingStatusChanges.get(proposalId) : null;
-            const recommendation = recommendationId ? pendingRecommendations.get(recommendationId) : null;
+            const recommendation = recommendationId
+              ? pendingRecommendations.get(recommendationId)
+              : null;
 
             return (
               <div key={message.message_id} className="flex flex-col gap-2">
                 <MessageBubble
                   message={message}
-                  onRetry={message.status === 'failed' ? () => onRetryMessage(message.message_id) : undefined}
+                  onRetry={
+                    message.status === 'failed'
+                      ? () => onRetryMessage(message.message_id)
+                      : undefined
+                  }
                 />
-                
+
                 {proposal && message.action_type === 'task_create' && (
                   <TaskPreview
                     proposal={proposal}
@@ -423,8 +467,14 @@ export function ChatInterface({
         {isSending && (
           <div className="self-start ml-11">
             <div className="flex gap-1 rounded-2xl border border-border bg-background/56 p-3">
-              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.32s' }}></span>
-              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '-0.16s' }}></span>
+              <span
+                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                style={{ animationDelay: '-0.32s' }}
+              ></span>
+              <span
+                className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                style={{ animationDelay: '-0.16s' }}
+              ></span>
               <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
             </div>
           </div>
@@ -462,7 +512,10 @@ export function ChatInterface({
         </div>
       )}
 
-      <form className="relative flex gap-3 border-t border-border bg-background/62 p-4" onSubmit={handleSubmit}>
+      <form
+        className="relative flex gap-3 border-t border-border bg-background/62 p-4"
+        onSubmit={handleSubmit}
+      >
         {showAutocomplete && (
           <CommandAutocomplete
             commands={autocompleteCommands}

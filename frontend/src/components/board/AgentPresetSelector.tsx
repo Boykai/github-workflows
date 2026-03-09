@@ -63,7 +63,10 @@ function pipelineConfigToMappings(
     const matchedCol = lowerMap.get(stage.name.toLowerCase());
     if (matchedCol) {
       result[matchedCol] = stage.agents.map((agent) =>
-        makeAssignment(agent.agent_slug, formatAgentName(agent.agent_slug, agent.agent_display_name))
+        makeAssignment(
+          agent.agent_slug,
+          formatAgentName(agent.agent_slug, agent.agent_display_name)
+        )
       );
     }
   }
@@ -191,11 +194,14 @@ export function AgentPresetSelector({
   });
 
   // Persist selected config to localStorage
-  const persistSelection = useCallback((configId: string) => {
-    if (projectId) {
-      localStorage.setItem(`pipeline-config:${projectId}`, configId);
-    }
-  }, [projectId]);
+  const persistSelection = useCallback(
+    (configId: string) => {
+      if (projectId) {
+        localStorage.setItem(`pipeline-config:${projectId}`, configId);
+      }
+    },
+    [projectId]
+  );
 
   useEffect(() => {
     if (!showDropdown) {
@@ -323,11 +329,17 @@ export function AgentPresetSelector({
 
   // Derive active saved pipeline name for display (T017/T018)
   const activePipelineName = useMemo(() => {
-    if (!selectedSavedPipelineId || !savedPipelines?.pipelines?.length || !activeSavedPipelineConfig) {
+    if (
+      !selectedSavedPipelineId ||
+      !savedPipelines?.pipelines?.length ||
+      !activeSavedPipelineConfig
+    ) {
       return null;
     }
 
-    const matchedPipeline = savedPipelines.pipelines.find((pipeline) => pipeline.id === selectedSavedPipelineId);
+    const matchedPipeline = savedPipelines.pipelines.find(
+      (pipeline) => pipeline.id === selectedSavedPipelineId
+    );
     if (!matchedPipeline) return null;
 
     const resolvedMappings = pipelineConfigToMappings(activeSavedPipelineConfig, columnNames);
@@ -336,25 +348,32 @@ export function AgentPresetSelector({
     }
 
     return matchedPipeline.name;
-  }, [selectedSavedPipelineId, savedPipelines, activeSavedPipelineConfig, columnNames, currentMappings]);
+  }, [
+    selectedSavedPipelineId,
+    savedPipelines,
+    activeSavedPipelineConfig,
+    columnNames,
+    currentMappings,
+  ]);
 
   return (
     <>
       <div className="ml-auto flex items-center gap-1 rounded-xl border border-border/60 bg-background/56 p-1 shadow-sm">
-        {!dropdownOnly && PRESETS.map((preset) => {
-          const isActive = matchesPreset(preset, currentMappings, columnNames);
-          return (
-            <button
-              key={preset.id}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'}`}
-              onClick={() => handlePresetClick(preset)}
-              title={preset.description}
-              type="button"
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+        {!dropdownOnly &&
+          PRESETS.map((preset) => {
+            const isActive = matchesPreset(preset, currentMappings, columnNames);
+            return (
+              <button
+                key={preset.id}
+                className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'}`}
+                onClick={() => handlePresetClick(preset)}
+                title={preset.description}
+                type="button"
+              >
+                {preset.label}
+              </button>
+            );
+          })}
 
         {/* Saved pipelines dropdown */}
         {hasSavedPipelines && (
@@ -366,7 +385,11 @@ export function AgentPresetSelector({
                   : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
               }`}
               onClick={() => setShowDropdown(!showDropdown)}
-              title={activePipelineName ? `Active saved pipeline: ${activePipelineName}` : 'Saved pipeline configurations'}
+              title={
+                activePipelineName
+                  ? `Active saved pipeline: ${activePipelineName}`
+                  : 'Saved pipeline configurations'
+              }
               type="button"
             >
               {activePipelineName ?? 'Saved'} ▾
@@ -374,7 +397,11 @@ export function AgentPresetSelector({
             {showDropdown && (
               <>
                 {/* Backdrop to close dropdown */}
-                <div className="fixed inset-0 z-40" onClick={() => setShowDropdown(false)} role="presentation" />
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowDropdown(false)}
+                  role="presentation"
+                />
                 <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-popover shadow-lg backdrop-blur-sm py-1">
                   {savedPipelines?.pipelines.map((pipeline) => (
                     <button
@@ -384,7 +411,9 @@ export function AgentPresetSelector({
                       type="button"
                     >
                       <div className="font-medium text-foreground truncate">{pipeline.name}</div>
-                      <div className="text-muted-foreground">{pipeline.stage_count} stages · {pipeline.agent_count} agents</div>
+                      <div className="text-muted-foreground">
+                        {pipeline.stage_count} stages · {pipeline.agent_count} agents
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -396,7 +425,14 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog for built-in presets */}
       {confirmPreset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={handleCancel}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') handleCancel();
+          }}
+          role="presentation"
+        >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
@@ -437,7 +473,14 @@ export function AgentPresetSelector({
 
       {/* Confirmation dialog for saved pipeline */}
       {confirmPipeline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={handleCancel} onKeyDown={(e) => { if (e.key === 'Escape') handleCancel(); }} role="presentation">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          onClick={handleCancel}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') handleCancel();
+          }}
+          role="presentation"
+        >
           {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
@@ -450,11 +493,14 @@ export function AgentPresetSelector({
               Apply &ldquo;{confirmPipeline.name}&rdquo; pipeline?
             </h4>
             <p className="text-sm text-muted-foreground m-0">
-              This will replace your current agent configuration with the saved pipeline.
-              Unsaved changes will be reflected in the save bar.
+              This will replace your current agent configuration with the saved pipeline. Unsaved
+              changes will be reflected in the save bar.
             </p>
             {applyError && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              <div
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
                 {applyError}
               </div>
             )}
@@ -479,7 +525,10 @@ export function AgentPresetSelector({
       )}
 
       {applyError && !confirmPipeline && (
-        <div className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive" role="alert">
+        <div
+          className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          role="alert"
+        >
           {applyError}
         </div>
       )}

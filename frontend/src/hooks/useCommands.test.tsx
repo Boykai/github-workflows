@@ -15,7 +15,12 @@ vi.mock('@/services/api', () => ({
       ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
       display: { theme: 'dark', default_view: 'board', sidebar_collapsed: false },
       workflow: { default_repository: null, default_assignee: null, copilot_polling_interval: 15 },
-      notifications: { task_status_change: true, agent_completion: true, new_recommendation: true, chat_mention: true },
+      notifications: {
+        task_status_change: true,
+        agent_completion: true,
+        new_recommendation: true,
+        chat_mention: true,
+      },
     }),
     updateUserSettings: vi.fn().mockResolvedValue({}),
   },

@@ -21,7 +21,7 @@ export function ToolsPage() {
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
-  const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
+  const repo = boardData?.columns.flatMap((c) => c.items).find((i) => i.repository)?.repository;
 
   return (
     <div className="celestial-fade-in flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
@@ -41,12 +41,21 @@ export function ToolsPage() {
               <a href="#tools-catalog">Browse tools</a>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href="https://docs.github.com/en/copilot/concepts/context/mcp" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://docs.github.com/en/copilot/concepts/context/mcp"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 MCP docs
               </a>
             </Button>
             <Button variant="outline" size="lg" asChild>
-              <a href="https://github.com/mcp" target="_blank" rel="noopener noreferrer" aria-label="Discover MCP integrations on GitHub">
+              <a
+                href="https://github.com/mcp"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Discover MCP integrations on GitHub"
+              >
                 Discover
               </a>
             </Button>

@@ -61,7 +61,12 @@ export function validateMcpJson(content: string): string | null {
       }
     }
 
-    if (serverType !== 'http' && serverType !== 'stdio' && serverType !== 'local' && serverType !== 'sse') {
+    if (
+      serverType !== 'http' &&
+      serverType !== 'stdio' &&
+      serverType !== 'local' &&
+      serverType !== 'sse'
+    ) {
       return `Server '${name}' must have 'type' of 'http', 'stdio', 'local', or 'sse', or include a 'command' or 'url' field`;
     }
     if ((serverType === 'http' || serverType === 'sse') && !serverCfg.url) {
@@ -97,7 +102,7 @@ export function UploadMcpModal({
   const isEditMode = editingTool !== null;
   const reservedNames = useMemo(
     () => existingNames.filter((existingName) => existingName !== editingTool?.name),
-    [editingTool?.name, existingNames],
+    [editingTool?.name, existingNames]
   );
 
   const resetForm = useCallback(() => {
@@ -178,7 +183,9 @@ export function UploadMcpModal({
             setName(keys[0]);
           }
           if (keys.length > 1) {
-            setMultiServerWarning(`Multiple servers detected (${keys.join(', ')}). Using "${keys[0]}" as the name.`);
+            setMultiServerWarning(
+              `Multiple servers detected (${keys.join(', ')}). Using "${keys[0]}" as the name.`
+            );
           } else {
             setMultiServerWarning(null);
           }
@@ -191,7 +198,7 @@ export function UploadMcpModal({
     } catch {
       setMultiServerWarning(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configContent]);
 
   if (!isOpen) return null;
@@ -217,11 +224,20 @@ export function UploadMcpModal({
     setValidationError(null);
 
     const trimmedName = name.trim();
-    if (!trimmedName) { setValidationError('Name is required'); return; }
-    if (trimmedName.length > 100) { setValidationError('Name must be 100 characters or fewer'); return; }
+    if (!trimmedName) {
+      setValidationError('Name is required');
+      return;
+    }
+    if (trimmedName.length > 100) {
+      setValidationError('Name must be 100 characters or fewer');
+      return;
+    }
 
     const error = validateMcpJson(configContent);
-    if (error) { setValidationError(error); return; }
+    if (error) {
+      setValidationError(error);
+      return;
+    }
 
     try {
       if (editingTool) {
@@ -246,20 +262,31 @@ export function UploadMcpModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
-      <div className="celestial-panel celestial-fade-in w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="presentation"
+      onClick={handleClose}
+    >
+      <div
+        className="celestial-panel celestial-fade-in w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg"
+        role="presentation"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-lg font-semibold mb-4">
           {isEditMode ? 'Edit MCP Configuration' : 'Upload MCP Configuration'}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
-            Saving a tool now syncs its configuration to both `.copilot/mcp.json` and `.vscode/mcp.json` for GitHub agents and local editors.
+            Saving a tool now syncs its configuration to both `.copilot/mcp.json` and
+            `.vscode/mcp.json` for GitHub agents and local editors.
           </div>
 
           {/* Name */}
           <div>
-            <label htmlFor="tool-name" className="block text-sm font-medium mb-1">Name</label>
+            <label htmlFor="tool-name" className="block text-sm font-medium mb-1">
+              Name
+            </label>
             <input
               id="tool-name"
               type="text"
@@ -269,9 +296,7 @@ export function UploadMcpModal({
               className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm"
               maxLength={100}
             />
-            {duplicateWarning && (
-              <p className="mt-1 text-xs text-amber-600">{duplicateWarning}</p>
-            )}
+            {duplicateWarning && <p className="mt-1 text-xs text-amber-600">{duplicateWarning}</p>}
             {multiServerWarning && (
               <p className="mt-1 text-xs text-amber-600">{multiServerWarning}</p>
             )}
@@ -295,7 +320,12 @@ export function UploadMcpModal({
           {/* Config Content */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label htmlFor={mode === 'paste' ? 'mcp-config-textarea' : 'mcp-config-file'} className="block text-sm font-medium">MCP Configuration</label>
+              <label
+                htmlFor={mode === 'paste' ? 'mcp-config-textarea' : 'mcp-config-file'}
+                className="block text-sm font-medium"
+              >
+                MCP Configuration
+              </label>
               <button
                 type="button"
                 className="text-xs text-primary hover:underline"
@@ -308,8 +338,13 @@ export function UploadMcpModal({
               <textarea
                 id="mcp-config-textarea"
                 value={configContent}
-                onChange={(e) => { setConfigContent(e.target.value); setValidationError(null); }}
-                placeholder={'{\n  "mcpServers": {\n    "my-server": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}'}
+                onChange={(e) => {
+                  setConfigContent(e.target.value);
+                  setValidationError(null);
+                }}
+                placeholder={
+                  '{\n  "mcpServers": {\n    "my-server": {\n      "type": "http",\n      "url": "https://example.com/mcp"\n    }\n  }\n}'
+                }
                 className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-xs font-mono leading-relaxed min-h-[140px] resize-y"
               />
             ) : (
@@ -326,7 +361,8 @@ export function UploadMcpModal({
           {/* GitHub Repo Target */}
           <div>
             <label htmlFor="tool-repo" className="block text-sm font-medium mb-1">
-              GitHub Repository <span className="text-muted-foreground font-normal">(optional, auto-detected)</span>
+              GitHub Repository{' '}
+              <span className="text-muted-foreground font-normal">(optional, auto-detected)</span>
             </label>
             <input
               id="tool-repo"
@@ -356,7 +392,9 @@ export function UploadMcpModal({
           {isSubmitting && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-              {isEditMode ? 'Saving and syncing to GitHub...' : 'Uploading and syncing to GitHub...'}
+              {isEditMode
+                ? 'Saving and syncing to GitHub...'
+                : 'Uploading and syncing to GitHub...'}
             </div>
           )}
 
@@ -374,7 +412,13 @@ export function UploadMcpModal({
               className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               disabled={isSubmitting}
             >
-              {isSubmitting ? (isEditMode ? 'Saving…' : 'Uploading…') : isEditMode ? 'Save Changes' : 'Upload'}
+              {isSubmitting
+                ? isEditMode
+                  ? 'Saving…'
+                  : 'Uploading…'
+                : isEditMode
+                  ? 'Save Changes'
+                  : 'Upload'}
             </button>
           </div>
         </form>
