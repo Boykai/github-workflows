@@ -43,7 +43,7 @@ export function ProfileForm({ profile, isEditing, isSaving, onEdit, onSave, onCa
     if (!validateName(displayName)) return;
     onSave({
       display_name: displayName.trim(),
-      bio: bio,
+      bio: bio.trim(),
     });
   };
 
