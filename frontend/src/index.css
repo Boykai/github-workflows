@@ -36,6 +36,14 @@
   --color-gold: hsl(var(--gold));
   --color-night: hsl(var(--night));
 
+  /* Responsive breakpoint tokens (FR-009) */
+  --bp-xs: 320px;
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1440px;
+
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -182,6 +190,12 @@
 }
 
 @layer utilities {
+  /* WCAG 2.5.8 touch target minimum (44×44px) — FR-002 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   .celestial-panel {
     background:
       radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.18), transparent 28%),

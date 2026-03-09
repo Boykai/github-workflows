@@ -520,7 +520,7 @@ export function ChatInterface({
                 type="button"
                 onClick={() => setShowHistoryPopover((prev) => !prev)}
                 aria-label="Message history"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground max-sm:h-11 max-sm:w-11"
               >
                 <History className="w-4 h-4" />
               </button>

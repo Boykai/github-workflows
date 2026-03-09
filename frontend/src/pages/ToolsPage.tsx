@@ -24,7 +24,7 @@ export function ToolsPage() {
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-3 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-4 md:p-6">
       <CelestialCatalogHero
         eyebrow="Tool Forge"
         title="Equip your agents with MCP tools."

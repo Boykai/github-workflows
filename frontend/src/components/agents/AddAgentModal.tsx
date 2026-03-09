@@ -336,7 +336,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
       onClick={handleRequestClose}
     >
       <div
-        className="celestial-panel relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl"
+        className="celestial-panel relative flex max-h-[min(92vh,58rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.7rem] border border-border/80 shadow-xl max-sm:max-w-none max-sm:max-h-none max-sm:h-full max-sm:rounded-none max-sm:border-0"
         role="presentation"
         onClick={(event) => event.stopPropagation()}
       >

@@ -40,7 +40,7 @@ export function ConfirmChoreModal({
         onClick={isLoading ? undefined : onCancel}
         role="presentation"
       />
-      <div className="relative z-10 w-full max-w-md mx-4 rounded-lg border border-border bg-background shadow-xl">
+      <div className="relative z-10 w-full max-w-md mx-4 rounded-lg border border-border bg-background shadow-xl max-sm:max-w-none max-sm:h-full max-sm:rounded-none max-sm:mx-0 max-sm:border-0">
         {step === 1 ? (
           <div className="p-6 flex flex-col items-center gap-4 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">

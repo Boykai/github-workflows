@@ -121,7 +121,7 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
+        className="relative rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground max-sm:p-3"
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <Bell className="w-5 h-5" />

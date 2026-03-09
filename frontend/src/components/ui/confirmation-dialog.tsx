@@ -142,7 +142,7 @@ export function ConfirmationDialog({
         aria-modal="true"
         aria-labelledby="confirmation-dialog-title"
         aria-describedby="confirmation-dialog-description"
-        className="relative z-10 mx-4 w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-xl"
+        className="relative z-10 mx-4 w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-xl max-sm:max-w-none max-sm:h-auto max-sm:rounded-none max-sm:mx-0 max-sm:border-0"
       >
         {/* Header */}
         <div className="flex items-start gap-3">

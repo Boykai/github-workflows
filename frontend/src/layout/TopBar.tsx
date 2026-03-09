@@ -6,6 +6,7 @@ import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { RateLimitBar } from './RateLimitBar';
+import { Menu } from 'lucide-react';
 import type { Notification } from '@/types';
 
 interface TopBarProps {
@@ -15,6 +16,7 @@ interface TopBarProps {
   notifications: Notification[];
   unreadCount: number;
   onMarkAllRead: () => void;
+  onMenuToggle?: () => void;
 }
 
 export function TopBar({
@@ -24,10 +26,21 @@ export function TopBar({
   notifications,
   unreadCount,
   onMarkAllRead,
+  onMenuToggle,
 }: TopBarProps) {
   return (
-    <header className="celestial-panel flex h-16 items-center justify-between border-b border-border/70 px-6 backdrop-blur-sm shrink-0">
+    <header className="celestial-panel flex h-16 items-center justify-between border-b border-border/70 px-3 md:px-6 backdrop-blur-sm shrink-0">
       <div className="flex items-center gap-2">
+        {onMenuToggle && (
+          <button
+            type="button"
+            onClick={onMenuToggle}
+            className="touch-target inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground md:hidden"
+            aria-label="Open navigation menu"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
         <Breadcrumb />
       </div>
 

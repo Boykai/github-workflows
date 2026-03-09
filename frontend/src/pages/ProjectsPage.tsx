@@ -192,7 +192,7 @@ export function ProjectsPage() {
   const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
-    <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
+    <div className="flex h-full flex-col gap-4 rounded-[1.75rem] border border-border/70 bg-background/35 p-3 backdrop-blur-sm overflow-hidden sm:gap-5 sm:p-4 md:p-6">
       <CelestialCatalogHero
         eyebrow="Mission Control"
         title="Every project, mapped and moving."

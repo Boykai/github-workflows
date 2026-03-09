@@ -167,7 +167,7 @@ export function AgentsPipelinePage() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm overflow-auto">
+    <div className="flex h-full flex-col gap-4 rounded-[1.75rem] border border-border/70 bg-background/42 p-3 backdrop-blur-sm overflow-auto sm:gap-6 sm:p-4 md:p-6">
       {/* Page Header */}
       <CelestialCatalogHero
         eyebrow="Constellation Flow"

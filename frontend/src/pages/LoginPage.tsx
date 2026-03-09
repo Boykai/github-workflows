@@ -8,7 +8,7 @@ import { MoonStar, SunMedium } from 'lucide-react';
 
 export function LoginPage() {
   return (
-    <div className="starfield relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
+    <div className="starfield relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-8 sm:px-6 sm:py-12">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <div className="celestial-orbit left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />
@@ -22,13 +22,13 @@ export function LoginPage() {
         </div>
       </div>
       <div className="relative grid w-full max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-        <section className="flex min-h-[560px] max-w-2xl flex-col justify-between py-6">
+        <section className="flex min-h-[400px] max-w-2xl flex-col justify-between py-6 sm:min-h-[560px]">
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-primary">
             <span>//</span>
             <span>Sun & Moon Workspace</span>
           </div>
           <div>
-            <h1 className="max-w-xl text-5xl text-foreground sm:text-6xl lg:text-[5.4rem]">
+            <h1 className="max-w-xl text-3xl text-foreground sm:text-5xl lg:text-[5.4rem]">
               Change your workflow mindset.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">

@@ -57,11 +57,11 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
 
   return (
     <div className="flex flex-col gap-2 p-2 rounded-md border border-border bg-background">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
         <select
           value={scheduleType}
           onChange={(e) => setScheduleType(e.target.value as ScheduleType | '')}
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-10 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring sm:h-8"
           aria-label="Schedule type"
         >
           <option value="">Select type…</option>
@@ -75,7 +75,7 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
           value={scheduleValue}
           onChange={(e) => setScheduleValue(e.target.value)}
           placeholder={scheduleType === 'time' ? 'Days' : 'Issues'}
-          className="h-8 w-20 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-10 w-full rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring sm:h-8 sm:w-20"
           aria-label="Schedule value"
         />
 
@@ -83,7 +83,7 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
           type="button"
           onClick={handleSave}
           disabled={updateMutation.isPending}
-          className="h-8 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          className="h-10 px-3 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors sm:h-8"
         >
           {updateMutation.isPending ? 'Saving…' : 'Save'}
         </button>

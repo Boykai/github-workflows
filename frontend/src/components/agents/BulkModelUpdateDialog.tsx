@@ -63,7 +63,7 @@ export function BulkModelUpdateDialog({
         onClick={handleClose}
       />
       <div
-        className="relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+        className="relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto max-sm:max-w-none max-sm:max-h-none max-sm:h-full max-sm:rounded-none max-sm:border-0 max-sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-label="Bulk model update dialog"

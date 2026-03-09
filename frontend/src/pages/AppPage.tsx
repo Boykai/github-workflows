@@ -16,16 +16,16 @@ export function AppPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="starfield flex min-h-full flex-col justify-center p-8 lg:p-12">
+    <div className="starfield flex min-h-full flex-col justify-center p-4 md:p-8 lg:p-12">
       <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-        <section className="flex min-h-[34rem] flex-col justify-between">
+        <section className="flex min-h-[24rem] flex-col justify-between md:min-h-[34rem]">
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs uppercase tracking-[0.28em] text-primary">
             <span>//</span>
             <span>Daily affirmations for delivery</span>
           </div>
 
           <div>
-            <h1 className="max-w-xl text-5xl text-foreground sm:text-6xl lg:text-[5rem]">
+            <h1 className="max-w-xl text-3xl text-foreground sm:text-5xl lg:text-[5rem]">
               Change your project mindset.
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
@@ -59,7 +59,7 @@ export function AppPage() {
           </div>
         </section>
 
-        <div className="relative mx-auto flex h-[32rem] w-full max-w-[32rem] items-center justify-center">
+        <div className="relative mx-auto flex h-[24rem] w-full max-w-[32rem] items-center justify-center md:h-[32rem]">
           <div className="absolute inset-x-10 top-10 h-24 rounded-full bg-primary/10 blur-3xl" />
           <div className="hanging-stars absolute inset-x-8 top-0 hidden h-28 lg:block" />
           <div className="celestial-orbit inset-5" />
