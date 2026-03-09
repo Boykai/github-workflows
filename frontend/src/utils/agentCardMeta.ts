@@ -4,7 +4,7 @@ const RECENT_AGENT_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 export function formatAgentCreatedLabel(
   createdAt: string | null | undefined,
-  nowMs = Date.now(),
+  nowMs = Date.now()
 ): string {
   if (!createdAt) {
     return 'Recently added';
@@ -26,7 +26,7 @@ export function formatAgentCreatedLabel(
 }
 
 export function countPendingAssignedSubIssues(
-  boardData: BoardDataResponse | null | undefined,
+  boardData: BoardDataResponse | null | undefined
 ): Record<string, number> {
   if (!boardData?.columns) {
     return {};

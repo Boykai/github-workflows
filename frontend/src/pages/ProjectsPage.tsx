@@ -56,7 +56,10 @@ export function ProjectsPage() {
     boardError,
     lastUpdated,
     selectProject: selectBoardProject,
-  } = useProjectBoard({ selectedProjectId: selectedProject?.project_id, onProjectSelect: selectProject });
+  } = useProjectBoard({
+    selectedProjectId: selectedProject?.project_id,
+    onProjectSelect: selectProject,
+  });
 
   const {
     refresh,
@@ -86,7 +89,7 @@ export function ProjectsPage() {
   const { data: blockingQueueEntries } = useBlockingQueue(selectedProjectId ?? undefined);
   const blockingIssueNumbers = useMemo(
     () => new Set((blockingQueueEntries ?? []).map((entry) => entry.issue_number)),
-    [blockingQueueEntries],
+    [blockingQueueEntries]
   );
 
   const { data: savedPipelines } = useQuery({
@@ -124,18 +127,25 @@ export function ProjectsPage() {
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
-  const pipelineGridStyle = { gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` };
+  const pipelineGridStyle = {
+    gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))`,
+  };
   const assignedPipeline = useMemo(
-    () => savedPipelines?.pipelines.find((pipeline) => pipeline.id === (pipelineAssignment?.pipeline_id ?? '')) ?? null,
-    [pipelineAssignment?.pipeline_id, savedPipelines],
+    () =>
+      savedPipelines?.pipelines.find(
+        (pipeline) => pipeline.id === (pipelineAssignment?.pipeline_id ?? '')
+      ) ?? null,
+    [pipelineAssignment?.pipeline_id, savedPipelines]
   );
   const assignedStageMap = useMemo(
-    () => new Map((assignedPipeline?.stages ?? []).map((stage) => [stage.name.toLowerCase(), stage])),
-    [assignedPipeline],
+    () =>
+      new Map((assignedPipeline?.stages ?? []).map((stage) => [stage.name.toLowerCase(), stage])),
+    [assignedPipeline]
   );
 
   // Effective blocking = project override (if set) otherwise pipeline default
-  const effectiveBlocking = pipelineAssignment?.blocking_override ?? assignedPipeline?.blocking ?? false;
+  const effectiveBlocking =
+    pipelineAssignment?.blocking_override ?? assignedPipeline?.blocking ?? false;
   const hasBlockingOverride = pipelineAssignment?.blocking_override != null;
 
   const projectsRateLimitError = isRateLimitApiError(projectsError);
@@ -143,12 +153,14 @@ export function ProjectsPage() {
   const refreshRateLimitError = refreshError?.type === 'rate_limit';
   const projectsRateLimitDetails = extractRateLimitInfo(projectsError);
   const boardRateLimitDetails = extractRateLimitInfo(boardError);
-  const effectiveRateLimitInfo = rateLimitInfo
-    ?? projectsRateLimitInfo
-    ?? refreshError?.rateLimitInfo
-    ?? boardRateLimitDetails
-    ?? projectsRateLimitDetails;
-  const hasActiveRateLimitError = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+  const effectiveRateLimitInfo =
+    rateLimitInfo ??
+    projectsRateLimitInfo ??
+    refreshError?.rateLimitInfo ??
+    boardRateLimitDetails ??
+    projectsRateLimitDetails;
+  const hasActiveRateLimitError =
+    refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   // Publish rate limit state to global context so TopBar can display it on any page.
   useEffect(() => {
@@ -159,7 +171,10 @@ export function ProjectsPage() {
     if (!pipelineSelectorOpen) return;
 
     function handlePointerDown(event: MouseEvent) {
-      if (pipelineSelectorRef.current && !pipelineSelectorRef.current.contains(event.target as Node)) {
+      if (
+        pipelineSelectorRef.current &&
+        !pipelineSelectorRef.current.contains(event.target as Node)
+      ) {
         setPipelineSelectorOpen(false);
       }
     }
@@ -183,14 +198,19 @@ export function ProjectsPage() {
     setPipelineSelectorOpen(false);
   }, [selectedProjectId]);
 
-  const handlePipelineSelection = useCallback((pipelineId: string) => {
-    setPipelineSelectorOpen(false);
-    assignPipelineMutation.mutate(pipelineId);
-  }, [assignPipelineMutation]);
+  const handlePipelineSelection = useCallback(
+    (pipelineId: string) => {
+      setPipelineSelectorOpen(false);
+      assignPipelineMutation.mutate(pipelineId);
+    },
+    [assignPipelineMutation]
+  );
 
-  const rateLimitRetryAfter = refreshError?.retryAfter
-    ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
-  const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+  const rateLimitRetryAfter =
+    refreshError?.retryAfter ??
+    (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
+  const showRateLimitBanner =
+    refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
     <div className="celestial-fade-in flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
@@ -198,11 +218,20 @@ export function ProjectsPage() {
         eyebrow="Mission Control"
         title="Every project, mapped and moving."
         description="Live Kanban view of your GitHub Project. Filter, sort, and group issues across pipeline stages, then trigger agents directly from the board."
-        badge={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Awaiting project'}
+        badge={
+          selectedProject
+            ? `${selectedProject.owner_login}/${selectedProject.name}`
+            : 'Awaiting project'
+        }
         note="Use the board to triage work, assign blocking chains, and queue items for the active agent pipeline — all without leaving the project view."
         stats={[
           { label: 'Board columns', value: String(transformedBoardData?.columns.length ?? 0) },
-          { label: 'Total items', value: String(transformedBoardData?.columns.reduce((sum, c) => sum + c.items.length, 0) ?? 0) },
+          {
+            label: 'Total items',
+            value: String(
+              transformedBoardData?.columns.reduce((sum, c) => sum + c.items.length, 0) ?? 0
+            ),
+          },
           { label: 'Pipeline', value: assignedPipeline?.name ?? 'None assigned' },
           { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
         ]}
@@ -239,7 +268,9 @@ export function ProjectsPage() {
                 {selectedProject?.owner_login ?? 'GitHub Projects'}
               </span>
             </span>
-            <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${projectSelectorOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${projectSelectorOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           <ProjectSelector
@@ -258,12 +289,17 @@ export function ProjectsPage() {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {selectedProjectId && (
             <span className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${
-                syncStatus === 'connected' ? 'bg-green-500' :
-                syncStatus === 'polling' ? 'bg-yellow-500' :
-                syncStatus === 'connecting' ? 'bg-blue-500' :
-                'bg-red-500'
-              }`} />
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  syncStatus === 'connected'
+                    ? 'bg-green-500'
+                    : syncStatus === 'polling'
+                      ? 'bg-yellow-500'
+                      : syncStatus === 'connecting'
+                        ? 'bg-blue-500'
+                        : 'bg-red-500'
+                }`}
+              />
               {syncStatus === 'connected' && 'Live'}
               {syncStatus === 'polling' && 'Polling'}
               {syncStatus === 'connecting' && 'Connecting...'}
@@ -279,9 +315,7 @@ export function ProjectsPage() {
           )}
 
           {(lastUpdated || syncLastUpdate) && (
-            <span className="text-xs">
-              Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
-            </span>
+            <span className="text-xs">Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}</span>
           )}
         </div>
       </div>
@@ -355,7 +389,9 @@ export function ProjectsPage() {
             {(() => {
               if (!(projectsError instanceof ApiError)) return null;
               const reason = projectsError.error.details?.reason;
-              return typeof reason === 'string' ? <p className="text-sm opacity-75">{reason}</p> : null;
+              return typeof reason === 'string' ? (
+                <p className="text-sm opacity-75">{reason}</p>
+              ) : null;
             })()}
           </div>
         </div>
@@ -412,17 +448,19 @@ export function ProjectsPage() {
                           className={cn(
                             'project-pipeline-select project-pipeline-trigger flex h-9 min-w-[12rem] items-center justify-between gap-3 rounded-full px-4 text-xs font-medium text-foreground',
                             pipelineAssignment?.pipeline_id && 'project-pipeline-select-active',
-                            pipelineSelectorOpen && 'project-pipeline-select-open',
+                            pipelineSelectorOpen && 'project-pipeline-select-open'
                           )}
                           aria-haspopup="listbox"
                           aria-expanded={pipelineSelectorOpen}
                           aria-label="Agent Pipeline"
                         >
-                          <span className="truncate">{assignedPipeline?.name ?? 'No pipeline selected'}</span>
+                          <span className="truncate">
+                            {assignedPipeline?.name ?? 'No pipeline selected'}
+                          </span>
                           <ChevronDown
                             className={cn(
                               'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
-                              pipelineSelectorOpen && 'rotate-180',
+                              pipelineSelectorOpen && 'rotate-180'
                             )}
                           />
                         </button>
@@ -432,7 +470,11 @@ export function ProjectsPage() {
                             <div className="border-b border-border/65 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/90">
                               Select pipeline
                             </div>
-                            <div className="max-h-72 overflow-y-auto p-1.5" role="listbox" aria-label="Agent Pipeline options">
+                            <div
+                              className="max-h-72 overflow-y-auto p-1.5"
+                              role="listbox"
+                              aria-label="Agent Pipeline options"
+                            >
                               <button
                                 type="button"
                                 role="option"
@@ -441,14 +483,20 @@ export function ProjectsPage() {
                                 disabled={assignPipelineMutation.isPending}
                                 className={cn(
                                   'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
-                                  !pipelineAssignment?.pipeline_id && 'project-pipeline-option-active',
+                                  !pipelineAssignment?.pipeline_id &&
+                                    'project-pipeline-option-active'
                                 )}
                               >
                                 <span className="truncate">No pipeline selected</span>
-                                {!pipelineAssignment?.pipeline_id && <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Current</span>}
+                                {!pipelineAssignment?.pipeline_id && (
+                                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+                                    Current
+                                  </span>
+                                )}
                               </button>
                               {savedPipelines?.pipelines.map((pipeline) => {
-                                const isSelected = pipeline.id === (pipelineAssignment?.pipeline_id ?? '');
+                                const isSelected =
+                                  pipeline.id === (pipelineAssignment?.pipeline_id ?? '');
 
                                 return (
                                   <button
@@ -460,11 +508,15 @@ export function ProjectsPage() {
                                     disabled={assignPipelineMutation.isPending}
                                     className={cn(
                                       'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
-                                      isSelected && 'project-pipeline-option-active',
+                                      isSelected && 'project-pipeline-option-active'
                                     )}
                                   >
                                     <span className="truncate">{pipeline.name}</span>
-                                    {isSelected && <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">Current</span>}
+                                    {isSelected && (
+                                      <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
+                                        Current
+                                      </span>
+                                    )}
                                   </button>
                                 );
                               })}
@@ -482,7 +534,7 @@ export function ProjectsPage() {
                           disabled={setBlockingOverrideMutation.isPending}
                           onClick={() =>
                             setBlockingOverrideMutation.mutate(
-                              hasBlockingOverride ? null : !effectiveBlocking,
+                              hasBlockingOverride ? null : !effectiveBlocking
                             )
                           }
                           title={
@@ -502,7 +554,9 @@ export function ProjectsPage() {
                             }`}
                           />
                         </button>
-                        <span className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                        <span
+                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}
+                        >
                           <Lock className="h-3 w-3" />
                           {effectiveBlocking ? 'BLOCKING(ON)' : 'BLOCKING(OFF)'}
                         </span>
@@ -521,24 +575,41 @@ export function ProjectsPage() {
               <div className="overflow-x-auto pb-2">
                 <div className="grid min-w-full items-stretch gap-3" style={pipelineGridStyle}>
                   {transformedBoardData.columns.map((col) => {
-                    const assigned = assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
+                    const assigned =
+                      assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
                     const dotColor = statusColorToCSS(col.status.color);
 
                     return (
-                      <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm">
-                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: dotColor }} />
+                      <div
+                        key={col.status.option_id}
+                        className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                      >
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: dotColor }}
+                        />
                         <span className="text-sm font-medium">{col.status.name}</span>
-                        <span className="text-xs text-muted-foreground">{col.item_count} items</span>
+                        <span className="text-xs text-muted-foreground">
+                          {col.item_count} items
+                        </span>
                         {assigned.length > 0 ? (
                           <div className="mt-1 flex flex-wrap justify-center gap-1">
                             {assigned.map((assignment) => (
-                              <span key={assignment.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                                {formatAgentName(assignment.agent_slug, assignment.agent_display_name)}
+                              <span
+                                key={assignment.id}
+                                className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                              >
+                                {formatAgentName(
+                                  assignment.agent_slug,
+                                  assignment.agent_display_name
+                                )}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="mt-1 text-[10px] text-muted-foreground/60">No agents</span>
+                          <span className="mt-1 text-[10px] text-muted-foreground/60">
+                            No agents
+                          </span>
                         )}
                       </div>
                     );
@@ -555,7 +626,9 @@ export function ProjectsPage() {
                   <>
                     <Search className="mb-2 h-10 w-10 text-primary/80" />
                     <h3 className="text-xl font-semibold">No issues match the current view</h3>
-                    <p className="text-muted-foreground">Try adjusting your filter, sort, or group settings.</p>
+                    <p className="text-muted-foreground">
+                      Try adjusting your filter, sort, or group settings.
+                    </p>
                     <button
                       onClick={boardControls.clearAll}
                       className="mt-2 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
@@ -568,7 +641,9 @@ export function ProjectsPage() {
                   <>
                     <Inbox className="mb-2 h-10 w-10 text-primary/70" />
                     <h3 className="text-xl font-semibold">No items yet</h3>
-                    <p className="text-muted-foreground">This project has no items. Add items in GitHub to see them here.</p>
+                    <p className="text-muted-foreground">
+                      This project has no items. Add items in GitHub to see them here.
+                    </p>
                   </>
                 )}
               </div>
@@ -585,9 +660,7 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {selectedItem && (
-        <IssueDetailModal item={selectedItem} onClose={handleCloseModal} />
-      )}
+      {selectedItem && <IssueDetailModal item={selectedItem} onClose={handleCloseModal} />}
     </div>
   );
 }

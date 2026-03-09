@@ -96,8 +96,12 @@ export function ProjectSelectionEmptyState({
         {isOpen && (
           <div className="mt-5 w-full max-w-md rounded-[1.35rem] border border-border/80 bg-background/80 p-3 text-left shadow-[0_24px_80px_hsl(var(--night)/0.32)] backdrop-blur-xl">
             <div className="border-b border-border/70 px-3 pb-3">
-              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">GitHub Projects</p>
-              <p className="mt-1 text-sm text-muted-foreground">Pick a project to activate it for this workspace.</p>
+              <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">
+                GitHub Projects
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Pick a project to activate it for this workspace.
+              </p>
             </div>
 
             {isLoading ? (
@@ -107,7 +111,9 @@ export function ProjectSelectionEmptyState({
             ) : projects.length === 0 ? (
               <div className="p-6 text-center">
                 <p className="text-sm text-foreground">No projects available</p>
-                <p className="mt-1 text-xs text-muted-foreground/70">Connect a GitHub Project to start working here.</p>
+                <p className="mt-1 text-xs text-muted-foreground/70">
+                  Connect a GitHub Project to start working here.
+                </p>
               </div>
             ) : (
               <div className="max-h-[18rem] overflow-y-auto py-2">
@@ -123,7 +129,7 @@ export function ProjectSelectionEmptyState({
                       disabled={pendingProjectId !== null}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-70',
-                        isSelected ? 'bg-primary/10 text-primary' : 'text-foreground',
+                        isSelected ? 'bg-primary/10 text-primary' : 'text-foreground'
                       )}
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
@@ -131,7 +137,9 @@ export function ProjectSelectionEmptyState({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{project.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{project.owner_login}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {project.owner_login}
+                        </span>
                       </span>
                       {isPending ? (
                         <div className="h-4 w-4 rounded-full border-2 border-border border-t-primary animate-spin" />

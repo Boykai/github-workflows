@@ -69,7 +69,11 @@ export function CelestialCatalogHero({
 
           {(actions || stats.length > 0) && (
             <div className="mt-8 flex flex-col gap-6">
-              {actions && <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">{actions}</div>}
+              {actions && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                  {actions}
+                </div>
+              )}
               {stats.length > 0 && (
                 <div className="flex flex-wrap items-start gap-3">
                   {stats.map((stat) => (
@@ -77,8 +81,12 @@ export function CelestialCatalogHero({
                       key={stat.label}
                       className="moonwell inline-flex max-w-full min-w-0 flex-col rounded-[1.2rem] px-4 py-3 sm:rounded-[1.3rem]"
                     >
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">{stat.label}</p>
-                      <p className="mt-2 break-words text-xl font-semibold leading-tight text-foreground">{stat.value}</p>
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
+                        {stat.label}
+                      </p>
+                      <p className="mt-2 break-words text-xl font-semibold leading-tight text-foreground">
+                        {stat.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -98,7 +106,9 @@ export function CelestialCatalogHero({
             <div className="celestial-orbit celestial-orbit-spin-reverse absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 bg-primary/10 ring-1 ring-primary/30" />
             <div className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/35 bg-background/60 celestial-pulse-glow" />
             <div className="absolute bottom-6 left-6 right-6 rounded-[1.35rem] border border-border/60 bg-background/55 px-4 py-4">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-primary/80">Current Ritual</p>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-primary/80">
+                Current Ritual
+              </p>
               <p className="mt-2 text-sm leading-6 text-foreground">{note ?? description}</p>
             </div>
           </div>

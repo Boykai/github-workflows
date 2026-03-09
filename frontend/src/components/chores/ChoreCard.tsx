@@ -171,7 +171,7 @@ export function ChoreCard({
     ? pipelines.find((pipeline) => pipeline.id === currentPipelineId)
     : null;
   const pipelineLabel = currentPipelineId
-    ? selectedPipeline?.name ?? 'Saved pipeline unavailable'
+    ? (selectedPipeline?.name ?? 'Saved pipeline unavailable')
     : 'Auto';
 
   useEffect(() => {
@@ -214,7 +214,7 @@ export function ChoreCard({
       },
       {
         onSettled: () => setShowPipelineMenu(false),
-      },
+      }
     );
   };
 
@@ -226,7 +226,12 @@ export function ChoreCard({
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.22),_transparent_72%)] opacity-90" />
-      <CardContent className={cn('relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5', isSpotlight && 'sm:min-h-[21rem] sm:p-6')}>
+      <CardContent
+        className={cn(
+          'relative flex h-full min-h-[17.5rem] flex-col gap-4 p-4 sm:min-h-[19rem] sm:p-5',
+          isSpotlight && 'sm:min-h-[21rem] sm:p-6'
+        )}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -240,9 +245,7 @@ export function ChoreCard({
                   disabled={updateMutation.isPending}
                   aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
                   className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
-                    chore.status === 'active'
-                      ? 'solar-chip-success'
-                      : 'solar-chip-violet'
+                    chore.status === 'active' ? 'solar-chip-success' : 'solar-chip-violet'
                   } disabled:opacity-50`}
                 >
                   {chore.status === 'active' ? 'Active' : 'Paused'}
@@ -255,8 +258,12 @@ export function ChoreCard({
               )}
             </div>
 
-            <h4 className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]" title={chore.name}>
-              {currentName}{isDirty ? ' *' : ''}
+            <h4
+              className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]"
+              title={chore.name}
+            >
+              {currentName}
+              {isDirty ? ' *' : ''}
             </h4>
           </div>
 
@@ -317,7 +324,7 @@ export function ChoreCard({
                 'flex h-4 w-4 items-center justify-center rounded-full border transition-colors',
                 currentBlocking
                   ? 'border-amber-500/40 bg-amber-500/18 text-amber-700 dark:text-amber-300'
-                  : 'border-border/60 bg-background/70 text-muted-foreground',
+                  : 'border-border/60 bg-background/70 text-muted-foreground'
               )}
               aria-hidden="true"
             >
@@ -335,7 +342,7 @@ export function ChoreCard({
                 currentPipelineId
                   ? 'border-primary/30 bg-primary/10 text-primary'
                   : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:text-foreground',
-                showPipelineMenu && 'border-primary/40 bg-primary/12 text-foreground',
+                showPipelineMenu && 'border-primary/40 bg-primary/12 text-foreground'
               )}
               aria-haspopup="listbox"
               aria-expanded={showPipelineMenu}
@@ -344,9 +351,15 @@ export function ChoreCard({
             >
               <Workflow className="h-3 w-3 shrink-0" />
               <span className="truncate normal-case">
-                <span className="text-muted-foreground">Agent Pipeline: </span>{pipelineLabel}
+                <span className="text-muted-foreground">Agent Pipeline: </span>
+                {pipelineLabel}
               </span>
-              <ChevronDown className={cn('h-3 w-3 shrink-0 transition-transform', showPipelineMenu && 'rotate-180')} />
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 shrink-0 transition-transform',
+                  showPipelineMenu && 'rotate-180'
+                )}
+              />
             </button>
 
             {showPipelineMenu && (
@@ -354,7 +367,11 @@ export function ChoreCard({
                 <div className="border-b border-border/65 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Select Agent Pipeline
                 </div>
-                <div className="max-h-64 overflow-y-auto p-1.5" role="listbox" aria-label="Agent Pipeline options">
+                <div
+                  className="max-h-64 overflow-y-auto p-1.5"
+                  role="listbox"
+                  aria-label="Agent Pipeline options"
+                >
                   <button
                     type="button"
                     role="option"
@@ -362,14 +379,18 @@ export function ChoreCard({
                     onClick={() => handlePipelineChange('')}
                     className={cn(
                       'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10',
-                      currentPipelineId === '' && 'bg-primary/10 text-foreground',
+                      currentPipelineId === '' && 'bg-primary/10 text-foreground'
                     )}
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">Auto</p>
-                      <p className="text-[11px] text-muted-foreground">Use the project&apos;s selected pipeline</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Use the project&apos;s selected pipeline
+                      </p>
                     </div>
-                    {currentPipelineId === '' && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                    {currentPipelineId === '' && (
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                    )}
                   </button>
                   {pipelines.map((pipeline) => {
                     const isSelected = pipeline.id === currentPipelineId;
@@ -383,7 +404,7 @@ export function ChoreCard({
                         onClick={() => handlePipelineChange(pipeline.id)}
                         className={cn(
                           'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left transition-colors hover:bg-primary/10',
-                          isSelected && 'bg-primary/10 text-foreground',
+                          isSelected && 'bg-primary/10 text-foreground'
                         )}
                       >
                         <div className="min-w-0">

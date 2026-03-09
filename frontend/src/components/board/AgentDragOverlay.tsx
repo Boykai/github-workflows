@@ -33,7 +33,8 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
   if (assignedModelName || metadata?.default_model_name) {
     metaParts.push(assignedModelName || metadata?.default_model_name || '');
   }
-  if (metadata?.tools_count && metadata.tools_count > 0) metaParts.push(`${metadata.tools_count} tools`);
+  if (metadata?.tools_count && metadata.tools_count > 0)
+    metaParts.push(`${metadata.tools_count} tools`);
   const metaLine = metaParts.join(' · ');
 
   return (
@@ -45,7 +46,14 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
       <span className="text-muted-foreground/50 px-1">⠿</span>
 
       {/* Avatar */}
-      <ThemedAgentIcon slug={agent.slug} name={displayName} avatarUrl={metadata?.avatar_url} iconName={metadata?.icon_name} size="sm" title={agent.slug} />
+      <ThemedAgentIcon
+        slug={agent.slug}
+        name={displayName}
+        avatarUrl={metadata?.avatar_url}
+        iconName={metadata?.icon_name}
+        size="sm"
+        title={agent.slug}
+      />
 
       {/* Name and metadata */}
       <div className="flex-1 min-w-0">

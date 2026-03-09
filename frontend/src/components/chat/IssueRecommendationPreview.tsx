@@ -109,10 +109,14 @@ export function IssueRecommendationPreview({
               View on GitHub →
             </a>
           )}
-          {error && <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">{error}</div>}
+          {error && (
+            <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">
+              {error}
+            </div>
+          )}
           <p className="mt-2 text-sm text-muted-foreground italic">
-            The issue was created but the agent pipeline encountered an error.
-            The system will automatically retry, or you can check the pipeline status.
+            The issue was created but the agent pipeline encountered an error. The system will
+            automatically retry, or you can check the pipeline status.
           </p>
         </div>
       </div>
@@ -135,8 +139,13 @@ export function IssueRecommendationPreview({
   return (
     <div className="mt-3 max-w-[600px] rounded-lg border border-border bg-background/58 p-4 shadow-sm">
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-border">
-        <h4 className="m-0 inline-flex items-center gap-2 text-base font-semibold text-foreground"><FilePenLine className="h-4 w-4 text-primary" />Issue Recommendation</h4>
-        <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground capitalize">{recommendation.status}</span>
+        <h4 className="m-0 inline-flex items-center gap-2 text-base font-semibold text-foreground">
+          <FilePenLine className="h-4 w-4 text-primary" />
+          Issue Recommendation
+        </h4>
+        <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground capitalize">
+          {recommendation.status}
+        </span>
       </div>
 
       <div className="mb-3">
@@ -159,10 +168,14 @@ export function IssueRecommendationPreview({
       </div>
 
       <div className="mb-3">
-        <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">Functional Requirements</h5>
+        <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">
+          Functional Requirements
+        </h5>
         <ul className="m-0 pl-5 text-sm text-foreground">
           {recommendation.functional_requirements.slice(0, 5).map((req, index) => (
-            <li key={index} className="mb-1">{req}</li>
+            <li key={index} className="mb-1">
+              {req}
+            </li>
           ))}
           {recommendation.functional_requirements.length > 5 && (
             <li className="text-muted-foreground italic">
@@ -174,11 +187,18 @@ export function IssueRecommendationPreview({
 
       {recommendation.metadata && (
         <div className="mb-3 rounded-lg border border-border bg-background/72 p-3">
-          <h5 className="m-0 mb-1 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground"><BarChart3 className="h-4 w-4 text-primary/80" />Metadata</h5>
+          <h5 className="m-0 mb-1 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+            <BarChart3 className="h-4 w-4 text-primary/80" />
+            Metadata
+          </h5>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
-              <span className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}>
+              <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                Priority
+              </span>
+              <span
+                className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}
+              >
                 {recommendation.metadata.priority || 'P2'}
               </span>
             </div>
@@ -189,7 +209,9 @@ export function IssueRecommendationPreview({
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] uppercase text-muted-foreground font-medium">Estimate</span>
+              <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                Estimate
+              </span>
               <span className="text-sm font-medium text-foreground">
                 {recommendation.metadata.estimate_hours || 4}h
               </span>
@@ -201,34 +223,52 @@ export function IssueRecommendationPreview({
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] uppercase text-muted-foreground font-medium">Target</span>
+              <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                Target
+              </span>
               <span className="text-sm font-medium text-foreground">
                 {recommendation.metadata.target_date || 'TBD'}
               </span>
             </div>
             {recommendation.metadata.labels && recommendation.metadata.labels.length > 0 && (
               <div className="col-span-2 flex flex-col gap-1">
-                <span className="text-[11px] uppercase text-muted-foreground font-medium">Labels</span>
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                  Labels
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.labels.map((label, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-medium">{label}</span>
+                    <span
+                      key={idx}
+                      className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-medium"
+                    >
+                      {label}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
             {recommendation.metadata.assignees && recommendation.metadata.assignees.length > 0 && (
               <div className="col-span-2 flex flex-col gap-1">
-                <span className="text-[11px] uppercase text-muted-foreground font-medium">Assignees</span>
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                  Assignees
+                </span>
                 <div className="flex flex-wrap gap-1.5">
                   {recommendation.metadata.assignees.map((assignee, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium">@{assignee}</span>
+                    <span
+                      key={idx}
+                      className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium"
+                    >
+                      @{assignee}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
             {recommendation.metadata.milestone && (
               <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase text-muted-foreground font-medium">Milestone</span>
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                  Milestone
+                </span>
                 <span className="text-sm font-medium text-foreground">
                   {recommendation.metadata.milestone}
                 </span>
@@ -236,7 +276,9 @@ export function IssueRecommendationPreview({
             )}
             {recommendation.metadata.branch && (
               <div className="flex flex-col gap-1">
-                <span className="text-[11px] uppercase text-muted-foreground font-medium">Branch</span>
+                <span className="text-[11px] uppercase text-muted-foreground font-medium">
+                  Branch
+                </span>
                 <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[11px] font-mono w-fit">
                   {recommendation.metadata.branch}
                 </span>
@@ -246,7 +288,11 @@ export function IssueRecommendationPreview({
         </div>
       )}
 
-      {error && <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">{error}</div>}
+      {error && (
+        <div className="bg-destructive/10 text-destructive  p-2 rounded-md text-sm mt-3">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-3 mt-4 pt-3 border-t border-border">
         <button

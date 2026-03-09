@@ -88,7 +88,10 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
               <span className="w-2 h-2 rounded-full bg-gray-400" />
               {pendingCount} pending
             </span>
-            <span className="inline-flex items-center gap-1" title="Current base branch for new issues">
+            <span
+              className="inline-flex items-center gap-1"
+              title="Current base branch for new issues"
+            >
               <GitBranch className="h-3.5 w-3.5" /> {baseBranch}
             </span>
           </div>
@@ -108,8 +111,13 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
                       : 'border-border/50 bg-background/30'
                   }`}
                 >
-                  <span className="text-muted-foreground w-4 text-center text-[10px]">{idx + 1}</span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${statusInfo.dot}`} title={statusInfo.label} />
+                  <span className="text-muted-foreground w-4 text-center text-[10px]">
+                    {idx + 1}
+                  </span>
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${statusInfo.dot}`}
+                    title={statusInfo.label}
+                  />
                   <span className="font-medium">#{entry.issue_number}</span>
                   {entry.is_blocking && (
                     <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
@@ -130,7 +138,8 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
           {/* Next in line */}
           {nextInLine && (
             <div className="border-t border-border/50 pt-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Next up:</span> Issue #{nextInLine.issue_number}
+              <span className="font-medium text-foreground">Next up:</span> Issue #
+              {nextInLine.issue_number}
               {nextInLine.is_blocking ? ' (blocking)' : ' (non-blocking)'}
             </div>
           )}

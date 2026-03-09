@@ -18,7 +18,9 @@ describe('Tooltip', () => {
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText('Bulk Model Update')).toBeInTheDocument();
-    expect(within(tooltip).getByText(/Change the default AI model for multiple agents at once/i)).toBeInTheDocument();
+    expect(
+      within(tooltip).getByText(/Change the default AI model for multiple agents at once/i)
+    ).toBeInTheDocument();
   });
 
   it('renders direct content with optional metadata', async () => {
@@ -39,8 +41,13 @@ describe('Tooltip', () => {
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText('Dynamic tooltip')).toBeInTheDocument();
-    expect(within(tooltip).getByText('Immediate explanation for a dynamic action.')).toBeInTheDocument();
-    expect(within(tooltip).getByRole('link', { name: 'Learn more →' })).toHaveAttribute('href', 'https://example.test/docs');
+    expect(
+      within(tooltip).getByText('Immediate explanation for a dynamic action.')
+    ).toBeInTheDocument();
+    expect(within(tooltip).getByRole('link', { name: 'Learn more →' })).toHaveAttribute(
+      'href',
+      'https://example.test/docs'
+    );
   });
 
   it('gracefully skips tooltip rendering when the key is missing', async () => {

@@ -41,7 +41,7 @@ describe('StageCard', () => {
         onAddAgent={vi.fn()}
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
-      />,
+      />
     );
 
     const user = userEvent.setup();
@@ -61,7 +61,7 @@ describe('StageCard', () => {
         onAddAgent={vi.fn()}
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
-      />,
+      />
     );
 
     const user = userEvent.setup();

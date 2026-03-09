@@ -40,7 +40,7 @@ describe('CelestialCatalogHero', () => {
     // Badge spans have specific classes with tracking-[0.2em]
     const badgeSpans = container.querySelectorAll('span.rounded-full');
     // Filter to only badge-like spans (not the celestial-sigil)
-    const badges = Array.from(badgeSpans).filter(el => el.textContent === 'New');
+    const badges = Array.from(badgeSpans).filter((el) => el.textContent === 'New');
     expect(badges).toHaveLength(0);
   });
 

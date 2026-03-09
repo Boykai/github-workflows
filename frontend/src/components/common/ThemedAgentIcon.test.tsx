@@ -19,7 +19,11 @@ describe('ThemedAgentIcon', () => {
 
   it('prefers avatar images and falls back to the celestial icon on load failure', () => {
     const { container } = render(
-      <ThemedAgentIcon slug="copilot-review" name="Copilot Review" avatarUrl="https://example.com/avatar.png" />,
+      <ThemedAgentIcon
+        slug="copilot-review"
+        name="Copilot Review"
+        avatarUrl="https://example.com/avatar.png"
+      />
     );
 
     const image = screen.getByAltText('Copilot Review');
@@ -33,7 +37,9 @@ describe('ThemedAgentIcon', () => {
   });
 
   it('honors an explicit icon name override', () => {
-    const { container } = render(<ThemedAgentIcon slug="copilot" iconName="aurora" name="GitHub Copilot" />);
+    const { container } = render(
+      <ThemedAgentIcon slug="copilot" iconName="aurora" name="GitHub Copilot" />
+    );
 
     expect(container.querySelector('[data-agent-icon="aurora"]')).toBeTruthy();
   });

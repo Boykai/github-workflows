@@ -47,8 +47,7 @@ export function useUserSettings() {
   });
 
   const mutation = useMutation({
-    mutationFn: (update: UserPreferencesUpdate) =>
-      settingsApi.updateUserSettings(update),
+    mutationFn: (update: UserPreferencesUpdate) => settingsApi.updateUserSettings(update),
     onSuccess: (data) => {
       queryClient.setQueryData(settingsKeys.user(), data);
     },
@@ -75,8 +74,7 @@ export function useGlobalSettings() {
   });
 
   const mutation = useMutation({
-    mutationFn: (update: GlobalSettingsUpdate) =>
-      settingsApi.updateGlobalSettings(update),
+    mutationFn: (update: GlobalSettingsUpdate) => settingsApi.updateGlobalSettings(update),
     onSuccess: (data) => {
       queryClient.setQueryData(settingsKeys.global(), data);
       // User effective settings may have changed if global defaults changed
@@ -200,8 +198,7 @@ export function useSignalLinkStatus(enabled: boolean) {
     queryKey: signalKeys.linkStatus(),
     queryFn: signalApi.checkLinkStatus,
     enabled,
-    refetchInterval: (query) =>
-      enabled && query.state.data?.status === 'pending' ? 2000 : false,
+    refetchInterval: (query) => (enabled && query.state.data?.status === 'pending' ? 2000 : false),
     staleTime: STALE_TIME_SHORT,
   });
 

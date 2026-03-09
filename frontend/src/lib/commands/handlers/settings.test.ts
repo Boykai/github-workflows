@@ -104,9 +104,11 @@ describe('notificationsHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('on');
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      notifications: expect.objectContaining({ task_status_change: true }),
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.objectContaining({ task_status_change: true }),
+      })
+    );
   });
 
   it('off value disables notifications', async () => {
@@ -116,9 +118,11 @@ describe('notificationsHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('off');
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      notifications: expect.objectContaining({ task_status_change: false }),
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notifications: expect.objectContaining({ task_status_change: false }),
+      })
+    );
   });
 
   it('invalid value returns error', async () => {
@@ -156,9 +160,11 @@ describe('viewHandler', () => {
 
     expect(result.success).toBe(true);
     expect(result.message).toContain('chat');
-    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({
-      display: expect.objectContaining({ default_view: 'chat' }),
-    }));
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        display: expect.objectContaining({ default_view: 'chat' }),
+      })
+    );
   });
 
   it('invalid value returns error', async () => {

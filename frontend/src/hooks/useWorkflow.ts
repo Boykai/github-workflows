@@ -28,13 +28,11 @@ export function useWorkflow(): UseWorkflowReturn {
   const queryClient = useQueryClient();
 
   const confirmMutation = useMutation({
-    mutationFn: (recommendationId: string) =>
-      workflowApi.confirmRecommendation(recommendationId),
+    mutationFn: (recommendationId: string) => workflowApi.confirmRecommendation(recommendationId),
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (recommendationId: string) =>
-      workflowApi.rejectRecommendation(recommendationId),
+    mutationFn: (recommendationId: string) => workflowApi.rejectRecommendation(recommendationId),
   });
 
   const configQuery = useQuery({
@@ -67,26 +65,23 @@ export function useWorkflow(): UseWorkflowReturn {
 
   const confirmRecommendation = useCallback(
     (recommendationId: string) => confirmMutation.mutateAsync(recommendationId),
-    [confirmMutation],
+    [confirmMutation]
   );
 
   const rejectRecommendation = useCallback(
     (recommendationId: string) => rejectMutation.mutateAsync(recommendationId),
-    [rejectMutation],
+    [rejectMutation]
   );
 
-  const getConfig = useCallback(
-    async (): Promise<WorkflowConfiguration> => {
-      const result = await configQuery.refetch();
-      if (result.error) throw result.error;
-      return result.data!;
-    },
-    [configQuery],
-  );
+  const getConfig = useCallback(async (): Promise<WorkflowConfiguration> => {
+    const result = await configQuery.refetch();
+    if (result.error) throw result.error;
+    return result.data!;
+  }, [configQuery]);
 
   const updateConfig = useCallback(
     (config: Partial<WorkflowConfiguration>) => updateConfigMutation.mutateAsync(config),
-    [updateConfigMutation],
+    [updateConfigMutation]
   );
 
   return {

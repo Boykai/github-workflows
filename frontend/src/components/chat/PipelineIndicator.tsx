@@ -33,7 +33,7 @@ export function PipelineIndicator({
     <div
       className={cn(
         'flex items-center gap-1 px-2 py-1 text-xs rounded-md',
-        'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+        'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
       )}
       title={hasMultipleMentions ? 'Multiple pipelines mentioned — using last' : undefined}
     >

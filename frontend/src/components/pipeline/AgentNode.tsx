@@ -11,7 +11,6 @@ import { formatAgentName } from '@/utils/formatAgentName';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import type { DraggableAttributes } from '@dnd-kit/core';
 
-
 interface AgentNodeProps {
   agentNode: PipelineAgentNode;
   onModelSelect: (modelId: string, modelName: string) => void;
@@ -65,9 +64,7 @@ export function AgentNode({
 
       {/* Agent info */}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium text-foreground truncate">
-          {displayName}
-        </div>
+        <div className="text-xs font-medium text-foreground truncate">{displayName}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -90,7 +87,9 @@ export function AgentNode({
           >
             <Wrench className="h-3 w-3 text-muted-foreground" />
             {toolCount > 0 ? (
-              <span className="font-medium text-primary">{toolCount} tool{toolCount !== 1 ? 's' : ''}</span>
+              <span className="font-medium text-primary">
+                {toolCount} tool{toolCount !== 1 ? 's' : ''}
+              </span>
             ) : (
               <span className="text-muted-foreground">+ Tools</span>
             )}

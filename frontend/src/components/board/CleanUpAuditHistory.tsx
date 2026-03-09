@@ -74,16 +74,16 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
             {data.operations.map((op) => (
               <div key={op.id} className="p-3 rounded border border-border">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">
-                    {formatDate(op.started_at)}
-                  </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    op.status === 'completed'
-                      ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                      : op.status === 'failed'
-                        ? 'bg-destructive/20 text-destructive'
-                        : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
-                  }`}>
+                  <span className="text-sm font-medium">{formatDate(op.started_at)}</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      op.status === 'completed'
+                        ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : op.status === 'failed'
+                          ? 'bg-destructive/20 text-destructive'
+                          : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
+                    }`}
+                  >
                     {op.status}
                   </span>
                 </div>
@@ -93,9 +93,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
                   <span>Branches preserved: {op.branches_preserved}</span>
                   <span>PRs preserved: {op.prs_preserved}</span>
                   {op.errors_count > 0 && (
-                    <span className="text-destructive col-span-2">
-                      Errors: {op.errors_count}
-                    </span>
+                    <span className="text-destructive col-span-2">Errors: {op.errors_count}</span>
                   )}
                 </div>
               </div>

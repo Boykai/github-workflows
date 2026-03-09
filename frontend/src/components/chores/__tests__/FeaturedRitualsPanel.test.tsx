@@ -60,7 +60,7 @@ describe('FeaturedRitualsPanel', () => {
           }),
         ]}
         parentIssueCount={5}
-      />,
+      />
     );
 
     expect(screen.getByText('Count-based ritual')).toBeInTheDocument();

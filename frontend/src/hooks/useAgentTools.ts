@@ -10,7 +10,10 @@ export const agentToolKeys = {
   tools: (agentId: string) => ['agents', agentId, 'tools'] as const,
 };
 
-export function useAgentTools(projectId: string | null | undefined, agentId: string | null | undefined) {
+export function useAgentTools(
+  projectId: string | null | undefined,
+  agentId: string | null | undefined
+) {
   const queryClient = useQueryClient();
 
   const query = useQuery<{ tools: ToolChip[] }>({

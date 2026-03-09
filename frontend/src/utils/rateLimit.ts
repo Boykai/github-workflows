@@ -6,11 +6,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isRateLimitInfo(value: unknown): value is RateLimitInfo {
-  return isRecord(value)
-    && typeof value.limit === 'number'
-    && typeof value.remaining === 'number'
-    && typeof value.reset_at === 'number'
-    && typeof value.used === 'number';
+  return (
+    isRecord(value) &&
+    typeof value.limit === 'number' &&
+    typeof value.remaining === 'number' &&
+    typeof value.reset_at === 'number' &&
+    typeof value.used === 'number'
+  );
 }
 
 export function extractRateLimitInfo(error: unknown): RateLimitInfo | null {

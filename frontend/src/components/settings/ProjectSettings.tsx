@@ -8,11 +8,7 @@
 import { useState, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useProjectSettings } from '@/hooks/useSettings';
-import type {
-  ProjectSettingsUpdate,
-  ProjectBoardConfig,
-  ProjectAgentMapping,
-} from '@/types';
+import type { ProjectSettingsUpdate, ProjectBoardConfig, ProjectAgentMapping } from '@/types';
 
 interface ProjectSettingsProps {
   /** List of available projects from the sidebar */
@@ -96,7 +92,9 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
         description="Per-project board configuration and agent mappings."
         hideSave
       >
-        <p className="text-sm text-muted-foreground italic">No projects available. Select a project first.</p>
+        <p className="text-sm text-muted-foreground italic">
+          No projects available. Select a project first.
+        </p>
       </SettingsSection>
     );
   }
@@ -109,7 +107,9 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
       onSave={handleSave}
     >
       <div className="flex flex-col gap-2">
-        <label htmlFor="project-selector" className="text-sm font-medium text-foreground">Project</label>
+        <label htmlFor="project-selector" className="text-sm font-medium text-foreground">
+          Project
+        </label>
         <select
           id="project-selector"
           className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -125,14 +125,20 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
         </select>
       </div>
 
-      {isLoading && projectId && <p className="text-sm text-muted-foreground">Loading project settings...</p>}
+      {isLoading && projectId && (
+        <p className="text-sm text-muted-foreground">Loading project settings...</p>
+      )}
 
       {projectId && !isLoading && (
         <>
-          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Board Display</h4>
+          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">
+            Board Display
+          </h4>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="proj-col-order" className="text-sm font-medium text-foreground">Column Order (comma-separated)</label>
+            <label htmlFor="proj-col-order" className="text-sm font-medium text-foreground">
+              Column Order (comma-separated)
+            </label>
             <input
               id="proj-col-order"
               type="text"
@@ -144,7 +150,9 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="proj-collapsed" className="text-sm font-medium text-foreground">Collapsed Columns (comma-separated)</label>
+            <label htmlFor="proj-collapsed" className="text-sm font-medium text-foreground">
+              Collapsed Columns (comma-separated)
+            </label>
             <input
               id="proj-collapsed"
               type="text"
@@ -167,10 +175,14 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
             </label>
           </div>
 
-          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">Pipeline Mappings</h4>
+          <h4 className="text-sm font-semibold text-foreground mt-4 border-b border-border pb-2">
+            Pipeline Mappings
+          </h4>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="proj-agents" className="text-sm font-medium text-foreground">JSON (status → agent list)</label>
+            <label htmlFor="proj-agents" className="text-sm font-medium text-foreground">
+              JSON (status → agent list)
+            </label>
             <textarea
               id="proj-agents"
               className="celestial-focus flex min-h-[80px] w-full rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"

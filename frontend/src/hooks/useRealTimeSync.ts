@@ -25,7 +25,10 @@ interface UseRealTimeSyncReturn {
   lastUpdate: Date | null;
 }
 
-export function useRealTimeSync(projectId: string | null, options?: UseRealTimeSyncOptions): UseRealTimeSyncReturn {
+export function useRealTimeSync(
+  projectId: string | null,
+  options?: UseRealTimeSyncOptions
+): UseRealTimeSyncReturn {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<SyncStatus>('disconnected');
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -72,7 +75,11 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
         }
 
         // Handle real-time updates
-        if (data.type === 'task_update' || data.type === 'task_created' || data.type === 'status_changed') {
+        if (
+          data.type === 'task_update' ||
+          data.type === 'task_created' ||
+          data.type === 'status_changed'
+        ) {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           markUpdated();
@@ -165,7 +172,7 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
         // Exponential backoff: delay = min(BASE * 2^attempt, MAX) + jitter
         const expDelay = Math.min(
           BASE_RECONNECT_DELAY_MS * Math.pow(2, reconnectAttempts.current),
-          MAX_RECONNECT_DELAY_MS,
+          MAX_RECONNECT_DELAY_MS
         );
         const jitter = Math.random() * BASE_RECONNECT_DELAY_MS;
         reconnectAttempts.current++;
@@ -209,7 +216,7 @@ export function useRealTimeSync(projectId: string | null, options?: UseRealTimeS
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- connect is stable enough; startPolling/stopPolling included via connect's closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- connect is stable enough; startPolling/stopPolling included via connect's closure
   }, [projectId, connect]);
 
   return {

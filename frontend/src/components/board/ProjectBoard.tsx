@@ -16,7 +16,13 @@ interface ProjectBoardProps {
   blockingIssueNumbers?: Set<number>;
 }
 
-export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroups, blockingIssueNumbers }: ProjectBoardProps) {
+export function ProjectBoard({
+  boardData,
+  onCardClick,
+  availableAgents,
+  getGroups,
+  blockingIssueNumbers,
+}: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
 
   return (

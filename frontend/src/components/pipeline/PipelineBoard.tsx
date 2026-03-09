@@ -8,7 +8,14 @@ import { useState, useRef, useEffect, useCallback, type CSSProperties } from 're
 import { Layers, Lock, PencilLine } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
-import type { PipelineStage, PipelineAgentNode, AvailableAgent, AIModel, PipelineModelOverride, PipelineValidationErrors } from '@/types';
+import type {
+  PipelineStage,
+  PipelineAgentNode,
+  AvailableAgent,
+  AIModel,
+  PipelineModelOverride,
+  PipelineValidationErrors,
+} from '@/types';
 
 interface PipelineBoardProps {
   columnCount: number;
@@ -29,7 +36,11 @@ interface PipelineBoardProps {
   onRemoveStage: (stageId: string) => void;
   onAddAgent: (stageId: string, agentSlug: string) => void;
   onRemoveAgent: (stageId: string, agentNodeId: string) => void;
-  onUpdateAgent: (stageId: string, agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
+  onUpdateAgent: (
+    stageId: string,
+    agentNodeId: string,
+    updates: Partial<PipelineAgentNode>
+  ) => void;
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   onCloneAgent?: (stageId: string, agentNodeId: string) => void;
   onReorderAgents: (stageId: string, newOrder: PipelineAgentNode[]) => void;
@@ -114,13 +125,19 @@ export function PipelineBoard({
               type="text"
               aria-label="Pipeline name"
               value={editNameValue}
-              onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
+              onChange={(e) => {
+                setEditNameValue(e.target.value);
+                onClearValidationError('name');
+              }}
               onBlur={() => {
                 handleNameConfirm();
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleNameConfirm();
-                if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
+                if (e.key === 'Escape') {
+                  setEditNameValue(pipelineName);
+                  setIsEditingName(false);
+                }
               }}
               className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
                 validationErrors.name ? 'border-red-500' : 'border-primary/30'
@@ -131,7 +148,10 @@ export function PipelineBoard({
           ) : (
             <button
               type="button"
-              onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
+              onClick={() => {
+                setEditNameValue(pipelineName);
+                setIsEditingName(true);
+              }}
               className={`text-lg font-semibold transition-colors ${
                 validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
               }`}
@@ -181,7 +201,8 @@ export function PipelineBoard({
           <Layers className="h-8 w-8 text-muted-foreground/40" />
           <h3 className="text-sm font-semibold text-foreground">No stages yet</h3>
           <p className="text-xs text-muted-foreground">
-            Stages are derived from your project board columns. Configure your board to populate pipeline stages.
+            Stages are derived from your project board columns. Configure your board to populate
+            pipeline stages.
           </p>
         </div>
       </div>
@@ -206,13 +227,19 @@ export function PipelineBoard({
             type="text"
             aria-label="Pipeline name"
             value={editNameValue}
-            onChange={(e) => { setEditNameValue(e.target.value); onClearValidationError('name'); }}
+            onChange={(e) => {
+              setEditNameValue(e.target.value);
+              onClearValidationError('name');
+            }}
             onBlur={() => {
               handleNameConfirm();
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleNameConfirm();
-              if (e.key === 'Escape') { setEditNameValue(pipelineName); setIsEditingName(false); }
+              if (e.key === 'Escape') {
+                setEditNameValue(pipelineName);
+                setIsEditingName(false);
+              }
             }}
             className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
               validationErrors.name ? 'border-red-500' : 'border-primary/30'
@@ -223,7 +250,10 @@ export function PipelineBoard({
         ) : (
           <button
             type="button"
-            onClick={() => { setEditNameValue(pipelineName); setIsEditingName(true); }}
+            onClick={() => {
+              setEditNameValue(pipelineName);
+              setIsEditingName(true);
+            }}
             className={`text-lg font-semibold transition-colors ${
               validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
             }`}

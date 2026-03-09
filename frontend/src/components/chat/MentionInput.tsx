@@ -15,7 +15,12 @@ export interface MentionInputHandle {
   moveCursorToEnd: () => void;
   isCaretOnFirstLine: () => boolean;
   isCaretOnLastLine: () => boolean;
-  insertTokenAtCursor: (pipelineId: string, pipelineName: string, triggerOffset: number, queryLength: number) => void;
+  insertTokenAtCursor: (
+    pipelineId: string,
+    pipelineName: string,
+    triggerOffset: number,
+    queryLength: number
+  ) => void;
 }
 
 interface MentionInputProps {
@@ -31,228 +36,238 @@ interface MentionInputProps {
   onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
-export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
-  function MentionInput(
-    {
-      value,
-      placeholder,
-      disabled,
-      isNavigating,
-      onTextChange,
-      onTokenRemove,
-      onMentionTrigger,
-      onMentionDismiss,
-      onSubmit,
-      onKeyDown,
-    },
-    ref,
-  ) {
-    const divRef = useRef<HTMLDivElement>(null);
-    const isComposingRef = useRef(false);
-    const [isEmpty, setIsEmpty] = useState(true);
-
-    // Expose imperative handle
-    useImperativeHandle(ref, () => ({
-      focus() {
-        divRef.current?.focus();
-      },
-      clear() {
-        if (divRef.current) {
-          divRef.current.innerHTML = '';
-          onTextChange('');
-          setIsEmpty(true);
-        }
-      },
-      getPlainText() {
-        return extractPlainText(divRef.current);
-      },
-      getElement() {
-        return divRef.current;
-      },
-      moveCursorToEnd() {
-        moveCursorToEnd(divRef.current);
-      },
-      isCaretOnFirstLine() {
-        return isCaretOnFirstLine(divRef.current);
-      },
-      isCaretOnLastLine() {
-        return isCaretOnLastLine(divRef.current);
-      },
-      insertTokenAtCursor(pipelineId: string, pipelineName: string, triggerOffset: number, queryLength: number) {
-        insertToken(divRef.current, pipelineId, pipelineName, triggerOffset, queryLength);
-        onTextChange(extractPlainText(divRef.current));
-        setIsEmpty(false);
-      },
-    }));
-
-    // Focus on mount
-    useEffect(() => {
-      divRef.current?.focus();
-    }, []);
-
-    useEffect(() => {
-      const el = divRef.current;
-      if (!el) return;
-
-      const currentText = extractPlainText(el);
-      if (currentText === value) {
-        setIsEmpty(!value.trim());
-        return;
-      }
-
-      setPlainTextContent(el, value);
-      setIsEmpty(!value.trim());
-    }, [value]);
-
-    const handleInput = useCallback(() => {
-      if (isComposingRef.current) return;
-      const el = divRef.current;
-      if (!el) return;
-
-      const text = extractPlainText(el);
-      onTextChange(text);
-      setIsEmpty(!text.trim());
-
-      // Check for @ trigger
-      const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-
-      const range = sel.getRangeAt(0);
-      // Only detect in text nodes
-      if (range.startContainer.nodeType !== Node.TEXT_NODE) return;
-
-      const textNode = range.startContainer as Text;
-      const textContent = textNode.textContent || '';
-      const cursorPos = range.startOffset;
-
-      // Walk backwards from cursor to find the @ trigger
-      let atPos = -1;
-      for (let i = cursorPos - 1; i >= 0; i--) {
-        const ch = textContent[i];
-        if (ch === '@') {
-          // Check that @ is preceded by space, newline, or is at position 0
-          if (i === 0) {
-            atPos = i;
-          } else {
-            const prevChar = textContent[i - 1];
-            if (prevChar === ' ' || prevChar === '\n' || prevChar === '\r') {
-              atPos = i;
-            }
-          }
-          break;
-        }
-        // Stop scanning if we hit a space or newline (no @ trigger)
-        if (ch === ' ' || ch === '\n' || ch === '\r') break;
-      }
-
-      if (atPos >= 0) {
-        const query = textContent.slice(atPos + 1, cursorPos);
-        // Calculate absolute offset: walk sibling text nodes to find the absolute position
-        const absoluteOffset = getAbsoluteOffset(el, textNode, atPos);
-        onMentionTrigger(query, absoluteOffset);
-      } else {
-        onMentionDismiss();
-      }
-    }, [onTextChange, onMentionTrigger, onMentionDismiss]);
-
-    const handleKeyDown = useCallback(
-      (e: React.KeyboardEvent<HTMLDivElement>) => {
-        // Let the parent handle autocomplete keys first
-        if (onKeyDown) {
-          onKeyDown(e);
-          if (e.defaultPrevented) return;
-        }
-
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          onSubmit();
-        }
-
-        // Handle backspace into token: when the cursor is right after a token span,
-        // remove the entire token
-        if (e.key === 'Backspace') {
-          const sel = window.getSelection();
-          if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
-            const range = sel.getRangeAt(0);
-            const container = range.startContainer;
-
-            // Case 1: Cursor is at position 0 in a text node, check previous sibling
-            if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
-              const prevSibling = container.previousSibling;
-              if (prevSibling && prevSibling instanceof HTMLElement && prevSibling.hasAttribute('data-mention-token')) {
-                e.preventDefault();
-                const removedPipelineId = prevSibling.getAttribute('data-pipeline-id');
-                prevSibling.remove();
-                onTextChange(extractPlainText(divRef.current));
-                if (removedPipelineId) onTokenRemove?.(removedPipelineId);
-                setIsEmpty(!extractPlainText(divRef.current).trim());
-                return;
-              }
-            }
-
-            // Case 2: Cursor is in the parent div between child nodes
-            if (container === divRef.current && range.startOffset > 0) {
-              const prevNode = container.childNodes[range.startOffset - 1];
-              if (prevNode && prevNode instanceof HTMLElement && prevNode.hasAttribute('data-mention-token')) {
-                e.preventDefault();
-                const removedPipelineId = prevNode.getAttribute('data-pipeline-id');
-                prevNode.remove();
-                onTextChange(extractPlainText(divRef.current));
-                if (removedPipelineId) onTokenRemove?.(removedPipelineId);
-                setIsEmpty(!extractPlainText(divRef.current).trim());
-                return;
-              }
-            }
-          }
-        }
-      },
-      [onKeyDown, onSubmit, onTextChange, onTokenRemove],
-    );
-
-    const handlePaste = useCallback(
-      (e: React.ClipboardEvent) => {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        document.execCommand('insertText', false, text);
-      },
-      [],
-    );
-
-    // Show/hide placeholder — use local state rather than DOM queries
-
-    return (
-      <div className="relative">
-        <div
-          ref={divRef}
-          contentEditable={!disabled}
-          role="textbox"
-          tabIndex={0}
-          aria-multiline="true"
-          aria-label="Chat input"
-          suppressContentEditableWarning
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onCompositionStart={() => { isComposingRef.current = true; }}
-          onCompositionEnd={() => {
-            isComposingRef.current = false;
-            handleInput();
-          }}
-          className={cn(
-            'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words celestial-focus',
-            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
-            disabled && 'bg-muted pointer-events-none opacity-60',
-          )}
-        />
-        {isEmpty && !disabled && placeholder && (
-          <div className="absolute top-0 left-0 p-3 text-sm text-muted-foreground pointer-events-none select-none">
-            {placeholder}
-          </div>
-        )}
-      </div>
-    );
+export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(function MentionInput(
+  {
+    value,
+    placeholder,
+    disabled,
+    isNavigating,
+    onTextChange,
+    onTokenRemove,
+    onMentionTrigger,
+    onMentionDismiss,
+    onSubmit,
+    onKeyDown,
   },
-);
+  ref
+) {
+  const divRef = useRef<HTMLDivElement>(null);
+  const isComposingRef = useRef(false);
+  const [isEmpty, setIsEmpty] = useState(true);
+
+  // Expose imperative handle
+  useImperativeHandle(ref, () => ({
+    focus() {
+      divRef.current?.focus();
+    },
+    clear() {
+      if (divRef.current) {
+        divRef.current.innerHTML = '';
+        onTextChange('');
+        setIsEmpty(true);
+      }
+    },
+    getPlainText() {
+      return extractPlainText(divRef.current);
+    },
+    getElement() {
+      return divRef.current;
+    },
+    moveCursorToEnd() {
+      moveCursorToEnd(divRef.current);
+    },
+    isCaretOnFirstLine() {
+      return isCaretOnFirstLine(divRef.current);
+    },
+    isCaretOnLastLine() {
+      return isCaretOnLastLine(divRef.current);
+    },
+    insertTokenAtCursor(
+      pipelineId: string,
+      pipelineName: string,
+      triggerOffset: number,
+      queryLength: number
+    ) {
+      insertToken(divRef.current, pipelineId, pipelineName, triggerOffset, queryLength);
+      onTextChange(extractPlainText(divRef.current));
+      setIsEmpty(false);
+    },
+  }));
+
+  // Focus on mount
+  useEffect(() => {
+    divRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const el = divRef.current;
+    if (!el) return;
+
+    const currentText = extractPlainText(el);
+    if (currentText === value) {
+      setIsEmpty(!value.trim());
+      return;
+    }
+
+    setPlainTextContent(el, value);
+    setIsEmpty(!value.trim());
+  }, [value]);
+
+  const handleInput = useCallback(() => {
+    if (isComposingRef.current) return;
+    const el = divRef.current;
+    if (!el) return;
+
+    const text = extractPlainText(el);
+    onTextChange(text);
+    setIsEmpty(!text.trim());
+
+    // Check for @ trigger
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+
+    const range = sel.getRangeAt(0);
+    // Only detect in text nodes
+    if (range.startContainer.nodeType !== Node.TEXT_NODE) return;
+
+    const textNode = range.startContainer as Text;
+    const textContent = textNode.textContent || '';
+    const cursorPos = range.startOffset;
+
+    // Walk backwards from cursor to find the @ trigger
+    let atPos = -1;
+    for (let i = cursorPos - 1; i >= 0; i--) {
+      const ch = textContent[i];
+      if (ch === '@') {
+        // Check that @ is preceded by space, newline, or is at position 0
+        if (i === 0) {
+          atPos = i;
+        } else {
+          const prevChar = textContent[i - 1];
+          if (prevChar === ' ' || prevChar === '\n' || prevChar === '\r') {
+            atPos = i;
+          }
+        }
+        break;
+      }
+      // Stop scanning if we hit a space or newline (no @ trigger)
+      if (ch === ' ' || ch === '\n' || ch === '\r') break;
+    }
+
+    if (atPos >= 0) {
+      const query = textContent.slice(atPos + 1, cursorPos);
+      // Calculate absolute offset: walk sibling text nodes to find the absolute position
+      const absoluteOffset = getAbsoluteOffset(el, textNode, atPos);
+      onMentionTrigger(query, absoluteOffset);
+    } else {
+      onMentionDismiss();
+    }
+  }, [onTextChange, onMentionTrigger, onMentionDismiss]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Let the parent handle autocomplete keys first
+      if (onKeyDown) {
+        onKeyDown(e);
+        if (e.defaultPrevented) return;
+      }
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        onSubmit();
+      }
+
+      // Handle backspace into token: when the cursor is right after a token span,
+      // remove the entire token
+      if (e.key === 'Backspace') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && sel.isCollapsed) {
+          const range = sel.getRangeAt(0);
+          const container = range.startContainer;
+
+          // Case 1: Cursor is at position 0 in a text node, check previous sibling
+          if (container.nodeType === Node.TEXT_NODE && range.startOffset === 0) {
+            const prevSibling = container.previousSibling;
+            if (
+              prevSibling &&
+              prevSibling instanceof HTMLElement &&
+              prevSibling.hasAttribute('data-mention-token')
+            ) {
+              e.preventDefault();
+              const removedPipelineId = prevSibling.getAttribute('data-pipeline-id');
+              prevSibling.remove();
+              onTextChange(extractPlainText(divRef.current));
+              if (removedPipelineId) onTokenRemove?.(removedPipelineId);
+              setIsEmpty(!extractPlainText(divRef.current).trim());
+              return;
+            }
+          }
+
+          // Case 2: Cursor is in the parent div between child nodes
+          if (container === divRef.current && range.startOffset > 0) {
+            const prevNode = container.childNodes[range.startOffset - 1];
+            if (
+              prevNode &&
+              prevNode instanceof HTMLElement &&
+              prevNode.hasAttribute('data-mention-token')
+            ) {
+              e.preventDefault();
+              const removedPipelineId = prevNode.getAttribute('data-pipeline-id');
+              prevNode.remove();
+              onTextChange(extractPlainText(divRef.current));
+              if (removedPipelineId) onTokenRemove?.(removedPipelineId);
+              setIsEmpty(!extractPlainText(divRef.current).trim());
+              return;
+            }
+          }
+        }
+      }
+    },
+    [onKeyDown, onSubmit, onTextChange, onTokenRemove]
+  );
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }, []);
+
+  // Show/hide placeholder — use local state rather than DOM queries
+
+  return (
+    <div className="relative">
+      <div
+        ref={divRef}
+        contentEditable={!disabled}
+        role="textbox"
+        tabIndex={0}
+        aria-multiline="true"
+        aria-label="Chat input"
+        suppressContentEditableWarning
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        onCompositionStart={() => {
+          isComposingRef.current = true;
+        }}
+        onCompositionEnd={() => {
+          isComposingRef.current = false;
+          handleInput();
+        }}
+        className={cn(
+          'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words celestial-focus',
+          isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+          disabled && 'bg-muted pointer-events-none opacity-60'
+        )}
+      />
+      {isEmpty && !disabled && placeholder && (
+        <div className="absolute top-0 left-0 p-3 text-sm text-muted-foreground pointer-events-none select-none">
+          {placeholder}
+        </div>
+      )}
+    </div>
+  );
+});
 
 /**
  * Extract plain text from the contentEditable div.
@@ -283,7 +298,11 @@ function extractPlainText(el: HTMLDivElement | null): string {
  * Calculate the absolute character offset of a position within a text node
  * relative to the contentEditable container.
  */
-function getAbsoluteOffset(container: HTMLDivElement, targetNode: Text, localOffset: number): number {
+function getAbsoluteOffset(
+  container: HTMLDivElement,
+  targetNode: Text,
+  localOffset: number
+): number {
   let offset = 0;
   for (const node of container.childNodes) {
     if (node === targetNode) {
@@ -311,7 +330,7 @@ function insertToken(
   pipelineId: string,
   pipelineName: string,
   triggerOffset: number,
-  queryLength: number,
+  queryLength: number
 ): void {
   if (!container) return;
 
@@ -384,7 +403,7 @@ function replaceQueryRangeWithToken(
   token: HTMLElement,
   startOffset: number,
   length: number,
-  selection: Selection,
+  selection: Selection
 ): boolean {
   const start = locateTextPosition(container, startOffset);
   const end = locateTextPosition(container, startOffset + length);
@@ -436,7 +455,7 @@ function replaceSelectionWithToken(selection: Selection, token: HTMLElement): vo
 
 function locateTextPosition(
   container: HTMLDivElement,
-  absoluteOffset: number,
+  absoluteOffset: number
 ): { node: Text; offset: number } | null {
   let remaining = absoluteOffset;
   let lastTextNode: Text | null = null;

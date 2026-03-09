@@ -56,7 +56,7 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
           className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border shrink-0 ${
             file.status === 'error'
               ? 'border-destructive/50 bg-destructive/5'
-                : 'border-border bg-background/76'
+              : 'border-border bg-background/76'
           }`}
           title={file.error || file.filename}
         >
