@@ -25,9 +25,9 @@
 
 **Purpose**: Validate environment, confirm current implementation state, and prepare for baseline measurement.
 
-- [ ] T001 Validate development environment: install backend dependencies (`pip install -e ".[dev]"` in `backend/`) and frontend dependencies (`npm install` in `frontend/`), run existing test suites to confirm green baseline
-- [ ] T002 Audit Spec 022 implementation state in `backend/src/api/projects.py`: verify whether server-side hash-based change detection for WebSocket subscriptions is implemented or missing
-- [ ] T003 [P] Audit fallback polling invalidation scope in `frontend/src/hooks/useRealTimeSync.ts`: document whether polling currently invalidates board data query or tasks query only
+- [x] T001 Validate development environment: install backend dependencies (`pip install -e ".[dev]"` in `backend/`) and frontend dependencies (`npm install` in `frontend/`), run existing test suites to confirm green baseline
+- [x] T002 Audit Spec 022 implementation state in `backend/src/api/projects.py`: verify whether server-side hash-based change detection for WebSocket subscriptions is implemented or missing
+- [x] T003 [P] Audit fallback polling invalidation scope in `frontend/src/hooks/useRealTimeSync.ts`: document whether polling currently invalidates board data query or tasks query only
 
 ---
 
@@ -39,12 +39,12 @@
 
 ### Baseline Capture for User Story 3
 
-- [ ] T004 [US3] Define measurement protocol covering all baseline metrics (idle API call count, board endpoint cost cold/warm, WS refresh frequency, polling refresh frequency, board render time, interaction response time, rerender count per update) per data-model.md PerformanceBaseline entity
-- [ ] T005 [P] [US3] Capture backend idle API call count baseline: count outgoing GitHub API calls with a board open and no user interaction over a 5-minute window using `backend/src/api/board.py` and `backend/src/api/projects.py` request logging
-- [ ] T006 [P] [US3] Capture backend cold-cache vs warm-cache board refresh call counts: measure external API calls for a full board refresh with empty cache vs warm sub-issue cache in `backend/src/services/github_projects/service.py`
-- [ ] T007 [P] [US3] Capture frontend render profiling baseline: measure rerender counts per single task update and board initial load time using React Profiler on `frontend/src/pages/ProjectsPage.tsx` and board components
-- [ ] T008 [P] [US3] Capture frontend network activity baseline: document fallback polling request frequency, WebSocket message frequency, and query invalidation patterns in `frontend/src/hooks/useRealTimeSync.ts` and `frontend/src/hooks/useBoardRefresh.ts`
-- [ ] T009 [US3] Document all baseline results in a measurement log for before/after comparison per FR-001 and FR-002
+- [x] T004 [US3] Define measurement protocol covering all baseline metrics (idle API call count, board endpoint cost cold/warm, WS refresh frequency, polling refresh frequency, board render time, interaction response time, rerender count per update) per data-model.md PerformanceBaseline entity
+- [x] T005 [P] [US3] Capture backend idle API call count baseline: count outgoing GitHub API calls with a board open and no user interaction over a 5-minute window using `backend/src/api/board.py` and `backend/src/api/projects.py` request logging
+- [x] T006 [P] [US3] Capture backend cold-cache vs warm-cache board refresh call counts: measure external API calls for a full board refresh with empty cache vs warm sub-issue cache in `backend/src/services/github_projects/service.py`
+- [x] T007 [P] [US3] Capture frontend render profiling baseline: measure rerender counts per single task update and board initial load time using React Profiler on `frontend/src/pages/ProjectsPage.tsx` and board components
+- [x] T008 [P] [US3] Capture frontend network activity baseline: document fallback polling request frequency, WebSocket message frequency, and query invalidation patterns in `frontend/src/hooks/useRealTimeSync.ts` and `frontend/src/hooks/useBoardRefresh.ts`
+- [x] T009 [US3] Document all baseline results in a measurement log for before/after comparison per FR-001 and FR-002
 
 **Checkpoint**: Baselines documented — optimization work can now begin. US1/US5 (backend) and US4/US2/US6 (frontend) can proceed in parallel.
 
@@ -60,16 +60,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Add backend test for WebSocket hash-based change detection: verify that when task data is unchanged, no WebSocket message is sent to the client in `backend/tests/unit/test_api_board.py`
-- [ ] T011 [P] [US1] Add backend test for WebSocket hash update on data change: verify that when task data changes, a message is sent and the stored hash is updated in `backend/tests/unit/test_api_board.py`
-- [ ] T012 [P] [US1] Add frontend test for fallback polling invalidation scope: verify that polling fallback only invalidates the tasks query and does NOT invalidate the board data query in `frontend/src/hooks/useRealTimeSync.test.tsx`
+- [x] T010 [P] [US1] Add backend test for WebSocket hash-based change detection: verify that when task data is unchanged, no WebSocket message is sent to the client in `backend/tests/unit/test_api_board.py`
+- [x] T011 [P] [US1] Add backend test for WebSocket hash update on data change: verify that when task data changes, a message is sent and the stored hash is updated in `backend/tests/unit/test_api_board.py`
+- [x] T012 [P] [US1] Add frontend test for fallback polling invalidation scope: verify that polling fallback only invalidates the tasks query and does NOT invalidate the board data query in `frontend/src/hooks/useRealTimeSync.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement server-side hash-based change detection for WebSocket subscriptions in `backend/src/api/projects.py`: hash current task data before sending, compare with stored hash per subscription, skip message if unchanged per cache-contract.md Contract 3
-- [ ] T014 [US1] Add hash storage and cleanup lifecycle for WebSocket subscriptions in `backend/src/api/projects.py`: initialize hash as null on new connection, clean up on disconnection
-- [ ] T015 [US1] Fix fallback polling to only invalidate tasks query (not board data query) in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 1
-- [ ] T016 [US1] Verify idle board produces zero WebSocket messages after initial data delivery when data is unchanged, and fallback polling does not trigger expensive board refreshes
+- [x] T013 [US1] Implement server-side hash-based change detection for WebSocket subscriptions in `backend/src/api/projects.py`: hash current task data before sending, compare with stored hash per subscription, skip message if unchanged per cache-contract.md Contract 3
+- [x] T014 [US1] Add hash storage and cleanup lifecycle for WebSocket subscriptions in `backend/src/api/projects.py`: initialize hash as null on new connection, clean up on disconnection
+- [x] T015 [US1] Fix fallback polling to only invalidate tasks query (not board data query) in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 1
+- [x] T016 [US1] Verify idle board produces zero WebSocket messages after initial data delivery when data is unchanged, and fallback polling does not trigger expensive board refreshes
 
 **Checkpoint**: Idle API consumption should be measurably reduced. Re-measure idle call count and compare against T005 baseline.
 
@@ -85,16 +85,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US4] Add test for refresh channel isolation: verify WebSocket messages do not trigger board data query invalidation in `frontend/src/hooks/useRealTimeSync.test.tsx`
-- [ ] T018 [P] [US4] Add test for refresh deduplication: verify that 3+ simultaneous refresh triggers within 1 second result in at most 1 board data refresh in `frontend/src/hooks/useBoardRefresh.test.tsx`
-- [ ] T019 [P] [US4] Add test for manual refresh cache bypass: verify manual refresh calls API with `refresh=true` and invalidates both board data and tasks queries in `frontend/src/hooks/useBoardRefresh.test.tsx`
+- [x] T017 [P] [US4] Add test for refresh channel isolation: verify WebSocket messages do not trigger board data query invalidation in `frontend/src/hooks/useRealTimeSync.test.tsx`
+- [x] T018 [P] [US4] Add test for refresh deduplication: verify that 3+ simultaneous refresh triggers within 1 second result in at most 1 board data refresh in `frontend/src/hooks/useBoardRefresh.test.tsx`
+- [x] T019 [P] [US4] Add test for manual refresh cache bypass: verify manual refresh calls API with `refresh=true` and invalidates both board data and tasks queries in `frontend/src/hooks/useBoardRefresh.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Ensure all WebSocket message types (`task_update`, `task_created`, `status_changed`, `refresh`, `initial_data`) only invalidate tasks query in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 3 message-type-to-action mapping
-- [ ] T021 [US4] Verify auto-refresh in `frontend/src/hooks/useBoardRefresh.ts` uses `invalidateQueries` with stale-while-revalidate (no `refresh=true` bypass) per refresh-contract.md Contract 1
-- [ ] T022 [US4] Confirm manual refresh is the only path that calls API with `refresh=true` and invalidates both board data and tasks queries in `frontend/src/hooks/useBoardRefresh.ts`
-- [ ] T023 [US4] Verify fallback polling suppression when WebSocket is connected: poll tick should be a no-op when WS is active in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 2 timing contract
+- [x] T020 [US4] Ensure all WebSocket message types (`task_update`, `task_created`, `status_changed`, `refresh`, `initial_data`) only invalidate tasks query in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 3 message-type-to-action mapping
+- [x] T021 [US4] Verify auto-refresh in `frontend/src/hooks/useBoardRefresh.ts` uses `invalidateQueries` with stale-while-revalidate (no `refresh=true` bypass) per refresh-contract.md Contract 1
+- [x] T022 [US4] Confirm manual refresh is the only path that calls API with `refresh=true` and invalidates both board data and tasks queries in `frontend/src/hooks/useBoardRefresh.ts`
+- [x] T023 [US4] Verify fallback polling suppression when WebSocket is connected: poll tick should be a no-op when WS is active in `frontend/src/hooks/useRealTimeSync.ts` per refresh-contract.md Contract 2 timing contract
 
 **Checkpoint**: All four refresh channels operate under a single coherent policy. Simulate combined triggers and confirm no refresh storms.
 
@@ -110,14 +110,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US2] Add test verifying that callback props passed to BoardColumn are stable references (do not change identity between renders) in `frontend/src/pages/ProjectsPage.tsx` test file or inline test
-- [ ] T025 [P] [US2] Add test verifying that a single card data change does not trigger rerender of unrelated BoardColumn components in `frontend/src/components/board/BoardColumn.tsx` test file or inline test
+- [x] T024 [P] [US2] Add test verifying that callback props passed to BoardColumn are stable references (do not change identity between renders) in `frontend/src/pages/ProjectsPage.tsx` test file or inline test
+- [x] T025 [P] [US2] Add test verifying that a single card data change does not trigger rerender of unrelated BoardColumn components in `frontend/src/components/board/BoardColumn.tsx` test file or inline test
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Stabilize callback props passed to memoized BoardColumn components: wrap `getGroups` and other function props in `useCallback` with correct dependency arrays in `frontend/src/pages/ProjectsPage.tsx`
-- [ ] T027 [P] [US2] Stabilize callback props passed to memoized IssueCard components: ensure `onClick`, `onStatusChange`, and `availableAgents` props are stable references in `frontend/src/components/board/BoardColumn.tsx`
-- [ ] T028 [US2] Verify that a single task update arriving via WebSocket rerenders only the affected IssueCard in `frontend/src/components/board/IssueCard.tsx` and its parent BoardColumn in `frontend/src/components/board/BoardColumn.tsx` — not other columns or cards
+- [x] T026 [US2] Stabilize callback props passed to memoized BoardColumn components: wrap `getGroups` and other function props in `useCallback` with correct dependency arrays in `frontend/src/pages/ProjectsPage.tsx`
+- [x] T027 [P] [US2] Stabilize callback props passed to memoized IssueCard components: ensure `onClick`, `onStatusChange`, and `availableAgents` props are stable references in `frontend/src/components/board/BoardColumn.tsx`
+- [x] T028 [US2] Verify that a single task update arriving via WebSocket rerenders only the affected IssueCard in `frontend/src/components/board/IssueCard.tsx` and its parent BoardColumn in `frontend/src/components/board/BoardColumn.tsx` — not other columns or cards
 
 **Checkpoint**: Board interactions are responsive. Profile confirms <100ms interaction response and minimal rerender scope per SC-003 and SC-004.
 
@@ -133,16 +133,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T029 [P] [US5] Add test verifying that automatic board refresh reuses cached sub-issue data (no sub-issue API calls when cache is warm) in `backend/tests/unit/test_api_board.py`
-- [ ] T030 [P] [US5] Add test verifying that manual refresh (`refresh=true`) clears sub-issue caches before fetching in `backend/tests/unit/test_api_board.py`
-- [ ] T031 [P] [US5] Add test for sub-issue cache key format (`sub_issues:{owner}/{repo}#{issue_number}`) and TTL (600s) in `backend/tests/unit/test_cache.py`
+- [x] T029 [P] [US5] Add test verifying that automatic board refresh reuses cached sub-issue data (no sub-issue API calls when cache is warm) in `backend/tests/unit/test_api_board.py`
+- [x] T030 [P] [US5] Add test verifying that manual refresh (`refresh=true`) clears sub-issue caches before fetching in `backend/tests/unit/test_api_board.py`
+- [x] T031 [P] [US5] Add test for sub-issue cache key format (`sub_issues:{owner}/{repo}#{issue_number}`) and TTL (600s) in `backend/tests/unit/test_cache.py`
 
 ### Implementation for User Story 5
 
-- [ ] T032 [US5] Verify automatic refresh path in `backend/src/services/github_projects/service.py` checks sub-issue cache before making REST calls and serves cached data when TTL is valid per cache-contract.md Contract 2
-- [ ] T033 [US5] Verify manual refresh path in `backend/src/api/board.py` clears sub-issue caches for affected issues before fetching per cache-contract.md Contract 2 invariant 5
-- [ ] T034 [P] [US5] Add debug-level logging for sub-issue cache hit/miss events in `backend/src/services/github_projects/service.py` for observability per cache-contract.md error behavior
-- [ ] T035 [US5] Measure warm-cache board refresh API call count and confirm ≥50% reduction vs cold-cache baseline from T006
+- [x] T032 [US5] Verify automatic refresh path in `backend/src/services/github_projects/service.py` checks sub-issue cache before making REST calls and serves cached data when TTL is valid per cache-contract.md Contract 2
+- [x] T033 [US5] Verify manual refresh path in `backend/src/api/board.py` clears sub-issue caches for affected issues before fetching per cache-contract.md Contract 2 invariant 5
+- [x] T034 [P] [US5] Add debug-level logging for sub-issue cache hit/miss events in `backend/src/services/github_projects/service.py` for observability per cache-contract.md error behavior
+- [x] T035 [US5] Measure warm-cache board refresh API call count and confirm ≥50% reduction vs cold-cache baseline from T006
 
 **Checkpoint**: Warm-cache board refresh uses at least 50% fewer external API calls. Cache hit/miss logging confirms effectiveness.
 
@@ -156,10 +156,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T036 [P] [US6] Memoize `getGroups` function (or equivalent grouping logic) in `frontend/src/pages/ProjectsPage.tsx` using `useCallback` with correct dependency array to prevent new closure creation per render
-- [ ] T037 [P] [US6] Throttle scroll and resize event listeners in `frontend/src/components/agents/AddAgentPopover.tsx` using `requestAnimationFrame` gating to prevent per-pixel `updatePosition` execution per refresh-contract.md Contract 4 invariant 3
-- [ ] T038 [US6] Verify derived state computations (`blockingIssueNumbers`, `assignedPipeline`, `assignedStageMap`) in `frontend/src/pages/ProjectsPage.tsx` have correct `useMemo` dependency arrays and do not recompute when input data is unchanged per FR-012
-- [ ] T039 [US6] Profile board interactions on `frontend/src/pages/ProjectsPage.tsx` and board components after render optimizations and confirm reduced rerender counts vs T007 baseline
+- [x] T036 [P] [US6] Memoize `getGroups` function (or equivalent grouping logic) in `frontend/src/pages/ProjectsPage.tsx` using `useCallback` with correct dependency array to prevent new closure creation per render
+- [x] T037 [P] [US6] Throttle scroll and resize event listeners in `frontend/src/components/agents/AddAgentPopover.tsx` using `requestAnimationFrame` gating to prevent per-pixel `updatePosition` execution per refresh-contract.md Contract 4 invariant 3
+- [x] T038 [US6] Verify derived state computations (`blockingIssueNumbers`, `assignedPipeline`, `assignedStageMap`) in `frontend/src/pages/ProjectsPage.tsx` have correct `useMemo` dependency arrays and do not recompute when input data is unchanged per FR-012
+- [x] T039 [US6] Profile board interactions on `frontend/src/pages/ProjectsPage.tsx` and board components after render optimizations and confirm reduced rerender counts vs T007 baseline
 
 **Checkpoint**: Frontend render work is measurably reduced. Profiling confirms fewer rerenders and throttled listeners per SC-003.
 
@@ -171,20 +171,20 @@
 
 ### Regression Test Extensions
 
-- [ ] T040 [P] Extend backend cache tests for sub-issue cache key generation and warm-cache reuse patterns in `backend/tests/unit/test_cache.py`
-- [ ] T041 [P] Extend frontend real-time sync tests for fallback polling scope and WebSocket message-type-to-action mapping in `frontend/src/hooks/useRealTimeSync.test.tsx`
-- [ ] T042 [P] Extend frontend board refresh tests for auto-refresh stale-while-revalidate behavior and refresh channel isolation in `frontend/src/hooks/useBoardRefresh.test.tsx`
+- [x] T040 [P] Extend backend cache tests for sub-issue cache key generation and warm-cache reuse patterns in `backend/tests/unit/test_cache.py`
+- [x] T041 [P] Extend frontend real-time sync tests for fallback polling scope and WebSocket message-type-to-action mapping in `frontend/src/hooks/useRealTimeSync.test.tsx`
+- [x] T042 [P] Extend frontend board refresh tests for auto-refresh stale-while-revalidate behavior and refresh channel isolation in `frontend/src/hooks/useBoardRefresh.test.tsx`
 
 ### Post-Optimization Verification (US3 completion)
 
-- [ ] T043 [US3] Re-capture all baseline metrics using the same measurement protocol from T004 and compare against before-state documented in T009 per FR-014
-- [ ] T044 [US3] Validate that every baseline metric shows measurable improvement and no metric has regressed beyond acceptable tolerance per SC-008
-- [ ] T045 Run full backend test suite (`pytest` in `backend/`) and confirm all existing tests pass per FR-015
-- [ ] T046 [P] Run full frontend test suite (`npm test` in `frontend/`) and confirm all existing tests pass per FR-015
-- [ ] T047 [P] Run backend linting (`ruff check src/ tests/`) and type checking (`pyright src/`) in `backend/`
-- [ ] T048 [P] Run frontend linting (`npm run lint`), type checking (`npm run type-check`), and production build (`npm run build`) in `frontend/`
-- [ ] T049 Perform manual end-to-end verification per FR-016: confirm WebSocket updates refresh task data promptly, fallback polling remains safe, manual refresh bypasses caches, and board interactions remain responsive
-- [ ] T050 Run quickstart.md validation steps to confirm all commands and verification procedures work as documented
+- [x] T043 [US3] Re-capture all baseline metrics using the same measurement protocol from T004 and compare against before-state documented in T009 per FR-014
+- [x] T044 [US3] Validate that every baseline metric shows measurable improvement and no metric has regressed beyond acceptable tolerance per SC-008
+- [x] T045 Run full backend test suite (`pytest` in `backend/`) and confirm all existing tests pass per FR-015
+- [x] T046 [P] Run full frontend test suite (`npm test` in `frontend/`) and confirm all existing tests pass per FR-015
+- [x] T047 [P] Run backend linting (`ruff check src/ tests/`) and type checking (`pyright src/`) in `backend/`
+- [x] T048 [P] Run frontend linting (`npm run lint`), type checking (`npm run type-check`), and production build (`npm run build`) in `frontend/`
+- [x] T049 Perform manual end-to-end verification per FR-016: confirm WebSocket updates refresh task data promptly, fallback polling remains safe, manual refresh bypasses caches, and board interactions remain responsive
+- [x] T050 Run quickstart.md validation steps to confirm all commands and verification procedures work as documented
 
 ---
 

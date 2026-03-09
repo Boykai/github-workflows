@@ -25,7 +25,7 @@ export const BoardColumn = memo(function BoardColumn({
   blockingIssueNumbers,
 }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
-  const groups = useMemo(() => getGroups?.(column.items) ?? null, [getGroups, column.items]);
+  const groups = useMemo(() => getGroups?.(column.items), [getGroups, column.items]);
 
   return (
     <div className="celestial-panel flex min-w-0 shrink-0 flex-col h-full overflow-hidden rounded-[1.4rem] border border-border/70 shadow-sm">

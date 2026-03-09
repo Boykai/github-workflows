@@ -279,5 +279,5 @@ class TestBoardCacheBehavior:
 
             # Verify sub-issue cache was cleared
             mock_cache.delete.assert_called()
-            delete_calls = [str(c) for c in mock_cache.delete.call_args_list]
-            assert any("sub_issues" in c for c in delete_calls)
+            delete_keys = [c.args[0] for c in mock_cache.delete.call_args_list]
+            assert any(k.startswith("sub_issues:") for k in delete_keys)
