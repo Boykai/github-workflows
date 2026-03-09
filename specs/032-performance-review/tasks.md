@@ -46,7 +46,7 @@
 - [ ] T010 [P] Verify reconnection debounce (2-second window) in `frontend/src/hooks/useRealTimeSync.ts` (Lines ~13–14, 59–63) — confirm `lastInvalidationRef` timestamp comparison prevents cascading invalidation on reconnect
 - [ ] T011 [P] Verify refresh deduplication via `isRefreshingRef` in `frontend/src/hooks/useBoardRefresh.ts` (Lines ~67, 78, 105–106) — confirm concurrent refresh calls are deduplicated with manual refresh taking priority
 - [ ] T012 [P] Verify rate-limit-aware adaptive polling in `backend/src/services/copilot_polling/polling_loop.py` (Lines ~384–438) — confirm consecutive idle detection, interval doubling, 8x max multiplier, and rate-limit thresholds at 50/200/100
-- [ ] T013 Define repeatable measurement protocol for baseline capture: idle API call count over 5-minute window, board endpoint response time, sub-issue fetch count per board refresh, board initial render time, single-card rerender count, drag interaction fps, event handler invocation frequency
+- [ ] T013 Define repeatable measurement protocol for baseline capture: idle API call count over 5-minute window, board endpoint response time, sub-issue fetch count per board refresh, board initial render time, single-card rerender count, drag interaction fps, event handler invocation frequency — use tools documented in `specs/032-performance-review/quickstart.md` (backend logs, React DevTools Profiler, browser Network/Performance tabs)
 
 **Checkpoint**: Spec 022 state confirmed, measurement protocol defined. Optimization work can now begin.
 
@@ -193,7 +193,7 @@
 - [ ] T054 [US7] Run backend linting and type-checking (`cd backend && ruff check src/ && pyright src/`) — confirm no new issues introduced
 - [ ] T055 [P] [US7] Run frontend linting and type-checking (`cd frontend && npm run lint && npm run type-check`) — confirm no new issues introduced
 - [ ] T056 [US7] Recapture all baseline metrics using the same measurement protocol from T013–T019 — document post-optimization values in before/after comparison table (SC-008)
-- [ ] T057 [US7] Validate success criteria against before/after measurements: SC-001 (≥50% idle API reduction), SC-002 (< 1s single-card update), SC-003 (≥80% sub-issue API reduction), SC-004 (render time within 10% of baseline), SC-005 (≤3 re-renders per card update), SC-006 (≥30 fps drag), SC-009 (polling no full-board refresh on unchanged data), SC-010 (manual refresh bypasses all caches)
+- [ ] T057 [US7] Validate all success criteria against before/after measurements: SC-001 (≥50% idle API reduction), SC-002 (< 1s single-card update), SC-003 (≥80% sub-issue API reduction), SC-004 (render time within 10% of baseline), SC-005 (≤3 re-renders per card update), SC-006 (≥30 fps drag), SC-007 (no existing tests broken — validated by T052/T053), SC-008 (before/after measurements documented — validated by T056), SC-009 (polling no full-board refresh on unchanged data), SC-010 (manual refresh bypasses all caches)
 
 **Checkpoint**: All tests green. All success criteria validated with measurements. Regression safety confirmed.
 
