@@ -57,6 +57,12 @@ describe('useCommands', () => {
       expect(result.current.isCommand('HELP')).toBe(true);
     });
 
+    it('identifies #help alias as command', () => {
+      const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+      expect(result.current.isCommand('#help')).toBe(true);
+      expect(result.current.isCommand('#HELP')).toBe(true);
+    });
+
     it('identifies regular messages as non-commands', () => {
       const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
       expect(result.current.isCommand('hello world')).toBe(false);

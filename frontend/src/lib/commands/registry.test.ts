@@ -123,6 +123,13 @@ describe('parseCommand', () => {
     expect(parseCommand('Help').name).toBe('help');
   });
 
+  it('treats "#help" keyword (exact, case-insensitive) as help alias', () => {
+    expect(parseCommand('#help').isCommand).toBe(true);
+    expect(parseCommand('#help').name).toBe('help');
+    expect(parseCommand('#HELP').name).toBe('help');
+    expect(parseCommand('#Help').name).toBe('help');
+  });
+
   it('treats non-/ non-help input as non-command', () => {
     const result = parseCommand('hello world');
     expect(result.isCommand).toBe(false);
@@ -146,6 +153,12 @@ describe('parseCommand', () => {
     expect(result.name).toBe('help');
   });
 
+  it('trims leading/trailing whitespace around #help alias', () => {
+    const result = parseCommand('  #help  ');
+    expect(result.isCommand).toBe(true);
+    expect(result.name).toBe('help');
+  });
+
   it('preserves raw input', () => {
     const input = '  /theme   dark  ';
     const result = parseCommand(input);
@@ -156,6 +169,11 @@ describe('parseCommand', () => {
   it('# (Markdown header) is NOT a command', () => {
     const result = parseCommand('# Heading');
     expect(result.isCommand).toBe(false);
+  });
+
+  it('#help followed by extra text is NOT a command', () => {
+    expect(parseCommand('#help me').isCommand).toBe(false);
+    expect(parseCommand('#nothelp').isCommand).toBe(false);
   });
 
   it('## (Markdown header) is NOT a command', () => {

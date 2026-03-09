@@ -50,7 +50,7 @@ export function filterCommands(prefix: string): CommandDefinition[] {
  *
  * Rules:
  * 1. Input starting with '/' (after trim) is a command.
- * 2. 'help' (exact, case-insensitive after trim) is a help alias.
+ * 2. 'help' and '#help' (exact, case-insensitive after trim) are help aliases.
  * 3. Command name is the first word after '/', lowercased.
  * 4. Arguments are everything after the command name, whitespace-normalized.
  * 5. Bare '/' results in isCommand:true with name:null.
@@ -63,6 +63,11 @@ export function parseCommand(input: string): ParsedCommand {
 
   // 'help' keyword alias (exact match, case-insensitive)
   if (trimmed.toLowerCase() === 'help') {
+    return { isCommand: true, name: 'help', args: '', raw };
+  }
+
+  // '#help' keyword alias (exact match, case-insensitive)
+  if (trimmed.toLowerCase() === '#help') {
     return { isCommand: true, name: 'help', args: '', raw };
   }
 

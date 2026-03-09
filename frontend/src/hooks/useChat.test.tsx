@@ -298,7 +298,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('/help');
+      await result.current.sendMessage('#help');
     });
 
     // The command should NOT reach the backend
@@ -322,7 +322,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('/help', { isCommand: true });
+      await result.current.sendMessage('  #HELP  ', { isCommand: true });
     });
 
     expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
@@ -470,7 +470,7 @@ describe('useChat', () => {
 
     // Step 1: Send #help command
     await act(async () => {
-      await result.current.sendMessage('/help');
+      await result.current.sendMessage('#help');
     });
 
     expect(mockChatApi.sendMessage).not.toHaveBeenCalled();
@@ -500,9 +500,9 @@ describe('useChat', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    // Send /help
+    // Send #help
     await act(async () => {
-      await result.current.sendMessage('/help');
+      await result.current.sendMessage('#help');
     });
 
     const helpMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
@@ -533,7 +533,7 @@ describe('useChat', () => {
     });
 
     await act(async () => {
-      await result.current.sendMessage('/help');
+      await result.current.sendMessage('#help');
     });
 
     // localMessages should only contain the user message + system response
@@ -541,7 +541,7 @@ describe('useChat', () => {
     const userMsgs = msgs.filter((m) => m.sender_type === 'user');
     const systemMsgs = msgs.filter((m) => m.sender_type === 'system');
     expect(userMsgs).toHaveLength(1);
-    expect(userMsgs[0].content).toBe('/help');
+    expect(userMsgs[0].content).toBe('#help');
     expect(systemMsgs).toHaveLength(1);
     // No pending/failed messages should exist
     const pendingOrFailed = msgs.filter((m) => m.status === 'pending' || m.status === 'failed');
