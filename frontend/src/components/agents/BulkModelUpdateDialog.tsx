@@ -63,7 +63,7 @@ export function BulkModelUpdateDialog({
         onClick={handleClose}
       />
       <div
-        className="relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+        className="celestial-panel celestial-fade-in relative bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-label="Bulk model update dialog"

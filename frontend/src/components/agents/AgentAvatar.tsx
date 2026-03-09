@@ -193,7 +193,7 @@ export function AgentAvatar({ slug, size = 'md', className }: AgentAvatarProps) 
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-muted/50 p-1 ${className ?? ''}`}
+      className={`inline-flex items-center justify-center rounded-full bg-muted/50 p-1 transition-shadow hover:shadow-[0_0_12px_hsl(var(--glow)/0.25)] ${className ?? ''}`}
     >
       <svg
         width={px}
