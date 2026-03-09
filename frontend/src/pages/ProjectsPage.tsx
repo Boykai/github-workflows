@@ -182,6 +182,11 @@ export function ProjectsPage() {
     setPipelineSelectorOpen(false);
   }, [selectedProjectId]);
 
+  const handlePipelineSelection = useCallback((pipelineId: string) => {
+    setPipelineSelectorOpen(false);
+    assignPipelineMutation.mutate(pipelineId);
+  }, [assignPipelineMutation]);
+
   const rateLimitRetryAfter = refreshError?.retryAfter
     ?? (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
   const showRateLimitBanner = refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
@@ -432,9 +437,10 @@ export function ProjectsPage() {
                                 type="button"
                                 role="option"
                                 aria-selected={!pipelineAssignment?.pipeline_id}
-                                onClick={() => assignPipelineMutation.mutate('')}
+                                onClick={() => handlePipelineSelection('')}
+                                disabled={assignPipelineMutation.isPending}
                                 className={cn(
-                                  'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm',
+                                  'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
                                   !pipelineAssignment?.pipeline_id && 'project-pipeline-option-active',
                                 )}
                               >
@@ -450,9 +456,10 @@ export function ProjectsPage() {
                                     type="button"
                                     role="option"
                                     aria-selected={isSelected}
-                                    onClick={() => assignPipelineMutation.mutate(pipeline.id)}
+                                    onClick={() => handlePipelineSelection(pipeline.id)}
+                                    disabled={assignPipelineMutation.isPending}
                                     className={cn(
-                                      'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm',
+                                      'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
                                       isSelected && 'project-pipeline-option-active',
                                     )}
                                   >

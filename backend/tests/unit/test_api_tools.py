@@ -127,3 +127,79 @@ class TestRepoMcpConfigApi:
             access_token="test-token",
             server_name="github",
         )
+
+    async def test_update_repo_server_returns_422_for_invalid_repo_json(
+        self, client, mock_github_service
+    ):
+        mock_github_service.get_project_repository.return_value = ("octo", "widgets")
+
+        with patch(
+            "src.api.tools.ToolsService.update_repo_mcp_server",
+            AsyncMock(
+                side_effect=ValueError(
+                    "Invalid JSON in repository MCP config file at .copilot/mcp.json: boom"
+                )
+            ),
+        ):
+            resp = await client.put(
+                "/api/v1/tools/PVT_123/repo-config/github",
+                json={
+                    "name": "github",
+                    "config_content": '{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/full"}}}',
+                },
+            )
+
+        assert resp.status_code == 422
+        assert "Invalid JSON" in resp.json()["error"]
+
+    async def test_update_repo_server_returns_502_when_service_write_fails(
+        self, client, mock_github_service
+    ):
+        mock_github_service.get_project_repository.return_value = ("octo", "widgets")
+
+        with patch(
+            "src.api.tools.ToolsService.update_repo_mcp_server",
+            AsyncMock(side_effect=RuntimeError("GitHub API write error")),
+        ):
+            resp = await client.put(
+                "/api/v1/tools/PVT_123/repo-config/github",
+                json={
+                    "name": "github",
+                    "config_content": '{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/full"}}}',
+                },
+            )
+
+        assert resp.status_code == 502
+        assert resp.json()["error"] == "Failed to update repository MCP server"
+
+    async def test_delete_repo_server_returns_422_for_invalid_repo_json(
+        self, client, mock_github_service
+    ):
+        mock_github_service.get_project_repository.return_value = ("octo", "widgets")
+
+        with patch(
+            "src.api.tools.ToolsService.delete_repo_mcp_server",
+            AsyncMock(
+                side_effect=ValueError(
+                    "Invalid JSON in repository MCP config file at .copilot/mcp.json: boom"
+                )
+            ),
+        ):
+            resp = await client.delete("/api/v1/tools/PVT_123/repo-config/github")
+
+        assert resp.status_code == 422
+        assert "Invalid JSON" in resp.json()["error"]
+
+    async def test_delete_repo_server_returns_502_when_service_write_fails(
+        self, client, mock_github_service
+    ):
+        mock_github_service.get_project_repository.return_value = ("octo", "widgets")
+
+        with patch(
+            "src.api.tools.ToolsService.delete_repo_mcp_server",
+            AsyncMock(side_effect=RuntimeError("GitHub API write error")),
+        ):
+            resp = await client.delete("/api/v1/tools/PVT_123/repo-config/github")
+
+        assert resp.status_code == 502
+        assert resp.json()["error"] == "Failed to delete repository MCP server"

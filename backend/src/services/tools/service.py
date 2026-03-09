@@ -167,6 +167,21 @@ class ToolsService:
 
         return {server_name: dict(server_config)}
 
+    @staticmethod
+    def _parse_repo_mcp_content(raw: str, *, path: str) -> dict[str, object]:
+        """Parse a repository MCP config file and surface invalid JSON clearly."""
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid JSON in repository MCP config file at {path}: {exc}"
+            ) from exc
+
+        if not isinstance(parsed, dict):
+            raise ValueError(f"Repository MCP config file at {path} must contain a JSON object")
+
+        return parsed
+
     async def _find_server_name_conflicts(
         self,
         *,
@@ -675,6 +690,8 @@ class ToolsService:
 
         updated_paths: list[str] = []
         async with httpx.AsyncClient(timeout=30.0) as client:
+            pending_updates: list[tuple[str, str | None, dict[str, object]]] = []
+
             for path in MCP_CONFIG_PATHS:
                 get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
                 resp = await client.get(get_url, headers=headers)
@@ -688,7 +705,7 @@ class ToolsService:
                 file_data = resp.json()
                 existing_sha = file_data.get("sha")
                 raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                existing_content = json.loads(raw)
+                existing_content = self._parse_repo_mcp_content(raw, path=path)
                 mcp_servers = existing_content.get("mcpServers", {})
                 if not isinstance(mcp_servers, dict):
                     mcp_servers = {}
@@ -702,6 +719,18 @@ class ToolsService:
                 mcp_servers.update(next_servers)
                 existing_content["mcpServers"] = mcp_servers
 
+                pending_updates.append(
+                    (
+                        get_url,
+                        existing_sha if isinstance(existing_sha, str) else None,
+                        existing_content,
+                    )
+                )
+
+            if not pending_updates:
+                raise LookupError(f"Repository MCP server '{server_name}' not found")
+
+            for get_url, existing_sha, existing_content in pending_updates:
                 new_content = json.dumps(existing_content, indent=2) + "\n"
                 encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
                 put_body: dict[str, object] = {
@@ -714,12 +743,9 @@ class ToolsService:
                 put_resp = await client.put(get_url, headers=headers, json=put_body)
                 if put_resp.status_code not in (200, 201):
                     raise RuntimeError(
-                        f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
+                        f"GitHub API write error for {get_url.rsplit('/contents/', 1)[-1]}: {put_resp.status_code} {put_resp.text[:200]}"
                     )
-                updated_paths.append(path)
-
-        if not updated_paths:
-            raise LookupError(f"Repository MCP server '{server_name}' not found")
+                updated_paths.append(get_url.rsplit("/contents/", 1)[-1])
 
         return RepoMcpServerConfig(
             name=next_name,
@@ -760,7 +786,7 @@ class ToolsService:
                 file_data = resp.json()
                 existing_sha = file_data.get("sha")
                 raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                existing_content = json.loads(raw)
+                existing_content = self._parse_repo_mcp_content(raw, path=path)
                 mcp_servers = existing_content.get("mcpServers", {})
                 if not isinstance(mcp_servers, dict) or server_name not in mcp_servers:
                     continue

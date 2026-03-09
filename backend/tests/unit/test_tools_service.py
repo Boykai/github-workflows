@@ -639,3 +639,133 @@ class TestToolsServiceMcpSync:
         )
         assert copilot_content["mcpServers"] == {}
         assert set(vscode_content["mcpServers"].keys()) == {"other"}
+
+    async def test_update_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        {
+                            "sha": "sha-copilot",
+                            "content": base64.b64encode(b"{not valid json").decode("utf-8"),
+                        },
+                    )
+                ]
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.update_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                    data=RepoMcpServerUpdate(
+                        name="modern",
+                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                    ),
+                )
+            except ValueError as exc:
+                assert ".copilot/mcp.json" in str(exc)
+                assert "Invalid JSON" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for invalid repository MCP JSON")
+
+    async def test_update_repo_mcp_server_preflights_all_paths_before_writing(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "modern": {
+                                        "type": "http",
+                                        "url": "https://existing.example/mcp",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.update_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                    data=RepoMcpServerUpdate(
+                        name="modern",
+                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                    ),
+                )
+            except ValueError as exc:
+                assert ".vscode/mcp.json" in str(exc)
+                assert "already exists" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for rename collision")
+
+        assert fake_client.put_calls == []
+
+    async def test_delete_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        {
+                            "sha": "sha-copilot",
+                            "content": base64.b64encode(b"{not valid json").decode("utf-8"),
+                        },
+                    )
+                ]
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.delete_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                )
+            except ValueError as exc:
+                assert ".copilot/mcp.json" in str(exc)
+                assert "Invalid JSON" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for invalid repository MCP JSON")

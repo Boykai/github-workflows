@@ -303,8 +303,8 @@ describe('AgentsPanel', () => {
     );
 
     expect(screen.getAllByText('Recently added').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Pull Requests').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('3 pending').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Assigned sub-issues').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3 open').length).toBeGreaterThan(0);
 
     vi.useRealTimers();
   });

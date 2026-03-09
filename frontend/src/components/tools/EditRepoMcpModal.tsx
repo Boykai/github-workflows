@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { RepoMcpServerConfig, RepoMcpServerUpdate } from '@/types';
 import { validateMcpJson } from './UploadMcpModal';
 
@@ -31,6 +31,8 @@ export function EditRepoMcpModal({
   onClose,
   onSave,
 }: EditRepoMcpModalProps) {
+  const titleId = useId();
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [configContent, setConfigContent] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -48,6 +50,9 @@ export function EditRepoMcpModal({
     setName(server.name);
     setConfigContent(buildConfigContent(server));
     setValidationError(null);
+    queueMicrotask(() => {
+      nameInputRef.current?.focus();
+    });
   }, [isOpen, server]);
 
   useEffect(() => {
@@ -109,9 +114,20 @@ export function EditRepoMcpModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="presentation" onClick={handleClose}>
-      <div className="celestial-panel w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg" role="presentation" onClick={(event) => event.stopPropagation()}>
-        <h2 className="mb-4 text-lg font-semibold">Edit Repository MCP</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" role="presentation">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50"
+        aria-label="Close dialog"
+        onClick={handleClose}
+      />
+      <div
+        className="celestial-panel relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <h2 id={titleId} className="mb-4 text-lg font-semibold">Edit Repository MCP</h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
@@ -122,6 +138,7 @@ export function EditRepoMcpModal({
             <label htmlFor="repo-mcp-name" className="mb-1 block text-sm font-medium">Name</label>
             <input
               id="repo-mcp-name"
+              ref={nameInputRef}
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}

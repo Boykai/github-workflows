@@ -182,9 +182,9 @@ export function AgentCard({
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-              Pull Requests
+              Assigned sub-issues
             </p>
-            <p className="mt-1 text-sm text-foreground">{pendingSubIssueCount} pending</p>
+            <p className="mt-1 text-sm text-foreground">{pendingSubIssueCount} open</p>
           </div>
         </div>
 

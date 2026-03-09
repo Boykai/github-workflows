@@ -177,7 +177,11 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
       return;
     }
 
-    await deleteRepoServer(server.name);
+    try {
+      await deleteRepoServer(server.name);
+    } catch {
+      // Mutation state already surfaces the error in the panel.
+    }
   };
 
   return (

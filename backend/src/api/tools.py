@@ -135,6 +135,15 @@ async def update_repo_server(
         raise NotFoundError(str(exc)) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
+    except RuntimeError as exc:
+        logger.exception(
+            "Failed to update repository MCP server %s for project %s (%s/%s)",
+            server_name,
+            project_id,
+            owner,
+            repo,
+        )
+        raise GitHubAPIError("Failed to update repository MCP server") from exc
 
 
 @router.delete(
@@ -165,6 +174,17 @@ async def delete_repo_server(
         )
     except LookupError as exc:
         raise NotFoundError(str(exc)) from exc
+    except ValueError as exc:
+        raise ValidationError(str(exc)) from exc
+    except RuntimeError as exc:
+        logger.exception(
+            "Failed to delete repository MCP server %s for project %s (%s/%s)",
+            server_name,
+            project_id,
+            owner,
+            repo,
+        )
+        raise GitHubAPIError("Failed to delete repository MCP server") from exc
 
 
 # ── Create Tool ──
