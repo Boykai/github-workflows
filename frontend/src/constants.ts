@@ -67,6 +67,7 @@ import {
   Wrench,
   ListChecks,
   Settings,
+  HelpCircle,
 } from 'lucide-react';
 import type { NavRoute } from '@/types';
 
@@ -79,6 +80,7 @@ export const NAV_ROUTES: NavRoute[] = [
   { path: '/tools', label: 'Tools', icon: Wrench },
   { path: '/chores', label: 'Chores', icon: ListChecks },
   { path: '/settings', label: 'Settings', icon: Settings },
+  { path: '/help', label: 'Help', icon: HelpCircle },
 ];
 
 // ============ Priority Colors ============

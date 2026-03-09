@@ -39,6 +39,9 @@ const ChoresPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))
 );
+const HelpPage = lazy(() =>
+  import('@/pages/HelpPage').then((module) => ({ default: module.HelpPage }))
+);
 const LoginPage = lazy(() =>
   import('@/pages/LoginPage').then((module) => ({ default: module.LoginPage }))
 );
@@ -95,6 +98,7 @@ const router = createBrowserRouter(
         <Route path="tools" element={withSuspense(<ToolsPage />)} />
         <Route path="chores" element={withSuspense(<ChoresPage />)} />
         <Route path="settings" element={withSuspense(<SettingsPage />)} />
+        <Route path="help" element={withSuspense(<HelpPage />)} />
         <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>
     </>
