@@ -8,7 +8,7 @@ import { MoonStar, SunMedium } from 'lucide-react';
 
 export function LoginPage() {
   return (
-    <div className="starfield relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
+    <div className="starfield celestial-fade-in relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <div className="celestial-orbit celestial-orbit-spin left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />

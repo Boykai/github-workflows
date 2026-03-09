@@ -58,7 +58,7 @@ export function ChoresPage() {
   const repo = owner && repoName ? { owner, name: repoName } : undefined;
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
+    <div className="celestial-fade-in flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
       <CelestialCatalogHero
         eyebrow="Ritual Maintenance"
         title="Turn upkeep into a visible rhythm."
