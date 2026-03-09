@@ -152,6 +152,8 @@ npx playwright test             # E2E
 ## Active Technologies
 - TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577 (031-chat-helper-text)
 - N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
+- Markdown (documentation), YAML (GitHub Actions CI), Node.js 20 (CI tooling runtime) + markdownlint-cli 0.48.0 (already in CI), markdown-link-check 3.14.2 (already in CI) (032-doc-sweep)
+- N/A — all artifacts are markdown files committed to the repository (032-doc-sweep)
 
 ## Recent Changes
 - 031-chat-helper-text: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577
