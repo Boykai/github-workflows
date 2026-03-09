@@ -4,7 +4,7 @@ This document lists every HTTP, WebSocket, and SSE endpoint exposed by the backe
 
 All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `DEBUG=true`.
 
-Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/auth/session` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
+Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, and `/auth/github/callback` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`. The `/tools/presets` endpoint is public.
 
 ## Health
 
@@ -18,7 +18,6 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 |--------|------|-------------|
 | GET | `/auth/github` | Initiate GitHub OAuth flow |
 | GET | `/auth/github/callback` | OAuth callback handler |
-| POST | `/auth/session` | Set session cookie from token |
 | GET | `/auth/me` | Get current authenticated user |
 | POST | `/auth/logout` | Logout and clear session |
 | POST | `/auth/dev-login` | Dev-only PAT login (`DEBUG=true` only) |
@@ -40,6 +39,7 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 |--------|------|-------------|
 | GET | `/board/projects` | List projects with status field configuration |
 | GET | `/board/projects/{project_id}` | Get board data (columns + items) |
+| GET | `/board/projects/{project_id}/blocking-queue` | Get active blocking queue entries for a project |
 
 ## Chat
 
@@ -50,6 +50,7 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 | DELETE | `/chat/messages` | Clear chat history |
 | POST | `/chat/proposals/{id}/confirm` | Confirm task proposal |
 | DELETE | `/chat/proposals/{id}` | Cancel task proposal |
+| POST | `/chat/upload` | Upload a file attachment for a future GitHub Issue |
 
 ### `#agent` Command
 
@@ -139,10 +140,15 @@ Manage custom GitHub Agent configurations stored per-project.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/agents/{project_id}` | List all agents for a project (merged from SQLite + GitHub repo) |
+| GET | `/agents/{project_id}/pending` | List pending agent PRs awaiting merge or deletion |
+| DELETE | `/agents/{project_id}/pending` | Delete stale pending agent rows for a project |
+| PATCH | `/agents/{project_id}/bulk-model` | Update the default model for all active agents in a project |
 | POST | `/agents/{project_id}` | Create a new agent configuration |
 | PATCH | `/agents/{project_id}/{agent_id}` | Update an existing agent configuration |
 | DELETE | `/agents/{project_id}/{agent_id}` | Delete an agent configuration |
 | POST | `/agents/{project_id}/chat` | Conversational refinement of an agent definition |
+| GET | `/agents/{project_id}/{agent_id}/tools` | List MCP tools assigned to an agent |
+| PUT | `/agents/{project_id}/{agent_id}/tools` | Set the MCP tools for an agent (replace all) |
 
 ## MCP
 
@@ -162,6 +168,39 @@ Read and refresh cached GitHub repository metadata (labels, branches, milestones
 |--------|------|-------------|
 | GET | `/metadata/{owner}/{repo}` | Get cached repository metadata context |
 | POST | `/metadata/{owner}/{repo}/refresh` | Force-refresh metadata cache for a repository |
+
+## Pipelines
+
+Manage pipeline configurations per-project. Pipelines define the ordered sequence of agents that process issues.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/pipelines/{project_id}` | List all pipeline configurations for a project |
+| POST | `/pipelines/{project_id}` | Create a new pipeline configuration |
+| POST | `/pipelines/{project_id}/seed-presets` | Idempotently seed preset pipeline configurations |
+| GET | `/pipelines/{project_id}/assignment` | Get the current pipeline assignment for a project |
+| PUT | `/pipelines/{project_id}/assignment` | Set the pipeline assignment for a project |
+| PATCH | `/pipelines/{project_id}/assignment` | Set the project-level blocking override for the assigned pipeline |
+| GET | `/pipelines/{project_id}/{pipeline_id}` | Get a single pipeline configuration |
+| PUT | `/pipelines/{project_id}/{pipeline_id}` | Update an existing pipeline configuration |
+| DELETE | `/pipelines/{project_id}/{pipeline_id}` | Delete a pipeline configuration |
+
+## Tools
+
+Manage MCP (Model Context Protocol) tool configurations per-project and repository-level MCP server definitions.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/tools/presets` | List static MCP presets for quick tool creation (public) |
+| GET | `/tools/{project_id}` | List all MCP tool configurations for a project |
+| POST | `/tools/{project_id}` | Create a new MCP tool configuration |
+| GET | `/tools/{project_id}/repo-config` | Read repository MCP configuration from GitHub |
+| PUT | `/tools/{project_id}/repo-config/{server_name}` | Update a repository MCP server configuration |
+| DELETE | `/tools/{project_id}/repo-config/{server_name}` | Delete a repository MCP server configuration |
+| GET | `/tools/{project_id}/{tool_id}` | Get a single MCP tool configuration |
+| PUT | `/tools/{project_id}/{tool_id}` | Update an existing MCP tool configuration |
+| POST | `/tools/{project_id}/{tool_id}/sync` | Trigger a sync of an MCP tool to GitHub |
+| DELETE | `/tools/{project_id}/{tool_id}` | Delete an MCP tool configuration |
 
 ## Webhooks
 

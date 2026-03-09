@@ -61,6 +61,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 | `HOST` | `0.0.0.0` | Server bind host |
 | `PORT` | `8000` | Server bind port |
 | `DEBUG` | `false` | Enable API docs (`/api/docs`), dev-login endpoint |
+| `ENABLE_DOCS` | `false` | Independently toggle FastAPI interactive docs (`/api/docs`) |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
 
 ### Session
@@ -74,7 +75,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `/app/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
+| `DATABASE_PATH` | `/var/lib/ghchat/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
 
 ### Signal (Optional)
 
@@ -107,7 +108,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `012`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `018`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -125,6 +126,15 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `010_chores.sql` | Chores system (replaces housekeeping) |
 | `011_metadata_cache.sql` | GitHub metadata cache (labels, branches, milestones) |
 | `012_chat_persistence.sql` | Persistent chat messages, proposals, recommendations |
+| `013_agent_config_lifecycle_status.sql` | Agent configuration lifecycle status tracking |
+| `013_pipeline_configs.sql` | Pipeline configuration tables |
+| `014_agent_default_models.sql` | Agent default model settings |
+| `014_extend_mcp_tools.sql` | Extended MCP tool configuration fields |
+| `015_agent_icon_name.sql` | Agent icon and display name |
+| `015_pipeline_mcp_presets.sql` | Pipeline MCP presets |
+| `016_chores_enhancements.sql` | Chores system enhancements |
+| `017_blocking_queue.sql` | Blocking queue table for pipeline flow control |
+| `018_pipeline_blocking_override.sql` | Pipeline blocking override support |
 
 ## Workflow Settings
 
