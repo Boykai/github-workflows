@@ -160,8 +160,8 @@ Each documentation file has a designated owner listed in a central ownership fil
 - **SC-003**: The monthly full documentation review confirms that every documentation file in the project is accurate, complete, and consistent, with zero unresolved issues older than one review cycle.
 - **SC-004**: The quarterly architecture audit confirms that service diagrams, data flow documentation, and ADRs reflect the current system state, with all gaps identified and tracked.
 - **SC-005**: 100% of documentation files have a designated owner listed in the ownership file.
-- **SC-006**: Automated CI linting catches formatting standard violations before merge.
-- **SC-007**: Automated CI link checking catches broken internal and external links before merge.
+- **SC-006**: Automated CI linting catches 100% of formatting standard violations before merge.
+- **SC-007**: Automated CI link checking catches 100% of broken internal and external links before merge.
 - **SC-008**: A new team member can complete the full local setup by following the setup guide without needing to consult source code, within the documented time estimate.
 - **SC-009**: 95% of documentation files have a last-reviewed date within the current quarter.
 - **SC-010**: Documentation-related support requests or confusion incidents decrease by 50% within two quarters of implementing the full cadence.
