@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/031-celestial-theme-animations/`
 **Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/components.md ✅, quickstart.md ✅
 
-**Tests**: Not explicitly requested in the specification. Existing tests must continue to pass. Accessibility contrast checks are recommended but not mandated.
+**Tests**: No new tests are required by this specification. However, all existing test suites must remain passing after each phase. Accessibility contrast checks are recommended but not mandated.
 
 **Organization**: Tasks are grouped by user story (US1–US6) to enable independent implementation and testing of each story. User stories map to spec.md priorities (P1–P3).
 
@@ -41,8 +41,8 @@
 **⚠️ CRITICAL**: No user story work (component audits) can begin until this phase is complete.
 
 - [ ] T005 Add `--transition-theme-shift: 600ms ease-in-out` and `--animate-celestial-loader: orbit-spin 1.8s linear infinite` tokens to the `@theme` block in `frontend/src/index.css`
-- [ ] T006 Add `theme-shift` keyframe (`0% { opacity: 0 } → 50% { opacity: 0.3 } → 100% { opacity: 0 }`) to the `@theme` block in `frontend/src/index.css`
-- [ ] T007 Add `.theme-transitioning` utility class with `background-color` and `color` transitions, and `::after` pseudo-element with cosmic gradient overlay and `theme-shift` animation in `@layer base` in `frontend/src/index.css`
+- [ ] T006 Add `theme-shift` keyframe (`@keyframes theme-shift { 0% { opacity: 0; } 50% { opacity: 0.3; } 100% { opacity: 0; } }`) to the `@theme` block in `frontend/src/index.css`
+- [ ] T007 Add `.theme-transitioning` utility class with `background-color` and `color` transitions, and `::after` pseudo-element with cosmic gradient overlay and `theme-shift` animation in `@layer base` in `frontend/src/index.css`.
 - [ ] T008 Update `@media (prefers-reduced-motion: reduce)` block in `frontend/src/index.css` to include `.theme-transitioning` and `.theme-transitioning::after` with `animation: none !important` and `transition: none !important`
 - [ ] T009 Create `CelestialLoader` component in `frontend/src/components/common/CelestialLoader.tsx` with `size` (`sm`/`md`/`lg`), `label`, and `className` props; render orbital animation using `celestial-pulse-glow` and `celestial-orbit-spin-fast` CSS classes; include `role="status"` and `aria-label` for accessibility
 - [ ] T010 Update `ThemeProvider.tsx` (`frontend/src/components/ThemeProvider.tsx`) to add `theme-transitioning` class to `document.documentElement` before toggling theme, and remove it after 600ms via `setTimeout`; clean up timeout on unmount
