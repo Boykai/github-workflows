@@ -28,3 +28,15 @@ Each doc file has a designated owner responsible for keeping it accurate. Owners
 | Weekly (~30 min) | `api-reference.md`, `configuration.md`, `setup.md` | Rotating dev |
 | Monthly (~2–3 hours) | All `docs/` files | Tech lead sign-off |
 | Quarterly (~half day) | `architecture.md`, `docs/decisions/` | Tech lead |
+
+## Definition of Good Documentation
+
+A doc is considered current and complete when it meets all five criteria:
+
+1. **Accurate** — Every step, command, variable, and path matches the current codebase
+2. **Minimal** — No redundant content; each fact appears in exactly one place
+3. **Actionable** — Readers can accomplish the documented task without needing to read source code
+4. **Discoverable** — The correct doc is easy to find from the README or table of contents
+5. **Maintained** — Last-reviewed date is within the current quarter
+
+This definition serves as the acceptance bar for all review phases (weekly, monthly, quarterly). Reviewers should verify each criterion during their review cadence.
