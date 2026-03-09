@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, Paperclip, XCircle } from 'lucide-react';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 
 interface IssueRecommendationPreviewProps {
@@ -24,6 +24,7 @@ export function IssueRecommendationPreview({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WorkflowResult | null>(null);
+  const attachmentCount = result?.attachment_count ?? recommendation.file_urls?.length ?? 0;
 
   const handleConfirm = async () => {
     setIsLoading(true);
@@ -72,6 +73,12 @@ export function IssueRecommendationPreview({
             <strong>Issue #{result.issue_number}</strong>: {recommendation.proposed_title}
           </p>
           <p className="my-1">Status: {result.current_status}</p>
+          {attachmentCount > 0 && (
+            <p className="my-1 inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-300">
+              <Paperclip className="h-3.5 w-3.5" />
+              Issue created with {attachmentCount} attachment{attachmentCount === 1 ? '' : 's'}
+            </p>
+          )}
           {result.issue_url && (
             <a
               href={result.issue_url}
@@ -99,6 +106,12 @@ export function IssueRecommendationPreview({
           <p className="my-1">
             <strong>Issue #{result.issue_number}</strong>: {recommendation.proposed_title}
           </p>
+          {attachmentCount > 0 && (
+            <p className="my-1 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              <Paperclip className="h-3.5 w-3.5" />
+              {attachmentCount} attachment{attachmentCount === 1 ? '' : 's'} included
+            </p>
+          )}
           {result.issue_url && (
             <a
               href={result.issue_url}
@@ -152,6 +165,13 @@ export function IssueRecommendationPreview({
         <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">Title</h5>
         <p className="text-sm font-semibold text-foreground m-0">{recommendation.proposed_title}</p>
       </div>
+
+      {attachmentCount > 0 && (
+        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-medium text-primary">
+          <Paperclip className="h-3.5 w-3.5" />
+          {attachmentCount} attachment{attachmentCount === 1 ? '' : 's'} will be included
+        </div>
+      )}
 
       <div className="mb-3">
         <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">User Story</h5>
