@@ -13,7 +13,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.api.auth import get_session_dep
-from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.constants import (
+    DEFAULT_STATUS_COLUMNS,
+    GITHUB_ISSUE_BODY_MAX_LENGTH,
+    with_blocking_label,
+)
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
@@ -342,6 +346,7 @@ async def send_message(
             )
 
             recommendation.selected_pipeline_id = chat_request.pipeline_id or None
+            recommendation.is_blocking = is_blocking
 
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
@@ -670,6 +675,7 @@ async def confirm_proposal(
             repo=repo,
             title=proposal.final_title,
             body=body,
+            labels=with_blocking_label([], proposal.is_blocking),
         )
 
         issue_number = issue["number"]

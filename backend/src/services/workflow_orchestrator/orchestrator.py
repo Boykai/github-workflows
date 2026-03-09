@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
 from src.exceptions import ValidationError
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
@@ -558,7 +558,7 @@ class WorkflowOrchestrator:
             if size_label not in labels:
                 labels.append(size_label)
 
-        return labels
+        return with_blocking_label(labels, recommendation.is_blocking)
 
     @staticmethod
     def _resolve_milestone_number(

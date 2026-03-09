@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 import aiosqlite
 
+from src.constants import with_blocking_label
 from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdate
 
 logger = logging.getLogger(__name__)
@@ -413,13 +414,33 @@ class ChoresService:
         except Exception:
             logger.exception("Failed to append agent tracking table for chore %s", chore.name)
 
+        # Resolve effective blocking flag before issue creation so the parent issue
+        # carries the same Blocking label that drives queue behavior.
+        is_blocking = chore.blocking
+        if not is_blocking:
+            try:
+                from src.services.pipelines.service import PipelineService
+
+                pipeline_svc = PipelineService(self._db)
+                assignment = await pipeline_svc.get_assignment(project_id)
+                if assignment.blocking_override is not None:
+                    is_blocking = assignment.blocking_override
+                elif chore.agent_pipeline_id:
+                    pipeline_cfg = await pipeline_svc.get_pipeline(
+                        project_id, chore.agent_pipeline_id
+                    )
+                    if pipeline_cfg and pipeline_cfg.blocking:
+                        is_blocking = True
+            except Exception:
+                logger.debug("Pipeline blocking check failed for chore %s", chore.id)
+
         issue = await github_service.create_issue(
             access_token,
             owner,
             repo,
             title=chore.name,
             body=issue_body,
-            labels=["chore"],
+            labels=with_blocking_label(["chore"], is_blocking),
         )
 
         issue_number = issue["number"]
@@ -522,26 +543,6 @@ class ChoresService:
                 ctx.project_item_id = item_id
 
                 orchestrator = get_workflow_orchestrator()
-
-                # Blocking queue: resolve effective blocking flag
-                # Hierarchy: chore > project override > assigned pipeline (R5)
-                is_blocking = chore.blocking
-                if not is_blocking:
-                    try:
-                        from src.services.pipelines.service import PipelineService
-
-                        pipeline_svc = PipelineService(self._db)
-                        assignment = await pipeline_svc.get_assignment(project_id)
-                        if assignment.blocking_override is not None:
-                            is_blocking = assignment.blocking_override
-                        elif chore.agent_pipeline_id:
-                            pipeline_cfg = await pipeline_svc.get_pipeline(
-                                project_id, chore.agent_pipeline_id
-                            )
-                            if pipeline_cfg and pipeline_cfg.blocking:
-                                is_blocking = True
-                    except Exception:
-                        logger.debug("Pipeline blocking check failed for chore %s", chore.id)
 
                 # Enqueue in blocking queue and check activation
                 issue_activated = True

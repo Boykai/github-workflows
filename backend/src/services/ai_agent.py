@@ -262,6 +262,7 @@ class AIAgentService:
             ui_ux_description=ui_ux_description or "No UI/UX description provided.",
             functional_requirements=functional_requirements,
             technical_notes=technical_notes,
+            is_blocking=False,
             metadata=metadata,
             status=RecommendationStatus.PENDING,
         )

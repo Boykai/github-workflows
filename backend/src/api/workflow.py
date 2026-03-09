@@ -290,7 +290,11 @@ async def confirm_recommendation(
     # Execute workflow (T030 - error handling included in orchestrator)
     try:
         orchestrator = get_workflow_orchestrator()
-        result = await orchestrator.execute_full_workflow(ctx, recommendation)
+        result = await orchestrator.execute_full_workflow(
+            ctx,
+            recommendation,
+            is_blocking=recommendation.is_blocking,
+        )
 
         if result.success:
             # Update recommendation status
