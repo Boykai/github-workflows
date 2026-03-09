@@ -1,7 +1,7 @@
 # Agent Projects
 
 [![CI](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/github/license/Boykai/github-workflows?color=0f766e)](https://github.com/Boykai/github-workflows/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/github/license/Boykai/github-workflows?color=0f766e)](https://github.com/Boykai/github-workflows)
 [![Last Commit](https://img.shields.io/github/last-commit/Boykai/github-workflows?color=2563eb&label=last%20commit)](https://github.com/Boykai/github-workflows/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/Boykai/github-workflows?color=f59e0b&label=issues)](https://github.com/Boykai/github-workflows/issues)
 [![Open Pull Requests](https://img.shields.io/github/issues-pr/Boykai/github-workflows?color=dc2626&label=pull%20requests)](https://github.com/Boykai/github-workflows/pulls)
@@ -106,4 +106,4 @@ See [Configuration](docs/configuration.md) for the complete reference.
 
 ## License
 
-MIT License — see LICENSE file for details.
+MIT License.
