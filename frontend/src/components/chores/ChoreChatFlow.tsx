@@ -10,6 +10,7 @@ import { Sparkles } from 'lucide-react';
 
 import { useState, useRef, useEffect } from 'react';
 import { useChoreChat } from '@/hooks/useChores';
+import { CHAT_PLACEHOLDERS } from '@/constants/chat-placeholders';
 
 interface ChoreChatFlowProps {
   projectId: string;
@@ -171,7 +172,8 @@ export function ChoreChatFlow({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type your response…"
+          placeholder={CHAT_PLACEHOLDERS.choreFlow.desktop}
+          aria-label={CHAT_PLACEHOLDERS.choreFlow.ariaLabel}
           disabled={chatMutation.isPending}
           className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
         />

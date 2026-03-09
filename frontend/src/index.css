@@ -47,6 +47,10 @@
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
 
 @layer base {
