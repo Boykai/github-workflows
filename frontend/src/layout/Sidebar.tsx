@@ -1,11 +1,12 @@
 /**
  * Sidebar — vertical navigation with Solune branding, route links, project selector, and recent interactions.
+ * Desktop: inline collapsible sidebar. Mobile (<768px): overlay drawer.
  */
 
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
-import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
+import { Moon, PanelLeftClose, PanelLeft, Sun, X } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
@@ -21,9 +22,11 @@ interface SidebarProps {
   projects: Project[];
   projectsLoading: boolean;
   onSelectProject: (projectId: string) => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
-export function Sidebar({
+function SidebarContent({
   isCollapsed,
   onToggle,
   isDarkMode,
@@ -33,15 +36,14 @@ export function Sidebar({
   projects,
   projectsLoading,
   onSelectProject,
-}: SidebarProps) {
+  onCloseMobile,
+  isMobile,
+}: SidebarProps & { isMobile?: boolean }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const navigate = useNavigate();
+  const showFull = isMobile || !isCollapsed;
   return (
-    <aside
-      className={`celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-60'
-      }`}
-    >
+    <>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.22),transparent_70%)]" />
       <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl" />
       <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20" />
@@ -60,7 +62,7 @@ export function Sidebar({
           >
             {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </button>
-          {!isCollapsed && (
+          {showFull && (
             <div>
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
                 Solune
@@ -70,17 +72,27 @@ export function Sidebar({
             </div>
           )}
         </div>
-        <button
-          onClick={onToggle}
-          className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-        </button>
+        {isMobile ? (
+          <button
+            onClick={onCloseMobile}
+            className="touch-target inline-flex items-center justify-center rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
+            aria-label="Close navigation menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : (
+          <button
+            onClick={onToggle}
+            className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
+      <nav className="flex flex-1 flex-col gap-1 px-2 py-4" aria-label="Main navigation">
         {NAV_ROUTES.map((route) => (
           <NavLink
             key={route.path}
@@ -91,17 +103,17 @@ export function Sidebar({
                 isActive
                   ? 'bg-primary/14 text-primary shadow-sm ring-1 ring-primary/20'
                   : 'text-muted-foreground hover:bg-accent/14 hover:text-foreground'
-              } ${isCollapsed ? 'justify-center' : ''}`
+              } ${!showFull ? 'justify-center' : ''}`
             }
-            title={isCollapsed ? route.label : undefined}
+            title={!showFull ? route.label : undefined}
           >
             <route.icon className="w-5 h-5 shrink-0" />
-            {!isCollapsed && <span>{route.label}</span>}
+            {showFull && <span>{route.label}</span>}
           </NavLink>
         ))}
 
         {/* Recent Interactions section */}
-        {!isCollapsed && (
+        {showFull && (
           <div className="mt-6">
             <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">
               Recent Interactions
@@ -132,18 +144,18 @@ export function Sidebar({
 
       {/* Project Selector (bottom) */}
       <div className="relative border-t border-border/70 px-2 py-3">
-        {!isCollapsed && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
+        {showFull && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
           className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14 ${
-            isCollapsed ? 'justify-center' : ''
+            !showFull ? 'justify-center' : ''
           }`}
           title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
             {selectedProject ? selectedProject.name.charAt(0).toUpperCase() : '?'}
           </span>
-          {!isCollapsed && (
+          {showFull && (
             <div className="min-w-0 text-left">
               <span className="block truncate text-sm text-foreground">
                 {selectedProject ? selectedProject.name : 'Select project'}
@@ -154,7 +166,7 @@ export function Sidebar({
             </div>
           )}
         </button>
-        {!isCollapsed && (
+        {showFull && (
           <ProjectSelector
             isOpen={selectorOpen}
             onClose={() => setSelectorOpen(false)}
@@ -165,6 +177,42 @@ export function Sidebar({
           />
         )}
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar(props: SidebarProps) {
+  const { isCollapsed, isMobileOpen, onCloseMobile } = props;
+
+  return (
+    <>
+      {/* Desktop sidebar — hidden on mobile */}
+      <aside
+        className={`celestial-panel relative hidden h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300 md:flex ${
+          isCollapsed ? 'w-16' : 'w-60'
+        }`}
+      >
+        <SidebarContent {...props} isMobile={false} />
+      </aside>
+
+      {/* Mobile drawer overlay */}
+      {isMobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+          {/* Drawer */}
+          <aside
+            className="celestial-panel fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-border/70 shadow-lg transition-transform duration-300 md:hidden"
+            aria-label="Main navigation"
+          >
+            <SidebarContent {...props} isMobile={true} />
+          </aside>
+        </>
+      )}
+    </>
   );
 }

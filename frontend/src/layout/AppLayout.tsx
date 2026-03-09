@@ -51,7 +51,7 @@ function SignalBannerBar() {
 export function AppLayout() {
   const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
-  const { isCollapsed, toggle: toggleSidebar } = useSidebarState();
+  const { isCollapsed, toggle: toggleSidebar, isMobileOpen, openMobile, closeMobile } = useSidebarState();
   const {
     selectedProject,
     projects,
@@ -111,6 +111,8 @@ export function AppLayout() {
         projects={projects}
         projectsLoading={projectsLoading}
         onSelectProject={selectProject}
+        isMobileOpen={isMobileOpen}
+        onCloseMobile={closeMobile}
       />
       <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
         <TopBar
@@ -120,6 +122,7 @@ export function AppLayout() {
           notifications={notifications}
           unreadCount={unreadCount}
           onMarkAllRead={markAllRead}
+          onMenuToggle={openMobile}
         />
         <SignalBannerBar />
         <main className="relative flex-1 overflow-auto px-2 pb-2">

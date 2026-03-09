@@ -57,6 +57,18 @@ export const TOAST_ERROR_MS = 3_000;
 /** Highlight animation duration for recently-updated items (2 seconds). */
 export const HIGHLIGHT_DURATION_MS = 2_000;
 
+// ============ Responsive Breakpoints ============
+
+/** Responsive breakpoint values (px). Mirrors CSS custom properties --bp-* in index.css. */
+export const BREAKPOINTS = {
+  xs: 320,
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+  '2xl': 1440,
+} as const;
+
 // ============ Solune Navigation ============
 
 import { LayoutDashboard, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings } from 'lucide-react';
