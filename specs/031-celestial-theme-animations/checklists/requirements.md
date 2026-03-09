@@ -32,6 +32,6 @@
 ## Notes
 
 - All items pass validation. The spec is ready for `/speckit.clarify` or `/speckit.plan`.
-- The spec references existing design tokens (`--star`, `--star-soft`, `--gold`, `--glow`, `--night`) and the `CelestialCatalogHero` component as context — these are architectural references for alignment, not implementation prescriptions.
+- The spec references existing design tokens and prior art in the current design system as context for alignment, not as implementation prescriptions.
 - The Assumptions section documents reasonable defaults for performance budgets, animation approach, and scope boundaries, eliminating the need for clarification markers.
 - The Dependencies section identifies coordination requirements with the `feat/solar-theme-agent-icon-catalog` branch.

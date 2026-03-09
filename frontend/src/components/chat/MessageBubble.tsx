@@ -18,7 +18,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
 
   return (
     <div
-      className={`flex gap-3 max-w-[80%] celestial-fade-in ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}
+      className={`flex gap-3 max-w-[80%] ${isUser ? 'self-end flex-row-reverse' : 'self-start'}`}
     >
       {!isUser && !isSystem && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/72 text-muted-foreground shadow-sm">
