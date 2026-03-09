@@ -137,11 +137,16 @@ Test files are co-located with components:
 - `hooks/useChat.test.tsx`
 - `hooks/useChatHistory.test.ts`
 - `hooks/useCommands.test.tsx`
+- `hooks/useMediaQuery.test.ts`
 - `hooks/useProjectBoard.test.tsx`
 - `hooks/useProjects.test.tsx`
 - `hooks/useRealTimeSync.test.tsx`
+- `hooks/useSidebarState.test.ts`
 - `hooks/useSettingsForm.test.tsx`
 - `hooks/useWorkflow.test.tsx`
+- `layout/Sidebar.test.tsx`
+- `layout/TopBar.test.tsx`
+- `constants.test.ts`
 - `lib/commands/registry.test.ts`
 - `lib/commands/handlers/help.test.ts`
 - `lib/commands/handlers/settings.test.ts`
@@ -179,6 +184,19 @@ E2E specs:
 - `e2e/responsive-typography.spec.ts`
 - `e2e/settings-flow.spec.ts`
 - `e2e/ui.spec.ts`
+
+#### Responsive E2E Strategy
+
+The `responsive-*` test files validate that the app works across six standard viewport sizes defined in `e2e/viewports.ts` (`VIEWPORTS` constant): `mobileSmall` (320 px), `mobile` (375 px), `mobileLarge` (390 px), `tablet` (768 px), `desktop` (1280 px), and `desktopLarge` (1440 px).
+
+Each responsive spec follows a common pattern:
+
+1. Set the viewport with `page.setViewportSize(VIEWPORTS.<preset>)`.
+2. Navigate to the page under test.
+3. Assert layout constraints (e.g., `document.body.scrollWidth <= window.innerWidth` for no horizontal overflow).
+4. Check component-specific behavior (sidebar drawer, touch target sizes, typography scaling).
+
+See [Responsive Design](responsive-design.md) for breakpoint definitions, hooks, and contribution guidelines.
 
 ## Code Quality
 

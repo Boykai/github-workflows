@@ -61,7 +61,8 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 - **Real-Time**: Native `WebSocket` connection for live board updates (with polling fallback)
 - **Routing**: Hash-based view switching (`#board`, `#settings`, `#chat`)
 - **Drag-and-Drop**: `@dnd-kit` for agent configuration reordering
-- **Styling**: Tailwind CSS 4 (CSS-first config) with dark/light theme support (`ThemeProvider`)
+- **Styling**: Tailwind CSS 4 (CSS-first config) with dark/light theme support (`ThemeProvider`); centralized responsive breakpoint tokens (`--bp-xs` through `--bp-2xl`) — see [Responsive Design](responsive-design.md)
+- **Responsive Layout**: Collapsible inline sidebar on desktop, overlay drawer on mobile (< 768 px); modals go full-screen on small viewports
 - **Error Handling**: Global `ErrorBoundary` (React class component + TanStack `QueryErrorResetBoundary`)
 
 ### Key Frontend Modules
@@ -73,7 +74,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage` |
 | `components/settings/` | `AIPreferences`, `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, `ProjectSettings`, `GlobalSettings`, `SignalConnection`, `McpSettings` |
 | `components/common/` | `ErrorBoundary` |
-| `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata` |
+| `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata`, `useMediaQuery`, `useIsMobile`, `useSidebarState` |
 | `pages/` | `ProjectBoardPage`, `SettingsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
 
