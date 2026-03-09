@@ -92,15 +92,17 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 | Directory | Purpose |
 |-----------|---------|
-| `api/` | Route handlers: `auth`, `agents`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `metadata`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
-| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `agents`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
+| `api/` | Route handlers: `auth`, `agents`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `metadata`, `pipelines`, `projects`, `settings`, `signal`, `tasks`, `tools`, `webhooks`, `workflow` |
+| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `agents`, `blocking`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `pipeline`, `project`, `recommendation`, `settings`, `signal`, `task`, `tools`, `user`, `workflow` |
 | `services/` | Business logic (see below) |
 | `services/github_projects/` | `GitHubProjectsService` + `graphql.py` + `GitHubClientFactory` — pooled `githubkit` SDK clients for GitHub API |
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) |
-| `migrations/` | SQL migration files `001` through `012` |
+| `services/pipelines/` | Pipeline configuration CRUD service |
+| `services/tools/` | Tool server configuration service + built-in presets |
+| `migrations/` | SQL migration files `001` through `018` |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |
 | `config.py` | `pydantic-settings` configuration from `.env` |
