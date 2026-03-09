@@ -3,7 +3,7 @@
 ```text
 github-workflows/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
-│   ├── devcontainer.json         #   Python 3.12, Node 20, Docker-in-Docker
+│   ├── devcontainer.json         #   Python 3.13, Node 22, Docker-in-Docker
 │   ├── docker-compose.devcontainer.yml
 │   ├── post-create.sh            #   Installs deps, creates venv, Playwright
 │   └── post-start.sh             #   Prints Codespaces callback URL
@@ -38,6 +38,7 @@ github-workflows/
 │   │   ├── exceptions.py         # AppException hierarchy
 │   │   ├── utils.py              # BoundedSet, CIDict, utcnow, resolve_repository
 │   │   ├── api/                  # Route handlers
+│   │   │   ├── agents.py         #   Agent CRUD and configuration
 │   │   │   ├── auth.py           #   OAuth flow, sessions, dev-login
 │   │   │   ├── board.py          #   Project board (Kanban columns + items)
 │   │   │   ├── chat.py           #   Chat messages, proposals, #agent command
@@ -45,31 +46,35 @@ github-workflows/
 │   │   │   ├── cleanup.py        #   Stale resource cleanup
 │   │   │   ├── health.py         #   Health check endpoint
 │   │   │   ├── mcp.py            #   MCP configuration endpoints
+│   │   │   ├── metadata.py       #   Repository metadata (labels, branches, milestones)
+│   │   │   ├── pipelines.py      #   Pipeline configuration CRUD, presets, assignment
 │   │   │   ├── projects.py       #   Project selection, tasks, WebSocket, SSE
 │   │   │   ├── settings.py       #   User, global, project settings
 │   │   │   ├── signal.py         #   Signal connection, preferences, banners
 │   │   │   ├── tasks.py          #   Task CRUD
-│   │   │   ├── agents.py         #   Agent CRUD and configuration
-│   │   │   ├── metadata.py       #   Repository metadata (labels, branches, milestones)
+│   │   │   ├── tools.py          #   MCP tool configuration and repo-config management
 │   │   │   ├── webhooks.py       #   GitHub webhook handler
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–012, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (001–018, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
+│   │   │   ├── agents.py         #   AgentConfig list/CRUD models
+│   │   │   ├── blocking.py       #   Blocking queue models
 │   │   │   ├── board.py          #   Board columns, items, custom fields
 │   │   │   ├── chat.py           #   ChatMessage, SenderType, ActionType
 │   │   │   ├── chores.py         #   Chore models
 │   │   │   ├── cleanup.py        #   Cleanup models
 │   │   │   ├── mcp.py            #   MCP configuration models
+│   │   │   ├── pipeline.py       #   Pipeline configuration models
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
-│   │   │   ├── agents.py         #   AgentConfig list/CRUD models
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
 │   │   │   ├── settings.py       #   User preferences, global/project settings
 │   │   │   ├── signal.py         #   Signal connection, message, banner models
 │   │   │   ├── task.py           #   Task / project item
+│   │   │   ├── tools.py          #   MCP tool configuration models
 │   │   │   ├── user.py           #   UserSession
 │   │   │   └── workflow.py       #   WorkflowConfiguration, WorkflowTransition
 │   │   ├── prompts/              # AI prompt templates
@@ -104,6 +109,8 @@ github-workflows/
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
+│   │       ├── blocking_queue.py #   Blocking queue logic
+│   │       ├── blocking_queue_store.py  # Blocking queue persistence
 │   │       ├── cache.py          #   In-memory TTL cache
 │   │       ├── cleanup_service.py  # Stale resource cleanup service
 │   │       ├── completion_providers.py  # Pluggable LLM: Copilot SDK / Azure OpenAI
@@ -123,7 +130,7 @@ github-workflows/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 47 unit test files
+│       ├── unit/                 # 53 unit test files
 │       ├── integration/          # Integration tests
 │       └── test_api_e2e.py       # API end-to-end tests
 │

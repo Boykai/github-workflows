@@ -33,10 +33,11 @@ pytest tests/ -k "test_pipeline_advancement" -v
 backend/tests/
 ├── conftest.py              # Shared fixtures (db, sessions, mocks)
 ├── helpers/                 # Test helper utilities
-├── unit/                    # 47 unit test files
+├── unit/                    # 53 unit test files
 │   ├── test_admin_authorization.py
 │   ├── test_agent_creator.py
 │   ├── test_agent_tracking.py
+│   ├── test_agents_service.py
 │   ├── test_ai_agent.py
 │   ├── test_api_auth.py
 │   ├── test_api_board.py
@@ -45,10 +46,13 @@ backend/tests/
 │   ├── test_api_projects.py
 │   ├── test_api_settings.py
 │   ├── test_api_tasks.py
+│   ├── test_api_tools.py
 │   ├── test_api_workflow.py
 │   ├── test_auth_security.py
+│   ├── test_blocking_queue.py
 │   ├── test_board.py
 │   ├── test_cache.py
+│   ├── test_chat_block.py
 │   ├── test_chores_api.py
 │   ├── test_chores_counter.py
 │   ├── test_chores_scheduler.py
@@ -77,10 +81,12 @@ backend/tests/
 │   ├── test_session_store.py
 │   ├── test_settings_store.py
 │   ├── test_token_encryption.py
+│   ├── test_tools_service.py
 │   ├── test_utils.py
 │   ├── test_webhooks.py
 │   ├── test_websocket.py
-│   └── test_workflow_orchestrator.py
+│   ├── test_workflow_orchestrator.py
+│   └── test_workflow_orchestrator_config.py
 ├── integration/             # Integration tests
 └── test_api_e2e.py          # API end-to-end tests
 ```
@@ -112,39 +118,65 @@ npm run test:coverage
 
 Test files are co-located with components:
 
+- `components/ThemeProvider.test.tsx`
+- `components/agents/__tests__/AddAgentModal.test.tsx`
+- `components/agents/__tests__/AgentsPanel.test.tsx`
 - `components/auth/LoginButton.test.tsx`
 - `components/board/AgentSaveBar.test.tsx`
+- `components/board/AgentTile.test.tsx`
 - `components/board/BoardColumn.test.tsx`
 - `components/board/IssueCard.test.tsx`
 - `components/board/IssueDetailModal.test.tsx`
 - `components/chat/CommandAutocomplete.test.tsx`
 - `components/chat/IssueRecommendationPreview.test.tsx`
+- `components/chat/MentionInput.test.tsx`
 - `components/chat/MessageBubble.test.tsx`
+- `components/chat/PipelineWarningBanner.test.tsx`
 - `components/chat/StatusChangePreview.test.tsx`
 - `components/chat/TaskPreview.test.tsx`
 - `components/chores/__tests__/AddChoreModal.test.tsx`
 - `components/chores/__tests__/ChoreScheduleConfig.test.tsx`
 - `components/chores/__tests__/ChoresPanel.test.tsx`
+- `components/chores/__tests__/FeaturedRitualsPanel.test.tsx`
+- `components/common/CelestialCatalogHero.test.tsx`
+- `components/common/CelestialLoader.test.tsx`
 - `components/common/ErrorBoundary.test.tsx`
+- `components/common/ThemedAgentIcon.test.tsx`
+- `components/pipeline/AgentNode.test.tsx`
+- `components/pipeline/PipelineBoard.test.tsx`
+- `components/pipeline/PipelineFlowGraph.test.tsx`
+- `components/pipeline/StageCard.test.tsx`
 - `components/settings/DynamicDropdown.test.tsx`
 - `components/settings/SettingsSection.test.tsx`
-- `components/ThemeProvider.test.tsx`
+- `components/tools/ToolsEnhancements.test.tsx`
+- `components/ui/__tests__/confirmation-dialog.test.tsx`
 - `components/ui/button.test.tsx`
 - `components/ui/card.test.tsx`
 - `components/ui/input.test.tsx`
+- `components/ui/tooltip.test.tsx`
+- `hooks/__tests__/useConfirmation.test.tsx`
 - `hooks/useAuth.test.tsx`
+- `hooks/useBoardControls.test.tsx`
 - `hooks/useBoardRefresh.test.tsx`
 - `hooks/useChat.test.tsx`
 - `hooks/useChatHistory.test.ts`
 - `hooks/useCommands.test.tsx`
+- `hooks/useCyclingPlaceholder.test.ts`
+- `hooks/usePipelineConfig.test.tsx`
 - `hooks/useProjectBoard.test.tsx`
 - `hooks/useProjects.test.tsx`
 - `hooks/useRealTimeSync.test.tsx`
+- `hooks/useScrollLock.test.ts`
+- `hooks/useSelectedPipeline.test.tsx`
 - `hooks/useSettingsForm.test.tsx`
 - `hooks/useWorkflow.test.tsx`
 - `lib/commands/registry.test.ts`
 - `lib/commands/handlers/help.test.ts`
 - `lib/commands/handlers/settings.test.ts`
+- `tests/utils/formatAgentName.test.ts`
+- `utils/agentCardMeta.test.ts`
+- `utils/parentIssueCount.test.ts`
+- `utils/rateLimit.test.ts`
 
 ### E2E Tests (Playwright)
 
