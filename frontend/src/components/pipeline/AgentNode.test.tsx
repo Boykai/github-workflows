@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { fireEvent } from '@testing-library/react';
 import { render, screen } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { AgentNode } from './AgentNode';
@@ -66,5 +67,23 @@ describe('AgentNode', () => {
     await user.click(screen.getByRole('button', { name: /^gpt-5\.4$/i }));
 
     expect(onModelSelect).toHaveBeenCalledWith('gpt-5.4', 'GPT-5.4');
+  });
+
+  it('stops pointerdown from interactive controls reaching the drag listener', () => {
+    const onPointerDown = vi.fn();
+
+    render(
+      <AgentNode
+        agentNode={createAgentNode()}
+        onModelSelect={vi.fn()}
+        onRemove={vi.fn()}
+        dragHandleListeners={{ onPointerDown } as never}
+      />
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: /agent default/i }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
+
+    expect(onPointerDown).not.toHaveBeenCalled();
   });
 });

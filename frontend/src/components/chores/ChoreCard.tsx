@@ -6,7 +6,8 @@
  * AI Enhance toggle, and Pipeline selector.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, Pencil, X, Save, Lock, Check, ChevronDown, Workflow } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
@@ -110,7 +111,24 @@ export function ChoreCard({
   const deleteMutation = useDeleteChore(projectId);
   const triggerMutation = useTriggerChore(projectId);
   const { confirm } = useConfirmation();
-  const pipelineMenuRef = useRef<HTMLDivElement>(null);
+  const pipelineTriggerRef = useRef<HTMLButtonElement>(null);
+  const pipelinePopoverRef = useRef<HTMLDivElement>(null);
+  const [pipelineMenuPos, setPipelineMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  const updatePipelineMenuPos = useCallback(() => {
+    if (!pipelineTriggerRef.current) return;
+    const rect = pipelineTriggerRef.current.getBoundingClientRect();
+    const menuWidth = 288; // 18rem
+    const menuMaxHeight = 340; // header + max-h-64 list
+    const margin = 8;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const placeAbove = spaceBelow < menuMaxHeight && rect.top > spaceBelow;
+    let top = placeAbove ? rect.top - menuMaxHeight - 8 : rect.bottom + 8;
+    top = Math.max(margin, Math.min(top, window.innerHeight - menuMaxHeight - margin));
+    let left = rect.left;
+    left = Math.max(margin, Math.min(left, window.innerWidth - menuWidth - margin));
+    setPipelineMenuPos({ top, left });
+  }, []);
   const isSpotlight = variant === 'spotlight';
   const isEditing = !!editState;
   const isDirty = editState?.isDirty ?? false;
@@ -174,13 +192,28 @@ export function ChoreCard({
     ? (selectedPipeline?.name ?? 'Saved pipeline unavailable')
     : 'Auto';
 
+  useLayoutEffect(() => {
+    if (!showPipelineMenu) return;
+    updatePipelineMenuPos();
+    const onReposition = () => updatePipelineMenuPos();
+    window.addEventListener('scroll', onReposition, { capture: true, passive: true });
+    window.addEventListener('resize', onReposition);
+    return () => {
+      window.removeEventListener('scroll', onReposition, { capture: true });
+      window.removeEventListener('resize', onReposition);
+    };
+  }, [showPipelineMenu, updatePipelineMenuPos]);
+
   useEffect(() => {
-    if (!showPipelineMenu) {
-      return;
-    }
+    if (!showPipelineMenu) return;
 
     function handlePointerDown(event: MouseEvent) {
-      if (pipelineMenuRef.current && !pipelineMenuRef.current.contains(event.target as Node)) {
+      if (
+        pipelinePopoverRef.current &&
+        !pipelinePopoverRef.current.contains(event.target as Node) &&
+        pipelineTriggerRef.current &&
+        !pipelineTriggerRef.current.contains(event.target as Node)
+      ) {
         setShowPipelineMenu(false);
       }
     }
@@ -312,12 +345,12 @@ export function ChoreCard({
             disabled={updateMutation.isPending || isSaving}
             aria-pressed={currentBlocking}
             className={cn(
-              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors disabled:opacity-50',
+              'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
               currentBlocking
-                ? 'border-amber-500/35 bg-amber-500/12 text-amber-700 dark:text-amber-300'
-                : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:text-foreground'
+                ? 'border-amber-500/35 bg-amber-500/12 text-amber-700 hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300'
+                : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
             )}
-            title={`Blocking: ${currentBlocking ? 'ON — issues serialize activation' : 'OFF'}`}
+            title={currentBlocking ? 'Blocking ON — click to set non-blocking' : 'Non-blocking — click to enable blocking'}
           >
             <span
               className={cn(
@@ -332,8 +365,9 @@ export function ChoreCard({
             </span>
             {currentBlocking ? 'Blocking' : 'Non-blocking'}
           </button>
-          <div ref={pipelineMenuRef} className="relative">
+          <div className="relative">
             <button
+              ref={pipelineTriggerRef}
               type="button"
               onClick={() => setShowPipelineMenu((current) => !current)}
               disabled={updateMutation.isPending || isSaving}
@@ -362,8 +396,12 @@ export function ChoreCard({
               />
             </button>
 
-            {showPipelineMenu && (
-              <div className="absolute left-0 top-full z-20 mt-2 w-[min(18rem,calc(100vw-5rem))] overflow-hidden rounded-[1rem] border border-border/80 bg-background/95 shadow-[0_18px_40px_hsl(var(--night)/0.24)] backdrop-blur-md">
+            {showPipelineMenu && pipelineMenuPos !== null &&
+              createPortal(
+                <div
+                  ref={pipelinePopoverRef}
+                  style={{ position: 'fixed', top: pipelineMenuPos.top, left: pipelineMenuPos.left }}
+                  className="z-[9999] w-[min(18rem,calc(100vw-1rem))] overflow-hidden rounded-[1rem] border border-border/80 bg-background/95 shadow-[0_18px_40px_hsl(var(--night)/0.24)] backdrop-blur-md">
                 <div className="border-b border-border/65 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Select Agent Pipeline
                 </div>
@@ -425,7 +463,8 @@ export function ChoreCard({
                     </div>
                   )}
                 </div>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         </div>
@@ -479,7 +518,12 @@ export function ChoreCard({
                   onClick={onEditSave}
                   disabled={!isDirty || isSaving}
                 >
-                  <Save className="mr-1 h-3 w-3" /> {isSaving ? 'Saving…' : 'Save & Create PR'}
+                  <Save className="mr-1 h-3 w-3" />{' '}
+                  {isSaving
+                    ? 'Saving…'
+                    : editState?.current.name !== undefined || editState?.current.template_content !== undefined
+                    ? 'Save & Create PR'
+                    : 'Save'}
                 </Button>
               )}
             </div>

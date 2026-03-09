@@ -144,7 +144,11 @@ class ChoreChatResponse(BaseModel):
 
 
 class ChoreInlineUpdate(BaseModel):
-    """Request body for inline editing of a Chore definition. Creates a PR on save."""
+    """Request body for inline editing of a Chore definition.
+
+    A PR is only created when ``name`` or ``template_content`` is set.
+    All other fields are config-only and saved directly without creating a PR.
+    """
 
     name: str | None = Field(default=None, min_length=1, max_length=200)
     template_content: str | None = Field(default=None, min_length=1)
@@ -152,6 +156,7 @@ class ChoreInlineUpdate(BaseModel):
     schedule_value: int | None = Field(default=None, gt=0)
     ai_enhance_enabled: bool | None = None
     agent_pipeline_id: str | None = None
+    blocking: bool | None = None
     expected_sha: str | None = None
 
 

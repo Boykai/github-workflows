@@ -1,8 +1,9 @@
 ---
+name: Designer
 description: "Analyzes local changes or a related PR and its changed product surfaces, creates or refines change-scoped creative and design assets, and applies themed visual improvements that strengthen quality without drifting beyond the active scope."
 handoffs:
   - label: Run Validation
-    agent: linter
+    agent: Linter
     prompt: Run the relevant lint, type-check, test, and build validation for the designer changes
     send: true
 ---

@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
 from src.exceptions import ValidationError
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
@@ -13,6 +13,7 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
+from src.services.database import get_db
 from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
@@ -557,7 +558,7 @@ class WorkflowOrchestrator:
             if size_label not in labels:
                 labels.append(size_label)
 
-        return labels
+        return with_blocking_label(labels, recommendation.is_blocking)
 
     @staticmethod
     def _resolve_milestone_number(
@@ -729,6 +730,85 @@ class WorkflowOrchestrator:
             )
 
         return success
+
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Resolve Effective Model
+    # ──────────────────────────────────────────────────────────────────
+    async def _resolve_effective_model(
+        self,
+        agent_assignment: object,
+        agent_slug: str,
+        project_id: str,
+        user_chat_model: str,
+    ) -> str:
+        """
+        Resolve the effective model for a Copilot agent assignment.
+
+        Precedence (highest → lowest):
+        1. Pipeline config model (``AgentAssignment.config["model_id"]``)
+           This already encodes the chat override (@Easy/@Hard) because
+           ``_apply_selected_pipeline()`` overwrites agent_mappings with the
+           chosen pipeline's nodes, whose model_id is stored in config.
+        2. Agent's own ``default_model_id`` (from ``agent_configs`` table).
+        3. User Settings "chat model" (``ctx.user_chat_model``).
+        4. Hardcoded fallback ``"claude-opus-4.6"``.
+
+        A model value of ``"auto"`` (case-insensitive) or an empty string is
+        treated as *not set* and falls through to the next tier.
+        """
+        _FALLBACK = "claude-opus-4.6"
+
+        def _is_set(value: str | None) -> bool:
+            return bool(value and value.strip().lower() not in ("", "auto"))
+
+        # Tier 1: Pipeline / chat-override model
+        config = getattr(agent_assignment, "config", None)
+        if isinstance(config, dict):
+            model_id = (config.get("model_id") or "").strip()
+            if _is_set(model_id):
+                logger.debug(
+                    "Model for agent '%s': pipeline config '%s'",
+                    agent_slug,
+                    model_id,
+                )
+                return model_id
+
+        # Tier 2: Agent's own saved default_model_id
+        try:
+            from src.services.agents.service import AgentsService  # lazy — avoids circular import
+
+            prefs = await AgentsService(get_db()).get_agent_preferences(project_id)
+            agent_model = (prefs.get(agent_slug, {}).get("default_model_id") or "").strip()
+            if _is_set(agent_model):
+                logger.debug(
+                    "Model for agent '%s': agent preference '%s'",
+                    agent_slug,
+                    agent_model,
+                )
+                return agent_model
+        except Exception as exc:
+            logger.warning(
+                "Could not fetch agent preferences for slug '%s', skipping tier 2: %s",
+                agent_slug,
+                exc,
+            )
+
+        # Tier 3: User Settings "chat model"
+        if _is_set(user_chat_model):
+            logger.debug(
+                "Model for agent '%s': user settings '%s'",
+                agent_slug,
+                user_chat_model,
+            )
+            return user_chat_model.strip()
+
+        # Tier 4: Hardcoded fallback
+        logger.debug(
+            "Model for agent '%s': hardcoded fallback '%s'",
+            agent_slug,
+            _FALLBACK,
+        )
+        return _FALLBACK
 
     # ──────────────────────────────────────────────────────────────────
     # HELPER: Assign Agent for Status
@@ -1519,6 +1599,31 @@ class WorkflowOrchestrator:
             ctx.issue_number,
         )
 
+        # ── Resolve effective model following the precedence hierarchy ──
+        # 1. Pipeline config model (encodes chat override + pipeline config)
+        # 2. Agent's own default_model_id (from agent_configs table)
+        # 3. User Settings "chat model" (ctx.user_chat_model)
+        # 4. Hardcoded fallback "claude-opus-4.6"
+        #
+        # Look up the *original* AgentAssignment from the live config rather
+        # than from `agents` which may have been replaced by plain slug
+        # strings during the tracking-table override above.
+        original_config_agents = _ci_get(config.agent_mappings, status, [])
+        original_assignment = next(
+            (
+                a
+                for a in original_config_agents
+                if (getattr(a, "slug", None) or str(a)) == agent_name
+            ),
+            None,
+        )
+        effective_model = await self._resolve_effective_model(
+            agent_assignment=original_assignment,
+            agent_slug=agent_name,
+            project_id=ctx.project_id,
+            user_chat_model=ctx.user_chat_model,
+        )
+
         max_retries = 3
         base_delay = 3  # seconds
         success = False
@@ -1543,6 +1648,7 @@ class WorkflowOrchestrator:
                     base_ref=base_ref,
                     custom_agent=agent_name,
                     custom_instructions=custom_instructions,
+                    model=effective_model,
                 )
 
                 if success:

@@ -3,7 +3,7 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy, GripVertical } from 'lucide-react';
+import { X, Wrench, Copy } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { PipelineAgentNode } from '@/types';
@@ -39,26 +39,19 @@ export function AgentNode({
 }: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
   const displayName = formatAgentName(agentNode.agent_slug, agentNode.agent_display_name);
+  const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={dragStyle}
-      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+      {...(dragHandleAttributes ?? {})}
+      {...(dragHandleListeners ?? {})}
+      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : ''}${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
     >
-      {/* Drag handle */}
-      {dragHandleListeners && (
-        <button
-          type="button"
-          {...dragHandleAttributes}
-          {...dragHandleListeners}
-          className="shrink-0 cursor-grab active:cursor-grabbing rounded p-0.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors touch-none"
-          aria-label="Drag to reorder"
-          tabIndex={-1}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-      )}
+      {/* Drag handle removed — entire card is the drag target */}
 
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
 
@@ -66,7 +59,10 @@ export function AgentNode({
       <div className="flex-1 min-w-0">
         <div className="text-xs font-medium text-foreground truncate">{displayName}</div>
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5">
+          <div
+            className="flex min-w-[10rem] flex-1 items-center gap-1.5"
+            onPointerDown={stopDragPointerPropagation}
+          >
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Model
             </span>
@@ -82,6 +78,7 @@ export function AgentNode({
           <button
             type="button"
             onClick={onToolsClick}
+            onPointerDown={stopDragPointerPropagation}
             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10"
             title="Select tools"
           >
@@ -102,6 +99,7 @@ export function AgentNode({
         <button
           type="button"
           onClick={onClone}
+          onPointerDown={stopDragPointerPropagation}
           className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
           title="Clone agent"
         >
@@ -113,6 +111,7 @@ export function AgentNode({
       <button
         type="button"
         onClick={onRemove}
+        onPointerDown={stopDragPointerPropagation}
         className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
         title="Remove agent"
       >

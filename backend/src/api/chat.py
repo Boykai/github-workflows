@@ -13,7 +13,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from src.api.auth import get_session_dep
-from src.constants import DEFAULT_STATUS_COLUMNS, GITHUB_ISSUE_BODY_MAX_LENGTH
+from src.constants import (
+    DEFAULT_STATUS_COLUMNS,
+    GITHUB_ISSUE_BODY_MAX_LENGTH,
+    with_blocking_label,
+)
 from src.dependencies import get_connection_manager, get_github_service
 from src.exceptions import NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
@@ -39,6 +43,8 @@ from src.services.cache import (
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
+from src.services.database import get_db
+from src.services.settings_store import get_effective_user_settings
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -340,6 +346,7 @@ async def send_message(
             )
 
             recommendation.selected_pipeline_id = chat_request.pipeline_id or None
+            recommendation.is_blocking = is_blocking
 
             # Store recommendation (T016)
             _recommendations[str(recommendation.recommendation_id)] = recommendation
@@ -505,6 +512,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 proposed_title=title,
                 proposed_description=chat_request.content,
                 is_blocking=is_blocking,
+                selected_pipeline_id=chat_request.pipeline_id or None,
             )
             _proposals[str(proposal.proposal_id)] = proposal
 
@@ -557,6 +565,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             proposed_title=generated.title,
             proposed_description=generated.description,
             is_blocking=is_blocking,
+            selected_pipeline_id=chat_request.pipeline_id or None,
         )
         _proposals[str(proposal.proposal_id)] = proposal
 
@@ -666,6 +675,7 @@ async def confirm_proposal(
             repo=repo,
             title=proposal.final_title,
             body=body,
+            labels=with_blocking_label([], proposal.is_blocking),
         )
 
         issue_number = issue["number"]
@@ -749,14 +759,40 @@ async def confirm_proposal(
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
 
-            # Apply project-level or user-specific agent pipeline mappings
+            # Apply explicitly selected pipeline first, then project/user/default fallback
             from src.services.workflow_orchestrator.config import (
+                PipelineResolutionResult,
+                load_pipeline_as_agent_mappings,
                 resolve_project_pipeline_mappings,
             )
 
-            pipeline_result = await resolve_project_pipeline_mappings(
-                project_id, session.github_user_id
-            )
+            if proposal.selected_pipeline_id:
+                selected_pipeline = await load_pipeline_as_agent_mappings(
+                    project_id, proposal.selected_pipeline_id
+                )
+                if selected_pipeline is not None:
+                    selected_mappings, selected_pipeline_name = selected_pipeline
+                    pipeline_result = PipelineResolutionResult(
+                        agent_mappings=selected_mappings,
+                        source="pipeline",
+                        pipeline_name=selected_pipeline_name,
+                        pipeline_id=proposal.selected_pipeline_id,
+                    )
+                else:
+                    logger.warning(
+                        "Selected pipeline %s not found for proposal %s on project %s; falling back",
+                        proposal.selected_pipeline_id,
+                        proposal_id,
+                        project_id,
+                    )
+                    pipeline_result = await resolve_project_pipeline_mappings(
+                        project_id, session.github_user_id
+                    )
+            else:
+                pipeline_result = await resolve_project_pipeline_mappings(
+                    project_id, session.github_user_id
+                )
+
             if pipeline_result.agent_mappings:
                 logger.info(
                     "Applying %s agent pipeline mappings for project=%s (pipeline=%s)",
@@ -786,13 +822,27 @@ async def confirm_proposal(
             )
 
             # Assign the first Backlog agent
+            try:
+                effective_user_settings = await get_effective_user_settings(
+                    get_db(), session.github_user_id
+                )
+                user_chat_model = effective_user_settings.ai.model
+            except Exception:
+                logger.warning(
+                    "Could not load effective user settings for session %s; user_chat_model left empty",
+                    session.session_id,
+                )
+                user_chat_model = ""
+
             ctx = WorkflowContext(
                 session_id=str(session.session_id),
                 project_id=project_id,
                 access_token=session.access_token,
                 repository_owner=owner,
                 repository_name=repo,
+                selected_pipeline_id=proposal.selected_pipeline_id,
                 config=config,
+                user_chat_model=user_chat_model,
             )
             ctx.issue_id = issue_node_id
             ctx.issue_number = issue_number

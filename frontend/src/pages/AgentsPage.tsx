@@ -16,8 +16,28 @@ import { statusColorToCSS } from '@/components/board/colorUtils';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
+import { Tooltip } from '@/components/ui/tooltip';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { countPendingAssignedSubIssues } from '@/utils/agentCardMeta';
+import type { AgentAssignment } from '@/types';
+
+function buildAgentTooltip(
+  agent: AgentAssignment,
+  pipelineInfo?: { model: string; toolCount: number }
+): string {
+  const parts: string[] = [];
+  if (pipelineInfo?.model) parts.push(`Model: ${pipelineInfo.model}`);
+  if (pipelineInfo?.toolCount) parts.push(`Tools: ${pipelineInfo.toolCount}`);
+  const config = agent.config;
+  if (config) {
+    const configParts = Object.entries(config)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => `${k}: ${String(v)}`);
+    parts.push(...configParts);
+  }
+  if (parts.length === 0) parts.push(`Slug: ${agent.slug}`);
+  return parts.join(' · ');
+}
 
 export function AgentsPage() {
   const { user } = useAuth();
@@ -45,17 +65,20 @@ export function AgentsPage() {
     staleTime: 30_000,
   });
 
-  // Map: lowercase column name → agent slug → model name from the assigned pipeline
-  const stageAgentModelMap = useMemo(() => {
+  // Map: lowercase column name → agent slug → { model, toolCount } from the assigned pipeline
+  const stageAgentInfoMap = useMemo(() => {
     const assignedPipeline = (pipelineList?.pipelines ?? []).find(
       (p) => p.id === (pipelineAssignment?.pipeline_id ?? '')
     );
-    const map: Record<string, Record<string, string>> = {};
+    const map: Record<string, Record<string, { model: string; toolCount: number }>> = {};
     for (const stage of assignedPipeline?.stages ?? []) {
       const key = stage.name.toLowerCase();
       map[key] = {};
       for (const node of stage.agents) {
-        if (node.model_name) map[key][node.agent_slug] = node.model_name;
+        map[key][node.agent_slug] = {
+          model: node.model_name,
+          toolCount: node.tool_count,
+        };
       }
     }
     return map;
@@ -183,20 +206,19 @@ export function AgentsPage() {
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {assigned.map((a) => {
-                              const model =
-                                stageAgentModelMap[col.status.name.toLowerCase()]?.[a.slug];
+                              const pipelineInfo =
+                                stageAgentInfoMap[col.status.name.toLowerCase()]?.[a.slug];
                               return (
-                                <span
+                                <Tooltip
                                   key={a.id}
-                                  className="solar-chip inline-flex flex-col rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                  title={formatAgentName(a.slug, a.display_name)}
+                                  content={buildAgentTooltip(a, pipelineInfo)}
+                                  side="top"
                                 >
-                                  <span>{formatAgentName(a.slug, a.display_name)}</span>
-                                  {model && (
-                                    <span className="mt-0.5 block normal-case tracking-normal font-normal text-[9px] text-primary/70 leading-tight truncate max-w-[9rem]">
-                                      {model}
-                                    </span>
-                                  )}
-                                </span>
+                                  <span className="solar-chip cursor-default rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                                    {formatAgentName(a.slug, a.display_name)}
+                                  </span>
+                                </Tooltip>
                               );
                             })}
                           </div>

@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from src.constants import LABELS
+from src.constants import BLOCKING_LABEL, LABELS
 from src.utils import utcnow
 
 
@@ -55,6 +55,10 @@ class AITaskProposal(BaseModel):
     pipeline_source: str | None = Field(
         default=None, description="Pipeline resolution source: pipeline, user, or default"
     )
+    selected_pipeline_id: str | None = Field(
+        default=None,
+        description="Optional saved pipeline selected when the task proposal was created",
+    )
 
     @property
     def is_expired(self) -> bool:
@@ -83,6 +87,7 @@ class AITaskProposal(BaseModel):
                 "status": "pending",
                 "edited_title": None,
                 "edited_description": None,
+                "selected_pipeline_id": "pipeline-123",
                 "created_at": "2026-01-30T10:00:00Z",
                 "expires_at": "2026-01-30T10:10:00Z",
             }
@@ -144,6 +149,7 @@ class IssueLabel(StrEnum):
     # Status labels
     AI_GENERATED = "ai-generated"  # Created by AI
     SUB_ISSUE = "sub-issue"  # Agent sub-issue
+    BLOCKING = BLOCKING_LABEL  # Blocking parent issue
     GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
     HELP_WANTED = "help wanted"  # Needs assistance
 
@@ -214,6 +220,10 @@ class IssueRecommendation(BaseModel):
         default=None,
         description="Optional saved pipeline selected when the recommendation was created",
     )
+    is_blocking: bool = Field(
+        default=False,
+        description="Whether the confirmed issue should enter the blocking queue",
+    )
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
         description="AI-generated issue metadata (priority, size, dates, labels)",
@@ -240,6 +250,7 @@ class IssueRecommendation(BaseModel):
                 ],
                 "technical_notes": "Use streaming CSV response for large datasets. Rate-limit exports to 5 per minute per user.",
                 "selected_pipeline_id": "pipeline-123",
+                "is_blocking": False,
                 "metadata": {
                     "priority": "P2",
                     "size": "M",

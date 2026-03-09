@@ -25,6 +25,7 @@ from src.services.cache import cache, get_user_projects_cache_key
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.pipelines.service import PipelineService
+from src.services.settings_store import get_effective_user_settings
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
     WorkflowContext,
@@ -260,6 +261,19 @@ async def confirm_recommendation(
         recommendation.selected_pipeline_id,
     )
 
+    # Resolve user's effective AI model for the model-precedence chain
+    try:
+        effective_user_settings = await get_effective_user_settings(
+            get_db(), session.github_user_id
+        )
+        user_chat_model = effective_user_settings.ai.model
+    except Exception:
+        logger.warning(
+            "Could not load effective user settings for session %s; user_chat_model left empty",
+            session.session_id,
+        )
+        user_chat_model = ""
+
     # Create workflow context
     ctx = WorkflowContext(
         session_id=str(session.session_id),
@@ -270,12 +284,17 @@ async def confirm_recommendation(
         recommendation_id=recommendation_id,
         selected_pipeline_id=recommendation.selected_pipeline_id,
         config=config,
+        user_chat_model=user_chat_model,
     )
 
     # Execute workflow (T030 - error handling included in orchestrator)
     try:
         orchestrator = get_workflow_orchestrator()
-        result = await orchestrator.execute_full_workflow(ctx, recommendation)
+        result = await orchestrator.execute_full_workflow(
+            ctx,
+            recommendation,
+            is_blocking=recommendation.is_blocking,
+        )
 
         if result.success:
             # Update recommendation status
@@ -407,6 +426,19 @@ async def retry_pipeline(
     # Resolve repository info
     owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
 
+    # Resolve user's effective AI model for the model-precedence chain
+    try:
+        effective_user_settings = await get_effective_user_settings(
+            get_db(), session.github_user_id
+        )
+        user_chat_model = effective_user_settings.ai.model
+    except Exception:
+        logger.warning(
+            "Could not load effective user settings for session %s; user_chat_model left empty",
+            session.session_id,
+        )
+        user_chat_model = ""
+
     ctx = WorkflowContext(
         session_id=str(session.session_id),
         project_id=state.project_id,
@@ -414,6 +446,7 @@ async def retry_pipeline(
         repository_owner=owner,
         repository_name=repo,
         config=config,
+        user_chat_model=user_chat_model,
     )
 
     # Get issue info

@@ -125,7 +125,7 @@ export function AppLayout() {
             onMarkAllRead={markAllRead}
           />
           <SignalBannerBar />
-          <main className="relative flex-1 overflow-auto px-2 pb-2">
+          <main className="relative flex-1 overflow-auto overscroll-y-contain px-2 pb-2">
             <Outlet />
           </main>
         </div>

@@ -1,7 +1,7 @@
 /**
  * Unit tests for useScrollLock hook — reference-counting scroll lock.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useScrollLock, _resetForTesting } from './useScrollLock';
 
@@ -125,5 +125,77 @@ describe('useScrollLock', () => {
     expect(document.body.style.overflow).toBe('hidden');
     hook.unmount();
     expect(document.body.style.overflow).toBe('');
+  });
+});
+
+describe('useScrollLock — <main> scroll container targeting', () => {
+  let mainEl: HTMLElement;
+
+  beforeEach(() => {
+    mainEl = document.createElement('main');
+    document.body.appendChild(mainEl);
+    _resetForTesting();
+  });
+
+  afterEach(() => {
+    if (mainEl.isConnected) {
+      document.body.removeChild(mainEl);
+    }
+  });
+
+  it('locks <main> overflow (not body) when isLocked is true', () => {
+    document.body.style.overflow = 'auto';
+    renderHook(() => useScrollLock(true));
+    expect(mainEl.style.overflow).toBe('hidden');
+    expect(document.body.style.overflow).toBe('auto');
+  });
+
+  it('restores <main> overflow on unmount', () => {
+    mainEl.style.overflow = 'auto';
+    const { unmount } = renderHook(() => useScrollLock(true));
+    expect(mainEl.style.overflow).toBe('hidden');
+    unmount();
+    expect(mainEl.style.overflow).toBe('auto');
+  });
+
+  it('handles reference counting on <main> with multiple consumers', () => {
+    const hook1 = renderHook(() => useScrollLock(true));
+    const hook2 = renderHook(() => useScrollLock(true));
+
+    expect(mainEl.style.overflow).toBe('hidden');
+
+    hook1.unmount();
+    expect(mainEl.style.overflow).toBe('hidden');
+
+    hook2.unmount();
+    expect(mainEl.style.overflow).toBe('');
+  });
+
+  it('does not affect body overflow when <main> is the target', () => {
+    document.body.style.overflow = 'scroll';
+    const { unmount } = renderHook(() => useScrollLock(true));
+    expect(mainEl.style.overflow).toBe('hidden');
+    expect(document.body.style.overflow).toBe('scroll');
+    unmount();
+    expect(document.body.style.overflow).toBe('scroll');
+  });
+
+  it('restores the originally locked element when the scroll container changes', () => {
+    mainEl.style.overflow = 'auto';
+    const { unmount } = renderHook(() => useScrollLock(true));
+
+    expect(mainEl.style.overflow).toBe('hidden');
+
+    document.body.removeChild(mainEl);
+
+    const replacementMain = document.createElement('main');
+    document.body.appendChild(replacementMain);
+
+    unmount();
+
+    expect(mainEl.style.overflow).toBe('auto');
+    expect(replacementMain.style.overflow).toBe('');
+
+    document.body.removeChild(replacementMain);
   });
 });

@@ -16,7 +16,6 @@ interface PipelineToolbarProps {
   isPreset: boolean;
   pipelineName?: string;
   validationErrors: PipelineValidationErrors;
-  workflowEnabled?: boolean | null;
   onSave: () => void;
   onSaveAsCopy: (newName: string) => void;
   onDelete: () => void;
@@ -30,7 +29,6 @@ export function PipelineToolbar({
   isPreset,
   pipelineName,
   validationErrors,
-  workflowEnabled = null,
   onSave,
   onSaveAsCopy,
   onDelete,
@@ -169,17 +167,6 @@ export function PipelineToolbar({
         </Button>
       </div>
 
-      {workflowEnabled !== null && (
-        <span
-          className={`ml-auto rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
-            workflowEnabled
-              ? 'solar-chip-success'
-              : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-          }`}
-        >
-          {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
-        </span>
-      )}
     </div>
   );
 }

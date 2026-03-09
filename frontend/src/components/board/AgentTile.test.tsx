@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent } from '@testing-library/react';
 import { render, screen } from '@/test/test-utils';
 import { AgentTile } from './AgentTile';
 import { AgentDragOverlay } from './AgentDragOverlay';
@@ -51,6 +52,51 @@ describe('AgentTile', () => {
     );
 
     expect(screen.getByText(/GPT-5 Mini/)).toBeInTheDocument();
+  });
+
+  it('stops pointerdown from interactive controls reaching the sortable container', () => {
+    const onPointerDown = vi.fn();
+
+    render(
+      <AgentTile
+        agent={createAgentAssignment()}
+        onRemove={vi.fn()}
+        sortableProps={{
+          attributes: {},
+          listeners: { onPointerDown },
+          setNodeRef: vi.fn(),
+          style: {},
+          isDragging: false,
+        }}
+      />
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
+
+    expect(onPointerDown).not.toHaveBeenCalled();
+  });
+
+  it('stops pointerdown on compact tile controls reaching the sortable container', () => {
+    const onPointerDown = vi.fn();
+
+    render(
+      <AgentTile
+        agent={createAgentAssignment()}
+        onRemove={vi.fn()}
+        variant="compact"
+        sortableProps={{
+          attributes: {},
+          listeners: { onPointerDown },
+          setNodeRef: vi.fn(),
+          style: {},
+          isDragging: false,
+        }}
+      />
+    );
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
+
+    expect(onPointerDown).not.toHaveBeenCalled();
   });
 });
 

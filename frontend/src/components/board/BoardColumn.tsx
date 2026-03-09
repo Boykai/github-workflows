@@ -28,9 +28,9 @@ export const BoardColumn = memo(function BoardColumn({
   const groups = getGroups?.(column.items);
 
   return (
-    <div className="celestial-panel flex min-w-0 shrink-0 flex-col h-full overflow-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
+    <div className="project-board-column pipeline-column-surface flex h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
       {/* Column Header */}
-      <div className="flex items-center justify-between border-b border-border/70 bg-background/58 p-4 backdrop-blur-sm">
+      <div className="project-board-column-header flex items-center justify-between border-b border-border/70 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor }} />
           <span className="font-semibold text-sm">{column.status.name}</span>
@@ -67,15 +67,15 @@ export const BoardColumn = memo(function BoardColumn({
 
       {/* Column description */}
       {column.status.description && (
-        <div className="border-b border-border/70 bg-background/42 px-4 py-2 text-xs leading-5 text-muted-foreground">
+        <div className="border-b border-border/70 bg-background/24 px-4 py-2 text-xs leading-5 text-muted-foreground">
           {column.status.description}
         </div>
       )}
 
       {/* Card list */}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto bg-background/10 p-3">
+      <div className="project-board-column-list constellation-grid flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pb-4">
         {column.items.length === 0 ? (
-          <div className="rounded-[1.1rem] border border-dashed border-border/70 bg-background/38 py-8 text-center text-sm italic text-muted-foreground">
+          <div className="flex flex-1 items-center justify-center rounded-[1.1rem] border border-dashed border-border/70 bg-background/34 text-center text-sm italic text-muted-foreground">
             No items
           </div>
         ) : groups ? (

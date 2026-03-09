@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 import aiosqlite
 
+from src.constants import with_blocking_label
 from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdate
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ _CHORE_UPDATABLE_COLUMNS = frozenset(
         "execution_count",
         "ai_enhance_enabled",
         "agent_pipeline_id",
+        "blocking",
         "updated_at",
     }
 )
@@ -380,11 +382,22 @@ class ChoresService:
 
             config = await get_workflow_config(project_id)
             if config:
-                # Apply user-specific agent pipeline mappings if available.
-                # Operate on a shallow copy so we never persist user-specific
-                # overrides back to the shared canonical workflow config.
+                # Resolve effective agent pipeline mappings.
+                # Priority: chore's own pipeline > project-assigned / user-selected > defaults.
+                # Operate on a shallow copy so we never persist overrides to the
+                # shared canonical workflow config.
                 effective_mappings = dict(config.agent_mappings) if config.agent_mappings else {}
-                if github_user_id:
+                if chore.agent_pipeline_id:
+                    from src.services.workflow_orchestrator.config import (
+                        load_pipeline_as_agent_mappings,
+                    )
+
+                    chore_pipeline = await load_pipeline_as_agent_mappings(
+                        project_id, chore.agent_pipeline_id
+                    )
+                    if chore_pipeline is not None:
+                        effective_mappings, _ = chore_pipeline
+                elif github_user_id:
                     from src.services.workflow_orchestrator.config import (
                         load_user_agent_mappings,
                     )
@@ -401,13 +414,33 @@ class ChoresService:
         except Exception:
             logger.exception("Failed to append agent tracking table for chore %s", chore.name)
 
+        # Resolve effective blocking flag before issue creation so the parent issue
+        # carries the same Blocking label that drives queue behavior.
+        is_blocking = chore.blocking
+        if not is_blocking:
+            try:
+                from src.services.pipelines.service import PipelineService
+
+                pipeline_svc = PipelineService(self._db)
+                assignment = await pipeline_svc.get_assignment(project_id)
+                if assignment.blocking_override is not None:
+                    is_blocking = assignment.blocking_override
+                elif chore.agent_pipeline_id:
+                    pipeline_cfg = await pipeline_svc.get_pipeline(
+                        project_id, chore.agent_pipeline_id
+                    )
+                    if pipeline_cfg and pipeline_cfg.blocking:
+                        is_blocking = True
+            except Exception:
+                logger.debug("Pipeline blocking check failed for chore %s", chore.id)
+
         issue = await github_service.create_issue(
             access_token,
             owner,
             repo,
             title=chore.name,
             body=issue_body,
-            labels=["chore"],
+            labels=with_blocking_label(["chore"], is_blocking),
         )
 
         issue_number = issue["number"]
@@ -447,6 +480,35 @@ class ChoresService:
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
 
+                # Apply effective pipeline mappings for execution.
+                # Priority: chore > project-assigned > user-selected > defaults.
+                try:
+                    if chore.agent_pipeline_id:
+                        from src.services.workflow_orchestrator.config import (
+                            load_pipeline_as_agent_mappings,
+                        )
+
+                        _chore_pipeline = await load_pipeline_as_agent_mappings(
+                            project_id, chore.agent_pipeline_id
+                        )
+                        if _chore_pipeline is not None:
+                            config.agent_mappings, _ = _chore_pipeline
+                    else:
+                        from src.services.workflow_orchestrator.config import (
+                            resolve_project_pipeline_mappings,
+                        )
+
+                        _pipeline_result = await resolve_project_pipeline_mappings(
+                            project_id, github_user_id or ""
+                        )
+                        if _pipeline_result.agent_mappings:
+                            config.agent_mappings = _pipeline_result.agent_mappings
+                except Exception:
+                    logger.debug(
+                        "Pipeline mapping resolution failed for chore %s; using config defaults",
+                        chore.name,
+                    )
+
                 # Set issue status to Backlog on the project board
                 backlog_status = config.status_backlog
                 try:
@@ -481,26 +543,6 @@ class ChoresService:
                 ctx.project_item_id = item_id
 
                 orchestrator = get_workflow_orchestrator()
-
-                # Blocking queue: resolve effective blocking flag
-                # Hierarchy: chore > project override > assigned pipeline (R5)
-                is_blocking = chore.blocking
-                if not is_blocking:
-                    try:
-                        from src.services.pipelines.service import PipelineService
-
-                        pipeline_svc = PipelineService(self._db)
-                        assignment = await pipeline_svc.get_assignment(project_id)
-                        if assignment.blocking_override is not None:
-                            is_blocking = assignment.blocking_override
-                        elif chore.agent_pipeline_id:
-                            pipeline_cfg = await pipeline_svc.get_pipeline(
-                                project_id, chore.agent_pipeline_id
-                            )
-                            if pipeline_cfg and pipeline_cfg.blocking:
-                                is_blocking = True
-                    except Exception:
-                        logger.debug("Pipeline blocking check failed for chore %s", chore.id)
 
                 # Enqueue in blocking queue and check activation
                 issue_activated = True

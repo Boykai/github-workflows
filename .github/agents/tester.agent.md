@@ -1,8 +1,9 @@
 ---
+name: Tester
 description: "Analyzes local changes or a related PR and its code changes, adds meaningful tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification where it strengthens correctness or testability."
 handoffs:
   - label: Run Validation
-    agent: linter
+    agent: Linter
     prompt: Run relevant lint, type-check, test, and build validation for the tester changes
     send: true
 ---

@@ -419,6 +419,54 @@ class TestConfirmRecommendation:
         data = resp.json()
         assert data["success"] is True
         assert data["issue_number"] == 99
+        assert mock_orchestrator.execute_full_workflow.await_args.kwargs["is_blocking"] is False
+
+    async def test_confirm_success_passes_blocking_flag_to_workflow(
+        self, client, mock_session, mock_github_service, mock_websocket_manager
+    ):
+        mock_session.selected_project_id = TEST_PROJECT_ID
+        rec = _recommendation(session_id=mock_session.session_id, is_blocking=True)
+        rec_id = str(rec.recommendation_id)
+
+        mock_github_service.get_project_repository.return_value = (
+            "testowner",
+            "testrepo",
+        )
+
+        wf_result = WorkflowResult(
+            success=True,
+            issue_id="I_99",
+            issue_number=99,
+            issue_url="https://github.com/testowner/testrepo/issues/99",
+            project_item_id="PVTI_99",
+            current_status="Backlog",
+            message="Created issue #99",
+        )
+        mock_orchestrator = AsyncMock()
+        mock_orchestrator.execute_full_workflow.return_value = wf_result
+
+        with (
+            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch(f"{WF}._recent_requests", {}),
+            patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
+            patch(f"{WF}.get_workflow_orchestrator", return_value=mock_orchestrator),
+            patch(f"{WF}.get_agent_slugs", return_value=["copilot-coding"]),
+            patch(
+                "src.services.copilot_polling.get_polling_status", return_value={"is_running": True}
+            ),
+            patch("src.config.get_settings") as mock_settings,
+        ):
+            mock_settings.return_value = MagicMock(
+                default_assignee="copilot",
+                default_repo_owner="testowner",
+                default_repo_name="testrepo",
+                database_path=":memory:",
+            )
+            resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
+
+        assert resp.status_code == 200
+        assert mock_orchestrator.execute_full_workflow.await_args.kwargs["is_blocking"] is True
 
     async def test_confirm_workflow_failure(
         self, client, mock_session, mock_github_service, mock_websocket_manager

@@ -213,8 +213,9 @@ export function ProjectsPage() {
     refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   return (
-    <div className="celestial-fade-in flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
+    <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm">
       <CelestialCatalogHero
+        className="projects-catalog-hero"
         eyebrow="Mission Control"
         title="Every project, mapped and moving."
         description="Live Kanban view of your GitHub Project. Filter, sort, and group issues across pipeline stages, then trigger agents directly from the board."
@@ -431,8 +432,8 @@ export function ProjectsPage() {
       )}
 
       {selectedProjectId && !boardLoading && transformedBoardData && (
-        <div className="flex flex-col flex-1 gap-6 overflow-hidden">
-          <section className="space-y-4">
+        <div className="flex flex-col gap-6 overflow-visible">
+          <section id="pipeline-stages" className="space-y-4 scroll-mt-24">
             <div>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-lg font-semibold">Pipeline Stages</h3>
@@ -582,7 +583,7 @@ export function ProjectsPage() {
                     return (
                       <div
                         key={col.status.option_id}
-                        className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
                       >
                         <span
                           className="h-3 w-3 rounded-full"
@@ -619,9 +620,9 @@ export function ProjectsPage() {
             </div>
           </section>
 
-          <div className="flex flex-1 gap-6 overflow-hidden">
+          <div id="board" className="flex min-h-[56rem] gap-6 scroll-mt-24">
             {transformedBoardData.columns.every((col) => col.items.length === 0) ? (
-              <div className="celestial-panel flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+              <div className="celestial-panel flex min-h-[40rem] flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
                 {boardControls.hasActiveControls ? (
                   <>
                     <Search className="mb-2 h-10 w-10 text-primary/80" />

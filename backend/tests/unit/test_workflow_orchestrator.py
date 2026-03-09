@@ -954,6 +954,36 @@ class TestCreateIssueFromRecommendation:
         mock_github_service.create_issue.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_create_issue_adds_blocking_label_when_recommendation_is_blocking(
+        self, orchestrator, workflow_context, mock_github_service
+    ):
+        from uuid import uuid4
+
+        from src.models.chat import IssueRecommendation
+
+        recommendation = IssueRecommendation(
+            recommendation_id=uuid4(),
+            session_id=uuid4(),
+            title="Test Issue",
+            original_input="User request",
+            user_story="As a user...",
+            ui_ux_description="UI description",
+            functional_requirements=["Req 1"],
+            is_blocking=True,
+        )
+
+        mock_github_service.create_issue.return_value = {
+            "node_id": "I_125",
+            "number": 44,
+            "html_url": "https://github.com/owner/repo/issues/44",
+        }
+
+        await orchestrator.create_issue_from_recommendation(workflow_context, recommendation)
+
+        labels = mock_github_service.create_issue.call_args.kwargs["labels"]
+        assert "blocking" in labels
+
+    @pytest.mark.asyncio
     async def test_rejects_oversized_body(
         self, orchestrator, workflow_context, mock_github_service
     ):
@@ -3367,3 +3397,304 @@ class TestOnTheFlySubIssueCreation:
             assign_call.kwargs.get("issue_node_id") == "I_parent"
             or assign_call[1].get("issue_node_id") == "I_parent"
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tests for WorkflowOrchestrator._resolve_effective_model
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestResolveEffectiveModel:
+    """Tests for the model-precedence helper _resolve_effective_model."""
+
+    @pytest.fixture
+    def orchestrator(self):
+        return WorkflowOrchestrator(Mock(), Mock())
+
+    @pytest.fixture(autouse=True)
+    def mock_get_db(self):
+        """Patch get_db so tests don't need an initialised database."""
+        with patch(
+            "src.services.workflow_orchestrator.orchestrator.get_db",
+            return_value=Mock(),
+        ):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def clear_assignment_state(self):
+        """Clear deduplication state between tests."""
+        from src.services.copilot_polling import (
+            _pending_agent_assignments,
+            _recovery_last_attempt,
+        )
+        from src.services.workflow_orchestrator import clear_all_agent_trigger_buffers
+
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
+        yield
+        _pending_agent_assignments.clear()
+        _recovery_last_attempt.clear()
+        clear_all_agent_trigger_buffers()
+
+    # ── Tier 1: Pipeline / chat-override model ────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_tier1_pipeline_config_model_takes_precedence(self, orchestrator):
+        """When AgentAssignment.config['model_id'] is set it beats everything."""
+        assignment = AgentAssignment(
+            slug="speckit.specify",
+            config={"model_id": "gpt-4o", "model_name": "GPT-4o"},
+        )
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(
+                return_value={"speckit.specify": {"default_model_id": "claude-3-opus"}}
+            )
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="gemini-pro",
+            )
+        assert model == "gpt-4o"
+
+    @pytest.mark.asyncio
+    async def test_tier1_pipeline_model_auto_falls_through(self, orchestrator):
+        """When pipeline model_id is 'auto', tier 1 is skipped."""
+        assignment = AgentAssignment(
+            slug="speckit.specify",
+            config={"model_id": "auto", "model_name": "Auto"},
+        )
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(
+                return_value={"speckit.specify": {"default_model_id": "claude-3-opus"}}
+            )
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="",
+            )
+        assert model == "claude-3-opus"
+
+    @pytest.mark.asyncio
+    async def test_tier1_pipeline_model_empty_falls_through(self, orchestrator):
+        """When pipeline model_id is empty string, tier 1 is skipped."""
+        assignment = AgentAssignment(
+            slug="speckit.specify",
+            config={"model_id": "", "model_name": ""},
+        )
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(
+                return_value={"speckit.specify": {"default_model_id": "my-agent-model"}}
+            )
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="",
+            )
+        assert model == "my-agent-model"
+
+    # ── Tier 2: Agent's own default_model_id ─────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_tier2_agent_default_model_used_when_no_pipeline_model(self, orchestrator):
+        """Agent's own model is used when pipeline config has no model set."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(
+                return_value={"speckit.specify": {"default_model_id": "claude-3-5-sonnet"}}
+            )
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="user-model",
+            )
+        assert model == "claude-3-5-sonnet"
+
+    @pytest.mark.asyncio
+    async def test_tier2_agent_model_auto_falls_through(self, orchestrator):
+        """When agent's default_model_id is 'Auto', tier 2 is skipped."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(
+                return_value={"speckit.specify": {"default_model_id": "Auto"}}
+            )
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="user-model",
+            )
+        assert model == "user-model"
+
+    @pytest.mark.asyncio
+    async def test_tier2_db_error_falls_through_to_tier3(self, orchestrator):
+        """If DB lookup raises, tier 2 is skipped and tier 3 is used."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(side_effect=RuntimeError("DB not init"))
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="user-fallback",
+            )
+        assert model == "user-fallback"
+
+    # ── Tier 3: User Settings "chat model" ───────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_tier3_user_chat_model_used_when_no_pipeline_or_agent_model(self, orchestrator):
+        """User's chat model is the tier-3 fallback."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(return_value={})
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="gemini-1.5-pro",
+            )
+        assert model == "gemini-1.5-pro"
+
+    @pytest.mark.asyncio
+    async def test_tier3_user_model_auto_falls_through_to_tier4(self, orchestrator):
+        """When user's chat model is 'auto', tier 3 is skipped."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(return_value={})
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="auto",
+            )
+        assert model == "claude-opus-4.6"
+
+    # ── Tier 4: Hardcoded fallback ────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_tier4_hardcoded_fallback_when_all_empty(self, orchestrator):
+        """Returns hardcoded fallback when all tiers are empty/auto."""
+        assignment = AgentAssignment(slug="speckit.specify", config=None)
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(return_value={})
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=assignment,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="",
+            )
+        assert model == "claude-opus-4.6"
+
+    @pytest.mark.asyncio
+    async def test_tier4_fallback_when_none_assignment(self, orchestrator):
+        """Returns hardcoded fallback when assignment is None."""
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc = mock_svc_cls.return_value
+            mock_svc.get_agent_preferences = AsyncMock(return_value={})
+            model = await orchestrator._resolve_effective_model(
+                agent_assignment=None,
+                agent_slug="speckit.specify",
+                project_id="P1",
+                user_chat_model="",
+            )
+        assert model == "claude-opus-4.6"
+
+    # ── Model is wired into assign_copilot_to_issue ───────────────────
+
+    @pytest.mark.asyncio
+    async def test_pipeline_model_passed_to_assign_copilot_to_issue(self):
+        """The resolved model is passed as model= to assign_copilot_to_issue."""
+        mock_github = Mock()
+        mock_github.get_issue_with_comments = AsyncMock(
+            return_value={"title": "T", "body": "B", "comments": []}
+        )
+        mock_github.format_issue_context_as_prompt = Mock(return_value="Prompt")
+        mock_github.assign_copilot_to_issue = AsyncMock(return_value=True)
+        mock_github.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        orch = WorkflowOrchestrator(Mock(), mock_github)
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="P1",
+            access_token="tok",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_1",
+            issue_number=10,
+            project_item_id="PVTI_1",
+        )
+        ctx.config = WorkflowConfiguration(
+            project_id="P1",
+            repository_owner="owner",
+            repository_name="repo",
+            agent_mappings={
+                "Backlog": [
+                    AgentAssignment(
+                        slug="speckit.specify",
+                        config={"model_id": "gpt-4o", "model_name": "GPT-4o"},
+                    )
+                ],
+            },
+        )
+
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc_cls.return_value.get_agent_preferences = AsyncMock(return_value={})
+            await orch.assign_agent_for_status(ctx, "Backlog", 0)
+
+        call_kwargs = mock_github.assign_copilot_to_issue.call_args.kwargs
+        assert call_kwargs["model"] == "gpt-4o"
+
+    @pytest.mark.asyncio
+    async def test_user_chat_model_passed_when_no_pipeline_or_agent_model(self):
+        """User settings model is used when pipeline/agent models are unset."""
+        mock_github = Mock()
+        mock_github.get_issue_with_comments = AsyncMock(
+            return_value={"title": "T", "body": "B", "comments": []}
+        )
+        mock_github.format_issue_context_as_prompt = Mock(return_value="Prompt")
+        mock_github.assign_copilot_to_issue = AsyncMock(return_value=True)
+        mock_github.find_existing_pr_for_issue = AsyncMock(return_value=None)
+
+        orch = WorkflowOrchestrator(Mock(), mock_github)
+
+        ctx = WorkflowContext(
+            session_id="test",
+            project_id="P1",
+            access_token="tok",
+            repository_owner="owner",
+            repository_name="repo",
+            issue_id="I_1",
+            issue_number=10,
+            project_item_id="PVTI_1",
+            user_chat_model="gemini-1.5-pro",
+        )
+        ctx.config = WorkflowConfiguration(
+            project_id="P1",
+            repository_owner="owner",
+            repository_name="repo",
+            agent_mappings={
+                "Backlog": [AgentAssignment(slug="speckit.specify", config=None)],
+            },
+        )
+
+        with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
+            mock_svc_cls.return_value.get_agent_preferences = AsyncMock(return_value={})
+            await orch.assign_agent_for_status(ctx, "Backlog", 0)
+
+        call_kwargs = mock_github.assign_copilot_to_issue.call_args.kwargs
+        assert call_kwargs["model"] == "gemini-1.5-pro"

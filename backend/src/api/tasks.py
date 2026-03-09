@@ -7,16 +7,73 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
+from src.config import get_settings
 from src.exceptions import ValidationError
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
+from src.models.workflow import WorkflowConfiguration
 from src.services.cache import cache, get_project_items_cache_key
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
+from src.services.workflow_orchestrator import (
+    WorkflowContext,
+    get_workflow_config,
+    get_workflow_orchestrator,
+    set_workflow_config,
+)
 from src.utils import resolve_repository
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+async def _create_parent_issue_sub_issues(
+    *,
+    session: UserSession,
+    project_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    issue_node_id: str,
+    item_id: str,
+) -> None:
+    """Pre-create pipeline sub-issues for a newly created parent issue."""
+    settings = get_settings()
+
+    config = await get_workflow_config(project_id)
+    if not config:
+        config = WorkflowConfiguration(
+            project_id=project_id,
+            repository_owner=owner,
+            repository_name=repo,
+            copilot_assignee=settings.default_assignee,
+        )
+        await set_workflow_config(project_id, config)
+    else:
+        config.repository_owner = owner
+        config.repository_name = repo
+        if not config.copilot_assignee:
+            config.copilot_assignee = settings.default_assignee
+
+    ctx = WorkflowContext(
+        session_id=str(session.session_id),
+        project_id=project_id,
+        access_token=session.access_token,
+        repository_owner=owner,
+        repository_name=repo,
+        config=config,
+    )
+    ctx.issue_id = issue_node_id
+    ctx.issue_number = issue_number
+    ctx.project_item_id = item_id
+
+    agent_sub_issues = await get_workflow_orchestrator().create_all_sub_issues(ctx)
+    if agent_sub_issues:
+        logger.info(
+            "Pre-created %d sub-issues for task issue #%d",
+            len(agent_sub_issues),
+            issue_number,
+        )
 
 
 @router.post("", response_model=Task)
@@ -61,6 +118,23 @@ async def create_task(
 
     if not item_id:
         raise ValidationError("Failed to add issue to GitHub Project")
+
+    try:
+        await _create_parent_issue_sub_issues(
+            session=session,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            issue_node_id=issue_node_id,
+            item_id=item_id,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to pre-create sub-issues for task issue #%d in project %s",
+            issue_number,
+            project_id,
+        )
 
     # Create task response
     task = Task(

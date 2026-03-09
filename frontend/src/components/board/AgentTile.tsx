@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { GripVertical, TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from 'lucide-react';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -89,6 +89,10 @@ export function AgentTile({
     onClone?.(agent.id);
   };
 
+  const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+  };
+
   const tileStyle: React.CSSProperties = {
     ...(sortableProps?.style ?? {}),
     opacity: sortableProps?.isDragging ? 0.3 : 1,
@@ -100,9 +104,10 @@ export function AgentTile({
     return (
       <div
         ref={sortableProps?.setNodeRef}
-        className={`group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8'}`}
+        className={`group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8'}${sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : ''}`}
         style={tileStyle}
         {...(sortableProps?.attributes ?? {})}
+        {...(sortableProps?.listeners ?? {})}
         aria-roledescription="sortable agent"
       >
         {(compactIndex > 0 || compactIndex < compactCount - 1) && (
@@ -113,15 +118,6 @@ export function AgentTile({
             {compactIndex < compactCount - 1 && (
               <span className="absolute top-1/2 bottom-0 left-0 w-px bg-gradient-to-b from-primary/55 via-primary/35 to-primary/10" />
             )}
-          </span>
-        )}
-
-        {sortableProps && (
-          <span
-            className="cursor-grab px-0.5 text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
-            {...(sortableProps.listeners ?? {})}
-          >
-            ⠿
           </span>
         )}
 
@@ -165,6 +161,7 @@ export function AgentTile({
           <button
             className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
             onClick={handleClone}
+            onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
             type="button"
           >
@@ -176,6 +173,7 @@ export function AgentTile({
           <button
             className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
             onClick={handleRemove}
+            onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
             type="button"
           >
@@ -189,21 +187,13 @@ export function AgentTile({
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`celestial-panel flex flex-col rounded-md border bg-card shadow-sm ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
+      className={`celestial-panel flex flex-col rounded-md border bg-card shadow-sm ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}${sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : ''}`}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
+      {...(sortableProps?.listeners ?? {})}
       aria-roledescription="sortable agent"
     >
       <div className="flex items-center gap-2 p-2">
-        {/* Drag handle */}
-        {sortableProps && (
-          <span
-            className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1"
-            {...(sortableProps.listeners ?? {})}
-          >
-            <GripVertical className="h-4 w-4" />
-          </span>
-        )}
 
         {/* Avatar */}
         <ThemedAgentIcon
@@ -239,6 +229,7 @@ export function AgentTile({
         <button
           className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsExpanded(!isExpanded)}
+          onPointerDown={stopDragPointerPropagation}
           title={isExpanded ? 'Collapse' : 'Expand'}
           type="button"
         >
@@ -249,6 +240,7 @@ export function AgentTile({
           <button
             className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
             onClick={handleClone}
+            onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
             type="button"
           >
@@ -261,6 +253,7 @@ export function AgentTile({
           <button
             className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             onClick={handleRemove}
+            onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
             type="button"
           >

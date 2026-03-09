@@ -76,6 +76,7 @@ interface AgentConfigRowProps {
   renderAddButton?: (status: string) => React.ReactNode;
   variant?: 'default' | 'compact';
   title?: string;
+  workflowEnabled?: boolean | null;
 }
 
 /** Find which column an agent ID belongs to */
@@ -100,6 +101,7 @@ export function AgentConfigRow({
   renderAddButton,
   variant = 'default',
   title = 'Agents Pipelines',
+  workflowEnabled = null,
 }: AgentConfigRowProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeAgent, setActiveAgent] = useState<AgentAssignment | null>(null);
@@ -312,6 +314,17 @@ export function AgentConfigRow({
             <AgentPipelineSigil />
             {title}
           </span>
+          {workflowEnabled !== null && (
+            <span
+              className={`ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
+                workflowEnabled
+                  ? 'solar-chip-success'
+                  : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
+              }`}
+            >
+              {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
+            </span>
+          )}
         </div>
         <div className={isCompact ? 'p-1.5' : 'p-2'}>
           <div className={`flex overflow-x-auto ${isCompact ? 'gap-2 pb-1' : 'gap-4 pb-2'}`}>
@@ -351,6 +364,17 @@ export function AgentConfigRow({
           <AgentPipelineSigil />
           {title}
         </span>
+        {workflowEnabled !== null && (
+          <span
+            className={`ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
+              workflowEnabled
+                ? 'solar-chip-success'
+                : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
+            }`}
+          >
+            {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
+          </span>
+        )}
         {renderPresetSelector}
       </div>
 
