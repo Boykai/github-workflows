@@ -24,6 +24,8 @@ import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
+import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
+import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -167,15 +169,29 @@ export function AgentsPipelinePage() {
   return (
     <div className="flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm overflow-auto">
       {/* Page Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <p className="mb-1 text-xs uppercase tracking-[0.24em] text-primary/80">Constellation Flow</p>
-          <h2 className="text-3xl font-display font-medium tracking-[0.04em]">Agents Pipelines</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure how agents process items across board columns
-          </p>
-        </div>
-      </div>
+      <CelestialCatalogHero
+        eyebrow="Constellation Flow"
+        title="Orchestrate agents across every stage."
+        description="Build custom pipelines that route issues through agents as they move across board columns. Create stages, assign agents, pick models, and save reusable workflows."
+        badge={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Awaiting project'}
+        note="Design once, assign to a project, and let the pipeline run automatically whenever items transition between board columns."
+        stats={[
+          { label: 'Saved pipelines', value: String(pipelineConfig.pipelines?.pipelines.length ?? 0) },
+          { label: 'Active stages', value: String(pipelineConfig.pipeline?.stages.length ?? 0) },
+          { label: 'Assigned pipeline', value: pipelineConfig.pipelines?.pipelines.find(p => p.id === pipelineConfig.assignedPipelineId)?.name ?? 'None' },
+          { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
+        ]}
+        actions={
+          <>
+            <Button variant="default" size="lg" onClick={() => pipelineConfig.newPipeline()}>
+              New pipeline
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <a href="#saved-pipelines">Saved workflows</a>
+            </Button>
+          </>
+        }
+      />
 
       {/* No project selected */}
       {!projectId && (
@@ -206,27 +222,12 @@ export function AgentsPipelinePage() {
               isPreset={pipelineConfig.isPreset}
               pipelineName={pipelineConfig.pipeline?.name}
               validationErrors={pipelineConfig.validationErrors}
+              workflowEnabled={workflowConfig?.enabled ?? null}
               onSave={pipelineConfig.savePipeline}
               onSaveAsCopy={(newName) => pipelineConfig.saveAsCopy(newName)}
               onDelete={handleDelete}
               onDiscard={pipelineConfig.discardChanges}
             />
-
-            {workflowConfig && (
-              <div className="celestial-panel flex items-center rounded-[1rem] border border-border/70 bg-background/28 px-4 py-2.5 shadow-sm">
-                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full bg-primary/70" />
-                  Current Pipeline
-                  <span className={`rounded-full px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
-                    workflowConfig.enabled
-                      ? 'solar-chip-success'
-                      : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-                  }`}>
-                    {workflowConfig.enabled ? 'Workflow enabled' : 'Workflow disabled'}
-                  </span>
-                </div>
-              </div>
-            )}
 
             {/* Pipeline Board */}
             {pipelineConfig.boardState !== 'empty' && pipelineConfig.pipeline && (
@@ -255,6 +256,7 @@ export function AgentsPipelinePage() {
                 onUpdateAgent={pipelineConfig.updateAgentInStage}
                 onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
                 onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}
+                onReorderAgents={pipelineConfig.reorderAgentsInStage}
                 pipelineBlocking={pipelineConfig.pipeline?.blocking ?? false}
                 onBlockingChange={pipelineConfig.setPipelineBlocking}
               />

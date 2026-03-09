@@ -32,6 +32,7 @@ interface PipelineBoardProps {
   onUpdateAgent: (stageId: string, agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   onCloneAgent?: (stageId: string, agentNodeId: string) => void;
+  onReorderAgents: (stageId: string, newOrder: PipelineAgentNode[]) => void;
   pipelineBlocking: boolean;
   onBlockingChange: (blocking: boolean) => void;
 }
@@ -58,6 +59,7 @@ export function PipelineBoard({
   onUpdateAgent,
   onUpdateStage,
   onCloneAgent,
+  onReorderAgents,
   pipelineBlocking,
   onBlockingChange,
 }: PipelineBoardProps) {
@@ -284,6 +286,7 @@ export function PipelineBoard({
               onRemoveAgent={(nodeId) => onRemoveAgent(stage.id, nodeId)}
               onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
               onCloneAgent={onCloneAgent ? (nodeId) => onCloneAgent(stage.id, nodeId) : undefined}
+              onReorderAgents={(newOrder) => onReorderAgents(stage.id, newOrder)}
             />
           ))}
         </div>

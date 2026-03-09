@@ -3,6 +3,7 @@
  * Composes AgentsPanel (catalog), useAgentConfig (assignments), and board columns.
  */
 
+import { useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -35,6 +36,29 @@ export function AgentsPage() {
     enabled: !!projectId,
     staleTime: 30_000,
   });
+
+  const { data: pipelineAssignment } = useQuery({
+    queryKey: ['pipelines', 'assignment', projectId ?? ''],
+    queryFn: () => pipelinesApi.getAssignment(projectId!),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  // Map: lowercase column name → agent slug → model name from the assigned pipeline
+  const stageAgentModelMap = useMemo(() => {
+    const assignedPipeline = (pipelineList?.pipelines ?? []).find(
+      (p) => p.id === (pipelineAssignment?.pipeline_id ?? ''),
+    );
+    const map: Record<string, Record<string, string>> = {};
+    for (const stage of assignedPipeline?.stages ?? []) {
+      const key = stage.name.toLowerCase();
+      map[key] = {};
+      for (const node of stage.agents) {
+        if (node.model_name) map[key][node.agent_slug] = node.model_name;
+      }
+    }
+    return map;
+  }, [pipelineList, pipelineAssignment]);
 
   const columns = boardData?.columns ?? [];
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
@@ -141,11 +165,19 @@ export function AgentsPage() {
                         </div>
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {assigned.map((a) => (
-                              <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                                {formatAgentName(a.slug, a.display_name)}
-                              </span>
-                            ))}
+                            {assigned.map((a) => {
+                              const model = stageAgentModelMap[col.status.name.toLowerCase()]?.[a.slug];
+                              return (
+                                <span key={a.id} className="solar-chip inline-flex flex-col rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                                  <span>{formatAgentName(a.slug, a.display_name)}</span>
+                                  {model && (
+                                    <span className="mt-0.5 block normal-case tracking-normal font-normal text-[9px] text-primary/70 leading-tight truncate max-w-[9rem]">
+                                      {model}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground/60 mt-0.5">No agents assigned</p>

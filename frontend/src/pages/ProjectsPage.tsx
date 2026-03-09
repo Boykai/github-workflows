@@ -30,6 +30,8 @@ import { formatAgentName } from '@/utils/formatAgentName';
 import { cn } from '@/lib/utils';
 import type { BoardItem } from '@/types';
 import { ApiError, pipelinesApi } from '@/services/api';
+import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
+import { Button } from '@/components/ui/button';
 
 export function ProjectsPage() {
   const { updateRateLimit } = useRateLimitStatus();
@@ -186,6 +188,29 @@ export function ProjectsPage() {
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm overflow-hidden">
+      <CelestialCatalogHero
+        eyebrow="Mission Control"
+        title="Every project, mapped and moving."
+        description="Live Kanban view of your GitHub Project. Filter, sort, and group issues across pipeline stages, then trigger agents directly from the board."
+        badge={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Awaiting project'}
+        note="Use the board to triage work, assign blocking chains, and queue items for the active agent pipeline — all without leaving the project view."
+        stats={[
+          { label: 'Board columns', value: String(transformedBoardData?.columns.length ?? 0) },
+          { label: 'Total items', value: String(transformedBoardData?.columns.reduce((sum, c) => sum + c.items.length, 0) ?? 0) },
+          { label: 'Pipeline', value: assignedPipeline?.name ?? 'None assigned' },
+          { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
+        ]}
+        actions={
+          <>
+            <Button variant="default" size="lg" asChild>
+              <a href="#board">View board</a>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <a href="#pipeline-stages">Pipeline stages</a>
+            </Button>
+          </>
+        }
+      />
       {/* Page Header */}
       <div className="flex items-start justify-between gap-4 shrink-0">
         <div className="relative">
