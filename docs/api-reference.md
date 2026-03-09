@@ -164,7 +164,7 @@ Manage agent pipeline configurations and column-to-agent assignments per project
 | POST | `/pipelines/{project_id}/seed-presets` | Seed default pipeline presets for a project |
 | GET | `/pipelines/{project_id}/assignment` | Get the current column-to-pipeline assignment |
 | PUT | `/pipelines/{project_id}/assignment` | Set the column-to-pipeline assignment |
-| PATCH | `/pipelines/{project_id}/assignment` | Update assignment with blocking-queue support |
+| PATCH | `/pipelines/{project_id}/assignment` | Set project-level blocking override for the currently assigned pipeline |
 | GET | `/pipelines/{project_id}/{pipeline_id}` | Get a single pipeline configuration |
 | PUT | `/pipelines/{project_id}/{pipeline_id}` | Update a pipeline configuration |
 | DELETE | `/pipelines/{project_id}/{pipeline_id}` | Delete a pipeline configuration |

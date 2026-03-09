@@ -20,7 +20,7 @@ Click **Code** → **Codespaces** → **Create codespace on main**, or use:
 
 ### 2. Wait for Setup
 
-The dev container currently installs Python 3.12 and Node.js 20 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers. These pinned Codespaces versions are separate from the newer bare-metal and Docker runtime targets documented above.
+The dev container currently installs Python 3.13 and Node.js 22 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers.
 
 ### 3. Configure Environment
 
@@ -136,7 +136,7 @@ npm run dev
 |-----|---------|
 | <http://localhost:5173> | Frontend |
 | <http://localhost:8000> | Backend API |
-| <http://localhost:8000/api/docs> | API docs (when `DEBUG=true`) |
+| <http://localhost:8000/api/docs> | API docs (when `ENABLE_DOCS=true`) |
 
 ---
 
