@@ -3,7 +3,7 @@
  * Renders between the ChatToolbar and the text input.
  */
 
-import { X, FileText, ImageIcon, Loader2, Check, AlertTriangle, Paperclip } from 'lucide-react';
+import { X, FileText, Image, Loader2, Check, AlertTriangle, Paperclip } from 'lucide-react';
 import type { FileAttachment } from '@/types';
 
 interface FilePreviewChipsProps {
@@ -31,6 +31,8 @@ function truncateFilename(name: string, max = 20): string {
 function isImageFile(contentType: string): boolean {
   return contentType.startsWith('image/');
 }
+
+const MAX_FILE_CARD_FILENAME_LENGTH = 28;
 
 function StatusIcon({ status }: { status: FileAttachment['status'] }) {
   switch (status) {
@@ -94,7 +96,7 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
                 </div>
                 <div className="min-w-0">
                   <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                    <ImageIcon className="h-3 w-3" />
+                    <Image className="h-3 w-3" />
                     Image
                   </div>
                   <p className="truncate text-sm font-medium text-foreground">{file.filename}</p>
@@ -125,7 +127,7 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">
-                  {truncateFilename(file.filename, 28)}
+                  {truncateFilename(file.filename, MAX_FILE_CARD_FILENAME_LENGTH)}
                 </p>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <span>{formatFileSize(file.fileSize)}</span>

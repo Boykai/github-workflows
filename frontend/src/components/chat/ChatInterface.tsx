@@ -57,6 +57,10 @@ interface ChatInterfaceProps {
 
 const AI_ENHANCE_STORAGE_KEY = 'chat-ai-enhance';
 
+function hasDraggedFiles(event: Pick<React.DragEvent, 'dataTransfer'>): boolean {
+  return Array.from(event.dataTransfer?.types ?? []).includes('Files');
+}
+
 function getInitialAiEnhance(): boolean {
   try {
     const stored = localStorage.getItem(AI_ENHANCE_STORAGE_KEY);
@@ -183,9 +187,6 @@ export function ChatInterface({
     },
     [handleFileAdd]
   );
-
-  const hasDraggedFiles = (event: Pick<React.DragEvent, 'dataTransfer'>): boolean =>
-    Array.from(event.dataTransfer?.types ?? []).includes('Files');
 
   const handleAttachmentDragEnter = useCallback((event: React.DragEvent) => {
     if (!hasDraggedFiles(event)) return;
