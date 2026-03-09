@@ -16,7 +16,7 @@ export function CelestialLoader({ size = 'md', label = 'Loading…', className }
   const s = sizeMap[size];
 
   return (
-    <div role="status" aria-label={label} className={cn("flex flex-col items-center gap-2", className)}>
+    <div role="status" className={cn("flex flex-col items-center gap-2", className)}>
       <div className={cn("relative", s.orbit)}>
         {/* Central sun */}
         <div

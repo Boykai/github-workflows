@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, userEvent } from '@/test/test-utils';
+import { render, screen, userEvent, fireEvent, act } from '@/test/test-utils';
 import { ThemeProvider, useTheme } from './ThemeProvider';
 
 /** Helper component that exposes theme context for testing. */
@@ -36,7 +36,7 @@ describe('ThemeProvider', () => {
 
   afterEach(() => {
     localStorage.clear();
-    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.remove('light', 'dark', 'theme-transitioning');
   });
 
   it('defaults to system theme', () => {
@@ -141,5 +141,42 @@ describe('ThemeProvider', () => {
       'useTheme must be used within a ThemeProvider'
     );
     consoleSpy.mockRestore();
+  });
+
+  it('does not add theme-transitioning on initial render', () => {
+    render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    );
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+  });
+
+  it('adds and removes theme-transitioning on theme change', () => {
+    vi.useFakeTimers();
+
+    render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    );
+
+    // Initial render should not have transitioning class
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+
+    // Toggle theme using fireEvent (compatible with fake timers)
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Dark' }));
+    });
+
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // After 600ms, the transitioning class should be removed
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+
+    vi.useRealTimers();
   });
 });

@@ -113,7 +113,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
 
   return (
     <div className="celestial-fade-in">
-    <SettingsSection
+      <SettingsSection
       title="Global Settings"
       description="Instance-wide defaults that apply to all users unless overridden."
       isDirty={isDirty}
@@ -190,7 +190,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
         <label htmlFor="global-models" className="text-sm font-medium text-foreground">Comma-separated model identifiers</label>
         <input id="global-models" type="text" className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" value={f.allowed_models} onChange={(e) => setField('allowed_models', e.target.value)} placeholder="gpt-4o, gpt-4" />
       </div>
-    </SettingsSection>
+      </SettingsSection>
     </div>
   );
 }

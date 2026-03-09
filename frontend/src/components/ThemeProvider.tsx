@@ -25,6 +25,7 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     return () => {
@@ -35,7 +36,16 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.add("theme-transitioning")
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+    } else {
+      root.classList.add("theme-transitioning")
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => {
+        root.classList.remove("theme-transitioning")
+      }, 600)
+    }
+
     root.classList.remove("light", "dark")
 
     if (theme === "system") {
@@ -48,11 +58,6 @@ export function ThemeProvider({
     } else {
       root.classList.add(theme)
     }
-
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      root.classList.remove("theme-transitioning")
-    }, 600)
   }, [theme])
 
   const value = {

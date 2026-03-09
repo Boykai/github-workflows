@@ -145,7 +145,7 @@ export function ChatPopup({
 
       <div
         style={{ width: size.width, height: size.height }}
-        className={`fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200 max-md:!w-[calc(100vw-48px)] max-sm:!w-screen max-sm:!h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none ${isOpen ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto celestial-fade-in' : 'scale-95 translate-y-2 opacity-0 pointer-events-none'}`}
+        className={`fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200 max-md:!w-[calc(100vw-48px)] max-sm:!w-screen max-sm:!h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none celestial-fade-in ${isOpen ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto' : 'scale-95 translate-y-2 opacity-0 pointer-events-none'}`}
       >
         {/* Resize handle — top-left corner (mouse-only drag interaction) */}
         <div
