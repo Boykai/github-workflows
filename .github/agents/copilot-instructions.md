@@ -1,6 +1,6 @@
 # GitHub Workflows Chat — Development Guidelines
 
-Last updated: 2026-03-08
+Last updated: 2026-03-09
 
 > **Important:** Always use search tools (e.g., Context7 MCP, Microsoft Docs MCP, or web search) to look up the most up-to-date documentation when working with any and all libraries, frameworks, and APIs. Never rely solely on training data — verify current syntax, options, and best practices from official sources before writing or modifying code.
 
@@ -156,4 +156,5 @@ npx playwright test             # E2E
 - N/A — all artifacts are markdown files committed to the repository (032-doc-sweep)
 
 ## Recent Changes
+- 032-doc-sweep: Documentation process spec and checklists — no application code changes
 - 031-chat-helper-text: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577

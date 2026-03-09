@@ -82,7 +82,7 @@
 ### Implementation for User Story 3
 
 - [x] T017 [US3] Verify docs/checklists/monthly-review.md contains Coverage Audit section with accuracy, completeness, and consistency checkboxes per specs/032-doc-sweep/contracts/checklists.md (FR-007)
-- [x] T018 [P] [US3] Verify docs/checklists/monthly-review.md contains file-by-file verification table listing all 15 documentation files from specs/032-doc-sweep/data-model.md with ownership and key verification items
+- [x] T018 [P] [US3] Verify docs/checklists/monthly-review.md contains file-by-file verification table covering all documentation areas from specs/032-doc-sweep/data-model.md (12 rows — individual checklist files and the decisions directory are grouped) with ownership and key verification items
 - [x] T019 [US3] Verify docs/checklists/monthly-review.md contains Cross-Reference Check section with items: internal links validity, code snippet correctness, README links, external links (FR-008, FR-009 per specs/032-doc-sweep/contracts/checklists.md)
 - [x] T020 [US3] Verify docs/checklists/monthly-review.md contains Readability & Usability section with items: purpose statements, numbered lists, configuration table format, API table format, troubleshooting Symptom → Cause → Fix format (FR-010, FR-020 per specs/032-doc-sweep/contracts/checklists.md)
 - [x] T021 [US3] Verify docs/checklists/monthly-review.md contains Good Documentation Acceptance Bar section referencing the five criteria from FR-021: accurate, minimal, actionable, discoverable, maintained — add if missing
