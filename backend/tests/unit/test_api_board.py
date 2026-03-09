@@ -5,7 +5,7 @@ Covers:
 - GET /api/v1/board/projects/{project_id} → get_board_data
 """
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from src.models.board import (
     BoardColumn,
@@ -173,6 +173,46 @@ class TestGetBoardData:
         resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
         assert resp.status_code == 200
         mock_github_service.get_board_data.assert_called_once()
+
+    async def test_board_data_cache_served_within_ttl(self, client, mock_github_service):
+        """T020: Board endpoint returns cached data within TTL without refresh=true."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        # First call — populates cache
+        resp1 = await client.get("/api/v1/board/projects/PVT_abc")
+        assert resp1.status_code == 200
+
+        # Second call — should use cache (service not called again)
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            resp2 = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp2.status_code == 200
+            mock_cache.get.assert_called_once()
+
+    async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
+        """T033: Manual refresh (refresh=true) clears all sub-issue cache entries."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            # Pre-populate cache with a BoardDataResponse containing items with repos
+            mock_cache.get.return_value = bd
+            # Make the item have a repository so sub-issue cache is cleared
+            bd.columns[0].items[0].repository = MagicMock(owner="testuser", name="testrepo")
+            bd.columns[0].items[0].number = 42
+
+            resp = await client.get(
+                "/api/v1/board/projects/PVT_abc", params={"refresh": True}
+            )
+            assert resp.status_code == 200
+
+            # Verify cache.delete was called for the sub-issue cache key
+            delete_calls = [
+                call for call in mock_cache.delete.call_args_list
+                if "sub_issues:" in str(call)
+            ]
+            assert len(delete_calls) > 0
 
 
 # ── Regression: board error responses must NOT leak internal details ────────

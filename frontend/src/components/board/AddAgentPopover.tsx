@@ -68,17 +68,26 @@ export function AddAgentPopover({
     setPosition({ top, left });
   }, []);
 
-  // Recalculate position when opened and on scroll/resize
+  // Recalculate position when opened and on scroll/resize.
+  // RAF gating prevents getBoundingClientRect() calls more than once per frame.
   useLayoutEffect(() => {
     if (!isOpen) return;
     updatePosition();
 
-    const onReposition = () => updatePosition();
+    let rafId = 0;
+    const onReposition = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
     window.addEventListener('scroll', onReposition, { capture: true, passive: true });
     window.addEventListener('resize', onReposition);
     return () => {
       window.removeEventListener('scroll', onReposition, { capture: true });
       window.removeEventListener('resize', onReposition);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isOpen, updatePosition]);
 

@@ -179,3 +179,85 @@ class TestCacheClearExpiredSafety:
 
         # Should return None, not raise
         assert cache.get("k1") is None
+
+
+class TestSubIssueCacheTTL:
+    """T032: Sub-issue cache entries served from cache within 600s TTL window."""
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_served_within_ttl(self, mock_settings):
+        """Cache entry with 600s TTL should be retrievable before expiration."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        sub_issues_data = [{"id": 1, "title": "Sub-issue 1", "state": "open"}]
+        cache.set("sub_issues:testuser/testrepo#42", sub_issues_data, ttl_seconds=600)
+
+        # Entry should be retrievable within TTL window
+        assert cache.get("sub_issues:testuser/testrepo#42") == sub_issues_data
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_expired_after_ttl(self, mock_settings):
+        """Cache entry should expire after its TTL."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        sub_issues_data = [{"id": 1, "title": "Sub-issue 1", "state": "open"}]
+        cache.set("sub_issues:testuser/testrepo#42", sub_issues_data, ttl_seconds=1)
+
+        time.sleep(1.1)
+        assert cache.get("sub_issues:testuser/testrepo#42") is None
+
+
+class TestCacheTTLExpiration:
+    """T049: Cache TTL expiration — entries evicted after TTL, fresh data fetched."""
+
+    @patch("src.services.cache.get_settings")
+    def test_entry_evicted_after_ttl(self, mock_settings):
+        """Entry should be None after TTL expires."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("board_data:PVT_123", {"project": {}, "columns": []}, ttl_seconds=1)
+
+        # Should exist immediately
+        assert cache.get("board_data:PVT_123") is not None
+
+        # Wait for TTL to expire
+        time.sleep(1.1)
+
+        # Should be evicted
+        assert cache.get("board_data:PVT_123") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_subsequent_set_after_expiry_stores_fresh_data(self, mock_settings):
+        """After TTL expires, a new set() stores fresh data."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("key1", "stale_value", ttl_seconds=1)
+
+        time.sleep(1.1)
+        assert cache.get("key1") is None
+
+        # Store fresh data
+        cache.set("key1", "fresh_value", ttl_seconds=300)
+        assert cache.get("key1") == "fresh_value"
+
+    @patch("src.services.cache.get_settings")
+    def test_stale_cache_fallback_via_get_stale(self, mock_settings):
+        """get_stale() should return expired entries for fallback scenarios."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+
+        cache = InMemoryCache()
+        cache.set("fallback_key", "stale_data", ttl_seconds=1)
+
+        time.sleep(1.1)
+
+        # get_stale returns the stale entry value even though it's expired
+        # (must be called BEFORE get() which would evict the entry)
+        stale = cache.get_stale("fallback_key")
+        assert stale == "stale_data"
+
+        # Regular get returns None (expired) and evicts the entry
+        assert cache.get("fallback_key") is None
