@@ -149,3 +149,9 @@ npx playwright test             # E2E
 ## Frontend Pattern Notes
 - Celestial theme animations and gradients are implemented via shared utility classes in `frontend/src/index.css` (for example, orbiting particles, glow effects, and parallax layers). Reuse these utilities instead of defining component-local `@keyframes` or duplicating animation logic.
 - When introducing new UI libraries or visual patterns, prefer documenting reusable utilities and conventions here (and in component-level docs) rather than adding branch-specific or version-specific notes.
+## Active Technologies
+- TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577 (031-chat-helper-text)
+- N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
+
+## Recent Changes
+- 031-chat-helper-text: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577

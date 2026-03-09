@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, X } from 'lucide-react';
 import { useAgentChat } from '@/hooks/useAgents';
+import { CHAT_PLACEHOLDERS } from '@/constants/chat-placeholders';
 
 interface AgentChatFlowProps {
   projectId: string;
@@ -180,7 +181,8 @@ export function AgentChatFlow({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your response…"
+            placeholder={CHAT_PLACEHOLDERS.agentFlow.desktop}
+            aria-label={CHAT_PLACEHOLDERS.agentFlow.ariaLabel}
             className="celestial-focus flex-1 px-3 py-2 text-sm border border-border rounded-md bg-background"
             disabled={chatMutation.isPending}
           />
