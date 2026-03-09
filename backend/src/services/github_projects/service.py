@@ -5096,7 +5096,8 @@ class GitHubProjectsService:
         for file_info in agent_files:
             slug = file_info["name"].removesuffix(".agent.md")
             download_url = file_info.get("download_url")
-            display_name = slug
+            # Default: title-case the slug as a readable fallback (e.g. "quality-assurance" → "Quality Assurance")
+            display_name = " ".join(p.capitalize() for p in slug.replace(".", "-").split("-") if p)
             description: str | None = None
             icon_name: str | None = None
 

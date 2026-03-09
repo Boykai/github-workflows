@@ -212,7 +212,7 @@ describe('ChoresPanel', () => {
     const pipelineSelectors = await screen.findAllByLabelText('Agent Pipeline');
     await user.selectOptions(pipelineSelectors[0], 'pipe-1');
 
-    const saveButtons = screen.getAllByRole('button', { name: /Save & Create PR/i });
+    const saveButtons = screen.getAllByRole('button', { name: 'Save' });
     await user.click(saveButtons[0]);
 
     await waitFor(() => {
@@ -269,7 +269,7 @@ describe('ChoresPanel', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Edit chore' })[0]);
     await user.click(screen.getAllByRole('button', { name: 'Non-blocking' })[0]);
-    await user.click(screen.getAllByRole('button', { name: /Save & Create PR/i })[0]);
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[0]);
 
     await waitFor(() => {
       expect(mockInlineUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {

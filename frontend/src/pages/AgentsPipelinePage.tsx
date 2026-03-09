@@ -247,7 +247,6 @@ export function AgentsPipelinePage() {
               isPreset={pipelineConfig.isPreset}
               pipelineName={pipelineConfig.pipeline?.name}
               validationErrors={pipelineConfig.validationErrors}
-              workflowEnabled={workflowConfig?.enabled ?? null}
               onSave={pipelineConfig.savePipeline}
               onSaveAsCopy={(newName) => pipelineConfig.saveAsCopy(newName)}
               onDelete={handleDelete}
@@ -336,6 +335,7 @@ export function AgentsPipelinePage() {
             availableAgents={availableAgents}
             variant="compact"
             title="Current Pipeline"
+            workflowEnabled={workflowConfig?.enabled ?? null}
             renderAddButton={(status: string) => (
               <AddAgentPopover
                 status={status}

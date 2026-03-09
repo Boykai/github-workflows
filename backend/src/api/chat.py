@@ -39,6 +39,8 @@ from src.services.cache import (
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
+from src.services.database import get_db
+from src.services.settings_store import get_effective_user_settings
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -786,6 +788,18 @@ async def confirm_proposal(
             )
 
             # Assign the first Backlog agent
+            try:
+                effective_user_settings = await get_effective_user_settings(
+                    get_db(), session.github_user_id
+                )
+                user_chat_model = effective_user_settings.ai.model
+            except Exception:
+                logger.warning(
+                    "Could not load effective user settings for session %s; user_chat_model left empty",
+                    session.session_id,
+                )
+                user_chat_model = ""
+
             ctx = WorkflowContext(
                 session_id=str(session.session_id),
                 project_id=project_id,
@@ -793,6 +807,7 @@ async def confirm_proposal(
                 repository_owner=owner,
                 repository_name=repo,
                 config=config,
+                user_chat_model=user_chat_model,
             )
             ctx.issue_id = issue_node_id
             ctx.issue_number = issue_number

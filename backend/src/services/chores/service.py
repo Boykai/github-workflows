@@ -34,6 +34,7 @@ _CHORE_UPDATABLE_COLUMNS = frozenset(
         "execution_count",
         "ai_enhance_enabled",
         "agent_pipeline_id",
+        "blocking",
         "updated_at",
     }
 )
@@ -380,11 +381,22 @@ class ChoresService:
 
             config = await get_workflow_config(project_id)
             if config:
-                # Apply user-specific agent pipeline mappings if available.
-                # Operate on a shallow copy so we never persist user-specific
-                # overrides back to the shared canonical workflow config.
+                # Resolve effective agent pipeline mappings.
+                # Priority: chore's own pipeline > project-assigned / user-selected > defaults.
+                # Operate on a shallow copy so we never persist overrides to the
+                # shared canonical workflow config.
                 effective_mappings = dict(config.agent_mappings) if config.agent_mappings else {}
-                if github_user_id:
+                if chore.agent_pipeline_id:
+                    from src.services.workflow_orchestrator.config import (
+                        load_pipeline_as_agent_mappings,
+                    )
+
+                    chore_pipeline = await load_pipeline_as_agent_mappings(
+                        project_id, chore.agent_pipeline_id
+                    )
+                    if chore_pipeline is not None:
+                        effective_mappings, _ = chore_pipeline
+                elif github_user_id:
                     from src.services.workflow_orchestrator.config import (
                         load_user_agent_mappings,
                     )
@@ -446,6 +458,35 @@ class ChoresService:
                 config.repository_name = repo
                 if not config.copilot_assignee:
                     config.copilot_assignee = settings.default_assignee
+
+                # Apply effective pipeline mappings for execution.
+                # Priority: chore > project-assigned > user-selected > defaults.
+                try:
+                    if chore.agent_pipeline_id:
+                        from src.services.workflow_orchestrator.config import (
+                            load_pipeline_as_agent_mappings,
+                        )
+
+                        _chore_pipeline = await load_pipeline_as_agent_mappings(
+                            project_id, chore.agent_pipeline_id
+                        )
+                        if _chore_pipeline is not None:
+                            config.agent_mappings, _ = _chore_pipeline
+                    else:
+                        from src.services.workflow_orchestrator.config import (
+                            resolve_project_pipeline_mappings,
+                        )
+
+                        _pipeline_result = await resolve_project_pipeline_mappings(
+                            project_id, github_user_id or ""
+                        )
+                        if _pipeline_result.agent_mappings:
+                            config.agent_mappings = _pipeline_result.agent_mappings
+                except Exception:
+                    logger.debug(
+                        "Pipeline mapping resolution failed for chore %s; using config defaults",
+                        chore.name,
+                    )
 
                 # Set issue status to Backlog on the project board
                 backlog_status = config.status_backlog

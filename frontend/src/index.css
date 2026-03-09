@@ -350,6 +350,19 @@
       );
   }
 
+  .dark .section-aurora {
+    background:
+      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.07), transparent 22%),
+      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.05), transparent 24%),
+      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.04), transparent 30%),
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, hsl(var(--background)) 98%, hsl(var(--panel))) 0%,
+        hsl(var(--background)) 50%,
+        color-mix(in srgb, hsl(var(--background)) 94%, black) 100%
+      );
+  }
+
   .ritual-stage {
     position: relative;
     border: 1px solid hsl(var(--border) / 0.72);
@@ -382,13 +395,13 @@
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(ellipse at 82% 0%, hsl(45 100% 72% / 0.38), transparent 38%),
-      radial-gradient(circle at 12% 8%, hsl(200 64% 84% / 0.22), transparent 28%),
+      radial-gradient(ellipse at 82% 0%, hsl(45 100% 72% / 0.28), transparent 38%),
+      radial-gradient(circle at 12% 8%, hsl(200 64% 84% / 0.16), transparent 28%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 90%, white 10%) 0%,
-        hsl(var(--panel) / 0.88) 54%,
-        color-mix(in srgb, hsl(var(--panel)) 87%, hsl(var(--gold)) 13%) 100%
+        color-mix(in srgb, hsl(var(--panel)) 72%, white 10%) 0%,
+        hsl(var(--panel) / 0.68) 54%,
+        color-mix(in srgb, hsl(var(--panel)) 70%, hsl(var(--gold)) 13%) 100%
       );
     box-shadow:
       inset 0 1px 0 hsl(var(--glow) / 0.22),
@@ -400,6 +413,83 @@
     box-shadow:
       inset 0 2px 0 hsl(0 0% 100% / 0.62),
       0 16px 30px hsl(var(--night) / 0.07);
+  }
+
+  .project-board-column {
+    position: relative;
+    isolation: isolate;
+    backdrop-filter: blur(18px);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.14),
+      0 20px 40px hsl(var(--night) / 0.16);
+  }
+
+  .project-board-column::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 12% 10%, hsl(var(--star-soft) / 0.9) 0 1px, transparent 1.7px),
+      radial-gradient(circle at 76% 8%, hsl(var(--gold) / 0.82) 0 1.2px, transparent 2px),
+      radial-gradient(circle at 88% 24%, hsl(var(--gold) / 0.12) 0%, transparent 16%),
+      radial-gradient(circle at 18% 82%, hsl(var(--glow) / 0.16) 0%, transparent 22%),
+      linear-gradient(132deg, transparent 0 64%, hsl(var(--star-soft) / 0.12) 64.3%, transparent 65%);
+    opacity: 0.88;
+  }
+
+  .project-board-column::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      linear-gradient(112deg, transparent 0 15%, hsl(var(--star-soft) / 0.18) 15.2% 15.45%, transparent 15.7%),
+      linear-gradient(154deg, transparent 0 24%, hsl(var(--gold) / 0.16) 24.2% 24.45%, transparent 24.7%),
+      radial-gradient(ellipse 58% 38% at 72% 68%, hsl(var(--gold) / 0.08) 0%, transparent 78%);
+    opacity: 0.64;
+  }
+
+  .project-board-column-header {
+    position: relative;
+    z-index: 1;
+    background:
+      linear-gradient(180deg, hsl(var(--background) / 0.76) 0%, hsl(var(--background) / 0.46) 100%);
+    box-shadow: inset 0 -1px 0 hsl(var(--border) / 0.45);
+  }
+
+  .project-board-column-list {
+    position: relative;
+    z-index: 1;
+    background:
+      linear-gradient(180deg, hsl(var(--background) / 0.08) 0%, hsl(var(--background) / 0.18) 100%);
+  }
+
+  .project-board-card {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 86% 14%, hsl(var(--gold) / 0.14), transparent 18%),
+      radial-gradient(circle at 14% 10%, hsl(var(--glow) / 0.12), transparent 18%),
+      linear-gradient(180deg, hsl(var(--card) / 0.9) 0%, hsl(var(--card) / 0.78) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glow) / 0.14),
+      0 14px 28px hsl(var(--night) / 0.12);
+  }
+
+  .project-board-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 18% 18%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.6px),
+      radial-gradient(circle at 76% 12%, hsl(var(--gold) / 0.78) 0 1px, transparent 1.7px),
+      linear-gradient(124deg, transparent 0 70%, hsl(var(--gold) / 0.08) 70.4%, transparent 71%);
+    opacity: 0.82;
   }
 
   /* Cloud puffs + sun disc (light theme) */
@@ -457,8 +547,8 @@
     overflow: hidden;
     background: linear-gradient(
       180deg,
-      hsl(var(--background) / 0.7) 0%,
-      hsl(var(--background) / 0.5) 100%
+      hsl(var(--background) / 0.88) 0%,
+      hsl(var(--background) / 0.78) 100%
     );
     box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12);
   }
@@ -514,13 +604,13 @@
   /* Dark theme: deep space base with nebula glow */
   .dark .pipeline-column-surface {
     background:
-      radial-gradient(ellipse at 22% 6%, hsl(var(--glow) / 0.2), transparent 36%),
-      radial-gradient(ellipse at 80% 78%, hsl(var(--gold) / 0.14), transparent 30%),
-      radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.08), transparent 52%),
+      radial-gradient(ellipse at 22% 6%, hsl(var(--glow) / 0.14), transparent 36%),
+      radial-gradient(ellipse at 80% 78%, hsl(var(--gold) / 0.10), transparent 30%),
+      radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.05), transparent 52%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 82%, hsl(var(--night)) 18%) 0%,
-        hsl(var(--night) / 0.99) 100%
+        color-mix(in srgb, hsl(var(--panel)) 62%, hsl(var(--night)) 18%) 0%,
+        hsl(var(--night) / 0.78) 100%
       );
     box-shadow:
       inset 0 1px 0 hsl(var(--glow) / 0.14),
@@ -531,6 +621,32 @@
     box-shadow:
       inset 0 1px 0 hsl(var(--glow) / 0.14),
       0 18px 36px hsl(var(--night) / 0.36);
+  }
+
+  .dark .project-board-column {
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.1),
+      0 24px 48px hsl(var(--night) / 0.34);
+  }
+
+  .dark .project-board-column-header {
+    background:
+      linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.48) 100%);
+  }
+
+  .dark .project-board-column-list {
+    background:
+      linear-gradient(180deg, hsl(var(--night) / 0.18) 0%, hsl(var(--night) / 0.34) 100%);
+  }
+
+  .dark .project-board-card {
+    background:
+      radial-gradient(circle at 84% 16%, hsl(var(--gold) / 0.12), transparent 18%),
+      radial-gradient(circle at 16% 10%, hsl(var(--glow) / 0.1), transparent 20%),
+      linear-gradient(180deg, hsl(var(--night) / 0.82) 0%, hsl(var(--panel) / 0.76) 100%);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--star-soft) / 0.1),
+      0 18px 32px hsl(var(--night) / 0.28);
   }
 
   /* Rich starfield with halos on principal stars (dark theme) */
@@ -608,10 +724,10 @@
   }
 
   .dark .pipeline-agent-node {
-    background: linear-gradient(180deg, hsl(var(--night) / 0.78) 0%, hsl(var(--panel) / 0.74) 100%);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.94) 0%, hsl(var(--panel) / 0.92) 100%);
     box-shadow:
-      inset 0 1px 0 hsl(var(--star-soft) / 0.08),
-      0 8px 18px hsl(var(--night) / 0.16);
+      inset 0 1px 0 hsl(var(--star-soft) / 0.12),
+      0 8px 18px hsl(var(--night) / 0.28);
   }
 
   .dark .pipeline-agent-node::before {

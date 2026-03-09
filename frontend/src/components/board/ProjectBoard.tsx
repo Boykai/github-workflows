@@ -26,9 +26,9 @@ export function ProjectBoard({
   const columnCount = Math.max(boardData.columns.length, 1);
 
   return (
-    <div className="celestial-fade-in flex-1 overflow-x-auto overflow-y-hidden pb-4">
+    <div className="celestial-fade-in w-full overflow-x-auto overflow-y-visible pb-6">
       <div
-        className="grid h-full min-w-full items-stretch gap-4"
+        className="grid min-h-[56rem] min-w-full items-start gap-5 pb-2"
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(14rem, 1fr))` }}
       >
         {boardData.columns.map((column) => (

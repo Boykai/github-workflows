@@ -34,20 +34,33 @@ import { useEffect } from 'react';
 let lockCount = 0;
 let originalOverflow = '';
 
+/**
+ * Returns the app's primary scroll container.
+ * The SPA uses `<main>` (overflow-auto) as the scroll container, not the body.
+ * Locking `<main>` directly prevents background scroll while a modal is open,
+ * and avoids the CSS viewport-propagation side-effect of locking `body`
+ * (browsers propagate body.overflow to the viewport when html.overflow is
+ * default/visible, which can freeze overscroll at `<main>`'s boundaries).
+ */
+function getScrollContainer(): HTMLElement {
+  return (document.querySelector('main') as HTMLElement | null) ?? document.body;
+}
+
 export function useScrollLock(isLocked: boolean): void {
   useEffect(() => {
     if (!isLocked) return;
 
+    const el = getScrollContainer();
     if (lockCount === 0) {
-      originalOverflow = document.body.style.overflow;
+      originalOverflow = el.style.overflow;
     }
     lockCount++;
-    document.body.style.overflow = 'hidden';
+    el.style.overflow = 'hidden';
 
     return () => {
       lockCount = Math.max(0, lockCount - 1);
       if (lockCount === 0) {
-        document.body.style.overflow = originalOverflow;
+        getScrollContainer().style.overflow = originalOverflow;
       }
     };
   }, [isLocked]);
@@ -58,4 +71,6 @@ export function _resetForTesting(): void {
   lockCount = 0;
   originalOverflow = '';
   document.body.style.overflow = '';
+  const mainEl = document.querySelector('main') as HTMLElement | null;
+  if (mainEl) mainEl.style.overflow = '';
 }

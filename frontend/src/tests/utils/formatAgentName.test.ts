@@ -30,6 +30,14 @@ describe('formatAgentName', () => {
     expect(formatAgentName('linter', 'My Custom Linter')).toBe('My Custom Linter');
   });
 
+  it('formats raw slug displayName (single word) like a slug', () => {
+    expect(formatAgentName('tester', 'tester')).toBe('Tester');
+  });
+
+  it('formats raw slug displayName (hyphenated) like a slug', () => {
+    expect(formatAgentName('quality-assurance', 'quality-assurance')).toBe('Quality Assurance');
+  });
+
   it('lowercases all-caps slug before title-casing', () => {
     expect(formatAgentName('LINTER')).toBe('Linter');
   });

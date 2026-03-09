@@ -3,7 +3,7 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy, GripVertical } from 'lucide-react';
+import { X, Wrench, Copy } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { PipelineAgentNode } from '@/types';
@@ -44,21 +44,11 @@ export function AgentNode({
     <div
       ref={setNodeRef}
       style={dragStyle}
-      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+      {...(dragHandleAttributes ?? {})}
+      {...(dragHandleListeners ?? {})}
+      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : ''}${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
     >
-      {/* Drag handle */}
-      {dragHandleListeners && (
-        <button
-          type="button"
-          {...dragHandleAttributes}
-          {...dragHandleListeners}
-          className="shrink-0 cursor-grab active:cursor-grabbing rounded p-0.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors touch-none"
-          aria-label="Drag to reorder"
-          tabIndex={-1}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-      )}
+      {/* Drag handle removed — entire card is the drag target */}
 
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
 
