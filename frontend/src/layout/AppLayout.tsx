@@ -123,6 +123,7 @@ export function AppLayout() {
           unreadCount={unreadCount}
           onMarkAllRead={markAllRead}
           onMenuToggle={openMobile}
+          isMobileMenuOpen={isMobileOpen}
         />
         <SignalBannerBar />
         <main className="relative flex-1 overflow-auto px-2 pb-2">

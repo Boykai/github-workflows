@@ -115,19 +115,17 @@ When ☰ tapped:
 
 **Changes**:
 
-1. Accept new props: `isMobile: boolean`, `isMobileOpen: boolean`, `onClose: () => void`
+1. Accept new props: `isMobileOpen?: boolean`, `onCloseMobile?: () => void`
 2. **Desktop mode** (≥768px): Current behavior — inline sidebar, collapsible
 3. **Mobile mode** (<768px): Renders as fixed overlay drawer
    - `fixed inset-y-0 left-0 z-40 w-72` when open
-   - `transform -translate-x-full` when closed (hidden off-screen)
+   - Hidden entirely when closed (conditionally rendered)
    - `transition-transform duration-300` for slide animation
-   - Close button (X icon) in top-right of drawer
    - Auto-close on route change via `useLocation` effect
 
 **Accessibility**:
 - `role="navigation"` and `aria-label="Main navigation"` on nav container
-- Hamburger trigger has `aria-expanded` and `aria-controls` attributes
-- Focus trapped within drawer when open (Escape key closes)
+- Hamburger trigger has `aria-expanded` and `aria-controls` attributes linking to the mobile drawer `id`
 
 **Styling (Mobile Drawer)**:
 ```text

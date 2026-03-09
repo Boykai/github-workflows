@@ -17,6 +17,7 @@ interface TopBarProps {
   unreadCount: number;
   onMarkAllRead: () => void;
   onMenuToggle?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
 export function TopBar({
@@ -27,6 +28,7 @@ export function TopBar({
   unreadCount,
   onMarkAllRead,
   onMenuToggle,
+  isMobileMenuOpen,
 }: TopBarProps) {
   return (
     <header className="celestial-panel flex h-16 items-center justify-between border-b border-border/70 px-3 md:px-6 backdrop-blur-sm shrink-0">
@@ -37,6 +39,8 @@ export function TopBar({
             onClick={onMenuToggle}
             className="touch-target inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground md:hidden"
             aria-label="Open navigation menu"
+            aria-expanded={isMobileMenuOpen ?? false}
+            aria-controls="mobile-nav-drawer"
           >
             <Menu className="h-5 w-5" />
           </button>
