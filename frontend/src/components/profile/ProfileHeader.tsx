@@ -40,10 +40,7 @@ export function ProfileHeader({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      e.target.value = '';
-      return;
-    }
+    if (!file) return;
 
     // Validate type
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
