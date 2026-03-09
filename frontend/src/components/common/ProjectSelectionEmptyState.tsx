@@ -102,7 +102,7 @@ export function ProjectSelectionEmptyState({
 
             {isLoading ? (
               <div className="flex items-center justify-center p-6">
-                <div className="h-5 w-5 rounded-full border-2 border-border border-t-primary celestial-orbit-spin" style={{ animationDuration: '0.8s' }} />
+                <div className="h-5 w-5 rounded-full border-2 border-border border-t-primary celestial-orbit-spin-fast" />
               </div>
             ) : projects.length === 0 ? (
               <div className="p-6 text-center">

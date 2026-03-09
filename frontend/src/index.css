@@ -865,7 +865,8 @@
     animation-delay: 1.5s;
   }
   .celestial-twinkle-slow {
-    animation: twinkle 5s ease-in-out infinite;
+    animation: var(--animate-twinkle);
+    animation-duration: 5s;
     animation-delay: 0.8s;
   }
 
@@ -879,7 +880,13 @@
     animation: var(--animate-orbit-spin);
   }
   .celestial-orbit-spin-reverse {
-    animation: orbit-spin 30s linear infinite reverse;
+    animation: var(--animate-orbit-spin);
+    animation-duration: 30s;
+    animation-direction: reverse;
+  }
+  .celestial-orbit-spin-fast {
+    animation: var(--animate-orbit-spin);
+    animation-duration: 0.8s;
   }
 
   /* Floating drift — use on hero illustrations or decorative bodies */
@@ -1020,6 +1027,7 @@
     .celestial-pulse-glow,
     .celestial-orbit-spin,
     .celestial-orbit-spin-reverse,
+    .celestial-orbit-spin-fast,
     .celestial-float,
     .celestial-float-delayed,
     .celestial-star-wink,
