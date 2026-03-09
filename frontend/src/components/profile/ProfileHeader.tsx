@@ -45,16 +45,19 @@ export function ProfileHeader({
     // Validate type
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
       onAvatarError('Please select a PNG, JPG, or WebP image');
+      e.target.value = '';
       return;
     }
 
     // Validate size
     if (file.size > MAX_AVATAR_SIZE) {
       onAvatarError('Image must be smaller than 5 MB');
+      e.target.value = '';
       return;
     }
 
     onAvatarSelect(file);
+    e.target.value = '';
   };
 
   const handleAvatarClick = () => {
