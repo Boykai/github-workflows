@@ -11,6 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from src.models.task import Task
+from src.models.workflow import WorkflowConfiguration
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,79 @@ class TestCreateTask:
         assert data["title"] == "New task"
         assert data["issue_number"] == 42
         mock_websocket_manager.broadcast_to_project.assert_called_once()
+
+    async def test_create_task_precreates_pipeline_sub_issues(
+        self, client, mock_session, mock_github_service
+    ):
+        mock_session.selected_project_id = "PVT_abc"
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "id": 200042,
+            "number": 42,
+            "node_id": "I_abc",
+            "html_url": "https://github.com/owner/repo/issues/42",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_new"
+
+        config = WorkflowConfiguration(
+            project_id="PVT_abc",
+            repository_owner="owner",
+            repository_name="repo",
+        )
+
+        with (
+            patch(
+                "src.api.tasks.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=config,
+            ),
+            patch("src.api.tasks.get_workflow_orchestrator") as mock_orchestrator,
+        ):
+            mock_orchestrator.return_value.create_all_sub_issues = AsyncMock(
+                return_value={"easy": {"number": 101, "node_id": "I_sub"}}
+            )
+
+            resp = await client.post(
+                "/api/v1/tasks",
+                json={"project_id": "PVT_abc", "title": "New task", "description": "desc"},
+            )
+
+        assert resp.status_code == 200
+        create_subissues_ctx = mock_orchestrator.return_value.create_all_sub_issues.await_args.args[
+            0
+        ]
+        assert create_subissues_ctx.project_id == "PVT_abc"
+        assert create_subissues_ctx.repository_owner == "owner"
+        assert create_subissues_ctx.repository_name == "repo"
+        assert create_subissues_ctx.issue_number == 42
+        assert create_subissues_ctx.issue_id == "I_abc"
+        assert create_subissues_ctx.project_item_id == "PVTI_new"
+
+    async def test_create_task_subissue_bootstrap_failure_does_not_fail_request(
+        self, client, mock_session, mock_github_service
+    ):
+        mock_session.selected_project_id = "PVT_abc"
+        mock_github_service.get_project_repository.return_value = ("owner", "repo")
+        mock_github_service.create_issue.return_value = {
+            "id": 200042,
+            "number": 42,
+            "node_id": "I_abc",
+            "html_url": "https://github.com/owner/repo/issues/42",
+        }
+        mock_github_service.add_issue_to_project.return_value = "PVTI_new"
+
+        with patch(
+            "src.api.tasks._create_parent_issue_sub_issues",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("sub-issue bootstrap failed"),
+        ):
+            resp = await client.post(
+                "/api/v1/tasks",
+                json={"project_id": "PVT_abc", "title": "New task"},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["issue_number"] == 42
 
     async def test_create_task_no_project_selected(self, client, mock_session):
         mock_session.selected_project_id = None
