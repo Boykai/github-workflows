@@ -342,11 +342,11 @@ export function ChoreCard({
               aria-label="Agent Pipeline"
               title={`Agent Pipeline: ${pipelineLabel}`}
             >
-              <Workflow className="h-3 w-3" />
-              <span className="max-w-[11rem] truncate normal-case sm:max-w-[13rem]">
-                {pipelineLabel}
+              <Workflow className="h-3 w-3 shrink-0" />
+              <span className="truncate normal-case">
+                <span className="text-muted-foreground">Agent Pipeline: </span>{pipelineLabel}
               </span>
-              <ChevronDown className={cn('h-3 w-3 transition-transform', showPipelineMenu && 'rotate-180')} />
+              <ChevronDown className={cn('h-3 w-3 shrink-0 transition-transform', showPipelineMenu && 'rotate-180')} />
             </button>
 
             {showPipelineMenu && (
@@ -378,14 +378,22 @@ export function ChoreCard({
                         key={pipeline.id}
                         type="button"
                         role="option"
+                        aria-label={pipeline.name}
                         aria-selected={isSelected}
                         onClick={() => handlePipelineChange(pipeline.id)}
                         className={cn(
-                          'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10',
+                          'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left transition-colors hover:bg-primary/10',
                           isSelected && 'bg-primary/10 text-foreground',
                         )}
                       >
-                        <span className="truncate font-medium">{pipeline.name}</span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{pipeline.name}</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {pipeline.stage_count} stage{pipeline.stage_count !== 1 ? 's' : ''}
+                            {' · '}
+                            {pipeline.agent_count} agent{pipeline.agent_count !== 1 ? 's' : ''}
+                          </p>
+                        </div>
                         {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
                       </button>
                     );
