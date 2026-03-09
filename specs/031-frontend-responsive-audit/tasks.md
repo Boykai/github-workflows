@@ -25,10 +25,10 @@
 
 **Purpose**: Establish responsive design tokens, utility hooks, and CSS utility classes that all subsequent phases depend on. These are the centralized building blocks per FR-009.
 
-- [ ] T001 Add responsive breakpoint CSS custom properties (`--bp-xs` through `--bp-2xl`) to the `@theme` block in `frontend/src/index.css`
-- [ ] T002 [P] Add `.touch-target` utility class (`min-height: 44px; min-width: 44px`) to `frontend/src/index.css` for WCAG 2.5.8 touch target compliance (FR-002)
-- [ ] T003 [P] Add `BREAKPOINTS` constant object (`xs: 320, sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1440`) to `frontend/src/constants.ts`
-- [ ] T004 Create `useMediaQuery` hook with `useIsMobile()` convenience function in `frontend/src/hooks/useMediaQuery.ts` — uses native `window.matchMedia`, SSR-safe, subscribes to viewport changes
+- [x] T001 Add responsive breakpoint CSS custom properties (`--bp-xs` through `--bp-2xl`) to the `@theme` block in `frontend/src/index.css`
+- [x] T002 [P] Add `.touch-target` utility class (`min-height: 44px; min-width: 44px`) to `frontend/src/index.css` for WCAG 2.5.8 touch target compliance (FR-002)
+- [x] T003 [P] Add `BREAKPOINTS` constant object (`xs: 320, sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1440`) to `frontend/src/constants.ts`
+- [x] T004 Create `useMediaQuery` hook with `useIsMobile()` convenience function in `frontend/src/hooks/useMediaQuery.ts` — uses native `window.matchMedia`, SSR-safe, subscribes to viewport changes
 
 ---
 
@@ -38,9 +38,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Add `touch` size variant (`min-h-[44px] min-w-[44px] px-4 py-2`) to the Button CVA variants in `frontend/src/components/ui/Button.tsx`
-- [ ] T006 [P] Add `max-sm:min-h-[44px]` to base input classes in `frontend/src/components/ui/Input.tsx` for mobile touch-friendly input height
-- [ ] T007 Extend `useSidebarState` hook with mobile drawer state (`isMobileOpen`, `openMobile`, `closeMobile`) and auto-close on route change via `useLocation` in `frontend/src/hooks/useSidebarState.ts`
+- [x] T005 Add `touch` size variant (`min-h-[44px] min-w-[44px] px-4 py-2`) to the Button CVA variants in `frontend/src/components/ui/Button.tsx`
+- [x] T006 [P] Add `max-sm:min-h-[44px]` to base input classes in `frontend/src/components/ui/Input.tsx` for mobile touch-friendly input height
+- [x] T007 Extend `useSidebarState` hook with mobile drawer state (`isMobileOpen`, `openMobile`, `closeMobile`) and auto-close on route change via `useLocation` in `frontend/src/hooks/useSidebarState.ts`
 
 **Checkpoint**: Foundation ready — responsive tokens, utility hook, UI primitives, and sidebar state are in place. User story implementation can now begin.
 
@@ -54,27 +54,27 @@
 
 ### Layout Components (Mobile Navigation — FR-003)
 
-- [ ] T008 [US1] Add hamburger menu button (`md:hidden`, `touch-target`, lucide `Menu` icon) to the left of TopBar, wired to `onMenuToggle` prop, with responsive padding (`px-3 md:px-6`) and breadcrumb truncation on mobile in `frontend/src/layout/TopBar.tsx`
-- [ ] T009 [US1] Implement dual rendering mode in `frontend/src/layout/Sidebar.tsx` — desktop: existing inline sidebar (`hidden md:flex`); mobile: fixed overlay drawer (`fixed inset-y-0 left-0 z-40 w-72`) with slide animation (`transition-transform duration-300`), backdrop, close button (X icon, 44×44px), and `aria-label="Main navigation"` accessibility attributes
-- [ ] T010 [US1] Wire mobile drawer state into `frontend/src/layout/AppLayout.tsx` — use `useIsMobile()` hook to conditionally render Sidebar inline (desktop) or as overlay drawer (mobile), add backdrop overlay (`fixed inset-0 z-30 bg-black/50`), pass `openMobile`/`closeMobile` to TopBar and Sidebar, adjust main content padding (`px-2 md:px-4`)
+- [x] T008 [US1] Add hamburger menu button (`md:hidden`, `touch-target`, lucide `Menu` icon) to the left of TopBar, wired to `onMenuToggle` prop, with responsive padding (`px-3 md:px-6`) and breadcrumb truncation on mobile in `frontend/src/layout/TopBar.tsx`
+- [x] T009 [US1] Implement dual rendering mode in `frontend/src/layout/Sidebar.tsx` — desktop: existing inline sidebar (`hidden md:flex`); mobile: fixed overlay drawer (`fixed inset-y-0 left-0 z-40 w-72`) with slide animation (`transition-transform duration-300`), backdrop, close button (X icon, 44×44px), and `aria-label="Main navigation"` accessibility attributes
+- [x] T010 [US1] Wire mobile drawer state into `frontend/src/layout/AppLayout.tsx` — use `useIsMobile()` hook to conditionally render Sidebar inline (desktop) or as overlay drawer (mobile), add backdrop overlay (`fixed inset-0 z-30 bg-black/50`), pass `openMobile`/`closeMobile` to TopBar and Sidebar, adjust main content padding (`px-2 md:px-4`)
 
 ### Page Layouts — Mobile Responsive (FR-001, FR-004)
 
-- [ ] T011 [P] [US1] Make `frontend/src/pages/AppPage.tsx` responsive at mobile breakpoints — reduce padding (`px-2 md:px-4 lg:px-6`), scale heading typography (`text-2xl md:text-3xl`), ensure card grids use `grid-cols-1` on mobile
-- [ ] T012 [P] [US1] Make `frontend/src/pages/ProjectsPage.tsx` responsive at mobile breakpoints — responsive padding, ensure project card grid uses `grid-cols-1 md:grid-cols-2`, no fixed pixel widths
-- [ ] T013 [P] [US1] Make `frontend/src/pages/AgentsPage.tsx` responsive at mobile breakpoints — verify existing `md:grid-cols-2 xl:grid-cols-3` grid, add responsive padding, ensure touch targets on agent card actions
-- [ ] T014 [P] [US1] Make `frontend/src/pages/AgentsPipelinePage.tsx` responsive at mobile breakpoints — responsive padding, pipeline content adapts to narrow viewport without horizontal overflow
-- [ ] T015 [P] [US1] Make `frontend/src/pages/ToolsPage.tsx` responsive at mobile breakpoints — responsive grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`), responsive padding
-- [ ] T016 [P] [US1] Make `frontend/src/pages/ChoresPage.tsx` responsive at mobile breakpoints — responsive grid, responsive padding, touch-friendly action buttons
-- [ ] T017 [P] [US1] Make `frontend/src/pages/SettingsPage.tsx` responsive at mobile breakpoints — responsive tab navigation (horizontal scrollable pills on mobile, vertical sidebar on desktop), form layout stacking
-- [ ] T018 [P] [US1] Make `frontend/src/pages/LoginPage.tsx` responsive at mobile breakpoints — centered mobile layout, responsive padding, ensure login form inputs are full-width on mobile
-- [ ] T019 [P] [US1] Verify `frontend/src/pages/NotFoundPage.tsx` renders correctly at 320px — simple layout, confirm no horizontal overflow
+- [x] T011 [P] [US1] Make `frontend/src/pages/AppPage.tsx` responsive at mobile breakpoints — reduce padding (`px-2 md:px-4 lg:px-6`), scale heading typography (`text-2xl md:text-3xl`), ensure card grids use `grid-cols-1` on mobile
+- [x] T012 [P] [US1] Make `frontend/src/pages/ProjectsPage.tsx` responsive at mobile breakpoints — responsive padding, ensure project card grid uses `grid-cols-1 md:grid-cols-2`, no fixed pixel widths
+- [x] T013 [P] [US1] Make `frontend/src/pages/AgentsPage.tsx` responsive at mobile breakpoints — verify existing `md:grid-cols-2 xl:grid-cols-3` grid, add responsive padding, ensure touch targets on agent card actions
+- [x] T014 [P] [US1] Make `frontend/src/pages/AgentsPipelinePage.tsx` responsive at mobile breakpoints — responsive padding, pipeline content adapts to narrow viewport without horizontal overflow
+- [x] T015 [P] [US1] Make `frontend/src/pages/ToolsPage.tsx` responsive at mobile breakpoints — responsive grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`), responsive padding
+- [x] T016 [P] [US1] Make `frontend/src/pages/ChoresPage.tsx` responsive at mobile breakpoints — responsive grid, responsive padding, touch-friendly action buttons
+- [x] T017 [P] [US1] Make `frontend/src/pages/SettingsPage.tsx` responsive at mobile breakpoints — responsive tab navigation (horizontal scrollable pills on mobile, vertical sidebar on desktop), form layout stacking
+- [x] T018 [P] [US1] Make `frontend/src/pages/LoginPage.tsx` responsive at mobile breakpoints — centered mobile layout, responsive padding, ensure login form inputs are full-width on mobile
+- [x] T019 [P] [US1] Verify `frontend/src/pages/NotFoundPage.tsx` renders correctly at 320px — simple layout, confirm no horizontal overflow
 
 ### Feature Components — Mobile Responsive
 
-- [ ] T020 [P] [US1] Make `frontend/src/components/agents/AgentsPanel.tsx` responsive — mobile search bar full-width, responsive grid, touch targets on filter/sort controls
-- [ ] T021 [P] [US1] Make `frontend/src/components/agents/AgentCard.tsx` responsive — touch-friendly action buttons (44×44px), responsive card layout, text truncation for long agent names
-- [ ] T022 [P] [US1] Make `frontend/src/layout/RateLimitBar.tsx` responsive — verify compact mobile variant or hidden on mobile (`hidden md:flex`), no overflow on small screens
+- [x] T020 [P] [US1] Make `frontend/src/components/agents/AgentsPanel.tsx` responsive — mobile search bar full-width, responsive grid, touch targets on filter/sort controls
+- [x] T021 [P] [US1] Make `frontend/src/components/agents/AgentCard.tsx` responsive — touch-friendly action buttons (44×44px), responsive card layout, text truncation for long agent names
+- [x] T022 [P] [US1] Make `frontend/src/layout/RateLimitBar.tsx` responsive — verify compact mobile variant or hidden on mobile (`hidden md:flex`), no overflow on small screens
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable. Every page loads without horizontal scrollbar at 320px, 375px, 390px. Mobile navigation drawer works. All content accessible.
 
@@ -88,26 +88,26 @@
 
 ### Board Components — Horizontal Scroll (FR-005)
 
-- [ ] T023 [US2] Implement horizontal scroll container for kanban columns in `frontend/src/components/board/ProjectBoard.tsx` — `overflow-x-auto snap-x snap-mandatory md:flex-wrap md:overflow-visible`, column width `w-[85vw] shrink-0 snap-center md:w-auto md:shrink`
-- [ ] T024 [P] [US2] Make `frontend/src/components/board/BoardColumn.tsx` responsive — responsive column widths, ensure content doesn't overflow column boundaries on mobile
-- [ ] T025 [P] [US2] Make `frontend/src/components/board/IssueCard.tsx` responsive — responsive card content layout, touch targets on card actions, text truncation for long issue titles
-- [ ] T026 [P] [US2] Make `frontend/src/components/board/IssueDetailModal.tsx` responsive — full-screen on mobile (handled in US5 but card content inside must reflow at 768px), scrollable content area
+- [x] T023 [US2] Implement horizontal scroll container for kanban columns in `frontend/src/components/board/ProjectBoard.tsx` — `overflow-x-auto snap-x snap-mandatory md:flex-wrap md:overflow-visible`, column width `w-[85vw] shrink-0 snap-center md:w-auto md:shrink`
+- [x] T024 [P] [US2] Make `frontend/src/components/board/BoardColumn.tsx` responsive — responsive column widths, ensure content doesn't overflow column boundaries on mobile
+- [x] T025 [P] [US2] Make `frontend/src/components/board/IssueCard.tsx` responsive — responsive card content layout, touch targets on card actions, text truncation for long issue titles
+- [x] T026 [P] [US2] Make `frontend/src/components/board/IssueDetailModal.tsx` responsive — full-screen on mobile (handled in US5 but card content inside must reflow at 768px), scrollable content area
 
 ### Pipeline Components — Horizontal Scroll (FR-005)
 
-- [ ] T027 [US2] Implement horizontal scroll for pipeline stages in `frontend/src/components/pipeline/PipelineBoard.tsx` — `overflow-x-auto md:overflow-visible` with `min-w-max md:min-w-0` inner container
-- [ ] T028 [P] [US2] Make `frontend/src/components/pipeline/StageCard.tsx` responsive — responsive card content, touch targets on stage actions
-- [ ] T029 [P] [US2] Make `frontend/src/components/pipeline/PipelineFlowGraph.tsx` responsive — horizontal scroll container (`overflow-x-auto`), `touch-action: pan-x pan-y` to prevent pinch-to-zoom conflicts
+- [x] T027 [US2] Implement horizontal scroll for pipeline stages in `frontend/src/components/pipeline/PipelineBoard.tsx` — `overflow-x-auto md:overflow-visible` with `min-w-max md:min-w-0` inner container
+- [x] T028 [P] [US2] Make `frontend/src/components/pipeline/StageCard.tsx` responsive — responsive card content, touch targets on stage actions
+- [x] T029 [P] [US2] Make `frontend/src/components/pipeline/PipelineFlowGraph.tsx` responsive — horizontal scroll container (`overflow-x-auto`), `touch-action: pan-x pan-y` to prevent pinch-to-zoom conflicts
 
 ### Chat Components — Tablet Reflow (FR-005)
 
-- [ ] T030 [P] [US2] Audit and fix `frontend/src/components/chat/ChatInterface.tsx` for tablet responsiveness — verify message layout, touch-friendly controls, no z-index collisions with other UI layers
-- [ ] T031 [P] [US2] Verify `frontend/src/components/chat/ChatPopup.tsx` mobile optimization — confirm existing `max-sm:` full-screen behavior works correctly at 768px, no content clipping
-- [ ] T032 [P] [US2] Make `frontend/src/components/chat/MentionInput.tsx` touch-friendly — ensure input sizing meets 44px minimum height on mobile, responsive placeholder text
+- [x] T030 [P] [US2] Audit and fix `frontend/src/components/chat/ChatInterface.tsx` for tablet responsiveness — verify message layout, touch-friendly controls, no z-index collisions with other UI layers
+- [x] T031 [P] [US2] Verify `frontend/src/components/chat/ChatPopup.tsx` mobile optimization — confirm existing `max-sm:` full-screen behavior works correctly at 768px, no content clipping
+- [x] T032 [P] [US2] Make `frontend/src/components/chat/MentionInput.tsx` touch-friendly — ensure input sizing meets 44px minimum height on mobile, responsive placeholder text
 
 ### Fixed/Sticky Element Audit (FR-006)
 
-- [ ] T033 [US2] Audit all fixed/sticky elements (TopBar header, footers, toolbars) across all pages at 768px and 1024px — ensure they don't obscure primary content, add sufficient padding/offset for sticky header clearance in `frontend/src/layout/TopBar.tsx` and `frontend/src/layout/AppLayout.tsx`
+- [x] T033 [US2] Audit all fixed/sticky elements (TopBar header, footers, toolbars) across all pages at 768px and 1024px — ensure they don't obscure primary content, add sufficient padding/offset for sticky header clearance in `frontend/src/layout/TopBar.tsx` and `frontend/src/layout/AppLayout.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. All data-heavy views reflow correctly on tablet. Pipeline and board horizontal scroll works.
 
@@ -121,14 +121,14 @@
 
 ### Typography & Spacing Audit (FR-010)
 
-- [ ] T034 [P] [US3] Audit and fix heading typography scaling across all pages — ensure responsive modifiers (e.g., `text-2xl md:text-3xl lg:text-4xl`) are applied consistently in `frontend/src/pages/AppPage.tsx`, `ProjectsPage.tsx`, `AgentsPage.tsx`, `AgentsPipelinePage.tsx`, `ToolsPage.tsx`, `ChoresPage.tsx`, `SettingsPage.tsx`
-- [ ] T035 [P] [US3] Audit body text minimum sizes — ensure `text-base` (16px) minimum on mobile viewports across all components, bump critical `text-sm` instances to `max-sm:text-base` where readability is impacted
-- [ ] T036 [P] [US3] Audit and fix spacing consistency — ensure horizontal padding scales (`px-2 md:px-4 lg:px-6`), vertical gaps scale (`gap-3 md:gap-4 lg:gap-6`) across all page layouts
+- [x] T034 [P] [US3] Audit and fix heading typography scaling across all pages — ensure responsive modifiers (e.g., `text-2xl md:text-3xl lg:text-4xl`) are applied consistently in `frontend/src/pages/AppPage.tsx`, `ProjectsPage.tsx`, `AgentsPage.tsx`, `AgentsPipelinePage.tsx`, `ToolsPage.tsx`, `ChoresPage.tsx`, `SettingsPage.tsx`
+- [x] T035 [P] [US3] Audit body text minimum sizes — ensure `text-base` (16px) minimum on mobile viewports across all components, bump critical `text-sm` instances to `max-sm:text-base` where readability is impacted
+- [x] T036 [P] [US3] Audit and fix spacing consistency — ensure horizontal padding scales (`px-2 md:px-4 lg:px-6`), vertical gaps scale (`gap-3 md:gap-4 lg:gap-6`) across all page layouts
 
 ### Fluid Layout Verification (FR-004)
 
-- [ ] T037 [P] [US3] Audit all grid and card components for fixed pixel widths — replace any hard-coded `w-[NNNpx]` values with fluid equivalents (`w-full`, `max-w-*`, percentage-based) across `frontend/src/components/agents/`, `frontend/src/components/board/`, `frontend/src/components/pipeline/`
-- [ ] T038 [P] [US3] Verify `frontend/src/components/common/CelestialCatalogHero.tsx` responsive behavior at 1280px and 1440px — confirm existing responsive grid works correctly at large breakpoints
+- [x] T037 [P] [US3] Audit all grid and card components for fixed pixel widths — replace any hard-coded `w-[NNNpx]` values with fluid equivalents (`w-full`, `max-w-*`, percentage-based) across `frontend/src/components/agents/`, `frontend/src/components/board/`, `frontend/src/components/pipeline/`
+- [x] T038 [P] [US3] Verify `frontend/src/components/common/CelestialCatalogHero.tsx` responsive behavior at 1280px and 1440px — confirm existing responsive grid works correctly at large breakpoints
 
 **Checkpoint**: All pages render with consistent, proportional visual language at desktop breakpoints. No fixed widths break fluid layouts.
 
@@ -142,19 +142,19 @@
 
 ### Touch Target Remediation (FR-002)
 
-- [ ] T039 [P] [US4] Audit and fix icon buttons across all components — ensure padding creates 44×44px hit area (e.g., `p-2.5` for 24px icons = 44px total) in `frontend/src/components/agents/`, `frontend/src/components/board/`, `frontend/src/components/pipeline/`, `frontend/src/components/chat/`, `frontend/src/components/chores/`, `frontend/src/components/tools/`
-- [ ] T040 [P] [US4] Audit and fix menu items across navigation and dropdowns — ensure `min-h-[44px]` on mobile for all clickable menu items in `frontend/src/layout/Sidebar.tsx` nav items
-- [ ] T041 [P] [US4] Audit and fix link touch targets — ensure all text links have sufficient tap area via padding or `touch-target` class across `frontend/src/components/` and `frontend/src/pages/`
+- [x] T039 [P] [US4] Audit and fix icon buttons across all components — ensure padding creates 44×44px hit area (e.g., `p-2.5` for 24px icons = 44px total) in `frontend/src/components/agents/`, `frontend/src/components/board/`, `frontend/src/components/pipeline/`, `frontend/src/components/chat/`, `frontend/src/components/chores/`, `frontend/src/components/tools/`
+- [x] T040 [P] [US4] Audit and fix menu items across navigation and dropdowns — ensure `min-h-[44px]` on mobile for all clickable menu items in `frontend/src/layout/Sidebar.tsx` nav items
+- [x] T041 [P] [US4] Audit and fix link touch targets — ensure all text links have sufficient tap area via padding or `touch-target` class across `frontend/src/components/` and `frontend/src/pages/`
 
 ### Form Input Responsiveness (FR-007)
 
-- [ ] T042 [P] [US4] Make `frontend/src/components/chores/ChoreScheduleConfig.tsx` responsive — stack form fields vertically on mobile, ensure all inputs and dropdowns are touch-friendly
-- [ ] T043 [P] [US4] Audit and fix all settings panels for responsive form layout in `frontend/src/components/settings/` — ensure form inputs stack on mobile, labels above inputs, full-width controls
-- [ ] T044 [P] [US4] Verify chat input controls are touch-friendly — audit `frontend/src/components/chat/ChatInterface.tsx` send button, file upload button, and toolbar controls for 44×44px minimum tap area
+- [x] T042 [P] [US4] Make `frontend/src/components/chores/ChoreScheduleConfig.tsx` responsive — stack form fields vertically on mobile, ensure all inputs and dropdowns are touch-friendly
+- [x] T043 [P] [US4] Audit and fix all settings panels for responsive form layout in `frontend/src/components/settings/` — ensure form inputs stack on mobile, labels above inputs, full-width controls
+- [x] T044 [P] [US4] Verify chat input controls are touch-friendly — audit `frontend/src/components/chat/ChatInterface.tsx` send button, file upload button, and toolbar controls for 44×44px minimum tap area
 
 ### Hover-to-Touch Fallbacks (FR-011)
 
-- [ ] T045 [US4] Audit all hover-dependent interactions across `frontend/src/components/` — ensure every hover-triggered tooltip, dropdown, or action has a touch-equivalent fallback (tap, long-press, or tap-to-toggle) for touch-only devices
+- [x] T045 [US4] Audit all hover-dependent interactions across `frontend/src/components/` — ensure every hover-triggered tooltip, dropdown, or action has a touch-equivalent fallback (tap, long-press, or tap-to-toggle) for touch-only devices
 
 **Checkpoint**: All form inputs and interactive controls are fully operable via touch on mobile. All touch targets meet 44×44px minimum.
 
@@ -168,19 +168,19 @@
 
 ### Modal Full-Screen Mobile (FR-008)
 
-- [ ] T046 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/agents/AddAgentModal.tsx` — `max-sm:max-w-none max-sm:h-full max-sm:rounded-none max-sm:m-0`, scrollable content, 44×44px close button
-- [ ] T047 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/board/IssueDetailModal.tsx` — full-screen on mobile, scrollable issue content, touch-friendly close button
-- [ ] T048 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/tools/ToolSelectorModal.tsx` — full-screen on mobile, scrollable tool list, touch-friendly controls
-- [ ] T049 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/chores/AddChoreModal.tsx` — full-screen on mobile, scrollable form, touch-friendly close button
-- [ ] T050 [P] [US5] Apply full-screen mobile pattern to remaining modals — AgentIconPickerModal, ConfirmChoreModal, UploadMcpModal, EditRepoMcpModal, CleanUpConfirmModal, BulkModelUpdateDialog, UnsavedChangesDialog, ConfirmationDialog — each gets `max-sm:` full-screen overrides and scrollable content
+- [x] T046 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/agents/AddAgentModal.tsx` — `max-sm:max-w-none max-sm:h-full max-sm:rounded-none max-sm:m-0`, scrollable content, 44×44px close button
+- [x] T047 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/board/IssueDetailModal.tsx` — full-screen on mobile, scrollable issue content, touch-friendly close button
+- [x] T048 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/tools/ToolSelectorModal.tsx` — full-screen on mobile, scrollable tool list, touch-friendly controls
+- [x] T049 [P] [US5] Apply full-screen mobile pattern to `frontend/src/components/chores/AddChoreModal.tsx` — full-screen on mobile, scrollable form, touch-friendly close button
+- [x] T050 [P] [US5] Apply full-screen mobile pattern to remaining modals — AgentIconPickerModal, ConfirmChoreModal, UploadMcpModal, EditRepoMcpModal, CleanUpConfirmModal, BulkModelUpdateDialog, UnsavedChangesDialog, ConfirmationDialog — each gets `max-sm:` full-screen overrides and scrollable content
 
 ### Tooltip Touch Adaptation (FR-011)
 
-- [ ] T051 [US5] Audit and fix tooltip components across `frontend/src/components/` — convert hover-only tooltips to tap-to-show on touch devices using existing `@radix-ui/react-tooltip` touch behavior or adding `onTouchStart` handlers
+- [x] T051 [US5] Audit and fix tooltip components across `frontend/src/components/` — convert hover-only tooltips to tap-to-show on touch devices using existing `@radix-ui/react-tooltip` touch behavior or adding `onTouchStart` handlers
 
 ### Orientation Change Handling (FR-012)
 
-- [ ] T052 [US5] Verify orientation change behavior — test that open modals, drawers, and tooltips re-adapt layout correctly when device rotates from portrait to landscape (and vice versa) without visual glitches, content loss, or scroll position jumps
+- [x] T052 [US5] Verify orientation change behavior — test that open modals, drawers, and tooltips re-adapt layout correctly when device rotates from portrait to landscape (and vice versa) without visual glitches, content loss, or scroll position jumps
 
 **Checkpoint**: All user stories (US1–US5) should now be independently functional. All modals, drawers, and tooltips adapt correctly on mobile and tablet.
 
@@ -192,20 +192,20 @@
 
 ### E2E Test Extensions (Optional — existing tests provide baseline)
 
-- [ ] T053 [P] Add additional viewport definitions (`mobileSmall: 320×568`, `mobileLarge: 390×844`, `desktopLarge: 1440×900`) to `frontend/e2e/viewports.ts`
-- [ ] T054 [P] Extend responsive home page tests with new viewport breakpoints in `frontend/e2e/responsive-home.spec.ts`
-- [ ] T055 [P] Extend responsive board tests with new viewport breakpoints in `frontend/e2e/responsive-board.spec.ts`
-- [ ] T056 [P] Extend responsive settings tests with new viewport breakpoints in `frontend/e2e/responsive-settings.spec.ts`
+- [x] T053 [P] Add additional viewport definitions (`mobileSmall: 320×568`, `mobileLarge: 390×844`, `desktopLarge: 1440×900`) to `frontend/e2e/viewports.ts`
+- [x] T054 [P] Extend responsive home page tests with new viewport breakpoints in `frontend/e2e/responsive-home.spec.ts`
+- [x] T055 [P] Extend responsive board tests with new viewport breakpoints in `frontend/e2e/responsive-board.spec.ts`
+- [x] T056 [P] Extend responsive settings tests with new viewport breakpoints in `frontend/e2e/responsive-settings.spec.ts`
 
 ### Cross-Cutting Quality
 
-- [ ] T057 Run `npm run type-check` in `frontend/` — verify zero TypeScript errors after all responsive changes
-- [ ] T058 [P] Run `npm run lint` in `frontend/` — verify zero ESLint errors after all responsive changes
-- [ ] T059 [P] Run `npm run build` in `frontend/` — verify successful production build
-- [ ] T060 Run `npm run test` in `frontend/` — verify all existing Vitest tests pass with responsive changes
-- [ ] T061 Perform full breakpoint sweep — load every page at 320px, 375px, 390px, 768px, 1024px, 1280px, 1440px and verify no horizontal scrollbar (`document.documentElement.scrollWidth <= window.innerWidth`)
-- [ ] T062 Verify dark mode compatibility — confirm all responsive changes work correctly in both light and dark themes via ThemeProvider
-- [ ] T063 Run quickstart.md validation — follow the verification checklist in `specs/031-frontend-responsive-audit/quickstart.md`
+- [x] T057 Run `npm run type-check` in `frontend/` — verify zero TypeScript errors after all responsive changes
+- [x] T058 [P] Run `npm run lint` in `frontend/` — verify zero ESLint errors after all responsive changes
+- [x] T059 [P] Run `npm run build` in `frontend/` — verify successful production build
+- [x] T060 Run `npm run test` in `frontend/` — verify all existing Vitest tests pass with responsive changes
+- [x] T061 Perform full breakpoint sweep — load every page at 320px, 375px, 390px, 768px, 1024px, 1280px, 1440px and verify no horizontal scrollbar (`document.documentElement.scrollWidth <= window.innerWidth`)
+- [x] T062 Verify dark mode compatibility — confirm all responsive changes work correctly in both light and dark themes via ThemeProvider
+- [x] T063 Run quickstart.md validation — follow the verification checklist in `specs/031-frontend-responsive-audit/quickstart.md`
 
 ---
 

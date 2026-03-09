@@ -20,7 +20,7 @@ export function ProjectBoard({ boardData, onCardClick, availableAgents, getGroup
   const columnCount = Math.max(boardData.columns.length, 1);
 
   return (
-    <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 snap-x snap-mandatory md:snap-none">
+    <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4 max-md:snap-x max-md:snap-mandatory">
       <div
         className="grid h-full min-w-full items-stretch gap-4"
         style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(14rem, 1fr))` }}
