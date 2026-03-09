@@ -179,4 +179,74 @@ describe('ThemeProvider', () => {
 
     vi.useRealTimers();
   });
+
+  it('resets the transition timeout on rapid theme toggles', () => {
+    vi.useFakeTimers();
+
+    render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    );
+
+    // First toggle
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Dark' }));
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // Advance partially (300ms of 600ms)
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // Second toggle before first timeout completes — should restart the 600ms timer
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Light' }));
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // Advance 300ms — first timeout would have fired but was cleared
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // Advance remaining 300ms to complete the new timeout
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+
+    vi.useRealTimers();
+  });
+
+  it('cleans up timeout on unmount to prevent memory leaks', () => {
+    vi.useFakeTimers();
+
+    const { unmount } = render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    );
+
+    // Trigger a theme change to start the timeout
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Dark' }));
+    });
+    expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+    // Unmount before the timeout fires
+    unmount();
+
+    // Advance past timeout — should not throw or cause errors
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    // Manually clean up (unmount doesn't remove the class from document)
+    document.documentElement.classList.remove('theme-transitioning');
+
+    vi.useRealTimers();
+  });
 });
