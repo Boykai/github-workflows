@@ -36,7 +36,10 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
     if (e.target === e.currentTarget) onCancel();
   };
 
-  const hasItemsToDelete = data.branches_to_delete.length > 0 || data.prs_to_close.length > 0 || (data.orphaned_issues ?? []).length > 0;
+  const hasItemsToDelete =
+    data.branches_to_delete.length > 0 ||
+    data.prs_to_close.length > 0 ||
+    (data.orphaned_issues ?? []).length > 0;
 
   return createPortal(
     <div
@@ -63,24 +66,33 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         </div>
 
         <p className="text-sm text-muted-foreground mb-4">
-          Review the Solune-generated items below before confirming. Assets created outside the app will be preserved. This operation cannot be undone.
+          Review the Solune-generated items below before confirming. Assets created outside the app
+          will be preserved. This operation cannot be undone.
         </p>
 
         {/* Items to delete */}
         {data.branches_to_delete.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Branches to Delete ({data.branches_to_delete.length})</span>
+              <span className="inline-flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Branches to Delete ({data.branches_to_delete.length})
+              </span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => (
-                <li key={branch.name} className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10">
+                <li
+                  key={branch.name}
+                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10"
+                >
                   <div className="flex items-center gap-2">
                     <GitBranch className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="font-mono text-xs">{branch.name}</span>
                   </div>
                   {branch.deletion_reason && (
-                    <span className="ml-5 text-[11px] text-muted-foreground">{branch.deletion_reason}</span>
+                    <span className="ml-5 text-[11px] text-muted-foreground">
+                      {branch.deletion_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -91,18 +103,26 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.prs_to_close.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Pull Requests to Close ({data.prs_to_close.length})</span>
+              <span className="inline-flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Pull Requests to Close ({data.prs_to_close.length})
+              </span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => (
-                <li key={pr.number} className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10">
+                <li
+                  key={pr.number}
+                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10"
+                >
                   <div className="flex items-center gap-2">
                     <GitPullRequest className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="font-medium">#{pr.number}</span>
                     <span className="text-muted-foreground truncate">{pr.title}</span>
                   </div>
                   {pr.deletion_reason && (
-                    <span className="ml-5 text-[11px] text-muted-foreground">{pr.deletion_reason}</span>
+                    <span className="ml-5 text-[11px] text-muted-foreground">
+                      {pr.deletion_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -113,14 +133,20 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {(data.orphaned_issues ?? []).length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2"><Trash2 className="h-4 w-4" />Orphaned Issues to Close ({data.orphaned_issues.length})</span>
+              <span className="inline-flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Orphaned Issues to Close ({data.orphaned_issues.length})
+              </span>
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               App-created issues no longer attached to the project board.
             </p>
             <ul className="space-y-1 text-sm">
               {data.orphaned_issues.map((issue) => (
-                <li key={issue.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
+                <li
+                  key={issue.number}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10"
+                >
                   <span className="font-medium">#{issue.number}</span>
                   <span className="text-muted-foreground truncate">{issue.title}</span>
                   {issue.labels.length > 0 && (
@@ -138,14 +164,22 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.branches_to_preserve.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Branches to Preserve ({data.branches_to_preserve.length})</span>
+              <span className="inline-flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Branches to Preserve ({data.branches_to_preserve.length})
+              </span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => (
-                <li key={branch.name} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li
+                  key={branch.name}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                >
                   <span className="font-mono text-xs">{branch.name}</span>
                   {branch.preservation_reason && (
-                    <span className="text-xs text-muted-foreground">— {branch.preservation_reason}</span>
+                    <span className="text-xs text-muted-foreground">
+                      — {branch.preservation_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -156,15 +190,23 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {data.prs_to_preserve.length > 0 && (
           <div className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2"><Shield className="h-4 w-4" />Pull Requests to Preserve ({data.prs_to_preserve.length})</span>
+              <span className="inline-flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Pull Requests to Preserve ({data.prs_to_preserve.length})
+              </span>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => (
-                <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
+                <li
+                  key={pr.number}
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                >
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>
                   {pr.preservation_reason && (
-                    <span className="text-xs text-muted-foreground">— {pr.preservation_reason}</span>
+                    <span className="text-xs text-muted-foreground">
+                      — {pr.preservation_reason}
+                    </span>
                   )}
                 </li>
               ))}
@@ -174,13 +216,15 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
         {!hasItemsToDelete && (
           <div className="mb-4 rounded-[1rem] border border-border bg-background/48 p-4 text-center text-sm text-muted-foreground">
-            No stale Solune-generated branches, pull requests, or orphaned issues found. Nothing to clean up.
+            No stale Solune-generated branches, pull requests, or orphaned issues found. Nothing to
+            clean up.
           </div>
         )}
 
         {/* Summary line */}
         <p className="text-xs text-muted-foreground mb-4">
-          {data.open_issues_on_board} open issue{data.open_issues_on_board !== 1 ? 's' : ''} on the project board used for cross-referencing.
+          {data.open_issues_on_board} open issue{data.open_issues_on_board !== 1 ? 's' : ''} on the
+          project board used for cross-referencing.
         </p>
 
         {/* Actions */}

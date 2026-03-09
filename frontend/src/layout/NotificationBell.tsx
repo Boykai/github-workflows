@@ -13,7 +13,11 @@ interface NotificationBellProps {
   onMarkAllRead: () => void;
 }
 
-export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: NotificationBellProps) {
+export function NotificationBell({
+  notifications,
+  unreadCount,
+  onMarkAllRead,
+}: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -71,50 +75,55 @@ export function NotificationBell({ notifications, unreadCount, onMarkAllRead }: 
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const dropdown = isOpen && position
-    ? createPortal(
-        <div
-          className="celestial-panel fixed z-[10000] w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
-          style={{ top: position.top, left: position.left }}
-        >
-          <div className="flex items-center justify-between border-b border-border/70 bg-background/25 px-4 py-3">
-            <span className="text-sm font-semibold">Notifications</span>
-            {unreadCount > 0 && (
-              <button
-                onClick={onMarkAllRead}
-                className="text-xs text-primary transition-colors hover:text-foreground"
-              >
-                Mark all read
-              </button>
-            )}
-          </div>
-          <div className="max-h-[320px] overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="py-10 text-center">
-                <Bell className="mx-auto mb-3 h-8 w-8 text-primary/35" />
-                <p className="text-sm text-muted-foreground">No notifications yet</p>
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20 ${
-                    n.read ? 'opacity-60' : ''
-                  }`}
+  const dropdown =
+    isOpen && position
+      ? createPortal(
+          <div
+            className="celestial-panel fixed z-[10000] w-80 overflow-hidden rounded-[1.25rem] border border-border/80 shadow-lg backdrop-blur-md"
+            style={{ top: position.top, left: position.left }}
+          >
+            <div className="flex items-center justify-between border-b border-border/70 bg-background/25 px-4 py-3">
+              <span className="text-sm font-semibold">Notifications</span>
+              {unreadCount > 0 && (
+                <button
+                  onClick={onMarkAllRead}
+                  className="text-xs text-primary transition-colors hover:text-foreground"
                 >
-                  <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-primary'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground truncate">{n.title}</p>
-                    {n.source && <p className="text-xs text-muted-foreground mt-0.5">{n.source}</p>}
-                  </div>
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-[320px] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="py-10 text-center">
+                  <Bell className="mx-auto mb-3 h-8 w-8 text-primary/35" />
+                  <p className="text-sm text-muted-foreground">No notifications yet</p>
                 </div>
-              ))
-            )}
-          </div>
-        </div>,
-        document.body,
-      )
-    : null;
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20 ${
+                      n.read ? 'opacity-60' : ''
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-primary'}`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-foreground truncate">{n.title}</p>
+                      {n.source && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{n.source}</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div ref={ref} className="relative">

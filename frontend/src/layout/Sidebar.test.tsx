@@ -26,7 +26,7 @@ function renderSidebar(overrides: Partial<Parameters<typeof Sidebar>[0]> = {}) {
   return render(
     <MemoryRouter>
       <Sidebar {...defaultProps} />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
 }
 
@@ -95,9 +95,7 @@ describe('Sidebar', () => {
       renderSidebar({ isMobileOpen: true, onCloseMobile });
       // The backdrop has aria-hidden="true" and is the md:hidden overlay
       const backdrops = document.querySelectorAll('[aria-hidden="true"]');
-      const backdrop = Array.from(backdrops).find(
-        (el) => el.className.includes('bg-black/50'),
-      );
+      const backdrop = Array.from(backdrops).find((el) => el.className.includes('bg-black/50'));
       expect(backdrop).toBeTruthy();
       fireEvent.click(backdrop!);
       expect(onCloseMobile).toHaveBeenCalledOnce();

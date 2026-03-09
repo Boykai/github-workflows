@@ -71,7 +71,15 @@ export const BREAKPOINTS = {
 
 // ============ Solune Navigation ============
 
-import { LayoutDashboard, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Kanban,
+  GitBranch,
+  Bot,
+  Wrench,
+  ListChecks,
+  Settings,
+} from 'lucide-react';
 import type { NavRoute } from '@/types';
 
 /** Sidebar navigation routes with Lucide icons. */
@@ -89,8 +97,24 @@ export const NAV_ROUTES: NavRoute[] = [
 
 /** Priority badge color mapping for IssueCard and other priority displays. */
 export const PRIORITY_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  P0: { bg: 'bg-red-100/90 dark:bg-red-950/50', text: 'text-red-700 dark:text-red-300', label: 'Critical' },
-  P1: { bg: 'bg-orange-100/90 dark:bg-orange-950/50', text: 'text-orange-700 dark:text-orange-300', label: 'High' },
-  P2: { bg: 'bg-blue-100/90 dark:bg-blue-950/50', text: 'text-blue-700 dark:text-blue-300', label: 'Medium' },
-  P3: { bg: 'bg-emerald-100/90 dark:bg-emerald-950/50', text: 'text-emerald-700 dark:text-emerald-300', label: 'Low' },
+  P0: {
+    bg: 'bg-red-100/90 dark:bg-red-950/50',
+    text: 'text-red-700 dark:text-red-300',
+    label: 'Critical',
+  },
+  P1: {
+    bg: 'bg-orange-100/90 dark:bg-orange-950/50',
+    text: 'text-orange-700 dark:text-orange-300',
+    label: 'High',
+  },
+  P2: {
+    bg: 'bg-blue-100/90 dark:bg-blue-950/50',
+    text: 'text-blue-700 dark:text-blue-300',
+    label: 'Medium',
+  },
+  P3: {
+    bg: 'bg-emerald-100/90 dark:bg-emerald-950/50',
+    text: 'text-emerald-700 dark:text-emerald-300',
+    label: 'Low',
+  },
 };

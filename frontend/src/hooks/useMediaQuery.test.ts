@@ -14,19 +14,24 @@ describe('useMediaQuery', () => {
     listeners = new Map();
     matchesMap = new Map();
 
-    vi.stubGlobal('matchMedia', vi.fn((query: string) => {
-      const mql = {
-        matches: matchesMap.get(query) ?? false,
-        media: query,
-        addEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
-          listeners.set(query, handler);
-        }),
-        removeEventListener: vi.fn((_event: string, _handler: (e: MediaQueryListEvent) => void) => {
-          listeners.delete(query);
-        }),
-      };
-      return mql;
-    }));
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => {
+        const mql = {
+          matches: matchesMap.get(query) ?? false,
+          media: query,
+          addEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
+            listeners.set(query, handler);
+          }),
+          removeEventListener: vi.fn(
+            (_event: string, _handler: (e: MediaQueryListEvent) => void) => {
+              listeners.delete(query);
+            }
+          ),
+        };
+        return mql;
+      })
+    );
   });
 
   it('returns false by default when query does not match', () => {
@@ -65,12 +70,15 @@ describe('useMediaQuery', () => {
 
 describe('useIsMobile', () => {
   beforeEach(() => {
-    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
-      matches: query === `(max-width: ${BREAKPOINTS.md - 1}px)`,
-      media: query,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    })));
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === `(max-width: ${BREAKPOINTS.md - 1}px)`,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }))
+    );
   });
 
   it('uses the md breakpoint from BREAKPOINTS constant', () => {
