@@ -25,15 +25,15 @@ export function CelestialLoader({ size = 'md', label = 'Loading…', className }
             s.sun
           )}
         />
-        {/* Orbit ring */}
-        <div className="absolute inset-0 rounded-full border border-primary/30 celestial-orbit-spin-fast" />
-        {/* Planet dot */}
-        <div
-          className={cn(
-            "absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold",
-            s.planet
-          )}
-        />
+        {/* Orbit ring with planet — planet must be a child so it orbits with the spin */}
+        <div className="absolute inset-0 rounded-full border border-primary/30 celestial-orbit-spin-fast">
+          <div
+            className={cn(
+              "absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold",
+              s.planet
+            )}
+          />
+        </div>
       </div>
       <span className="sr-only">{label}</span>
     </div>

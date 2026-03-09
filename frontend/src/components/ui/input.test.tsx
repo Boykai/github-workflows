@@ -28,10 +28,10 @@ describe('Input', () => {
     expect(input.className).toContain('disabled:opacity-50');
   });
 
-  it('includes focus-visible ring classes', () => {
+  it('includes celestial-focus class for accessible focus ring', () => {
     render(<Input placeholder="Focus test" />);
     const input = screen.getByPlaceholderText('Focus test');
-    expect(input.className).toContain('focus-visible:ring-2');
+    expect(input.className).toContain('celestial-focus');
   });
 
   it('forwards ref correctly', () => {
