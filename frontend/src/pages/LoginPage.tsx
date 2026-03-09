@@ -4,7 +4,7 @@
  */
 
 import { LoginButton } from '@/components/auth/LoginButton';
-import { MoonStar, SunMedium } from 'lucide-react';
+import { MoonStar } from 'lucide-react';
 
 export function LoginPage() {
   return (
@@ -88,9 +88,6 @@ export function LoginPage() {
           </div>
 
           <div className="celestial-panel celestial-fade-in golden-ring absolute bottom-0 left-1/2 z-10 flex w-full max-w-md -translate-x-1/2 flex-col items-center gap-6 rounded-[2rem] border border-border/80 p-8 backdrop-blur-md">
-            <div className="absolute right-8 top-6 flex h-12 w-12 items-center justify-center rounded-full border border-primary/30 bg-background/80 text-primary">
-              <SunMedium className="h-5 w-5" />
-            </div>
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/25 bg-primary/12 text-2xl text-primary">
               <MoonStar className="h-8 w-8" />
             </div>
