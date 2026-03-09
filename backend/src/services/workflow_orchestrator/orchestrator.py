@@ -2156,7 +2156,47 @@ class WorkflowOrchestrator:
             # Step 2: Add to project with metadata
             await self.add_to_project_with_backlog(ctx, recommendation)
 
-            # Step 2.5: Enqueue in blocking queue and check activation
+            # Step 2.5: Create all sub-issues upfront immediately after the parent issue
+            # is added to the project — before the blocking queue check so that sub-issues
+            # exist even when the parent issue is queued behind a blocking issue.
+            config = ctx.config or await get_workflow_config(ctx.project_id)
+            status_name = config.status_backlog if config else "Backlog"
+
+            # Pre-register the recovery cooldown BEFORE calling create_all_sub_issues.
+            # This prevents the polling/recovery loop from racing during sub-issue
+            # creation. NOTE: We only set _recovery_last_attempt (NOT
+            # _pending_agent_assignments) because the latter would cause the dedup
+            # guard inside assign_agent_for_status to skip the actual assignment.
+            if ctx.issue_number:
+                _, recovery_3, _ = _polling_state_objects()
+                recovery_3[ctx.issue_number] = utcnow()
+                logger.debug(
+                    "Set recovery cooldown for issue #%d before sub-issue creation",
+                    ctx.issue_number,
+                )
+
+            agent_sub_issues = await self.create_all_sub_issues(ctx)
+            if agent_sub_issues and ctx.issue_number is not None:
+                # Populate agents for the initial status so the polling loop
+                # doesn't see an empty list and immediately consider the
+                # pipeline "complete" (is_complete = 0 >= len([]) = True).
+                initial_agents = get_agent_slugs(config, status_name) if config else []
+                pipeline_state = PipelineState(
+                    issue_number=ctx.issue_number,
+                    project_id=ctx.project_id,
+                    status=status_name,
+                    agents=initial_agents,
+                    agent_sub_issues=agent_sub_issues,
+                    started_at=utcnow(),
+                )
+                set_pipeline_state(ctx.issue_number, pipeline_state)
+                logger.info(
+                    "Pre-created %d sub-issues for issue #%d",
+                    len(agent_sub_issues),
+                    ctx.issue_number,
+                )
+
+            # Step 2.6: Enqueue in blocking queue and check activation
             issue_activated = True  # Default: activate immediately
             if ctx.issue_number:
                 try:
@@ -2188,9 +2228,6 @@ class WorkflowOrchestrator:
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)
-            config = ctx.config or await get_workflow_config(ctx.project_id)
-            status_name = config.status_backlog if config else "Backlog"
-
             if config and not get_agent_slugs(config, status_name):
                 # Pass-through: advance to next status with agents
                 next_status = find_next_actionable_status(config, status_name)
@@ -2209,41 +2246,6 @@ class WorkflowOrchestrator:
                             status_name=next_status,
                         )
                     status_name = next_status
-
-            # Pre-register the recovery cooldown BEFORE calling assign_agent_for_status.
-            # This prevents the polling/recovery loop from racing during sub-issue
-            # creation. NOTE: We only set _recovery_last_attempt (NOT
-            # _pending_agent_assignments) because the latter would cause the dedup
-            # guard inside assign_agent_for_status to skip the actual assignment.
-            if ctx.issue_number:
-                _, recovery_3, _ = _polling_state_objects()
-                recovery_3[ctx.issue_number] = utcnow()
-                logger.debug(
-                    "Set recovery cooldown for issue #%d before sub-issue creation",
-                    ctx.issue_number,
-                )
-
-            # Create all sub-issues upfront so the user can see the full pipeline
-            agent_sub_issues = await self.create_all_sub_issues(ctx)
-            if agent_sub_issues and ctx.issue_number is not None:
-                # Populate agents for the initial status so the polling loop
-                # doesn't see an empty list and immediately consider the
-                # pipeline "complete" (is_complete = 0 >= len([]) = True).
-                initial_agents = get_agent_slugs(config, status_name) if config else []
-                pipeline_state = PipelineState(
-                    issue_number=ctx.issue_number,
-                    project_id=ctx.project_id,
-                    status=status_name,
-                    agents=initial_agents,
-                    agent_sub_issues=agent_sub_issues,
-                    started_at=utcnow(),
-                )
-                set_pipeline_state(ctx.issue_number, pipeline_state)
-                logger.info(
-                    "Pre-created %d sub-issues for issue #%d",
-                    len(agent_sub_issues),
-                    ctx.issue_number,
-                )
 
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 

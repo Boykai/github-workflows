@@ -544,6 +544,27 @@ class ChoresService:
 
                 orchestrator = get_workflow_orchestrator()
 
+                # Create all sub-issues upfront immediately — before the blocking
+                # queue check so they exist even when the issue is queued behind a
+                # blocking issue.
+                agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
+                if agent_sub_issues:
+                    backlog_agents = get_agent_slugs(config, backlog_status)
+                    pipeline_state = PipelineState(
+                        issue_number=issue_number,
+                        project_id=project_id,
+                        status=backlog_status,
+                        agents=backlog_agents,
+                        agent_sub_issues=agent_sub_issues,
+                        started_at=utcnow(),
+                    )
+                    set_pipeline_state(issue_number, pipeline_state)
+                    logger.info(
+                        "Pre-created %d sub-issues for chore issue #%d",
+                        len(agent_sub_issues),
+                        issue_number,
+                    )
+
                 # Enqueue in blocking queue and check activation
                 issue_activated = True
                 try:
@@ -572,25 +593,6 @@ class ChoresService:
                     raise
                 except Exception:
                     logger.debug("Blocking queue enqueue skipped in chore trigger")
-
-                # Create all sub-issues upfront
-                agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
-                if agent_sub_issues:
-                    backlog_agents = get_agent_slugs(config, backlog_status)
-                    pipeline_state = PipelineState(
-                        issue_number=issue_number,
-                        project_id=project_id,
-                        status=backlog_status,
-                        agents=backlog_agents,
-                        agent_sub_issues=agent_sub_issues,
-                        started_at=utcnow(),
-                    )
-                    set_pipeline_state(issue_number, pipeline_state)
-                    logger.info(
-                        "Pre-created %d sub-issues for chore issue #%d",
-                        len(agent_sub_issues),
-                        issue_number,
-                    )
 
                 # Assign first Backlog agent
                 await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
