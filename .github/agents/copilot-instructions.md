@@ -145,3 +145,10 @@ npx playwright test             # E2E
 - **Pre-push hook** (`scripts/setup-hooks.sh`): full backend + frontend test gates.
 - **CI** (`.github/workflows/ci.yml`): backend uses Python 3.12; frontend uses Node 20. Three jobs: `backend`, `frontend`, `docs` (markdownlint + link-check).
 - A known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs — confirm isolated behavior before changing unrelated code.
+
+## Active Technologies
+- TypeScript ~5.9 (frontend-only changes) + React 19.2, Tailwind CSS v4, @radix-ui/react-tooltip, @radix-ui/react-slot, @dnd-kit/core, lucide-react 0.577, class-variance-authority 0.7 (031-frontend-responsive-audit)
+- N/A — no database or localStorage schema changes; sidebar collapse state persists via existing `useSidebarState` hook (031-frontend-responsive-audit)
+
+## Recent Changes
+- 031-frontend-responsive-audit: Added TypeScript ~5.9 (frontend-only changes) + React 19.2, Tailwind CSS v4, @radix-ui/react-tooltip, @radix-ui/react-slot, @dnd-kit/core, lucide-react 0.577, class-variance-authority 0.7
