@@ -67,6 +67,8 @@ import type {
   McpToolConfigListResponse,
   McpToolSyncResult,
   RepoMcpConfigResponse,
+  RepoMcpServerConfig,
+  RepoMcpServerUpdate,
   McpPresetListResponse,
   ToolChip,
   ToolDeleteResult,
@@ -1000,6 +1002,29 @@ export const modelsApi = {
 export const toolsApi = {
   getRepoConfig(projectId: string): Promise<RepoMcpConfigResponse> {
     return request<RepoMcpConfigResponse>(`/tools/${projectId}/repo-config`);
+  },
+
+  updateRepoServer(
+    projectId: string,
+    serverName: string,
+    data: RepoMcpServerUpdate,
+  ): Promise<RepoMcpServerConfig> {
+    return request<RepoMcpServerConfig>(
+      `/tools/${projectId}/repo-config/${encodeURIComponent(serverName)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      },
+    );
+  },
+
+  deleteRepoServer(projectId: string, serverName: string): Promise<RepoMcpServerConfig> {
+    return request<RepoMcpServerConfig>(
+      `/tools/${projectId}/repo-config/${encodeURIComponent(serverName)}`,
+      {
+        method: 'DELETE',
+      },
+    );
   },
 
   listPresets(): Promise<McpPresetListResponse> {

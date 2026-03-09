@@ -6,6 +6,7 @@
 import { useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Circle, CircleCheckBig, X } from 'lucide-react';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { useScrollLock } from '@/hooks/useScrollLock';
@@ -98,7 +99,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             )}
           </div>
           <button className="rounded-md p-2 transition-colors hover:bg-primary/10" onClick={onClose} aria-label="Close modal">
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -200,7 +201,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   className={`flex items-center gap-3 rounded-md border p-3 transition-colors no-underline ${si.state === 'closed' ? 'bg-background/40 border-border/50 text-muted-foreground' : 'bg-background/72 border-border hover:border-primary/50 hover:bg-background/82'}`}
                 >
                   <span className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}>
-                    {si.state === 'closed' ? '✓' : '○'}
+                    {si.state === 'closed' ? <CircleCheckBig className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
                   </span>
                   <span className="flex flex-col flex-1 min-w-0">
                     <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { CheckCircle2, CircleAlert, XCircle } from 'lucide-react';
 import type { CleanupExecuteResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -87,8 +88,9 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
         aria-modal="true"
         aria-label="Cleanup Summary"
       >
-        <h2 className="text-lg font-semibold mb-4">
-          {failedItems.length > 0 ? '⚠️ Cleanup Completed with Errors' : '✅ Cleanup Complete'}
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+          {failedItems.length > 0 ? <CircleAlert className="h-5 w-5 text-amber-500" /> : <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />}
+          {failedItems.length > 0 ? 'Cleanup Completed with Errors' : 'Cleanup Complete'}
         </h2>
 
         {/* Summary counts */}
@@ -114,7 +116,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <ul className="space-y-1 text-sm">
               {successfulBranches.map((item) => (
                 <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-800 dark:text-green-400" />
                   <span className="font-mono text-xs">{item.identifier}</span>
                 </li>
               ))}
@@ -128,7 +130,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <ul className="space-y-1 text-sm">
               {successfulPRs.map((item) => (
                 <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-800 dark:text-green-400" />
                   <span>#{item.identifier}</span>
                 </li>
               ))}
@@ -142,7 +144,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
             <ul className="space-y-1 text-sm">
               {successfulIssues.map((item) => (
                 <li key={item.identifier} className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30">
-                  <span className="text-green-800 dark:text-green-400">✓</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-800 dark:text-green-400" />
                   <span>#{item.identifier}</span>
                 </li>
               ))}
@@ -158,7 +160,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
               {failedItems.map((item) => (
                 <li key={`${item.item_type}-${item.identifier}`} className="px-2 py-1 rounded bg-destructive/10">
                   <div className="flex items-center gap-2">
-                    <span className="text-destructive">✗</span>
+                    <XCircle className="h-4 w-4 text-destructive" />
                     <span className="font-mono text-xs">
                       {item.item_type === 'pr' ? `#${item.identifier}` : item.identifier}
                     </span>

@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react';
+
 /**
  * AgentSaveBar component - floating bar with Save/Discard buttons.
  * Only visible when there are unsaved changes (isDirty).
@@ -18,7 +20,8 @@ export function AgentSaveBar({ onSave, onDiscard, isSaving, error }: AgentSaveBa
 
         {error && (
           <span className="text-xs text-destructive bg-destructive/10 px-2 py-1 rounded-md flex items-center gap-1">
-            ⚠ {error}
+            <TriangleAlert className="h-3.5 w-3.5" />
+            {error}
           </span>
         )}
 

@@ -85,6 +85,7 @@ interface UsePipelineConfigReturn {
   ) => void;
   updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
   cloneAgentInStage: (stageId: string, agentNodeId: string) => void;
+  reorderAgentsInStage: (stageId: string, newOrder: PipelineAgentNode[]) => void;
 }
 
 // ── Hook ──
@@ -536,6 +537,18 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     [],
   );
 
+  const reorderAgentsInStage = useCallback((stageId: string, newOrder: PipelineAgentNode[]) => {
+    setPipeline((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        stages: prev.stages.map((s) =>
+          s.id === stageId ? { ...s, agents: newOrder } : s,
+        ),
+      };
+    });
+  }, []);
+
   return {
     boardState,
     pipeline,
@@ -570,5 +583,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     updateAgentInStage,
     updateAgentTools,
     cloneAgentInStage,
+    reorderAgentsInStage,
   };
 }

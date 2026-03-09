@@ -3,16 +3,20 @@
  * Composes AgentsPanel (catalog), useAgentConfig (assignments), and board columns.
  */
 
+import { useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { useQuery } from '@tanstack/react-query';
+import { pipelinesApi } from '@/services/api';
 import { AgentsPanel } from '@/components/agents/AgentsPanel';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
 import { formatAgentName } from '@/utils/formatAgentName';
+import { countPendingAssignedSubIssues } from '@/utils/agentCardMeta';
 
 export function AgentsPage() {
   const { user } = useAuth();
@@ -26,6 +30,35 @@ export function AgentsPage() {
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
+  const { data: pipelineList } = useQuery({
+    queryKey: ['pipelines', 'list', projectId ?? ''],
+    queryFn: () => pipelinesApi.list(projectId!),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  const { data: pipelineAssignment } = useQuery({
+    queryKey: ['pipelines', 'assignment', projectId ?? ''],
+    queryFn: () => pipelinesApi.getAssignment(projectId!),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  // Map: lowercase column name → agent slug → model name from the assigned pipeline
+  const stageAgentModelMap = useMemo(() => {
+    const assignedPipeline = (pipelineList?.pipelines ?? []).find(
+      (p) => p.id === (pipelineAssignment?.pipeline_id ?? ''),
+    );
+    const map: Record<string, Record<string, string>> = {};
+    for (const stage of assignedPipeline?.stages ?? []) {
+      const key = stage.name.toLowerCase();
+      map[key] = {};
+      for (const node of stage.agents) {
+        if (node.model_name) map[key][node.agent_slug] = node.model_name;
+      }
+    }
+    return map;
+  }, [pipelineList, pipelineAssignment]);
 
   const columns = boardData?.columns ?? [];
   const repo = boardData?.columns.flatMap(c => c.items).find(i => i.repository)?.repository;
@@ -36,6 +69,16 @@ export function AgentsPage() {
     });
     return counts;
   }, {});
+  const pipelineConfigCounts = (pipelineList?.pipelines ?? []).reduce<Record<string, number>>((counts, pipeline) => {
+    const pipelineAgentSlugs = new Set(
+      pipeline.stages.flatMap((stage) => stage.agents.map((agent) => agent.agent_slug))
+    );
+    pipelineAgentSlugs.forEach((slug) => {
+      counts[slug] = (counts[slug] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
+  const pendingSubIssueCounts = countPendingAssignedSubIssues(boardData);
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-auto rounded-[1.5rem] border border-border/70 bg-background/42 p-4 backdrop-blur-sm sm:gap-6 sm:rounded-[1.75rem] sm:p-6">
@@ -83,6 +126,8 @@ export function AgentsPage() {
               owner={repo?.owner}
               repo={repo?.name}
               agentUsageCounts={agentUsageCounts}
+              pipelineConfigCounts={pipelineConfigCounts}
+              pendingSubIssueCounts={pendingSubIssueCounts}
             />
           </div>
 
@@ -120,11 +165,19 @@ export function AgentsPage() {
                         </div>
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {assigned.map((a) => (
-                              <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                                {formatAgentName(a.slug, a.display_name)}
-                              </span>
-                            ))}
+                            {assigned.map((a) => {
+                              const model = stageAgentModelMap[col.status.name.toLowerCase()]?.[a.slug];
+                              return (
+                                <span key={a.id} className="solar-chip inline-flex flex-col rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                                  <span>{formatAgentName(a.slug, a.display_name)}</span>
+                                  {model && (
+                                    <span className="mt-0.5 block normal-case tracking-normal font-normal text-[9px] text-primary/70 leading-tight truncate max-w-[9rem]">
+                                      {model}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground/60 mt-0.5">No agents assigned</p>

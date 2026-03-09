@@ -25,9 +25,14 @@ export function useAuth(): UseAuthReturn {
 
   // After OAuth callback redirect, the cookie is already set by the backend.
   // Clean the URL path if we landed on /auth/callback so the user sees a clean URL.
+  // We use replaceState to update the browser URL and then dispatch a popstate event
+  // so that React Router (createBrowserRouter) re-evaluates the current path — without
+  // this dispatch, the router keeps the /auth/callback URL in its internal state and
+  // matches the * wildcard, rendering NotFoundPage instead of the home page.
   useEffect(() => {
     if (window.location.pathname === '/auth/callback') {
       window.history.replaceState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
       // Refetch user to pick up the new session cookie
       queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
     }

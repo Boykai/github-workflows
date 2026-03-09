@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
-import { Layers, Lock } from 'lucide-react';
+import { Layers, Lock, PencilLine } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent, AIModel, PipelineModelOverride, PipelineValidationErrors } from '@/types';
@@ -32,6 +32,7 @@ interface PipelineBoardProps {
   onUpdateAgent: (stageId: string, agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   onCloneAgent?: (stageId: string, agentNodeId: string) => void;
+  onReorderAgents: (stageId: string, newOrder: PipelineAgentNode[]) => void;
   pipelineBlocking: boolean;
   onBlockingChange: (blocking: boolean) => void;
 }
@@ -58,6 +59,7 @@ export function PipelineBoard({
   onUpdateAgent,
   onUpdateStage,
   onCloneAgent,
+  onReorderAgents,
   pipelineBlocking,
   onBlockingChange,
 }: PipelineBoardProps) {
@@ -98,8 +100,9 @@ export function PipelineBoard({
       <div className="flex flex-col gap-4">
         {/* Edit mode banner */}
         {isEditMode && (
-          <div className="rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-            ✏️ Editing: {pipelineName || 'Untitled Pipeline'}
+          <div className="flex items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+            <PencilLine className="h-4 w-4" />
+            Editing: {pipelineName || 'Untitled Pipeline'}
           </div>
         )}
 
@@ -189,8 +192,9 @@ export function PipelineBoard({
     <div className="flex flex-col gap-4">
       {/* Edit mode banner */}
       {isEditMode && (
-        <div className="rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-          ✏️ Editing: {pipelineName || 'Untitled Pipeline'}
+        <div className="flex items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+          <PencilLine className="h-4 w-4" />
+          Editing: {pipelineName || 'Untitled Pipeline'}
         </div>
       )}
 
@@ -282,6 +286,7 @@ export function PipelineBoard({
               onRemoveAgent={(nodeId) => onRemoveAgent(stage.id, nodeId)}
               onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
               onCloneAgent={onCloneAgent ? (nodeId) => onCloneAgent(stage.id, nodeId) : undefined}
+              onReorderAgents={(newOrder) => onReorderAgents(stage.id, newOrder)}
             />
           ))}
         </div>

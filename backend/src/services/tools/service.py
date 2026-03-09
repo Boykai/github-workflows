@@ -24,6 +24,7 @@ from src.models.tools import (
     McpToolConfigUpdate,
     RepoMcpConfigResponse,
     RepoMcpServerConfig,
+    RepoMcpServerUpdate,
     ToolDeleteResult,
 )
 from src.utils import utcnow
@@ -134,6 +135,131 @@ class ToolsService:
             pass
         return ""
 
+    @staticmethod
+    def _extract_server_names(config_content: str) -> set[str]:
+        """Extract normalized MCP server keys from a config blob."""
+        try:
+            data = json.loads(config_content)
+        except json.JSONDecodeError:
+            return set()
+
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        if not isinstance(servers, dict):
+            return set()
+
+        return {str(name).strip() for name in servers if str(name).strip()}
+
+    @staticmethod
+    def _extract_single_server_config(
+        config_content: str,
+        *,
+        server_name: str,
+    ) -> dict[str, object]:
+        """Extract exactly one server config and normalize it to the requested server name."""
+        data = json.loads(config_content)
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        if not isinstance(servers, dict) or len(servers) != 1:
+            raise ValueError("Configuration must contain exactly one MCP server entry")
+
+        server_config = next(iter(servers.values()))
+        if not isinstance(server_config, dict):
+            raise ValueError("MCP server config must be an object")
+
+        return {server_name: dict(server_config)}
+
+    @staticmethod
+    def _parse_repo_mcp_content(raw: str, *, path: str) -> dict[str, object]:
+        """Parse a repository MCP config file and surface invalid JSON clearly."""
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid JSON in repository MCP config file at {path}: {exc}"
+            ) from exc
+
+        if not isinstance(parsed, dict):
+            raise ValueError(f"Repository MCP config file at {path} must contain a JSON object")
+
+        return parsed
+
+    async def _find_server_name_conflicts(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        config_content: str,
+        exclude_tool_id: str | None = None,
+    ) -> dict[str, list[str]]:
+        """Return conflicting MCP server keys already claimed by other tools."""
+        server_names = self._extract_server_names(config_content)
+        if not server_names:
+            return {}
+
+        sql = (
+            "SELECT id, name, config_content FROM mcp_configurations "
+            "WHERE project_id = ? AND github_user_id = ?"
+        )
+        params: list[str] = [project_id, github_user_id]
+        if exclude_tool_id:
+            sql += " AND id != ?"
+            params.append(exclude_tool_id)
+
+        cursor = await self.db.execute(sql, tuple(params))
+        rows = await cursor.fetchall()
+
+        conflicts: dict[str, list[str]] = {}
+        for row in rows:
+            overlapping = server_names & self._extract_server_names(row["config_content"])
+            for server_name in overlapping:
+                conflicts.setdefault(server_name, []).append(row["name"])
+
+        return conflicts
+
+    async def _ensure_no_server_name_conflicts(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        config_content: str,
+        exclude_tool_id: str | None = None,
+    ) -> None:
+        """Reject configs whose MCP server keys overlap with other saved tools."""
+        conflicts = await self._find_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=config_content,
+            exclude_tool_id=exclude_tool_id,
+        )
+        if not conflicts:
+            return
+
+        details = ", ".join(
+            f"'{server_name}' already used by {', '.join(sorted(tool_names))}"
+            for server_name, tool_names in sorted(conflicts.items())
+        )
+        raise DuplicateToolServerNameError(
+            "MCP server names must be unique per project because repository sync stores them under "
+            f"`mcpServers` keys. Conflicts: {details}."
+        )
+
+    async def _get_protected_server_names(
+        self,
+        *,
+        project_id: str,
+        github_user_id: str,
+        exclude_tool_id: str,
+    ) -> set[str]:
+        """Server keys still referenced by other tools and therefore not safe to remove."""
+        cursor = await self.db.execute(
+            "SELECT config_content FROM mcp_configurations WHERE project_id = ? AND github_user_id = ? AND id != ?",
+            (project_id, github_user_id, exclude_tool_id),
+        )
+        rows = await cursor.fetchall()
+        protected_names: set[str] = set()
+        for row in rows:
+            protected_names.update(self._extract_server_names(row["config_content"]))
+        return protected_names
+
     # ── CRUD ──
 
     async def list_tools(self, project_id: str, github_user_id: str) -> McpToolConfigListResponse:
@@ -225,6 +351,12 @@ class ToolsService:
             raise DuplicateToolNameError(
                 f"An MCP tool named '{data.name}' already exists in this project"
             )
+
+        await self._ensure_no_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=data.config_content,
+        )
 
         # Check per-project limit
         cursor = await self.db.execute(
@@ -337,6 +469,19 @@ class ToolsService:
                 f"An MCP tool named '{next_name}' already exists in this project"
             )
 
+        await self._ensure_no_server_name_conflicts(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            config_content=next_config_content,
+            exclude_tool_id=tool_id,
+        )
+
+        protected_server_names = await self._get_protected_server_names(
+            project_id=project_id,
+            github_user_id=github_user_id,
+            exclude_tool_id=tool_id,
+        )
+
         old_sync_owner, old_sync_repo = owner, repo
         if existing_tool.github_repo_target and "/" in existing_tool.github_repo_target:
             target_owner, target_repo = existing_tool.github_repo_target.split("/", 1)
@@ -345,7 +490,11 @@ class ToolsService:
 
         try:
             await self._remove_from_github(
-                existing_tool, old_sync_owner, old_sync_repo, access_token
+                existing_tool,
+                old_sync_owner,
+                old_sync_repo,
+                access_token,
+                protected_server_names=protected_server_names,
             )
         except Exception:
             logger.exception("Failed to remove old GitHub config for tool %s", tool_id)
@@ -422,7 +571,18 @@ class ToolsService:
 
         # Remove from GitHub
         try:
-            await self._remove_from_github(tool, owner, repo, access_token)
+            protected_server_names = await self._get_protected_server_names(
+                project_id=project_id,
+                github_user_id=github_user_id,
+                exclude_tool_id=tool_id,
+            )
+            await self._remove_from_github(
+                tool,
+                owner,
+                repo,
+                access_token,
+                protected_server_names=protected_server_names,
+            )
         except Exception:
             logger.exception("Failed to remove tool %s from GitHub", tool_id)
 
@@ -497,6 +657,173 @@ class ToolsService:
             servers=ordered_servers,
         )
 
+    async def update_repo_mcp_server(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        access_token: str,
+        server_name: str,
+        data: RepoMcpServerUpdate,
+    ) -> RepoMcpServerConfig:
+        """Update a repository MCP server directly in supported repo config files."""
+        import httpx
+
+        is_valid, error_msg = self.validate_mcp_config(data.config_content)
+        if not is_valid:
+            raise ValueError(error_msg)
+
+        next_name = data.name.strip()
+        if not next_name:
+            raise ValueError("Name is required")
+
+        next_servers = self._extract_single_server_config(
+            data.config_content, server_name=next_name
+        )
+        next_config: dict[str, object] = dict(next(iter(next_servers.values())))  # type: ignore[arg-type]
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        updated_paths: list[str] = []
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            pending_updates: list[tuple[str, str | None, dict[str, object]]] = []
+
+            for path in MCP_CONFIG_PATHS:
+                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+                resp = await client.get(get_url, headers=headers)
+                if resp.status_code == 404:
+                    continue
+                if resp.status_code != 200:
+                    raise RuntimeError(
+                        f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
+                    )
+
+                file_data = resp.json()
+                existing_sha = file_data.get("sha")
+                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+                existing_content = self._parse_repo_mcp_content(raw, path=path)
+                mcp_servers = existing_content.get("mcpServers", {})
+                if not isinstance(mcp_servers, dict):
+                    mcp_servers = {}
+
+                if server_name not in mcp_servers:
+                    continue
+                if next_name != server_name and next_name in mcp_servers:
+                    raise ValueError(f"An MCP server named '{next_name}' already exists in {path}")
+
+                mcp_servers.pop(server_name, None)
+                mcp_servers.update(next_servers)
+                existing_content["mcpServers"] = mcp_servers
+
+                pending_updates.append(
+                    (
+                        get_url,
+                        existing_sha if isinstance(existing_sha, str) else None,
+                        existing_content,
+                    )
+                )
+
+            if not pending_updates:
+                raise LookupError(f"Repository MCP server '{server_name}' not found")
+
+            for get_url, existing_sha, existing_content in pending_updates:
+                new_content = json.dumps(existing_content, indent=2) + "\n"
+                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+                put_body: dict[str, object] = {
+                    "message": f"chore: update MCP server '{server_name}'",
+                    "content": encoded,
+                }
+                if existing_sha:
+                    put_body["sha"] = existing_sha
+
+                put_resp = await client.put(get_url, headers=headers, json=put_body)
+                if put_resp.status_code not in (200, 201):
+                    raise RuntimeError(
+                        f"GitHub API write error for {get_url.rsplit('/contents/', 1)[-1]}: {put_resp.status_code} {put_resp.text[:200]}"
+                    )
+                updated_paths.append(get_url.rsplit("/contents/", 1)[-1])
+
+        return RepoMcpServerConfig(
+            name=next_name,
+            config=next_config,
+            source_paths=updated_paths,
+        )
+
+    async def delete_repo_mcp_server(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        access_token: str,
+        server_name: str,
+    ) -> RepoMcpServerConfig:
+        """Delete a repository MCP server directly from supported repo config files."""
+        import httpx
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        removed_config: dict[str, object] | None = None
+        removed_paths: list[str] = []
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for path in MCP_CONFIG_PATHS:
+                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+                resp = await client.get(get_url, headers=headers)
+                if resp.status_code == 404:
+                    continue
+                if resp.status_code != 200:
+                    raise RuntimeError(
+                        f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
+                    )
+
+                file_data = resp.json()
+                existing_sha = file_data.get("sha")
+                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+                existing_content = self._parse_repo_mcp_content(raw, path=path)
+                mcp_servers = existing_content.get("mcpServers", {})
+                if not isinstance(mcp_servers, dict) or server_name not in mcp_servers:
+                    continue
+
+                removed_config = (
+                    dict(mcp_servers[server_name])
+                    if isinstance(mcp_servers[server_name], dict)
+                    else {}
+                )
+                mcp_servers.pop(server_name, None)
+                existing_content["mcpServers"] = mcp_servers
+
+                new_content = json.dumps(existing_content, indent=2) + "\n"
+                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+                put_body: dict[str, object] = {
+                    "message": f"chore: remove MCP server '{server_name}'",
+                    "content": encoded,
+                }
+                if existing_sha:
+                    put_body["sha"] = existing_sha
+
+                put_resp = await client.put(get_url, headers=headers, json=put_body)
+                if put_resp.status_code not in (200, 201):
+                    raise RuntimeError(
+                        f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
+                    )
+                removed_paths.append(path)
+
+        if removed_config is None:
+            raise LookupError(f"Repository MCP server '{server_name}' not found")
+
+        return RepoMcpServerConfig(
+            name=server_name,
+            config=removed_config,
+            source_paths=removed_paths,
+        )
+
     async def sync_tool_to_github(
         self,
         tool_id: str,
@@ -523,6 +850,21 @@ class ToolsService:
         await self.db.commit()
 
         try:
+            conflicts = await self._find_server_name_conflicts(
+                project_id=project_id,
+                github_user_id=github_user_id,
+                config_content=tool.config_content,
+                exclude_tool_id=tool_id,
+            )
+            if conflicts:
+                details = ", ".join(
+                    f"'{server_name}' also exists in {', '.join(sorted(tool_names))}"
+                    for server_name, tool_names in sorted(conflicts.items())
+                )
+                raise RuntimeError(
+                    f"MCP server-name collision detected during sync. Conflicts: {details}"
+                )
+
             headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Accept": "application/vnd.github+json",
@@ -612,6 +954,8 @@ class ToolsService:
         owner: str,
         repo: str,
         access_token: str,
+        *,
+        protected_server_names: set[str] | None = None,
     ) -> None:
         """Remove an MCP server entry from all supported GitHub MCP config files."""
         import httpx
@@ -640,10 +984,17 @@ class ToolsService:
                 except (json.JSONDecodeError, AttributeError):
                     tool_server_names = []
 
+                protected_names = protected_server_names or set()
+                removable_names = [
+                    name for name in tool_server_names if name not in protected_names
+                ]
+                if not removable_names:
+                    continue
+
                 mcp_servers = existing_content.get("mcpServers", {})
                 if not isinstance(mcp_servers, dict):
                     mcp_servers = {}
-                for name in tool_server_names:
+                for name in removable_names:
                     mcp_servers.pop(name, None)
                 existing_content["mcpServers"] = mcp_servers
 
@@ -751,3 +1102,7 @@ class ToolsService:
 
 class DuplicateToolNameError(Exception):
     """Raised when a tool with the same name already exists."""
+
+
+class DuplicateToolServerNameError(Exception):
+    """Raised when a tool config reuses an existing mcpServers key in the project."""

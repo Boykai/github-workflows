@@ -1,3 +1,5 @@
+import { ScrollText, X } from 'lucide-react';
+
 /**
  * AddChoreModal — modal dialog for creating a new chore.
  *
@@ -199,7 +201,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               onClick={handleCancel}
               aria-label="Close"
             >
-              ✕
+              <X className="h-4 w-4" />
             </button>
           </div>
           <div className="p-4">
@@ -236,7 +238,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
             onClick={handleCancel}
             aria-label="Close"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -256,7 +258,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
                     className="rounded-md border border-input bg-background/56 px-2.5 py-1.5 text-left text-xs font-medium transition-colors hover:border-primary/40 hover:bg-primary/10"
                     title={tpl.about || tpl.name}
                   >
-                    📋 {tpl.name}
+                    <span className="inline-flex items-center gap-2"><ScrollText className="h-3.5 w-3.5 text-primary/70" />{tpl.name}</span>
                   </button>
                 ))}
               </div>

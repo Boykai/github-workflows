@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { Bot, X } from 'lucide-react';
 import { useAgentChat } from '@/hooks/useAgents';
 
 interface AgentChatFlowProps {
@@ -103,12 +104,16 @@ export function AgentChatFlow({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">🤖 Agent Refinement</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Bot className="h-4 w-4 text-primary" />
+          Agent Refinement
+        </h3>
         <button
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           onClick={onCancel}
         >
-          ✕ Cancel
+          <X className="h-3.5 w-3.5" />
+          Cancel
         </button>
       </div>
 

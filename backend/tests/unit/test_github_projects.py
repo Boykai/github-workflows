@@ -2048,6 +2048,36 @@ class TestAssignCopilotToIssue:
             assert result is False
             mock_graphql.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_assign_copilot_builtin_agent_uses_default_assignment(self, service):
+        """Should not send the built-in `copilot` slug as a custom agent."""
+        with patch.object(
+            service, "_assign_copilot_graphql", new_callable=AsyncMock
+        ) as mock_graphql:
+            mock_graphql.return_value = True
+
+            result = await service.assign_copilot_to_issue(
+                access_token="test-token",
+                owner="test-owner",
+                repo="test-repo",
+                issue_node_id="I_123",
+                issue_number=42,
+                custom_agent="copilot",
+                custom_instructions="Test instructions",
+            )
+
+            assert result is True
+            mock_graphql.assert_called_once_with(
+                "test-token",
+                "test-owner",
+                "test-repo",
+                "I_123",
+                "main",
+                "",
+                "Test instructions",
+                model="claude-opus-4.6",
+            )
+
 
 class TestAssignCopilotGraphQL:
     """Tests for GraphQL-based Copilot assignment."""

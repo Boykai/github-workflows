@@ -6,6 +6,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { MoonStar } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const REDIRECT_KEY = 'solune-redirect-after-login';
@@ -32,7 +33,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="starfield flex h-screen flex-col items-center justify-center gap-4 bg-background">
         <div className="flex h-14 w-14 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary shadow-md">
-          ☾
+          <MoonStar className="h-6 w-6" />
         </div>
         <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
         <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Aligning the workspace...</p>

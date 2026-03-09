@@ -2,8 +2,13 @@ import base64
 import json
 from unittest.mock import AsyncMock, patch
 
-from src.models.tools import McpToolConfigSyncResult, McpToolConfigUpdate
-from src.services.tools.service import ToolsService
+from src.models.tools import (
+    McpToolConfigCreate,
+    McpToolConfigSyncResult,
+    McpToolConfigUpdate,
+    RepoMcpServerUpdate,
+)
+from src.services.tools.service import DuplicateToolServerNameError, ToolsService
 
 PROJECT_ID = "project-123"
 USER_ID = "user-123"
@@ -181,6 +186,65 @@ class TestToolsServiceUpdate:
         assert result.name == "Shared MCP"
         assert result.description == "Renamed description only"
 
+    async def test_update_tool_rejects_conflicting_server_name(self, mock_db):
+        await _insert_tool(mock_db, tool_id="tool-a", name="Docs MCP")
+        await _insert_tool(
+            mock_db,
+            tool_id="tool-b",
+            name="GitHub MCP",
+            config_content='{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
+        )
+        service = ToolsService(mock_db)
+
+        try:
+            await service.update_tool(
+                project_id=PROJECT_ID,
+                tool_id="tool-a",
+                github_user_id=USER_ID,
+                data=McpToolConfigUpdate(
+                    config_content='{"mcpServers":{"github":{"type":"http","url":"https://example.com/other"}}}',
+                ),
+                owner="octo",
+                repo="repo",
+                access_token="token",
+            )
+        except DuplicateToolServerNameError as exc:
+            assert "github" in str(exc)
+            assert "GitHub MCP" in str(exc)
+        else:
+            raise AssertionError("Expected DuplicateToolServerNameError")
+
+
+class TestToolsServiceCreate:
+    async def test_create_tool_rejects_conflicting_server_name(self, mock_db):
+        await _insert_tool(
+            mock_db,
+            tool_id="tool-existing",
+            name="GitHub MCP",
+            config_content='{"mcpServers":{"github-readonly":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
+        )
+        service = ToolsService(mock_db)
+
+        try:
+            await service.create_tool(
+                project_id=PROJECT_ID,
+                github_user_id=USER_ID,
+                data=McpToolConfigCreate(
+                    name="Another GitHub MCP",
+                    description="",
+                    config_content='{"mcpServers":{"github-readonly":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
+                    github_repo_target="",
+                ),
+                owner="octo",
+                repo="repo",
+                access_token="token",
+            )
+        except DuplicateToolServerNameError as exc:
+            assert "github-readonly" in str(exc)
+            assert "GitHub MCP" in str(exc)
+        else:
+            raise AssertionError("Expected DuplicateToolServerNameError")
+
 
 class TestToolsServiceMcpSync:
     async def test_validate_mcp_config_accepts_local_and_sse_servers(self, mock_db):
@@ -354,3 +418,354 @@ class TestToolsServiceMcpSync:
         assert [server.name for server in result.servers] == ["azure", "github"]
         github_server = next(server for server in result.servers if server.name == "github")
         assert github_server.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
+
+    async def test_sync_tool_to_github_errors_when_server_name_conflicts(self, mock_db):
+        await _insert_tool(
+            mock_db,
+            tool_id="tool-a",
+            name="GitHub MCP",
+            config_content='{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
+        )
+        await _insert_tool(
+            mock_db,
+            tool_id="tool-b",
+            name="GitHub MCP Full",
+            config_content='{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/"}}}',
+        )
+        service = ToolsService(mock_db)
+
+        result = await service.sync_tool_to_github(
+            "tool-a",
+            PROJECT_ID,
+            USER_ID,
+            "octo",
+            "repo",
+            "token",
+        )
+
+        assert result.sync_status == "error"
+        assert "collision" in result.sync_error.lower()
+
+    async def test_remove_from_github_preserves_server_names_still_used_elsewhere(self, mock_db):
+        await _insert_tool(
+            mock_db,
+            tool_id="tool-a",
+            name="GitHub MCP",
+            config_content='{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
+        )
+        service = ToolsService(mock_db)
+        tool = await service.get_tool(PROJECT_ID, "tool-a", USER_ID)
+        assert tool is not None
+
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "github": {
+                                        "type": "http",
+                                        "url": "https://api.githubcopilot.com/mcp/readonly",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "github": {
+                                        "type": "http",
+                                        "url": "https://api.githubcopilot.com/mcp/readonly",
+                                    }
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            await service._remove_from_github(
+                tool,
+                "octo",
+                "repo",
+                "token",
+                protected_server_names={"github"},
+            )
+
+        assert fake_client.put_calls == []
+
+    async def test_update_repo_mcp_server_updates_existing_server_in_each_present_path(
+        self, mock_db
+    ):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "other": {
+                                        "type": "stdio",
+                                        "command": "npx",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            result = await service.update_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+                data=RepoMcpServerUpdate(
+                    name="modern",
+                    config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                ),
+            )
+
+        assert result.name == "modern"
+        assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
+        put_by_url = dict(fake_client.put_calls)
+        copilot_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+        )
+        vscode_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+        )
+        assert set(copilot_content["mcpServers"].keys()) == {"modern"}
+        assert set(vscode_content["mcpServers"].keys()) == {"modern", "other"}
+
+    async def test_delete_repo_mcp_server_removes_server_from_present_paths(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "other": {
+                                        "type": "http",
+                                        "url": "https://other.example/mcp",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            result = await service.delete_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+            )
+
+        assert result.name == "legacy"
+        assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
+        put_by_url = dict(fake_client.put_calls)
+        copilot_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+        )
+        vscode_content = json.loads(
+            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+        )
+        assert copilot_content["mcpServers"] == {}
+        assert set(vscode_content["mcpServers"].keys()) == {"other"}
+
+    async def test_update_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        {
+                            "sha": "sha-copilot",
+                            "content": base64.b64encode(b"{not valid json").decode("utf-8"),
+                        },
+                    )
+                ]
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.update_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                    data=RepoMcpServerUpdate(
+                        name="modern",
+                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                    ),
+                )
+            except ValueError as exc:
+                assert ".copilot/mcp.json" in str(exc)
+                assert "Invalid JSON" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for invalid repository MCP JSON")
+
+    async def test_update_repo_mcp_server_preflights_all_paths_before_writing(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    }
+                                }
+                            },
+                            sha="sha-copilot",
+                        ),
+                    )
+                ],
+                f"{base_url}/.vscode/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        _github_file_response(
+                            {
+                                "mcpServers": {
+                                    "legacy": {
+                                        "type": "http",
+                                        "url": "https://legacy.example/mcp",
+                                    },
+                                    "modern": {
+                                        "type": "http",
+                                        "url": "https://existing.example/mcp",
+                                    },
+                                }
+                            },
+                            sha="sha-vscode",
+                        ),
+                    )
+                ],
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.update_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                    data=RepoMcpServerUpdate(
+                        name="modern",
+                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                    ),
+                )
+            except ValueError as exc:
+                assert ".vscode/mcp.json" in str(exc)
+                assert "already exists" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for rename collision")
+
+        assert fake_client.put_calls == []
+
+    async def test_delete_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
+        service = ToolsService(mock_db)
+        base_url = "https://api.github.com/repos/octo/repo/contents"
+        fake_client = _FakeAsyncClient(
+            get_responses={
+                f"{base_url}/.copilot/mcp.json": [
+                    _FakeResponse(
+                        200,
+                        {
+                            "sha": "sha-copilot",
+                            "content": base64.b64encode(b"{not valid json").decode("utf-8"),
+                        },
+                    )
+                ]
+            }
+        )
+
+        with patch("httpx.AsyncClient", return_value=fake_client):
+            try:
+                await service.delete_repo_mcp_server(
+                    owner="octo",
+                    repo="repo",
+                    access_token="token",
+                    server_name="legacy",
+                )
+            except ValueError as exc:
+                assert ".copilot/mcp.json" in str(exc)
+                assert "Invalid JSON" in str(exc)
+            else:
+                raise AssertionError("Expected ValueError for invalid repository MCP JSON")

@@ -254,6 +254,121 @@ describe('AgentsPanel', () => {
     expect(screen.getByRole('button', { name: 'Add Tools' })).toBeInTheDocument();
   });
 
+  it('renders pretty names for spec kit agents in the catalog', () => {
+    mockUseAgentsList.mockReturnValue({
+      data: [
+        createAgent({
+          id: 'repo:speckit-clarify',
+          name: 'Speckit.Clarify',
+          slug: 'speckit.clarify',
+          source: 'repo',
+          status: 'active',
+        }),
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    expect(screen.getByText('Clarify (Spec Kit)')).toBeInTheDocument();
+    expect(screen.queryByText('Speckit.Clarify')).not.toBeInTheDocument();
+  });
+
+  it('shows recently added for new agents and pending sub-issue counts from cached board data', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-08T12:00:00Z'));
+
+    mockUseAgentsList.mockReturnValue({
+      data: [
+        createAgent({
+          id: 'repo:alpha',
+          slug: 'alpha',
+          name: 'Alpha',
+          source: 'repo',
+          status: 'active',
+          created_at: '2026-03-07T08:00:00Z',
+        }),
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <AgentsPanel
+        projectId="PVT_1"
+        pendingSubIssueCounts={{ alpha: 3 }}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(screen.getAllByText('Recently added').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Assigned sub-issues').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3 open').length).toBeGreaterThan(0);
+
+    vi.useRealTimers();
+  });
+
+  it('shows config pill counts from saved pipeline usage', () => {
+    mockUseAgentsList.mockReturnValue({
+      data: [
+        createAgent({
+          id: 'repo:alpha',
+          slug: 'alpha',
+          name: 'Alpha',
+          source: 'repo',
+          status: 'active',
+        }),
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(
+      <AgentsPanel
+        projectId="PVT_1"
+        agentUsageCounts={{ alpha: 9 }}
+        pipelineConfigCounts={{ alpha: 2 }}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(screen.getAllByText('2 configs').length).toBeGreaterThan(0);
+    expect(screen.queryByText('9 configs')).not.toBeInTheDocument();
+  });
+
+  it('shows the creation timestamp after the recent window expires', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-08T12:00:00Z'));
+
+    const createdAt = '2026-03-04T08:00:00Z';
+    const expected = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(Date.parse(createdAt));
+
+    mockUseAgentsList.mockReturnValue({
+      data: [
+        createAgent({
+          id: 'repo:alpha',
+          slug: 'alpha',
+          name: 'Alpha',
+          source: 'repo',
+          status: 'active',
+          created_at: createdAt,
+        }),
+      ],
+      isLoading: false,
+      error: null,
+    });
+
+    render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
   it('saves inline edits and surfaces the PR link', async () => {
     const mutateAsync = vi.fn().mockResolvedValue({ pr_url: 'https://example.test/pr/99' });
     mockUseAgentsList.mockReturnValue({

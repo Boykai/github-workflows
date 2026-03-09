@@ -12,7 +12,7 @@ import { CleanUpSummary } from './CleanUpSummary';
 import { CleanUpAuditHistory } from './CleanUpAuditHistory';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Trash2, Loader2 } from 'lucide-react';
+import { Trash2, Loader2, Lock, TriangleAlert } from 'lucide-react';
 
 interface CleanUpButtonProps {
   owner?: string;
@@ -78,7 +78,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
       {/* Permission error inline display */}
       {permissionError && (
         <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 text-destructive border border-destructive/20 text-sm">
-          <span>🔒</span>
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="flex-1">
             <p>{permissionError}</p>
             {owner && repo && (
@@ -96,7 +96,7 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
       {/* Preflight error inline display */}
       {error && state === 'idle' && (
         <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 text-destructive border border-destructive/20 text-sm">
-          <span>⚠️</span>
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="flex-1">
             <p>{error}</p>
             {owner && repo && (

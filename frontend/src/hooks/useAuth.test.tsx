@@ -196,8 +196,9 @@ describe('useAuth', () => {
         writable: true,
       });
 
-      // Mock history.replaceState
+      // Mock history.replaceState and window.dispatchEvent
       const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+      const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
       mockAuthApi.getCurrentUser.mockResolvedValue(mockUser);
 
@@ -209,8 +210,11 @@ describe('useAuth', () => {
         expect(result.current.isAuthenticated).toBe(true);
       });
 
-      // Should clean up URL
+      // Should clean up URL and notify React Router via popstate
       expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/');
+      expect(dispatchEventSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'popstate' })
+      );
     });
 
     it('should not modify URL when not on /auth/callback', async () => {

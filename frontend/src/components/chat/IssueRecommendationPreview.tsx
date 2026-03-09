@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react';
+import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, XCircle } from 'lucide-react';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 
 interface IssueRecommendationPreviewProps {
@@ -63,7 +64,7 @@ export function IssueRecommendationPreview({
     return (
       <div className="mt-3 max-w-[600px] rounded-lg border border-green-200 bg-green-100/80 p-4 text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">✓</span>
+          <CheckCircle2 className="h-5 w-5" />
           <h4 className="m-0 font-semibold">Issue Created Successfully</h4>
         </div>
         <div className="text-sm">
@@ -91,7 +92,7 @@ export function IssueRecommendationPreview({
     return (
       <div className="mt-3 max-w-[600px] rounded-lg border border-primary/25 bg-primary/10 p-4 text-foreground">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl">⚠</span>
+          <CircleAlert className="h-5 w-5 text-amber-500" />
           <h4 className="m-0 font-semibold">Issue Created with Warnings</h4>
         </div>
         <div className="text-sm">
@@ -123,7 +124,7 @@ export function IssueRecommendationPreview({
     return (
       <div className="mt-3 max-w-[600px] rounded-lg border border-destructive bg-destructive/10 p-4 text-destructive opacity-70">
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-xl ">✗</span>
+          <XCircle className="h-5 w-5" />
           <h4 className="m-0 font-semibold">Recommendation Rejected</h4>
         </div>
         <p className="text-muted-foreground line-through m-0">{recommendation.proposed_title}</p>
@@ -134,7 +135,7 @@ export function IssueRecommendationPreview({
   return (
     <div className="mt-3 max-w-[600px] rounded-lg border border-border bg-background/58 p-4 shadow-sm">
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-border">
-        <h4 className="m-0 text-base font-semibold text-foreground">📝 Issue Recommendation</h4>
+        <h4 className="m-0 inline-flex items-center gap-2 text-base font-semibold text-foreground"><FilePenLine className="h-4 w-4 text-primary" />Issue Recommendation</h4>
         <span className="text-xs px-2 py-0.5 rounded-full bg-primary text-primary-foreground capitalize">{recommendation.status}</span>
       </div>
 
@@ -173,7 +174,7 @@ export function IssueRecommendationPreview({
 
       {recommendation.metadata && (
         <div className="mb-3 rounded-lg border border-border bg-background/72 p-3">
-          <h5 className="text-sm text-muted-foreground m-0 mb-1 font-semibold">📊 Metadata</h5>
+          <h5 className="m-0 mb-1 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground"><BarChart3 className="h-4 w-4 text-primary/80" />Metadata</h5>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-[11px] uppercase text-muted-foreground font-medium">Priority</span>
@@ -253,14 +254,14 @@ export function IssueRecommendationPreview({
           onClick={handleConfirm}
           disabled={isLoading || recommendation.status !== 'pending'}
         >
-          {isLoading ? 'Creating...' : '✓ Confirm & Create Issue'}
+          {isLoading ? 'Creating...' : 'Confirm & Create Issue'}
         </button>
         <button
           className="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium cursor-pointer transition-colors bg-transparent text-destructive border border-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleReject}
           disabled={isLoading || recommendation.status !== 'pending'}
         >
-          {isLoading ? 'Rejecting...' : '✗ Reject'}
+          {isLoading ? 'Rejecting...' : 'Reject'}
         </button>
       </div>
     </div>

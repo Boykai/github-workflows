@@ -4,6 +4,7 @@
  */
 
 import { memo, useState } from 'react';
+import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Lock } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
@@ -39,9 +40,9 @@ interface IssueCardProps {
 
 function SubIssueStateIcon({ state }: { state: string }) {
   if (state === 'closed') {
-    return <span className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-purple-500" title="Closed">✓</span>;
+    return <span title="Closed"><CircleCheckBig className="h-3.5 w-3.5 text-purple-500" /></span>;
   }
-  return <span className="flex items-center justify-center w-3.5 h-3.5 text-[10px] text-green-500" title="Open">○</span>;
+  return <span title="Open"><Circle className="h-3.5 w-3.5 text-green-500" /></span>;
 }
 
 function SubIssueRow({ subIssue, availableAgents }: { subIssue: SubIssue; availableAgents?: AvailableAgent[] }) {
@@ -88,20 +89,6 @@ function sanitizeHexColor(hex: string | null | undefined): string {
   }
 
   return normalized;
-}
-
-/**
- * Compute WCAG relative luminance from a hex color string.
- * Returns true if text should be black (light background), false if white (dark background).
- */
-function isLightColor(hex: string): boolean {
-  const safeHex = sanitizeHexColor(hex);
-  const r = parseInt(safeHex.slice(0, 2), 16) / 255;
-  const g = parseInt(safeHex.slice(2, 4), 16) / 255;
-  const b = parseInt(safeHex.slice(4, 6), 16) / 255;
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-  return L > 0.179;
 }
 
 export const IssueCard = memo(function IssueCard({ item, onClick, availableAgents, isBlocking = false }: IssueCardProps) {
@@ -160,10 +147,11 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
             return (
               <span
                 key={label.id}
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium truncate max-w-[120px]"
+                className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[120px]"
                 style={{
-                  backgroundColor: `#${safeColor}`,
-                  color: isLightColor(safeColor) ? '#000' : '#fff',
+                  backgroundColor: `#${safeColor}18`,
+                  color: `#${safeColor}`,
+                  boxShadow: `inset 0 0 0 1px #${safeColor}40`,
                 }}
                 title={label.name}
               >
@@ -173,7 +161,8 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
           })}
           {isBlocking && (
             <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-              🔒 Blocking
+              <Lock className="h-3 w-3" />
+              Blocking
             </span>
           )}
         </div>
@@ -190,7 +179,7 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
             }}
             type="button"
           >
-            <span className="text-[10px]">{isSubIssuesExpanded ? '▼' : '▶'}</span>
+            {isSubIssuesExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             <SubIssuesIcon />
             <span>
               {subIssues.length} sub-issue{subIssues.length !== 1 ? 's' : ''}

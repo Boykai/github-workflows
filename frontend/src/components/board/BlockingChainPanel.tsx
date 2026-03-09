@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { GitBranch, Lock, X } from 'lucide-react';
 import type { BlockingQueueEntry } from '@/types';
 
 interface BlockingChainPanelProps {
@@ -56,7 +57,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
         type="button"
         title="View blocking queue status"
       >
-        <span>🔒</span>
+        <Lock className="h-3.5 w-3.5" />
         Queue
         <span className="flex items-center justify-center rounded-full border border-border/70 bg-background/78 px-1.5 py-0 text-[10px] font-medium text-muted-foreground">
           {entries.length}
@@ -73,7 +74,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               type="button"
             >
-              ✕
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
 
@@ -88,7 +89,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
               {pendingCount} pending
             </span>
             <span className="inline-flex items-center gap-1" title="Current base branch for new issues">
-              🌿 {baseBranch}
+              <GitBranch className="h-3.5 w-3.5" /> {baseBranch}
             </span>
           </div>
 
@@ -111,7 +112,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
                   <span className={`w-2 h-2 rounded-full shrink-0 ${statusInfo.dot}`} title={statusInfo.label} />
                   <span className="font-medium">#{entry.issue_number}</span>
                   {entry.is_blocking && (
-                    <span className="text-amber-600 dark:text-amber-400 text-[10px]">🔒</span>
+                    <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
                   )}
                   <span className="text-muted-foreground ml-auto text-[10px]">
                     {statusInfo.label}

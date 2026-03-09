@@ -4,6 +4,7 @@
  */
 
 import { Outlet } from 'react-router-dom';
+import { TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useAppTheme } from '@/hooks/useAppTheme';
@@ -30,7 +31,7 @@ function SignalBannerBar() {
     <div className="w-full border-b border-accent bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground">
       {banners.map((b) => (
         <div key={b.id} className="flex items-center gap-2 px-4 py-2 text-sm">
-          <span className="text-lg">⚠️</span>
+          <TriangleAlert className="h-4 w-4 shrink-0" />
           <span className="flex-1">{b.message}</span>
           <button
             className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full border border-accent/50 text-xs font-medium text-accent-foreground hover:bg-accent/20 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 dark:border-accent/40 dark:text-accent-foreground dark:hover:bg-accent/30"
@@ -39,7 +40,7 @@ function SignalBannerBar() {
             type="button"
             aria-label="Dismiss Signal banner"
           >
-            ✕
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       ))}

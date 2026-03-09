@@ -28,6 +28,8 @@ describe('RepoConfigPanel', () => {
         isLoading={false}
         error={null}
         onRefresh={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
       />,
     );
 
@@ -35,6 +37,45 @@ describe('RepoConfigPanel', () => {
     expect(screen.getByText('github')).toBeInTheDocument();
     expect(screen.getByText('https://api.githubcopilot.com/mcp/readonly')).toBeInTheDocument();
     expect(screen.getAllByText('.copilot/mcp.json').length).toBeGreaterThan(0);
+  });
+
+  it('exposes edit and delete actions for existing repository MCPs', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <RepoConfigPanel
+        repoConfig={{
+          paths_checked: ['.copilot/mcp.json', '.vscode/mcp.json'],
+          available_paths: ['.copilot/mcp.json'],
+          primary_path: '.copilot/mcp.json',
+          servers: [
+            {
+              name: 'github',
+              config: {
+                type: 'http',
+                url: 'https://api.githubcopilot.com/mcp/readonly',
+              },
+              source_paths: ['.copilot/mcp.json'],
+            },
+          ],
+        }}
+        isLoading={false}
+        error={null}
+        onRefresh={vi.fn()}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        managedServerNames={['github']}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit repository MCP github' }));
+    await user.click(screen.getByRole('button', { name: 'Delete repository MCP github' }));
+
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ name: 'github' }));
+    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ name: 'github' }));
+    expect(screen.getByText('Managed')).toBeInTheDocument();
   });
 });
 

@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { GripVertical, TriangleAlert, X } from 'lucide-react';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -160,7 +161,7 @@ export function AgentTile({
             title="Remove agent"
             type="button"
           >
-            ✕
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -179,7 +180,7 @@ export function AgentTile({
         {/* Drag handle */}
         {sortableProps && (
           <span className="cursor-grab text-muted-foreground/50 hover:text-muted-foreground px-1" {...(sortableProps.listeners ?? {})}>
-            ⠿
+            <GripVertical className="h-4 w-4" />
           </span>
         )}
 
@@ -199,7 +200,7 @@ export function AgentTile({
         {/* Warning badge (T032) */}
         {isWarning && (
           <span className="rounded-md border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300" title="Agent not found in available agents">
-            ⚠
+            <TriangleAlert className="h-3.5 w-3.5" />
           </span>
         )}
 
@@ -232,7 +233,7 @@ export function AgentTile({
             title="Remove agent"
             type="button"
           >
-            ✕
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>

@@ -6,6 +6,23 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Lock, Plus, Trash2 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { AgentNode } from './AgentNode';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
@@ -26,6 +43,39 @@ interface StageCardProps {
   onRemoveAgent: (agentNodeId: string) => void;
   onUpdateAgent: (agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
   onCloneAgent?: (agentNodeId: string) => void;
+  onReorderAgents: (newOrder: PipelineAgentNode[]) => void;
+}
+
+/** Thin sortable wrapper so each AgentNode participates in the DnD context. */
+function SortableAgentNode({
+  agent,
+  onModelSelect,
+  onRemove,
+  onToolsClick,
+  onClone,
+}: {
+  agent: PipelineAgentNode;
+  onModelSelect: (modelId: string, modelName: string) => void;
+  onRemove: () => void;
+  onToolsClick?: () => void;
+  onClone?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
+
+  return (
+    <AgentNode
+      agentNode={agent}
+      onModelSelect={onModelSelect}
+      onRemove={onRemove}
+      onToolsClick={onToolsClick}
+      onClone={onClone}
+      setNodeRef={setNodeRef}
+      dragHandleListeners={listeners}
+      dragHandleAttributes={attributes}
+      dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
+      isDragging={isDragging}
+    />
+  );
 }
 
 export function StageCard({
@@ -41,6 +91,7 @@ export function StageCard({
   onRemoveAgent,
   onUpdateAgent,
   onCloneAgent,
+  onReorderAgents,
 }: StageCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
@@ -49,6 +100,20 @@ export function StageCard({
   const [toolModalAgent, setToolModalAgent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleAgentDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = stage.agents.findIndex((a) => a.id === active.id);
+    const newIndex = stage.agents.findIndex((a) => a.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    onReorderAgents(arrayMove(stage.agents, oldIndex, newIndex));
+  };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -105,7 +170,7 @@ export function StageCard({
 
   return (
     <div
-    className="pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
+    className="pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm"
     >
       {/* Header: lock icon + name + remove */}
       <div className="flex items-center gap-2">
@@ -150,20 +215,24 @@ export function StageCard({
       </div>
 
       {/* Agent nodes */}
-      <div className="flex flex-col gap-1.5">
-        {stage.agents.map((agent) => (
-          <AgentNode
-            key={agent.id}
-            agentNode={agent}
-            onModelSelect={(modelId, modelName) =>
-              onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
-            }
-            onRemove={() => onRemoveAgent(agent.id)}
-            onToolsClick={() => setToolModalAgent(agent.id)}
-            onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
-          />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleAgentDragEnd}>
+        <SortableContext items={stage.agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col gap-1.5">
+            {stage.agents.map((agent) => (
+              <SortableAgentNode
+                key={agent.id}
+                agent={agent}
+                onModelSelect={(modelId, modelName) =>
+                  onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
+                }
+                onRemove={() => onRemoveAgent(agent.id)}
+                onToolsClick={() => setToolModalAgent(agent.id)}
+                onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Tool Selector Modal */}
       {toolModalAgent && (

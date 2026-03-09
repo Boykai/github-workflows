@@ -3,11 +3,14 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy } from 'lucide-react';
+import { X, Wrench, Copy, GripVertical } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { PipelineAgentNode } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
+import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
+import type { DraggableAttributes } from '@dnd-kit/core';
+
 
 interface AgentNodeProps {
   agentNode: PipelineAgentNode;
@@ -15,14 +18,49 @@ interface AgentNodeProps {
   onRemove: () => void;
   onToolsClick?: () => void;
   onClone?: () => void;
+  // Drag-and-drop sortable props (optional — only provided when used inside a SortableContext)
+  dragHandleListeners?: SyntheticListenerMap;
+  dragHandleAttributes?: DraggableAttributes;
+  setNodeRef?: (node: HTMLElement | null) => void;
+  dragStyle?: { transform?: string; transition?: string };
+  isDragging?: boolean;
 }
 
-export function AgentNode({ agentNode, onModelSelect, onRemove, onToolsClick, onClone }: AgentNodeProps) {
+export function AgentNode({
+  agentNode,
+  onModelSelect,
+  onRemove,
+  onToolsClick,
+  onClone,
+  dragHandleListeners,
+  dragHandleAttributes,
+  setNodeRef,
+  dragStyle,
+  isDragging,
+}: AgentNodeProps) {
   const toolCount = agentNode.tool_count ?? agentNode.tool_ids?.length ?? 0;
   const displayName = formatAgentName(agentNode.agent_slug, agentNode.agent_display_name);
 
   return (
-    <div className="pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-colors hover:border-primary/30">
+    <div
+      ref={setNodeRef}
+      style={dragStyle}
+      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-colors hover:border-primary/30${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+    >
+      {/* Drag handle */}
+      {dragHandleListeners && (
+        <button
+          type="button"
+          {...dragHandleAttributes}
+          {...dragHandleListeners}
+          className="shrink-0 cursor-grab active:cursor-grabbing rounded p-0.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors touch-none"
+          aria-label="Drag to reorder"
+          tabIndex={-1}
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
 
       {/* Agent info */}
