@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { BoardDataResponse, BoardItem, BoardColumn } from '@/types';
+import { filterParentIssueColumns } from '@/utils/filterParentIssueColumns';
 
 // ─── State interfaces ─────────────────────────────────────────────────────────
 
@@ -142,26 +143,6 @@ function saveControls(projectId: string | null, state: BoardControlsState) {
 
 const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
 
-function getParentIssueColumns(boardData: BoardDataResponse): BoardColumn[] {
-  const subIssueNumbers = new Set<number>();
-
-  for (const column of boardData.columns) {
-    for (const item of column.items) {
-      for (const subIssue of item.sub_issues) {
-        subIssueNumbers.add(subIssue.number);
-      }
-    }
-  }
-
-  return boardData.columns.map((column) => ({
-    ...column,
-    items: column.items.filter(
-      (item) =>
-        item.content_type === 'issue' && (item.number == null || !subIssueNumbers.has(item.number))
-    ),
-  }));
-}
-
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useBoardControls(
@@ -208,7 +189,7 @@ export function useBoardControls(
   const availableLabels = useMemo(() => {
     if (!boardData) return [];
     const set = new Set<string>();
-    for (const col of getParentIssueColumns(boardData)) {
+    for (const col of filterParentIssueColumns(boardData)) {
       for (const item of col.items) {
         for (const label of item.labels ?? []) {
           set.add(label.name);
@@ -221,7 +202,7 @@ export function useBoardControls(
   const availableAssignees = useMemo(() => {
     if (!boardData) return [];
     const set = new Set<string>();
-    for (const col of getParentIssueColumns(boardData)) {
+    for (const col of filterParentIssueColumns(boardData)) {
       for (const item of col.items) {
         for (const a of item.assignees) {
           set.add(a.login);
@@ -234,7 +215,7 @@ export function useBoardControls(
   const availableMilestones = useMemo(() => {
     if (!boardData) return [];
     const set = new Set<string>();
-    for (const col of getParentIssueColumns(boardData)) {
+    for (const col of filterParentIssueColumns(boardData)) {
       for (const item of col.items) {
         if (item.milestone) set.add(item.milestone);
       }
@@ -248,7 +229,7 @@ export function useBoardControls(
     if (!boardData) return undefined;
 
     const { filters, sort } = controls;
-    const parentIssueColumns = getParentIssueColumns(boardData);
+    const parentIssueColumns = filterParentIssueColumns(boardData);
 
     const transformColumn = (col: BoardColumn): BoardColumn => {
       let items = col.items;
