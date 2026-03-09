@@ -44,7 +44,11 @@ export function TopBar({
 
         {/* User avatar & logout */}
         {user && (
-          <Link to="/profile" className="flex items-center gap-2 rounded-full border border-border/70 bg-background/50 px-2 py-1 hover:border-primary/50 transition-colors">
+          <Link
+            to="/profile"
+            aria-label={user.login ? `Profile for ${user.login}` : 'Profile'}
+            className="flex items-center gap-2 rounded-full border border-border/70 bg-background/50 px-2 py-1 hover:border-primary/50 transition-colors"
+          >
             {user.avatar_url && (
               <img
                 src={user.avatar_url}

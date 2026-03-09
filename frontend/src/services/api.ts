@@ -1077,14 +1077,22 @@ export const profileApi = {
     });
   },
 
-  uploadAvatar(file: File): Promise<UserProfile> {
+  async uploadAvatar(file: File): Promise<UserProfile> {
     const formData = new FormData();
     formData.append('file', file);
-    return request<UserProfile>('/users/profile/avatar', {
+
+    const url = `${API_BASE_URL}/users/profile/avatar`;
+    const response = await fetch(url, {
       method: 'POST',
       body: formData,
-      // Do NOT set Content-Type header — browser sets it with multipart boundary
-      headers: {},
+      credentials: 'include',
     });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new ApiError(response.status, errorData as APIError);
+    }
+
+    return response.json();
   },
 };

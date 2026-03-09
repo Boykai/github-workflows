@@ -40,21 +40,27 @@ export function ProfileHeader({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      e.target.value = '';
+      return;
+    }
 
     // Validate type
     if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
       onAvatarError('Please select a PNG, JPG, or WebP image');
+      e.target.value = '';
       return;
     }
 
     // Validate size
     if (file.size > MAX_AVATAR_SIZE) {
       onAvatarError('Image must be smaller than 5 MB');
+      e.target.value = '';
       return;
     }
 
     onAvatarSelect(file);
+    e.target.value = '';
   };
 
   const handleAvatarClick = () => {

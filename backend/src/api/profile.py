@@ -192,31 +192,39 @@ async def upload_avatar(
 @router.get("/avatar/{filename}", response_model=None)
 async def get_avatar(filename: str) -> Response:
     """Serve an uploaded avatar file."""
-    # Validate no path traversal
-    if "/" in filename or "\\" in filename or ".." in filename:
+    # Sanitize: extract base name only (strips any directory components)
+    safe_name = Path(filename).name
+    if not safe_name or safe_name != filename or ".." in safe_name:
         return JSONResponse(
             status_code=400,
             content={"error": "Invalid filename"},
         )
 
     avatar_dir = _get_avatar_dir()
-    file_path = avatar_dir / filename
+    file_path = avatar_dir / safe_name
 
-    # Defense-in-depth path check
-    if not file_path.resolve().is_relative_to(avatar_dir.resolve()):
+    # Defense-in-depth: verify resolved path stays inside avatar directory
+    resolved = file_path.resolve()
+    if not resolved.is_relative_to(avatar_dir.resolve()):
         return JSONResponse(
             status_code=400,
             content={"error": "Invalid filename"},
         )
 
-    if not file_path.exists():
+    # Validate extension against allowed types
+    ext = resolved.suffix.lower()
+    if ext not in ALLOWED_AVATAR_TYPES:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Invalid filename"},
+        )
+
+    if not resolved.exists():
         return JSONResponse(
             status_code=404,
             content={"error": "Avatar not found"},
         )
 
-    # Determine content type from extension
-    ext = file_path.suffix.lower()
     content_type = CONTENT_TYPE_MAP.get(ext, "application/octet-stream")
 
-    return FileResponse(file_path, media_type=content_type)
+    return FileResponse(str(resolved), media_type=content_type)
