@@ -10,7 +10,7 @@
 **Change summary**: Add `#help` exact-match alias in `parseCommand`, following the existing `help` keyword alias pattern.
 
 ```typescript
-// BEFORE (lines 67-69)
+// BEFORE (lines 64-67)
 // 'help' keyword alias (exact match, case-insensitive)
 if (trimmed.toLowerCase() === 'help') {
   return { isCommand: true, name: 'help', args: '', raw };
@@ -136,6 +136,21 @@ it('output mentions the #help alias for the help command', () => {
 ```
 
 **Traces to**: FR-005
+
+### useCommands.test.tsx
+
+**Location**: `frontend/src/hooks/useCommands.test.tsx`
+**Change summary**: Add a focused `isCommand()` test for the `#help` alias so the hook surface keeps coverage aligned with the parser behavior.
+
+```typescript
+it('identifies #help alias as command', () => {
+  const { result } = renderHook(() => useCommands(), { wrapper: createWrapper() });
+  expect(result.current.isCommand('#help')).toBe(true);
+  expect(result.current.isCommand('#HELP')).toBe(true);
+});
+```
+
+**Traces to**: FR-001
 
 ---
 

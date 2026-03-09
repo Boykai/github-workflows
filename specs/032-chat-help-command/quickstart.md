@@ -20,7 +20,7 @@ Adds `#help` as an alias for the existing `/help` chat command. When a user type
 
 **File**: `frontend/src/lib/commands/registry.ts`
 
-Add the following check after the existing `help` keyword alias (around line 70):
+Add the following check after the existing `help` keyword alias (around line 68):
 
 ```typescript
 // '#help' hash-command alias (exact match, case-insensitive)
@@ -59,6 +59,10 @@ Add test cases in the `parseCommand` describe block for `#help` detection, case-
 
 Add a test verifying the help output mentions `#help`.
 
+**File**: `frontend/src/hooks/useCommands.test.tsx`
+
+Add a focused `isCommand()` test verifying `#help` and `#HELP` are recognized by the hook surface.
+
 ### Verification
 
 ```bash
@@ -90,6 +94,7 @@ cd frontend && npm run build
 | `frontend/src/lib/commands/handlers/help.ts` | MODIFIED | Mention `#help` alias in help output |
 | `frontend/src/lib/commands/registry.test.ts` | MODIFIED | Add tests for `#help` alias parsing |
 | `frontend/src/lib/commands/handlers/help.test.ts` | MODIFIED | Add test for `#help` mention in output |
+| `frontend/src/hooks/useCommands.test.tsx` | MODIFIED | Add hook-level coverage for `#help` alias detection |
 
 ## Spec Traceability
 

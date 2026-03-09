@@ -39,6 +39,11 @@ describe('helpHandler', () => {
     expect(result.message).toContain('Available Commands');
   });
 
+  it('mentions #help as an alias for the help command', () => {
+    const result = helpHandler('', context);
+    expect(result.message).toContain('/help (or #help)');
+  });
+
   it('auto-updates when new commands are added', () => {
     // The help handler uses getAllCommands() dynamically, so any new command
     // registered will appear. We test this by checking the count.
