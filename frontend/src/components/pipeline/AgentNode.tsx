@@ -45,7 +45,7 @@ export function AgentNode({
     <div
       ref={setNodeRef}
       style={dragStyle}
-      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-colors hover:border-primary/30${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
     >
       {/* Drag handle */}
       {dragHandleListeners && (
