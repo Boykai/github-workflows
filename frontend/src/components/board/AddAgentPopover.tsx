@@ -9,7 +9,7 @@ import { TriangleAlert } from 'lucide-react';
  * regardless of parent overflow constraints.
  */
 
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useLayoutEffect, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AvailableAgent, AgentAssignment } from '@/types';
@@ -33,7 +33,7 @@ interface AddAgentPopoverProps {
   compact?: boolean;
 }
 
-export function AddAgentPopover({
+export const AddAgentPopover = memo(function AddAgentPopover({
   status,
   availableAgents,
   assignedAgents,
@@ -68,15 +68,23 @@ export function AddAgentPopover({
     setPosition({ top, left });
   }, []);
 
-  // Recalculate position when opened and on scroll/resize
+  // Recalculate position when opened and on scroll/resize (RAF-gated)
   useLayoutEffect(() => {
     if (!isOpen) return;
     updatePosition();
 
-    const onReposition = () => updatePosition();
+    let rafId: number | null = null;
+    const onReposition = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updatePosition();
+      });
+    };
     window.addEventListener('scroll', onReposition, { capture: true, passive: true });
     window.addEventListener('resize', onReposition);
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener('scroll', onReposition, { capture: true });
       window.removeEventListener('resize', onReposition);
     };
@@ -127,15 +135,19 @@ export function AddAgentPopover({
     [status, onAddAgent]
   );
 
-  const filteredAgents = availableAgents.filter((a) => {
-    if (!filter) return true;
-    const lower = filter.toLowerCase();
-    return (
-      a.slug.toLowerCase().includes(lower) ||
-      a.display_name.toLowerCase().includes(lower) ||
-      (a.description?.toLowerCase().includes(lower) ?? false)
-    );
-  });
+  const filteredAgents = useMemo(
+    () =>
+      availableAgents.filter((a) => {
+        if (!filter) return true;
+        const lower = filter.toLowerCase();
+        return (
+          a.slug.toLowerCase().includes(lower) ||
+          a.display_name.toLowerCase().includes(lower) ||
+          (a.description?.toLowerCase().includes(lower) ?? false)
+        );
+      }),
+    [availableAgents, filter]
+  );
 
   // Count how many times each slug is already assigned
   const assignedSlugs = new Set(assignedAgents.map((a) => a.slug));
@@ -270,4 +282,4 @@ export function AddAgentPopover({
       {dropdown}
     </div>
   );
-}
+});

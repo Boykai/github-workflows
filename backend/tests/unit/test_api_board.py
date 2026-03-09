@@ -3,9 +3,10 @@
 Covers:
 - GET /api/v1/board/projects              → list_board_projects
 - GET /api/v1/board/projects/{project_id} → get_board_data
+- Board cache behavior: TTL, sub-issue cache on manual refresh
 """
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from src.models.board import (
     BoardColumn,
@@ -13,6 +14,7 @@ from src.models.board import (
     BoardItem,
     BoardProject,
     ContentType,
+    Repository,
     StatusColor,
     StatusField,
     StatusOption,
@@ -213,3 +215,69 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 404
         body = resp.json()
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
+
+
+# ── Board cache: automatic refresh reuses cache, manual refresh bypasses ────
+
+
+class TestBoardCacheBehavior:
+    """Verify board data cache aligned with cache-contract.md:
+    - Automatic refresh serves from cache when TTL is valid
+    - Manual refresh (refresh=true) bypasses and clears sub-issue caches
+    """
+
+    async def test_automatic_refresh_reuses_cached_board_data(self, client, mock_github_service):
+        """An automatic refresh (no refresh=true) should serve from cache
+        without calling get_board_data again."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        # First call populates cache
+        resp1 = await client.get("/api/v1/board/projects/PVT_abc")
+        assert resp1.status_code == 200
+
+        # Second call should serve from cache
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            resp2 = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp2.status_code == 200
+            mock_cache.get.assert_called_once()
+
+    async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
+        """Manual refresh (refresh=true) should clear sub-issue caches for
+        board items that have repository and issue number info."""
+        # Create a board item with a repo and issue number
+        item = BoardItem(
+            item_id="PVTI_1",
+            content_type=ContentType.ISSUE,
+            title="Fix bug",
+            status="Todo",
+            status_option_id="opt1",
+            number=42,
+            repository=Repository(owner="testowner", name="testrepo"),
+        )
+        proj = _make_board_project()
+        bd = BoardDataResponse(
+            project=proj,
+            columns=[
+                BoardColumn(
+                    status=proj.status_field.options[0],
+                    items=[item],
+                    item_count=1,
+                ),
+            ],
+        )
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            # Simulate a cached board data response
+            mock_cache.get.return_value = bd
+            mock_cache.delete = MagicMock()
+
+            resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
+            assert resp.status_code == 200
+
+            # Verify sub-issue cache was cleared
+            mock_cache.delete.assert_called()
+            delete_calls = [str(c) for c in mock_cache.delete.call_args_list]
+            assert any("sub_issues" in c for c in delete_calls)

@@ -803,4 +803,81 @@ describe('useRealTimeSync', () => {
       });
     });
   });
+
+  // ---------- refresh channel isolation (refresh-contract.md Contract 1) ----------
+
+  describe('refresh channel isolation', () => {
+    it('should NOT invalidate board data query for any WebSocket message type', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+      const wrapper = function Wrapper({ children }: { children: ReactNode }) {
+        return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+      };
+
+      renderHook(() => useRealTimeSync('PVT_123'), { wrapper });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      const messageTypes = ['task_update', 'task_created', 'status_changed', 'refresh'];
+      for (const type of messageTypes) {
+        invalidateSpy.mockClear();
+
+        await act(async () => {
+          mockWebSocketInstances[0]?.simulateMessage({ type });
+        });
+
+        // Should only invalidate tasks query, never board data query
+        for (const call of invalidateSpy.mock.calls) {
+          const queryKey = call[0]?.queryKey as string[] | undefined;
+          if (queryKey) {
+            expect(queryKey).not.toEqual(
+              expect.arrayContaining(['board', 'data'])
+            );
+          }
+        }
+      }
+    });
+
+    it('polling fallback should only invalidate tasks query, not board data', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+      const wrapper = function Wrapper({ children }: { children: ReactNode }) {
+        return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+      };
+
+      renderHook(() => useRealTimeSync('PVT_123'), { wrapper });
+
+      // Force polling mode by simulating WebSocket error
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Advance past poll interval
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+      });
+
+      // Verify polling invalidation targets tasks query only
+      for (const call of invalidateSpy.mock.calls) {
+        const queryKey = call[0]?.queryKey as string[] | undefined;
+        if (queryKey) {
+          expect(queryKey).toContain('tasks');
+          expect(queryKey).not.toEqual(
+            expect.arrayContaining(['board', 'data'])
+          );
+        }
+      }
+
+      vi.useRealTimers();
+    });
+  });
 });

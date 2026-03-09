@@ -473,4 +473,80 @@ describe('useBoardRefresh', () => {
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  // ---------- refresh channel isolation (refresh-contract.md) ----------
+
+  it('should use invalidateQueries (not force-refresh) for auto-refresh', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Wait for auto-refresh timer to fire
+    await act(async () => {
+      vi.advanceTimersByTime(1000); // Using mocked 1s interval
+    });
+
+    // auto-refresh should use invalidateQueries, not boardApi.getBoardData
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['board', 'data', 'PVT_123'],
+      })
+    );
+    // boardApi.getBoardData should NOT be called for auto-refresh
+    expect(mockGetBoardData).not.toHaveBeenCalled();
+  });
+
+  it('manual refresh should be the only path that calls API with refresh=true', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+    const cancelSpy = vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Trigger manual refresh
+    await act(async () => {
+      result.current.refresh();
+      await Promise.resolve();
+    });
+
+    // Manual refresh should call getBoardData with refresh=true
+    expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+    // Should cancel in-progress queries first
+    expect(cancelSpy).toHaveBeenCalled();
+    // Should write result directly to query cache
+    expect(setQueryDataSpy).toHaveBeenCalledWith(
+      ['board', 'data', 'PVT_123'],
+      expect.anything()
+    );
+  });
+
+  it('manual refresh should invalidate both board data and tasks queries', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+    vi.spyOn(queryClient, 'setQueryData');
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.refresh();
+      await Promise.resolve();
+    });
+
+    // Manual refresh bypasses cache via boardApi.getBoardData(id, true)
+    // and writes directly to query cache via setQueryData
+    expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+  });
 });

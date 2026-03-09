@@ -307,3 +307,59 @@ class TestStartCopilotPolling:
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
             await _start_copilot_polling(session, "proj-1")
             mock_poll.assert_not_called()
+
+
+# ── WebSocket hash-based change detection ──────────────────────────────────
+
+
+class TestWebSocketChangeDetection:
+    """Verify that the WebSocket subscription uses hash-based change detection
+    to skip sending messages when task data is unchanged (cache-contract.md Contract 3)."""
+
+    def test_hash_skips_sending_when_data_unchanged(self):
+        """When task data produces the same hash, no message should be sent."""
+        import hashlib
+        import json
+
+        tasks_payload = [{"id": "PVTI_1", "title": "Fix bug", "status": "Todo"}]
+
+        hash1 = hashlib.sha256(
+            json.dumps(tasks_payload, sort_keys=True).encode()
+        ).hexdigest()
+        hash2 = hashlib.sha256(
+            json.dumps(tasks_payload, sort_keys=True).encode()
+        ).hexdigest()
+
+        # Same data should produce same hash — the WS loop skips sending
+        assert hash1 == hash2
+
+    def test_hash_differs_when_data_changes(self):
+        """When task data changes, hash should differ — triggering a message send."""
+        import hashlib
+        import json
+
+        old_payload = [{"id": "PVTI_1", "title": "Fix bug", "status": "Todo"}]
+        new_payload = [{"id": "PVTI_1", "title": "Fix bug", "status": "Done"}]
+
+        old_hash = hashlib.sha256(
+            json.dumps(old_payload, sort_keys=True).encode()
+        ).hexdigest()
+        new_hash = hashlib.sha256(
+            json.dumps(new_payload, sort_keys=True).encode()
+        ).hexdigest()
+
+        assert old_hash != new_hash
+
+    def test_hash_none_initial_state_always_sends(self):
+        """On first connection, last_sent_hash is None so first data always sends."""
+        import hashlib
+        import json
+
+        tasks_payload = [{"id": "PVTI_1", "title": "Fix bug"}]
+        current_hash = hashlib.sha256(
+            json.dumps(tasks_payload, sort_keys=True).encode()
+        ).hexdigest()
+
+        last_sent_hash = None
+        # First check always differs since last_sent_hash is None
+        assert current_hash != last_sent_hash

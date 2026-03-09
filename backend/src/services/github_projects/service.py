@@ -4350,7 +4350,16 @@ class GitHubProjectsService:
         cache_key = get_sub_issues_cache_key(owner, repo, issue_number)
         cached = cache.get(cache_key)
         if cached is not None:
+            logger.debug(
+                "Sub-issue cache hit for %s/%s#%d (%d entries)",
+                owner,
+                repo,
+                issue_number,
+                len(cached),
+            )
             return cached
+
+        logger.debug("Sub-issue cache miss for %s/%s#%d", owner, repo, issue_number)
 
         try:
             response = await self._rest_response(

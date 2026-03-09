@@ -4,7 +4,7 @@ import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from src.services.cache import CacheEntry, InMemoryCache
+from src.services.cache import CacheEntry, InMemoryCache, get_sub_issues_cache_key
 from src.utils import utcnow
 
 
@@ -179,3 +179,47 @@ class TestCacheClearExpiredSafety:
 
         # Should return None, not raise
         assert cache.get("k1") is None
+
+
+class TestSubIssueCacheKey:
+    """Tests for sub-issue cache key format and TTL (cache-contract.md Contract 2)."""
+
+    def test_sub_issue_cache_key_format(self):
+        """Sub-issue cache key should follow the format sub_issues:{owner}/{repo}#{issue_number}."""
+        key = get_sub_issues_cache_key("myorg", "myrepo", 123)
+        assert key == "sub_issues:myorg/myrepo#123"
+
+    def test_sub_issue_cache_key_different_issues_differ(self):
+        """Different issue numbers should produce different cache keys."""
+        key1 = get_sub_issues_cache_key("owner", "repo", 1)
+        key2 = get_sub_issues_cache_key("owner", "repo", 2)
+        assert key1 != key2
+
+    def test_sub_issue_cache_key_different_repos_differ(self):
+        """Different repos should produce different cache keys."""
+        key1 = get_sub_issues_cache_key("owner", "repo-a", 1)
+        key2 = get_sub_issues_cache_key("owner", "repo-b", 1)
+        assert key1 != key2
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_entry_with_600s_ttl(self, mock_settings):
+        """Sub-issue data should be cached with 600 second TTL per cache-contract.md."""
+        settings = MagicMock()
+        settings.cache_ttl_seconds = 300  # default cache TTL
+        mock_settings.return_value = settings
+
+        cache = InMemoryCache()
+        key = get_sub_issues_cache_key("owner", "repo", 42)
+        sub_issues = [{"id": 1, "title": "child issue"}]
+
+        # Cache with 600s TTL (as get_sub_issues does)
+        cache.set(key, sub_issues, ttl_seconds=600)
+
+        # Verify data is cached
+        assert cache.get(key) == sub_issues
+
+        # Verify the entry's TTL is approximately 600s (not the default 300s)
+        entry = cache.get_entry(key)
+        assert entry is not None
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 595 < remaining <= 600
