@@ -119,7 +119,7 @@ describe('filterParentIssueColumns', () => {
     expect(result[0].items[0].title).toBe('Issue');
   });
 
-  it('handles all items being sub-issues, resulting in an empty column', () => {
+  it('excludes sub-issues while keeping their parent, leaving one item in the column', () => {
     const boardData = createBoardData([
       createColumn({
         items: [
