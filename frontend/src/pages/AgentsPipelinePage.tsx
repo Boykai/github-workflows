@@ -43,14 +43,23 @@ export function AgentsPipelinePage() {
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
-  const { agents: availableAgents, isLoading: agentsLoading, error: agentsError, refetch: refetchAgents } = useAvailableAgents(projectId);
+  const {
+    agents: availableAgents,
+    isLoading: agentsLoading,
+    error: agentsError,
+    refetch: refetchAgents,
+  } = useAvailableAgents(projectId);
   const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
   const { models: availableModels } = useModels();
   const { confirm } = useConfirmation();
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
-  const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
+  const alignedColumnCount = Math.max(
+    columns.length,
+    pipelineConfig.pipeline?.stages.length ?? 0,
+    1
+  );
   const alignedGridStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
   };
@@ -67,11 +76,14 @@ export function AgentsPipelinePage() {
   useEffect(() => {
     if (!projectId || seededRef.current) return;
     seededRef.current = true;
-    pipelinesApi.seedPresets(projectId).then(() => {
-      queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
-    }).catch((err) => {
-      console.warn('Failed to seed preset pipelines:', err);
-    });
+    pipelinesApi
+      .seedPresets(projectId)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      })
+      .catch((err) => {
+        console.warn('Failed to seed preset pipelines:', err);
+      });
   }, [projectId, queryClient]);
 
   // Block in-app SPA navigation when there are unsaved changes
@@ -114,7 +126,7 @@ export function AgentsPipelinePage() {
         });
       }
     },
-    [focusPipelineEditor, pipelineConfig],
+    [focusPipelineEditor, pipelineConfig]
   );
 
   // Handle new pipeline with unsaved changes check
@@ -173,12 +185,25 @@ export function AgentsPipelinePage() {
         eyebrow="Constellation Flow"
         title="Orchestrate agents across every stage."
         description="Build custom pipelines that route issues through agents as they move across board columns. Create stages, assign agents, pick models, and save reusable workflows."
-        badge={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Awaiting project'}
+        badge={
+          selectedProject
+            ? `${selectedProject.owner_login}/${selectedProject.name}`
+            : 'Awaiting project'
+        }
         note="Design once, assign to a project, and let the pipeline run automatically whenever items transition between board columns."
         stats={[
-          { label: 'Saved pipelines', value: String(pipelineConfig.pipelines?.pipelines.length ?? 0) },
+          {
+            label: 'Saved pipelines',
+            value: String(pipelineConfig.pipelines?.pipelines.length ?? 0),
+          },
           { label: 'Active stages', value: String(pipelineConfig.pipeline?.stages.length ?? 0) },
-          { label: 'Assigned pipeline', value: pipelineConfig.pipelines?.pipelines.find(p => p.id === pipelineConfig.assignedPipelineId)?.name ?? 'None' },
+          {
+            label: 'Assigned pipeline',
+            value:
+              pipelineConfig.pipelines?.pipelines.find(
+                (p) => p.id === pipelineConfig.assignedPipelineId
+              )?.name ?? 'None',
+          },
           { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
         ]}
         actions={
@@ -255,7 +280,9 @@ export function AgentsPipelinePage() {
                 onRemoveAgent={pipelineConfig.removeAgentFromStage}
                 onUpdateAgent={pipelineConfig.updateAgentInStage}
                 onUpdateStage={(stageId, updates) => pipelineConfig.updateStage(stageId, updates)}
-                onCloneAgent={(stageId, agentNodeId) => pipelineConfig.cloneAgentInStage(stageId, agentNodeId)}
+                onCloneAgent={(stageId, agentNodeId) =>
+                  pipelineConfig.cloneAgentInStage(stageId, agentNodeId)
+                }
                 onReorderAgents={pipelineConfig.reorderAgentsInStage}
                 pipelineBlocking={pipelineConfig.pipeline?.blocking ?? false}
                 onBlockingChange={pipelineConfig.setPipelineBlocking}
@@ -287,8 +314,8 @@ export function AgentsPipelinePage() {
                 </Tooltip>
                 <h3 className="text-sm font-semibold text-foreground">Create new agent pipeline</h3>
                 <p className="text-xs text-muted-foreground max-w-md">
-                  Build custom agent workflows by creating a pipeline with stages and agents.
-                  Click the constellation to get started.
+                  Build custom agent workflows by creating a pipeline with stages and agents. Click
+                  the constellation to get started.
                 </p>
               </div>
             )}
@@ -329,17 +356,26 @@ export function AgentsPipelinePage() {
             <div className="overflow-x-auto pb-2">
               <div className="grid min-w-full items-stretch gap-3" style={alignedGridStyle}>
                 {columns.map((col) => {
-                const assigned = agentConfig.localMappings[col.status.name] ?? [];
-                const dotColor = statusColorToCSS(col.status.color);
-                return (
-                  <div key={col.status.option_id} className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm">
-                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: dotColor }} />
+                  const assigned = agentConfig.localMappings[col.status.name] ?? [];
+                  const dotColor = statusColorToCSS(col.status.color);
+                  return (
+                    <div
+                      key={col.status.option_id}
+                      className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: dotColor }}
+                      />
                       <span className="text-sm font-medium">{col.status.name}</span>
                       <span className="text-xs text-muted-foreground">{col.item_count} items</span>
                       {assigned.length > 0 ? (
                         <div className="flex flex-wrap gap-1 justify-center mt-1">
                           {assigned.map((a) => (
-                            <span key={a.id} className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                            <span
+                              key={a.id}
+                              className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                            >
                               {formatAgentName(a.slug, a.display_name)}
                             </span>
                           ))}
@@ -347,8 +383,8 @@ export function AgentsPipelinePage() {
                       ) : (
                         <span className="text-[10px] text-muted-foreground/60 mt-1">No agents</span>
                       )}
-                  </div>
-                );
+                    </div>
+                  );
                 })}
               </div>
             </div>
@@ -383,7 +419,9 @@ export function AgentsPipelinePage() {
                           />
                           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{p.name}</p>
+                              <p className="text-xs font-medium text-foreground truncate">
+                                {p.name}
+                              </p>
                               <p className="text-[10px] text-muted-foreground">
                                 {p.stage_count} stages · {p.agent_count} agents
                               </p>

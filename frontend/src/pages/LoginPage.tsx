@@ -32,19 +32,28 @@ export function LoginPage() {
               Change your workflow mindset.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
-              Solune reframes GitHub operations with a brighter solar shell by day, a lunar shell by night, and calmer hierarchy throughout.
+              Solune reframes GitHub operations with a brighter solar shell by day, a lunar shell by
+              night, and calmer hierarchy throughout.
             </p>
           </div>
 
           <div className="grid gap-6 lg:max-w-xl">
             <div className="grid gap-3 text-xs uppercase tracking-[0.24em] text-muted-foreground/80 sm:grid-cols-3">
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Moonlit triage</span>
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Solar signals</span>
-              <span className="rounded-full border border-border/70 px-4 py-2 text-center">Ambient focus</span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Moonlit triage
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Solar signals
+              </span>
+              <span className="rounded-full border border-border/70 px-4 py-2 text-center">
+                Ambient focus
+              </span>
             </div>
 
             <div>
-              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">Daily affirmations</p>
+              <p className="text-[11px] uppercase tracking-[0.32em] text-primary/80">
+                Daily affirmations
+              </p>
               <p className="mt-3 max-w-sm text-2xl font-display font-medium leading-tight text-foreground">
                 Guide active work with brighter highlights and quieter night around it.
               </p>

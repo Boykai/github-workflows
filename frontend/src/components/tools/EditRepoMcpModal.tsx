@@ -19,7 +19,7 @@ function buildConfigContent(server: RepoMcpServerConfig) {
       },
     },
     null,
-    2,
+    2
   )}\n`;
 }
 
@@ -127,7 +127,9 @@ export function EditRepoMcpModal({
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <h2 id={titleId} className="mb-4 text-lg font-semibold">Edit Repository MCP</h2>
+        <h2 id={titleId} className="mb-4 text-lg font-semibold">
+          Edit Repository MCP
+        </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
@@ -135,7 +137,9 @@ export function EditRepoMcpModal({
           </div>
 
           <div>
-            <label htmlFor="repo-mcp-name" className="mb-1 block text-sm font-medium">Name</label>
+            <label htmlFor="repo-mcp-name" className="mb-1 block text-sm font-medium">
+              Name
+            </label>
             <input
               id="repo-mcp-name"
               ref={nameInputRef}
@@ -148,7 +152,9 @@ export function EditRepoMcpModal({
           </div>
 
           <div>
-            <label htmlFor="repo-mcp-config" className="mb-1 block text-sm font-medium">MCP Configuration</label>
+            <label htmlFor="repo-mcp-config" className="mb-1 block text-sm font-medium">
+              MCP Configuration
+            </label>
             <textarea
               id="repo-mcp-config"
               value={configContent}

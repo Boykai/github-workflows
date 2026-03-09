@@ -16,11 +16,9 @@ interface ChoreScheduleConfigProps {
 }
 
 export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleConfigProps) {
-  const [scheduleType, setScheduleType] = useState<ScheduleType | ''>(
-    chore.schedule_type ?? '',
-  );
+  const [scheduleType, setScheduleType] = useState<ScheduleType | ''>(chore.schedule_type ?? '');
   const [scheduleValue, setScheduleValue] = useState<string>(
-    chore.schedule_value?.toString() ?? '',
+    chore.schedule_value?.toString() ?? ''
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -89,9 +87,7 @@ export function ChoreScheduleConfig({ chore, projectId, onDone }: ChoreScheduleC
         </button>
       </div>
 
-      {error && (
-        <p className="text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 }

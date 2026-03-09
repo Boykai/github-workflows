@@ -67,8 +67,12 @@ function SidebarContent({
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
                 Solune
               </span>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/85">Sun & Moon</span>
-              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">Guided solar orbit</span>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-primary/85">
+                Sun & Moon
+              </span>
+              <span className="mt-1 block text-[10px] uppercase tracking-[0.24em] text-muted-foreground/75">
+                Guided solar orbit
+              </span>
             </div>
           )}
         </div>
@@ -86,7 +90,11 @@ function SidebarContent({
             className="rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground"
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+            {isCollapsed ? (
+              <PanelLeft className="w-5 h-5" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
           </button>
         )}
       </div>
@@ -144,13 +152,19 @@ function SidebarContent({
 
       {/* Project Selector (bottom) */}
       <div className="relative border-t border-border/70 px-2 py-3">
-        {showFull && <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />}
+        {showFull && (
+          <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-primary/35 to-transparent" />
+        )}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
           className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14 ${
             !showFull ? 'justify-center' : ''
           }`}
-          title={selectedProject ? `${selectedProject.owner_login}/${selectedProject.name}` : 'Select project'}
+          title={
+            selectedProject
+              ? `${selectedProject.owner_login}/${selectedProject.name}`
+              : 'Select project'
+          }
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
             {selectedProject ? selectedProject.name.charAt(0).toUpperCase() : '?'}

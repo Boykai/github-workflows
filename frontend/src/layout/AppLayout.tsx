@@ -51,7 +51,13 @@ function SignalBannerBar() {
 export function AppLayout() {
   const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
-  const { isCollapsed, toggle: toggleSidebar, isMobileOpen, openMobile, closeMobile } = useSidebarState();
+  const {
+    isCollapsed,
+    toggle: toggleSidebar,
+    isMobileOpen,
+    openMobile,
+    closeMobile,
+  } = useSidebarState();
   const {
     selectedProject,
     projects,
@@ -80,86 +86,89 @@ export function AppLayout() {
     clearChat,
   } = useChat();
 
-  const {
-    confirmRecommendation,
-    rejectRecommendation,
-  } = useWorkflow();
+  const { confirmRecommendation, rejectRecommendation } = useWorkflow();
 
   return (
     <RateLimitProvider>
-    <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none absolute inset-0 opacity-90">
-        <div className="absolute left-[-10rem] top-[-12rem] h-[28rem] w-[28rem] rounded-full bg-primary/12 blur-3xl" />
-        <div className="absolute right-[-6rem] top-6 h-[18rem] w-[18rem] rounded-full bg-gold/10 blur-3xl" />
-        <div className="celestial-orbit left-[18%] top-[-28%] h-[30rem] w-[30rem]" />
-        <div className="celestial-orbit bottom-[-22%] right-[-6%] h-[24rem] w-[24rem] border-primary/20" />
-        <div className="absolute left-[22%] top-10 h-3 w-3 rounded-full bg-primary/55 blur-[1px]" />
-        <div className="absolute bottom-20 right-[18%] h-2.5 w-2.5 rounded-full bg-gold/70" />
-      </div>
+      <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
+        <div className="pointer-events-none absolute inset-0 opacity-90">
+          <div className="absolute left-[-10rem] top-[-12rem] h-[28rem] w-[28rem] rounded-full bg-primary/12 blur-3xl" />
+          <div className="absolute right-[-6rem] top-6 h-[18rem] w-[18rem] rounded-full bg-gold/10 blur-3xl" />
+          <div className="celestial-orbit left-[18%] top-[-28%] h-[30rem] w-[30rem]" />
+          <div className="celestial-orbit bottom-[-22%] right-[-6%] h-[24rem] w-[24rem] border-primary/20" />
+          <div className="absolute left-[22%] top-10 h-3 w-3 rounded-full bg-primary/55 blur-[1px]" />
+          <div className="absolute bottom-20 right-[18%] h-2.5 w-2.5 rounded-full bg-gold/70" />
+        </div>
 
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggle={toggleSidebar}
-        isDarkMode={isDarkMode}
-        onToggleTheme={toggleTheme}
-        selectedProject={selectedProject ? {
-          project_id: selectedProject.project_id,
-          name: selectedProject.name,
-          owner_login: selectedProject.owner_login,
-        } : undefined}
-        recentInteractions={recentInteractions}
-        projects={projects}
-        projectsLoading={projectsLoading}
-        onSelectProject={selectProject}
-        isMobileOpen={isMobileOpen}
-        onCloseMobile={closeMobile}
-      />
-      <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-        <TopBar
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggle={toggleSidebar}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
-          user={user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined}
-          notifications={notifications}
-          unreadCount={unreadCount}
-          onMarkAllRead={markAllRead}
-          onMenuToggle={openMobile}
-          isMobileMenuOpen={isMobileOpen}
-        />
-        <SignalBannerBar />
-        <main className="relative flex-1 overflow-auto px-2 pb-2">
-          <Outlet />
-        </main>
-      </div>
-
-      {/* Global ChatPopup */}
-      <ChatPopup
-        messages={messages}
-        pendingProposals={pendingProposals}
-        pendingStatusChanges={pendingStatusChanges}
-        pendingRecommendations={pendingRecommendations}
-        isSending={isSending}
-        projectId={selectedProject?.project_id}
-        onSendMessage={sendMessage}
-        onRetryMessage={retryMessage}
-        onConfirmProposal={async (proposalId) => {
-          await confirmProposal(proposalId);
-        }}
-        onConfirmStatusChange={confirmStatusChange}
-        onConfirmRecommendation={async (recommendationId) => {
-          const result = await confirmRecommendation(recommendationId);
-          if (result.success) {
-            removePendingRecommendation(recommendationId);
+          selectedProject={
+            selectedProject
+              ? {
+                  project_id: selectedProject.project_id,
+                  name: selectedProject.name,
+                  owner_login: selectedProject.owner_login,
+                }
+              : undefined
           }
-          return result;
-        }}
-        onRejectProposal={rejectProposal}
-        onRejectRecommendation={async (recommendationId) => {
-          await rejectRecommendation(recommendationId);
-          removePendingRecommendation(recommendationId);
-        }}
-        onNewChat={clearChat}
-      />
-    </div>
+          recentInteractions={recentInteractions}
+          projects={projects}
+          projectsLoading={projectsLoading}
+          onSelectProject={selectProject}
+          isMobileOpen={isMobileOpen}
+          onCloseMobile={closeMobile}
+        />
+        <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
+          <TopBar
+            isDarkMode={isDarkMode}
+            onToggleTheme={toggleTheme}
+            user={
+              user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined
+            }
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllRead}
+            onMenuToggle={openMobile}
+            isMobileMenuOpen={isMobileOpen}
+          />
+          <SignalBannerBar />
+          <main className="relative flex-1 overflow-auto px-2 pb-2">
+            <Outlet />
+          </main>
+        </div>
+
+        {/* Global ChatPopup */}
+        <ChatPopup
+          messages={messages}
+          pendingProposals={pendingProposals}
+          pendingStatusChanges={pendingStatusChanges}
+          pendingRecommendations={pendingRecommendations}
+          isSending={isSending}
+          projectId={selectedProject?.project_id}
+          onSendMessage={sendMessage}
+          onRetryMessage={retryMessage}
+          onConfirmProposal={async (proposalId) => {
+            await confirmProposal(proposalId);
+          }}
+          onConfirmStatusChange={confirmStatusChange}
+          onConfirmRecommendation={async (recommendationId) => {
+            const result = await confirmRecommendation(recommendationId);
+            if (result.success) {
+              removePendingRecommendation(recommendationId);
+            }
+            return result;
+          }}
+          onRejectProposal={rejectProposal}
+          onRejectRecommendation={async (recommendationId) => {
+            await rejectRecommendation(recommendationId);
+            removePendingRecommendation(recommendationId);
+          }}
+          onNewChat={clearChat}
+        />
+      </div>
     </RateLimitProvider>
   );
 }
