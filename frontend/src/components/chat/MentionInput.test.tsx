@@ -138,4 +138,24 @@ describe('MentionInput', () => {
     expect(onTextChange).toHaveBeenLastCalledWith('');
     expect(textbox.querySelector('[data-mention-token]')).toBeNull();
   });
+
+  it('forwards pasted files to the parent attachment handler', () => {
+    const onPasteFiles = vi.fn();
+    renderMentionInput({ onPasteFiles });
+
+    const file = new File(['image-data'], 'clipboard.png', { type: 'image/png' });
+    const clipboardData = {
+      items: [
+        {
+          kind: 'file',
+          getAsFile: () => file,
+        },
+      ],
+      getData: () => '',
+    };
+
+    fireEvent.paste(screen.getByRole('textbox'), { clipboardData });
+
+    expect(onPasteFiles).toHaveBeenCalledWith([file]);
+  });
 });

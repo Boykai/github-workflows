@@ -32,7 +32,8 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { History, Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { CircleAlert, History, Lock, Paperclip } from 'lucide-react';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -89,10 +90,12 @@ export function ChatInterface({
   const [showHistoryPopover, setShowHistoryPopover] = useState(false);
   const [aiEnhance, setAiEnhance] = useState(getInitialAiEnhance);
   const [mentionValidationError, setMentionValidationError] = useState<string | null>(null);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mentionInputRef = useRef<MentionInputHandle>(null);
   const historyPopoverRef = useRef<HTMLDivElement>(null);
   const historyNavTriggered = useRef(false);
+  const dragDepthRef = useRef(0);
 
   // Integrate command system directly so autocomplete works regardless of
   // whether the parent passes command props (ChatPopup does not).
@@ -173,6 +176,57 @@ export function ChatInterface({
       startRecording();
     }
   }, [isRecording, startRecording, stopRecording]);
+
+  const handleAttachmentPaste = useCallback(
+    (files: File[]) => {
+      handleFileAdd(files);
+    },
+    [handleFileAdd]
+  );
+
+  const hasDraggedFiles = (event: Pick<React.DragEvent, 'dataTransfer'>): boolean =>
+    Array.from(event.dataTransfer?.types ?? []).includes('Files');
+
+  const handleAttachmentDragEnter = useCallback((event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  }, []);
+
+  const handleAttachmentDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (!hasDraggedFiles(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      if (!isDraggingFiles) {
+        setIsDraggingFiles(true);
+      }
+    },
+    [isDraggingFiles]
+  );
+
+  const handleAttachmentDragLeave = useCallback((event: React.DragEvent) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) {
+      setIsDraggingFiles(false);
+    }
+  }, []);
+
+  const handleAttachmentDrop = useCallback(
+    (event: React.DragEvent) => {
+      if (!hasDraggedFiles(event)) return;
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      if (event.dataTransfer.files.length > 0) {
+        handleFileAdd(event.dataTransfer.files);
+      }
+    },
+    [handleFileAdd]
+  );
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -260,6 +314,7 @@ export function ChatInterface({
       setInput('');
       mention.reset();
       clearAllFiles();
+      setIsDraggingFiles(false);
     }
   };
 
@@ -510,10 +565,15 @@ export function ChatInterface({
       <FilePreviewChips files={uploadFiles} onRemove={handleFileRemove} />
 
       {fileErrors.length > 0 && (
-        <div className="border-b border-destructive/20 bg-destructive/5 px-4 py-1.5 text-xs text-destructive">
-          {fileErrors.map((err, i) => (
-            <div key={i}>{err}</div>
-          ))}
+        <div className="border-b border-destructive/20 bg-destructive/5 px-4 py-2">
+          <div className="flex items-start gap-2 text-xs text-destructive">
+            <CircleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <div className="space-y-1">
+              {fileErrors.map((err, i) => (
+                <div key={i}>{err}</div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -547,6 +607,9 @@ export function ChatInterface({
           onHighlightChange={mention.handleHighlightChange}
         />
         <div className="flex-1 relative">
+          {isDraggingFiles && (
+            <div className="pointer-events-none absolute inset-0 z-10 rounded-xl border border-dashed border-primary/50 bg-primary/8" />
+          )}
           <MentionInput
             ref={mentionInputRef}
             value={input}
@@ -554,15 +617,23 @@ export function ChatInterface({
             placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}
             cyclingPlaceholder={cyclingPlaceholder}
             ariaLabel={CHAT_PLACEHOLDERS.main.ariaLabel}
+            editorClassName={cn(
+              isDraggingFiles && 'border-primary/60 bg-primary/5 shadow-[0_0_0_1px_rgba(99,102,241,0.18)]'
+            )}
             onFocusChange={setIsInputFocused}
             disabled={isSending}
             isNavigating={isNavigating}
             onTextChange={setInput}
             onTokenRemove={mention.handleTokenRemove}
+            onPasteFiles={handleAttachmentPaste}
             onMentionTrigger={handleMentionTrigger}
             onMentionDismiss={mention.handleMentionDismiss}
             onSubmit={doSubmit}
             onKeyDown={handleKeyDown}
+            onDragEnter={handleAttachmentDragEnter}
+            onDragOver={handleAttachmentDragOver}
+            onDragLeave={handleAttachmentDragLeave}
+            onDrop={handleAttachmentDrop}
           />
           {/\b#block\b/i.test(input) && (
             <div className="absolute top-1 right-1 flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 pointer-events-none">
@@ -580,6 +651,24 @@ export function ChatInterface({
             hasMultipleMentions={mention.hasMultipleMentions}
             hasInvalidMentions={mention.hasInvalidMentions}
           />
+          <div className="mt-2 flex flex-wrap items-center gap-2 px-1 text-[11px] text-muted-foreground">
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 transition-colors',
+                isDraggingFiles && 'text-primary'
+              )}
+            >
+              <Paperclip className="h-3 w-3" />
+              {isDraggingFiles
+                ? 'Drop files to add them as attachments'
+                : 'Paste, drop, or browse files up to 10 MB each'}
+            </span>
+            {uploadFiles.length > 0 && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+                {uploadFiles.length} attachment{uploadFiles.length === 1 ? '' : 's'} ready
+              </span>
+            )}
+          </div>
         </div>
         <div className="relative flex flex-col items-center gap-1" ref={historyPopoverRef}>
           {chatHistory.length > 0 && (

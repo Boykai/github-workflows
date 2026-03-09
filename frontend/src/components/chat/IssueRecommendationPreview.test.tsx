@@ -65,12 +65,13 @@ describe('IssueRecommendationPreview', () => {
       issue_number: 42,
       issue_url: 'https://github.com/org/repo/issues/42',
       current_status: 'Todo',
+      attachment_count: 2,
       message: 'Created',
     } as WorkflowResult);
 
     render(
       <IssueRecommendationPreview
-        recommendation={createRecommendation()}
+        recommendation={createRecommendation({ file_urls: ['https://example.com/a.png', 'https://example.com/b.pdf'] })}
         onConfirm={onConfirm}
         onReject={vi.fn().mockResolvedValue(undefined)}
       />
@@ -81,6 +82,7 @@ describe('IssueRecommendationPreview', () => {
       expect(screen.getByText('Issue Created Successfully')).toBeInTheDocument();
     });
     expect(screen.getByText(/Issue #42/)).toBeInTheDocument();
+    expect(screen.getByText('Issue created with 2 attachments')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View on GitHub/i })).toHaveAttribute(
       'href',
       'https://github.com/org/repo/issues/42'

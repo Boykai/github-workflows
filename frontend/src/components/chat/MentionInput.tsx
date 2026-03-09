@@ -29,15 +29,21 @@ interface MentionInputProps {
   placeholderMobile?: string;
   cyclingPlaceholder?: string;
   ariaLabel?: string;
+  editorClassName?: string;
   onFocusChange?: (isFocused: boolean) => void;
   disabled?: boolean;
   isNavigating?: boolean;
   onTextChange: (text: string) => void;
   onTokenRemove?: (pipelineId: string) => void;
+  onPasteFiles?: (files: File[]) => void;
   onMentionTrigger: (query: string, offset: number) => void;
   onMentionDismiss: () => void;
   onSubmit: () => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onDragEnter?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDragLeave?: (e: React.DragEvent<HTMLDivElement>) => void;
+  onDrop?: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
 export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
@@ -48,15 +54,21 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
       placeholderMobile,
       cyclingPlaceholder,
       ariaLabel,
+      editorClassName,
       onFocusChange,
       disabled,
       isNavigating,
       onTextChange,
       onTokenRemove,
+      onPasteFiles,
       onMentionTrigger,
       onMentionDismiss,
       onSubmit,
       onKeyDown,
+      onDragEnter,
+      onDragOver,
+      onDragLeave,
+      onDrop,
     },
     ref,
   ) {
@@ -232,11 +244,22 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
+      const pastedFiles = Array.from(e.clipboardData.items ?? [])
+        .filter((item) => item.kind === 'file')
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+
+      if (pastedFiles.length > 0) {
+        e.preventDefault();
+        onPasteFiles?.(pastedFiles);
+        return;
+      }
+
       e.preventDefault();
       const text = e.clipboardData.getData('text/plain');
       document.execCommand('insertText', false, text);
     },
-    [],
+    [onPasteFiles],
   );
 
   // Show/hide placeholder — use local state rather than DOM queries
@@ -256,6 +279,10 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
+        onDragEnter={onDragEnter}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
         onCompositionStart={() => { isComposingRef.current = true; }}
         onCompositionEnd={() => {
           isComposingRef.current = false;
@@ -265,6 +292,7 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
           'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words',
           isNavigating && 'border-l-4 border-l-primary bg-primary/5',
           disabled && 'bg-muted pointer-events-none opacity-60',
+          editorClassName,
         )}
       />
       {isEmpty && !disabled && placeholder && (

@@ -164,6 +164,7 @@ export interface FileAttachment {
   filename: string;
   fileSize: number;
   contentType: string;
+  previewUrl?: string | null;
   status: 'pending' | 'uploading' | 'uploaded' | 'error';
   progress: number;
   fileUrl: string | null;
@@ -325,6 +326,7 @@ export interface IssueCreateActionData {
   ui_ux_description: string;
   functional_requirements: string[];
   metadata?: IssueMetadata;
+  file_urls?: string[];
   status: RecommendationStatus;
 }
 
@@ -367,6 +369,7 @@ export interface WorkflowResult {
   issue_url?: string;
   project_item_id?: string;
   current_status?: string;
+  attachment_count?: number;
   message: string;
 }
 

@@ -3,7 +3,7 @@
  * upload state, and preview data.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { FileAttachment } from '@/types';
 import { FILE_VALIDATION, ALLOWED_TYPES } from '@/types';
 import { chatApi } from '@/services/api';
@@ -12,7 +12,7 @@ interface UseFileUploadReturn {
   files: FileAttachment[];
   isUploading: boolean;
   errors: string[];
-  addFiles: (fileList: FileList) => void;
+  addFiles: (fileList: FileList | File[]) => void;
   removeFile: (fileId: string) => void;
   uploadAll: () => Promise<string[]>;
   clearAll: () => void;
@@ -30,18 +30,43 @@ function getFileExtension(filename: string): string {
   return filename.slice(dotIndex).toLowerCase();
 }
 
+function createPreviewUrl(file: File): string | null {
+  if (!file.type.startsWith('image/')) return null;
+  return URL.createObjectURL(file);
+}
+
+function revokePreviewUrl(file: Pick<FileAttachment, 'previewUrl'>): void {
+  if (file.previewUrl) {
+    URL.revokeObjectURL(file.previewUrl);
+  }
+}
+
 export function useFileUpload(): UseFileUploadReturn {
   const [files, setFiles] = useState<FileAttachment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const filesRef = useRef<FileAttachment[]>([]);
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  useEffect(
+    () => () => {
+      for (const file of filesRef.current) {
+        revokePreviewUrl(file);
+      }
+    },
+    []
+  );
 
   const addFiles = useCallback(
-    (fileList: FileList) => {
+    (fileList: FileList | File[]) => {
       const newErrors: string[] = [];
       const newFiles: FileAttachment[] = [];
+      const incomingFiles = Array.from(fileList);
 
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
+      for (const file of incomingFiles) {
         const ext = getFileExtension(file.name);
 
         // Check total file count
@@ -68,6 +93,7 @@ export function useFileUpload(): UseFileUploadReturn {
           filename: file.name,
           fileSize: file.size,
           contentType: file.type || 'application/octet-stream',
+          previewUrl: createPreviewUrl(file),
           status: 'pending',
           progress: 0,
           fileUrl: null,
@@ -88,7 +114,13 @@ export function useFileUpload(): UseFileUploadReturn {
   );
 
   const removeFile = useCallback((fileId: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+    setFiles((prev) => {
+      const fileToRemove = prev.find((f) => f.id === fileId);
+      if (fileToRemove) {
+        revokePreviewUrl(fileToRemove);
+      }
+      return prev.filter((f) => f.id !== fileId);
+    });
   }, []);
 
   const uploadAll = useCallback(async (): Promise<string[]> => {
@@ -141,6 +173,9 @@ export function useFileUpload(): UseFileUploadReturn {
   }, [files]);
 
   const clearAll = useCallback(() => {
+    for (const file of filesRef.current) {
+      revokePreviewUrl(file);
+    }
     setFiles([]);
     setErrors([]);
   }, []);
