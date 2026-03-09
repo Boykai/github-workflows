@@ -74,6 +74,7 @@ See [Agent Pipeline](docs/agent-pipeline.md) for the full flow, sub-issue lifecy
 | [API Reference](docs/api-reference.md) | All REST, WebSocket, and SSE endpoints |
 | [Signal Integration](docs/signal-integration.md) | Signal messaging setup and features |
 | [Testing](docs/testing.md) | Backend (pytest), frontend (Vitest, Playwright), code quality |
+| [Responsive Design](docs/responsive-design.md) | Breakpoints, mobile layout, touch targets, responsive testing |
 | [Project Structure](docs/project-structure.md) | Complete file/directory tree with descriptions |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 | [Custom Agents](docs/custom-agents-best-practices.md) | Best practices for creating custom GitHub agents |

@@ -157,10 +157,15 @@ github-workflows/
 │   │   │   │                     # McpSettings, AdvancedSettings
 │   │   │   └── ui/               # Shared UI primitives (button, etc.)
 │   │   ├── hooks/                # React hooks (see Architecture doc)
+│   │   │   ├── useMediaQuery.ts  #   Viewport detection (useIsMobile convenience)
+│   │   │   └── useSidebarState.ts  # Sidebar collapse + mobile drawer state
 │   │   ├── pages/                # ProjectBoardPage, SettingsPage
 │   │   ├── services/api.ts       # Centralized HTTP/WS client
 │   │   └── utils/                # generateId, formatTime
 │   └── e2e/                      # Playwright E2E test specs
+│       ├── viewports.ts          #   Standard viewport presets (VIEWPORTS constant)
+│       ├── responsive-*.spec.ts  #   Responsive layout/nav/touch/typo tests
+│       └── *.spec.ts             #   Auth, board, chat, settings flows
 │
 ├── scripts/
 │   ├── pre-commit                # Git hook: ruff, pyright, eslint, tsc, vitest, build
