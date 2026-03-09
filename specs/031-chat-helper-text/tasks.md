@@ -66,7 +66,7 @@
 
 - [x] T006 [US2] Pass `placeholderMobile={CHAT_PLACEHOLDERS.main.mobile}` prop to MentionInput in `frontend/src/components/chat/ChatInterface.tsx`
 
-**Checkpoint**: Mobile viewport (<768px) shows "Ask anything or use / and @ for more…" — User Story 2 is complete.
+**Checkpoint**: Mobile viewport (<640px) shows "Ask anything or use / and @ for more…" — User Story 2 is complete.
 
 ---
 

@@ -6,7 +6,7 @@
 
 ### Context
 
-The spec requires descriptive placeholder copy on desktop (≥1024px) and a shortened variant on mobile (<768px). The current main chat placeholder is "Describe a task, type / for commands, or @ for pipelines..." — already somewhat descriptive but not comprehensive enough per the spec, and not responsive.
+The spec requires descriptive placeholder copy on the full variant at Tailwind `sm` and above (≥640px) and a shortened variant on mobile below `sm` (<640px). The current main chat placeholder is "Describe a task, type / for commands, or @ for pipelines..." — already somewhat descriptive but not comprehensive enough per the spec, and not responsive.
 
 ### Research Findings
 

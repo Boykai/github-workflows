@@ -11,9 +11,9 @@
 
 ```typescript
 export interface ChatPlaceholderConfig {
-  /** Full placeholder text for desktop viewports (≥768px) */
+  /** Full placeholder text for viewports at Tailwind `sm` and above (≥640px) */
   desktop: string;
-  /** Shortened placeholder text for mobile viewports (<768px) */
+  /** Shortened placeholder text for mobile viewports below Tailwind `sm` (<640px) */
   mobile: string;
   /** Accessible label for screen readers */
   ariaLabel: string;

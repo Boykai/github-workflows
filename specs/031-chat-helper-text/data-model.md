@@ -14,17 +14,17 @@ Defines the placeholder text configuration for a single chat input context.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `desktop` | `string` | Yes | Full descriptive placeholder displayed on viewports ≥768px |
-| `mobile` | `string` | Yes | Shortened placeholder variant for viewports <768px |
+| `desktop` | `string` | Yes | Full descriptive placeholder displayed on viewports at Tailwind `sm` and above (≥640px) |
+| `mobile` | `string` | Yes | Shortened placeholder variant for viewports below Tailwind `sm` (<640px) |
 | `ariaLabel` | `string` | Yes | Accessible label for the input field (announced by screen readers) |
 
 **TypeScript definition:**
 
 ```typescript
 interface ChatPlaceholderConfig {
-  /** Full placeholder text for desktop viewports (≥768px) */
+  /** Full placeholder text for viewports at Tailwind `sm` and above (≥640px) */
   desktop: string;
-  /** Shortened placeholder text for mobile viewports (<768px) */
+  /** Shortened placeholder text for mobile viewports below Tailwind `sm` (<640px) */
   mobile: string;
   /** Accessible label for screen readers — must convey the same guidance as the visible placeholder */
   ariaLabel: string;

@@ -66,7 +66,7 @@ cd frontend && npx vitest run
 
 # Manual checks:
 # 1. Open the chat popup on desktop — verify new descriptive placeholder text
-# 2. Resize browser to <768px — verify shortened mobile placeholder
+# 2. Resize browser to <640px — verify shortened mobile placeholder
 # 3. Open Agent creation modal — verify "Describe what you'd like your agent to do…"
 # 4. Open Chore creation modal — verify "Add details or refine your request…"
 # 5. Use a screen reader to navigate to chat input — verify announced label matches visible text

@@ -31,11 +31,11 @@ As a Solune app user on a mobile or small-screen device, I want the chat input h
 
 **Why this priority**: Mobile users make up a significant portion of the user base. If the new descriptive placeholder text is only optimized for desktop, it will overflow or truncate awkwardly on small screens, degrading the experience rather than improving it. Responsive adaptation is essential to ensure the update is universally beneficial and must ship alongside the desktop copy.
 
-**Independent Test**: Can be fully tested by opening the chat interface on a mobile viewport (< 768px wide), observing the placeholder text, and verifying it is a shorter, meaningful variant that fits within the input without layout breakage.
+**Independent Test**: Can be fully tested by opening the chat interface on a mobile viewport (< 640px wide), observing the placeholder text, and verifying it is a shorter, meaningful variant that fits within the input without layout breakage.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user opens the chat interface on a mobile or small-screen viewport (< 768px), **When** the chat input field is empty, **Then** a shortened variant of the placeholder text is displayed that still communicates the chat's purpose (e.g., "Ask anything or create an issue…").
+1. **Given** a user opens the chat interface on a mobile or small-screen viewport (< 640px), **When** the chat input field is empty, **Then** a shortened variant of the placeholder text is displayed that still communicates the chat's purpose (e.g., "Ask anything or create an issue…").
 2. **Given** the mobile placeholder text is displayed, **When** the user views the input area, **Then** the text does not overflow the input boundary, cause horizontal scrolling, or overlap with any input controls (send button, toolbar icons).
 3. **Given** the device is rotated from portrait to landscape (or vice versa), **When** the viewport width changes, **Then** the appropriate placeholder variant (desktop or mobile) is displayed based on the new viewport width.
 4. **Given** the mobile placeholder text is displayed, **When** the user taps the input field, **Then** the placeholder disappears and the user can type without interference from residual placeholder text.
@@ -107,7 +107,7 @@ As a Solune app user, I want the chat placeholder to cycle through example promp
 
 - **FR-001**: System MUST update the chat input placeholder/helper text to include a comprehensive, actionable description that communicates at least two supported interaction types (e.g., creating issues, asking questions, running pipelines, getting help).
 - **FR-002**: System MUST ensure the new desktop helper text is concise enough to display fully within the chat input boundary on desktop viewports (≥ 1024px) without overflowing, truncating, or wrapping outside the visible area.
-- **FR-003**: System MUST provide a responsive, shortened variant of the helper text for mobile/small-screen viewports (< 768px) that still communicates the chat's purpose without causing layout breakage, horizontal scrolling, or overlap with input controls.
+- **FR-003**: System MUST provide a responsive, shortened variant of the helper text for mobile/small-screen viewports (< 640px) that still communicates the chat's purpose without causing layout breakage, horizontal scrolling, or overlap with input controls.
 - **FR-004**: System MUST ensure the placeholder text color contrast meets WCAG AA standards with a minimum 4.5:1 contrast ratio against the chat input background color.
 - **FR-005**: System MUST update all accessibility attributes (aria-label, aria-placeholder, aria-describedby) associated with chat input fields to reflect the new helper text, keeping them in sync with the visible placeholder.
 - **FR-006**: System MUST NOT alter existing chat input functionality, including focus states, form submission behavior, command recognition (e.g., `/command` or `#help`), or keyboard interactions.
@@ -121,7 +121,7 @@ As a Solune app user, I want the chat placeholder to cycle through example promp
 - The current chat input placeholder uses generic text such as "Type a message…" or similar non-descriptive copy.
 - The application has multiple chat entry points (agent chat, pipeline chat) that share common input components or can be updated in a coordinated pass.
 - Solune's tone-of-voice is approachable, helpful, and professional — similar to a knowledgeable assistant rather than a formal system.
-- Standard responsive breakpoints are used: desktop ≥ 1024px, mobile < 768px, with a tablet range in between that can use either variant.
+- Standard responsive breakpoints are used: the full placeholder variant applies at Tailwind `sm` and above (≥ 640px), while the shortened mobile variant applies below `sm` (< 640px). Visual validation can still be performed on wider desktop viewports (for example, ≥ 1024px).
 - Placeholder text follows standard browser behavior: visible when input is empty and unfocused (or empty and focused, per browser), hidden when user types.
 - The existing chat input already has some accessibility attributes (aria-label or similar) that need to be updated in sync.
 - Copy strings may be stored in a centralized constants/i18n file or defined inline in components — both approaches are acceptable for this update.
@@ -133,7 +133,7 @@ As a Solune app user, I want the chat placeholder to cycle through example promp
 - **SC-001**: 100% of chat input instances across the application display the updated, descriptive helper text — no instances retain the old generic placeholder.
 - **SC-002**: Users can identify at least two supported chat capabilities (e.g., creating issues, asking questions) from reading the placeholder text alone, without consulting documentation or external help.
 - **SC-003**: The placeholder text color contrast ratio meets or exceeds 4.5:1 against the input background on all themes/modes used in the application.
-- **SC-004**: On mobile viewports (< 768px), the placeholder text displays fully within the input boundary with no overflow, truncation that obscures meaning, or layout breakage.
+- **SC-004**: On mobile viewports (< 640px), the placeholder text displays fully within the input boundary with no overflow, truncation that obscures meaning, or layout breakage.
 - **SC-005**: All accessibility attributes (aria-label, aria-placeholder, aria-describedby) on chat input fields match the updated visible placeholder text — no stale or mismatched attributes remain.
 - **SC-006**: Existing chat functionality (message sending, command recognition, focus behavior, keyboard interactions) works identically before and after the update — zero regressions.
 - **SC-007**: The update is completed as a single coordinated pass across all chat input instances, reducing inconsistency risk and minimizing follow-up work.
