@@ -144,7 +144,7 @@ export function AddAgentPopover({
     <div
       ref={popoverRef}
       style={{ position: 'fixed', top: position.top, left: position.left }}
-      className="z-[9999] flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
+      className="celestial-fade-in z-[9999] flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
       role="listbox"
       aria-label={`Add agent to ${status}`}
     >

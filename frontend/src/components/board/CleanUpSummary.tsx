@@ -48,7 +48,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
         onClick={handleBackdropClick}
       >
         <div
-          className="relative w-full max-w-md bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
+          className="celestial-fade-in relative w-full max-w-md bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
           role="dialog"
           aria-modal="true"
           aria-label="Cleanup Error"
@@ -83,7 +83,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
+        className="celestial-fade-in relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
         role="dialog"
         aria-modal="true"
         aria-label="Cleanup Summary"

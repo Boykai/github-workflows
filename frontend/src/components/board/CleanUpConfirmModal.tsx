@@ -45,7 +45,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
       onClick={handleBackdropClick}
     >
       <div
-        className="celestial-panel relative m-4 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
+        className="celestial-fade-in celestial-panel relative m-4 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
         role="dialog"
         aria-modal="true"
         aria-label="Confirm Repository Cleanup"

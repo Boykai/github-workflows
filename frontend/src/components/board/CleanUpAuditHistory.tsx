@@ -49,7 +49,7 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
       onClick={handleBackdropClick}
     >
       <div
-        className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
+        className="celestial-fade-in relative w-full max-w-lg max-h-[85vh] overflow-y-auto bg-card text-card-foreground rounded-lg border border-border shadow-lg p-6 m-4"
         role="dialog"
         aria-modal="true"
         aria-label="Cleanup Audit History"
