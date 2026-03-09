@@ -1259,3 +1259,44 @@ export interface BlockingQueueUpdatedEvent {
   completed_issues: number[];
   current_base_branch: string;
 }
+
+// ── Profile Types ──
+
+export interface UserProfile {
+  github_user_id: string;
+  github_username: string;
+  github_avatar_url: string | null;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  account_created_at: string | null;
+  role: string;
+}
+
+export interface UserProfileUpdate {
+  display_name?: string;
+  bio?: string;
+}
+
+export interface ProfileFormState {
+  displayName: string;
+  bio: string;
+  avatarFile: File | null;
+  avatarPreview: string | null;
+  isDirty: boolean;
+  isEditing: boolean;
+}
+
+export interface ProfileValidation {
+  displayName: string | null;
+  avatar: string | null;
+}
+
+/** Maximum avatar file size in bytes (5 MB) */
+export const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+
+/** Accepted avatar MIME types */
+export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/** Accepted avatar file extensions (for display) */
+export const ACCEPTED_AVATAR_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];

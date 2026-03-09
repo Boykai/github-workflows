@@ -65,3 +65,34 @@ class UserResponse(BaseModel):
             github_avatar_url=session.github_avatar_url,
             selected_project_id=session.selected_project_id,
         )
+
+
+class UserProfile(BaseModel):
+    """Persistent user profile data, independent of session lifecycle."""
+
+    github_user_id: str
+    display_name: str | None = None
+    bio: str | None = None
+    avatar_path: str | None = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class UserProfileUpdate(BaseModel):
+    """Partial update payload for user profile fields."""
+
+    display_name: str | None = None
+    bio: str | None = None
+
+
+class UserProfileResponse(BaseModel):
+    """Composite profile response merging GitHub OAuth data with profile data."""
+
+    github_user_id: str
+    github_username: str
+    github_avatar_url: str | None = None
+    display_name: str | None = None
+    bio: str | None = None
+    avatar_url: str | None = None
+    account_created_at: str | None = None
+    role: str = "member"

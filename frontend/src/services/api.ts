@@ -72,6 +72,8 @@ import type {
   ToolDeleteResult,
   FileUploadResponse,
   BlockingQueueEntry,
+  UserProfile,
+  UserProfileUpdate,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -1057,6 +1059,32 @@ export const agentToolsApi = {
     return request<{ tools: ToolChip[] }>(`/agents/${projectId}/${agentId}/tools`, {
       method: 'PUT',
       body: JSON.stringify({ tool_ids: toolIds }),
+    });
+  },
+};
+
+// ============ Profile API (031-profile-page) ============
+
+export const profileApi = {
+  getProfile(): Promise<UserProfile> {
+    return request<UserProfile>('/users/profile');
+  },
+
+  updateProfile(data: UserProfileUpdate): Promise<UserProfile> {
+    return request<UserProfile>('/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  uploadAvatar(file: File): Promise<UserProfile> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<UserProfile>('/users/profile/avatar', {
+      method: 'POST',
+      body: formData,
+      // Do NOT set Content-Type header — browser sets it with multipart boundary
+      headers: {},
     });
   },
 };

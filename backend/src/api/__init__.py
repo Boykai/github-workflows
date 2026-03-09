@@ -12,6 +12,7 @@ from src.api.health import router as health_router
 from src.api.mcp import router as mcp_router
 from src.api.metadata import router as metadata_router
 from src.api.pipelines import router as pipelines_router
+from src.api.profile import router as profile_router
 from src.api.projects import router as projects_router
 from src.api.settings import router as settings_router
 from src.api.signal import router as signal_router
@@ -36,6 +37,7 @@ router.include_router(signal_router, prefix="/signal", tags=["signal"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
 router.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])
 router.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
+router.include_router(profile_router, prefix="/users/profile", tags=["profile"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 router.include_router(health_router, tags=["health"])
