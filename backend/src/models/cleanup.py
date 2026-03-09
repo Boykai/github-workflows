@@ -41,6 +41,7 @@ class BranchInfo(BaseModel):
     linked_issue_title: str | None = None
     linking_method: str | None = None
     preservation_reason: str | None = None
+    deletion_reason: str | None = None
 
 
 class PullRequestInfo(BaseModel):
@@ -52,6 +53,7 @@ class PullRequestInfo(BaseModel):
     referenced_issues: list[int] = []
     eligible_for_deletion: bool
     preservation_reason: str | None = None
+    deletion_reason: str | None = None
 
 
 class OrphanedIssueInfo(BaseModel):

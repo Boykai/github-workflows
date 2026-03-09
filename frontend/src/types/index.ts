@@ -768,6 +768,7 @@ export interface BranchInfo {
   linked_issue_title: string | null;
   linking_method: string | null;
   preservation_reason: string | null;
+  deletion_reason: string | null;
 }
 
 export interface PullRequestInfo {
@@ -777,6 +778,7 @@ export interface PullRequestInfo {
   referenced_issues: number[];
   eligible_for_deletion: boolean;
   preservation_reason: string | null;
+  deletion_reason: string | null;
 }
 
 export interface OrphanedIssueInfo {

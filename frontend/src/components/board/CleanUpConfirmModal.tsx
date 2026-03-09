@@ -5,7 +5,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Shield, Trash2, X } from 'lucide-react';
+import { GitBranch, GitPullRequest, Shield, Trash2, X } from 'lucide-react';
 import type { CleanupPreflightResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -74,8 +74,14 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => (
-                <li key={branch.name} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
-                  <span className="font-mono text-xs">{branch.name}</span>
+                <li key={branch.name} className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="font-mono text-xs">{branch.name}</span>
+                  </div>
+                  {branch.deletion_reason && (
+                    <span className="ml-5 text-[11px] text-muted-foreground">{branch.deletion_reason}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -89,9 +95,15 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => (
-                <li key={pr.number} className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10">
-                  <span className="font-medium">#{pr.number}</span>
-                  <span className="text-muted-foreground truncate">{pr.title}</span>
+                <li key={pr.number} className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10">
+                  <div className="flex items-center gap-2">
+                    <GitPullRequest className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="font-medium">#{pr.number}</span>
+                    <span className="text-muted-foreground truncate">{pr.title}</span>
+                  </div>
+                  {pr.deletion_reason && (
+                    <span className="ml-5 text-[11px] text-muted-foreground">{pr.deletion_reason}</span>
+                  )}
                 </li>
               ))}
             </ul>

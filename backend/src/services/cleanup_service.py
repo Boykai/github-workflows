@@ -397,6 +397,67 @@ async def fetch_app_created_open_issues(
     return unique
 
 
+async def fetch_parent_issue_states(
+    github_service,
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_numbers: list[int],
+) -> dict[int, dict | None]:
+    """For each issue number return its parent issue info via GraphQL, or None.
+
+    Uses aliased batch queries (up to 20 issues per request) to avoid hitting
+    GraphQL complexity limits.  If the ``parent`` field is unavailable or the
+    query fails the function returns ``None`` for each affected issue — the
+    caller must treat missing info conservatively (i.e. never delete on doubt).
+
+    Returns a dict mapping ``issue_number`` → ``{"number": int, "state": str,
+    "title": str}`` when a parent exists, or ``None`` when the issue has no
+    parent or is not a sub-issue.
+    """
+    if not issue_numbers:
+        return {}
+
+    results: dict[int, dict | None] = {}
+    BATCH_SIZE = 20
+
+    for i in range(0, len(issue_numbers), BATCH_SIZE):
+        batch = issue_numbers[i : i + BATCH_SIZE]
+        alias_fields = "\n            ".join(
+            f"i_{num}: issue(number: {num}) {{ parent {{ number state title }} }}" for num in batch
+        )
+        query = f"""
+        query BatchParentIssues($owner: String!, $repo: String!) {{
+          repository(owner: $owner, name: $repo) {{
+            {alias_fields}
+          }}
+        }}
+        """
+        try:
+            data = await github_service._graphql(
+                access_token,
+                query,
+                {"owner": owner, "repo": repo},
+            )
+            repo_node = (data or {}).get("repository") or {}
+            for num in batch:
+                issue_data = repo_node.get(f"i_{num}")
+                if issue_data is None:
+                    results[num] = None
+                    continue
+                results[num] = issue_data.get("parent")  # None when no parent
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch parent issue states for batch starting at index %d: %s",
+                i,
+                e,
+            )
+            for num in batch:
+                results[num] = None
+
+    return results
+
+
 async def preflight(
     github_service,
     access_token: str,
@@ -449,6 +510,23 @@ async def preflight(
         if num is not None:
             app_issue_numbers.add(num)
 
+    # 3b. Fetch parent-issue state for all app-created issues concurrently.
+    #     Sub-issues of a closed parent are candidates for cleanup even when
+    #     the sub-issue itself is still open/on the board.
+    raw_parent_states = await fetch_parent_issue_states(
+        github_service,
+        access_token,
+        owner,
+        repo,
+        list(app_issue_numbers),
+    )
+    # Map: app sub-issue number → parent info dict  (only closed parents)
+    app_sub_issue_closed_parent: dict[int, dict] = {
+        issue_num: parent
+        for issue_num, parent in raw_parent_states.items()
+        if parent and str(parent.get("state", "")).upper() == "CLOSED"
+    }
+
     # 4. Categorize branches
     branches_to_delete: list[BranchInfo] = []
     branches_to_preserve: list[BranchInfo] = []
@@ -479,16 +557,35 @@ async def preflight(
                 break
 
         if linked_issue is not None:
-            branches_to_preserve.append(
-                BranchInfo(
-                    name=name,
-                    eligible_for_deletion=False,
-                    linked_issue_number=linked_issue,
-                    linked_issue_title=issue_titles.get(linked_issue),
-                    linking_method=linking_method,
-                    preservation_reason=f"Linked to open issue #{linked_issue} on project board",
+            # Override: if the linked board issue is a Solune sub-issue whose
+            # parent has been closed, the branch is a deletion candidate.
+            closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+            if closed_parent:
+                parent_num = closed_parent.get("number", "?")
+                branches_to_delete.append(
+                    BranchInfo(
+                        name=name,
+                        eligible_for_deletion=True,
+                        linked_issue_number=linked_issue,
+                        linked_issue_title=issue_titles.get(linked_issue),
+                        linking_method=linking_method,
+                        deletion_reason=(
+                            f"Sub-issue #{linked_issue} — "
+                            f"parent issue #{parent_num} has been closed"
+                        ),
+                    )
                 )
-            )
+            else:
+                branches_to_preserve.append(
+                    BranchInfo(
+                        name=name,
+                        eligible_for_deletion=False,
+                        linked_issue_number=linked_issue,
+                        linked_issue_title=issue_titles.get(linked_issue),
+                        linking_method=linking_method,
+                        preservation_reason=f"Linked to open issue #{linked_issue} on project board",
+                    )
+                )
         else:
             # Check if any open PR references an open issue for this branch
             pr_linked = False
@@ -506,21 +603,51 @@ async def preflight(
                         break
 
             if pr_linked and linked_issue is not None:
-                branches_to_preserve.append(
-                    BranchInfo(
-                        name=name,
-                        eligible_for_deletion=False,
-                        linked_issue_number=linked_issue,
-                        linked_issue_title=issue_titles.get(linked_issue),
-                        linking_method=linking_method,
-                        preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
+                # Override: closed parent on the PR-referenced issue
+                closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+                if closed_parent:
+                    parent_num = closed_parent.get("number", "?")
+                    branches_to_delete.append(
+                        BranchInfo(
+                            name=name,
+                            eligible_for_deletion=True,
+                            linked_issue_number=linked_issue,
+                            linked_issue_title=issue_titles.get(linked_issue),
+                            linking_method="pr_reference",
+                            deletion_reason=(
+                                f"Sub-issue #{linked_issue} — "
+                                f"parent issue #{parent_num} has been closed"
+                            ),
+                        )
                     )
-                )
+                else:
+                    branches_to_preserve.append(
+                        BranchInfo(
+                            name=name,
+                            eligible_for_deletion=False,
+                            linked_issue_number=linked_issue,
+                            linked_issue_title=issue_titles.get(linked_issue),
+                            linking_method=linking_method,
+                            preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
+                        )
+                    )
             elif _is_solune_owned_branch(name, prs_data, app_issue_numbers):
+                # Enrich with a deletion reason when a closed-parent sub-issue
+                # can be found via branch naming conventions.
+                deletion_reason: str | None = None
+                for ref_num in _extract_issue_numbers_from_branch(name):
+                    closed_parent = app_sub_issue_closed_parent.get(ref_num)
+                    if closed_parent:
+                        parent_num = closed_parent.get("number", "?")
+                        deletion_reason = (
+                            f"Sub-issue #{ref_num} — parent issue #{parent_num} has been closed"
+                        )
+                        break
                 branches_to_delete.append(
                     BranchInfo(
                         name=name,
                         eligible_for_deletion=True,
+                        deletion_reason=deletion_reason,
                     )
                 )
             else:
@@ -561,27 +688,63 @@ async def preflight(
         pr_is_solune_owned = _is_solune_owned_pr(pr, app_issue_numbers)
 
         if linked_to_board and linked_issue is not None:
-            prs_to_preserve.append(
-                PullRequestInfo(
-                    number=pr_number,
-                    title=pr_title,
-                    head_branch=head_branch,
-                    referenced_issues=referenced,
-                    eligible_for_deletion=False,
-                    preservation_reason=f"References open issue #{linked_issue} on project board",
+            # Override: if linked issue is a Solune sub-issue with a closed parent,
+            # and the PR itself is Solune-owned, close it.
+            closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+            if closed_parent and pr_is_solune_owned:
+                parent_num = closed_parent.get("number", "?")
+                prs_to_close.append(
+                    PullRequestInfo(
+                        number=pr_number,
+                        title=pr_title,
+                        head_branch=head_branch,
+                        referenced_issues=referenced,
+                        eligible_for_deletion=True,
+                        deletion_reason=(
+                            f"Sub-issue #{linked_issue} — "
+                            f"parent issue #{parent_num} has been closed"
+                        ),
+                    )
                 )
-            )
+            else:
+                prs_to_preserve.append(
+                    PullRequestInfo(
+                        number=pr_number,
+                        title=pr_title,
+                        head_branch=head_branch,
+                        referenced_issues=referenced,
+                        eligible_for_deletion=False,
+                        preservation_reason=f"References open issue #{linked_issue} on project board",
+                    )
+                )
         elif branch_preserved:
-            prs_to_preserve.append(
-                PullRequestInfo(
-                    number=pr_number,
-                    title=pr_title,
-                    head_branch=head_branch,
-                    referenced_issues=referenced,
-                    eligible_for_deletion=False,
-                    preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
+            # Check if the preserved branch is being deleted due to closed parent.
+            # If so, match that and close the PR too (if Solune-owned).
+            branch_in_delete = any(b.name == head_branch for b in branches_to_delete)
+            if branch_in_delete and pr_is_solune_owned:
+                # Inherit the deletion reason from the branch
+                matched = next((b for b in branches_to_delete if b.name == head_branch), None)
+                prs_to_close.append(
+                    PullRequestInfo(
+                        number=pr_number,
+                        title=pr_title,
+                        head_branch=head_branch,
+                        referenced_issues=referenced,
+                        eligible_for_deletion=True,
+                        deletion_reason=matched.deletion_reason if matched else None,
+                    )
                 )
-            )
+            else:
+                prs_to_preserve.append(
+                    PullRequestInfo(
+                        number=pr_number,
+                        title=pr_title,
+                        head_branch=head_branch,
+                        referenced_issues=referenced,
+                        eligible_for_deletion=False,
+                        preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
+                    )
+                )
         elif not pr_is_solune_owned:
             prs_to_preserve.append(
                 PullRequestInfo(
@@ -594,6 +757,17 @@ async def preflight(
                 )
             )
         else:
+            # Solune-owned, not linked to an open board issue — enrich with
+            # deletion reason when a closed-parent sub-issue can be matched.
+            pr_deletion_reason: str | None = None
+            for ref_num in referenced:
+                closed_parent = app_sub_issue_closed_parent.get(ref_num)
+                if closed_parent:
+                    parent_num = closed_parent.get("number", "?")
+                    pr_deletion_reason = (
+                        f"Sub-issue #{ref_num} — parent issue #{parent_num} has been closed"
+                    )
+                    break
             prs_to_close.append(
                 PullRequestInfo(
                     number=pr_number,
@@ -601,6 +775,7 @@ async def preflight(
                     head_branch=head_branch,
                     referenced_issues=referenced,
                     eligible_for_deletion=True,
+                    deletion_reason=pr_deletion_reason,
                 )
             )
 
