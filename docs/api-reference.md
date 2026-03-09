@@ -2,9 +2,9 @@
 
 This document lists every HTTP, WebSocket, and SSE endpoint exposed by the backend. Use it to understand which paths exist, what authentication they require, and what they do.
 
-All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `DEBUG=true`.
+All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `ENABLE_DOCS=true`.
 
-Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/auth/session` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
+Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/webhooks/github` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
 
 ## Health
 
@@ -18,7 +18,6 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 |--------|------|-------------|
 | GET | `/auth/github` | Initiate GitHub OAuth flow |
 | GET | `/auth/github/callback` | OAuth callback handler |
-| POST | `/auth/session` | Set session cookie from token |
 | GET | `/auth/me` | Get current authenticated user |
 | POST | `/auth/logout` | Logout and clear session |
 | POST | `/auth/dev-login` | Dev-only PAT login (`DEBUG=true` only) |
@@ -40,6 +39,7 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 |--------|------|-------------|
 | GET | `/board/projects` | List projects with status field configuration |
 | GET | `/board/projects/{project_id}` | Get board data (columns + items) |
+| GET | `/board/projects/{project_id}/blocking-queue` | Get items blocking the pipeline queue |
 
 ## Chat
 
@@ -50,6 +50,7 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 | DELETE | `/chat/messages` | Clear chat history |
 | POST | `/chat/proposals/{id}/confirm` | Confirm task proposal |
 | DELETE | `/chat/proposals/{id}` | Cancel task proposal |
+| POST | `/chat/upload` | Upload a file attachment |
 
 ### `#agent` Command
 
@@ -77,6 +78,8 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | DELETE | `/chores/{project_id}/{chore_id}` | Remove a chore, closing any open associated issue |
 | POST | `/chores/{project_id}/{chore_id}/trigger` | Manually trigger a chore — creates a GitHub issue and runs agent pipeline |
 | POST | `/chores/{project_id}/chat` | Interactive chat for sparse-input template refinement |
+| PUT | `/chores/{project_id}/{chore_id}/inline-update` | Inline-edit a chore field |
+| POST | `/chores/{project_id}/create-with-merge` | Create a chore by merging template and overrides |
 | POST | `/chores/evaluate-triggers` | Evaluate all active chores for trigger conditions |
 
 ## Cleanup
@@ -131,6 +134,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | PUT | `/signal/preferences` | Update notification preferences |
 | GET | `/signal/banners` | Get active conflict banners |
 | POST | `/signal/banners/{id}/dismiss` | Dismiss a conflict banner |
+| POST | `/signal/webhook/inbound` | Handle inbound Signal message webhook |
 
 ## Agents
 
@@ -139,10 +143,48 @@ Manage custom GitHub Agent configurations stored per-project.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/agents/{project_id}` | List all agents for a project (merged from SQLite + GitHub repo) |
+| GET | `/agents/{project_id}/pending` | List agents pending deployment |
+| DELETE | `/agents/{project_id}/pending` | Purge all pending agent configurations |
 | POST | `/agents/{project_id}` | Create a new agent configuration |
+| PATCH | `/agents/{project_id}/bulk-model` | Bulk-update the model for multiple agents |
 | PATCH | `/agents/{project_id}/{agent_id}` | Update an existing agent configuration |
 | DELETE | `/agents/{project_id}/{agent_id}` | Delete an agent configuration |
+| GET | `/agents/{project_id}/{agent_id}/tools` | Get MCP tool assignments for an agent |
+| PUT | `/agents/{project_id}/{agent_id}/tools` | Update MCP tool assignments for an agent |
 | POST | `/agents/{project_id}/chat` | Conversational refinement of an agent definition |
+
+## Pipelines
+
+Manage agent pipeline configurations and column-to-agent assignments per project.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/pipelines/{project_id}` | List all pipeline configurations for a project |
+| POST | `/pipelines/{project_id}` | Create a new pipeline configuration |
+| POST | `/pipelines/{project_id}/seed-presets` | Seed default pipeline presets for a project |
+| GET | `/pipelines/{project_id}/assignment` | Get the current column-to-pipeline assignment |
+| PUT | `/pipelines/{project_id}/assignment` | Set the column-to-pipeline assignment |
+| PATCH | `/pipelines/{project_id}/assignment` | Update assignment with blocking-queue support |
+| GET | `/pipelines/{project_id}/{pipeline_id}` | Get a single pipeline configuration |
+| PUT | `/pipelines/{project_id}/{pipeline_id}` | Update a pipeline configuration |
+| DELETE | `/pipelines/{project_id}/{pipeline_id}` | Delete a pipeline configuration |
+
+## Tools
+
+Manage MCP (Model Context Protocol) tool server configurations per project.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/tools/presets` | List available tool server presets |
+| GET | `/tools/{project_id}` | List all tool configurations for a project |
+| POST | `/tools/{project_id}` | Add a new tool server configuration |
+| GET | `/tools/{project_id}/repo-config` | Get repository-level MCP config (from `.github/`) |
+| PUT | `/tools/{project_id}/repo-config/{server_name}` | Update a repo-level MCP server entry |
+| DELETE | `/tools/{project_id}/repo-config/{server_name}` | Remove a repo-level MCP server entry |
+| GET | `/tools/{project_id}/{tool_id}` | Get a single tool configuration |
+| PUT | `/tools/{project_id}/{tool_id}` | Update a tool configuration |
+| POST | `/tools/{project_id}/{tool_id}/sync` | Sync a tool configuration from its remote source |
+| DELETE | `/tools/{project_id}/{tool_id}` | Delete a tool configuration |
 
 ## MCP
 
