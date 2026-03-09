@@ -101,44 +101,6 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
     // Focus on mount
     useEffect(() => {
       divRef.current?.focus();
-    },
-    clear() {
-      if (divRef.current) {
-        divRef.current.innerHTML = '';
-        onTextChange('');
-        setIsEmpty(true);
-      }
-    },
-    getPlainText() {
-      return extractPlainText(divRef.current);
-    },
-    getElement() {
-      return divRef.current;
-    },
-    moveCursorToEnd() {
-      moveCursorToEnd(divRef.current);
-    },
-    isCaretOnFirstLine() {
-      return isCaretOnFirstLine(divRef.current);
-    },
-    isCaretOnLastLine() {
-      return isCaretOnLastLine(divRef.current);
-    },
-    insertTokenAtCursor(
-      pipelineId: string,
-      pipelineName: string,
-      triggerOffset: number,
-      queryLength: number
-    ) {
-      insertToken(divRef.current, pipelineId, pipelineName, triggerOffset, queryLength);
-      onTextChange(extractPlainText(divRef.current));
-      setIsEmpty(false);
-    },
-  }));
-
-  // Focus on mount
-  useEffect(() => {
-    divRef.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -263,74 +225,70 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
             }
           }
         }
-      },
-      [onKeyDown, onSubmit, onTextChange, onTokenRemove],
-    );
+      }
+    },
+    [onKeyDown, onSubmit, onTextChange, onTokenRemove],
+  );
 
-    const handlePaste = useCallback(
-      (e: React.ClipboardEvent) => {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        document.execCommand('insertText', false, text);
-      },
-      [],
-    );
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent) => {
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      document.execCommand('insertText', false, text);
+    },
+    [],
+  );
 
-    // Show/hide placeholder — use local state rather than DOM queries
+  // Show/hide placeholder — use local state rather than DOM queries
 
-    return (
-      <div className="relative">
-        <div
-          ref={divRef}
-          contentEditable={!disabled}
-          role="textbox"
-          tabIndex={0}
-          aria-multiline="true"
-          aria-label={ariaLabel || "Chat input"}
-          suppressContentEditableWarning
-          onFocus={() => onFocusChange?.(true)}
-          onBlur={() => onFocusChange?.(false)}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onCompositionStart={() => { isComposingRef.current = true; }}
-          onCompositionEnd={() => {
-            isComposingRef.current = false;
-            handleInput();
-          }}
-          className={cn(
-            'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words',
-            isNavigating && 'border-l-4 border-l-primary bg-primary/5',
-            disabled && 'bg-muted pointer-events-none opacity-60',
-          )}
-        />
-        {isEmpty && !disabled && placeholder && (
-          <div className="absolute top-0 left-0 p-3 text-sm text-muted-foreground pointer-events-none select-none">
-            {placeholderMobile ? (
-              <>
-                <span className="max-sm:hidden">
-                  {cyclingPlaceholder ? (
-                    <span key={cyclingPlaceholder} className="inline-block animate-[fadeIn_0.3s_ease-in] motion-reduce:animate-none">{cyclingPlaceholder}</span>
-                  ) : (
-                    placeholder
-                  )}
-                </span>
-                <span className="hidden max-sm:inline">{placeholderMobile}</span>
-              </>
-            ) : (
-              cyclingPlaceholder || placeholder
-            )}
-          </div>
+  return (
+    <div className="relative">
+      <div
+        ref={divRef}
+        contentEditable={!disabled}
+        role="textbox"
+        tabIndex={0}
+        aria-multiline="true"
+        aria-label={ariaLabel || "Chat input"}
+        suppressContentEditableWarning
+        onFocus={() => onFocusChange?.(true)}
+        onBlur={() => onFocusChange?.(false)}
+        onInput={handleInput}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        onCompositionStart={() => { isComposingRef.current = true; }}
+        onCompositionEnd={() => {
+          isComposingRef.current = false;
+          handleInput();
+        }}
+        className={cn(
+          'w-full min-h-[52px] max-h-[400px] overflow-y-auto rounded-xl border border-border bg-background/76 p-3 text-sm font-inherit leading-relaxed text-foreground outline-none transition-colors focus:border-primary disabled:bg-muted whitespace-pre-wrap break-words',
+          isNavigating && 'border-l-4 border-l-primary bg-primary/5',
+          disabled && 'bg-muted pointer-events-none opacity-60',
         )}
       />
       {isEmpty && !disabled && placeholder && (
         <div className="absolute top-0 left-0 p-3 text-sm text-muted-foreground pointer-events-none select-none">
-          {placeholder}
+          {placeholderMobile ? (
+            <>
+              <span className="max-sm:hidden">
+                {cyclingPlaceholder ? (
+                  <span key={cyclingPlaceholder} className="inline-block animate-[fadeIn_0.3s_ease-in] motion-reduce:animate-none">{cyclingPlaceholder}</span>
+                ) : (
+                  placeholder
+                )}
+              </span>
+              <span className="hidden max-sm:inline">{placeholderMobile}</span>
+            </>
+          ) : (
+            cyclingPlaceholder || placeholder
+          )}
         </div>
       )}
     </div>
   );
-});
+  },
+);
 
 /**
  * Extract plain text from the contentEditable div.
