@@ -74,12 +74,12 @@ async def upsert_profile(
     # Read existing profile to merge
     existing = await get_profile(db, github_user_id)
 
-    display_name = update.display_name if update.display_name is not None else (
-        existing.display_name if existing else None
+    display_name = (
+        update.display_name
+        if update.display_name is not None
+        else (existing.display_name if existing else None)
     )
-    bio = update.bio if update.bio is not None else (
-        existing.bio if existing else None
-    )
+    bio = update.bio if update.bio is not None else (existing.bio if existing else None)
     avatar_path = existing.avatar_path if existing else None
     created_at = existing.created_at.isoformat() if existing else now
 
