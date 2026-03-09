@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 USER_PREFERENCE_COLUMNS = (
     "ai_provider",
     "ai_model",
+    "ai_agent_model",
     "ai_temperature",
     "theme",
     "default_view",
@@ -115,6 +116,7 @@ async def update_global_settings(
         UPDATE global_settings
         SET ai_provider = CASE WHEN ? THEN ? ELSE ai_provider END,
             ai_model = CASE WHEN ? THEN ? ELSE ai_model END,
+            ai_agent_model = CASE WHEN ? THEN ? ELSE ai_agent_model END,
             ai_temperature = CASE WHEN ? THEN ? ELSE ai_temperature END,
             theme = CASE WHEN ? THEN ? ELSE theme END,
             default_view = CASE WHEN ? THEN ? ELSE default_view END,
@@ -181,6 +183,7 @@ async def upsert_user_preferences(
             github_user_id,
             ai_provider,
             ai_model,
+            ai_agent_model,
             ai_temperature,
             theme,
             default_view,
@@ -193,10 +196,11 @@ async def upsert_user_preferences(
             notify_new_recommendation,
             notify_chat_mention,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id) DO UPDATE SET
             ai_provider = CASE WHEN ? THEN excluded.ai_provider ELSE user_preferences.ai_provider END,
             ai_model = CASE WHEN ? THEN excluded.ai_model ELSE user_preferences.ai_model END,
+            ai_agent_model = CASE WHEN ? THEN excluded.ai_agent_model ELSE user_preferences.ai_agent_model END,
             ai_temperature = CASE WHEN ? THEN excluded.ai_temperature ELSE user_preferences.ai_temperature END,
             theme = CASE WHEN ? THEN excluded.theme ELSE user_preferences.theme END,
             default_view = CASE WHEN ? THEN excluded.default_view ELSE user_preferences.default_view END,
@@ -348,6 +352,7 @@ def _row_to_global_response(row: aiosqlite.Row) -> GlobalSettingsResponse:
             provider=AIProvider(row["ai_provider"]),
             model=row["ai_model"],
             temperature=row["ai_temperature"],
+            agent_model=str(row["ai_agent_model"] or ""),
         ),
         display=DisplayPreferences(
             theme=ThemeMode(row["theme"]),
@@ -393,6 +398,7 @@ def _merge_user_settings(
             provider=AIProvider(str(_pick("ai_provider"))),
             model=str(_pick("ai_model")),
             temperature=float(_pick("ai_temperature")),
+            agent_model=str(_pick("ai_agent_model") or ""),
         ),
         display=DisplayPreferences(
             theme=ThemeMode(str(_pick("theme"))),
@@ -451,6 +457,7 @@ def flatten_user_preferences_update(update: dict) -> dict:
         "ai": {
             "provider": "ai_provider",
             "model": "ai_model",
+            "agent_model": "ai_agent_model",
             "temperature": "ai_temperature",
         },
         "display": {

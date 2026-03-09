@@ -1941,7 +1941,7 @@ class TestUpdateAgentTrackingDonePath:
 
     @pytest.mark.asyncio
     async def test_active_path(self, orch, ctx, mock_github):
-        with patch("src.services.agent_tracking.mark_agent_active", return_value="updated body"):
+        with patch("src.services.agent_tracking.update_agent_state", return_value="updated body"):
             result = await orch._update_agent_tracking_state(ctx, "agent-1", "active")
         assert result is True
         mock_github.update_issue_body.assert_awaited_once()
@@ -1957,7 +1957,7 @@ class TestUpdateAgentTrackingDonePath:
     async def test_no_change_needed(self, orch, ctx, mock_github):
         body = "unchanged body"
         mock_github.get_issue_with_comments.return_value = {"body": body}
-        with patch("src.services.agent_tracking.mark_agent_active", return_value=body):
+        with patch("src.services.agent_tracking.update_agent_state", return_value=body):
             result = await orch._update_agent_tracking_state(ctx, "agent-1", "active")
         assert result is True
         mock_github.update_issue_body.assert_not_awaited()
@@ -1971,7 +1971,7 @@ class TestUpdateAgentTrackingDonePath:
     @pytest.mark.asyncio
     async def test_update_failure_returns_false(self, orch, ctx, mock_github):
         mock_github.update_issue_body.return_value = False
-        with patch("src.services.agent_tracking.mark_agent_active", return_value="new body"):
+        with patch("src.services.agent_tracking.update_agent_state", return_value="new body"):
             result = await orch._update_agent_tracking_state(ctx, "agent-1", "active")
         assert result is False
 
@@ -3483,7 +3483,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="gemini-pro",
+                user_agent_model="gemini-pro",
             )
         assert model == "gpt-4o"
 
@@ -3503,7 +3503,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="",
+                user_agent_model="",
             )
         assert model == "claude-3-opus"
 
@@ -3523,7 +3523,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="",
+                user_agent_model="",
             )
         assert model == "my-agent-model"
 
@@ -3542,7 +3542,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="user-model",
+                user_agent_model="user-model",
             )
         assert model == "claude-3-5-sonnet"
 
@@ -3559,7 +3559,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="user-model",
+                user_agent_model="user-model",
             )
         assert model == "user-model"
 
@@ -3574,14 +3574,14 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="user-fallback",
+                user_agent_model="user-fallback",
             )
         assert model == "user-fallback"
 
-    # ── Tier 3: User Settings "chat model" ───────────────────────────
+    # ── Tier 3: User Settings "agent model" ───────────────────────────
 
     @pytest.mark.asyncio
-    async def test_tier3_user_chat_model_used_when_no_pipeline_or_agent_model(self, orchestrator):
+    async def test_tier3_user_agent_model_used_when_no_pipeline_or_agent_model(self, orchestrator):
         """User's chat model is the tier-3 fallback."""
         assignment = AgentAssignment(slug="speckit.specify", config=None)
         with patch("src.services.agents.service.AgentsService") as mock_svc_cls:
@@ -3591,7 +3591,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="gemini-1.5-pro",
+                user_agent_model="gemini-1.5-pro",
             )
         assert model == "gemini-1.5-pro"
 
@@ -3606,7 +3606,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="auto",
+                user_agent_model="auto",
             )
         assert model == "claude-opus-4.6"
 
@@ -3623,7 +3623,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=assignment,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="",
+                user_agent_model="",
             )
         assert model == "claude-opus-4.6"
 
@@ -3637,7 +3637,7 @@ class TestResolveEffectiveModel:
                 agent_assignment=None,
                 agent_slug="speckit.specify",
                 project_id="P1",
-                user_chat_model="",
+                user_agent_model="",
             )
         assert model == "claude-opus-4.6"
 
@@ -3688,7 +3688,7 @@ class TestResolveEffectiveModel:
         assert call_kwargs["model"] == "gpt-4o"
 
     @pytest.mark.asyncio
-    async def test_user_chat_model_passed_when_no_pipeline_or_agent_model(self):
+    async def test_user_agent_model_passed_when_no_pipeline_or_agent_model(self):
         """User settings model is used when pipeline/agent models are unset."""
         mock_github = Mock()
         mock_github.get_issue_with_comments = AsyncMock(
@@ -3709,7 +3709,7 @@ class TestResolveEffectiveModel:
             issue_id="I_1",
             issue_number=10,
             project_item_id="PVTI_1",
-            user_chat_model="gemini-1.5-pro",
+            user_agent_model="gemini-1.5-pro",
         )
         ctx.config = WorkflowConfiguration(
             project_id="P1",

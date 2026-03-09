@@ -50,6 +50,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
       ai: {
         provider: localState.provider,
         model: localState.model,
+        agent_model: localState.agent_model,
         temperature: localState.temperature,
       },
     });
@@ -96,6 +97,25 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
           isLoading={modelsLoading}
           onRetry={() => refetchModels()}
         />
+
+        {/* Agent Model (Auto) — fallback for GitHub Copilot Agents */}
+        <div className="flex flex-col gap-2">
+          <DynamicDropdown
+            id="primary-agent-model"
+            label="Agent Model (Auto)"
+            value={localState.agent_model}
+            onChange={(val) => setField('agent_model', val)}
+            provider={localState.provider}
+            supportsDynamic={providerInfo.supportsDynamic}
+            modelsResponse={modelsResponse}
+            isLoading={modelsLoading}
+            onRetry={() => refetchModels()}
+          />
+          <p className="text-xs text-muted-foreground">
+            Fallback model for all GitHub Copilot Agents. Takes lower priority than per-agent and
+            pipeline configuration.
+          </p>
+        </div>
 
         {/* Temperature */}
         <div className="flex flex-col gap-2">

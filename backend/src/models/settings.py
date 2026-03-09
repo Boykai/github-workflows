@@ -72,6 +72,7 @@ class AIPreferences(BaseModel):
     provider: AIProvider
     model: str
     temperature: float = Field(ge=0.0, le=2.0)
+    agent_model: str = ""
 
 
 class DisplayPreferences(BaseModel):
@@ -163,6 +164,7 @@ class AIPreferencesUpdate(BaseModel):
     provider: AIProvider | None = None
     model: str | None = None
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    agent_model: str | None = None
 
 
 class DisplayPreferencesUpdate(BaseModel):
@@ -225,6 +227,7 @@ class UserPreferencesRow(BaseModel):
     github_user_id: str
     ai_provider: str | None = None
     ai_model: str | None = None
+    ai_agent_model: str | None = None
     ai_temperature: float | None = None
     theme: str | None = None
     default_view: str | None = None
@@ -245,6 +248,7 @@ class GlobalSettingsRow(BaseModel):
     id: int = 1
     ai_provider: str = "copilot"
     ai_model: str = "gpt-4o"
+    ai_agent_model: str | None = None
     ai_temperature: float = 0.7
     theme: str = "light"
     default_view: str = "chat"

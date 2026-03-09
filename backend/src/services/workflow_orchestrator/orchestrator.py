@@ -173,22 +173,29 @@ class WorkflowOrchestrator:
         ctx: WorkflowContext,
         agent_name: str,
         new_state: str,
+        model: str | None = None,
     ) -> bool:
         """
         Update the agent tracking table in the GitHub Issue body.
 
-        Fetches the current issue body, updates the agent's state in the
-        tracking table, and pushes the updated body back to GitHub.
+        Fetches the current issue body, updates the agent's state (and
+        optionally the model column) in the tracking table, and pushes the
+        updated body back to GitHub.
 
         Args:
             ctx: Workflow context with issue info
             agent_name: Agent name (e.g. "speckit.specify")
             new_state: "active" or "done"
+            model: Optional effective model string to record in the Model column
 
         Returns:
             True if the issue body was updated successfully
         """
-        from src.services.agent_tracking import mark_agent_active, mark_agent_done
+        from src.services.agent_tracking import (
+            STATE_ACTIVE,
+            mark_agent_done,
+            update_agent_state,
+        )
 
         if not ctx.issue_number:
             return False
@@ -205,7 +212,7 @@ class WorkflowOrchestrator:
                 return False
 
             if new_state == "active":
-                updated_body = mark_agent_active(body, agent_name)
+                updated_body = update_agent_state(body, agent_name, STATE_ACTIVE, model=model)
             elif new_state == "done":
                 updated_body = mark_agent_done(body, agent_name)
             else:
@@ -739,7 +746,7 @@ class WorkflowOrchestrator:
         agent_assignment: object,
         agent_slug: str,
         project_id: str,
-        user_chat_model: str,
+        user_agent_model: str,
     ) -> str:
         """
         Resolve the effective model for a Copilot agent assignment.
@@ -750,7 +757,7 @@ class WorkflowOrchestrator:
            ``_apply_selected_pipeline()`` overwrites agent_mappings with the
            chosen pipeline's nodes, whose model_id is stored in config.
         2. Agent's own ``default_model_id`` (from ``agent_configs`` table).
-        3. User Settings "chat model" (``ctx.user_chat_model``).
+        3. User Settings "agent model" (``ctx.user_agent_model``).
         4. Hardcoded fallback ``"claude-opus-4.6"``.
 
         A model value of ``"auto"`` (case-insensitive) or an empty string is
@@ -793,14 +800,14 @@ class WorkflowOrchestrator:
                 exc,
             )
 
-        # Tier 3: User Settings "chat model"
-        if _is_set(user_chat_model):
+        # Tier 3: User Settings "agent model"
+        if _is_set(user_agent_model):
             logger.debug(
                 "Model for agent '%s': user settings '%s'",
                 agent_slug,
-                user_chat_model,
+                user_agent_model,
             )
-            return user_chat_model.strip()
+            return user_agent_model.strip()
 
         # Tier 4: Hardcoded fallback
         logger.debug(
@@ -1610,7 +1617,7 @@ class WorkflowOrchestrator:
         # ── Resolve effective model following the precedence hierarchy ──
         # 1. Pipeline config model (encodes chat override + pipeline config)
         # 2. Agent's own default_model_id (from agent_configs table)
-        # 3. User Settings "chat model" (ctx.user_chat_model)
+        # 3. User Settings "agent model" (ctx.user_agent_model)
         # 4. Hardcoded fallback "claude-opus-4.6"
         #
         # Look up the *original* AgentAssignment from the live config rather
@@ -1629,7 +1636,7 @@ class WorkflowOrchestrator:
             agent_assignment=original_assignment,
             agent_slug=agent_name,
             project_id=ctx.project_id,
-            user_chat_model=ctx.user_chat_model,
+            user_agent_model=ctx.user_agent_model,
         )
 
         max_retries = 3
@@ -1680,8 +1687,12 @@ class WorkflowOrchestrator:
                     base_ref,
                 )
 
-                # Mark agent as 🔄 Active in the issue body tracking table
-                await self._update_agent_tracking_state(ctx, agent_name, "active")
+                # Mark agent as 🔄 Active in the issue body tracking table,
+                # recording the effective model so the Model column shows the
+                # actual model used rather than keeping the initial "TBD".
+                await self._update_agent_tracking_state(
+                    ctx, agent_name, "active", model=effective_model
+                )
 
                 # Mark the sub-issue as "in progress" (add label, ensure open)
                 if sub_issue_info and sub_issue_number != ctx.issue_number:

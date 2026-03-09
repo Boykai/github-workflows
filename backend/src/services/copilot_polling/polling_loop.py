@@ -336,6 +336,27 @@ async def _poll_loop(
             if await _pause_if_rate_limited("Step 4b"):
                 continue
 
+            # Step 4c: Blocking queue sweep — detect closed/deleted blocking
+            # issues and unblock the queue.  Lightweight: one REST call per
+            # active/in_review entry (typically 0-2).
+            try:
+                from src.services import blocking_queue as bq_service
+
+                swept = await bq_service.sweep_stale_entries(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                )
+                if swept:
+                    logger.info(
+                        "Poll #%d: Blocking queue sweep cleared %d stale entries: %s",
+                        _polling_state.poll_count,
+                        len(swept),
+                        swept,
+                    )
+            except Exception:
+                logger.debug("Blocking queue sweep skipped (not available)")
+
             # Step 5: Self-healing recovery — detect and fix stalled pipelines
             # Skip if budget is low — recovery is least critical.
             if skip_expensive:

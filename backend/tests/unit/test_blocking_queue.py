@@ -7,7 +7,7 @@ activation, and branch ancestry resolution.
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import aiosqlite
 import pytest
@@ -446,6 +446,79 @@ class TestEdgeCases:
 
         ref = await bq.get_base_ref_for_issue(REPO, 2)
         assert ref == "main"
+
+
+class TestSweepStaleEntries:
+    """Tests for sweep_stale_entries — detect closed/deleted blocking issues."""
+
+    @pytest.mark.asyncio
+    async def test_sweep_clears_closed_issue(self, db):
+        """A closed/deleted blocking issue is marked completed and queue advances."""
+        # Enqueue blocking #1 (activates), then non-blocking #2 (pending)
+        await _enqueue(1, blocking=True, db_conn=db)
+        await _enqueue(2, blocking=False, db_conn=db)
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+        assert await _status(2) == BlockingQueueStatus.PENDING
+
+        # Mock check_issue_closed to report #1 as closed
+        mock_svc = AsyncMock()
+        mock_svc.check_issue_closed = AsyncMock(return_value=True)
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
+            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+
+        assert swept == [1]
+        assert await _status(1) == BlockingQueueStatus.COMPLETED
+        # Queue should have advanced: #2 is now active
+        assert await _status(2) == BlockingQueueStatus.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_sweep_skips_open_issues(self, db):
+        """Open issues are not swept."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+
+        mock_svc = AsyncMock()
+        mock_svc.check_issue_closed = AsyncMock(return_value=False)
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
+            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+
+        assert swept == []
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_sweep_no_active_entries(self, db):
+        """No-op when there are no active/in_review entries."""
+        swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+        assert swept == []
+
+    @pytest.mark.asyncio
+    async def test_sweep_handles_api_error(self, db):
+        """API errors for individual issues don't crash the sweep."""
+        await _enqueue(1, blocking=True, db_conn=db)
+
+        mock_svc = AsyncMock()
+        mock_svc.check_issue_closed = AsyncMock(side_effect=Exception("API error"))
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
+            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+
+        assert swept == []
+        # Entry should still be active (not corrupted)
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_sweep_clears_in_review_entry(self, db):
+        """Issues in in_review state are also swept if closed."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        await bq.mark_in_review(REPO, 1)
+        assert await _status(1) == BlockingQueueStatus.IN_REVIEW
+
+        mock_svc = AsyncMock()
+        mock_svc.check_issue_closed = AsyncMock(return_value=True)
+        with patch("src.services.github_projects.github_projects_service", mock_svc):
+            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+
+        assert swept == [1]
+        assert await _status(1) == BlockingQueueStatus.COMPLETED
 
 
 class TestRecovery:

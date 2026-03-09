@@ -530,6 +530,18 @@ class ChoresService:
                     )
 
                 # Build workflow context
+                user_agent_model = ""
+                if github_user_id:
+                    try:
+                        from src.services.settings_store import get_effective_user_settings
+
+                        effective_user_settings = await get_effective_user_settings(
+                            self._db, github_user_id
+                        )
+                        user_agent_model = effective_user_settings.ai.agent_model or ""
+                    except Exception:
+                        logger.debug("Failed to load user agent model for chore %s", chore.name)
+
                 ctx = WorkflowContext(
                     session_id=str(uuid.uuid4()),
                     project_id=project_id,
@@ -537,6 +549,7 @@ class ChoresService:
                     repository_owner=owner,
                     repository_name=repo,
                     config=config,
+                    user_agent_model=user_agent_model,
                 )
                 ctx.issue_id = issue_node_id
                 ctx.issue_number = issue_number
