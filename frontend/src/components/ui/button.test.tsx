@@ -45,6 +45,11 @@ describe('Button', () => {
 
     rerender(<Button size="icon">Icon</Button>);
     expect(screen.getByRole('button', { name: 'Icon' }).className).toContain('w-10');
+
+    rerender(<Button size="touch">Touch</Button>);
+    const touchBtn = screen.getByRole('button', { name: 'Touch' });
+    expect(touchBtn.className).toContain('min-h-[44px]');
+    expect(touchBtn.className).toContain('min-w-[44px]');
   });
 
   it('forwards ref correctly', () => {
