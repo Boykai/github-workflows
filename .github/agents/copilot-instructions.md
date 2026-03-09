@@ -145,3 +145,10 @@ npx playwright test             # E2E
 - **Pre-push hook** (`scripts/setup-hooks.sh`): full backend + frontend test gates.
 - **CI** (`.github/workflows/ci.yml`): backend uses Python 3.12; frontend uses Node 20. Three jobs: `backend`, `frontend`, `docs` (markdownlint + link-check).
 - A known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs — confirm isolated behavior before changing unrelated code.
+
+## Active Technologies
+- TypeScript ~5.9 (frontend), Python 3.11+ (backend) + React 19.2, react-router-dom 7.13, @tanstack/react-query 5.90, Tailwind CSS v4, FastAPI, aiosqlite, Pydantic (031-profile-page)
+- SQLite via aiosqlite — new `user_profiles` table for display name, bio, custom avatar path (031-profile-page)
+
+## Recent Changes
+- 031-profile-page: Added TypeScript ~5.9 (frontend), Python 3.11+ (backend) + React 19.2, react-router-dom 7.13, @tanstack/react-query 5.90, Tailwind CSS v4, FastAPI, aiosqlite, Pydantic
