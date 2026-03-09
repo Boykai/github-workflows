@@ -70,9 +70,9 @@ export function ProjectSelectionEmptyState({
         >
           <div className="absolute inset-0 rounded-full border border-border/40 bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.18)_0%,transparent_64%)] transition-colors duration-200 group-hover:border-primary/30 group-hover:bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.28)_0%,transparent_64%)]" />
           <div className="absolute inset-[10px] rounded-full border border-primary/18 transition-colors duration-200 group-hover:border-primary/34" />
-          <span className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[hsl(var(--glow))] shadow-[0_0_12px_hsl(var(--glow)/0.8)]" />
-          <span className="absolute bottom-4 right-2 h-2.5 w-2.5 rounded-full bg-[hsl(var(--gold))] shadow-[0_0_18px_hsl(var(--gold)/0.45)]" />
-          <span className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[hsl(var(--gold)/0.55)]" />
+          <span className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[hsl(var(--glow))] shadow-[0_0_12px_hsl(var(--glow)/0.8)] celestial-twinkle" />
+          <span className="absolute bottom-4 right-2 h-2.5 w-2.5 rounded-full bg-[hsl(var(--gold))] shadow-[0_0_18px_hsl(var(--gold)/0.45)] celestial-twinkle-delayed" />
+          <span className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[hsl(var(--gold)/0.55)] celestial-twinkle-slow" />
           <ThemedAgentIcon
             name="Project orbit"
             iconName="orbit"
@@ -102,7 +102,7 @@ export function ProjectSelectionEmptyState({
 
             {isLoading ? (
               <div className="flex items-center justify-center p-6">
-                <div className="h-5 w-5 rounded-full border-2 border-border border-t-primary animate-spin" />
+                <div className="h-5 w-5 rounded-full border-2 border-border border-t-primary celestial-orbit-spin" style={{ animationDuration: '0.8s' }} />
               </div>
             ) : projects.length === 0 ? (
               <div className="p-6 text-center">

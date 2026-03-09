@@ -43,8 +43,8 @@ export function Sidebar({
       }`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.22),transparent_70%)]" />
-      <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl" />
-      <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20" />
+      <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl celestial-pulse-glow" />
+      <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20 celestial-orbit-spin" />
 
       {/* Brand */}
       <div className="relative flex items-center justify-between border-b border-border/70 px-4 py-4">
