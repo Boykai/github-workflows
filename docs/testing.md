@@ -172,7 +172,11 @@ E2E specs:
 - `e2e/integration.spec.ts`
 - `e2e/responsive-board.spec.ts`
 - `e2e/responsive-home.spec.ts`
+- `e2e/responsive-layouts.spec.ts`
+- `e2e/responsive-navigation.spec.ts`
 - `e2e/responsive-settings.spec.ts`
+- `e2e/responsive-touch-targets.spec.ts`
+- `e2e/responsive-typography.spec.ts`
 - `e2e/settings-flow.spec.ts`
 - `e2e/ui.spec.ts`
 

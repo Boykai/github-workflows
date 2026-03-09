@@ -47,13 +47,13 @@ test.describe('Responsive Page Layouts', () => {
 
       // Transition to tablet
       await page.setViewportSize(VIEWPORTS.tablet);
-      await page.waitForTimeout(300); // Allow CSS transitions
+      await expect(page.locator('body')).toBeVisible();
       overflows = await page.evaluate(() => document.body.scrollWidth > window.innerWidth);
       expect(overflows).toBe(false);
 
       // Transition to desktop
       await page.setViewportSize(VIEWPORTS.desktop);
-      await page.waitForTimeout(300);
+      await expect(page.locator('body')).toBeVisible();
       overflows = await page.evaluate(() => document.body.scrollWidth > window.innerWidth);
       expect(overflows).toBe(false);
     });
@@ -69,13 +69,13 @@ test.describe('Responsive Page Layouts', () => {
 
       // Transition to tablet
       await page.setViewportSize(VIEWPORTS.tablet);
-      await page.waitForTimeout(300);
+      await expect(page.locator('body')).toBeVisible();
       overflows = await page.evaluate(() => document.body.scrollWidth > window.innerWidth);
       expect(overflows).toBe(false);
 
       // Transition to mobile
       await page.setViewportSize(VIEWPORTS.mobileSmall);
-      await page.waitForTimeout(300);
+      await expect(page.locator('body')).toBeVisible();
       overflows = await page.evaluate(() => document.body.scrollWidth > window.innerWidth);
       expect(overflows).toBe(false);
     });

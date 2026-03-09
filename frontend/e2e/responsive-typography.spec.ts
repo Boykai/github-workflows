@@ -61,7 +61,7 @@ test.describe('Responsive Typography', () => {
 
     // Measure heading size at desktop
     await page.setViewportSize(VIEWPORTS.desktopLarge);
-    await page.waitForTimeout(200);
+    await expect(h1).toBeVisible();
 
     const desktopFontSize = await h1.evaluate((el) =>
       parseFloat(window.getComputedStyle(el).fontSize),

@@ -3,7 +3,7 @@
  * user avatar display, breadcrumb, and responsive behavior.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { screen, fireEvent, cleanup } from '@/test/test-utils';
+import { screen, fireEvent } from '@/test/test-utils';
 import { render as rtlRender } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
