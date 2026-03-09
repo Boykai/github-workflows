@@ -165,7 +165,7 @@ export function ChoresPanel({ projectId, owner, repo, parentIssueCount = 0, onDi
   const unscheduledChores = chores?.filter((chore) => !chore.schedule_type).length ?? 0;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <div className="celestial-fade-in flex min-w-0 flex-col gap-6">
       <div className="ritual-stage flex flex-col gap-4 rounded-[1.55rem] p-4 sm:rounded-[1.8rem] sm:p-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] uppercase tracking-[0.24em] text-primary/80">Upkeep studio</p>

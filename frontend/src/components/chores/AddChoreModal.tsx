@@ -193,7 +193,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
           onClick={handleCancel}
           role="presentation"
         />
-        <div className="celestial-panel relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
+        <div className="celestial-panel celestial-fade-in relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Build Template — {name}</h3>
             <button
@@ -230,7 +230,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
       />
 
       {/* Modal */}
-      <div className="celestial-panel relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
+      <div className="celestial-panel celestial-fade-in relative z-10 mx-4 w-full max-w-lg rounded-[1.4rem] border border-border shadow-xl">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold text-foreground">Add Chore</h3>
           <button

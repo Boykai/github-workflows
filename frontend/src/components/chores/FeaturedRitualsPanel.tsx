@@ -169,7 +169,7 @@ export function FeaturedRitualsPanel({ chores, parentIssueCount, onChoreClick }:
   }
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+    <div className="celestial-fade-in grid gap-4 grid-cols-1 sm:grid-cols-3">
       {rituals.map((card) => (
         <button
           key={card.label}
