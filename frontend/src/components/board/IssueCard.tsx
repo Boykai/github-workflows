@@ -91,20 +91,6 @@ function sanitizeHexColor(hex: string | null | undefined): string {
   return normalized;
 }
 
-/**
- * Compute WCAG relative luminance from a hex color string.
- * Returns true if text should be black (light background), false if white (dark background).
- */
-function isLightColor(hex: string): boolean {
-  const safeHex = sanitizeHexColor(hex);
-  const r = parseInt(safeHex.slice(0, 2), 16) / 255;
-  const g = parseInt(safeHex.slice(2, 4), 16) / 255;
-  const b = parseInt(safeHex.slice(4, 6), 16) / 255;
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-  return L > 0.179;
-}
-
 export const IssueCard = memo(function IssueCard({ item, onClick, availableAgents, isBlocking = false }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
   const subIssues = item.sub_issues ?? [];
@@ -161,10 +147,11 @@ export const IssueCard = memo(function IssueCard({ item, onClick, availableAgent
             return (
               <span
                 key={label.id}
-                className="rounded-full px-2 py-0.5 text-[10px] font-medium truncate max-w-[120px]"
+                className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[120px]"
                 style={{
-                  backgroundColor: `#${safeColor}`,
-                  color: isLightColor(safeColor) ? '#000' : '#fff',
+                  backgroundColor: `#${safeColor}18`,
+                  color: `#${safeColor}`,
+                  boxShadow: `inset 0 0 0 1px #${safeColor}40`,
                 }}
                 title={label.name}
               >

@@ -121,8 +121,7 @@ describe('IssueCard', () => {
     render(<IssueCard item={item} onClick={vi.fn()} />);
 
     expect(screen.getByText('Needs Review')).toHaveStyle({
-      backgroundColor: '#d1d5db',
-      color: '#000',
+      color: '#d1d5db',
     });
   });
 
