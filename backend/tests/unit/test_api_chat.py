@@ -801,7 +801,7 @@ class TestConfirmProposalPreservesFullDescription:
 
         assert resp.status_code == 200
         call_kwargs = mock_github_service.create_issue.call_args
-        assert call_kwargs.kwargs["labels"] == ["Blocking"]
+        assert call_kwargs.kwargs["labels"] == ["blocking"]
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
     @pytest.mark.parametrize("length", [256, 1024, 4096, 32768, 65536])

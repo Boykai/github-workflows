@@ -34,7 +34,7 @@ SESSION_COOKIE_NAME = "session_id"
 # ──────────────────────────────────────────────────────────────────────────────
 
 GITHUB_ISSUE_BODY_MAX_LENGTH = 65_536
-BLOCKING_LABEL = "Blocking"
+BLOCKING_LABEL = "blocking"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Notification Event Types

@@ -981,7 +981,7 @@ class TestCreateIssueFromRecommendation:
         await orchestrator.create_issue_from_recommendation(workflow_context, recommendation)
 
         labels = mock_github_service.create_issue.call_args.kwargs["labels"]
-        assert "Blocking" in labels
+        assert "blocking" in labels
 
     @pytest.mark.asyncio
     async def test_rejects_oversized_body(
