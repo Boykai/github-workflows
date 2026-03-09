@@ -136,7 +136,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           </label>
           <select
             id="global-ai-provider"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none"
             value={f.provider}
             onChange={(e) => setField('provider', e.target.value as AIProviderType)}
           >
@@ -151,7 +151,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <input
             id="global-ai-model"
             type="text"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             value={f.model}
             onChange={(e) => setField('model', e.target.value)}
           />
@@ -182,7 +182,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           </label>
           <select
             id="global-theme"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none"
             value={f.theme}
             onChange={(e) => setField('theme', e.target.value as ThemeModeType)}
           >
@@ -196,7 +196,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           </label>
           <select
             id="global-view"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none"
             value={f.default_view}
             onChange={(e) => setField('default_view', e.target.value as DefaultViewType)}
           >
@@ -209,7 +209,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
             <input
               type="checkbox"
-              className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
+              className="celestial-focus w-4 h-4 rounded border-input text-primary"
               checked={f.sidebar_collapsed}
               onChange={(e) => setField('sidebar_collapsed', e.target.checked)}
             />
@@ -228,7 +228,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <input
             id="global-repo"
             type="text"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             value={f.default_repository}
             onChange={(e) => setField('default_repository', e.target.value)}
             placeholder="owner/repo"
@@ -241,7 +241,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <input
             id="global-assignee"
             type="text"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             value={f.default_assignee}
             onChange={(e) => setField('default_assignee', e.target.value)}
           />
@@ -253,7 +253,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <input
             id="global-polling"
             type="number"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             min="0"
             value={f.copilot_polling_interval}
             onChange={(e) =>
@@ -270,7 +270,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
             <input
               type="checkbox"
-              className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
+              className="celestial-focus w-4 h-4 rounded border-input text-primary"
               checked={f.task_status_change}
               onChange={(e) => setField('task_status_change', e.target.checked)}
             />{' '}
@@ -281,7 +281,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
             <input
               type="checkbox"
-              className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
+              className="celestial-focus w-4 h-4 rounded border-input text-primary"
               checked={f.agent_completion}
               onChange={(e) => setField('agent_completion', e.target.checked)}
             />{' '}
@@ -292,7 +292,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
             <input
               type="checkbox"
-              className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
+              className="celestial-focus w-4 h-4 rounded border-input text-primary"
               checked={f.new_recommendation}
               onChange={(e) => setField('new_recommendation', e.target.checked)}
             />{' '}
@@ -303,7 +303,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
             <input
               type="checkbox"
-              className="celestial-focus w-4 h-4 rounded border-input text-primary focus:ring-primary"
+              className="celestial-focus w-4 h-4 rounded border-input text-primary"
               checked={f.chat_mention}
               onChange={(e) => setField('chat_mention', e.target.checked)}
             />{' '}
@@ -322,7 +322,7 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
           <input
             id="global-models"
             type="text"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             value={f.allowed_models}
             onChange={(e) => setField('allowed_models', e.target.value)}
             placeholder="gpt-4o, gpt-4"

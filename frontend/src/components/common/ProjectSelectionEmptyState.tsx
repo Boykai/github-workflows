@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/types';
 
@@ -106,7 +107,7 @@ export function ProjectSelectionEmptyState({
 
             {isLoading ? (
               <div className="flex items-center justify-center p-6">
-                <div className="h-5 w-5 rounded-full border-2 border-border border-t-primary celestial-orbit-spin-fast" />
+                <CelestialLoader size="sm" label="Loading projects" />
               </div>
             ) : projects.length === 0 ? (
               <div className="p-6 text-center">

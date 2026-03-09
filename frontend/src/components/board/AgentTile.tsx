@@ -189,7 +189,7 @@ export function AgentTile({
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={`celestial-panel flex flex-col rounded-md border bg-card shadow-sm transition-all ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
+      className={`celestial-panel flex flex-col rounded-md border bg-card shadow-sm ${isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border'} ${sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : ''}`}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
       aria-roledescription="sortable agent"

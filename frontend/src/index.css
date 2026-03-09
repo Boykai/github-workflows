@@ -58,8 +58,6 @@
   /* Theme transition token */
   --transition-theme-shift: 600ms ease-in-out;
 
-  /* Loader animation token */
-  --animate-celestial-loader: orbit-spin 1.8s linear infinite;
 
   @keyframes accordion-down {
     from {
@@ -1209,7 +1207,9 @@
       radial-gradient(circle at 55% 15%, hsl(var(--gold) / 0.85) 0 1px, transparent 1.6px),
       radial-gradient(circle at 75% 55%, hsl(var(--star) / 0.8) 0 1.1px, transparent 1.7px),
       radial-gradient(circle at 40% 70%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.5px);
-    animation: twinkle 4s ease-in-out infinite alternate;
+    animation: var(--animate-twinkle);
+    animation-duration: 4s;
+    animation-direction: alternate;
     opacity: 0.18;
   }
 

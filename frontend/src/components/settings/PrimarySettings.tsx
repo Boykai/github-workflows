@@ -71,7 +71,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
           </label>
           <select
             id="primary-provider"
-            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="celestial-focus flex h-9 w-full rounded-md border border-input bg-background text-foreground px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none"
             value={localState.provider}
             onChange={(e) => handleProviderChange(e.target.value as AIProviderType)}
             aria-label="Model Provider"
