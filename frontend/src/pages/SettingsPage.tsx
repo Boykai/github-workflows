@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { PrimarySettings } from '@/components/settings/PrimarySettings';
 import { AdvancedSettings } from '@/components/settings/AdvancedSettings';
 import { useUserSettings, useGlobalSettings } from '@/hooks/useSettings';
@@ -68,8 +69,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     return (
       <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading settings...</p>
+          <CelestialLoader size="md" label="Loading settings…" />
         </div>
       </div>
     );

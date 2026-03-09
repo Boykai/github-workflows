@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -206,8 +207,7 @@ export function AgentsPipelinePage() {
 
       {projectId && boardLoading && (
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading pipelines...</p>
+          <CelestialLoader size="md" label="Loading pipelines…" />
         </div>
       )}
 
