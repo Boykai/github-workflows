@@ -1,104 +1,90 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Add #help Command to User Chat
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `033-chat-help-command` | **Date**: 2026-03-09 | **Spec**: [`specs/033-chat-help-command/spec.md`](spec.md)
+**Input**: Feature specification from `/specs/033-chat-help-command/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add `#help` as an alias for the existing `/help` chat command. When a user types `#help` (case-insensitive, whitespace-trimmed), the command parser intercepts it before any broadcast logic and injects an ephemeral system message listing all available commands. The response is local-only (not persisted or sent to other users) and visually differentiated as a system/bot message. The implementation is a single-line addition to `parseCommand()` in the existing command registry, plus a minor annotation update in the help handler output.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.9 / React 19 (frontend-only change)
+**Primary Dependencies**: React 19, TanStack Query, Vitest (testing)
+**Storage**: N/A — ephemeral local state only, no backend persistence
+**Testing**: Vitest + React Testing Library (frontend unit tests)
+**Target Platform**: Modern browsers (desktop and mobile viewports)
+**Project Type**: Web application (frontend-only change within `frontend/` project)
+**Performance Goals**: Instant response — `#help` is a synchronous local command, no network calls
+**Constraints**: No new dependencies; no backend changes; no breaking changes to existing `/help` or `help` aliases
+**Scale/Scope**: 2 files modified (`registry.ts`, `help.ts`), 2 test files updated (`registry.test.ts`, `help.test.ts`)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### I. Specification-First Development — ✅ PASS
+
+The parent issue (#2785) includes a user story, UI/UX description, 8 functional requirements (FR), and technical notes. Scope boundaries are explicit: frontend-only, no backend changes, no new dependencies.
+
+### II. Template-Driven Workflow — ✅ PASS
+
+All artifacts follow canonical templates from `.specify/templates/`. This plan follows `plan-template.md`. Research, data model, contracts, and quickstart follow established conventions from prior specs (026, 031).
+
+### III. Agent-Orchestrated Execution — ✅ PASS
+
+This plan is produced by the `speckit.plan` agent. Subsequent phases (`speckit.tasks`, `speckit.implement`) will be handled by their respective agents with well-defined inputs/outputs.
+
+### IV. Test Optionality with Clarity — ✅ PASS (Tests INCLUDED)
+
+Tests are included because the command parser has existing comprehensive tests (`registry.test.ts`, `help.test.ts`, `useCommands.test.tsx`) and the new alias must be verified against all case/whitespace variants. Adding test cases for `#help` follows existing patterns.
+
+### V. Simplicity and DRY — ✅ PASS
+
+The implementation adds a single conditional check in `parseCommand()` (reusing the existing `help` alias pattern) and a minor annotation in the help handler. No new abstractions, no new files, no new patterns. Maximum simplicity.
+
+**Gate Result: ✅ ALL GATES PASS — Proceed to Phase 0**
+
+### Post-Phase 1 Re-check — ✅ ALL GATES STILL PASS
+
+Design artifacts confirm: no new entities, no backend changes, no new dependencies, no complexity violations. The feature is a 2-line code change with test coverage.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/033-chat-help-command/
+├── plan.md              # This file
+├── research.md          # Phase 0: Command alias patterns and edge cases
+├── data-model.md        # Phase 1: No new entities — documents existing state only
+├── quickstart.md        # Phase 1: Step-by-step implementation guide
+├── contracts/           # Phase 1: Component contract changes
+│   └── components.md
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   └── lib/
+│       └── commands/
+│           ├── registry.ts          # MODIFY: Add #help alias in parseCommand()
+│           ├── registry.test.ts     # MODIFY: Add #help test cases
+│           └── handlers/
+│               ├── help.ts          # MODIFY: Annotate help output with #help alias
+│               └── help.test.ts     # MODIFY: Add #help annotation test
+└── (no other files affected)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application — frontend-only change. All modifications are within `frontend/src/lib/commands/`, the existing command system module. No structural changes.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations — this section is intentionally empty.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
