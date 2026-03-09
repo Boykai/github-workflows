@@ -536,3 +536,53 @@ class TestRecovery:
         entry = await store.get_by_issue(REPO, 1)
         assert entry is not None
         assert entry.queue_status == BlockingQueueStatus.ACTIVE
+
+
+# ─── Skip / Delete Workflow Tests ────────────────────────────────────
+
+
+class TestSkipWorkflow:
+    """Tests for skip (mark_completed) used by the board API skip endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_skip_active_blocking_advances_queue(self, db):
+        """Skipping the active blocking issue should complete it and activate the next."""
+        await _enqueue(10, blocking=True, db_conn=db)
+        await _enqueue(20, blocking=False, db_conn=db)
+        assert await _status(10) == BlockingQueueStatus.ACTIVE
+        assert await _status(20) == BlockingQueueStatus.PENDING
+
+        # Skip issue #10 (what the /skip endpoint does)
+        activated = await bq.mark_completed(REPO, 10)
+
+        assert await _status(10) == BlockingQueueStatus.COMPLETED
+        assert await _status(20) == BlockingQueueStatus.ACTIVE
+        assert len(activated) == 1
+        assert activated[0].issue_number == 20
+
+    @pytest.mark.asyncio
+    async def test_skip_nonexistent_issue_is_noop(self, db):
+        """Skipping an issue not in the queue should return empty list."""
+        activated = await bq.mark_completed(REPO, 999)
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_resolve_entry_by_project(self, db):
+        """get_by_project returns entries that can be looked up by issue number."""
+        await _enqueue(10, blocking=True, db_conn=db)
+        await _enqueue(20, blocking=False, db_conn=db)
+
+        entries = await store.get_by_project(PROJECT)
+        assert len(entries) == 2
+        match = next((e for e in entries if e.issue_number == 10), None)
+        assert match is not None
+        assert match.repo_key == REPO
+
+    @pytest.mark.asyncio
+    async def test_resolve_entry_missing_issue_not_found(self, db):
+        """Looking up a missing issue by project should return no match."""
+        await _enqueue(10, blocking=True, db_conn=db)
+
+        entries = await store.get_by_project(PROJECT)
+        match = next((e for e in entries if e.issue_number == 999), None)
+        assert match is None

@@ -376,6 +376,26 @@ export const boardApi = {
   getBlockingQueue(projectId: string): Promise<BlockingQueueEntry[]> {
     return request<BlockingQueueEntry[]>(`/board/projects/${projectId}/blocking-queue`);
   },
+
+  /**
+   * Skip a blocking queue entry — marks it completed and advances the queue.
+   */
+  skipBlockingIssue(projectId: string, issueNumber: number): Promise<BlockingQueueEntry[]> {
+    return request<BlockingQueueEntry[]>(
+      `/board/projects/${projectId}/blocking-queue/${issueNumber}/skip`,
+      { method: 'POST' }
+    );
+  },
+
+  /**
+   * Close the GitHub issue and remove it from the blocking queue.
+   */
+  deleteBlockingIssue(projectId: string, issueNumber: number): Promise<BlockingQueueEntry[]> {
+    return request<BlockingQueueEntry[]>(
+      `/board/projects/${projectId}/blocking-queue/${issueNumber}`,
+      { method: 'DELETE' }
+    );
+  },
 };
 
 // ============ Settings API ============

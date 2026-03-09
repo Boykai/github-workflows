@@ -380,3 +380,86 @@ async def get_blocking_queue(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to load blocking queue",
         ) from exc
+
+
+@router.post(
+    "/projects/{project_id}/blocking-queue/{issue_number}/skip",
+    dependencies=[Depends(verify_project_access)],
+)
+async def skip_blocking_issue(
+    project_id: str,
+    issue_number: int,
+) -> list[dict]:
+    """Skip a blocking queue entry — marks it completed and advances the queue.
+
+    Returns the updated (non-completed) queue entries for the project.
+    """
+    from src.services import blocking_queue as bq_service
+    from src.services import blocking_queue_store as bq_store
+
+    entry = await _resolve_queue_entry(project_id, issue_number)
+    await bq_service.mark_completed(entry.repo_key, issue_number)
+    updated = await bq_store.get_by_project(project_id)
+    return [e.model_dump() for e in updated]
+
+
+@router.delete(
+    "/projects/{project_id}/blocking-queue/{issue_number}",
+    dependencies=[Depends(verify_project_access)],
+)
+async def delete_blocking_issue(
+    project_id: str,
+    issue_number: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[dict]:
+    """Close the GitHub issue and skip it in the blocking queue.
+
+    1. Closes the issue on GitHub (state → closed, reason → not_planned).
+    2. Marks the queue entry as completed and advances to the next entry.
+
+    Returns the updated (non-completed) queue entries for the project.
+    """
+    from src.services import blocking_queue as bq_service
+    from src.services import blocking_queue_store as bq_store
+
+    entry = await _resolve_queue_entry(project_id, issue_number)
+    owner, repo = entry.repo_key.split("/", 1)
+
+    try:
+        await github_projects_service.update_issue_state(
+            session.access_token,
+            owner,
+            repo,
+            issue_number,
+            state="closed",
+            state_reason="not_planned",
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to close issue #%d on GitHub (%s): %s",
+            issue_number,
+            entry.repo_key,
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to close issue on GitHub",
+        ) from exc
+
+    await bq_service.mark_completed(entry.repo_key, issue_number)
+    updated = await bq_store.get_by_project(project_id)
+    return [e.model_dump() for e in updated]
+
+
+async def _resolve_queue_entry(project_id: str, issue_number: int):
+    """Look up a blocking queue entry by project + issue number, or raise 404."""
+    from src.services import blocking_queue_store as bq_store
+
+    entries = await bq_store.get_by_project(project_id)
+    for entry in entries:
+        if entry.issue_number == issue_number:
+            return entry
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Issue #{issue_number} not found in blocking queue for this project",
+    )
