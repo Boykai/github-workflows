@@ -26,7 +26,11 @@ class TestProcessSignalChat:
 
         with (
             patch("src.services.agent_creator.get_active_session", return_value=None),
-            patch("src.services.agent_creator.is_admin_user", new_callable=AsyncMock, return_value=True),
+            patch(
+                "src.services.agent_creator.is_admin_user",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
             patch(
                 "src.services.agent_creator.handle_agent_command",
                 new_callable=AsyncMock,
@@ -43,7 +47,9 @@ class TestProcessSignalChat:
                 new_callable=AsyncMock,
                 side_effect=RuntimeError("repo lookup failed"),
             ),
-            patch("src.services.signal_chat._reply_with_audit", new_callable=AsyncMock) as mock_reply,
+            patch(
+                "src.services.signal_chat._reply_with_audit", new_callable=AsyncMock
+            ) as mock_reply,
             caplog.at_level("WARNING"),
         ):
             await process_signal_chat(conn, "#agent create triager", "PVT_123", "+15551234567")
