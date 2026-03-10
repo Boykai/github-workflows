@@ -43,7 +43,7 @@ interface FormErrors {
 function deriveIssueTitlePreview(issueDescription: string): string {
   const headingMatch = issueDescription.match(/^\s{0,3}#{1,6}\s+(.+)$/m);
   const firstLine =
-    headingMatch?.[1] ??
+    headingMatch?.[1]?.trim() ??
     issueDescription
       .split('\n')
       .map((line) => line.trim())
