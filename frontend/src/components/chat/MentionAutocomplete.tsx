@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { MentionFilterResult, PipelineConfigSummary } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface MentionAutocompleteProps {
   pipelines: MentionFilterResult[];
@@ -73,11 +74,9 @@ export function MentionAutocomplete({
               id={`mention-option-${index}`}
               role="option"
               aria-selected={index === highlightedIndex}
-              className={`px-3 py-2 cursor-pointer flex flex-col gap-0.5 text-sm transition-colors ${
-                index === highlightedIndex
+              className={cn('px-3 py-2 cursor-pointer flex flex-col gap-0.5 text-sm transition-colors', index === highlightedIndex
                   ? 'bg-primary/10 text-foreground'
-                  : 'text-foreground hover:bg-primary/10'
-              }`}
+                  : 'text-foreground hover:bg-primary/10')}
               onMouseDown={(e) => {
                 e.preventDefault();
                 onSelect(pipeline);

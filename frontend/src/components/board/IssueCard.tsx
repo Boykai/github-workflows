@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Lock } from 'lucide-
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
+import { cn } from '@/lib/utils';
 
 /** Allowed avatar URL hostnames from GitHub. */
 const ALLOWED_AVATAR_HOSTS = ['avatars.githubusercontent.com'];
@@ -224,7 +225,7 @@ export const IssueCard = memo(function IssueCard({
       <div className="mt-1 flex flex-wrap gap-1.5">
         {item.priority && (
           <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${priorityConfig.bg} ${priorityConfig.text}`}
+            className={cn('rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]', priorityConfig.bg, priorityConfig.text)}
           >
             {item.priority.name}
           </span>

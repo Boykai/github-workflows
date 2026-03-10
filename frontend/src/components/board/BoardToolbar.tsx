@@ -7,6 +7,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Filter, ArrowUpDown, Columns3, X } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { BoardFilterState, BoardSortState, BoardGroupState } from '@/hooks/useBoardControls';
+import { cn } from '@/lib/utils';
 
 type ActivePanel = 'filter' | 'sort' | 'group' | null;
 
@@ -43,11 +44,9 @@ function ToolbarButton({
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors ${
-        isActive
+      className={cn('relative flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors', isActive
           ? 'border-primary/50 bg-primary/10 text-primary'
-          : 'border-border/70 bg-background/50 hover:bg-accent/45'
-      }`}
+          : 'border-border/70 bg-background/50 hover:bg-accent/45')}
       type="button"
     >
       <Icon className="w-3.5 h-3.5" />
@@ -279,14 +278,14 @@ export function BoardToolbar({
               Direction
             </span>
             <button
-              className={`px-2 py-0.5 text-xs rounded ${sort.direction === 'asc' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+              className={cn('px-2 py-0.5 text-xs rounded', sort.direction === 'asc' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground')}
               onClick={() => onSortChange({ ...sort, direction: 'asc' })}
               type="button"
             >
               Asc
             </button>
             <button
-              className={`px-2 py-0.5 text-xs rounded ${sort.direction === 'desc' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+              className={cn('px-2 py-0.5 text-xs rounded', sort.direction === 'desc' ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:text-foreground')}
               onClick={() => onSortChange({ ...sort, direction: 'desc' })}
               type="button"
             >

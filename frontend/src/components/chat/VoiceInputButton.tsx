@@ -4,6 +4,7 @@
  */
 
 import { Mic, MicOff, Square } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VoiceInputButtonProps {
   isSupported: boolean;
@@ -49,9 +50,7 @@ export function VoiceInputButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-primary/10 ${
-        error ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'
-      }`}
+      className={cn('flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-primary/10', error ? 'text-destructive' : 'text-muted-foreground hover:text-foreground')}
       aria-label="Start voice input"
       title={error || 'Voice input'}
     >

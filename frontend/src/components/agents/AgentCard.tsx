@@ -128,7 +128,7 @@ export function AgentCard({
                   {sourceLabel}
                 </span>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shrink-0 shadow-sm ${badge.className}`}
+                  className={cn('rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] shrink-0 shadow-sm', badge.className)}
                 >
                   {badge.label}
                 </span>

@@ -8,6 +8,7 @@ import { useState, useRef, useEffect, useCallback, type CSSProperties } from 're
 import { Layers, Lock, PencilLine } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
+import { cn } from '@/lib/utils';
 import type {
   PipelineStage,
   PipelineAgentNode,
@@ -139,9 +140,7 @@ export function PipelineBoard({
                   setIsEditingName(false);
                 }
               }}
-              className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
-                validationErrors.name ? 'border-red-500' : 'border-primary/30'
-              }`}
+              className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none', validationErrors.name ? 'border-red-500' : 'border-primary/30')}
               placeholder="Pipeline name"
               maxLength={100}
             />
@@ -152,9 +151,7 @@ export function PipelineBoard({
                 setEditNameValue(pipelineName);
                 setIsEditingName(true);
               }}
-              className={`text-lg font-semibold transition-colors ${
-                validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
-              }`}
+              className={cn('text-lg font-semibold transition-colors', validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary')}
               title="Click to rename"
             >
               {pipelineName || 'Untitled Pipeline'}
@@ -180,14 +177,10 @@ export function PipelineBoard({
             aria-checked={pipelineBlocking}
             aria-label="Blocking"
             onClick={() => onBlockingChange(!pipelineBlocking)}
-            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-              pipelineBlocking ? 'bg-amber-500' : 'bg-muted'
-            }`}
+            className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60', pipelineBlocking ? 'bg-amber-500' : 'bg-muted')}
           >
             <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                pipelineBlocking ? 'translate-x-4' : 'translate-x-0'
-              }`}
+              className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', pipelineBlocking ? 'translate-x-4' : 'translate-x-0')}
             />
           </button>
           <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -241,9 +234,7 @@ export function PipelineBoard({
                 setIsEditingName(false);
               }
             }}
-            className={`rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none ${
-              validationErrors.name ? 'border-red-500' : 'border-primary/30'
-            }`}
+            className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none', validationErrors.name ? 'border-red-500' : 'border-primary/30')}
             placeholder="Pipeline name"
             maxLength={100}
           />
@@ -254,9 +245,7 @@ export function PipelineBoard({
               setEditNameValue(pipelineName);
               setIsEditingName(true);
             }}
-            className={`text-lg font-semibold transition-colors ${
-              validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary'
-            }`}
+            className={cn('text-lg font-semibold transition-colors', validationErrors.name ? 'text-red-500' : 'text-foreground hover:text-primary')}
             title="Click to rename"
           >
             {pipelineName || 'Untitled Pipeline'}
@@ -282,14 +271,10 @@ export function PipelineBoard({
           aria-checked={pipelineBlocking}
           aria-label="Blocking"
           onClick={() => onBlockingChange(!pipelineBlocking)}
-          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-            pipelineBlocking ? 'bg-amber-500' : 'bg-muted'
-          }`}
+          className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60', pipelineBlocking ? 'bg-amber-500' : 'bg-muted')}
         >
           <span
-            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
-              pipelineBlocking ? 'translate-x-4' : 'translate-x-0'
-            }`}
+            className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', pipelineBlocking ? 'translate-x-4' : 'translate-x-0')}
           />
         </button>
         <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">

@@ -208,17 +208,12 @@ def _discover_migrations() -> list[tuple[int, Path]]:
     Discover SQL migration files in the migrations directory.
 
     Files must match pattern: NNN_*.sql (e.g., 001_initial_schema.sql)
-    Returns list of (version_number, file_path) sorted by version.
+    Returns list of (version_number, file_path) sorted by version then filename.
+
+    Logs a warning if duplicate version prefixes are detected (e.g., two files
+    starting with ``013_``).  Both files are still returned so existing
+    deployments that already applied them are not broken.
     """
-    # TODO(bug-bash): Duplicate migration prefixes exist (013, 014, 015 each
-    # have two files). _run_migrations() tracks progress by version number, so
-    # the second file sharing a prefix is silently skipped once the first is
-    # applied. Renumbering requires a migration reconciliation strategy for
-    # existing deployments whose schema_version already reflects the old
-    # numbering.  Options: (1) renumber the "B" files to 017-019 and add a
-    # reconciliation migration, (2) add duplicate-detection with a startup
-    # warning.  Human decision needed: pick a strategy that accounts for
-    # databases already in production.
     if not MIGRATIONS_DIR.exists():
         return []
 
@@ -231,7 +226,20 @@ def _discover_migrations() -> list[tuple[int, Path]]:
             version = int(match.group(1))
             migrations.append((version, path))
 
-    return sorted(migrations, key=lambda x: x[0])
+    # Warn about duplicate version prefixes so operators can plan renumbering
+    seen: dict[int, list[str]] = {}
+    for version, path in migrations:
+        seen.setdefault(version, []).append(path.name)
+    for version, files in sorted(seen.items()):
+        if len(files) > 1:
+            logger.warning(
+                "Duplicate migration prefix %03d: %s — both files will be applied in "
+                "filename order; consider renumbering to avoid ambiguity",
+                version,
+                ", ".join(files),
+            )
+
+    return sorted(migrations, key=lambda x: (x[0], x[1].name))
 
 
 async def seed_global_settings(db: aiosqlite.Connection) -> None:

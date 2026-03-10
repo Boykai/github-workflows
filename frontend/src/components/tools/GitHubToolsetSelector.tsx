@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { McpToolConfigCreate } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface GitHubToolsetSelectorProps {
   onCreate: (data: McpToolConfigCreate) => Promise<unknown>;
@@ -108,7 +109,7 @@ export function GitHubToolsetSelector({ onCreate, isSubmitting }: GitHubToolsetS
               type="button"
               onClick={() => toggleToolset(toolset)}
               aria-pressed={selected}
-              className={`rounded-[1rem] border px-4 py-3 text-left text-sm transition-colors ${selected ? 'border-primary/60 bg-primary/10 text-foreground' : 'border-border/70 bg-background/40 text-muted-foreground'}`}
+              className={cn('rounded-[1rem] border px-4 py-3 text-left text-sm transition-colors', selected ? 'border-primary/60 bg-primary/10 text-foreground' : 'border-border/70 bg-background/40 text-muted-foreground')}
             >
               {toolset}
             </button>
