@@ -491,7 +491,7 @@ export function ProjectsPage() {
           <section id="pipeline-stages" className="space-y-4 scroll-mt-24">
             <div>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-semibold">Pipeline Stages</h3>
+                <h3 id="pipeline-stages-heading" className="text-lg font-semibold">Pipeline Stages</h3>
                 {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -637,7 +637,7 @@ export function ProjectsPage() {
                   className="grid min-w-full items-stretch gap-3"
                   style={pipelineGridStyle}
                   role="region"
-                  aria-labelledby="pipeline-stages"
+                  aria-labelledby="pipeline-stages-heading"
                 >
                   {transformedBoardData.columns.map((col) => {
                     const assigned =
