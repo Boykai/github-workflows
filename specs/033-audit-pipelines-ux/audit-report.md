@@ -107,7 +107,7 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 - **Affected file**: `frontend/src/pages/AgentsPipelinePage.tsx`
 - **Observed issue**: The page always shows only three recent pipelines, but there is no hint that the list is intentionally abbreviated.
 - **Remediation**: Add lightweight helper copy, a “View all workflows” affordance, or reuse the saved workflows section as the canonical destination.
-- **Status**: Open
+- **Status**: Fixed — added overflow indicator text ("Showing 3 of N") with anchor link to `#saved-pipelines` when pipeline count exceeds 3
 
 ## Accessibility Notes
 
