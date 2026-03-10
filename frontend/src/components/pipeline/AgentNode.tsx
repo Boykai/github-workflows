@@ -3,9 +3,10 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy } from 'lucide-react';
+import { X, Wrench, Copy, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { PipelineAgentNode } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
@@ -18,6 +19,9 @@ interface AgentNodeProps {
   onRemove: () => void;
   onToolsClick?: () => void;
   onClone?: () => void;
+  executionMode?: 'sequential' | 'parallel';
+  /** Per-agent runtime status for parallel stages (running/completed/failed). */
+  agentStatus?: 'pending' | 'running' | 'completed' | 'failed';
   // Drag-and-drop sortable props (optional — only provided when used inside a SortableContext)
   dragHandleListeners?: SyntheticListenerMap;
   dragHandleAttributes?: DraggableAttributes;
@@ -32,6 +36,8 @@ export function AgentNode({
   onRemove,
   onToolsClick,
   onClone,
+  executionMode,
+  agentStatus,
   dragHandleListeners,
   dragHandleAttributes,
   setNodeRef,
@@ -43,18 +49,38 @@ export function AgentNode({
   const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {
     event.stopPropagation();
   };
+  const tooltipText =
+    executionMode === 'parallel'
+      ? 'These agents run at the same time'
+      : 'This agent runs after the previous completes';
 
   return (
-    <div
-      ref={setNodeRef}
-      style={dragStyle}
-      {...(dragHandleAttributes ?? {})}
-      {...(dragHandleListeners ?? {})}
-      className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
-    >
+    <Tooltip content={tooltipText}>
+      <div
+        ref={setNodeRef}
+        style={dragStyle}
+        {...(dragHandleAttributes ?? {})}
+        {...(dragHandleListeners ?? {})}
+        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
+      >
       {/* Drag handle removed — entire card is the drag target */}
 
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
+
+      {/* Per-agent status indicator (shown during runtime for parallel stages) */}
+      {agentStatus && agentStatus !== 'pending' && (
+        <span className="shrink-0">
+          {agentStatus === 'running' && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          )}
+          {agentStatus === 'completed' && (
+            <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+          )}
+          {agentStatus === 'failed' && (
+            <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+          )}
+        </span>
+      )}
 
       {/* Agent info */}
       <div className="flex-1 min-w-0">
@@ -118,6 +144,7 @@ export function AgentNode({
       >
         <X className="h-3.5 w-3.5" />
       </button>
-    </div>
+      </div>
+    </Tooltip>
   );
 }
