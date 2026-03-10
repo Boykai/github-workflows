@@ -27,7 +27,7 @@
 
 - [ ] T001 Review the feature requirements and story priorities in `specs/033-fix-silent-failures-security/spec.md` and `specs/033-fix-silent-failures-security/plan.md`
 - [ ] T002 [P] Audit the current critical, high, and medium exception handlers in `backend/src/services/github_projects/service.py`, `backend/src/services/github_projects/__init__.py`, `backend/src/services/metadata_service.py`, `backend/src/services/agent_creator.py`, and `backend/src/services/signal_chat.py`
-- [ ] T003 [P] Baseline the remaining bare `except Exception:` sweep and the expected verification commands in `backend/src/` and `specs/033-fix-silent-failures-security/quickstart.md`
+- [ ] T003 [P] Baseline the remaining bare `except Exception:` sweep in `backend/src/` and capture the expected grep-based verification commands from `specs/033-fix-silent-failures-security/quickstart.md`
 
 **Checkpoint**: The team knows which handlers are already fixed, which files still need changes, and how completion will be verified.
 
@@ -41,7 +41,7 @@
 
 - [ ] T004 Confirm the shared logging and sanitization patterns to reuse from `backend/src/logging_utils.py` against `specs/033-fix-silent-failures-security/contracts/logging-contract.md`
 - [ ] T005 [P] Add or verify documentation comments for intentional broad catches in `backend/src/main.py`, `backend/src/services/signal_bridge.py`, `backend/src/api/workflow.py`, `backend/src/api/chat.py`, `backend/src/services/model_fetcher.py`, `backend/src/services/github_projects/service.py`, `backend/src/services/chores/service.py`, `backend/src/services/ai_agent.py`, and `backend/src/services/workflow_orchestrator/models.py`
-- [ ] T006 [P] Prepare the static grep/ruff/pyright/pytest verification flow described in `specs/033-fix-silent-failures-security/quickstart.md` and `backend/pyproject.toml`
+- [ ] T006 [P] Prepare the static `grep`/`ruff`/`pyright`/`pytest` verification flow described in `specs/033-fix-silent-failures-security/quickstart.md` and `backend/pyproject.toml`
 
 **Checkpoint**: The implementation contract is defined, intentional exceptions are documented, and the validation flow is ready.
 
@@ -130,7 +130,7 @@
 
 **Purpose**: Run the feature-specific verification flow and make sure the final implementation is safe, observable, and regression-checked.
 
-- [ ] T021 [P] Run the manual and static verification scenarios from `specs/033-fix-silent-failures-security/quickstart.md` against `backend/src/services/github_projects/service.py`, `backend/src/services/agent_creator.py`, and `backend/src/services/signal_chat.py`
+- [ ] T021 [P] Run the manual and static verification scenarios from `specs/033-fix-silent-failures-security/quickstart.md` against `backend/src/services/github_projects/service.py`, `backend/src/services/agent_creator.py`, `backend/src/services/metadata_service.py`, and `backend/src/services/signal_chat.py`
 - [ ] T022 [P] Run `uv run --extra dev ruff check src/`, `uv run --extra dev pyright src/`, and `uv run --extra dev pytest tests/unit/ -x` from `backend/pyproject.toml` after the exception-handling changes
 
 ---
@@ -265,7 +265,7 @@ With multiple developers:
 | **US4 tasks** | 2 (T014-T015) |
 | **US5 tasks** | 5 (T016-T020) |
 | **Polish tasks** | 2 (T021-T022) |
-| **Parallel tasks marked [P]** | 9 |
+| **Parallel tasks marked [P]** | 11 |
 | **MVP scope** | Phases 1-3 (T001-T009) |
 
 ---
