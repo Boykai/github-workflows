@@ -73,9 +73,13 @@ describe('buildGitHubMcpConfig', () => {
     expect(entries).toHaveLength(BUILTIN_MCPS.length);
     expect(entries.every((e) => e.builtin)).toBe(true);
 
-    const parsed = JSON.parse(configJson) as { mcpServers: Record<string, unknown> };
+    const parsed = JSON.parse(configJson) as {
+      mcpServers: Record<string, { builtin?: boolean }>;
+    };
     expect(parsed.mcpServers).toHaveProperty('context7');
     expect(parsed.mcpServers).toHaveProperty('CodeGraphContext');
+    expect(parsed.mcpServers.context7.builtin).toBe(true);
+    expect(parsed.mcpServers.CodeGraphContext.builtin).toBe(true);
   });
 
   it('merges user tools with built-in MCPs', () => {
@@ -119,6 +123,26 @@ describe('buildGitHubMcpConfig', () => {
     expect(context7Entry).toBeDefined();
     expect(context7Entry!.builtin).toBe(false);
     expect(context7Entry!.config).toEqual(customContext7Config);
+  });
+
+  it('does not inject builtin metadata into user-defined MCP servers', () => {
+    const tools = [
+      makeTool({
+        config_content: JSON.stringify({
+          mcpServers: {
+            custom: { type: 'http', url: 'https://custom.example.com/mcp' },
+          },
+        }),
+      }),
+    ];
+
+    const { configJson } = buildGitHubMcpConfig(tools);
+    const parsed = JSON.parse(configJson) as {
+      mcpServers: Record<string, { builtin?: boolean }>;
+    };
+
+    expect(parsed.mcpServers.custom.builtin).toBeUndefined();
+    expect(parsed.mcpServers.context7.builtin).toBe(true);
   });
 
   it('deduplicates server keys across multiple tools', () => {

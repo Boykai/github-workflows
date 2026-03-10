@@ -1,10 +1,30 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
+import type { McpToolConfig } from '@/types';
 
 import { RepoConfigPanel } from './RepoConfigPanel';
 import { McpPresetsGallery } from './McpPresetsGallery';
 import { GitHubMcpConfigGenerator } from './GitHubMcpConfigGenerator';
+
+function makeTool(
+  overrides: Partial<McpToolConfig> & { config_content: string; is_active?: boolean }
+): McpToolConfig {
+  return {
+    id: 'tool-1',
+    name: 'Test Tool',
+    description: 'A test tool',
+    endpoint_url: '',
+    sync_status: 'synced',
+    sync_error: '',
+    synced_at: '2026-01-01T00:00:00Z',
+    github_repo_target: 'owner/repo',
+    is_active: true,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
 
 describe('RepoConfigPanel', () => {
   it('renders repository MCP servers and source paths', () => {
@@ -122,11 +142,9 @@ describe('GitHubMcpConfigGenerator', () => {
 
   it('includes user tools alongside built-in MCPs in generated config', () => {
     const tools = [
-      {
-        id: 'tool-1',
+      makeTool({
         name: 'Custom MCP',
         description: 'A custom MCP server',
-        endpoint_url: '',
         config_content: JSON.stringify({
           mcpServers: {
             'my-server': {
@@ -136,14 +154,7 @@ describe('GitHubMcpConfigGenerator', () => {
             },
           },
         }),
-        sync_status: 'synced' as const,
-        sync_error: '',
-        synced_at: '2026-01-01T00:00:00Z',
-        github_repo_target: 'owner/repo',
-        is_active: true,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
-      },
+      }),
     ];
 
     render(<GitHubMcpConfigGenerator tools={tools} />);
@@ -158,11 +169,10 @@ describe('GitHubMcpConfigGenerator', () => {
 
   it('only includes active project MCPs in the generated config', () => {
     const tools = [
-      {
+      makeTool({
         id: 'tool-active',
         name: 'Active MCP',
         description: 'Included server',
-        endpoint_url: '',
         config_content: JSON.stringify({
           mcpServers: {
             activeServer: {
@@ -171,19 +181,12 @@ describe('GitHubMcpConfigGenerator', () => {
             },
           },
         }),
-        sync_status: 'synced' as const,
-        sync_error: '',
-        synced_at: '2026-01-01T00:00:00Z',
-        github_repo_target: 'owner/repo',
         is_active: true,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
-      },
-      {
+      }),
+      makeTool({
         id: 'tool-inactive',
         name: 'Inactive MCP',
         description: 'Excluded server',
-        endpoint_url: '',
         config_content: JSON.stringify({
           mcpServers: {
             inactiveServer: {
@@ -192,14 +195,8 @@ describe('GitHubMcpConfigGenerator', () => {
             },
           },
         }),
-        sync_status: 'synced' as const,
-        sync_error: '',
-        synced_at: '2026-01-01T00:00:00Z',
-        github_repo_target: 'owner/repo',
         is_active: false,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
-      },
+      }),
     ];
 
     render(<GitHubMcpConfigGenerator tools={tools} />);
@@ -210,11 +207,10 @@ describe('GitHubMcpConfigGenerator', () => {
 
   it('does not mark user overrides of built-in MCP keys as Built-In', () => {
     const tools = [
-      {
+      makeTool({
         id: 'tool-override',
         name: 'Override Context7',
         description: 'User-provided Context7 override',
-        endpoint_url: '',
         config_content: JSON.stringify({
           mcpServers: {
             context7: {
@@ -223,14 +219,8 @@ describe('GitHubMcpConfigGenerator', () => {
             },
           },
         }),
-        sync_status: 'synced' as const,
-        sync_error: '',
-        synced_at: '2026-01-01T00:00:00Z',
-        github_repo_target: 'owner/repo',
         is_active: true,
-        created_at: '2026-01-01T00:00:00Z',
-        updated_at: '2026-01-01T00:00:00Z',
-      },
+      }),
     ];
 
     render(<GitHubMcpConfigGenerator tools={tools} />);
@@ -270,6 +260,46 @@ describe('GitHubMcpConfigGenerator', () => {
     }
   });
 
+  it('falls back to document.execCommand when Clipboard API writes fail', async () => {
+    const user = userEvent.setup();
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const originalExecCommand = Object.getOwnPropertyDescriptor(document, 'execCommand');
+    const execCommandMock = vi.fn().mockReturnValue(true);
+    const writeText = vi.fn().mockRejectedValue(new Error('Clipboard unavailable'));
+
+    Object.defineProperty(document, 'execCommand', {
+      value: execCommandMock,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+
+    try {
+      render(<GitHubMcpConfigGenerator tools={[]} />);
+
+      await user.click(screen.getByRole('button', { name: /Copy to clipboard/i }));
+
+      expect(writeText).toHaveBeenCalled();
+      expect(execCommandMock).toHaveBeenCalledWith('copy');
+      expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    } finally {
+      if (originalExecCommand) {
+        Object.defineProperty(document, 'execCommand', originalExecCommand);
+      } else {
+        delete (document as Record<string, unknown>)['execCommand'];
+      }
+      if (originalClipboard) {
+        Object.defineProperty(navigator, 'clipboard', originalClipboard);
+      } else {
+        delete (navigator as Record<string, unknown>)['clipboard'];
+      }
+    }
+  });
+
   it('displays the generated JSON config with mcpServers', () => {
     render(<GitHubMcpConfigGenerator tools={[]} />);
 
@@ -278,6 +308,13 @@ describe('GitHubMcpConfigGenerator', () => {
     const codeBlock = screen.getByTestId('github-mcp-config-code');
     expect(codeBlock.textContent).toContain('context7');
     expect(codeBlock.textContent).toContain('CodeGraphContext');
+  });
+
+  it('renders builtin metadata in the generated configuration JSON', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    const codeBlock = screen.getByTestId('github-mcp-config-code');
+    expect(codeBlock.textContent).toContain('"builtin": true');
   });
 
   it('shows the syntax-highlighted code block guidance', () => {
@@ -305,5 +342,33 @@ describe('GitHubMcpConfigGenerator', () => {
 
     expect(screen.getByText('"mcpServers"')).toHaveClass('text-sky-300');
     expect(screen.getByText('"https://mcp.context7.com/mcp"')).toHaveClass('text-emerald-300');
+  });
+
+  it('updates the generated config and empty state when active tools change', () => {
+    const inactiveTool = makeTool({
+      id: 'tool-realtime',
+      name: 'Realtime MCP',
+      is_active: false,
+      config_content: JSON.stringify({
+        mcpServers: {
+          realtimeServer: {
+            type: 'http',
+            url: 'https://example.com/realtime',
+          },
+        },
+      }),
+    });
+
+    const { rerender } = render(<GitHubMcpConfigGenerator tools={[inactiveTool]} />);
+    expect(screen.queryByText('realtimeServer')).not.toBeInTheDocument();
+    expect(screen.getByText('No active project MCPs yet')).toBeInTheDocument();
+
+    rerender(<GitHubMcpConfigGenerator tools={[{ ...inactiveTool, is_active: true }]} />);
+
+    expect(screen.getByText('realtimeServer')).toBeInTheDocument();
+    expect(screen.queryByText('No active project MCPs yet')).not.toBeInTheDocument();
+    const activeProjectCard = screen.getByText('Active project MCPs').closest('div');
+    expect(activeProjectCard).not.toBeNull();
+    expect(within(activeProjectCard!).getByText('1')).toBeInTheDocument();
   });
 });
