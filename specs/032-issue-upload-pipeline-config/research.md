@@ -45,7 +45,7 @@
 **Alternatives Considered**:
 
 - **Server-side only validation**: Rejected — would delay feedback until after a round-trip. The spec says "inline validation feedback" which implies immediate client-side responses.
-- **Form library (React Hook Form, Formik)**: Rejected — the form has only 2 fields (textarea + select). A form library adds complexity without proportional value. Simple `useState` for each field plus a `formErrors` object is the established pattern in the codebase (see `ProjectIssueLaunchPanel`, `AddAgentModal`, `AddChoreModal`).
+- **Form library (React Hook Form, Formik)**: Rejected — the form has only 2 fields (textarea + select). A form library adds complexity without proportional value. Simple `useState` for each field plus a `formErrors` object is the established pattern in the codebase (see `AddAgentModal`, `AddChoreModal`).
 - **Schema validation (Zod, Yup)**: Rejected — overkill for 2 fields with straightforward rules. The validation logic is 10 lines of inline code.
 
 ---

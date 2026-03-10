@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Node.js 20+ and npm
-- Python 3.12+
+- Python 3.13+
 - The repository cloned and on the feature branch
 
 ```bash
