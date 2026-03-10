@@ -767,12 +767,13 @@ async def confirm_proposal(
                     project_id, proposal.selected_pipeline_id
                 )
                 if selected_pipeline is not None:
-                    selected_mappings, selected_pipeline_name = selected_pipeline
+                    selected_mappings, selected_pipeline_name, selected_modes = selected_pipeline
                     pipeline_result = PipelineResolutionResult(
                         agent_mappings=selected_mappings,
                         source="pipeline",
                         pipeline_name=selected_pipeline_name,
                         pipeline_id=proposal.selected_pipeline_id,
+                        stage_execution_modes=selected_modes,
                     )
                 else:
                     logger.warning(
@@ -797,6 +798,8 @@ async def confirm_proposal(
                     pipeline_result.pipeline_name or "N/A",
                 )
                 config.agent_mappings = pipeline_result.agent_mappings
+                if pipeline_result.stage_execution_modes:
+                    config.stage_execution_modes = pipeline_result.stage_execution_modes
                 await set_workflow_config(project_id, config)
 
             # Populate pipeline metadata on the proposal response

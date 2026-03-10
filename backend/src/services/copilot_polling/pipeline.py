@@ -136,6 +136,7 @@ async def _get_or_reconstruct_pipeline(
     status: str,
     agents: list[str],
     expected_status: str | None = None,
+    execution_mode: str = "sequential",
 ) -> "_cp.PipelineState":
     """
     Get existing pipeline state or reconstruct from issue comments.
@@ -152,6 +153,7 @@ async def _get_or_reconstruct_pipeline(
         status: Current workflow status
         agents: Ordered list of agents for this status
         expected_status: If provided, only use cached pipeline if status matches
+        execution_mode: Stage execution mode ("sequential" or "parallel")
 
     Returns:
         PipelineState (either cached or reconstructed)
@@ -287,7 +289,7 @@ async def _get_or_reconstruct_pipeline(
         )
 
     # Default: reconstruct for the requested status
-    return await _reconstruct_pipeline_state(
+    result = await _reconstruct_pipeline_state(
         access_token=access_token,
         owner=owner,
         repo=repo,
@@ -296,6 +298,166 @@ async def _get_or_reconstruct_pipeline(
         status=status,
         agents=agents,
     )
+    result.execution_mode = execution_mode
+    return result
+
+
+async def _process_parallel_pipeline(
+    access_token: str,
+    project_id: str,
+    task: Any,
+    owner: str,
+    repo: str,
+    pipeline: "_cp.PipelineState",
+    from_status: str,
+    to_status: str,
+) -> dict[str, Any] | None:
+    """Process a parallel-stage pipeline: check all agents concurrently.
+
+    All agents in a parallel stage are dispatched simultaneously.  The pipeline
+    advances only after every agent has completed.  If any agent fails, the
+    stage is marked as failed and the pipeline halts.
+    """
+    task_owner = task.repository_owner or owner
+    task_repo = task.repository_name or repo
+
+    # Initialize parallel_agent_statuses if empty
+    if not pipeline.parallel_agent_statuses:
+        pipeline.parallel_agent_statuses = dict.fromkeys(pipeline.agents, "pending")
+
+    # Check each agent's completion status concurrently
+    all_done = True
+    any_failed = False
+    for agent_name in pipeline.agents:
+        if agent_name in pipeline.completed_agents:
+            pipeline.parallel_agent_statuses[agent_name] = "completed"
+            continue
+
+        if agent_name in pipeline.failed_agents:
+            pipeline.parallel_agent_statuses[agent_name] = "failed"
+            any_failed = True
+            continue
+
+        # Check if agent has completed
+        done = await _cp._check_agent_done_on_sub_or_parent(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            parent_issue_number=task.issue_number,
+            agent_name=agent_name,
+            pipeline=pipeline,
+        )
+
+        if done:
+            pipeline.completed_agents.append(agent_name)
+            pipeline.parallel_agent_statuses[agent_name] = "completed"
+            _pending_agent_assignments.pop(f"{task.issue_number}:{agent_name}", None)
+            logger.info(
+                "Parallel agent '%s' completed on issue #%d (%d/%d done)",
+                agent_name,
+                task.issue_number,
+                len(pipeline.completed_agents),
+                len(pipeline.agents),
+            )
+        else:
+            all_done = False
+            pipeline.parallel_agent_statuses[agent_name] = "running"
+
+    # If any agent failed, halt the pipeline
+    if any_failed:
+        pipeline.error = (
+            f"Parallel stage failed: agents {pipeline.failed_agents} failed"
+        )
+        logger.error(
+            "Parallel stage failed for issue #%d: %s",
+            task.issue_number,
+            pipeline.failed_agents,
+        )
+        return {
+            "status": "error",
+            "issue_number": task.issue_number,
+            "action": "parallel_stage_failed",
+            "failed_agents": pipeline.failed_agents,
+            "from_status": from_status,
+        }
+
+    # If all agents completed, mark pipeline as complete and transition
+    if all_done and len(pipeline.completed_agents) == len(pipeline.agents):
+        pipeline.current_agent_index = len(pipeline.agents)
+        _cp.set_pipeline_state(task.issue_number, pipeline)
+        return await _transition_after_pipeline_complete(
+            access_token=access_token,
+            project_id=project_id,
+            item_id=task.github_item_id,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            issue_node_id=task.github_content_id,
+            from_status=from_status,
+            to_status=to_status,
+            task_title=task.title,
+        )
+
+    # Not all done yet — ensure all agents have been assigned
+    # For parallel stages, all agents should be dispatched simultaneously
+    for idx, agent_name in enumerate(pipeline.agents):
+        if agent_name in pipeline.completed_agents:
+            continue
+        if agent_name in pipeline.failed_agents:
+            continue
+
+        # Check if agent was already assigned
+        pending_key = f"{task.issue_number}:{agent_name}"
+        if _pending_agent_assignments.get(pending_key) is not None:
+            continue
+
+        # Check grace period
+        if pipeline.started_at:
+            age = (utcnow() - pipeline.started_at).total_seconds()
+            if age < ASSIGNMENT_GRACE_PERIOD_SECONDS:
+                continue
+
+        # Check tracking table
+        body, _comments = await _cp._get_tracking_state_from_issue(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+        )
+        # If agent is active in tracking table, skip
+        tracking_step = _cp.get_current_agent_from_tracking(body)
+        if tracking_step and tracking_step.agent_name == agent_name:
+            continue
+
+        # Assign the agent
+        logger.info(
+            "Assigning parallel agent '%s' (index %d) for issue #%d",
+            agent_name,
+            idx,
+            task.issue_number,
+        )
+        orchestrator = _cp.get_workflow_orchestrator()
+        ctx = _cp.WorkflowContext(
+            session_id="polling",
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=task_owner,
+            repository_name=task_repo,
+            issue_id=task.github_content_id,
+            issue_number=task.issue_number,
+            project_item_id=task.github_item_id,
+            current_state=_cp.WorkflowState.READY,
+        )
+        ctx.config = await _cp.get_workflow_config(project_id)
+
+        assigned = await orchestrator.assign_agent_for_status(
+            ctx, from_status, agent_index=idx
+        )
+        if assigned:
+            _pending_agent_assignments[pending_key] = utcnow()
+
+    _cp.set_pipeline_state(task.issue_number, pipeline)
+    return None
 
 
 async def _process_pipeline_completion(
@@ -379,6 +541,22 @@ async def _process_pipeline_completion(
             task_title=task.title,
         )
 
+    # ── Parallel stage handling ──
+    # When execution_mode is "parallel", check ALL agents simultaneously
+    # instead of one at a time.
+    if pipeline.execution_mode == "parallel":
+        return await _process_parallel_pipeline(
+            access_token=access_token,
+            project_id=project_id,
+            task=task,
+            owner=owner,
+            repo=repo,
+            pipeline=pipeline,
+            from_status=from_status,
+            to_status=to_status,
+        )
+
+    # ── Sequential stage handling (default) ──
     # Check if current agent has completed
     current_agent = pipeline.current_agent
     if current_agent:
@@ -556,6 +734,7 @@ async def check_backlog_issues(
         logger.debug("Found %d issues in '%s' status", len(backlog_tasks), config.status_backlog)
 
         agents = _cp.get_agent_slugs(config, config.status_backlog)
+        exec_mode = _cp.get_stage_execution_mode(config, config.status_backlog)
 
         for task in backlog_tasks:
             task_owner = task.repository_owner or owner
@@ -572,6 +751,7 @@ async def check_backlog_issues(
                 project_id=project_id,
                 status=config.status_backlog,
                 agents=agents,
+                execution_mode=exec_mode,
             )
 
             # Skip if no agents found (neither DB config nor tracking table)
@@ -647,6 +827,7 @@ async def check_ready_issues(
         logger.debug("Found %d issues in '%s' status", len(ready_tasks), config.status_ready)
 
         agents = _cp.get_agent_slugs(config, config.status_ready)
+        exec_mode = _cp.get_stage_execution_mode(config, config.status_ready)
 
         for task in ready_tasks:
             task_owner = task.repository_owner or owner
@@ -664,6 +845,7 @@ async def check_ready_issues(
                 status=config.status_ready,
                 agents=agents,
                 expected_status=config.status_ready,
+                execution_mode=exec_mode,
             )
 
             # Skip if no agents found (neither DB config nor tracking table)
@@ -1718,6 +1900,8 @@ async def check_in_review_issues(
         if not agents:
             return results
 
+        exec_mode = _cp.get_stage_execution_mode(config, config.status_in_review)
+
         # The target status after In Review is "Done".
         # WorkflowConfiguration does not have a status_done field;
         # use the conventional name.
@@ -1769,6 +1953,7 @@ async def check_in_review_issues(
                     project_id=project_id,
                     status=config.status_in_review,
                     agents=agents,
+                    execution_mode=exec_mode,
                 )
 
             # Process pipeline completion/advancement
@@ -1916,6 +2101,7 @@ async def check_in_progress_issues(
             # and jump straight to "In Review".
             if pipeline is None or pipeline.is_complete:
                 agents = _cp.get_agent_slugs(config, config.status_in_progress) if config else []
+                exec_mode_ip = _cp.get_stage_execution_mode(config, config.status_in_progress) if config else "sequential"
                 pipeline = await _get_or_reconstruct_pipeline(
                     access_token=access_token,
                     owner=task_owner,
@@ -1925,6 +2111,7 @@ async def check_in_progress_issues(
                     status=config.status_in_progress if config else "In Progress",
                     agents=agents,
                     expected_status=config.status_in_progress if config else "In Progress",
+                    execution_mode=exec_mode_ip,
                 )
                 # If still no agents after checking tracking table, fall to legacy path
                 if not pipeline.agents:

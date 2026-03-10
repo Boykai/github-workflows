@@ -112,7 +112,8 @@ async def _prepare_workflow_config(
     if pipeline_result is None:
         raise NotFoundError("Selected pipeline config is no longer available")
 
-    config.agent_mappings, pipeline_name = pipeline_result
+    config.agent_mappings, pipeline_name, stage_modes = pipeline_result
+    config.stage_execution_modes = stage_modes
     await set_workflow_config(project_id, config)
     return config, pipeline_name
 

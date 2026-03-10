@@ -44,6 +44,10 @@ class WorkflowConfiguration(BaseModel):
         },
         description="Status name → ordered list of agent assignments",
     )
+    stage_execution_modes: dict[str, str] = Field(
+        default_factory=dict,
+        description="Status name → execution mode ('sequential' | 'parallel')",
+    )
     status_backlog: str = Field(default="Backlog", description="Backlog status column name")
     status_ready: str = Field(default="Ready", description="Ready status column name")
     status_in_progress: str = Field(default="In Progress", description="In Progress column name")

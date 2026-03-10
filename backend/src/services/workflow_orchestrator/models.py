@@ -26,6 +26,18 @@ def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
     ]
 
 
+def get_stage_execution_mode(config: WorkflowConfiguration, status: str) -> str:
+    """Return the execution_mode for a given status. Defaults to 'sequential'.
+
+    Checks ``stage_execution_modes`` mapping on the config (populated when
+    loading pipelines).  Falls back to ``"sequential"`` for legacy configs.
+    """
+    modes = getattr(config, "stage_execution_modes", None)
+    if modes:
+        return _ci_get(modes, status, "sequential") or "sequential"
+    return "sequential"
+
+
 def get_status_order(config: WorkflowConfiguration) -> list[str]:
     """Return the ordered list of pipeline statuses from configuration."""
     return [
