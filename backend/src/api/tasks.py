@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
+from src.dependencies import require_selected_project
 from src.exceptions import ValidationError
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
@@ -85,9 +86,7 @@ async def create_task(
     # Validate project is selected or provided
     project_id = request.project_id
     if not project_id:
-        if not session.selected_project_id:
-            raise ValidationError("No project selected. Please select a project first.")
-        project_id = session.selected_project_id
+        project_id = require_selected_project(session)
 
     logger.info("Creating issue in project %s: %s", project_id, request.title)
 

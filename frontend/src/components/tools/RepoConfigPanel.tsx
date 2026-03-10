@@ -2,6 +2,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import type { RepoMcpConfigResponse, RepoMcpServerConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface RepoConfigPanelProps {
   repoConfig: RepoMcpConfigResponse | null;
@@ -61,7 +62,7 @@ export function RepoConfigPanel({
           return (
             <span
               key={path}
-              className={`rounded-full border px-3 py-1 ${active ? 'border-primary/50 bg-primary/10 text-foreground' : 'border-border/60 bg-background/45'}`}
+              className={cn('rounded-full border px-3 py-1', active ? 'border-primary/50 bg-primary/10 text-foreground' : 'border-border/60 bg-background/45')}
             >
               {path}
             </span>

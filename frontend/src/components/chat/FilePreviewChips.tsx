@@ -5,6 +5,7 @@
 
 import { X, FileText, Image, Loader2, Check, AlertTriangle } from 'lucide-react';
 import type { FileAttachment } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface FilePreviewChipsProps {
   files: FileAttachment[];
@@ -53,11 +54,9 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
       {files.map((file) => (
         <div
           key={file.id}
-          className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border shrink-0 ${
-            file.status === 'error'
+          className={cn('flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border shrink-0', file.status === 'error'
               ? 'border-destructive/50 bg-destructive/5'
-              : 'border-border bg-background/76'
-          }`}
+              : 'border-border bg-background/76')}
           title={file.error || file.filename}
         >
           {isImageFile(file.contentType) ? (

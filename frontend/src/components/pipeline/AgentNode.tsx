@@ -10,6 +10,7 @@ import type { PipelineAgentNode } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import type { DraggableAttributes } from '@dnd-kit/core';
+import { cn } from '@/lib/utils';
 
 interface AgentNodeProps {
   agentNode: PipelineAgentNode;
@@ -49,7 +50,7 @@ export function AgentNode({
       style={dragStyle}
       {...(dragHandleAttributes ?? {})}
       {...(dragHandleListeners ?? {})}
-      className={`pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]${dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : ''}${isDragging ? ' opacity-50 scale-[0.98]' : ''}`}
+      className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
     >
       {/* Drag handle removed — entire card is the drag target */}
 

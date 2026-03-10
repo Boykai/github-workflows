@@ -252,8 +252,8 @@ async def deliver_chat_message_via_signal(
     enc = _get_encryption()
     try:
         phone = enc.decrypt(conn.signal_phone_encrypted)
-    except Exception:
-        logger.error("Failed to decrypt phone for user %s", github_user_id)
+    except Exception as e:
+        logger.error("Failed to decrypt phone for user %s: %s", github_user_id, e)
         return
 
     # Build deep link

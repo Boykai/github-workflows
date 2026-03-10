@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import type { BlockingQueueEntry } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface BlockingIssuePillProps {
   entries: BlockingQueueEntry[];
@@ -73,9 +74,7 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
       <div className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/8 px-3 py-1.5 text-xs font-medium shadow-sm">
         {/* Status dot */}
         <span
-          className={`h-2 w-2 shrink-0 rounded-full ${
-            oldest.queue_status === 'in_review' ? 'bg-blue-500' : 'bg-green-500'
-          }`}
+          className={cn('h-2 w-2 shrink-0 rounded-full', oldest.queue_status === 'in_review' ? 'bg-blue-500' : 'bg-green-500')}
           title={statusLabel}
         />
 

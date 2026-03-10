@@ -7,6 +7,7 @@ import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2, Lock } from 'lucide
 import { PipelineFlowGraph } from './PipelineFlowGraph';
 import { PresetBadge } from './PresetBadge';
 import type { PipelineConfigSummary } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface SavedWorkflowsListProps {
   pipelines: PipelineConfigSummary[];
@@ -91,13 +92,11 @@ export function SavedWorkflowsList({
                     onSelect(pipeline.id);
                   }
                 }}
-                className={`flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
-                  isActive
+                className={cn('flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md', isActive
                     ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/20 shadow-sm'
                     : pipeline.is_preset
                       ? 'border-border/60 bg-card/88 hover:border-primary/30'
-                      : 'border-border/60 bg-card/82 hover:border-primary/30'
-                }`}
+                      : 'border-border/60 bg-card/82 hover:border-primary/30')}
               >
                 {/* Header: name + badges */}
                 <div className="flex items-start justify-between gap-2">

@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 from collections import OrderedDict
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
+from collections.abc import Awaitable, Callable, ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
 from typing import TypeVar, overload
 
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
+
+logger = logging.getLogger(__name__)
 
 
 class BoundedSet[T]:
@@ -185,3 +188,38 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
         "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
         "or ensure the project has at least one linked issue."
     )
+
+
+async def cached_fetch[R](
+    cache_key: str,
+    fetch_fn: Callable[..., Awaitable[R]],
+    *args: object,
+    refresh: bool = False,
+) -> R:
+    """Check cache, call *fetch_fn* on miss, and store the result.
+
+    This is the canonical cache-or-fetch pattern used by API endpoints that
+    back GitHub data with an in-memory cache.
+
+    Args:
+        cache_key: Cache key to check / store under.
+        fetch_fn: Async callable that produces the value on cache miss.
+        *args: Positional arguments forwarded to *fetch_fn*.
+        refresh: When ``True`` the cache is bypassed and *fetch_fn* is
+            always called.
+
+    Returns:
+        The cached or freshly fetched value.
+    """
+    from src.services.cache import cache
+
+    if not refresh:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            logger.debug("Cache hit for %s", cache_key)
+            return cached  # type: ignore[return-value]
+
+    result = await fetch_fn(*args)
+    cache.set(cache_key, result)
+    logger.debug("Cache set for %s", cache_key)
+    return result

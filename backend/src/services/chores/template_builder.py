@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +243,7 @@ async def update_template_in_repo(
         Dict with keys: pr_number, pr_url
     """
     slug = _slugify(chore_name)
-    timestamp = int(__import__("time").time())
+    timestamp = int(time.time())
     branch_name = f"chore/update-{slug}-{timestamp}"
 
     repo_info = await github_service.get_repository_info(access_token, owner, repo)

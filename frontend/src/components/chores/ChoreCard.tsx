@@ -277,9 +277,7 @@ export function ChoreCard({
                   onClick={handleToggleStatus}
                   disabled={updateMutation.isPending}
                   aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
-                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm ${
-                    chore.status === 'active' ? 'solar-chip-success' : 'solar-chip-violet'
-                  } disabled:opacity-50`}
+                  className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm', chore.status === 'active' ? 'solar-chip-success' : 'solar-chip-violet', 'disabled:opacity-50')}
                 >
                   {chore.status === 'active' ? 'Active' : 'Paused'}
                 </button>
