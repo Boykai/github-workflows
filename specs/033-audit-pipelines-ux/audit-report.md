@@ -33,7 +33,7 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 | ID | Severity | Category | Status | Finding |
 | --- | --- | --- | --- | --- |
 | `PIPE-001` | High | Functional bug / UX | Fixed | The hero **New pipeline** CTA bypassed the unsaved-changes guard and did not reuse the same stage-prefill flow as the empty-state CTA. |
-| `PIPE-002` | Medium | Functional bug / IA | Fixed | The hero **Saved workflows** anchor linked to `#saved-pipelines`, but the page had no matching target, so the shortcut did not move the user to the saved workflows section. |
+| `PIPE-002` | Medium | Functional bug / information architecture | Fixed | The hero **Saved workflows** anchor linked to `#saved-pipelines`, but the page had no matching target, so the shortcut did not move the user to the saved workflows section. |
 | `PIPE-003` | Medium | UX / Visual quality | Fixed | Long pipeline names were visually truncated in **Saved Workflows** and **Recent Activity** with no way to inspect the full label. |
 | `PIPE-004` | Medium | Accessibility | Open | Pipeline name validation feedback in `PipelineBoard` is only visual; the name input does not expose `aria-invalid` / `aria-describedby` for assistive technologies. |
 | `PIPE-005` | Low | Visual consistency | Open | `SavedWorkflowsList` uses generic pulse blocks during loading, which feel flatter and less intentional than the app’s usual celestial panel skeletons. |
@@ -128,4 +128,3 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 - Frontend lint
 - Frontend type-check
 - Frontend build
-
