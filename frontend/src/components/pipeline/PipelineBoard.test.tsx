@@ -107,7 +107,7 @@ describe('PipelineBoard', () => {
     expect(onNameChange).toHaveBeenCalledWith('Renamed Pipeline');
   });
 
-  it('shows the parallel stage helper and widens the stage grid when a stage has multiple agents', () => {
+  it('shows the grouped stage helper and widens the stage grid when a stage has multiple agents', () => {
     renderPipelineBoard(
       <PipelineBoard
         columnCount={1}
@@ -133,7 +133,7 @@ describe('PipelineBoard', () => {
       />
     );
 
-    expect(screen.getByText('Parallel stage')).toBeInTheDocument();
+    expect(screen.getByText('Grouped stage')).toBeInTheDocument();
     expect(screen.getByTestId('pipeline-stage-grid')).toHaveStyle({
       gridTemplateColumns: 'repeat(1, minmax(20rem, 1fr))',
     });

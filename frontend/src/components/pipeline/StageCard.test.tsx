@@ -100,7 +100,7 @@ describe('StageCard', () => {
     expect(screen.getByText('(copilot)')).toBeInTheDocument();
   });
 
-  it('highlights stages with multiple agents as a parallel group', () => {
+  it('highlights stages with multiple agents as a grouped stage', () => {
     renderStageCard(
       <StageCard
         stage={createStage({
@@ -125,10 +125,10 @@ describe('StageCard', () => {
       />
     );
 
-    expect(screen.getByText('Runs in Parallel')).toBeInTheDocument();
+    expect(screen.getByText('Grouped Stage')).toBeInTheDocument();
     expect(
-      screen.getByText(/All agents in this stage start together/i)
+      screen.getByText(/Agents in this stage are grouped/i)
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add parallel agent/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add agent to group/i })).toBeInTheDocument();
   });
 });

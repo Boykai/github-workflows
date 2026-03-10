@@ -291,10 +291,10 @@ export function PipelineBoard({
         <div className="flex flex-wrap items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/8 px-3 py-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
             <GitBranch className="h-3.5 w-3.5" />
-            Parallel stage
+            Grouped stage
           </span>
           <span>
-            Agents placed in the same stage run together, and the pipeline advances only after
+            Agents placed in the same stage are grouped, and the pipeline advances only after
             the full group finishes.
           </span>
         </div>
