@@ -31,9 +31,11 @@ describe('NotificationBell — scroll handler throttling', () => {
   });
 
   function flushRAF() {
-    const cbs = [...rafCallbacks];
-    rafCallbacks.length = 0;
-    cbs.forEach((cb) => cb(performance.now()));
+    act(() => {
+      const cbs = [...rafCallbacks];
+      rafCallbacks.length = 0;
+      cbs.forEach((cb) => cb(performance.now()));
+    });
   }
 
   it('uses requestAnimationFrame to throttle scroll-driven position updates', () => {
