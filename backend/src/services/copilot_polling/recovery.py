@@ -148,6 +148,27 @@ async def recover_stalled_issues(
                     )
                     continue
 
+            # ── Blocking queue guard ──────────────────────────────────────
+            # If the issue is waiting in the blocking queue (pending behind a
+            # blocking issue), do NOT attempt recovery — the queue will
+            # activate it at the right time.  Without this check, recovery
+            # sees an unassigned agent in the pre-created tracking table and
+            # assigns it immediately, bypassing the serial blocking gate.
+            try:
+                from src.models.blocking import BlockingQueueStatus
+                from src.services import blocking_queue as bq_service
+
+                repo_key = f"{task_owner}/{task_repo}"
+                bq_entry = await bq_service.get_entry(repo_key, issue_number)
+                if bq_entry and bq_entry.queue_status == BlockingQueueStatus.PENDING:
+                    logger.debug(
+                        "Recovery: issue #%d is pending in blocking queue — skipping recovery",
+                        issue_number,
+                    )
+                    continue
+            except Exception:
+                pass  # blocking queue unavailable — proceed with recovery
+
             # ── Read the issue body tracking table ────────────────────────
             try:
                 issue_data = await _cp.github_projects_service.get_issue_with_comments(

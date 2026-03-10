@@ -44,6 +44,11 @@ def _get_issue_branch(entry: BlockingQueueEntry) -> str | None:
     return entry.parent_branch
 
 
+async def get_entry(repo_key: str, issue_number: int) -> BlockingQueueEntry | None:
+    """Return the blocking queue entry for an issue, or None if not queued."""
+    return await store.get_by_issue(repo_key, issue_number)
+
+
 async def enqueue_issue(
     repo_key: str,
     issue_number: int,
