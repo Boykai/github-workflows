@@ -74,12 +74,23 @@ export function AddAgentPopover({
     if (!isOpen) return;
     updatePosition();
 
-    const onReposition = () => updatePosition();
-    window.addEventListener('scroll', onReposition, { capture: true, passive: true });
-    window.addEventListener('resize', onReposition);
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleReposition = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
+
+    window.addEventListener('scroll', scheduleReposition, { capture: true, passive: true });
+    window.addEventListener('resize', scheduleReposition);
     return () => {
-      window.removeEventListener('scroll', onReposition, { capture: true });
-      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', scheduleReposition, { capture: true });
+      window.removeEventListener('resize', scheduleReposition);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isOpen, updatePosition]);
 

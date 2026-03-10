@@ -44,11 +44,24 @@ export function NotificationBell({
     };
 
     updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
+
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
+
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('scroll', scheduleUpdate, { capture: true, passive: true });
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, { capture: true });
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isOpen]);
 
