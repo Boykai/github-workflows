@@ -7,6 +7,8 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import { cn } from '@/lib/utils';
 import { generateId } from '@/utils/generateId';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { pipelinesApi } from '@/services/api';
@@ -179,11 +181,10 @@ export function AgentPresetSelector({
   projectId,
   dropdownOnly = false,
 }: AgentPresetSelectorProps) {
-  const [confirmPreset, setConfirmPreset] = useState<AgentPreset | null>(null);
-  const [confirmPipeline, setConfirmPipeline] = useState<PipelineConfigSummary | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const restoredProjectRef = useRef<string | null>(null);
+  const { confirm } = useConfirmation();
 
   // Fetch saved pipeline configurations
   const { data: savedPipelines } = useQuery({
@@ -222,8 +223,6 @@ export function AgentPresetSelector({
     restoredProjectRef.current = null;
     setApplyError(null);
     setShowDropdown(false);
-    setConfirmPreset(null);
-    setConfirmPipeline(null);
   }, [projectId]);
 
   useEffect(() => {
@@ -269,47 +268,56 @@ export function AgentPresetSelector({
     };
   }, [columnNames, onApplyPreset, projectId]);
 
-  const handlePresetClick = useCallback((preset: AgentPreset) => {
-    setApplyError(null);
-    setConfirmPreset(preset);
-    setShowDropdown(false);
-  }, []);
-
-  const handlePipelineClick = useCallback((pipeline: PipelineConfigSummary) => {
-    setApplyError(null);
-    setConfirmPipeline(pipeline);
-    setShowDropdown(false);
-  }, []);
-
-  const handleConfirmPreset = useCallback(() => {
-    if (!confirmPreset) return;
-    const resolved = resolvePreset(confirmPreset, columnNames);
-    onApplyPreset(resolved);
-    persistSelection(`builtin:${confirmPreset.id}`);
-    setApplyError(null);
-    setConfirmPreset(null);
-  }, [confirmPreset, columnNames, onApplyPreset, persistSelection]);
-
-  const handleConfirmPipeline = useCallback(async () => {
-    if (!confirmPipeline || !projectId) return;
-    try {
-      const fullConfig = await pipelinesApi.get(projectId, confirmPipeline.id);
-      const mappings = pipelineConfigToMappings(fullConfig, columnNames);
-      onApplyPreset(mappings);
-      persistSelection(confirmPipeline.id);
+  const handlePresetClick = useCallback(
+    (preset: AgentPreset) => {
+      const isClearingPreset = preset.id === 'custom';
       setApplyError(null);
-      setConfirmPipeline(null);
-    } catch {
-      setApplyError('Failed to load and apply the selected pipeline. Please try again.');
-    }
-  }, [confirmPipeline, projectId, columnNames, onApplyPreset, persistSelection]);
+      setShowDropdown(false);
+      void confirm({
+        title: isClearingPreset
+          ? 'Clear pipeline assignments?'
+          : `Apply “${preset.label}” preset?`,
+        description: isClearingPreset
+          ? 'This will remove all agents from the pipeline board. Unsaved changes will be reflected in the save bar.'
+          : 'This will replace your current agent configuration. Unsaved changes will be reflected in the save bar.',
+        variant: isClearingPreset ? 'warning' : 'info',
+        confirmLabel: isClearingPreset ? 'Clear' : 'Apply Preset',
+        onConfirm: async () => {
+          const resolved = resolvePreset(preset, columnNames);
+          onApplyPreset(resolved);
+          persistSelection(`builtin:${preset.id}`);
+          setApplyError(null);
+        },
+      });
+    },
+    [columnNames, confirm, onApplyPreset, persistSelection]
+  );
 
-  const handleCancel = useCallback(() => {
-    setConfirmPreset(null);
-    setConfirmPipeline(null);
-  }, []);
+  const handlePipelineClick = useCallback(
+    (pipeline: PipelineConfigSummary) => {
+      if (!projectId) {
+        return;
+      }
 
-  const isClearingPreset = confirmPreset?.id === 'custom';
+      setApplyError(null);
+      setShowDropdown(false);
+      void confirm({
+        title: `Apply “${pipeline.name}” pipeline?`,
+        description:
+          'This will replace your current agent configuration with the saved pipeline. Unsaved changes will be reflected in the save bar.',
+        variant: 'info',
+        confirmLabel: 'Apply Pipeline',
+        onConfirm: async () => {
+          const fullConfig = await pipelinesApi.get(projectId, pipeline.id);
+          const mappings = pipelineConfigToMappings(fullConfig, columnNames);
+          onApplyPreset(mappings);
+          persistSelection(pipeline.id);
+          setApplyError(null);
+        },
+      });
+    },
+    [columnNames, confirm, onApplyPreset, persistSelection, projectId]
+  );
 
   const hasSavedPipelines = (savedPipelines?.pipelines?.length ?? 0) > 0;
 
@@ -365,7 +373,12 @@ export function AgentPresetSelector({
             return (
               <button
                 key={preset.id}
-                className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'}`}
+                className={cn(
+                  'rounded-md px-3 py-1 text-xs font-semibold transition-colors',
+                  isActive
+                    ? 'solar-chip-soft'
+                    : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
+                )}
                 onClick={() => handlePresetClick(preset)}
                 title={preset.description}
                 type="button"
@@ -379,11 +392,12 @@ export function AgentPresetSelector({
         {hasSavedPipelines && (
           <div className="relative">
             <button
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+              className={cn(
+                'rounded-md px-3 py-1 text-xs font-semibold transition-colors',
                 activePipelineName
                   ? 'solar-chip-soft'
                   : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
-              }`}
+              )}
               onClick={() => setShowDropdown(!showDropdown)}
               title={
                 activePipelineName
@@ -423,108 +437,7 @@ export function AgentPresetSelector({
         )}
       </div>
 
-      {/* Confirmation dialog for built-in presets */}
-      {confirmPreset && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-          onClick={handleCancel}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') handleCancel();
-          }}
-          role="presentation"
-        >
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
-          <div
-            className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirm preset"
-          >
-            <h4 className="text-lg font-semibold text-foreground m-0">
-              {isClearingPreset
-                ? 'Clear pipeline assignments?'
-                : `Apply “${confirmPreset.label}” preset?`}
-            </h4>
-            <p className="text-sm text-muted-foreground m-0">
-              {isClearingPreset
-                ? 'This will remove all agents from the pipeline board. Unsaved changes will be reflected in the save bar.'
-                : 'This will replace your current agent configuration. Unsaved changes will be reflected in the save bar.'}
-            </p>
-            <div className="flex justify-end gap-3 mt-2">
-              <button
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
-                onClick={handleCancel}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                onClick={handleConfirmPreset}
-                type="button"
-              >
-                {isClearingPreset ? 'Clear' : 'Apply Preset'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation dialog for saved pipeline */}
-      {confirmPipeline && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
-          onClick={handleCancel}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') handleCancel();
-          }}
-          role="presentation"
-        >
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
-          <div
-            className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Confirm pipeline configuration"
-          >
-            <h4 className="text-lg font-semibold text-foreground m-0">
-              Apply &ldquo;{confirmPipeline.name}&rdquo; pipeline?
-            </h4>
-            <p className="text-sm text-muted-foreground m-0">
-              This will replace your current agent configuration with the saved pipeline. Unsaved
-              changes will be reflected in the save bar.
-            </p>
-            {applyError && (
-              <div
-                className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                role="alert"
-              >
-                {applyError}
-              </div>
-            )}
-            <div className="flex justify-end gap-3 mt-2">
-              <button
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
-                onClick={handleCancel}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                onClick={handleConfirmPipeline}
-                type="button"
-              >
-                Apply Pipeline
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {applyError && !confirmPipeline && (
+      {applyError && (
         <div
           className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
           role="alert"

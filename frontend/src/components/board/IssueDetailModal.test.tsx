@@ -60,13 +60,19 @@ describe('IssueDetailModal', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Test Issue Title');
+    expect(dialog).toHaveAttribute('aria-labelledby');
+    expect(dialog).toHaveAttribute('aria-describedby');
+    expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)).toHaveTextContent(
+      'Test Issue Title'
+    );
+    expect(document.getElementById(dialog.getAttribute('aria-describedby')!)).toHaveTextContent(
+      'testorg/testrepo #42. Current status: Todo.'
+    );
   });
 
   it('renders repository info', () => {
     render(<IssueDetailModal item={createBoardItem()} onClose={vi.fn()} />);
-    expect(screen.getByText(/testorg\/testrepo/)).toBeInTheDocument();
-    expect(screen.getByText(/#42/)).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toHaveTextContent('testorg/testrepo #42');
   });
 
   it('renders assignees when present', () => {

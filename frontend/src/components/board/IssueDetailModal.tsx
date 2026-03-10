@@ -3,11 +3,12 @@
  * Renders issue descriptions as Markdown using react-markdown with GFM support.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useId, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Circle, CircleCheckBig, X } from 'lucide-react';
 import type { BoardItem, SubIssue } from '@/types';
+import { cn } from '@/lib/utils';
 import { statusColorToCSS } from './colorUtils';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -40,6 +41,10 @@ interface IssueDetailModalProps {
 }
 
 export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
+  const dialogTitleId = useId();
+  const dialogDescriptionId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   // Close on Escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -53,6 +58,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
   useScrollLock(true);
 
   useEffect(() => {
+    requestAnimationFrame(() => closeButtonRef.current?.focus());
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -90,8 +96,16 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         className="celestial-fade-in celestial-panel relative m-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
         role="dialog"
         aria-modal="true"
-        aria-label={item.title}
+        aria-labelledby={dialogTitleId}
+        aria-describedby={dialogDescriptionId}
       >
+        <p id={dialogDescriptionId} className="sr-only">
+          {item.repository
+            ? `${item.repository.owner}/${item.repository.name}${item.number != null ? ` #${item.number}` : ''}. `
+            : ''}
+          Current status: {item.status}.
+        </p>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -108,7 +122,8 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             )}
           </div>
           <button
-            className="rounded-md p-2 transition-colors hover:bg-primary/10"
+            ref={closeButtonRef}
+            className="rounded-md p-2 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -117,7 +132,9 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         </div>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold mb-4">{item.title}</h2>
+        <h2 id={dialogTitleId} className="text-2xl font-bold mb-4">
+          {item.title}
+        </h2>
 
         {/* Status */}
         <div className="flex items-center gap-2 mb-6">
@@ -217,10 +234,20 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   href={si.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-3 rounded-md border p-3 transition-colors no-underline ${si.state === 'closed' ? 'bg-background/40 border-border/50 text-muted-foreground' : 'bg-background/72 border-border hover:border-primary/50 hover:bg-background/82'}`}
+                  className={cn(
+                    'flex items-center gap-3 rounded-md border p-3 transition-colors no-underline',
+                    si.state === 'closed'
+                      ? 'border-border/50 bg-background/40 text-muted-foreground'
+                      : 'border-border bg-background/72 hover:border-primary/50 hover:bg-background/82'
+                  )}
                 >
                   <span
-                    className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500'}`}
+                    className={cn(
+                      'flex h-5 w-5 items-center justify-center rounded-full text-xs',
+                      si.state === 'closed'
+                        ? 'bg-purple-500/10 text-purple-500'
+                        : 'bg-green-500/10 text-green-500'
+                    )}
                   >
                     {si.state === 'closed' ? (
                       <CircleCheckBig className="h-3.5 w-3.5" />
@@ -276,7 +303,14 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   className="flex items-center gap-3 rounded-md border border-border bg-background/72 p-3 transition-colors no-underline hover:border-primary/50 hover:bg-background/82"
                 >
                   <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-xs font-medium',
+                      pr.state === 'merged'
+                        ? 'bg-purple-500/10 text-purple-500'
+                        : pr.state === 'closed'
+                          ? 'bg-red-500/10 text-red-500'
+                          : 'bg-green-500/10 text-green-500'
+                    )}
                   >
                     {prStateLabel(pr.state)}
                   </span>
