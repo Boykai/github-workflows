@@ -27,8 +27,8 @@
 
 **Purpose**: Establish the replacement surface for the Tools page section and confirm the shared contracts the generator reuses.
 
-- [ ] T001 Update the section mount point and replacement copy for the GitHub.com MCP generator in `frontend/src/components/tools/ToolsPanel.tsx`
-- [ ] T002 [P] Verify the existing MCP tool query/state contract reused by the generator in `frontend/src/hooks/useTools.ts` and `frontend/src/types/index.ts`
+- [x] T001 Update the section mount point and replacement copy for the GitHub.com MCP generator in `frontend/src/components/tools/ToolsPanel.tsx`
+- [x] T002 [P] Verify the existing MCP tool query/state contract reused by the generator in `frontend/src/hooks/useTools.ts` and `frontend/src/types/index.ts`
 
 **Checkpoint**: The Tools page replacement point and reused frontend contracts are confirmed before core generator work begins.
 
@@ -40,9 +40,9 @@
 
 **⚠️ CRITICAL**: No user story work should begin until the GitHub.com config builder and its output contract are in place.
 
-- [ ] T003 Implement `BUILTIN_MCPS`, server extraction, deduplication, GitHub.com `mcpServers` serialization, and built-in metadata in `frontend/src/lib/buildGitHubMcpConfig.ts`
-- [ ] T004 [P] Add unit coverage for built-in inclusion, malformed tool configs, duplicate server keys, and valid GitHub.com JSON output in `frontend/src/lib/buildGitHubMcpConfig.test.ts`
-- [ ] T005 Define the generator props, derived state, and rendered sections contract in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
+- [x] T003 Implement `BUILTIN_MCPS`, server extraction, deduplication, GitHub.com `mcpServers` serialization, and built-in metadata in `frontend/src/lib/buildGitHubMcpConfig.ts`
+- [x] T004 [P] Add unit coverage for built-in inclusion, malformed tool configs, duplicate server keys, and valid GitHub.com JSON output in `frontend/src/lib/buildGitHubMcpConfig.test.ts`
+- [x] T005 Define the generator props, derived state, and rendered sections contract in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
 
 **Checkpoint**: The reusable config builder and component contract are ready for the MVP user story.
 
@@ -56,15 +56,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Add component integration coverage for active-only filtering, Built-In badges, empty-state guidance, and copy controls in `frontend/src/components/tools/ToolsEnhancements.test.tsx`
+- [x] T006 [P] [US1] Add component integration coverage for active-only filtering, Built-In badges, empty-state guidance, and copy controls in `frontend/src/components/tools/ToolsEnhancements.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Render the GitHub.com MCP generator header, contextual help copy, and active/built-in MCP summary list in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
-- [ ] T008 [US1] Render the read-only syntax-highlighted configuration block and Built-In-aware MCP entry presentation in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
-- [ ] T009 [US1] Implement Clipboard API copying with insecure-context fallback and transient success feedback in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
-- [ ] T010 [US1] Recompute the displayed configuration from active tools plus Built-In MCPs in real time and surface the no-active-tools empty state in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
-- [ ] T011 [US1] Replace the legacy “Configure GitHub Toolset” section with `GitHubMcpConfigGenerator` in `frontend/src/components/tools/ToolsPanel.tsx`
+- [x] T007 [US1] Render the GitHub.com MCP generator header, contextual help copy, and active/built-in MCP summary list in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
+- [x] T008 [US1] Render the read-only syntax-highlighted configuration block and Built-In-aware MCP entry presentation in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
+- [x] T009 [US1] Implement Clipboard API copying with insecure-context fallback and transient success feedback in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
+- [x] T010 [US1] Recompute the displayed configuration from active tools plus Built-In MCPs in real time and surface the no-active-tools empty state in `frontend/src/components/tools/GitHubMcpConfigGenerator.tsx`
+- [x] T011 [US1] Replace the legacy “Configure GitHub Toolset” section with `GitHubMcpConfigGenerator` in `frontend/src/components/tools/ToolsPanel.tsx`
 
 **Checkpoint**: The Tools page now delivers the full GitHub.com MCP configuration generator workflow as an independently testable MVP.
 
@@ -74,8 +74,8 @@
 
 **Purpose**: Remove leftover legacy surface area and verify the final behavior using the existing validation flow.
 
-- [ ] T012 [P] Remove the unused legacy selector implementation in `frontend/src/components/tools/GitHubToolsetSelector.tsx`
-- [ ] T013 [P] Run the manual scenarios from `specs/033-update-tools-mcp-config-generator/quickstart.md` and the existing frontend validation commands listed in `frontend/package.json`
+- [x] T012 [P] Remove the unused legacy selector implementation in `frontend/src/components/tools/GitHubToolsetSelector.tsx`
+- [x] T013 [P] Run the manual scenarios from `specs/033-update-tools-mcp-config-generator/quickstart.md` and the existing frontend validation commands listed in `frontend/package.json`
 
 ---
 
