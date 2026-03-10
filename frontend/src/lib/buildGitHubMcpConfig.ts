@@ -62,14 +62,15 @@ export function extractServersFromTool(tool: McpToolConfig): McpServerEntry[] {
     const parsed = JSON.parse(tool.config_content) as {
       mcpServers?: Record<string, Record<string, unknown>>;
     };
-    if (!parsed.mcpServers || typeof parsed.mcpServers !== 'object') return [];
+    const mcpServers = parsed.mcpServers;
+    if (!mcpServers || typeof mcpServers !== 'object' || Array.isArray(mcpServers)) return [];
 
-    return Object.entries(parsed.mcpServers).map(([key, config]) => ({
-      key,
-      config,
-      builtin: false,
-      sourceName: tool.name,
-    }));
+    const entries: McpServerEntry[] = [];
+    for (const [key, config] of Object.entries(mcpServers)) {
+      if (!config || typeof config !== 'object' || Array.isArray(config)) continue;
+      entries.push({ key, config: config as Record<string, unknown>, builtin: false, sourceName: tool.name });
+    }
+    return entries;
   } catch {
     return [];
   }
@@ -112,8 +113,8 @@ export function buildGitHubMcpConfig(tools: McpToolConfig[]): {
     }
   }
 
-  // 3. Build the mcpServers object
-  const mcpServers: Record<string, Record<string, unknown>> = {};
+  // 3. Build the mcpServers object (null-prototype to avoid prototype pollution)
+  const mcpServers = Object.create(null) as Record<string, Record<string, unknown>>;
   for (const entry of entries) {
     mcpServers[entry.key] = entry.config;
   }

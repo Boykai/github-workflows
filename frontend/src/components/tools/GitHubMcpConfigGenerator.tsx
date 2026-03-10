@@ -6,7 +6,7 @@
  * into GitHub.com to configure remote Custom GitHub Agents.
  */
 
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ClipboardCopy, Info, Sparkles } from 'lucide-react';
 import type { McpToolConfig } from '@/types';
 import { cn } from '@/lib/utils';
@@ -112,16 +112,24 @@ function highlightJsonLine(line: string, lineIndex: number) {
 
 export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeTools = useMemo(() => tools.filter((tool) => tool.is_active), [tools]);
 
   const { configJson, entries } = useMemo(() => buildGitHubMcpConfig(activeTools), [activeTools]);
   const configLines = useMemo(() => configJson.split('\n'), [configJson]);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+
   const handleCopy = useCallback(async () => {
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     try {
       await navigator.clipboard.writeText(configJson);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers / insecure contexts
       const textarea = document.createElement('textarea');
@@ -133,7 +141,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
       document.execCommand('copy');
       document.body.removeChild(textarea);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
     }
   }, [configJson]);
 
@@ -242,7 +250,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
             onClick={() => {
               void handleCopy();
             }}
-            aria-live="polite"
+            aria-label={copied ? 'Copied' : 'Copy to clipboard'}
             className={cn(
               'inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               copied
@@ -262,6 +270,9 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
               </>
             )}
           </button>
+          <span role="status" aria-live="polite" className="sr-only">
+            {copied ? 'Copied to clipboard' : ''}
+          </span>
         </div>
         <div
           className="mt-3 overflow-x-auto rounded-[1rem] border border-white/6 bg-slate-950/90 shadow-inner"
