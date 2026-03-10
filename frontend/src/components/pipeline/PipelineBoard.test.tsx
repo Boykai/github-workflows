@@ -41,6 +41,65 @@ describe('PipelineBoard', () => {
     expect(screen.getByLabelText('Pipeline name')).toHaveValue('Advanced Pipeline');
   });
 
+  it('sets aria-invalid and aria-describedby when a name validation error exists', () => {
+    render(
+      <PipelineBoard
+        columnCount={1}
+        stages={[createStage()]}
+        availableAgents={[]}
+        availableModels={[]}
+        isEditMode={true}
+        pipelineName="Bad Pipeline"
+        projectId="project-1"
+        modelOverride={{ mode: 'auto', modelId: '', modelName: '' }}
+        validationErrors={{ name: 'Name is required' }}
+        onNameChange={vi.fn()}
+        onModelOverrideChange={vi.fn()}
+        onClearValidationError={vi.fn()}
+        onRemoveStage={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onUpdateStage={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText('Pipeline name');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'pipeline-name-error');
+
+    const errorText = screen.getByText('Name is required');
+    expect(errorText).toHaveAttribute('id', 'pipeline-name-error');
+  });
+
+  it('does not set aria-invalid when there is no validation error', () => {
+    render(
+      <PipelineBoard
+        columnCount={1}
+        stages={[createStage()]}
+        availableAgents={[]}
+        availableModels={[]}
+        isEditMode={true}
+        pipelineName="Good Pipeline"
+        projectId="project-1"
+        modelOverride={{ mode: 'auto', modelId: '', modelName: '' }}
+        validationErrors={{}}
+        onNameChange={vi.fn()}
+        onModelOverrideChange={vi.fn()}
+        onClearValidationError={vi.fn()}
+        onRemoveStage={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onUpdateStage={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText('Pipeline name');
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
+
   it('commits a renamed pipeline name from the edit input', async () => {
     const onNameChange = vi.fn();
 
