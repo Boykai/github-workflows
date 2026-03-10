@@ -117,6 +117,10 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
 
   const { configJson, entries } = useMemo(() => buildGitHubMcpConfig(activeTools), [activeTools]);
   const configLines = useMemo(() => configJson.split('\n'), [configJson]);
+  const builtInEntriesByKey = useMemo(
+    () => new Map(entries.filter((entry) => entry.builtin).map((entry) => [entry.key, entry])),
+    [entries]
+  );
 
   useEffect(() => {
     return () => {
@@ -280,15 +284,34 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
         >
           <div className="min-w-max">
             {configLines.map((line, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-[auto_1fr] gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
-              >
-                <span className="select-none text-[10px] text-slate-500">{index + 1}</span>
-                <span className="whitespace-pre text-slate-100">
-                  {line.length > 0 ? highlightJsonLine(line, index) : <Fragment>&nbsp;</Fragment>}
-                </span>
-              </div>
+              (() => {
+                const builtInKeyMatch = line.match(/^ {4}"([^"]+)": \{$/);
+                const builtInEntry = builtInKeyMatch
+                  ? builtInEntriesByKey.get(builtInKeyMatch[1])
+                  : undefined;
+
+                return (
+                  <div
+                    key={index}
+                    className="grid grid-cols-[auto_1fr_auto] items-start gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
+                  >
+                    <span className="select-none text-[10px] text-slate-500">{index + 1}</span>
+                    <span className="whitespace-pre text-slate-100">
+                      {line.length > 0 ? highlightJsonLine(line, index) : <Fragment>&nbsp;</Fragment>}
+                    </span>
+                    {builtInEntry ? (
+                      <span
+                        className="mt-0.5 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-primary"
+                        aria-label={`${builtInEntry.sourceName} Built-In MCP`}
+                      >
+                        Built-In
+                      </span>
+                    ) : (
+                      <span aria-hidden="true" />
+                    )}
+                  </div>
+                );
+              })()
             ))}
           </div>
         </div>
