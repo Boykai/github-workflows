@@ -33,7 +33,8 @@
 
 - All checklist items pass. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - 30 functional requirements cover all 7 phases from the parent issue.
-- 16 measurable success criteria provide verifiable outcomes for each phase.
+- 17 measurable success criteria provide verifiable outcomes for each phase.
 - 7 user stories are independently testable and prioritized (P1 through P4).
-- 6 edge cases address boundary conditions across exception handling, caching, migrations, imports, request cancellation, and strict compiler checks.
+- 7 edge cases address boundary conditions across exception handling, caching, migrations, imports, request cancellation, dialog responsiveness, and strict compiler checks.
 - Assumptions section documents 9 reasonable defaults that were applied to avoid unnecessary clarification markers.
+- Frontend quality scope now explicitly covers shared dialog focus behavior, responsive overflow handling, and theme-consistent surface treatment for modal refactors.

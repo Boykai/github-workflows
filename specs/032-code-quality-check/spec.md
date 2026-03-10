@@ -38,8 +38,9 @@ As a developer, I need duplicated code patterns consolidated into shared utiliti
 2. **Given** an API endpoint catches a service-level error, **When** the error is handled, **Then** it uses the existing `handle_service_error()` or `safe_error_response()` helpers rather than ad-hoc try/log/raise patterns.
 3. **Given** an API endpoint needs to fetch data with caching, **When** the fetch is performed, **Then** a single shared `cached_fetch()` helper is used instead of inline cache-check/fetch/cache-set boilerplate.
 4. **Given** an API endpoint requires a selected project, **When** the validation runs, **Then** a single `require_selected_project()` guard is used with a consistent error message.
-5. **Given** a frontend dialog or modal is displayed, **When** the component renders, **Then** it composes the shared `ConfirmationDialog` base pattern with consistent ARIA attributes.
+5. **Given** a frontend dialog or modal is displayed, **When** the component renders, **Then** it composes the shared `ConfirmationDialog` base pattern with consistent ARIA attributes, focus handling, responsive overflow behavior, and theme-aligned surface styling.
 6. **Given** a frontend component constructs dynamic class names, **When** the class string is built, **Then** the `cn()` utility from `lib/utils` is used instead of template literal concatenation.
+7. **Given** a dialog contains long issue descriptions, saved pipeline lists, or validation errors, **When** it is viewed on smaller screens or navigated by keyboard, **Then** the content remains scrollable, the action area stays reachable, and focus visibility is preserved throughout the interaction.
 
 ---
 
@@ -135,6 +136,7 @@ As a developer, I need comprehensive test coverage for backend exception paths, 
 - What happens when the database migration uniqueness check finds a conflict at startup? The application should log a clear error message identifying the conflicting migration prefixes and refuse to start until the conflict is resolved.
 - What if splitting a large file breaks circular import dependencies? Each extraction should be validated by running the full import graph to confirm no circular references are introduced.
 - What happens when request cancellation occurs after a partial response has been received? The cancellation should be handled gracefully — partial data is discarded and no error is shown to the user for intentional cancellations.
+- What happens when a dialog refactor introduces long-form content or many actions on a narrow viewport? The shared modal pattern should preserve scrollable content, visible action buttons, and clear focus styling without causing layout overflow or clipped controls.
 - What if enabling strict unused-variable checks reveals code that is actually needed but only accessed dynamically? Such cases should be documented with explicit suppression comments or restructured to avoid dynamic access patterns.
 
 ## Requirements *(mandatory)*
@@ -154,8 +156,8 @@ As a developer, I need comprehensive test coverage for backend exception paths, 
 - **FR-006**: System MUST use the existing error handling utilities from `logging_utils.py` across all API route files, replacing ad-hoc try/log/raise patterns.
 - **FR-007**: System MUST provide a shared cache-or-fetch async helper that encapsulates the cache-check, fetch, and cache-set pattern, used by all endpoints requiring cached data.
 - **FR-008**: System MUST provide a selected-project validation guard that raises a consistent error when no project is selected, used by all endpoints requiring a selected project.
-- **FR-009**: Frontend MUST compose all modal and dialog components using a shared base pattern with consistent ARIA attributes.
-- **FR-010**: Frontend MUST use a single class name utility for all dynamic class name construction, replacing template literal concatenation.
+- **FR-009**: Frontend MUST compose all modal and dialog components using a shared base pattern with consistent ARIA attributes, focus management, responsive overflow handling, and theme-consistent surface styling.
+- **FR-010**: Frontend MUST use a single class name utility for all dynamic class name construction, replacing template literal concatenation so shared variant styling remains visually consistent.
 
 #### Phase 3 — Module Decomposition
 
@@ -221,6 +223,7 @@ As a developer, I need comprehensive test coverage for backend exception paths, 
 - **SC-014**: Backend test suite achieves specific exception-type coverage for all narrowed exception handlers.
 - **SC-015**: Frontend test coverage reaches 70% or higher for components and pages.
 - **SC-016**: All page components and critical user paths pass accessibility assertions.
+- **SC-017**: Dialogs and modals touched by the initiative preserve consistent focus visibility, responsive overflow handling, and theme-aligned surface treatment across desktop and narrow viewports.
 
 ## Assumptions
 
