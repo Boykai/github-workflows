@@ -63,8 +63,20 @@ export function SavedWorkflowsList({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-32 rounded-xl border border-border/50 bg-muted/20 animate-pulse"
-            />
+              className="flex flex-col gap-2 rounded-xl border border-border/50 bg-card/80 p-4 animate-pulse"
+            >
+              {/* Name placeholder */}
+              <div className="h-4 w-2/3 rounded bg-muted/40" />
+              {/* Description placeholder */}
+              <div className="h-3 w-full rounded bg-muted/30" />
+              <div className="h-3 w-4/5 rounded bg-muted/30" />
+              {/* Stats row placeholder */}
+              <div className="mt-auto flex gap-3">
+                <div className="h-3 w-12 rounded bg-muted/20" />
+                <div className="h-3 w-12 rounded bg-muted/20" />
+                <div className="h-3 w-16 rounded bg-muted/20" />
+              </div>
+            </div>
           ))}
         </div>
       )}

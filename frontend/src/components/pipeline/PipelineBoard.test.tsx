@@ -74,4 +74,64 @@ describe('PipelineBoard', () => {
 
     expect(onNameChange).toHaveBeenCalledWith('Renamed Pipeline');
   });
+
+  it('exposes aria-invalid and aria-describedby when a name validation error is present', () => {
+    render(
+      <PipelineBoard
+        columnCount={1}
+        stages={[createStage()]}
+        availableAgents={[]}
+        availableModels={[]}
+        isEditMode={true}
+        pipelineName="Bad Name"
+        projectId="project-1"
+        modelOverride={{ mode: 'auto', modelId: '', modelName: '' }}
+        validationErrors={{ name: 'Pipeline name is required' }}
+        onNameChange={vi.fn()}
+        onModelOverrideChange={vi.fn()}
+        onClearValidationError={vi.fn()}
+        onRemoveStage={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onUpdateStage={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText('Pipeline name');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'pipeline-name-error');
+
+    const errorMsg = document.getElementById('pipeline-name-error');
+    expect(errorMsg).toBeInTheDocument();
+    expect(errorMsg).toHaveTextContent('Pipeline name is required');
+  });
+
+  it('does not set aria-invalid when there are no validation errors', () => {
+    render(
+      <PipelineBoard
+        columnCount={1}
+        stages={[createStage()]}
+        availableAgents={[]}
+        availableModels={[]}
+        isEditMode={true}
+        pipelineName="Good Name"
+        projectId="project-1"
+        modelOverride={{ mode: 'auto', modelId: '', modelName: '' }}
+        validationErrors={{}}
+        onNameChange={vi.fn()}
+        onModelOverrideChange={vi.fn()}
+        onClearValidationError={vi.fn()}
+        onRemoveStage={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onUpdateStage={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText('Pipeline name');
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
 });

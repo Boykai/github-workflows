@@ -436,6 +436,14 @@ export function AgentsPipelinePage() {
                       </div>
                     ))}
                   </div>
+                  {(pipelineConfig.pipelines?.pipelines ?? []).length > 3 && (
+                    <p className="mt-2 text-center text-xs text-muted-foreground">
+                      Showing 3 of {(pipelineConfig.pipelines?.pipelines ?? []).length} —{' '}
+                      <a href="#saved-pipelines" className="text-primary/70 hover:text-primary underline-offset-2 hover:underline">
+                        see all in Saved Pipelines
+                      </a>
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
