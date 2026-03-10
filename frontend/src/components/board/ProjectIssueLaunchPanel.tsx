@@ -19,7 +19,10 @@ import type {
 } from '@/types';
 
 const MAX_ISSUE_DESCRIPTION_LENGTH = 65_536;
+const MAX_PREVIEW_TITLE_LENGTH = 120;
+const PREVIEW_TITLE_TRUNCATE_AT = MAX_PREVIEW_TITLE_LENGTH - 3;
 const ACCEPTED_FILE_EXTENSIONS = ['.md', '.txt'];
+const MARKDOWN_TITLE_PREFIX_RE = /^[>\-*+\d.\s`_~]+/;
 
 interface ProjectIssueLaunchPanelProps {
   projectId: string;
@@ -47,9 +50,11 @@ function deriveIssueTitlePreview(issueDescription: string): string {
       .find(Boolean) ??
     'Imported Parent Issue';
 
-  const normalized = firstLine.replace(/^[>\-*+\d.\s`_~]+/, '').replace(/\s+/g, ' ').trim();
+  const normalized = firstLine.replace(MARKDOWN_TITLE_PREFIX_RE, '').replace(/\s+/g, ' ').trim();
   if (!normalized) return 'Imported Parent Issue';
-  return normalized.length > 120 ? `${normalized.slice(0, 117).trimEnd()}...` : normalized;
+  return normalized.length > MAX_PREVIEW_TITLE_LENGTH
+    ? `${normalized.slice(0, PREVIEW_TITLE_TRUNCATE_AT).trimEnd()}...`
+    : normalized;
 }
 
 function isAcceptedIssueFile(file: File): boolean {
@@ -299,7 +304,10 @@ export function ProjectIssueLaunchPanel({
                 The first heading or opening line becomes the parent issue title preview shown on
                 the right.
               </span>
-              <span>{issueDescription.length.toLocaleString()} / 65,536 chars</span>
+              <span>
+                {issueDescription.length.toLocaleString()} /{' '}
+                {MAX_ISSUE_DESCRIPTION_LENGTH.toLocaleString()} chars
+              </span>
             </div>
 
             {formErrors.issueDescription ? (

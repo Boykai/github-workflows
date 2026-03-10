@@ -9,6 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.config import get_settings
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.models.pipeline import (
@@ -23,9 +24,11 @@ from src.models.pipeline import (
 )
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration, WorkflowResult
+from src.services.agent_tracking import append_tracking_to_body
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.pipelines.service import PipelineService
+from src.services.settings_store import get_effective_user_settings
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -41,6 +44,9 @@ from src.utils import resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+MAX_DERIVED_TITLE_LENGTH = 120
+DERIVED_TITLE_TRUNCATE_AT = MAX_DERIVED_TITLE_LENGTH - 3
+MARKDOWN_TITLE_PREFIX_RE = re.compile(r"^[>\-*+\d.\s`_~]+")
 
 
 def _get_service() -> PipelineService:
@@ -67,9 +73,13 @@ def _derive_issue_title(issue_description: str) -> str:
             "Imported Parent Issue",
         )
 
-    candidate = re.sub(r"^[>\-*+\d.\s`_~]+", "", candidate).strip()
+    candidate = MARKDOWN_TITLE_PREFIX_RE.sub("", candidate).strip()
     candidate = re.sub(r"\s+", " ", candidate)
-    return candidate[:117].rstrip() + "..." if len(candidate) > 120 else candidate
+    return (
+        candidate[:DERIVED_TITLE_TRUNCATE_AT].rstrip() + "..."
+        if len(candidate) > MAX_DERIVED_TITLE_LENGTH
+        else candidate
+    )
 
 
 async def _prepare_workflow_config(
@@ -80,8 +90,6 @@ async def _prepare_workflow_config(
     pipeline_id: str,
 ) -> tuple[WorkflowConfiguration, str]:
     """Load or create the workflow config, then override it with the selected pipeline."""
-    from src.config import get_settings
-
     settings = get_settings()
     config = await get_workflow_config(project_id)
     if config is None:
@@ -113,8 +121,6 @@ async def _load_user_agent_model(session: UserSession) -> str:
         return ""
 
     try:
-        from src.services.settings_store import get_effective_user_settings
-
         effective_settings = await get_effective_user_settings(get_db(), session.github_user_id)
         return effective_settings.ai.agent_model or ""
     except Exception as e:
@@ -216,8 +222,6 @@ async def launch_pipeline_issue(
 
     issue_body = issue_description
     if config.agent_mappings:
-        from src.services.agent_tracking import append_tracking_to_body
-
         issue_body = append_tracking_to_body(
             issue_body,
             config.agent_mappings,
