@@ -111,7 +111,7 @@ class WorkflowContext:
 
 @dataclass
 class PipelineState:
-    """Tracks per-issue pipeline progress through sequential agents."""
+    """Tracks per-issue pipeline progress through sequential or parallel agents."""
 
     issue_number: int
     project_id: str
@@ -131,6 +131,10 @@ class PipelineState:
     # on the next poll cycle and the pipeline jumps straight to In Review.
     original_status: str | None = None
     target_status: str | None = None
+    # Parallel stage execution support
+    execution_mode: str = "sequential"
+    parallel_agent_statuses: dict[str, str] = field(default_factory=dict)
+    failed_agents: list[str] = field(default_factory=list)
 
     @property
     def current_agent(self) -> str | None:

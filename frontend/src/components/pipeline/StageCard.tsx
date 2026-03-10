@@ -98,7 +98,7 @@ export function StageCard({
   onReorderAgents,
 }: StageCardProps) {
   const hasAgents = stage.agents.length > 0;
-  const isParallelStage = stage.agents.length > 1;
+  const isParallelStage = (stage.execution_mode ?? 'sequential') === 'parallel';
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);

@@ -55,30 +55,35 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-sk-stage-1",
                 "name": "Specify",
                 "order": 0,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-sk-agent-1", "speckit.specify", "Spec Writer")],
             },
             {
                 "id": "preset-sk-stage-2",
                 "name": "Plan",
                 "order": 1,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-sk-agent-2", "speckit.plan", "Planner")],
             },
             {
                 "id": "preset-sk-stage-3",
                 "name": "Tasks",
                 "order": 2,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-sk-agent-3", "speckit.tasks", "Task Generator")],
             },
             {
                 "id": "preset-sk-stage-4",
                 "name": "Implement",
                 "order": 3,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-sk-agent-4", "speckit.implement", "Implementer")],
             },
             {
                 "id": "preset-sk-stage-5",
                 "name": "Analyze",
                 "order": 4,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-sk-agent-5", "speckit.analyze", "Analyzer")],
             },
         ],
@@ -93,6 +98,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-gc-stage-1",
                 "name": "Execute",
                 "order": 0,
+                "execution_mode": "sequential",
                 "agents": [_agent("preset-gc-agent-1", "copilot", "GitHub Copilot")],
             },
         ],
@@ -103,12 +109,13 @@ _PRESET_DEFINITIONS = [
         "name": "Easy",
         "description": "Lightweight pipeline: Copilot implements, review agents check quality",
         "stages": [
-            {"id": "preset-easy-stage-0", "name": "Backlog", "order": 0, "agents": []},
-            {"id": "preset-easy-stage-1", "name": "Ready", "order": 1, "agents": []},
+            {"id": "preset-easy-stage-0", "name": "Backlog", "order": 0, "execution_mode": "sequential", "agents": []},
+            {"id": "preset-easy-stage-1", "name": "Ready", "order": 1, "execution_mode": "sequential", "agents": []},
             {
                 "id": "preset-easy-stage-2",
                 "name": "In progress",
                 "order": 2,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-easy-agent-1", "copilot", "GitHub Copilot"),
                     _agent("preset-easy-agent-2", "copilot-review", "Copilot Review"),
@@ -120,11 +127,12 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-easy-stage-3",
                 "name": "In review",
                 "order": 3,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-easy-agent-5", "human", "Human"),
                 ],
             },
-            {"id": "preset-easy-stage-4", "name": "Done", "order": 4, "agents": []},
+            {"id": "preset-easy-stage-4", "name": "Done", "order": 4, "execution_mode": "sequential", "agents": []},
         ],
     },
     # ── Medium ────────────────────────────────────────────────────────
@@ -137,6 +145,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-med-stage-0",
                 "name": "Backlog",
                 "order": 0,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-med-agent-1", "speckit.specify", "Spec Kit - Specify"),
                 ],
@@ -145,6 +154,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-med-stage-1",
                 "name": "Ready",
                 "order": 1,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-med-agent-2", "speckit.plan", "Spec Kit - Plan"),
                     _agent("preset-med-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
@@ -154,6 +164,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-med-stage-2",
                 "name": "In progress",
                 "order": 2,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-med-agent-4", "speckit.implement", "Spec Kit - Implement"),
                     _agent("preset-med-agent-5", "copilot-review", "Copilot Review"),
@@ -165,11 +176,12 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-med-stage-3",
                 "name": "In review",
                 "order": 3,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-med-agent-8", "human", "Human"),
                 ],
             },
-            {"id": "preset-med-stage-4", "name": "Done", "order": 4, "agents": []},
+            {"id": "preset-med-stage-4", "name": "Done", "order": 4, "execution_mode": "sequential", "agents": []},
         ],
     },
     # ── Hard ──────────────────────────────────────────────────────────
@@ -182,6 +194,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-hard-stage-0",
                 "name": "Backlog",
                 "order": 0,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-hard-agent-1", "speckit.specify", "Spec Kit - Specify"),
                 ],
@@ -190,6 +203,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-hard-stage-1",
                 "name": "Ready",
                 "order": 1,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-hard-agent-2", "speckit.plan", "Spec Kit - Plan"),
                     _agent("preset-hard-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
@@ -199,6 +213,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-hard-stage-2",
                 "name": "In progress",
                 "order": 2,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-hard-agent-4", "speckit.implement", "Spec Kit - Implement"),
                     _agent("preset-hard-agent-5", "copilot-review", "Copilot Review"),
@@ -210,11 +225,12 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-hard-stage-3",
                 "name": "In review",
                 "order": 3,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-hard-agent-8", "human", "Human"),
                 ],
             },
-            {"id": "preset-hard-stage-4", "name": "Done", "order": 4, "agents": []},
+            {"id": "preset-hard-stage-4", "name": "Done", "order": 4, "execution_mode": "sequential", "agents": []},
         ],
     },
     # ── Expert ────────────────────────────────────────────────────────
@@ -227,6 +243,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-exp-stage-0",
                 "name": "Backlog",
                 "order": 0,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-exp-agent-1", "speckit.specify", "Spec Kit - Specify"),
                     _agent("preset-exp-agent-2", "designer", "designer"),
@@ -236,6 +253,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-exp-stage-1",
                 "name": "Ready",
                 "order": 1,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-exp-agent-3", "speckit.plan", "Spec Kit - Plan"),
                     _agent("preset-exp-agent-4", "speckit.tasks", "Spec Kit - Tasks"),
@@ -245,6 +263,7 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-exp-stage-2",
                 "name": "In progress",
                 "order": 2,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-exp-agent-5", "speckit.implement", "Spec Kit - Implement"),
                     _agent("preset-exp-agent-6", "copilot-review", "Copilot Review"),
@@ -261,11 +280,12 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-exp-stage-3",
                 "name": "In review",
                 "order": 3,
+                "execution_mode": "sequential",
                 "agents": [
                     _agent("preset-exp-agent-14", "human", "Human"),
                 ],
             },
-            {"id": "preset-exp-stage-4", "name": "Done", "order": 4, "agents": []},
+            {"id": "preset-exp-stage-4", "name": "Done", "order": 4, "execution_mode": "sequential", "agents": []},
         ],
     },
 ]
@@ -285,6 +305,14 @@ class PipelineService:
         for stage in stages:
             for agent in stage.agents:
                 agent.tool_count = len(agent.tool_ids)
+        return stages
+
+    @staticmethod
+    def _normalize_execution_modes(stages: list[PipelineStage]) -> list[PipelineStage]:
+        """Normalize execution_mode: revert parallel → sequential when < 2 agents."""
+        for stage in stages:
+            if stage.execution_mode == "parallel" and len(stage.agents) < 2:
+                stage.execution_mode = "sequential"
         return stages
 
     @staticmethod
@@ -382,6 +410,7 @@ class PipelineService:
         pipeline_id = str(uuid.uuid4())
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         normalized_stages = self._normalize_tool_counts(list(body.stages))
+        self._normalize_execution_modes(normalized_stages)
         stages_json = json.dumps([s.model_dump() for s in normalized_stages])
 
         try:
@@ -449,6 +478,7 @@ class PipelineService:
                 for s in raw_stages
             ]
             self._normalize_tool_counts(parsed)
+            self._normalize_execution_modes(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])
 
         if "blocking" in updates and updates["blocking"] is not None:

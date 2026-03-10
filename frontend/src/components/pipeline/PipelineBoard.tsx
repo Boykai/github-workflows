@@ -79,7 +79,9 @@ export function PipelineBoard({
   const [editNameValue, setEditNameValue] = useState(pipelineName);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const showInlineNameInput = isEditMode || isEditingName;
-  const hasParallelStage = stages.some((stage) => stage.agents.length > 1);
+  const hasParallelStage = stages.some(
+    (stage) => (stage.execution_mode ?? 'sequential') === 'parallel'
+  );
   const minStageWidthRem = hasParallelStage ? 20 : 14;
 
   const gridStyle: CSSProperties = {

@@ -370,6 +370,39 @@ async def load_pipeline_as_agent_mappings(
         return None
 
 
+async def load_pipeline_stage_execution_modes(
+    project_id: str,
+    pipeline_id: str,
+) -> dict[str, str]:
+    """Load execution_mode per stage name from a pipeline config.
+
+    Returns a mapping of ``{stage_name: "sequential" | "parallel"}``.
+    Defaults to ``"sequential"`` for any stage not found.
+    """
+    try:
+        from src.services.database import get_db
+        from src.services.pipelines.service import PipelineService
+
+        db = get_db()
+        service = PipelineService(db)
+        config = await service.get_pipeline(project_id, pipeline_id)
+        if config is None:
+            return {}
+
+        return {
+            stage.name: stage.execution_mode
+            for stage in config.stages
+        }
+    except Exception:
+        logger.warning(
+            "Failed to load stage execution modes for pipeline %s (project %s)",
+            pipeline_id,
+            project_id,
+            exc_info=True,
+        )
+        return {}
+
+
 async def resolve_project_pipeline_mappings(
     project_id: str,
     github_user_id: str,

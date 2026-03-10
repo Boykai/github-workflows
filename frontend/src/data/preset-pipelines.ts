@@ -16,6 +16,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-sk-stage-1',
         name: 'Specify',
         order: 0,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-sk-agent-1',
@@ -33,6 +34,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-sk-stage-2',
         name: 'Plan',
         order: 1,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-sk-agent-2',
@@ -50,6 +52,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-sk-stage-3',
         name: 'Tasks',
         order: 2,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-sk-agent-3',
@@ -67,6 +70,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-sk-stage-4',
         name: 'Implement',
         order: 3,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-sk-agent-4',
@@ -84,6 +88,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-sk-stage-5',
         name: 'Analyze',
         order: 4,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-sk-agent-5',
@@ -108,6 +113,7 @@ export const PRESET_PIPELINES: PresetPipelineDefinition[] = [
         id: 'preset-gc-stage-1',
         name: 'Execute',
         order: 0,
+        execution_mode: 'sequential',
         agents: [
           {
             id: 'preset-gc-agent-1',
