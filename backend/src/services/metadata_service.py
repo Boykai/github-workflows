@@ -113,7 +113,11 @@ class MetadataService:
                 ctx.is_stale = True
                 return ctx
         except Exception as e:
-            logger.debug("Suppressed error: %s", e)
+            logger.warning(
+                "SQLite metadata read failed for %s, using defaults",
+                repo_key,
+                exc_info=e,
+            )
 
         # Last resort: hardcoded constants
         return self._fallback_context(repo_key)

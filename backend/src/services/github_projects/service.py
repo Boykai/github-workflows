@@ -925,7 +925,11 @@ class GitHubProjectsService:
             if config and config.repository_owner and config.repository_name:
                 repos_seen.add((config.repository_owner, config.repository_name))
         except Exception as e:
-            logger.debug("Suppressed error: %s", e)
+            logger.warning(
+                "Workflow config fetch failed for project %s",
+                project_id,
+                exc_info=e,
+            )
 
         for owner, repo_name in repos_seen:
             try:
@@ -5169,7 +5173,11 @@ class GitHubProjectsService:
                         if fresh_oid:
                             current_oid = fresh_oid
                     except Exception as e:
-                        logger.debug("Suppressed error: %s", e)
+                        logger.warning(
+                            "Branch OID update failed for %s",
+                            branch_name,
+                            exc_info=e,
+                        )
                     continue
                 logger.error("Failed to commit files to %s: %s", branch_name, exc)
                 return None

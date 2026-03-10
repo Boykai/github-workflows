@@ -725,7 +725,11 @@ async def _execute_creation_pipeline(
                 )
                 await db.commit()
             except Exception as e:
-                logger.debug("Suppressed error: %s", e)
+                logger.error(
+                    "Failed to update github_issue_number for agent %s",
+                    agent_config_id,
+                    exc_info=e,
+                )
     except Exception as exc:
         logger.error("Step 4 (create issue) failed: %s", exc)
         results.append(
@@ -766,7 +770,11 @@ async def _execute_creation_pipeline(
                     )
                     await db.commit()
                 except Exception as e:
-                    logger.debug("Suppressed error: %s", e)
+                    logger.error(
+                        "Failed to update branch_name for agent %s",
+                        agent_config_id,
+                        exc_info=e,
+                    )
         else:
             results.append(
                 PipelineStepResult(
@@ -875,7 +883,11 @@ async def _execute_creation_pipeline(
                         )
                         await db.commit()
                     except Exception as e:
-                        logger.debug("Suppressed error: %s", e)
+                        logger.error(
+                            "Failed to update github_pr_number for agent %s",
+                            agent_config_id,
+                            exc_info=e,
+                        )
             else:
                 results.append(
                     PipelineStepResult(
@@ -1093,7 +1105,11 @@ async def _handle_project_selection(
                 state.owner = owner
                 state.repo = repo
             except Exception as e:
-                logger.debug("Suppressed error: %s", e)
+                logger.warning(
+                    "Owner/repo resolution failed for project %s",
+                    project["id"],
+                    exc_info=e,
+                )
 
             return await _resolve_status_step(
                 state=state,

@@ -156,8 +156,12 @@ async def process_signal_chat(
                     token,
                     project_id,
                 )
-            except Exception:
-                pass  # Signal flow can proceed without owner/repo
+            except Exception as e:
+                logger.warning(
+                    "Signal: could not resolve repository for project %s",
+                    project_id,
+                    exc_info=e,
+                )
 
             agent_response = await handle_agent_command(
                 message=message_text,
@@ -325,8 +329,12 @@ async def _run_workflow_orchestration(
             "Issue #%d created but workflow orchestration failed: %s",
             issue_number,
             e,
+            exc_info=True,
         )
-        result["error"] = str(e)[:200]
+        result["error"] = (
+            "Workflow follow-up could not be completed automatically. "
+            "Please check the app for details."
+        )
 
     return result
 
