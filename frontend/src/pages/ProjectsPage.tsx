@@ -371,9 +371,14 @@ export function ProjectsPage() {
 
       {/* Rate limit / error banners */}
       {showRateLimitBanner && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
+        <div
+          className={cn(
+            bannerBaseClassName,
+            'border border-accent/30 bg-accent/12 text-accent-foreground'
+          )}
+        >
           <span className="text-lg">⏳</span>
-          <div className="flex flex-col gap-1">
+          <div className={bannerContentClassName}>
             <strong>Rate limit reached</strong>
             <p>
               {rateLimitRetryAfter
@@ -385,9 +390,14 @@ export function ProjectsPage() {
       )}
 
       {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
+        <div
+          className={cn(
+            bannerBaseClassName,
+            'border border-accent/30 bg-accent/12 text-accent-foreground'
+          )}
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
+          <div className={bannerContentClassName}>
             <strong>Rate limit low</strong>
             <p>Only {rateLimitInfo.remaining} API requests remaining.</p>
           </div>
@@ -395,9 +405,14 @@ export function ProjectsPage() {
       )}
 
       {refreshError && refreshError.type !== 'rate_limit' && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className={cn(
+            bannerBaseClassName,
+            'border border-destructive/30 bg-destructive/10 text-destructive'
+          )}
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
+          <div className={bannerContentClassName}>
             <strong>Refresh failed</strong>
             <p>{refreshError.message}</p>
           </div>
@@ -405,9 +420,14 @@ export function ProjectsPage() {
       )}
 
       {projectsError && !projectsRateLimitError && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className={cn(
+            bannerBaseClassName,
+            'border border-destructive/30 bg-destructive/10 text-destructive'
+          )}
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
+          <div className={bannerContentClassName}>
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
             {(() => {
@@ -422,9 +442,14 @@ export function ProjectsPage() {
       )}
 
       {boardError && !boardLoading && !boardRateLimitError && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className={cn(
+            bannerBaseClassName,
+            'border border-destructive/30 bg-destructive/10 text-destructive'
+          )}
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
+          <div className={bannerContentClassName}>
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
           </div>
@@ -618,7 +643,12 @@ export function ProjectsPage() {
                 )}
               </div>
               <div className="overflow-x-auto pb-2">
-                <div className="grid min-w-full items-stretch gap-3" style={pipelineGridStyle}>
+                <div
+                  className="grid min-w-full items-stretch gap-3"
+                  style={pipelineGridStyle}
+                  role="region"
+                  aria-labelledby="pipeline-stages"
+                >
                   {transformedBoardData.columns.map((col) => {
                     const assigned =
                       assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
@@ -627,7 +657,7 @@ export function ProjectsPage() {
                     return (
                       <div
                         key={col.status.option_id}
-                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm sm:rounded-[1.35rem]"
                       >
                         <span
                           className="h-3 w-3 rounded-full"
@@ -680,6 +710,10 @@ export function ProjectsPage() {
                       onClick={boardControls.clearAll}
                       className="mt-2"
                       type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={boardControls.clearAll}
+                      className="mt-2"
                     >
                       Clear all filters
                     </Button>

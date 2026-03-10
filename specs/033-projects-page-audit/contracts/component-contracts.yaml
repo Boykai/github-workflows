@@ -1,0 +1,348 @@
+# Component Interface Contracts: Projects Page Audit
+# These contracts define the expected props, behavior, and accessibility
+# requirements for each component on the Projects page.
+# Used during the audit to verify compliance.
+
+components:
+
+  # ─── Page-Level ───
+
+  ProjectsPage:
+    path: frontend/src/pages/ProjectsPage.tsx
+    description: >
+      Top-level page component for the Projects board view.
+      Composes hero, header, toolbar, board, banners, and modals.
+    states:
+      - name: no-project-selected
+        condition: "!selectedProjectId && !projectsLoading"
+        renders: ProjectSelectionEmptyState
+      - name: loading-board
+        condition: "selectedProjectId && boardLoading"
+        renders: CelestialLoader
+      - name: populated-board
+        condition: "selectedProjectId && !boardLoading && transformedBoardData"
+        renders: ProjectBoard
+      - name: empty-board-filtered
+        condition: "all columns empty && hasActiveControls"
+        renders: "Search icon + 'No issues match' + Clear All button"
+      - name: empty-board-no-items
+        condition: "all columns empty && !hasActiveControls"
+        renders: "Inbox icon + 'No items yet' message"
+      - name: rate-limit-error
+        condition: "showRateLimitBanner"
+        renders: "Rate limit banner with countdown"
+      - name: rate-limit-low-warning
+        condition: "isRateLimitLow && !showRateLimitBanner"
+        renders: "Rate limit low warning banner"
+      - name: refresh-error
+        condition: "refreshError && refreshError.type !== 'rate_limit'"
+        renders: "Refresh failed error banner"
+      - name: projects-error
+        condition: "projectsError && !projectsRateLimitError"
+        renders: "Failed to load projects error banner"
+      - name: board-error
+        condition: "boardError && !boardLoading && !boardRateLimitError"
+        renders: "Failed to load board data banner with Retry button"
+    accessibility:
+      - "Page shell uses semantic HTML structure"
+      - "All banners have role=alert or equivalent for screen readers"
+      - "Selected item modal manages focus trap"
+
+  # ─── Header Components ───
+
+  ProjectSelectorButton:
+    path: "Inline in ProjectsPage.tsx"
+    description: Custom button that opens the ProjectSelector dropdown
+    props:
+      - name: projectSelectorOpen
+        type: boolean
+        description: Whether the dropdown is currently open
+    accessibility:
+      - "aria-haspopup='listbox'"
+      - "aria-expanded={projectSelectorOpen}"
+      - "aria-label='Select project'"
+      - "Visible focus indicator on focus-visible"
+    design_tokens:
+      - "Uses .moonwell class for background/border"
+      - "Border: border-border/70"
+      - "Hover: hover:border-primary/35 hover:bg-background/60"
+      - "Text: text-foreground, text-muted-foreground/80"
+      - "Avatar: bg-primary/12, text-primary"
+
+  ProjectSelector:
+    path: frontend/src/layout/ProjectSelector.tsx
+    description: Dropdown list of available projects
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onClose, type: "() => void", required: true }
+      - { name: projects, type: "Project[]", required: true }
+      - { name: selectedProjectId, type: "string | null", required: true }
+      - { name: isLoading, type: boolean, required: true }
+      - { name: onSelectProject, type: "(id: string) => void", required: true }
+      - { name: className, type: string, required: false }
+    accessibility:
+      - "Escape key closes the dropdown"
+      - "Outside click closes the dropdown"
+      - "Options should be keyboard-navigable"
+
+  SyncStatusIndicator:
+    path: "Inline in ProjectsPage.tsx"
+    description: Colored dot + text showing WebSocket connection status
+    states:
+      - { status: connected, color: "bg-green-500", label: "Live" }
+      - { status: polling, color: "bg-yellow-500", label: "Polling" }
+      - { status: connecting, color: "bg-blue-500", label: "Connecting..." }
+      - { status: disconnected, color: "bg-red-500", label: "Offline" }
+    accessibility:
+      - "Status text provides accessible label"
+      - "Color alone should not be the only indicator (text is present)"
+    audit_note: >
+      Verify green-500, yellow-500, blue-500, red-500 are appropriate
+      within the Celestial design system or should use design tokens instead.
+
+  RefreshButton:
+    path: frontend/src/components/board/RefreshButton.tsx
+    props:
+      - { name: onRefresh, type: "() => void", required: true }
+      - { name: isRefreshing, type: boolean, required: true }
+      - { name: disabled, type: boolean, required: false }
+    accessibility:
+      - "Button has accessible name"
+      - "Spinner animation respects prefers-reduced-motion"
+
+  # ─── Toolbar ───
+
+  BoardToolbar:
+    path: frontend/src/components/board/BoardToolbar.tsx
+    description: Filter, sort, and group controls for the board
+    props:
+      - { name: filters, type: BoardFilterState, required: true }
+      - { name: sort, type: BoardSortState, required: true }
+      - { name: group, type: BoardGroupState, required: true }
+      - { name: onFiltersChange, type: "(f: BoardFilterState) => void", required: true }
+      - { name: onSortChange, type: "(s: BoardSortState) => void", required: true }
+      - { name: onGroupChange, type: "(g: BoardGroupState) => void", required: true }
+      - { name: onClearAll, type: "() => void", required: true }
+      - { name: availableLabels, type: "string[]", required: true }
+      - { name: availableAssignees, type: "string[]", required: true }
+      - { name: availableMilestones, type: "string[]", required: true }
+      - { name: hasActiveFilters, type: boolean, required: true }
+      - { name: hasActiveSort, type: boolean, required: true }
+      - { name: hasActiveGroup, type: boolean, required: true }
+      - { name: hasActiveControls, type: boolean, required: true }
+    accessibility:
+      - "Filter/sort/group dropdowns have aria-label"
+      - "Active state visually indicated and communicated to screen readers"
+      - "Checkbox inputs in filter lists are properly labeled"
+
+  BlockingIssuePill:
+    path: frontend/src/components/board/BlockingIssuePill.tsx
+    props:
+      - { name: entries, type: "BlockingQueueEntry[]", required: true }
+      - { name: projectId, type: string, required: true }
+    accessibility:
+      - "Skip/delete actions have accessible names"
+      - "Status information is not color-only"
+
+  BlockingChainPanel:
+    path: frontend/src/components/board/BlockingChainPanel.tsx
+    props:
+      - { name: entries, type: "BlockingQueueEntry[]", required: true }
+    accessibility:
+      - "Collapsible panel uses aria-expanded"
+      - "Toggle button has descriptive accessible name"
+
+  # ─── Board ───
+
+  ProjectBoard:
+    path: frontend/src/components/board/ProjectBoard.tsx
+    description: CSS Grid container rendering BoardColumn components
+    props:
+      - { name: boardData, type: BoardDataResponse, required: true }
+      - { name: onCardClick, type: "(item: BoardItem) => void", required: true }
+      - { name: availableAgents, type: "Agent[]", required: true }
+      - { name: getGroups, type: "(items: BoardItem[]) => BoardGroup[] | null", required: true }
+      - { name: blockingIssueNumbers, type: "Set<number>", required: true }
+    accessibility:
+      - "Board uses role='region' or similar landmark"
+      - "Columns are visually and semantically distinct"
+    responsive:
+      - "Desktop: all columns visible in grid"
+      - "Tablet/Mobile: horizontal scroll with minimum column width"
+
+  BoardColumn:
+    path: frontend/src/components/board/BoardColumn.tsx
+    description: Single status column with header and item list
+    props:
+      - { name: column, type: BoardColumn, required: true }
+      - { name: onCardClick, type: "(item: BoardItem) => void", required: true }
+      - { name: availableAgents, type: "Agent[]", required: false }
+      - { name: groups, type: "BoardGroup[] | null", required: false }
+      - { name: blockingIssueNumbers, type: "Set<number>", required: false }
+    accessibility:
+      - "Column header identifies the status"
+      - "Item list is scrollable with keyboard"
+    design_tokens:
+      - "Uses .project-board-column class"
+      - "Status dot color from colorUtils.ts"
+
+  IssueCard:
+    path: frontend/src/components/board/IssueCard.tsx
+    description: Individual issue card in a board column (most rendered component)
+    props:
+      - { name: item, type: BoardItem, required: true }
+      - { name: onClick, type: "(item: BoardItem) => void", required: true }
+      - { name: isBlocking, type: boolean, required: false }
+    accessibility:
+      - "Card is focusable and clickable (button or link semantics)"
+      - "Card has accessible name from title"
+      - "Priority badge has accessible text (not color-only)"
+      - "Assignee avatars have alt text"
+      - "Labels have sufficient contrast"
+    design_tokens:
+      - "Uses .project-board-card class"
+      - "Priority uses --priority-p0 through --priority-p3"
+    performance:
+      - "Should use React.memo or equivalent to prevent unnecessary re-renders"
+      - "Stable onClick reference (useCallback from parent)"
+
+  # ─── Modals & Panels ───
+
+  IssueDetailModal:
+    path: frontend/src/components/board/IssueDetailModal.tsx
+    description: Full-screen modal showing issue details, sub-issues, PRs
+    props:
+      - { name: item, type: BoardItem, required: true }
+      - { name: onClose, type: "() => void", required: true }
+    accessibility:
+      - "Focus trapped within modal when open"
+      - "Escape key closes modal"
+      - "Focus returns to triggering element on close"
+      - "Modal has role='dialog' and aria-modal='true'"
+      - "Modal has accessible title"
+    responsive:
+      - "Full-width on mobile"
+      - "Centered with max-width on desktop"
+
+  ProjectIssueLaunchPanel:
+    path: frontend/src/components/board/ProjectIssueLaunchPanel.tsx
+    description: Panel for creating issues and launching agent pipelines
+    props:
+      - { name: projectId, type: string, required: true }
+      - { name: projectName, type: string, required: false }
+      - { name: pipelines, type: "Pipeline[]", required: true }
+      - { name: isLoadingPipelines, type: boolean, required: true }
+      - { name: pipelinesError, type: "string | null", required: true }
+      - { name: onRetryPipelines, type: "() => void", required: true }
+      - { name: onLaunched, type: "() => void", required: true }
+    accessibility:
+      - "Form inputs are labeled"
+      - "Submit button states are communicated"
+      - "Error messages are associated with fields"
+
+  # ─── Shared Components ───
+
+  CelestialCatalogHero:
+    path: frontend/src/components/common/CelestialCatalogHero.tsx
+    description: Page hero with eyebrow, title, description, stats, and actions
+    props:
+      - { name: className, type: string, required: false }
+      - { name: eyebrow, type: string, required: true }
+      - { name: title, type: string, required: true }
+      - { name: description, type: string, required: true }
+      - { name: badge, type: string, required: false }
+      - { name: note, type: string, required: false }
+      - { name: stats, type: "Array<{label: string, value: string}>", required: false }
+      - { name: actions, type: ReactNode, required: false }
+    design_tokens:
+      - "Uses .section-aurora class"
+      - "Typography from --font-display"
+
+  CelestialLoader:
+    path: frontend/src/components/common/CelestialLoader.tsx
+    description: Loading spinner with optional label
+    props:
+      - { name: size, type: "'sm' | 'md' | 'lg'", required: false }
+      - { name: label, type: string, required: false }
+    accessibility:
+      - "Label provides screen reader context"
+      - "Animation respects prefers-reduced-motion"
+
+  ProjectSelectionEmptyState:
+    path: frontend/src/components/common/ProjectSelectionEmptyState.tsx
+    description: Empty state shown when no project is selected
+    props:
+      - { name: projects, type: "Project[]", required: true }
+      - { name: isLoading, type: boolean, required: true }
+      - { name: selectedProjectId, type: "string | null", required: true }
+      - { name: onSelectProject, type: "(id: string) => void", required: true }
+      - { name: description, type: string, required: false }
+
+  # ─── Pipeline Controls ───
+
+  PipelineSelectorDropdown:
+    path: "Inline in ProjectsPage.tsx"
+    description: Custom dropdown for selecting the active agent pipeline
+    accessibility:
+      - "aria-haspopup='listbox'"
+      - "aria-expanded={pipelineSelectorOpen}"
+      - "aria-label='Agent Pipeline'"
+      - "Options have role='option' and aria-selected"
+      - "Escape key closes dropdown"
+      - "Outside click closes dropdown"
+    design_tokens:
+      - "Uses .project-pipeline-select class"
+      - "Active state: .project-pipeline-select-active"
+      - "Open state: .project-pipeline-select-open"
+      - "Options: .project-pipeline-option, .project-pipeline-option-active"
+
+  BlockingToggle:
+    path: "Inline in ProjectsPage.tsx"
+    description: Toggle switch for project-level blocking override
+    accessibility:
+      - "role='switch'"
+      - "aria-checked={effectiveBlocking}"
+      - "Descriptive title attribute explaining current state"
+      - "Visible focus indicator via focus-visible:ring-2"
+    design_tokens:
+      - "On state: bg-amber-500"
+      - "Off state: bg-muted"
+      - "Label: text-amber-500 (on) or text-muted-foreground (off)"
+    audit_note: >
+      Verify amber-500 is appropriate within the Celestial design system
+      or should use a design token (e.g., --color-gold or warning semantic).
+
+# ─── Cross-Cutting Audit Contracts ───
+
+audit_requirements:
+
+  design_consistency:
+    - "All colors reference Tailwind theme tokens or Celestial custom properties"
+    - "No hardcoded hex/rgb/hsl values in component code"
+    - "All spacing uses Tailwind's spacing scale (no arbitrary values unless justified)"
+    - "All border-radius uses --radius-* tokens or Celestial conventions"
+    - "All shadows use --shadow-* tokens"
+    - "Typography uses --font-display or --font-sans"
+    - "Both light and dark themes render correctly"
+
+  accessibility_wcag_aa:
+    - "All text meets 4.5:1 contrast ratio against background"
+    - "All large text (18px+ or 14px+ bold) meets 3:1 contrast ratio"
+    - "All UI components/graphical objects meet 3:1 contrast ratio"
+    - "All interactive elements reachable via keyboard Tab"
+    - "Visible focus indicator on all focusable elements"
+    - "Modals trap focus and return focus on close"
+    - "Custom controls have appropriate ARIA roles and states"
+    - "Status/state changes announced to screen readers"
+    - "prefers-reduced-motion disables all animations"
+
+  responsive_breakpoints:
+    - desktop: "1280px+ — full layout with all panels visible"
+    - tablet: "768px–1279px — adapted layout, controls accessible"
+    - mobile: "below 768px — single-column friendly, 44×44px touch targets"
+
+  performance:
+    - "No unnecessary re-renders in board columns when sibling data changes"
+    - "IssueCard uses stable references for callbacks"
+    - "No duplicate API requests during normal navigation"
+    - "TanStack Query staleTime values are appropriate"
