@@ -174,5 +174,20 @@ async def get_by_project(
     return [_row_to_entry(r) for r in rows]
 
 
+async def update_is_blocking(
+    repo_key: str,
+    issue_number: int,
+    is_blocking: bool,
+) -> BlockingQueueEntry | None:
+    """Update the is_blocking flag for a queue entry."""
+    db = get_db()
+    await db.execute(
+        "UPDATE blocking_queue SET is_blocking = ? WHERE repo_key = ? AND issue_number = ?",
+        (int(is_blocking), repo_key, issue_number),
+    )
+    await db.commit()
+    return await get_by_issue(repo_key, issue_number)
+
+
 async def _now_iso() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")

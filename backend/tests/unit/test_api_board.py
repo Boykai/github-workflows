@@ -219,10 +219,10 @@ class TestBoardErrorSanitization:
 
 
 class TestSkipBlockingIssue:
-    """Tests for the skip endpoint — must dispatch agents for activated issues."""
+    """Tests for the skip endpoint — marks non-blocking and dispatches agents."""
 
     async def test_skip_dispatches_agents_for_activated_issues(self, client, mock_github_service):
-        """When mark_completed activates pending issues, the skip endpoint
+        """When skip_to_non_blocking activates pending issues, the skip endpoint
         must fire a background task to assign agents for each activated issue."""
         from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
 
@@ -253,28 +253,34 @@ class TestSkipBlockingIssue:
                 return_value=skipped_entry,
             ),
             patch(
-                "src.services.blocking_queue.mark_completed",
+                "src.services.blocking_queue.skip_to_non_blocking",
                 return_value=[activated_entry],
-            ) as mock_mark,
+            ) as mock_skip,
             patch(
                 "src.services.blocking_queue_store.get_by_project",
                 return_value=updated_entries,
             ),
             patch("src.api.board._dispatch_agents_for_activated") as mock_dispatch,
         ):
+            mock_github_service.update_issue_state.return_value = True
+
             resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/100/skip")
 
             assert resp.status_code == 200
-            mock_mark.assert_awaited_once_with("owner/repo", 100)
-            # _dispatch_agents_for_activated should have been called via create_task
-            # Since we patched _dispatch_agents_for_activated, verify the args
-            # passed to asyncio.create_task by checking the mock was scheduled.
-            # The patched version is a regular function, so create_task wraps
-            # its return value.  We verify the dispatch was invoked.
+            mock_skip.assert_awaited_once_with("owner/repo", 100)
             mock_dispatch.assert_called_once()
+            # Verify blocking label removal was attempted
+            mock_github_service.update_issue_state.assert_awaited_once_with(
+                "test-token",
+                "owner",
+                "repo",
+                100,
+                state="open",
+                labels_remove=["blocking"],
+            )
 
     async def test_skip_no_activation_does_not_dispatch(self, client, mock_github_service):
-        """When mark_completed returns no activated issues, no dispatch occurs."""
+        """When skip_to_non_blocking returns no activated issues, no dispatch occurs."""
         from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
 
         skipped_entry = BlockingQueueEntry(
@@ -289,14 +295,44 @@ class TestSkipBlockingIssue:
 
         with (
             patch("src.api.board._resolve_queue_entry", return_value=skipped_entry),
-            patch("src.services.blocking_queue.mark_completed", return_value=[]),
+            patch("src.services.blocking_queue.skip_to_non_blocking", return_value=[]),
             patch("src.services.blocking_queue_store.get_by_project", return_value=[]),
             patch("src.api.board._dispatch_agents_for_activated") as mock_dispatch,
         ):
+            mock_github_service.update_issue_state.return_value = True
+
             resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/100/skip")
 
             assert resp.status_code == 200
             mock_dispatch.assert_not_called()
+
+    async def test_skip_label_removal_failure_does_not_block(self, client, mock_github_service):
+        """Skip proceeds even if removing the blocking label from GitHub fails."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        skipped_entry = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=100,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+
+        with (
+            patch("src.api.board._resolve_queue_entry", return_value=skipped_entry),
+            patch("src.services.blocking_queue.skip_to_non_blocking", return_value=[]) as mock_skip,
+            patch("src.services.blocking_queue_store.get_by_project", return_value=[]),
+            patch("src.api.board._dispatch_agents_for_activated"),
+        ):
+            mock_github_service.update_issue_state.side_effect = Exception("GitHub API error")
+
+            resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/100/skip")
+
+            assert resp.status_code == 200
+            # skip_to_non_blocking still called despite label removal failure
+            mock_skip.assert_awaited_once_with("owner/repo", 100)
 
     async def test_skip_entry_not_found_returns_404(self, client, mock_github_service):
         """Skip returns 404 when the issue is not in the blocking queue."""

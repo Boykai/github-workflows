@@ -166,15 +166,15 @@ class TestActivation:
 
     @pytest.mark.asyncio
     async def test_non_blocking_batch_up_to_blocking(self, db):
-        """Non-blocking issues activate together up to the next blocking entry."""
+        """Non-blocking issues activate together up to and including the next blocking entry."""
         await store.insert(REPO, 1, PROJECT, is_blocking=False)
         await store.insert(REPO, 2, PROJECT, is_blocking=False)
         await store.insert(REPO, 3, PROJECT, is_blocking=True)
         await store.insert(REPO, 4, PROJECT, is_blocking=False)
 
         activated = await bq.try_activate_next(REPO)
-        assert len(activated) == 2
-        assert [e.issue_number for e in activated] == [1, 2]
+        assert len(activated) == 3
+        assert [e.issue_number for e in activated] == [1, 2, 3]
 
 
 class TestMarkInReview:
@@ -296,31 +296,31 @@ class TestEightIssueScenario:
             assert entry.queue_status == BlockingQueueStatus.PENDING
 
         # Step 3: Issue #1 → "in review"
-        # Should activate #2 and #3 (consecutive non-blocking, stop at #4 blocking)
+        # Should activate #2, #3, and #4 (consecutive non-blocking + first blocking)
         activated = await bq.mark_in_review(REPO, 1)
-        assert len(activated) == 2
-        assert [e.issue_number for e in activated] == [2, 3]
-        # #2 and #3 branch from #1's branch
+        assert len(activated) == 3
+        assert [e.issue_number for e in activated] == [2, 3, 4]
+        # #2, #3, #4 branch from #1's branch
         assert activated[0].parent_branch == "copilot/issue-1"
         assert activated[1].parent_branch == "copilot/issue-1"
+        assert activated[2].parent_branch == "copilot/issue-1"
 
         assert await _status(1) == BlockingQueueStatus.IN_REVIEW
         assert await _status(2) == BlockingQueueStatus.ACTIVE
         assert await _status(3) == BlockingQueueStatus.ACTIVE
-        assert await _status(4) == BlockingQueueStatus.PENDING
+        assert await _status(4) == BlockingQueueStatus.ACTIVE
+        assert await _status(5) == BlockingQueueStatus.PENDING
 
         # Step 4: Issues #2 and #3 → "in review"
-        # #2 → in_review: #3 still active, so no new activations
+        # #4 is active blocking → no new activations
         activated_2 = await bq.mark_in_review(REPO, 2)
-        assert activated_2 == []  # #3 is still active
+        assert activated_2 == []
 
-        # #3 → in_review: no more active, next is #4 (blocking) → activate alone
         activated_3 = await bq.mark_in_review(REPO, 3)
-        assert len(activated_3) == 1
-        assert activated_3[0].issue_number == 4
-        assert activated_3[0].parent_branch == "copilot/issue-1"  # #1 is still oldest open blocking
+        assert activated_3 == []
 
-        assert await _status(4) == BlockingQueueStatus.ACTIVE
+        # Simulate orchestrator setting #4's branch
+        await store.update_status(REPO, 4, queue_status="active", parent_branch="copilot/issue-4")
 
         # Step 5: Issue #1 → "completed"
         # #4 is active (blocking) → can't activate more
@@ -328,33 +328,29 @@ class TestEightIssueScenario:
         assert activated_1c == []
         assert await _status(1) == BlockingQueueStatus.COMPLETED
 
-        # Simulate orchestrator setting #4's branch
-        await store.update_status(REPO, 4, queue_status="active", parent_branch="copilot/issue-4")
-
         # Step 6: Issues #2, #3 → "completed", #4 → "in review"
         await bq.mark_completed(REPO, 2)
         await bq.mark_completed(REPO, 3)
 
-        # #4 → in_review: next is #5 (non-blocking, only one before #6 blocking)
+        # #4 → in_review: next is #5 (non-blocking), then #6 (blocking) → activate [5, 6]
         activated_4r = await bq.mark_in_review(REPO, 4)
-        assert len(activated_4r) == 1
-        assert activated_4r[0].issue_number == 5
+        assert len(activated_4r) == 2
+        assert [e.issue_number for e in activated_4r] == [5, 6]
         assert activated_4r[0].parent_branch == "copilot/issue-4"  # #4 is oldest open blocking
+        assert activated_4r[1].parent_branch == "copilot/issue-4"
+
+        # Simulate orchestrator setting #6's branch
+        await store.update_status(REPO, 6, queue_status="active", parent_branch="copilot/issue-6")
 
         # Step 7: #5 → "in review"
-        # Next pending is #6 (blocking) → activate alone
+        # #6 is active blocking → no new activations
         activated_5r = await bq.mark_in_review(REPO, 5)
-        assert len(activated_5r) == 1
-        assert activated_5r[0].issue_number == 6
-        assert activated_5r[0].parent_branch == "copilot/issue-4"  # #4 still oldest open blocking
+        assert activated_5r == []
 
         # Step 8: #4 → "completed"
         # #6 is active (blocking) → can't activate more
         activated_4c = await bq.mark_completed(REPO, 4)
         assert activated_4c == []
-
-        # Simulate orchestrator setting #6's branch
-        await store.update_status(REPO, 6, queue_status="active", parent_branch="copilot/issue-6")
 
         # Step 9: #5 → "completed", #6 → "in review"
         await bq.mark_completed(REPO, 5)
@@ -542,7 +538,7 @@ class TestRecovery:
 
 
 class TestSkipWorkflow:
-    """Tests for skip (mark_completed) used by the board API skip endpoint."""
+    """Tests for skip (mark_completed) used by the board API delete endpoint."""
 
     @pytest.mark.asyncio
     async def test_skip_active_blocking_advances_queue(self, db):
@@ -552,7 +548,7 @@ class TestSkipWorkflow:
         assert await _status(10) == BlockingQueueStatus.ACTIVE
         assert await _status(20) == BlockingQueueStatus.PENDING
 
-        # Skip issue #10 (what the /skip endpoint does)
+        # Skip issue #10 (what the /delete endpoint does via mark_completed)
         activated = await bq.mark_completed(REPO, 10)
 
         assert await _status(10) == BlockingQueueStatus.COMPLETED
@@ -586,3 +582,88 @@ class TestSkipWorkflow:
         entries = await store.get_by_project(PROJECT)
         match = next((e for e in entries if e.issue_number == 999), None)
         assert match is None
+
+
+# ─── Skip to Non-Blocking Tests ─────────────────────────────────────
+
+
+class TestSkipToNonBlocking:
+    """Tests for skip_to_non_blocking — marks a blocking issue as non-blocking."""
+
+    @pytest.mark.asyncio
+    async def test_skip_active_blocking_activates_pending(self, db):
+        """Skipping an active blocking issue makes it non-blocking and activates pending."""
+        await _enqueue(10, blocking=True, db_conn=db)
+        await _enqueue(20, blocking=False, db_conn=db)
+        assert await _status(10) == BlockingQueueStatus.ACTIVE
+        assert await _status(20) == BlockingQueueStatus.PENDING
+
+        activated = await bq.skip_to_non_blocking(REPO, 10)
+
+        # #10 stays active but is now non-blocking
+        entry10 = await store.get_by_issue(REPO, 10)
+        assert entry10 is not None
+        assert entry10.queue_status == BlockingQueueStatus.ACTIVE
+        assert entry10.is_blocking is False
+
+        # #20 is activated
+        assert len(activated) == 1
+        assert activated[0].issue_number == 20
+        assert await _status(20) == BlockingQueueStatus.ACTIVE
+
+    @pytest.mark.asyncio
+    async def test_skip_activates_batch_with_next_blocking(self, db):
+        """Skipping activates non-blocking entries plus the next blocking entry."""
+        await _enqueue(10, blocking=True, db_conn=db)
+        await _enqueue(20, blocking=False, db_conn=db)
+        await _enqueue(30, blocking=True, db_conn=db)
+        await _enqueue(40, blocking=False, db_conn=db)
+        assert await _status(10) == BlockingQueueStatus.ACTIVE
+
+        activated = await bq.skip_to_non_blocking(REPO, 10)
+
+        # #10 is non-blocking but still active
+        entry10 = await store.get_by_issue(REPO, 10)
+        assert entry10 is not None
+        assert entry10.is_blocking is False
+        assert entry10.queue_status == BlockingQueueStatus.ACTIVE
+
+        # #20 and #30 activate; #40 waits behind #30 (the new blocking gate)
+        assert len(activated) == 2
+        assert [e.issue_number for e in activated] == [20, 30]
+        assert await _status(40) == BlockingQueueStatus.PENDING
+
+    @pytest.mark.asyncio
+    async def test_skip_already_non_blocking_returns_empty(self, db):
+        """Skipping a non-blocking issue is idempotent and returns empty list."""
+        await _enqueue(10, blocking=False, db_conn=db)
+
+        activated = await bq.skip_to_non_blocking(REPO, 10)
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_skip_unknown_issue_returns_empty(self, db):
+        """Skipping an issue not in the queue returns empty list."""
+        activated = await bq.skip_to_non_blocking(REPO, 999)
+        assert activated == []
+
+    @pytest.mark.asyncio
+    async def test_skip_pending_blocking_behind_active_blocking(self, db):
+        """Skipping a pending blocking issue behind an active blocking issue.
+
+        The pending issue becomes non-blocking but stays pending because the
+        active blocking issue still gates activation.
+        """
+        await _enqueue(10, blocking=True, db_conn=db)
+        await _enqueue(20, blocking=True, db_conn=db)
+        assert await _status(10) == BlockingQueueStatus.ACTIVE
+        assert await _status(20) == BlockingQueueStatus.PENDING
+
+        activated = await bq.skip_to_non_blocking(REPO, 20)
+
+        # #20 is now non-blocking but still pending (#10 gates it)
+        entry20 = await store.get_by_issue(REPO, 20)
+        assert entry20 is not None
+        assert entry20.is_blocking is False
+        assert entry20.queue_status == BlockingQueueStatus.PENDING
+        assert activated == []
