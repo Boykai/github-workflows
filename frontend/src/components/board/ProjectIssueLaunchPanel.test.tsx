@@ -56,7 +56,7 @@ describe('ProjectIssueLaunchPanel', () => {
   });
 
   it('shows inline validation and launches the selected pipeline after correction', async () => {
-    const launched = vi.fn();
+    const onLaunchedMock = vi.fn();
     mockLaunch.mockResolvedValue({
       success: true,
       issue_number: 42,
@@ -72,7 +72,7 @@ describe('ProjectIssueLaunchPanel', () => {
         isLoadingPipelines={false}
         pipelinesError={null}
         onRetryPipelines={vi.fn()}
-        onLaunched={launched}
+        onLaunched={onLaunchedMock}
       />
     );
 
@@ -89,9 +89,6 @@ describe('ProjectIssueLaunchPanel', () => {
       screen.getByLabelText('GitHub Parent Issue Description'),
       '# Import existing issue\n\nPreserve this parent issue context.'
     );
-    expect(screen.getByLabelText('GitHub Parent Issue Description')).toHaveValue(
-      '# Import existing issue\n\nPreserve this parent issue context.'
-    );
     await userEvent.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
     await userEvent.click(screen.getByRole('button', { name: 'Launch pipeline' }));
 
@@ -103,7 +100,7 @@ describe('ProjectIssueLaunchPanel', () => {
     });
 
     expect(screen.getByText('Pipeline launched successfully')).toBeInTheDocument();
-    expect(launched).toHaveBeenCalledWith(
+    expect(onLaunchedMock).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, issue_number: 42 })
     );
   });
@@ -193,7 +190,7 @@ describe('ProjectIssueLaunchPanel', () => {
   });
 
   it('shows launch failures without clearing the form so the user can retry', async () => {
-    const launched = vi.fn();
+    const onLaunchedMock = vi.fn();
     const user = userEvent.setup();
     mockLaunch.mockResolvedValue({
       success: false,
@@ -209,7 +206,7 @@ describe('ProjectIssueLaunchPanel', () => {
         isLoadingPipelines={false}
         pipelinesError={null}
         onRetryPipelines={vi.fn()}
-        onLaunched={launched}
+        onLaunched={onLaunchedMock}
       />
     );
 
@@ -225,7 +222,7 @@ describe('ProjectIssueLaunchPanel', () => {
     );
     expect(screen.getByLabelText('GitHub Parent Issue Description')).toHaveValue('# Retry me');
     expect(screen.getByLabelText('Agent Pipeline Config')).toHaveValue('pipe-1');
-    expect(launched).not.toHaveBeenCalled();
+    expect(onLaunchedMock).not.toHaveBeenCalled();
   });
 
   it('renders the pipeline loading error state and retries on request', async () => {
