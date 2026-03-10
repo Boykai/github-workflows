@@ -12,7 +12,7 @@
 - **High**: 1
 - **Medium**: 3
 - **Low**: 2
-- **Fixed in this PR**: 3 findings (`PIPE-001`, `PIPE-002`, `PIPE-003`)
+- **Fixed in this PR**: 6 findings (`PIPE-001`, `PIPE-002`, `PIPE-003`, `PIPE-004`, `PIPE-005`, `PIPE-006`)
 
 The Pipelines page is broadly aligned with Solune’s celestial theme and shared catalog layout, but the audit found several change-scoped gaps around navigation continuity, long-text discoverability, and interaction safety. The highest-severity issue was a hero CTA that bypassed the page’s unsaved-changes safeguard, creating a data-loss risk and a mismatch with the empty-state pipeline creation flow.
 
@@ -35,9 +35,9 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 | `PIPE-001` | High | Functional bug / UX | Fixed | The hero **New pipeline** CTA bypassed the unsaved-changes guard and did not reuse the same stage-prefill flow as the empty-state CTA. |
 | `PIPE-002` | Medium | Functional bug / information architecture | Fixed | The hero **Saved workflows** anchor linked to `#saved-pipelines`, but the page had no matching target, so the shortcut did not move the user to the saved workflows section. |
 | `PIPE-003` | Medium | UX / Visual quality | Fixed | Long pipeline names were visually truncated in **Saved Workflows** and **Recent Activity** with no way to inspect the full label. |
-| `PIPE-004` | Medium | Accessibility | Open | Pipeline name validation feedback in `PipelineBoard` is only visual; the name input does not expose `aria-invalid` / `aria-describedby` for assistive technologies. |
-| `PIPE-005` | Low | Visual consistency | Open | `SavedWorkflowsList` uses generic pulse blocks during loading, which feel flatter and less intentional than the app’s usual celestial panel skeletons. |
-| `PIPE-006` | Low | UX clarity | Open | `Recent Activity` hard-caps to the three newest pipelines without an affordance or explanatory copy for seeing older activity. |
+| `PIPE-004` | Medium | Accessibility | Fixed | Pipeline name validation feedback in `PipelineBoard` is only visual; the name input does not expose `aria-invalid` / `aria-describedby` for assistive technologies. |
+| `PIPE-005` | Low | Visual consistency | Fixed | `SavedWorkflowsList` uses generic pulse blocks during loading, which feel flatter and less intentional than the app’s usual celestial panel skeletons. |
+| `PIPE-006` | Low | UX clarity | Fixed | `Recent Activity` hard-caps to the three newest pipelines without an affordance or explanatory copy for seeing older activity. |
 
 ## Detailed Findings
 
@@ -89,7 +89,7 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
   - **4.1.2 Name, Role, Value**
 - **Observed issue**: The pipeline name field renders validation text, but the input does not expose `aria-invalid` or `aria-describedby` to bind the error text to the field.
 - **Remediation**: Add an error ID, wire the input to that ID, and toggle `aria-invalid` when `validationErrors.name` is present.
-- **Status**: Open
+- **Status**: Fixed — added `aria-invalid` and `aria-describedby` attributes to the pipeline name input in both compact and full layout variants
 
 ### `PIPE-005` — Loading skeletons are weaker than adjacent page patterns
 
@@ -98,7 +98,7 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 - **Affected file**: `frontend/src/components/pipeline/SavedWorkflowsList.tsx`
 - **Observed issue**: The loading state uses plain pulse blocks instead of the richer rounded panel treatment used elsewhere in the Solune catalog.
 - **Remediation**: Update the skeleton cards to better mirror the saved workflow card structure and panel styling.
-- **Status**: Open
+- **Status**: Fixed — upgraded skeleton cards to use structured placeholders with `rounded-[1.3rem]`, `bg-card/80`, and name/description/stats shapes
 
 ### `PIPE-006` — Recent activity limit is not explained
 
@@ -113,7 +113,7 @@ The Pipelines page is broadly aligned with Solune’s celestial theme and shared
 
 - **Keyboard access**: The major interactive surfaces reviewed from code remain keyboard reachable, including workflow cards and the empty-board creation CTA.
 - **Focus visibility**: Existing focus rings on primary CTA controls are consistent with shared page patterns.
-- **Outstanding gap**: `PIPE-004` remains the main assistive-technology issue found during this audit slice.
+- **Outstanding gap**: None — `PIPE-004` has been resolved with `aria-invalid` and `aria-describedby` attributes.
 
 ## Remediation Priority
 

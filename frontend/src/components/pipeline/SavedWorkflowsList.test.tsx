@@ -49,6 +49,26 @@ describe('SavedWorkflowsList', () => {
     );
   });
 
+  it('renders structured skeleton cards while loading', () => {
+    const { container } = render(
+      <SavedWorkflowsList
+        pipelines={[]}
+        activePipelineId={null}
+        assignedPipelineId=""
+        isLoading={true}
+        onSelect={vi.fn()}
+      />
+    );
+
+    const skeletonCards = container.querySelectorAll('.animate-pulse');
+    expect(skeletonCards).toHaveLength(3);
+
+    // Each skeleton should contain placeholder shapes (not be a flat empty block)
+    for (const card of skeletonCards) {
+      expect(card.children.length).toBeGreaterThan(0);
+    }
+  });
+
   it('shows the full pipeline name in a tooltip for truncated cards', async () => {
     const user = userEvent.setup();
     const pipeline = createPipeline();
