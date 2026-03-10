@@ -157,6 +157,8 @@ npx playwright test             # E2E
 - N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (032-issue-upload-pipeline-config)
 - SQLite with WAL mode (aiosqlite) — existing `pipeline_configs` table, existing `project_settings` table (`assigned_pipeline_id` column) (032-issue-upload-pipeline-config)
+- TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4 (with `@tailwindcss/vite`), shadcn/ui (Radix UI primitives), dnd-kit (drag-and-drop), lucide-react 0.577 (icons), class-variance-authority 0.7.1 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (033-audit-pipelines-ux)
+- SQLite with WAL mode (aiosqlite) — `pipeline_configs` table for pipeline CRUD (033-audit-pipelines-ux)
 
 ## Custom Agents
 
@@ -202,3 +204,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 | Azure DevOps MCP | Local | Cloud | Azure DevOps work items |
 | Context7 | HTTP | Documentation | Up-to-date library docs and code examples |
 | Code Graph Context | Local | Code Analysis | Code indexing, call chains, dead code detection |
+
+## Recent Changes
+- 033-audit-pipelines-ux: Added TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4 (with `@tailwindcss/vite`), shadcn/ui (Radix UI primitives), dnd-kit (drag-and-drop), lucide-react 0.577 (icons), class-variance-authority 0.7.1 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend)
