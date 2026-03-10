@@ -245,21 +245,30 @@ describe('GitHubMcpConfigGenerator', () => {
     const user = userEvent.setup();
     // Mock clipboard API using defineProperty to work with happy-dom
     const writeText = vi.fn().mockResolvedValue(undefined);
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
       writable: true,
       configurable: true,
     });
 
-    render(<GitHubMcpConfigGenerator tools={[]} />);
+    try {
+      render(<GitHubMcpConfigGenerator tools={[]} />);
 
-    const copyButton = screen.getByRole('button', { name: /Copy to Clipboard/ });
-    expect(copyButton).toBeInTheDocument();
+      const copyButton = screen.getByRole('button', { name: /Copy to clipboard/ });
+      expect(copyButton).toBeInTheDocument();
 
-    await user.click(copyButton);
+      await user.click(copyButton);
 
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mcpServers'));
-    expect(screen.getByText('Copied!')).toBeInTheDocument();
+      expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mcpServers'));
+      expect(screen.getByText('Copied!')).toBeInTheDocument();
+    } finally {
+      if (originalClipboard) {
+        Object.defineProperty(navigator, 'clipboard', originalClipboard);
+      } else {
+        delete (navigator as Record<string, unknown>)['clipboard'];
+      }
+    }
   });
 
   it('displays the generated JSON config with mcpServers', () => {
