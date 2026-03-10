@@ -29,9 +29,9 @@
 
 **Purpose**: Establish the launch-panel module and confirm the shared contracts this feature reuses.
 
-- [ ] T001 Create the launch-form scaffold, local state, and helper constants in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T002 [P] Verify `PipelineIssueLaunchRequest`, `PipelineConfigSummary`, and `WorkflowResult` exports used by the panel in `frontend/src/types/index.ts`
-- [ ] T003 [P] Confirm the existing list/seed/launch contract surface in `frontend/src/services/api.ts`, `backend/src/api/pipelines.py`, and `backend/src/models/pipeline.py` will be reused without adding new endpoints
+- [x] T001 Create the launch-form scaffold, local state, and helper constants in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T002 [P] Verify `PipelineIssueLaunchRequest`, `PipelineConfigSummary`, and `WorkflowResult` exports used by the panel in `frontend/src/types/index.ts`
+- [x] T003 [P] Confirm the existing list/seed/launch contract surface in `frontend/src/services/api.ts`, `backend/src/api/pipelines.py`, and `backend/src/models/pipeline.py` will be reused without adding new endpoints
 
 **Checkpoint**: The implementation surface is defined and all shared contracts required by the launch flow are confirmed.
 
@@ -43,8 +43,8 @@
 
 **⚠️ CRITICAL**: No user story work should begin until the page passes the launch panel the selected project context and pipeline query state.
 
-- [ ] T004 Render `ProjectIssueLaunchPanel` from `frontend/src/pages/ProjectsPage.tsx` with `projectId`, `projectName`, `onLaunched`, and pipeline query props
-- [ ] T005 Reconcile pipeline loading, refetch, and board-refresh invalidation flows in `frontend/src/pages/ProjectsPage.tsx` so the launch panel receives reactive pipeline data and can refresh the board after success
+- [x] T004 Render `ProjectIssueLaunchPanel` from `frontend/src/pages/ProjectsPage.tsx` with `projectId`, `projectName`, `onLaunched`, and pipeline query props
+- [x] T005 Reconcile pipeline loading, refetch, and board-refresh invalidation flows in `frontend/src/pages/ProjectsPage.tsx` so the launch panel receives reactive pipeline data and can refresh the board after success
 
 **Checkpoint**: The Projects page can host the new launch panel and provide all pipeline/query callbacks needed by later stories.
 
@@ -58,9 +58,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Build the issue-description `<textarea>` and native pipeline `<select>` controls, including labels and project-context copy, in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T007 [US1] Wire the launch submission mutation in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx` to `pipelinesApi.launch(projectId, { issue_description, pipeline_id })`
-- [ ] T008 [US1] Add the inline success confirmation state, created-issue link, and reset action in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T006 [US1] Build the issue-description `<textarea>` and native pipeline `<select>` controls, including labels and project-context copy, in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T007 [US1] Wire the launch submission mutation in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx` to `pipelinesApi.launch(projectId, { issue_description, pipeline_id })`
+- [x] T008 [US1] Add the inline success confirmation state, created-issue link, and reset action in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
 
 **Checkpoint**: A user can complete the core launch workflow from pasted text and a selected pipeline config. This is the MVP.
 
@@ -74,8 +74,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] Add trimmed required-field and max-length validation for issue description and pipeline selection in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T010 [US3] Preserve form values, clear field-specific errors on change, disable duplicate submits while pending, and surface submission failures inline in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T009 [US3] Add trimmed required-field and max-length validation for issue description and pipeline selection in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T010 [US3] Preserve form values, clear field-specific errors on change, disable duplicate submits while pending, and surface submission failures inline in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
 
 **Checkpoint**: The launch form blocks invalid submissions with inline feedback and retains user-entered data on failure.
 
@@ -89,8 +89,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Add the hidden file input, upload trigger button, and uploaded-file name display in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T012 [US2] Implement `isAcceptedIssueFile()` and file-reading logic in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx` to accept `.md`/`.txt`, reject unsupported types, enforce the description size limit, and populate the textarea without losing prior text on failure
+- [x] T011 [US2] Add the hidden file input, upload trigger button, and uploaded-file name display in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T012 [US2] Implement `isAcceptedIssueFile()` and file-reading logic in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx` to accept `.md`/`.txt`, reject unsupported types, enforce the description size limit, and populate the textarea without losing prior text on failure
 
 **Checkpoint**: Users can bootstrap the launch form from an uploaded issue file instead of manual paste.
 
@@ -104,8 +104,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T013 [P] [US4] Pass the saved pipeline list, loading state, error state, and retry callback from `frontend/src/pages/ProjectsPage.tsx` into `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T014 [US4] Render loading, empty, and fetch-error states with retry handling for the pipeline selector in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T013 [P] [US4] Pass the saved pipeline list, loading state, error state, and retry callback from `frontend/src/pages/ProjectsPage.tsx` into `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T014 [US4] Render loading, empty, and fetch-error states with retry handling for the pipeline selector in `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
 
 **Checkpoint**: The pipeline selector stays reactive and gracefully handles loading, empty, and error conditions.
 
@@ -115,8 +115,8 @@
 
 **Purpose**: Final alignment, manual verification, and existing-command validation across the touched surface.
 
-- [ ] T015 [P] Run the manual launch, validation, upload, and selector scenarios from `specs/032-issue-upload-pipeline-config/quickstart.md` against `frontend/src/pages/ProjectsPage.tsx` and `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
-- [ ] T016 [P] Run `npm run lint`, `npm run type-check`, and `npm run test` from `frontend/package.json` after the UI changes affecting `frontend/src/pages/ProjectsPage.tsx` and `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T015 [P] Run the manual launch, validation, upload, and selector scenarios from `specs/032-issue-upload-pipeline-config/quickstart.md` against `frontend/src/pages/ProjectsPage.tsx` and `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T016 [P] Run `npm run lint`, `npm run type-check`, and `npm run test` from `frontend/package.json` after the UI changes affecting `frontend/src/pages/ProjectsPage.tsx` and `frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
 
 ---
 
