@@ -75,7 +75,7 @@ backend/
                        mcp, metadata, pipelines, projects, settings, signal,
                        tasks, tools, webhooks, workflow)
     middleware/       Request middleware (request_id context var)
-    migrations/       SQL schema migrations (001–017, run on startup)
+    migrations/       SQL schema migrations (001–020, run on startup)
     models/           Pydantic request/response models
     prompts/          AI prompt templates (issue_generation, task_generation)
     services/         Business logic
@@ -86,7 +86,6 @@ backend/
       github_projects/ GitHub Projects v2 GraphQL + REST
       housekeeping/   Session/DB cleanup
       pipelines/      Pipeline config service
-      tools/          MCP tool service
       workflow_orchestrator/ Issue workflow state machine
   tests/
     unit/

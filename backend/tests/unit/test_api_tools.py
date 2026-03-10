@@ -19,6 +19,7 @@ class TestToolsPresetsApi:
 
     async def test_context7_preset_has_correct_config(self, client):
         resp = await client.get("/api/v1/tools/presets")
+        assert resp.status_code == 200
         data = resp.json()
         preset = next(p for p in data["presets"] if p["id"] == "context7")
         assert preset["name"] == "Context7"
@@ -27,6 +28,7 @@ class TestToolsPresetsApi:
 
     async def test_codegraphcontext_preset_has_correct_config(self, client):
         resp = await client.get("/api/v1/tools/presets")
+        assert resp.status_code == 200
         data = resp.json()
         preset = next(p for p in data["presets"] if p["id"] == "codegraphcontext")
         assert preset["name"] == "Code Graph Context"
