@@ -372,13 +372,11 @@ export function ProjectsPage() {
       {/* Rate limit / error banners */}
       {showRateLimitBanner && (
         <div
-          className={cn(
-            bannerBaseClassName,
-            'border border-accent/30 bg-accent/12 text-accent-foreground'
-          )}
+          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
+          role="alert"
         >
           <span className="text-lg">⏳</span>
-          <div className={bannerContentClassName}>
+          <div className="flex flex-col gap-1">
             <strong>Rate limit reached</strong>
             <p>
               {rateLimitRetryAfter
@@ -391,13 +389,11 @@ export function ProjectsPage() {
 
       {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
         <div
-          className={cn(
-            bannerBaseClassName,
-            'border border-accent/30 bg-accent/12 text-accent-foreground'
-          )}
+          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
+          role="alert"
         >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className={bannerContentClassName}>
+          <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>
             <p>Only {rateLimitInfo.remaining} API requests remaining.</p>
           </div>
@@ -406,13 +402,11 @@ export function ProjectsPage() {
 
       {refreshError && refreshError.type !== 'rate_limit' && (
         <div
-          className={cn(
-            bannerBaseClassName,
-            'border border-destructive/30 bg-destructive/10 text-destructive'
-          )}
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
         >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className={bannerContentClassName}>
+          <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
             <p>{refreshError.message}</p>
           </div>
@@ -421,13 +415,11 @@ export function ProjectsPage() {
 
       {projectsError && !projectsRateLimitError && (
         <div
-          className={cn(
-            bannerBaseClassName,
-            'border border-destructive/30 bg-destructive/10 text-destructive'
-          )}
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
         >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className={bannerContentClassName}>
+          <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
             <p>{projectsError.message}</p>
             {(() => {
@@ -443,13 +435,11 @@ export function ProjectsPage() {
 
       {boardError && !boardLoading && !boardRateLimitError && (
         <div
-          className={cn(
-            bannerBaseClassName,
-            'border border-destructive/30 bg-destructive/10 text-destructive'
-          )}
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
         >
           <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className={bannerContentClassName}>
+          <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
           </div>
@@ -710,10 +700,6 @@ export function ProjectsPage() {
                       onClick={boardControls.clearAll}
                       className="mt-2"
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={boardControls.clearAll}
-                      className="mt-2"
                     >
                       Clear all filters
                     </Button>
