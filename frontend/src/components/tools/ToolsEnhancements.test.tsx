@@ -117,7 +117,7 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
     expect(screen.getAllByText('Built-In')).toHaveLength(2);
-    expect(screen.getByText(/No project MCP tools are active yet/)).toBeInTheDocument();
+    expect(screen.getByText('No active project MCPs yet')).toBeInTheDocument();
   });
 
   it('includes user tools alongside built-in MCPs in generated config', () => {
@@ -157,6 +157,90 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.queryByText(/No project MCP tools are active yet/)).not.toBeInTheDocument();
   });
 
+  it('only includes active project MCPs in the generated config', () => {
+    const tools = [
+      {
+        id: 'tool-active',
+        name: 'Active MCP',
+        description: 'Included server',
+        endpoint_url: '',
+        config_content: JSON.stringify({
+          mcpServers: {
+            activeServer: {
+              type: 'http',
+              url: 'https://example.com/active',
+            },
+          },
+        }),
+        sync_status: 'synced' as const,
+        sync_error: '',
+        synced_at: '2026-01-01T00:00:00Z',
+        github_repo_target: 'owner/repo',
+        is_active: true,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'tool-inactive',
+        name: 'Inactive MCP',
+        description: 'Excluded server',
+        endpoint_url: '',
+        config_content: JSON.stringify({
+          mcpServers: {
+            inactiveServer: {
+              type: 'http',
+              url: 'https://example.com/inactive',
+            },
+          },
+        }),
+        sync_status: 'synced' as const,
+        sync_error: '',
+        synced_at: '2026-01-01T00:00:00Z',
+        github_repo_target: 'owner/repo',
+        is_active: false,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    render(<GitHubMcpConfigGenerator tools={tools} />);
+
+    expect(screen.getByText('activeServer')).toBeInTheDocument();
+    expect(screen.queryByText('inactiveServer')).not.toBeInTheDocument();
+  });
+
+  it('does not mark user overrides of built-in MCP keys as Built-In', () => {
+    const tools = [
+      {
+        id: 'tool-override',
+        name: 'Override Context7',
+        description: 'User-provided Context7 override',
+        endpoint_url: '',
+        config_content: JSON.stringify({
+          mcpServers: {
+            context7: {
+              type: 'http',
+              url: 'https://example.com/context7',
+            },
+          },
+        }),
+        sync_status: 'synced' as const,
+        sync_error: '',
+        synced_at: '2026-01-01T00:00:00Z',
+        github_repo_target: 'owner/repo',
+        is_active: true,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    render(<GitHubMcpConfigGenerator tools={tools} />);
+
+    expect(screen.getByText('context7')).toBeInTheDocument();
+    expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
+    expect(screen.getAllByText('Built-In')).toHaveLength(1);
+  });
+
   it('shows copy to clipboard button', async () => {
     const user = userEvent.setup();
     // Mock clipboard API using defineProperty to work with happy-dom
@@ -181,9 +265,24 @@ describe('GitHubMcpConfigGenerator', () => {
   it('displays the generated JSON config with mcpServers', () => {
     render(<GitHubMcpConfigGenerator tools={[]} />);
 
-    const pre = screen.getByText(/mcpServers/);
-    expect(pre).toBeInTheDocument();
-    expect(pre.textContent).toContain('context7');
-    expect(pre.textContent).toContain('CodeGraphContext');
+    expect(screen.getByText(/mcpServers/)).toBeInTheDocument();
+
+    const codeBlock = screen.getByTestId('github-mcp-config-code');
+    expect(codeBlock.textContent).toContain('context7');
+    expect(codeBlock.textContent).toContain('CodeGraphContext');
+  });
+
+  it('shows the syntax-highlighted code block guidance', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    expect(screen.getByText('Syntax-highlighted JSON ready to copy into GitHub.com.')).toBeInTheDocument();
+    expect(screen.getByText('Always included')).toBeInTheDocument();
+  });
+
+  it('applies syntax-highlighting classes to JSON keys and values', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    expect(screen.getByText('"mcpServers"')).toHaveClass('text-sky-300');
+    expect(screen.getByText('"https://mcp.context7.com/mcp"')).toHaveClass('text-emerald-300');
   });
 });
