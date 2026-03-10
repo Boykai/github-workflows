@@ -1,0 +1,277 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { screen, render, userEvent } from '@/test/test-utils';
+import { ProjectsPage } from './ProjectsPage';
+
+const mocks = vi.hoisted(() => ({
+  updateRateLimit: vi.fn(),
+  refresh: vi.fn(),
+  resetTimer: vi.fn(),
+  clearAll: vi.fn(),
+  selectProject: vi.fn(),
+  selectBoardProject: vi.fn(),
+  setQueryData: vi.fn(),
+  invalidateQueries: vi.fn(),
+  refetchSavedPipelines: vi.fn(),
+  mutate: vi.fn(),
+  savedPipelines: {
+    pipelines: [
+      {
+        id: 'pipe-1',
+        name: 'Spec Kit Flow',
+        stages: [{ name: 'Todo', agents: [{ id: 'agent-1', agent_slug: 'designer' }] }],
+      },
+    ],
+  },
+  pipelineAssignment: {
+    pipeline_id: 'pipe-1',
+    blocking_override: true,
+  },
+  projects: [
+    {
+      project_id: 'PVT_1',
+      name: 'Solune',
+      owner_login: 'Boykai',
+    },
+  ],
+  selectedProject: {
+    project_id: 'PVT_1',
+    name: 'Solune',
+    owner_login: 'Boykai',
+  },
+  boardData: {
+    columns: [
+      {
+        status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+        items: [],
+        item_count: 0,
+      },
+    ],
+  },
+  boardControls: {
+    controls: {
+      filters: { labels: [], assignees: [], milestones: [] },
+      sort: { field: null, direction: 'asc' },
+      group: { field: null },
+    },
+    transformedData: {
+      columns: [
+        {
+          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+          items: [],
+          item_count: 0,
+        },
+      ],
+    },
+    setFilters: vi.fn(),
+    setSort: vi.fn(),
+    setGroup: vi.fn(),
+    clearAll: vi.fn(),
+    availableLabels: [],
+    availableAssignees: [],
+    availableMilestones: [],
+    hasActiveFilters: true,
+    hasActiveSort: false,
+    hasActiveGroup: false,
+    hasActiveControls: true,
+    getGroups: vi.fn(),
+  },
+  projectBoard: {
+    projectsRateLimitInfo: null,
+    projectsLoading: false,
+    projectsError: null,
+    selectedProjectId: 'PVT_1',
+    boardData: {
+      columns: [
+        {
+          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+          items: [],
+          item_count: 0,
+        },
+      ],
+    },
+    boardLoading: false,
+    isFetching: false,
+    boardError: null,
+    lastUpdated: new Date('2026-03-10T21:19:34.006Z'),
+    selectProject: vi.fn(),
+  },
+}));
+
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual<typeof import('@tanstack/react-query')>(
+    '@tanstack/react-query'
+  );
+
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      setQueryData: mocks.setQueryData,
+      invalidateQueries: mocks.invalidateQueries,
+    }),
+    useQuery: vi.fn(({ queryKey }: { queryKey: string[] }) => {
+      if (queryKey[1] === 'assignment') {
+        return { data: mocks.pipelineAssignment };
+      }
+
+      return {
+        data: mocks.savedPipelines,
+        isLoading: false,
+        error: null,
+        refetch: mocks.refetchSavedPipelines,
+      };
+    }),
+    useMutation: vi.fn(() => ({
+      mutate: mocks.mutate,
+      isPending: false,
+    })),
+  };
+});
+
+vi.mock('@/context/RateLimitContext', () => ({
+  useRateLimitStatus: () => ({ updateRateLimit: mocks.updateRateLimit }),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { selected_project_id: 'PVT_1' } }),
+}));
+
+vi.mock('@/hooks/useProjects', () => ({
+  useProjects: () => ({
+    selectedProject: mocks.selectedProject,
+    projects: mocks.projects,
+    isLoading: false,
+    selectProject: mocks.selectProject,
+  }),
+}));
+
+vi.mock('@/hooks/useProjectBoard', () => ({
+  useProjectBoard: () => mocks.projectBoard,
+}));
+
+vi.mock('@/hooks/useBoardRefresh', () => ({
+  useBoardRefresh: () => ({
+    refresh: mocks.refresh,
+    isRefreshing: false,
+    error: null,
+    rateLimitInfo: null,
+    isRateLimitLow: false,
+    resetTimer: mocks.resetTimer,
+  }),
+}));
+
+vi.mock('@/hooks/useRealTimeSync', () => ({
+  useRealTimeSync: () => ({
+    status: 'connected',
+    lastUpdate: new Date('2026-03-10T21:19:34.006Z'),
+  }),
+}));
+
+vi.mock('@/hooks/useAgentConfig', () => ({
+  useAvailableAgents: () => ({ agents: [] }),
+}));
+
+vi.mock('@/hooks/useBoardControls', () => ({
+  useBoardControls: () => mocks.boardControls,
+}));
+
+vi.mock('@/hooks/useBlockingQueue', () => ({
+  useBlockingQueue: () => ({ data: [] }),
+}));
+
+vi.mock('@/components/common/CelestialCatalogHero', () => ({
+  CelestialCatalogHero: ({
+    title,
+    description,
+    actions,
+  }: {
+    title: string;
+    description: string;
+    actions?: React.ReactNode;
+  }) => (
+    <section>
+      <h1>{title}</h1>
+      <p>{description}</p>
+      <div>{actions}</div>
+    </section>
+  ),
+}));
+
+vi.mock('@/components/common/CelestialLoader', () => ({
+  CelestialLoader: ({ label }: { label?: string }) => <div>{label ?? 'Loading'}</div>,
+}));
+
+vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
+  ProjectSelectionEmptyState: ({ description }: { description: string }) => <div>{description}</div>,
+}));
+
+vi.mock('@/layout/ProjectSelector', () => ({
+  ProjectSelector: () => null,
+}));
+
+vi.mock('@/components/board/ProjectBoard', () => ({
+  ProjectBoard: () => <div data-testid="project-board" />,
+}));
+
+vi.mock('@/components/board/IssueDetailModal', () => ({
+  IssueDetailModal: () => null,
+}));
+
+vi.mock('@/components/board/BoardToolbar', () => ({
+  BoardToolbar: () => <div data-testid="board-toolbar" />,
+}));
+
+vi.mock('@/components/board/BlockingChainPanel', () => ({
+  BlockingChainPanel: () => null,
+}));
+
+vi.mock('@/components/board/BlockingIssuePill', () => ({
+  BlockingIssuePill: () => null,
+}));
+
+vi.mock('@/components/board/ProjectIssueLaunchPanel', () => ({
+  ProjectIssueLaunchPanel: () => <div data-testid="launch-panel" />,
+}));
+
+vi.mock('@/components/board/RefreshButton', () => ({
+  RefreshButton: ({ onRefresh }: { onRefresh: () => void }) => (
+    <button type="button" onClick={onRefresh}>
+      Refresh board
+    </button>
+  ),
+}));
+
+describe('ProjectsPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.boardControls.clearAll = mocks.clearAll;
+    mocks.boardControls.hasActiveControls = true;
+    mocks.projectBoard.boardError = null;
+    mocks.projectBoard.selectProject = mocks.selectBoardProject;
+    mocks.pipelineAssignment.blocking_override = true;
+  });
+
+  it('renders polished status and empty-state controls for filtered views', async () => {
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Live sync')).toBeInTheDocument();
+    expect(screen.getByText(/Updated /)).toBeInTheDocument();
+    expect(screen.getByText('Blocking on')).toBeInTheDocument();
+    expect(screen.getByText('Project override')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
+
+    expect(mocks.clearAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the scoped retry CTA for board failures', async () => {
+    mocks.projectBoard.boardError = new Error('Board request failed');
+    mocks.pipelineAssignment.blocking_override = null;
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Pipeline default')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry loading board data' }));
+
+    expect(mocks.selectBoardProject).toHaveBeenCalledWith('PVT_1');
+  });
+});
