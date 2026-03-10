@@ -91,7 +91,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
 
   if (!isOpen) return null;
 
-  const createChore = async (choreName: string, content: string) => {
+  const createChore = async (_choreName: string, content: string) => {
     // Show double-confirmation modal
     setPendingContent(content);
     setShowConfirm(true);
