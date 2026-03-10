@@ -89,7 +89,9 @@ class MetadataService:
                 self._l1.set(f"metadata:{repo_key}", ctx.model_dump(), ttl_seconds=ttl)
                 return ctx
         except Exception as e:
-            logger.warning("Failed to read metadata from SQLite for %s: %s", repo_key, e, exc_info=True)
+            logger.warning(
+                "Failed to read metadata from SQLite for %s: %s", repo_key, e, exc_info=True
+            )
 
         # Tier 3: Fetch from API (with fallback on error)
         try:
@@ -196,7 +198,9 @@ class MetadataService:
             try:
                 await self._write_to_sqlite(ctx)
             except Exception as e:
-                logger.warning("Failed to write metadata to SQLite for %s: %s", repo_key, e, exc_info=True)
+                logger.warning(
+                    "Failed to write metadata to SQLite for %s: %s", repo_key, e, exc_info=True
+                )
         else:
             logger.warning(
                 "Skipping SQLite cache write for %s — one or more fetches were incomplete",
@@ -235,7 +239,9 @@ class MetadataService:
                 self._l1.set(f"metadata:{repo_key}", ctx.model_dump(), ttl_seconds=ttl)
                 return ctx
         except Exception as e:
-            logger.warning("Failed to read metadata from SQLite for %s: %s", repo_key, e, exc_info=True)
+            logger.warning(
+                "Failed to read metadata from SQLite for %s: %s", repo_key, e, exc_info=True
+            )
 
         return None
 
@@ -255,7 +261,9 @@ class MetadataService:
             await db.commit()
             logger.info("Invalidated metadata cache for %s", repo_key)
         except Exception as e:
-            logger.warning("Failed to invalidate SQLite cache for %s: %s", repo_key, e, exc_info=True)
+            logger.warning(
+                "Failed to invalidate SQLite cache for %s: %s", repo_key, e, exc_info=True
+            )
 
     # ──────────────────────────────────────────────────────────────────
     # Private helpers

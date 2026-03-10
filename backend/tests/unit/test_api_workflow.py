@@ -36,7 +36,6 @@ from src.models.chat import (
     WorkflowTransition,
 )
 from src.models.pipeline import PipelineAgentNode, PipelineConfig, PipelineStage
-from src.models.user import UserSession
 from src.utils import utcnow
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -653,7 +652,6 @@ class TestCheckDuplicate:
 
     def teardown_method(self):
         _recent_requests.clear()
-
 
 
 # ── Polling Check Issue ───────────────────────────────────────────────────

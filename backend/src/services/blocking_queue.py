@@ -39,7 +39,9 @@ def _get_issue_branch(entry: BlockingQueueEntry) -> str | None:
         if main_branch and main_branch.get("branch"):
             return str(main_branch["branch"])
     except Exception as e:
-        logger.debug("Failed to resolve cached main branch for issue #%d: %s", entry.issue_number, e)
+        logger.debug(
+            "Failed to resolve cached main branch for issue #%d: %s", entry.issue_number, e
+        )
 
     return entry.parent_branch
 
