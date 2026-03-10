@@ -363,14 +363,33 @@ async def get_board_data(
 @router.get("/projects/{project_id}/blocking-queue", dependencies=[Depends(verify_project_access)])
 async def get_blocking_queue(
     project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> list[dict]:
     """Get active blocking queue entries for a project.
 
     Returns non-completed entries ordered by created_at ASC, providing
     data for the blocking chain tooltip/sidebar on the board.
+
+    Runs a stale-entry sweep before returning so that issues closed
+    directly on GitHub (not via the Delete action) are automatically
+    cleared from the queue instead of remaining visible as Blocking.
     """
     try:
+        from src.services import blocking_queue as bq_service
         from src.services import blocking_queue_store as bq_store
+
+        # Sweep stale entries: detect issues that were closed on GitHub
+        # outside the app and mark them completed so the queue advances.
+        initial_entries = await bq_store.get_by_project(project_id)
+        active_repo_keys = {
+            e.repo_key for e in initial_entries if e.queue_status in ("active", "in_review")
+        }
+        for repo_key in active_repo_keys:
+            owner, repo = repo_key.split("/", 1)
+            try:
+                await bq_service.sweep_stale_entries(session.access_token, owner, repo)
+            except Exception:
+                logger.debug("Blocking queue sweep skipped for %s", repo_key)
 
         entries = await bq_store.get_by_project(project_id)
         return [entry.model_dump() for entry in entries]
